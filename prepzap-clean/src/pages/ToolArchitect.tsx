@@ -328,8 +328,8 @@ export default function ToolArchitect() {
           )}
         </div>
       </main>
-    </div>
         </div>
       </div>
-  )
+    </div>
+  );
 }

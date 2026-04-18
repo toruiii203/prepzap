@@ -218,6 +218,8 @@ export default function BlankMap() {
           </div>
         )}
       </main>
+        </div>
+      </div>
     </div>
   );
 }

@@ -163,6 +163,8 @@ export default function BuildDef() {
           </div>
         )}
       </main>
+        </div>
+      </div>
     </div>
   );
 }

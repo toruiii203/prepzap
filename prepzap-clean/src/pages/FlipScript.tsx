@@ -173,7 +173,9 @@ export default function FlipScript() {
             </div>
           </div>
         )}
-      </main>
+     </main>
+        </div>
+      </div>
     </div>
   );
 }

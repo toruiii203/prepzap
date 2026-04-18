@@ -248,6 +248,8 @@ export default function BossRound() {
           </div>
         )}
       </main>
+        </div>
+      </div>
     </div>
   );
 }
