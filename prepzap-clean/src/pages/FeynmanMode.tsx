@@ -495,12 +495,10 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
               )}
             </div>
           )}
-          <p className="text-xs text-muted-foreground">⌘+Enter to submit</p>
+         <p className="text-xs text-muted-foreground">⌘+Enter to submit</p>
         </div>
-      </div>
+      </main>
     </div>
-  </div>
-</div>
   );
 
   // ── FEEDBACK ───────────────────────────────────────────────────────────────

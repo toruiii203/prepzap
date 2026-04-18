@@ -190,7 +190,9 @@ export default function SpotError() {
             </div>
           </div>
         )}
-      </main>
+     </main>
+        </div>
+      </div>
     </div>
   );
 }
