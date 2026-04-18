@@ -1,5 +1,5 @@
-[build]
-  SECRETS_SCAN_ENABLED = false
+[build.environment]
+  SECRETS_SCAN_ENABLED = "false"
 
 [[redirects]]
   from = "/*"
