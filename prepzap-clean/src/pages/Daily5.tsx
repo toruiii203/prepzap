@@ -204,7 +204,9 @@ export default function Daily5() {
             </div>
           </div>
         )}
-      </main>
+     </main>
+        </div>
+      </div>
     </div>
   );
 }
