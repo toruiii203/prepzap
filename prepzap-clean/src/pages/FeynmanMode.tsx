@@ -382,7 +382,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
               </div>
             </div>
           )}
-      </main>
+      </div>
     </div>
   </div>
 </div>
