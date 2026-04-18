@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.prepzap.app",
+        "sha256_cert_fingerprints": ["62:7B:A1:E2:02:34:5C:E1:15:D1:50:F7:C6:F7:03:68:7D:70:06:21:AC:2E:11:0D:5E:13:DE:DF:A1:D8:5D:F0"]
+      }
+    }]
