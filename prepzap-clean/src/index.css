@@ -1,0 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --pz-bg:        #000000;
+    --pz-surface:   #0a0a0a;
+    --pz-surface2:  #111111;
+    --pz-surface3:  #161616;
+    --pz-border:    rgba(255,255,255,0.08);
+    --pz-border-hv: rgba(255,255,255,0.16);
+    --pz-text:       #f5f5f5;
+    --pz-text-2:     rgba(245,245,245,0.50);
+    --pz-text-muted: rgba(245,245,245,0.25);
+
+    --pz-gold:       #f5f5f5;
+    --pz-gold-dim:   rgba(245,245,245,0.06);
+    --pz-gold-glow:  rgba(245,245,245,0.04);
+    --pz-teal:       rgba(245,245,245,0.70);
+    --pz-teal-dim:   rgba(245,245,245,0.05);
+    --pz-violet:     rgba(245,245,245,0.55);
+    --pz-violet-dim: rgba(245,245,245,0.05);
+    --pz-rose:       rgba(245,245,245,0.40);
+    --pz-amber:      rgba(245,245,245,0.60);
+
+    --pz-r-sm: 8px;
+    --pz-r-md: 12px;
+    --pz-r-lg: 16px;
+    --pz-r-xl: 20px;
+
+    --background:          0 0% 0%;
+    --foreground:          0 0% 96%;
+    --card:                0 0% 4%;
+    --card-foreground:     0 0% 96%;
+    --popover:             0 0% 5%;
+    --popover-foreground:  0 0% 96%;
+    --primary:             0 0% 96%;
+    --primary-foreground:  0 0% 0%;
+    --secondary:           0 0% 8%;
+    --secondary-foreground:0 0% 60%;
+    --muted:               0 0% 7%;
+    --muted-foreground:    0 0% 35%;
+    --accent:              0 0% 12%;
+    --accent-foreground:   0 0% 96%;
+    --destructive:         0 0% 45%;
+    --destructive-foreground: 0 0% 96%;
+    --gold:                0 0% 96%;
+    --gold-foreground:     0 0% 0%;
+    --success:             0 0% 65%;
+    --success-foreground:  0 0% 0%;
+    --border:              0 0% 10%;
+    --input:               0 0% 10%;
+    --ring:                0 0% 96%;
+    --radius: 0.75rem;
+    --sidebar-background:  0 0% 4%;
+    --sidebar-foreground:  0 0% 60%;
+    --sidebar-primary:     0 0% 96%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent:      0 0% 8%;
+    --sidebar-accent-foreground: 0 0% 60%;
+    --sidebar-border:      0 0% 10%;
+    --sidebar-ring:        0 0% 96%;
+    --gradient-hero: linear-gradient(135deg, #f5f5f5, #888);
+    --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    --shadow-card:     none;
+    --shadow-elevated: none;
+  }
+
+  .dark {
+    --background:          0 0% 0%;
+    --foreground:          0 0% 96%;
+    --card:                0 0% 4%;
+    --card-foreground:     0 0% 96%;
+    --popover:             0 0% 5%;
+    --popover-foreground:  0 0% 96%;
+    --primary:             0 0% 96%;
+    --primary-foreground:  0 0% 0%;
+    --secondary:           0 0% 8%;
+    --secondary-foreground:0 0% 60%;
+    --muted:               0 0% 7%;
+    --muted-foreground:    0 0% 35%;
+    --accent:              0 0% 12%;
+    --accent-foreground:   0 0% 96%;
+    --destructive:         0 0% 45%;
+    --destructive-foreground: 0 0% 96%;
+    --border:              0 0% 10%;
+    --input:               0 0% 10%;
+    --ring:                0 0% 96%;
+    --sidebar-background:  0 0% 4%;
+    --sidebar-foreground:  0 0% 60%;
+    --sidebar-primary:     0 0% 96%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent:      0 0% 8%;
+    --sidebar-accent-foreground: 0 0% 60%;
+    --sidebar-border:      0 0% 10%;
+    --sidebar-ring:        0 0% 96%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { background: var(--pz-bg); }
+  body {
+    background: var(--pz-bg);
+    color: var(--pz-text);
+    font-family: 'Geist', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    font-weight: 300;
+    @apply antialiased;
+  }
+  h1, h2, h3 {
+    font-family: 'Geist', system-ui, sans-serif;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+  }
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+
+::selection { background: rgba(255,255,255,0.12); color: var(--pz-text); }
+
+.gradient-text {
+  background: linear-gradient(135deg, #f5f5f5, rgba(245,245,245,0.45));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-luxe {
+  background: var(--pz-surface2);
+  border: 0.5px solid var(--pz-border);
+  border-radius: var(--pz-r-lg);
+  transition: border-color 0.2s;
+}
+.card-luxe:hover { border-color: var(--pz-border-hv); }
+
+.badge-gold   { background: rgba(255,255,255,0.06); color: rgba(245,245,245,0.70); border: 0.5px solid rgba(255,255,255,0.12); }
+.badge-teal   { background: rgba(255,255,255,0.05); color: rgba(245,245,245,0.60); border: 0.5px solid rgba(255,255,255,0.10); }
+.badge-violet { background: rgba(255,255,255,0.05); color: rgba(245,245,245,0.55); border: 0.5px solid rgba(255,255,255,0.10); }
+
+.stat-mono { font-family: 'Geist Mono', monospace; font-weight: 500; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.4s ease-out both; }
+
+.math-block { overflow-x: auto; padding: 8px 0; text-align: center; }
+.math-output .katex { font-size: 1.05em; }
+.math-output .katex-display { margin: 0.5em 0; }
+
+.pz-card-hover { transition: border-color 0.15s ease; }
+.pz-card-hover:hover { border-color: var(--pz-border-hv) !important; }
