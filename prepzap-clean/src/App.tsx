@@ -1,9 +1,26 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEffect, useState } from "react";
 import Index from "./pages/Index";
+
+function SplashScreen({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1800);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "#000",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999,
+    }}>
+      <img src="/icon-512.png" alt="PrepZap" style={{ width: 120, height: 120, opacity: 0.9 }} />
+    </div>
+  );
+}
 import Onboarding from "./pages/Onboarding";
 import Admin from "./pages/Admin";
 import SourceLibrary from "./pages/SourceLibrary";
@@ -39,7 +56,18 @@ import BossRound from "./pages/BossRound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+function isMobile() {
+  return window.innerWidth < 768;
+}
+
+const App = () => {
+  const [showSplash, setShowSplash] = useState(isMobile());
+
+  if (showSplash) {
+    return <SplashScreen onDone={() => setShowSplash(false)} />;
+  }
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -47,7 +75,7 @@ const App = () => (
       <BrowserRouter>
         <SourceBreadcrumb />
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={isMobile() ? <Navigate to="/dashboard" replace /> : <Index />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/practice" element={<Practice />} />
@@ -83,6 +111,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

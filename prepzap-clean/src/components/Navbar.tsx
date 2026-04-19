@@ -81,8 +81,8 @@ export function Navbar({ isLoggedIn = false, user, extraRight }: NavbarProps) {
           <Logo />
         </Link>
 
-        {/* Center nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+        {/* Center nav - hidden on mobile */}
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }} className="hidden md:flex">
           {isLoggedIn && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -125,11 +125,14 @@ export function Navbar({ isLoggedIn = false, user, extraRight }: NavbarProps) {
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {isLoggedIn ? (
             <>
-              {/* Global Source Context Bar */}
-              <GlobalContextBar compact />
+              {/* Global Source Context Bar - hidden on mobile */}
+              <div className="hidden md:flex">
+                <GlobalContextBar compact />
+              </div>
               {extraRight}
 
-              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginRight: "4px" }}>
+              {/* XP/streak - hidden on mobile */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginRight: "4px" }} className="hidden md:flex">
                 {user?.streak && user.streak > 0 && (
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", color: "var(--pz-text-muted)" }}>
                     {user.streak}d
@@ -182,7 +185,7 @@ export function Navbar({ isLoggedIn = false, user, extraRight }: NavbarProps) {
               </DropdownMenu>
             </>
           ) : (
-            <>
+            <div className="hidden md:flex" style={{ gap: "12px", alignItems: "center" }}>
               <Link to="/login">
                 <button style={{
                   fontFamily: "'Geist', sans-serif", fontWeight: 300,
@@ -209,7 +212,7 @@ export function Navbar({ isLoggedIn = false, user, extraRight }: NavbarProps) {
                   Get Started
                 </button>
               </Link>
-            </>
+            </div>
           )}
 
           {/* Mobile hamburger */}

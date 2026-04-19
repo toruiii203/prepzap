@@ -1,8 +1,8 @@
 [{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.prepzap.app",
-        "sha256_cert_fingerprints": ["62:7B:A1:E2:02:34:5C:E1:15:D1:50:F7:C6:F7:03:68:7D:70:06:21:AC:2E:11:0D:5E:13:DE:DF:A1:D8:5D:F0"]
-      }
-    }]
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.prepzap.app",
+    "sha256_cert_fingerprints": ["5E:FE:9F:A6:67:34:52:84:C1:BF:40:EE:D9:6E:7B:2D:D5:D6:B9:25:95:91:3D:9A:E3:05:E6:C5:DA:C1:C3:5C"]
+  }
+}]

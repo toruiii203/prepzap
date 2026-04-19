@@ -79,7 +79,7 @@ export function ToolHistorySidebar({ toolKey, onNew, onSelect, activeId }: Props
   }
 
   return (
-    <div className="flex h-full">
+    <div className="hidden md:flex h-full">
       {/* Toggle button */}
       <button
         onClick={() => setOpen(o => !o)}
