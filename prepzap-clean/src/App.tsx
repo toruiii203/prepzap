@@ -24,9 +24,6 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
 }
 
 // ─── PWA Install Banner ───────────────────────────────────────────────────────
-// Shows a dismissible "Add to Home Screen" nudge on mobile only.
-// Uses the beforeinstallprompt event (Chrome/Android).
-// iOS users see it too but must use Safari Share > Add to Home Screen manually.
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -141,24 +138,22 @@ function isMobile() {
 }
 
 // ─── Auth check ───────────────────────────────────────────────────────────────
-// Checks if there's any active session from any supported login provider.
-// Extend this as you add more auth methods.
 function isAuthenticated(): boolean {
-  // PocketBase token (if you use PocketBase)
   if (localStorage.getItem("pocketbase_auth")) return true;
-  // Supabase session
   const supaKey = Object.keys(localStorage).find(k => k.startsWith("sb-") && k.endsWith("-auth-token"));
   if (supaKey && localStorage.getItem(supaKey)) return true;
-  // Firebase / generic token fallback
   if (localStorage.getItem("pb_token") || localStorage.getItem("auth_token")) return true;
-  // GitHub OAuth token (if you add GitHub login)
   if (localStorage.getItem("github_token")) return true;
   return false;
 }
 
+// ─── Protected Route ──────────────────────────────────────────────────────────
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
 // ─── Mobile root redirect ─────────────────────────────────────────────────────
-// On mobile: send authenticated users to /dashboard, unauthenticated to /login.
-// On desktop: show the landing page (Index).
 function MobileRootRedirect() {
   if (!isMobile()) return <Index />;
   return <Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />;
@@ -178,40 +173,43 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <SourceBreadcrumb />
-          {/* PWA install banner — only renders on mobile, dismissed per session */}
           <PWAInstallBanner />
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<MobileRootRedirect />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/practice" element={<Practice />} />
-            <Route path="/flashcards" element={<Flashcards />} />
-            <Route path="/timer" element={<FocusTimer />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/planner" element={<StudyPlanner />} />
-            <Route path="/ai-tutor" element={<AiTutor />} />
-            <Route path="/feynman" element={<FeynmanMode />} />
-            <Route path="/tool-architect" element={<ToolArchitect />} />
-            <Route path="/synthesis" element={<SynthesisLab />} />
-            <Route path="/why-engine" element={<WhyEngine />} />
-            <Route path="/upload" element={<UploadMaterials />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/suggestions" element={<Suggestions />} />
-            <Route path="/math" element={<MathSolver />} />
-            <Route path="/quiz-builder" element={<QuizBuilder />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/essay" element={<EssayWriter />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/daily5" element={<Daily5 />} />
-            <Route path="/flip-script" element={<FlipScript />} />
-            <Route path="/spot-error" element={<SpotError />} />
-            <Route path="/build-def" element={<BuildDef />} />
-            <Route path="/blank-map" element={<BlankMap />} />
-            <Route path="/boss-round" element={<BossRound />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/sources" element={<SourceLibrary />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+
+            {/* Protected routes */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
+            <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+            <Route path="/timer" element={<ProtectedRoute><FocusTimer /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+            <Route path="/planner" element={<ProtectedRoute><StudyPlanner /></ProtectedRoute>} />
+            <Route path="/ai-tutor" element={<ProtectedRoute><AiTutor /></ProtectedRoute>} />
+            <Route path="/feynman" element={<ProtectedRoute><FeynmanMode /></ProtectedRoute>} />
+            <Route path="/tool-architect" element={<ProtectedRoute><ToolArchitect /></ProtectedRoute>} />
+            <Route path="/synthesis" element={<ProtectedRoute><SynthesisLab /></ProtectedRoute>} />
+            <Route path="/why-engine" element={<ProtectedRoute><WhyEngine /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><UploadMaterials /></ProtectedRoute>} />
+            <Route path="/suggestions" element={<ProtectedRoute><Suggestions /></ProtectedRoute>} />
+            <Route path="/math" element={<ProtectedRoute><MathSolver /></ProtectedRoute>} />
+            <Route path="/quiz-builder" element={<ProtectedRoute><QuizBuilder /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/essay" element={<ProtectedRoute><EssayWriter /></ProtectedRoute>} />
+            <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+            <Route path="/daily5" element={<ProtectedRoute><Daily5 /></ProtectedRoute>} />
+            <Route path="/flip-script" element={<ProtectedRoute><FlipScript /></ProtectedRoute>} />
+            <Route path="/spot-error" element={<ProtectedRoute><SpotError /></ProtectedRoute>} />
+            <Route path="/build-def" element={<ProtectedRoute><BuildDef /></ProtectedRoute>} />
+            <Route path="/blank-map" element={<ProtectedRoute><BlankMap /></ProtectedRoute>} />
+            <Route path="/boss-round" element={<ProtectedRoute><BossRound /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/sources" element={<ProtectedRoute><SourceLibrary /></ProtectedRoute>} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
