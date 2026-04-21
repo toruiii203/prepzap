@@ -90,7 +90,7 @@ export default function SpotError() {
           activeId={activeSessionId}
         />
         <div className="flex-1 overflow-auto">
-      <main className="flex-1 max-w-2xl mx-auto w-full p-4 py-6">
+      <main className="flex-1 w-full p-4 py-6 md:max-w-2xl md:mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link to="/dashboard"><Button variant="ghost" size="sm" className="gap-1"><ChevronLeft className="h-4 w-4"/>Dashboard</Button></Link>
           <div className="flex-1">

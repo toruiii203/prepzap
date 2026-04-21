@@ -275,7 +275,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
           onSelect={handleSelectSession}
           activeId={activeSessionId}
         />
-      <main className="flex-1 flex items-center justify-center p-6">
+      <main className="flex-1 flex items-center justify-center p-4 md:p-6 w-full">
         <div className="w-full max-w-2xl">
           <div className="text-center mb-10">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/20">
@@ -392,7 +392,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
   if (phase==="teaching") return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
-      <main className="flex-1 flex flex-col max-w-3xl mx-auto w-full p-4 gap-4">
+      <main className="flex-1 flex flex-col w-full p-4 gap-4 md:max-w-3xl md:mx-auto">
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-none bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
@@ -509,7 +509,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
-        <main className="flex-1 max-w-3xl mx-auto w-full p-4 pb-8 space-y-4">
+        <main className="flex-1 w-full p-4 pb-8 space-y-4 md:max-w-3xl md:mx-auto">
           <div className="flex items-center justify-between pt-2">
             <h2 className="font-bold text-lg">{topic} — Feedback</h2>
             <Badge variant="secondary">Round {round}</Badge>

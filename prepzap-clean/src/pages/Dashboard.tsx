@@ -286,10 +286,10 @@ function StudyPlannerCard() {
   return (
     <div className="rounded-none" style={S}>
       <div className="flex items-center justify-between px-5 pt-4 pb-0">
-        <div><h2 className="text-xl font-bold" style={{color:"var(--pz-text)",fontFamily:"'DM Serif Display',serif"}}>Study Planner</h2><p className="text-xs mt-0.5" style={{color:"var(--pz-text-muted)"}}>Plan your sessions, hit your goals</p></div>
-        <button onClick={()=>setModal(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-none text-sm font-semibold transition-opacity hover:opacity-80" style={{background:"var(--pz-teal)",color:"#0A0A0C"}}><Plus className="h-4 w-4"/>Add Session</button>
+        <div><h2 className="text-xl font-bold" style={{color:"var(--pz-text)",fontFamily:"'DM Serif Display',serif"}}>Study Planner</h2><p className="text-xs mt-0.5 hidden sm:block" style={{color:"var(--pz-text-muted)"}}>Plan your sessions, hit your goals</p></div>
+        <button onClick={()=>setModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-none text-xs md:text-sm font-semibold transition-opacity hover:opacity-80" style={{background:"var(--pz-teal)",color:"#0A0A0C"}}><Plus className="h-3 w-3 md:h-4 md:w-4"/>Add Session</button>
       </div>
-      <div className="grid grid-cols-4 gap-3 px-5 py-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 py-4">
         {[{icon:"🔥",value:String(user.streak),label:"Day Streak"},{icon:"🕐",value:"12.5h",label:"Hours This Week"},{icon:"✅",value:"24",label:"Sessions Done"},{icon:"🎯",value:"78%",label:"Goal Completion"}].map(s=>(
           <div key={s.label} className="flex items-center gap-3 px-4 py-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}>
             <span className="text-xl">{s.icon}</span>
@@ -297,7 +297,7 @@ function StudyPlannerCard() {
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-[1fr_280px] gap-0 border-t" style={{borderColor:"var(--pz-border)"}}>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-0 border-t" style={{borderColor:"var(--pz-border)"}}>
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" style={{color:"var(--pz-teal)"}}/><h3 className="font-semibold" style={{color:"var(--pz-text)"}}>{MONTHS[mo]} {yr}</h3></div>
@@ -436,7 +436,7 @@ export default function Dashboard() {
                 <div className="p-6 rounded-none overflow-hidden" style={card}>
                   <div className="h-0.5 -mx-6 -mt-6 mb-6" style={{background:`linear-gradient(90deg,var(--pz-gold) ${dailyProgress}%,var(--pz-surface3) ${dailyProgress}%)`}}/>
                   <div className="flex items-center justify-between mb-5"><h2 className="font-medium text-base" style={{color:"var(--pz-text)"}}>Today's Progress</h2><span className="text-xs px-2.5 py-1 rounded-none" style={{background:"var(--pz-surface3)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace",border:"1px solid var(--pz-border)"}}>{user.todayMinutes} / {user.dailyGoalMinutes} min</span></div>
-                  <div className="grid grid-cols-4 gap-3">{[{emoji:"📝",value:"156",label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:"78%",label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(user.streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:user.xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[{emoji:"📝",value:"156",label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:"78%",label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(user.streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:user.xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
                 </div>
 
                 {/* Quick Start */}
