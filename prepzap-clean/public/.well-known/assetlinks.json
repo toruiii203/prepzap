@@ -1,8 +1,8 @@
 [{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.prepzap.app",
-    "sha256_cert_fingerprints": ["5E:FE:9F:A6:67:34:52:84:C1:BF:40:EE:D9:6E:7B:2D:D5:D6:B9:25:95:91:3D:9A:E3:05:E6:C5:DA:C1:C3:5C"]
-  }
-}]
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "prepzap.netlify.app",
+        "sha256_cert_fingerprints": ["74:D6:3A:8A:21:EC:F4:69:63:82:AE:73:47:10:B3:94:28:26:1E:A7:D2:BD:7B:F7:DB:82:2D:49:71:3C:F6:4D"]
+      }
+    }]
