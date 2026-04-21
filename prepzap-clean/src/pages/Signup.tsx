@@ -2,6 +2,12 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Logo } from "@/components/Logo"
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  "https://sieizvhprgcqrkalnkht.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWl6dmhwcmdjcXJrYWxua2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTg2NDksImV4cCI6MjA5MjMzNDY0OX0.-U8zu8Midq8PGaUPSRqhC-vVU1RnCH4yPOs_ZuppC_8"
+)
 
 const mono: React.CSSProperties = { fontFamily: "'Geist Mono', monospace" };
 const inputStyle: React.CSSProperties = {
@@ -44,15 +50,44 @@ export default function Signup() {
 
   const handleGoogle = async () => {
     setLoading(true)
-    await new Promise(r => setTimeout(r, 900))
-    setLoading(false); setSuccess(true)
-    setTimeout(() => navigate("/dashboard"), 800)
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    })
+    if (authError) { setError(authError.message); setLoading(false) }
   }
 
   const handleFinish = async () => {
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1200))
-    setLoading(false); setSuccess(true)
+    setError(null)
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          subjects: Array.from(subjects),
+          daily_goal_minutes: goal,
+        },
+      },
+    })
+
+    if (signUpError) {
+      setError(signUpError.message)
+      setLoading(false)
+      return
+    }
+
+    // If email confirmation is required, tell the user
+    if (data.user && !data.session) {
+      setLoading(false)
+      setError("Check your email to confirm your account before logging in.")
+      return
+    }
+
+    setLoading(false)
+    setSuccess(true)
     setTimeout(() => navigate("/dashboard"), 800)
   }
 
@@ -61,7 +96,6 @@ export default function Signup() {
       <Link to="/" style={{ marginBottom: "40px" }}><Logo size="lg" /></Link>
 
       <div style={{ width: "100%", maxWidth: "360px" }}>
-        {/* Step indicator */}
         <div style={{ display: "flex", gap: "4px", marginBottom: "28px" }}>
           {[1,2].map(s => (
             <div key={s} style={{ flex: 1, height: "1px", background: s <= step ? "var(--pz-text)" : "var(--pz-border)", transition: "background 0.3s" }} />
@@ -165,6 +199,11 @@ export default function Signup() {
                 <span style={{ ...mono, fontSize: "10px", color: "var(--pz-text-muted)" }}>3 hr</span>
               </div>
             </div>
+            {error && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "0.5px solid rgba(245,245,245,0.14)", fontSize: "12px", color: "var(--pz-text-muted)", fontWeight: 300 }}>
+                <AlertCircle style={{ width: 12, height: 12, flexShrink: 0 }} /> {error}
+              </div>
+            )}
             {success ? (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "0.5px solid rgba(245,245,245,0.14)", fontSize: "12px", color: "var(--pz-text-2)", fontWeight: 300 }}>
                 <CheckCircle2 style={{ width: 12, height: 12 }} /> Account created! Redirecting...

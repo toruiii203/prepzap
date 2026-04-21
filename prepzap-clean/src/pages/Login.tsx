@@ -2,6 +2,12 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Logo } from "@/components/Logo"
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  "https://sieizvhprgcqrkalnkht.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWl6dmhwcmdjcXJrYWxua2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTg2NDksImV4cCI6MjA5MjMzNDY0OX0.-U8zu8Midq8PGaUPSRqhC-vVU1RnCH4yPOs_ZuppC_8"
+)
 
 const mono: React.CSSProperties = { fontFamily: "'Geist Mono', monospace" };
 const inputStyle: React.CSSProperties = {
@@ -29,21 +35,25 @@ export default function Login() {
     e.preventDefault()
     if (!email || !password) { setError("Please fill in all fields."); return }
     setError(null); setLoading(true)
-    await new Promise(r => setTimeout(r, 1200))
+
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
-    if (email && password.length >= 6) {
+
+    if (authError) {
+      setError(authError.message)
+    } else {
       setSuccess(true)
       setTimeout(() => navigate("/dashboard"), 800)
-    } else {
-      setError("Invalid email or password.")
     }
   }
 
   const handleGoogle = async () => {
     setLoading(true)
-    await new Promise(r => setTimeout(r, 900))
-    setLoading(false); setSuccess(true)
-    setTimeout(() => navigate("/dashboard"), 800)
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    })
+    if (authError) { setError(authError.message); setLoading(false) }
   }
 
   return (
@@ -56,7 +66,6 @@ export default function Login() {
           <p style={{ fontSize: "13px", color: "var(--pz-text-muted)", fontWeight: 300 }}>Log in to continue your streak</p>
         </div>
 
-        {/* Google */}
         <button onClick={handleGoogle} disabled={loading} style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
           padding: "10px", border: "0.5px solid var(--pz-border)", background: "transparent",
@@ -91,7 +100,13 @@ export default function Login() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
-              <button type="button" style={{ ...mono, fontSize: "10px", color: "var(--pz-text-muted)", background: "transparent", border: "none", cursor: "pointer", letterSpacing: "0.06em" }}>Forgot?</button>
+              <button type="button" onClick={async () => {
+                if (!email) { setError("Enter your email first."); return }
+                setLoading(true)
+                await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/login` })
+                setLoading(false)
+                setError("Password reset email sent!")
+              }} style={{ ...mono, fontSize: "10px", color: "var(--pz-text-muted)", background: "transparent", border: "none", cursor: "pointer", letterSpacing: "0.06em" }}>Forgot?</button>
             </div>
             <div style={{ position: "relative" }}>
               <input type={showPw ? "text" : "password"} placeholder="••••••••" value={password}
