@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
+import { BottomNav } from "@/components/BottomNav"
 
 // ─── Theme System ─────────────────────────────────────────────────────────────
 type ThemeId = "obsidian" | "midnight" | "emerald" | "crimson"
@@ -416,8 +417,16 @@ export default function Dashboard() {
     <ThemeCtx.Provider value={{theme,setTheme:applyTheme}}>
       <style>{themeStyle}</style>
       <div className="min-h-screen flex flex-col" style={{background:theme.vars["--pz-bg"],color:theme.vars["--pz-text"]}}>
-        <Navbar isLoggedIn user={{name:user.name,xp:user.xp,streak:user.streak,plan:user.plan}} extraRight={<ThemePill/>}/>
-        <main className="flex-1 py-6 lg:py-10">
+        <div className="hidden md:block">
+          <Navbar isLoggedIn user={{name:user.name,xp:user.xp,streak:user.streak,plan:user.plan}} extraRight={<ThemePill/>}/>
+        </div>
+        {/* Mobile top bar */}
+        <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40" style={{background:"rgba(0,0,0,0.95)",borderBottom:"0.5px solid var(--pz-border)",backdropFilter:"blur(12px)"}}>
+          <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"16px",color:"var(--pz-text)"}}>PrepZap</span>
+          <ThemePill/>
+        </div>
+        <BottomNav/>
+        <main className="flex-1 py-4 lg:py-10 pb-20 md:pb-6">
           <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
 
             {/* Greeting */}
@@ -433,10 +442,10 @@ export default function Dashboard() {
                 <ChecklistCard/>
 
                 {/* Progress */}
-                <div className="p-6 rounded-none overflow-hidden" style={card}>
+                <div className="p-4 lg:p-6 rounded-none overflow-hidden" style={card}>
                   <div className="h-0.5 -mx-6 -mt-6 mb-6" style={{background:`linear-gradient(90deg,var(--pz-gold) ${dailyProgress}%,var(--pz-surface3) ${dailyProgress}%)`}}/>
                   <div className="flex items-center justify-between mb-5"><h2 className="font-medium text-base" style={{color:"var(--pz-text)"}}>Today's Progress</h2><span className="text-xs px-2.5 py-1 rounded-none" style={{background:"var(--pz-surface3)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace",border:"1px solid var(--pz-border)"}}>{user.todayMinutes} / {user.dailyGoalMinutes} min</span></div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[{emoji:"📝",value:"156",label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:"78%",label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(user.streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:user.xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{[{emoji:"📝",value:"156",label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:"78%",label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(user.streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:user.xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
                 </div>
 
                 {/* Quick Start */}
@@ -445,7 +454,7 @@ export default function Dashboard() {
                     <h2 className="text-base font-medium" style={{color:"var(--pz-text)"}}>Quick Start</h2>
                     <button onClick={()=>setShowAll(s=>!s)} className="text-sm" style={{color:"var(--pz-text)"}}>{showAll?"Show less":`+${quickActions.length-6} more`}</button>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2">
                     {displayed.map((action,i)=>{
                       const isGoPro=(action as any).isGoPro
                       return (
@@ -476,8 +485,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Sidebar */}
-              <div className="space-y-5">
+              {/* Sidebar - hidden on mobile */}
+              <div className="hidden lg:block space-y-5">
                 <div className="p-5 rounded-none" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)",borderTop:"2px solid var(--pz-gold)"}}>
                   <div className="flex items-center justify-between mb-3"><div><p className="text-xs mb-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Level 8 — Gold</p><p className="text-2xl font-semibold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{user.xp.toLocaleString()} XP</p></div><div className="w-12 h-12 rounded-none flex items-center justify-center text-2xl" style={{background:"var(--pz-surface3)",border:"1px solid rgba(212,175,90,0.2)"}}>🥇</div></div>
                   <div className="h-1.5 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:"68%",background:"linear-gradient(90deg,var(--pz-gold),var(--pz-teal))",transition:"width 0.6s ease"}}/></div>
