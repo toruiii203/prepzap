@@ -262,8 +262,9 @@ function HistorySidebar({
   return (
     <aside className={cn(
       "h-full flex flex-col border-r transition-all duration-300 overflow-hidden flex-shrink-0",
+      "md:relative md:translate-x-0",
+      open ? "fixed inset-y-0 left-0 z-50 w-64 md:w-64 md:static" : "w-0",
       darkMode ? "border-slate-700 bg-slate-900/80" : "border-border bg-muted/20",
-      open ? "w-64" : "w-0"
     )}>
       <div className="flex-1 overflow-hidden flex flex-col min-w-64">
         <div className="p-3 border-b border-border flex items-center justify-between">
@@ -315,7 +316,8 @@ function HistorySidebar({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AiTutor() {
   const [darkMode, setDarkMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     try {
       const raw = localStorage.getItem("pz_history_aitutor");
@@ -505,10 +507,23 @@ Formatting:
 
   return (
     <div className="min-h-screen flex flex-col bg-background transition-colors duration-300">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
-      <div style={{padding:"8px 24px 0"}}><GlobalContextBar compact /></div>
+      <div className="hidden md:block">
+        <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
+      </div>
+      <div className="hidden md:block" style={{padding:"8px 24px 0"}}><GlobalContextBar compact /></div>
+      {/* Mobile top bar */}
+      <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40 bg-background border-b border-border">
+        <span className="font-bold text-sm">AI Tutor</span>
+        <button onClick={() => setSidebarOpen(o => !o)} className="p-2 text-muted-foreground">
+          {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        </button>
+      </div>
 
       <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 4rem)" }}>
+        {/* Mobile backdrop */}
+        {sidebarOpen && (
+          <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setSidebarOpen(false)} />
+        )}
         {/* ── Sidebar ── */}
         <HistorySidebar
           sessions={sessions}
@@ -521,14 +536,14 @@ Formatting:
         />
 
         {/* ── Main Panel ── */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16 md:pb-0">
 
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setSidebarOpen(o => !o)}
-                className="p-2 rounded-none hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="hidden md:flex p-2 rounded-none hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               >
                 {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
               </button>
