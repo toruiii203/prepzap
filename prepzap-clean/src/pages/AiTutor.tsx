@@ -188,7 +188,6 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
         </button>
       ) : (
         <div className="p-4 space-y-3 w-60">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Timer className={cn("h-4 w-4", cfg.color)} />
@@ -201,7 +200,6 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
               </button>
             </div>
           </div>
-          {/* Ring */}
           <div className="flex justify-center">
             <div className="relative w-24 h-24">
               <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
@@ -216,7 +214,6 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
               </div>
             </div>
           </div>
-          {/* Presets */}
           <div className="flex gap-1">
             {POMODORO_PRESETS.map(p => (
               <button key={p.label}
@@ -227,7 +224,6 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
               </button>
             ))}
           </div>
-          {/* Controls */}
           <div className="flex items-center gap-1">
             <button onClick={reset} className="p-2 rounded-none border border-border text-muted-foreground hover:text-foreground flex-1 flex justify-center">
               <RotateCcw className="h-3.5 w-3.5" />
@@ -264,7 +260,9 @@ function HistorySidebar({
       "h-full flex flex-col border-r transition-all duration-300 overflow-hidden flex-shrink-0",
       "md:relative md:translate-x-0",
       open ? "fixed inset-y-0 left-0 z-50 w-64 md:w-64 md:static" : "w-0",
-      darkMode ? "border-slate-700 bg-slate-900/80" : "border-border bg-muted/20",
+      // FIX: removed bg-slate-900/80 (semi-transparent) — replaced with solid bg-[#0a0a0a]
+      // so the sidebar is fully opaque when it slides in over chat on mobile
+      darkMode ? "border-slate-700 bg-[#0a0a0a]" : "border-border bg-[#0a0a0a]",
     )}>
       <div className="flex-1 overflow-hidden flex flex-col min-w-64">
         <div className="p-3 border-b border-border flex items-center justify-between">
@@ -311,8 +309,6 @@ function HistorySidebar({
   );
 }
 
-// ─── File Badge ───────────────────────────────────────────────────────────────
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AiTutor() {
   const [darkMode, setDarkMode] = useState(false);
@@ -327,7 +323,6 @@ export default function AiTutor() {
     } catch { return []; }
   });
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -335,7 +330,6 @@ export default function AiTutor() {
   const [showModes, setShowModes] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const [activeModel, setActiveModel] = useState<ModelId>("llama-3.3-70b-versatile");
   const [showModelMenu, setShowModelMenu] = useState(false);
 
@@ -350,7 +344,6 @@ export default function AiTutor() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handle = () => { setShowModelMenu(false); };
     document.addEventListener("click", handle);
@@ -360,7 +353,6 @@ export default function AiTutor() {
   const currentMode = TUTOR_MODES.find(m => m.id === activeMode)!;
   const activeModelInfo = MODELS.find(m => m.id === activeModel)!;
 
-  // ── Sessions ──
   const saveToSession = useCallback((msgs: Message[], model: ModelId, sid: string) => {
     setSessions(prev => {
       const updated = prev.map(s => s.id === sid ? { ...s, messages: msgs, model } : s);
@@ -402,9 +394,6 @@ export default function AiTutor() {
     if (activeSessionId === id) { setMessages([]); setActiveSessionId(null); }
   };
 
-  // ── File Upload ──
-
-  // ── System Prompt ──
   const buildSystemPrompt = (mode: TutorMode) => {
     const m = TUTOR_MODES.find(x => x.id === mode)!;
     const sourceCtx = buildAIContext();
@@ -421,11 +410,9 @@ Formatting:
 - End with a thought-provoking follow-up question when relevant`;
   };
 
-  // ── Send ──
   const sendMessage = async (overrideInput?: string) => {
     const text = (overrideInput ?? input).trim();
     const hasSourceCtx = buildAIContext().length > 0;
-    // Allow send with empty input if sources are loaded (zero-prompt mode)
     if (!text && !hasSourceCtx) return;
     if (isLoading) return;
 
@@ -462,9 +449,8 @@ Formatting:
         : m.content,
     }));
 
-
     try {
-      const imageBlocks = buildImageMessages()
+      const imageBlocks = buildImageMessages();
       const response = imageBlocks.length > 0
         ? await callGroqWithImages(
             history.map(m => typeof m.content === "string" ? m.content : "").join("\n"),
@@ -507,11 +493,13 @@ Formatting:
 
   return (
     <div className="min-h-screen flex flex-col bg-background transition-colors duration-300">
+      {/* Desktop Navbar — already hidden on mobile via hidden md:block */}
       <div className="hidden md:block">
         <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
       </div>
       <div className="hidden md:block" style={{padding:"8px 24px 0"}}><GlobalContextBar compact /></div>
-      {/* Mobile top bar */}
+
+      {/* ── Mobile top bar ── */}
       <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40 bg-background border-b border-border">
         <span className="font-bold text-sm">AI Tutor</span>
         <button onClick={() => setSidebarOpen(o => !o)} className="p-2 text-muted-foreground">
@@ -524,6 +512,7 @@ Formatting:
         {sidebarOpen && (
           <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setSidebarOpen(false)} />
         )}
+
         {/* ── Sidebar ── */}
         <HistorySidebar
           sessions={sessions}
@@ -538,12 +527,12 @@ Formatting:
         {/* ── Main Panel ── */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16 md:pb-0">
 
-          {/* ── Header ── */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+          {/* ── Inner chat header — HIDDEN ON MOBILE (was causing duplicate "AI Tutor" title) ── */}
+          <div className="hidden md:flex items-center justify-between px-4 py-2.5 border-b border-border">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setSidebarOpen(o => !o)}
-                className="hidden md:flex p-2 rounded-none hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="p-2 rounded-none hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               >
                 {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
               </button>
@@ -559,7 +548,6 @@ Formatting:
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Model Selector */}
               <div className="relative" onClick={e => e.stopPropagation()}>
                 <button
                   onClick={() => setShowModelMenu(o => !o)}
@@ -594,7 +582,6 @@ Formatting:
                 )}
               </div>
 
-              {/* Dark Mode */}
               <button
                 onClick={() => setDarkMode(d => !d)}
                 className={cn(
@@ -672,7 +659,6 @@ Formatting:
                 <p className="text-xs text-muted-foreground mb-6">
                   Active model: <span className="font-semibold text-primary">{activeModelInfo.label}</span> via {activeModelInfo.provider}
                 </p>
-                {/* Visual / Chart quick actions */}
                 <div className="grid grid-cols-2 gap-2 w-full max-w-md mb-3">
                   {VISUAL_QUICK_ACTIONS.map(a => (
                     <button key={a.label} onClick={() => sendMessage(a.prompt)}
@@ -683,35 +669,33 @@ Formatting:
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 w-full max-w-md">
-                  {/* Zero-prompt source actions */}
-              {buildAIContext().length > 0 && (
-                <div className="mb-6 p-4 rounded-none" style={{ background: "rgba(212,175,90,0.06)", border: "1px solid rgba(212,175,90,0.2)" }}>
-                  <p className="text-xs font-semibold mb-3" style={{ color: "var(--pz-gold)" }}>Source active — start instantly:</p>
-                  {/* Hero "Generate Summary" button */}
-                  <button
-                    onClick={() => sendMessage("Generate a comprehensive summary of the source material")}
-                    className="w-full mb-3 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all hover:opacity-90 active:scale-95"
-                    style={{ background: "linear-gradient(135deg, var(--pz-gold), var(--pz-teal))", color: "#0A0A0C", borderRadius: 0 }}>
-                    ⚡ Generate Summary
-                  </button>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: "Extract key concepts", icon: "🔑" },
-                      { label: "Quiz me on it", icon: "❓" },
-                      { label: "Explain the main ideas", icon: "💡" },
-                      { label: "Create flashcards", icon: "🃏" },
-                    ].map(a => (
-                      <button key={a.label}
-                        onClick={() => sendMessage(a.label)}
-                        className="flex items-center gap-2 px-3 py-2 text-left text-xs transition-all hover:opacity-80"
-                        style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-2)" }}>
-                        <span>{a.icon}</span>{a.label}
+                  {buildAIContext().length > 0 && (
+                    <div className="mb-6 p-4 rounded-none" style={{ background: "rgba(212,175,90,0.06)", border: "1px solid rgba(212,175,90,0.2)" }}>
+                      <p className="text-xs font-semibold mb-3" style={{ color: "var(--pz-gold)" }}>Source active — start instantly:</p>
+                      <button
+                        onClick={() => sendMessage("Generate a comprehensive summary of the source material")}
+                        className="w-full mb-3 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all hover:opacity-90 active:scale-95"
+                        style={{ background: "linear-gradient(135deg, var(--pz-gold), var(--pz-teal))", color: "#0A0A0C", borderRadius: 0 }}>
+                        ⚡ Generate Summary
                       </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {SUGGESTED_QUESTIONS.map(q => (
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { label: "Extract key concepts", icon: "🔑" },
+                          { label: "Quiz me on it", icon: "❓" },
+                          { label: "Explain the main ideas", icon: "💡" },
+                          { label: "Create flashcards", icon: "🃏" },
+                        ].map(a => (
+                          <button key={a.label}
+                            onClick={() => sendMessage(a.label)}
+                            className="flex items-center gap-2 px-3 py-2 text-left text-xs transition-all hover:opacity-80"
+                            style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-2)" }}>
+                            <span>{a.icon}</span>{a.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {SUGGESTED_QUESTIONS.map(q => (
                     <button key={q} onClick={() => sendMessage(q)}
                       className="text-left text-xs p-3 rounded-none border border-border hover:border-primary hover:bg-primary/5 transition-all leading-relaxed">
                       {q}
@@ -787,9 +771,8 @@ Formatting:
                 ))}
 
                 {isLoading && (
-              <div className="px-2 pb-2"><ChatBubbleSkeleton /></div>
-            )}
-
+                  <div className="px-2 pb-2"><ChatBubbleSkeleton /></div>
+                )}
               </>
             )}
             <div ref={chatBottomRef} />
@@ -835,8 +818,6 @@ Formatting:
           </div>
         </main>
       </div>
-
-
     </div>
   );
 }
