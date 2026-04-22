@@ -1,11 +1,17 @@
 import { useState, useEffect, createContext, useContext } from "react"
 import {
   CalendarDays, TrendingUp, Award, Target, ChevronRight,
-  Plus, Check, Trash2, CheckSquare, ChevronLeft, X, Clock, Zap as ZapIcon
+  Plus, Check, Trash2, CheckSquare, ChevronLeft, X, Clock, Zap as ZapIcon, LogOut
 } from "lucide-react";
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { BottomNav } from "@/components/BottomNav"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  "https://sieizvhprgcqrkalnkht.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWl6dmhwcmdjcXJrYWxua2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTg2NDksImV4cCI6MjA5MjMzNDY0OX0.-U8zu8Midq8PGaUPSRqhC-vVU1RnCH4yPOs_ZuppC_8"
+)
 
 // ─── Theme System ─────────────────────────────────────────────────────────────
 type ThemeId = "obsidian" | "midnight" | "emerald" | "crimson"
@@ -13,7 +19,7 @@ type ThemeId = "obsidian" | "midnight" | "emerald" | "crimson"
 interface LuxuryTheme {
   id: ThemeId
   label: string
-  swatch: string      // solid dot color
+  swatch: string
   description: string
   vars: Record<string, string>
   accentA: string
@@ -23,126 +29,29 @@ interface LuxuryTheme {
 
 const THEMES: LuxuryTheme[] = [
   {
-    id: "obsidian",
-    label: "Obsidian",
-    swatch: "#C0A060",
-    description: "Pure black · Gold accents",
+    id: "obsidian", label: "Obsidian", swatch: "#C0A060", description: "Pure black · Gold accents",
     accentA: "#C0A060", accentB: "#E8C87A", accentC: "#9A7840",
-    vars: {
-      "--pz-bg":        "#000000",
-      "--pz-surface":   "#0a0a0a",
-      "--pz-surface2":  "#111111",
-      "--pz-surface3":  "#181818",
-      "--pz-border":    "rgba(192,160,96,0.12)",
-      "--pz-border-hv": "rgba(192,160,96,0.28)",
-      "--pz-text":      "#F0E8D4",
-      "--pz-text-2":    "rgba(240,232,212,0.55)",
-      "--pz-text-muted":"rgba(240,232,212,0.28)",
-      "--pz-gold":      "#C0A060",
-      "--pz-gold-dim":  "rgba(192,160,96,0.08)",
-      "--pz-gold-glow": "rgba(192,160,96,0.05)",
-      "--pz-teal":      "#C0A060",
-      "--pz-teal-dim":  "rgba(192,160,96,0.06)",
-      "--pz-violet":    "#A08040",
-      "--pz-violet-dim":"rgba(160,128,64,0.07)",
-      "--pz-rose":      "#9A7840",
-      "--pz-amber":     "#E8C87A",
-    }
+    vars: { "--pz-bg":"#000000","--pz-surface":"#0a0a0a","--pz-surface2":"#111111","--pz-surface3":"#181818","--pz-border":"rgba(192,160,96,0.12)","--pz-border-hv":"rgba(192,160,96,0.28)","--pz-text":"#F0E8D4","--pz-text-2":"rgba(240,232,212,0.55)","--pz-text-muted":"rgba(240,232,212,0.28)","--pz-gold":"#C0A060","--pz-gold-dim":"rgba(192,160,96,0.08)","--pz-gold-glow":"rgba(192,160,96,0.05)","--pz-teal":"#C0A060","--pz-teal-dim":"rgba(192,160,96,0.06)","--pz-violet":"#A08040","--pz-violet-dim":"rgba(160,128,64,0.07)","--pz-rose":"#9A7840","--pz-amber":"#E8C87A" }
   },
   {
-    id: "midnight",
-    label: "Midnight",
-    swatch: "#6C8EEF",
-    description: "Deep navy · Sapphire accents",
+    id: "midnight", label: "Midnight", swatch: "#6C8EEF", description: "Deep navy · Sapphire accents",
     accentA: "#4A6CF7", accentB: "#9BB5FF", accentC: "#2D4ED8",
-    vars: {
-      "--pz-bg":        "#050810",
-      "--pz-surface":   "#0A0F1E",
-      "--pz-surface2":  "#0F1628",
-      "--pz-surface3":  "#151D34",
-      "--pz-border":    "rgba(74,108,247,0.14)",
-      "--pz-border-hv": "rgba(74,108,247,0.32)",
-      "--pz-text":      "#E8EEFF",
-      "--pz-text-2":    "rgba(232,238,255,0.55)",
-      "--pz-text-muted":"rgba(232,238,255,0.28)",
-      "--pz-gold":      "#6C8EEF",
-      "--pz-gold-dim":  "rgba(74,108,247,0.10)",
-      "--pz-gold-glow": "rgba(74,108,247,0.06)",
-      "--pz-teal":      "#9BB5FF",
-      "--pz-teal-dim":  "rgba(155,181,255,0.08)",
-      "--pz-violet":    "#4A6CF7",
-      "--pz-violet-dim":"rgba(74,108,247,0.08)",
-      "--pz-rose":      "#7B9CFF",
-      "--pz-amber":     "#A8C0FF",
-    }
+    vars: { "--pz-bg":"#050810","--pz-surface":"#0A0F1E","--pz-surface2":"#0F1628","--pz-surface3":"#151D34","--pz-border":"rgba(74,108,247,0.14)","--pz-border-hv":"rgba(74,108,247,0.32)","--pz-text":"#E8EEFF","--pz-text-2":"rgba(232,238,255,0.55)","--pz-text-muted":"rgba(232,238,255,0.28)","--pz-gold":"#6C8EEF","--pz-gold-dim":"rgba(74,108,247,0.10)","--pz-gold-glow":"rgba(74,108,247,0.06)","--pz-teal":"#9BB5FF","--pz-teal-dim":"rgba(155,181,255,0.08)","--pz-violet":"#4A6CF7","--pz-violet-dim":"rgba(74,108,247,0.08)","--pz-rose":"#7B9CFF","--pz-amber":"#A8C0FF" }
   },
   {
-    id: "emerald",
-    label: "Emerald",
-    swatch: "#2ECC8A",
-    description: "Dark forest · Emerald accents",
+    id: "emerald", label: "Emerald", swatch: "#2ECC8A", description: "Dark forest · Emerald accents",
     accentA: "#2ECC8A", accentB: "#00FF9D", accentC: "#1A9966",
-    vars: {
-      "--pz-bg":        "#030A06",
-      "--pz-surface":   "#060F08",
-      "--pz-surface2":  "#0A1810",
-      "--pz-surface3":  "#0F2018",
-      "--pz-border":    "rgba(46,204,138,0.12)",
-      "--pz-border-hv": "rgba(46,204,138,0.28)",
-      "--pz-text":      "#D4F5E6",
-      "--pz-text-2":    "rgba(212,245,230,0.55)",
-      "--pz-text-muted":"rgba(212,245,230,0.28)",
-      "--pz-gold":      "#2ECC8A",
-      "--pz-gold-dim":  "rgba(46,204,138,0.08)",
-      "--pz-gold-glow": "rgba(46,204,138,0.05)",
-      "--pz-teal":      "#00FF9D",
-      "--pz-teal-dim":  "rgba(0,255,157,0.07)",
-      "--pz-violet":    "#1A9966",
-      "--pz-violet-dim":"rgba(26,153,102,0.08)",
-      "--pz-rose":      "#44E8A0",
-      "--pz-amber":     "#80FFD0",
-    }
+    vars: { "--pz-bg":"#030A06","--pz-surface":"#060F08","--pz-surface2":"#0A1810","--pz-surface3":"#0F2018","--pz-border":"rgba(46,204,138,0.12)","--pz-border-hv":"rgba(46,204,138,0.28)","--pz-text":"#D4F5E6","--pz-text-2":"rgba(212,245,230,0.55)","--pz-text-muted":"rgba(212,245,230,0.28)","--pz-gold":"#2ECC8A","--pz-gold-dim":"rgba(46,204,138,0.08)","--pz-gold-glow":"rgba(46,204,138,0.05)","--pz-teal":"#00FF9D","--pz-teal-dim":"rgba(0,255,157,0.07)","--pz-violet":"#1A9966","--pz-violet-dim":"rgba(26,153,102,0.08)","--pz-rose":"#44E8A0","--pz-amber":"#80FFD0" }
   },
   {
-    id: "crimson",
-    label: "Crimson",
-    swatch: "#E84040",
-    description: "Black onyx · Ruby accents",
+    id: "crimson", label: "Crimson", swatch: "#E84040", description: "Black onyx · Ruby accents",
     accentA: "#E84040", accentB: "#FF7070", accentC: "#C02020",
-    vars: {
-      "--pz-bg":        "#060202",
-      "--pz-surface":   "#0F0505",
-      "--pz-surface2":  "#180808",
-      "--pz-surface3":  "#200C0C",
-      "--pz-border":    "rgba(232,64,64,0.12)",
-      "--pz-border-hv": "rgba(232,64,64,0.28)",
-      "--pz-text":      "#FFE8E8",
-      "--pz-text-2":    "rgba(255,232,232,0.55)",
-      "--pz-text-muted":"rgba(255,232,232,0.28)",
-      "--pz-gold":      "#E84040",
-      "--pz-gold-dim":  "rgba(232,64,64,0.08)",
-      "--pz-gold-glow": "rgba(232,64,64,0.05)",
-      "--pz-teal":      "#FF7070",
-      "--pz-teal-dim":  "rgba(255,112,112,0.07)",
-      "--pz-violet":    "#C02020",
-      "--pz-violet-dim":"rgba(192,32,32,0.08)",
-      "--pz-rose":      "#FF5555",
-      "--pz-amber":     "#FF9090",
-    }
+    vars: { "--pz-bg":"#060202","--pz-surface":"#0F0505","--pz-surface2":"#180808","--pz-surface3":"#200C0C","--pz-border":"rgba(232,64,64,0.12)","--pz-border-hv":"rgba(232,64,64,0.28)","--pz-text":"#FFE8E8","--pz-text-2":"rgba(255,232,232,0.55)","--pz-text-muted":"rgba(255,232,232,0.28)","--pz-gold":"#E84040","--pz-gold-dim":"rgba(232,64,64,0.08)","--pz-gold-glow":"rgba(232,64,64,0.05)","--pz-teal":"#FF7070","--pz-teal-dim":"rgba(255,112,112,0.07)","--pz-violet":"#C02020","--pz-violet-dim":"rgba(192,32,32,0.08)","--pz-rose":"#FF5555","--pz-amber":"#FF9090" }
   },
 ]
 
 const ThemeCtx = createContext<{ theme: LuxuryTheme; setTheme: (t: LuxuryTheme) => void }>({ theme: THEMES[0], setTheme: () => {} })
 
-// ─── Global CSS ───────────────────────────────────────────────────────────────
-const GLOBAL_CSS = `
-@keyframes pzGradShift{0%{background-position:0% center}100%{background-position:300% center}}
-@keyframes pzGoldShift{0%{background-position:0% center}100%{background-position:300% center}}
-`
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
 const I = ({ c, children }: { c: string; children: React.ReactNode }) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
 )
@@ -170,7 +79,6 @@ const ICONS: Record<string, React.ReactNode> = {
   "Go Pro":         <I c="#FFD700"><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></I>,
 }
 
-// ─── Theme Pill ───────────────────────────────────────────────────────────────
 export function ThemePill() {
   const { theme, setTheme } = useContext(ThemeCtx)
   return (
@@ -180,24 +88,7 @@ export function ThemePill() {
         {THEMES.map(t => {
           const isActive = theme.id === t.id
           return (
-            <button
-              key={t.id}
-              title={`${t.label} — ${t.description}`}
-              onClick={() => setTheme(t)}
-              style={{
-                width: isActive ? 15 : 12,
-                height: isActive ? 15 : 12,
-                borderRadius: "50%",
-                background: t.swatch,
-                border: isActive ? `2px solid ${t.swatch}` : "2px solid rgba(255,255,255,0.12)",
-                outline: isActive ? `2px solid ${t.swatch}40` : "none",
-                outlineOffset: "2px",
-                boxShadow: isActive ? `0 0 8px ${t.swatch}60` : "none",
-                transition: "all 0.2s ease",
-                flexShrink: 0,
-                cursor: "pointer",
-              }}
-            />
+            <button key={t.id} title={`${t.label} — ${t.description}`} onClick={() => setTheme(t)} style={{ width: isActive ? 15 : 12, height: isActive ? 15 : 12, borderRadius: "50%", background: t.swatch, border: isActive ? `2px solid ${t.swatch}` : "2px solid rgba(255,255,255,0.12)", outline: isActive ? `2px solid ${t.swatch}40` : "none", outlineOffset: "2px", boxShadow: isActive ? `0 0 8px ${t.swatch}60` : "none", transition: "all 0.2s ease", flexShrink: 0, cursor: "pointer" }} />
           )
         })}
       </div>
@@ -205,7 +96,6 @@ export function ThemePill() {
   )
 }
 
-// ─── Tool grid ────────────────────────────────────────────────────────────────
 const quickActions = [
   { href:"/daily5",         label:"DailyZap",       description:"5 Qs in 3 min",         isNew:true   },
   { href:"/spot-error",     label:"ErrorSnap",      description:"Find the mistakes",      isNew:true   },
@@ -229,9 +119,6 @@ const quickActions = [
   { href:"/pricing",        label:"Go Pro",         description:"Unlock everything",      isGoPro:true },
 ]
 
-// ─── Static data ──────────────────────────────────────────────────────────────
-const user = { name:"Migs", xp:2450, streak:12, plan:"free" as const, dailyGoalMinutes:60, todayMinutes:35, creditBalance:50 }
-
 const recentActivity = [
   { label:"Completed 25 Biology questions", time:"2h ago",    score:"88%",      accent:"var(--pz-gold)"   },
   { label:"Flashcard session — Chemistry",  time:"4h ago",    score:"32 cards", accent:"var(--pz-teal)"   },
@@ -254,7 +141,6 @@ const achievements = [
   { label:"Perfect Score", emoji:"⭐", earned:false },
 ]
 
-// ─── Study Planner ────────────────────────────────────────────────────────────
 const PALETTE = ["#10b981","#3b82f6","#a855f7","#f59e0b","#ef4444","#06b6d4","#ec4899"]
 function todayStr() { return new Date().toISOString().split("T")[0] }
 
@@ -268,7 +154,7 @@ const SAMPLE_EVENTS: StudyEvent[] = [
 const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"]
 
-function StudyPlannerCard() {
+function StudyPlannerCard({ streak }: { streak: number }) {
   const [events, setEvents] = useState<StudyEvent[]>(() => { try { return JSON.parse(localStorage.getItem("pz_study_events")||"null")||SAMPLE_EVENTS } catch { return SAMPLE_EVENTS } })
   const [viewDate, setViewDate] = useState(new Date())
   const [sel, setSel] = useState(todayStr())
@@ -291,7 +177,7 @@ function StudyPlannerCard() {
         <button onClick={()=>setModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-none text-xs md:text-sm font-semibold transition-opacity hover:opacity-80" style={{background:"var(--pz-teal)",color:"#0A0A0C"}}><Plus className="h-3 w-3 md:h-4 md:w-4"/>Add Session</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 py-4">
-        {[{icon:"🔥",value:String(user.streak),label:"Day Streak"},{icon:"🕐",value:"12.5h",label:"Hours This Week"},{icon:"✅",value:"24",label:"Sessions Done"},{icon:"🎯",value:"78%",label:"Goal Completion"}].map(s=>(
+        {[{icon:"🔥",value:String(streak),label:"Day Streak"},{icon:"🕐",value:"12.5h",label:"Hours This Week"},{icon:"✅",value:"24",label:"Sessions Done"},{icon:"🎯",value:"78%",label:"Goal Completion"}].map(s=>(
           <div key={s.label} className="flex items-center gap-3 px-4 py-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}>
             <span className="text-xl">{s.icon}</span>
             <div><div className="text-xl font-bold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] leading-tight" style={{color:"var(--pz-text-muted)"}}>{s.label}</div></div>
@@ -312,8 +198,7 @@ function StudyPlannerCard() {
             {Array.from({length:firstDay}).map((_,i)=><div key={`e${i}`}/>)}
             {Array.from({length:days}).map((_,i)=>{
               const day=i+1,d=ds(day),evs=evOn(d),isT=d===today,isS=d===sel
-              return <button key={day} onClick={()=>setSel(d)} className="flex flex-col items-center gap-0.5 py-1 rounded-none transition-all"
-                style={{background:isS?"var(--pz-teal)":isT?"rgba(16,185,129,0.15)":"transparent",color:isS?"#0A0A0C":isT?"var(--pz-teal)":"var(--pz-text)"}}>
+              return <button key={day} onClick={()=>setSel(d)} className="flex flex-col items-center gap-0.5 py-1 rounded-none transition-all" style={{background:isS?"var(--pz-teal)":isT?"rgba(16,185,129,0.15)":"transparent",color:isS?"#0A0A0C":isT?"var(--pz-teal)":"var(--pz-text)"}}>
                 <span className="text-xs font-medium w-7 h-7 flex items-center justify-center">{day}</span>
                 <div className="flex gap-0.5 h-2 items-center">{evs.slice(0,3).map(ev=><div key={ev.id} className="w-1.5 h-1.5 rounded-full" style={{background:isS?"rgba(0,0,0,0.4)":ev.color}}/>)}</div>
               </button>
@@ -337,10 +222,7 @@ function StudyPlannerCard() {
                 <button onClick={()=>setEvents(p=>p.filter(e=>e.id!==ev.id))} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{color:"var(--pz-text-muted)"}}><X className="h-3 w-3"/></button>
               </div>
             ))}
-            <button onClick={()=>setModal(true)} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-none text-xs"
-              style={{border:"1px dashed var(--pz-border)",color:"var(--pz-text-muted)"}}
-              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-teal)";(e.currentTarget as HTMLElement).style.color="var(--pz-teal)"}}
-              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-border)";(e.currentTarget as HTMLElement).style.color="var(--pz-text-muted)"}}>
+            <button onClick={()=>setModal(true)} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-none text-xs" style={{border:"1px dashed var(--pz-border)",color:"var(--pz-text-muted)"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-teal)";(e.currentTarget as HTMLElement).style.color="var(--pz-teal)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-border)";(e.currentTarget as HTMLElement).style.color="var(--pz-text-muted)"}}>
               <Plus className="h-3 w-3"/>Add another
             </button>
           </div>
@@ -352,7 +234,6 @@ function StudyPlannerCard() {
   )
 }
 
-// ─── Checklist ────────────────────────────────────────────────────────────────
 interface CheckTask { id:string; text:string; done:boolean }
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
 
@@ -375,25 +256,51 @@ function ChecklistCard() {
   )
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [showAll,setShowAll]=useState(false)
   const [theme,setTheme]=useState<LuxuryTheme>(() => {
     const saved = localStorage.getItem("pz-theme")
     return THEMES.find(t => t.id === saved) ?? THEMES[0]
   })
 
+  // ─── Real user from Supabase ──────────────────────────────────────────────
+  const [userName, setUserName] = useState("there")
+  const [userEmail, setUserEmail] = useState("")
+  const [userPlan] = useState<"free"|"pro">("free")
+  const [creditBalance] = useState(50)
+  const [streak] = useState(12)
+  const [xp] = useState(2450)
+  const [todayMinutes] = useState(35)
+  const [dailyGoalMinutes] = useState(60)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const meta = session.user.user_metadata
+        const name = meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "there"
+        setUserName(name)
+        setUserEmail(session.user.email || "")
+      }
+    })
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    navigate("/login")
+  }
+
   const applyTheme = (t: LuxuryTheme) => {
     setTheme(t)
     localStorage.setItem("pz-theme", t.id)
   }
+
   const hour=new Date().getHours()
   const greeting=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening"
   const displayed=showAll?quickActions:quickActions.slice(0,6)
-  const dailyProgress=Math.round((user.todayMinutes/user.dailyGoalMinutes)*100)
+  const dailyProgress=Math.round((todayMinutes/dailyGoalMinutes)*100)
   const card={background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"} as React.CSSProperties
 
-  // Inject theme CSS variables directly onto document root — most reliable approach
   useEffect(() => {
     const root = document.documentElement
     Object.entries(theme.vars).forEach(([k, v]) => root.style.setProperty(k, v))
@@ -401,7 +308,6 @@ export default function Dashboard() {
     document.body.style.color = theme.vars["--pz-text"] || ""
   }, [theme])
 
-  // Apply on first render synchronously
   useEffect(() => {
     const saved = localStorage.getItem("pz-theme")
     const t = THEMES.find(x => x.id === saved) ?? THEMES[0]
@@ -410,20 +316,21 @@ export default function Dashboard() {
     document.body.style.background = t.vars["--pz-bg"] || ""
   }, [])
 
-  const themeStyle = `
-  `
-
   return (
     <ThemeCtx.Provider value={{theme,setTheme:applyTheme}}>
-      <style>{themeStyle}</style>
       <div className="min-h-screen flex flex-col" style={{background:theme.vars["--pz-bg"],color:theme.vars["--pz-text"]}}>
         <div className="hidden md:block">
-          <Navbar isLoggedIn user={{name:user.name,xp:user.xp,streak:user.streak,plan:user.plan}} extraRight={<ThemePill/>}/>
+          <Navbar isLoggedIn user={{name:userName,xp,streak,plan:userPlan}} extraRight={<ThemePill/>}/>
         </div>
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40" style={{background:"rgba(0,0,0,0.95)",borderBottom:"0.5px solid var(--pz-border)",backdropFilter:"blur(12px)"}}>
           <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"16px",color:"var(--pz-text)"}}>PrepZap</span>
-          <ThemePill/>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <ThemePill/>
+            <button onClick={handleSignOut} style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--pz-text-muted)",display:"flex",alignItems:"center"}} title="Sign out">
+              <LogOut size={16}/>
+            </button>
+          </div>
         </div>
         <BottomNav/>
         <main className="flex-1 py-4 lg:py-10 pb-20 md:pb-6">
@@ -431,11 +338,19 @@ export default function Dashboard() {
 
             {/* Greeting */}
             <div className="flex items-start justify-between mb-6">
-              <div><h1 className="text-2xl sm:text-3xl mb-1" style={{fontFamily:"'DM Serif Display',serif"}}>{greeting}, {user.name} 👋</h1><p className="text-sm" style={{color:"var(--pz-text-2)"}}><span style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{user.creditBalance} credits</span>{" · "}<span>🔥 {user.streak}-day streak</span></p></div>
-              <span className="text-xs px-2.5 py-1 rounded-none hidden sm:inline-flex badge-gold">{user.plan==="free"?"Free Plan":"Pro"}</span>
+              <div>
+                <h1 className="text-2xl sm:text-3xl mb-1" style={{fontFamily:"'DM Serif Display',serif"}}>{greeting}, {userName} 👋</h1>
+                <p className="text-sm" style={{color:"var(--pz-text-2)"}}><span style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{creditBalance} credits</span>{" · "}<span>🔥 {streak}-day streak</span></p>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span className="text-xs px-2.5 py-1 rounded-none hidden sm:inline-flex badge-gold">{userPlan==="free"?"Free Plan":"Pro"}</span>
+                <button onClick={handleSignOut} className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs" style={{border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)",background:"transparent",cursor:"pointer"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-gold)";(e.currentTarget as HTMLElement).style.color="var(--pz-gold)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-border)";(e.currentTarget as HTMLElement).style.color="var(--pz-text-muted)"}}>
+                  <LogOut size={12}/> Sign out
+                </button>
+              </div>
             </div>
 
-            <div className="mb-6"><StudyPlannerCard/></div>
+            <div className="mb-6"><StudyPlannerCard streak={streak}/></div>
 
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
@@ -444,8 +359,8 @@ export default function Dashboard() {
                 {/* Progress */}
                 <div className="p-4 lg:p-6 rounded-none overflow-hidden" style={card}>
                   <div className="h-0.5 -mx-6 -mt-6 mb-6" style={{background:`linear-gradient(90deg,var(--pz-gold) ${dailyProgress}%,var(--pz-surface3) ${dailyProgress}%)`}}/>
-                  <div className="flex items-center justify-between mb-5"><h2 className="font-medium text-base" style={{color:"var(--pz-text)"}}>Today's Progress</h2><span className="text-xs px-2.5 py-1 rounded-none" style={{background:"var(--pz-surface3)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace",border:"1px solid var(--pz-border)"}}>{user.todayMinutes} / {user.dailyGoalMinutes} min</span></div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{[{emoji:"📝",value:"156",label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:"78%",label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(user.streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:user.xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
+                  <div className="flex items-center justify-between mb-5"><h2 className="font-medium text-base" style={{color:"var(--pz-text)"}}>Today's Progress</h2><span className="text-xs px-2.5 py-1 rounded-none" style={{background:"var(--pz-surface3)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace",border:"1px solid var(--pz-border)"}}>{todayMinutes} / {dailyGoalMinutes} min</span></div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{[{emoji:"📝",value:"156",label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:"78%",label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
                 </div>
 
                 {/* Quick Start */}
@@ -455,26 +370,18 @@ export default function Dashboard() {
                     <button onClick={()=>setShowAll(s=>!s)} className="text-sm" style={{color:"var(--pz-text)"}}>{showAll?"Show less":`+${quickActions.length-6} more`}</button>
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                    {displayed.map((action,i)=>{
-                      const isGoPro=(action as any).isGoPro
-                      return (
-                        <Link to={action.href} key={i}>
-                          <div className="relative p-3 text-center transition-all cursor-pointer"
-                            style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"}}
-                            onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface3)";(e.currentTarget as HTMLElement).style.transform="translateY(-2px)"}}
-                            onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface2)";(e.currentTarget as HTMLElement).style.transform=""}}>
-                            {(action as any).isNew&&(
-                              <span className="absolute -top-1.5 -right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-none leading-none shadow-sm" style={{background:"linear-gradient(90deg,#FFD700,#FFA500)",color:"#1a1000"}}>NEW</span>
-                            )}
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center mx-auto mb-2 shadow-md">
-                              {ICONS[action.label]??<ZapIcon className="h-5 w-5 text-white opacity-30"/>}
-                            </div>
-                            <p className="font-semibold leading-tight" style={{fontSize:"11px",letterSpacing:"0.01em",color:"var(--pz-text)"}}>{action.label}</p>
-                            <p className="text-[10px] mt-0.5 leading-tight hidden sm:block" style={{color:"var(--pz-text-muted)"}}>{action.description}</p>
+                    {displayed.map((action,i)=>(
+                      <Link to={action.href} key={i}>
+                        <div className="relative p-3 text-center transition-all cursor-pointer" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface3)";(e.currentTarget as HTMLElement).style.transform="translateY(-2px)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface2)";(e.currentTarget as HTMLElement).style.transform=""}}>
+                          {(action as any).isNew&&<span className="absolute -top-1.5 -right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-none leading-none shadow-sm" style={{background:"linear-gradient(90deg,#FFD700,#FFA500)",color:"#1a1000"}}>NEW</span>}
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center mx-auto mb-2 shadow-md">
+                            {ICONS[action.label]??<ZapIcon className="h-5 w-5 text-white opacity-30"/>}
                           </div>
-                        </Link>
-                      )
-                    })}
+                          <p className="font-semibold leading-tight" style={{fontSize:"11px",letterSpacing:"0.01em",color:"var(--pz-text)"}}>{action.label}</p>
+                          <p className="text-[10px] mt-0.5 leading-tight hidden sm:block" style={{color:"var(--pz-text-muted)"}}>{action.description}</p>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
                 </div>
 
@@ -485,10 +392,10 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Sidebar - hidden on mobile */}
+              {/* Sidebar */}
               <div className="hidden lg:block space-y-5">
                 <div className="p-5 rounded-none" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)",borderTop:"2px solid var(--pz-gold)"}}>
-                  <div className="flex items-center justify-between mb-3"><div><p className="text-xs mb-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Level 8 — Gold</p><p className="text-2xl font-semibold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{user.xp.toLocaleString()} XP</p></div><div className="w-12 h-12 rounded-none flex items-center justify-center text-2xl" style={{background:"var(--pz-surface3)",border:"1px solid rgba(212,175,90,0.2)"}}>🥇</div></div>
+                  <div className="flex items-center justify-between mb-3"><div><p className="text-xs mb-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Level 8 — Gold</p><p className="text-2xl font-semibold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{xp.toLocaleString()} XP</p></div><div className="w-12 h-12 rounded-none flex items-center justify-center text-2xl" style={{background:"var(--pz-surface3)",border:"1px solid rgba(212,175,90,0.2)"}}>🥇</div></div>
                   <div className="h-1.5 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:"68%",background:"linear-gradient(90deg,var(--pz-gold),var(--pz-teal))",transition:"width 0.6s ease"}}/></div>
                   <p className="text-xs mt-2" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>550 XP to Level 9</p>
                 </div>
@@ -501,7 +408,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2 mb-4"><Award className="h-4 w-4" style={{color:"var(--pz-text)"}}/><h3 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Achievements</h3></div>
                   <div className="grid grid-cols-3 gap-2">{achievements.map(a=><div key={a.label} className="flex flex-col items-center gap-1 p-2.5 rounded-none text-center" style={{background:a.earned?"var(--pz-gold-dim)":"var(--pz-surface3)",border:`1px solid ${a.earned?"rgba(212,175,90,0.2)":"var(--pz-border)"}`,opacity:a.earned?1:0.4}}><span className="text-xl">{a.emoji}</span><span className="text-[9px] font-semibold leading-tight" style={{color:a.earned?"var(--pz-gold)":"var(--pz-text-muted)"}}>{a.label}</span></div>)}</div>
                 </div>
-                {user.plan==="free"&&<div className="p-5 rounded-none text-center" style={{background:"var(--pz-violet-dim)",border:"1px solid rgba(139,124,246,0.2)",borderTop:"2px solid var(--pz-violet)"}}><div className="w-11 h-11 rounded-none flex items-center justify-center text-xl mx-auto mb-3" style={{background:"rgba(139,124,246,0.2)"}}>⚡</div><p className="font-semibold text-sm mb-1" style={{color:"var(--pz-text)"}}>Upgrade to Pro</p><p className="text-xs mb-4" style={{color:"var(--pz-text-muted)"}}>Unlimited AI, all features, priority support</p><Link to="/pricing"><button className="w-full py-2.5 rounded-none text-sm font-semibold" style={{background:"var(--pz-violet)",color:"#0A0A0C"}}>View Plans</button></Link></div>}
+                {userPlan==="free"&&<div className="p-5 rounded-none text-center" style={{background:"var(--pz-violet-dim)",border:"1px solid rgba(139,124,246,0.2)",borderTop:"2px solid var(--pz-violet)"}}><div className="w-11 h-11 rounded-none flex items-center justify-center text-xl mx-auto mb-3" style={{background:"rgba(139,124,246,0.2)"}}>⚡</div><p className="font-semibold text-sm mb-1" style={{color:"var(--pz-text)"}}>Upgrade to Pro</p><p className="text-xs mb-4" style={{color:"var(--pz-text-muted)"}}>Unlimited AI, all features, priority support</p><Link to="/pricing"><button className="w-full py-2.5 rounded-none text-sm font-semibold" style={{background:"var(--pz-violet)",color:"#0A0A0C"}}>View Plans</button></Link></div>}
               </div>
             </div>
           </div>

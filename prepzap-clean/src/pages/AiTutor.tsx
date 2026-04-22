@@ -502,9 +502,12 @@ Formatting:
       {/* ── Mobile top bar ── */}
       <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40 bg-background border-b border-border">
         <span className="font-bold text-sm">AI Tutor</span>
-        <button onClick={() => setSidebarOpen(o => !o)} className="p-2 text-muted-foreground">
-          {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <GlobalContextBar compact />
+          <button onClick={() => setSidebarOpen(o => !o)} className="p-2 text-muted-foreground">
+            {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 4rem)" }}>

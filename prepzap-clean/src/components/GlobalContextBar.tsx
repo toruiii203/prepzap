@@ -10,7 +10,7 @@ import {
 } from "@/lib/sourceContext"
 
 interface GlobalContextBarProps {
-  compact?: boolean   // for tool pages — single row
+  compact?: boolean
 }
 
 export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
@@ -19,13 +19,11 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
   const [open, setOpen]     = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Sync across tabs / components
   useEffect(() => onSourceChange(() => {
     setFiles(loadLibrary())
     setCtx(loadContext())
   }), [])
 
-  // Close on outside click
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -52,7 +50,6 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
     saveContext(next); setCtx(next)
   }
 
-  // Derived state
   const activeCount = ctx.mode === "all"
     ? files.length
     : ctx.mode === "selected"
@@ -61,12 +58,8 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
 
   const isActive = activeCount > 0
 
-  const pillColor = isActive
-    ? "rgba(212,175,90,0.12)"
-    : "var(--pz-surface3)"
-  const pillBorder = isActive
-    ? "rgba(212,175,90,0.35)"
-    : "var(--pz-border)"
+  const pillColor = isActive ? "rgba(212,175,90,0.12)" : "var(--pz-surface3)"
+  const pillBorder = isActive ? "rgba(212,175,90,0.35)" : "var(--pz-border)"
   const pillText = isActive ? "var(--pz-gold)" : "var(--pz-text-muted)"
 
   const modeLabel = ctx.mode === "none"
@@ -80,7 +73,6 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
     : `${ctx.selectedIds.length} sources active`
 
   if (files.length === 0) {
-    // No sources — show a subtle nudge
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 text-xs"
         style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
@@ -94,8 +86,7 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
   }
 
   return (
-    <div className="relative" ref={ref}>
-      {/* Pill trigger */}
+    <div className="relative" ref={ref} style={{ zIndex: 50 }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2 px-3 py-1.5 text-xs transition-all"
@@ -106,7 +97,6 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
           borderRadius: "var(--pz-r-sm)",
         }}
       >
-        {/* Glowing pulse when active */}
         {isActive && (
           <span className="relative flex h-2 w-2 flex-shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
@@ -116,15 +106,26 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
           </span>
         )}
         {!isActive && <Layers className="h-3 w-3 flex-shrink-0" />}
-        <span className="max-w-[180px] truncate font-medium">{modeLabel}</span>
+        <span className="max-w-[140px] truncate font-medium">{modeLabel}</span>
         <ChevronDown className="h-2.5 w-2.5 flex-shrink-0 opacity-60" />
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
-          className="absolute top-full left-0 mt-1 z-50 w-72"
-          style={{ background: "var(--pz-surface)", border: "1px solid var(--pz-border)", borderRadius: "var(--pz-r-lg)", overflow: "hidden" }}
+          className="absolute mt-1 z-50 w-72"
+          style={{
+            // On mobile open upward if near bottom, otherwise down
+            top: "100%",
+            // Align right on mobile to avoid going off screen
+            right: 0,
+            left: "auto",
+            background: "var(--pz-surface)",
+            border: "1px solid var(--pz-border)",
+            borderRadius: "var(--pz-r-lg)",
+            overflow: "hidden",
+            // Make sure it doesn't go off screen on mobile
+            maxWidth: "calc(100vw - 32px)",
+          }}
         >
           {/* Mode selector */}
           <div className="p-3" style={{ borderBottom: "1px solid var(--pz-border)" }}>
@@ -134,8 +135,8 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
             </p>
             <div className="grid grid-cols-3 gap-1.5">
               {([
-                { mode: "none",     label: "General AI", icon: Zap     },
-                { mode: "all",      label: "All Sources", icon: Layers  },
+                { mode: "none",     label: "General AI",  icon: Zap      },
+                { mode: "all",      label: "All Sources", icon: Layers   },
                 { mode: "selected", label: "Pick Sources", icon: BookOpen },
               ] as const).map(opt => (
                 <button
@@ -155,7 +156,6 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
             </div>
           </div>
 
-          {/* Source list (only shown in "selected" mode) */}
           {ctx.mode === "selected" && (
             <div>
               <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider"
@@ -185,7 +185,6 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
                           {f.fullText ? "✓ Text extracted" : f.preview ? "✓ Preview" : "No text"}
                         </p>
                       </div>
-                      {/* Mastery dot */}
                       {f.mastery && (
                         <Circle className="h-2 w-2 flex-shrink-0 fill-current" style={{
                           color: f.mastery === "green" ? "#10b981" : f.mastery === "yellow" ? "#f59e0b" : "#ef4444"
@@ -198,7 +197,6 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
             </div>
           )}
 
-          {/* All sources info */}
           {ctx.mode === "all" && (
             <div className="px-3 py-2.5" style={{ borderTop: "1px solid var(--pz-border)" }}>
               <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>
@@ -207,7 +205,6 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
             </div>
           )}
 
-          {/* Footer */}
           <div className="flex items-center justify-between px-3 py-2"
             style={{ borderTop: "1px solid var(--pz-border)" }}>
             <Link

@@ -1,16 +1,23 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
+import { BottomNav } from "@/components/BottomNav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import {
   Settings as SettingsIcon, ChevronLeft, User, Bell, Lock, Palette,
-  Target, Zap, CreditCard, Trash2, Moon, Sun, Check, ChevronRight,
-  Globe, Volume2
+  Target, Zap, CreditCard, Trash2, Check, ChevronRight,
+  Globe, Volume2, LogOut
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  "https://sieizvhprgcqrkalnkht.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWl6dmhwcmdjcXJrYWxua2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTg2NDksImV4cCI6MjA5MjMzNDY0OX0.-U8zu8Midq8PGaUPSRqhC-vVU1RnCH4yPOs_ZuppC_8"
+)
 
 type Theme = "light" | "dark" | "system"
 type DailyGoal = 15 | 30 | 45 | 60 | 90 | 120
@@ -18,11 +25,27 @@ type DailyGoal = 15 | 30 | 45 | 60 | 90 | 120
 const SUBJECTS_LIST = ["Biology", "Chemistry", "Math", "Physics", "History", "English", "Economics"]
 
 export default function Settings() {
+  const navigate = useNavigate()
   const [theme, setTheme] = useState<Theme>("system")
   const [dailyGoal, setDailyGoal] = useState<DailyGoal>(60)
   const [notifs, setNotifs] = useState({ streak: true, reminders: true, community: false, weekly: true })
   const [subjects, setSubjects] = useState<Set<string>>(new Set(["Biology", "Chemistry", "Math"]))
   const [saved, setSaved] = useState(false)
+  const [userName, setUserName] = useState("Learner")
+  const [userEmail, setUserEmail] = useState("learner@example.com")
+  const [userInitial, setUserInitial] = useState("L")
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const meta = session.user.user_metadata
+        const name = meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "Learner"
+        setUserName(name)
+        setUserEmail(session.user.email || "")
+        setUserInitial(name.charAt(0).toUpperCase())
+      }
+    })
+  }, [])
 
   const toggleSubject = (s: string) =>
     setSubjects(prev => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n })
@@ -32,14 +55,29 @@ export default function Settings() {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    navigate("/login")
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
-      <main className="flex-1 py-6 lg:py-8">
+      <div className="hidden md:block">
+        <Navbar isLoggedIn user={{ name: userName, xp: 2450, streak: 12, plan: "free" }} />
+      </div>
+      {/* Mobile top bar */}
+      <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40 bg-background border-b border-border">
+        <span className="font-bold text-sm">Settings</span>
+        <button onClick={handleSignOut} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-500 transition-colors">
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </div>
+      <BottomNav />
+      <main className="flex-1 py-6 lg:py-8 pb-20 md:pb-6">
         <div className="container mx-auto px-4 lg:px-8 max-w-2xl">
 
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="hidden md:flex items-center gap-3 mb-6">
             <Link to="/dashboard">
               <Button variant="ghost" size="sm" className="gap-1">
                 <ChevronLeft className="h-4 w-4" /> Dashboard
@@ -64,10 +102,10 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-none bg-gradient-to-br from-zinc-400 to-teal-500 flex items-center justify-center text-2xl font-black text-white shadow-md">L</div>
+                  <div className="w-16 h-16 rounded-none bg-gradient-to-br from-zinc-400 to-teal-500 flex items-center justify-center text-2xl font-black text-white shadow-md">{userInitial}</div>
                   <div>
-                    <p className="font-bold">Learner</p>
-                    <p className="text-sm text-muted-foreground">learner@example.com</p>
+                    <p className="font-bold">{userName}</p>
+                    <p className="text-sm text-muted-foreground">{userEmail}</p>
                     <Badge className="bg-white/10 text-emerald-600 border-emerald-200 mt-1 text-xs">Free Plan</Badge>
                   </div>
                   <Button variant="outline" size="sm" className="ml-auto">Edit</Button>
@@ -228,6 +266,18 @@ export default function Settings() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </button>
                 ))}
+
+                {/* Sign Out */}
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center justify-between p-3 rounded-none hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors text-sm text-amber-600 group">
+                  <div className="flex items-center gap-2.5">
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </div>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
                 <button className="w-full flex items-center justify-between p-3 rounded-none hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-sm text-red-500 group">
                   <div className="flex items-center gap-2.5">
                     <Trash2 className="h-4 w-4" />
