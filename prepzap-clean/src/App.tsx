@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
 import { createClient, Session } from "@supabase/supabase-js";
 import Index from "./pages/Index";
+import Privacy from "./pages/Privacy"
+import Terms from "./pages/Terms"
 
 const supabase = createClient(
   "https://sieizvhprgcqrkalnkht.supabase.co",
@@ -144,6 +146,8 @@ const App = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<ProtectedRoute session={session} loading={authLoading}><Dashboard /></ProtectedRoute>} />
             <Route path="/practice" element={<ProtectedRoute session={session} loading={authLoading}><Practice /></ProtectedRoute>} />
