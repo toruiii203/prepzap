@@ -24,23 +24,50 @@ export interface SourceContextState {
 }
 
 // ── Storage keys ─────────────────────────────────────────────────────────────
-const LS_LIBRARY  = "pz_source_library"
-const LS_CONTEXT  = "pz_source_context"
+// Keys are scoped per-user so different Google accounts never share data.
+// Call setSourceContextUser(uid) once after sign-in (done in AuthContext).
+
+let _uid = "anon"
+
+export function setSourceContextUser(uid: string) {
+  // Migrate legacy (unscoped) data on first login for this user
+  const legacyLib = localStorage.getItem("pz_source_library")
+  const legacyCtx = localStorage.getItem("pz_source_context")
+  const migratedFlag = `pz_${uid}_migrated_v1`
+
+  if (!localStorage.getItem(migratedFlag)) {
+    if (legacyLib) {
+      localStorage.setItem(`pz_${uid}_source_library`, legacyLib)
+      localStorage.removeItem("pz_source_library")
+    }
+    if (legacyCtx) {
+      localStorage.setItem(`pz_${uid}_source_context`, legacyCtx)
+      localStorage.removeItem("pz_source_context")
+    }
+    localStorage.setItem(migratedFlag, "1")
+  }
+
+  _uid = uid
+  window.dispatchEvent(new Event(EVENT_KEY))
+}
+
+const LS_LIBRARY  = () => `pz_${_uid}_source_library`
+const LS_CONTEXT  = () => `pz_${_uid}_source_context`
 const EVENT_KEY   = "pz_source_changed"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export function loadLibrary(): SourceFile[] {
-  try { return JSON.parse(localStorage.getItem(LS_LIBRARY) || "[]") } catch { return [] }
+  try { return JSON.parse(localStorage.getItem(LS_LIBRARY()) || "[]") } catch { return [] }
 }
 
 export function saveLibrary(files: SourceFile[]) {
-  localStorage.setItem(LS_LIBRARY, JSON.stringify(files))
+  localStorage.setItem(LS_LIBRARY(), JSON.stringify(files))
   window.dispatchEvent(new Event(EVENT_KEY))
 }
 
 export function loadContext(): SourceContextState {
   try {
-    const raw = localStorage.getItem(LS_CONTEXT)
+    const raw = localStorage.getItem(LS_CONTEXT())
     return raw ? JSON.parse(raw) : { mode: "none", selectedIds: [] }
   } catch {
     return { mode: "none", selectedIds: [] }
@@ -48,7 +75,7 @@ export function loadContext(): SourceContextState {
 }
 
 export function saveContext(ctx: SourceContextState) {
-  localStorage.setItem(LS_CONTEXT, JSON.stringify(ctx))
+  localStorage.setItem(LS_CONTEXT(), JSON.stringify(ctx))
   window.dispatchEvent(new Event(EVENT_KEY))
 }
 

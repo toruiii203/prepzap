@@ -4,15 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
-import { createClient, Session } from "@supabase/supabase-js";
-import Index from "./pages/Index";
-import Privacy from "./pages/Privacy"
-import Terms from "./pages/Terms"
-
-const supabase = createClient(
-  "https://sieizvhprgcqrkalnkht.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWl6dmhwcmdjcXJrYWxua2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTg2NDksImV4cCI6MjA5MjMzNDY0OX0.-U8zu8Midq8PGaUPSRqhC-vVU1RnCH4yPOs_ZuppC_8"
-);
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { setSourceContextUser } from "@/lib/sourceContext";
+import { setHistoryUser } from "@/lib/historyStore";
 
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
@@ -65,6 +59,9 @@ function PWAInstallBanner() {
   );
 }
 
+import Index from "./pages/Index";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import Onboarding from "./pages/Onboarding";
 import Admin from "./pages/Admin";
 import SourceLibrary from "./pages/SourceLibrary";
@@ -102,85 +99,92 @@ const queryClient = new QueryClient();
 
 function isMobile() { return window.innerWidth < 768; }
 
-function ProtectedRoute({ session, loading, children }: { session: Session | null; loading: boolean; children: React.ReactNode }) {
+/** Redirects to /login when not authenticated. Shows nothing while loading. */
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useAuth();
   if (loading) return null;
   if (!session) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
-function MobileRootRedirect({ session, loading }: { session: Session | null; loading: boolean }) {
+function MobileRootRedirect() {
+  const { session, loading } = useAuth();
   if (loading) return null;
   if (!isMobile()) return <Index />;
   return <Navigate to={session ? "/dashboard" : "/login"} replace />;
 }
 
-const App = () => {
+/** Inner app — has access to AuthContext */
+function AppRoutes() {
+  const { user } = useAuth();
   const [showSplash, setShowSplash] = useState(isMobile());
-  const [session, setSession] = useState<Session | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
 
+  // Once we know the user, scope all localStorage to their UID
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setAuthLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setAuthLoading(false);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+    if (user?.id) {
+      setSourceContextUser(user.id);
+      setHistoryUser(user.id);
+    }
+  }, [user?.id]);
 
   if (showSplash) return <SplashScreen onDone={() => setShowSplash(false)} />;
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
+      <SourceBreadcrumb />
+      <PWAInstallBanner />
+      <Routes>
+        <Route path="/" element={<MobileRootRedirect />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
+        <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+        <Route path="/timer" element={<ProtectedRoute><FocusTimer /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/planner" element={<ProtectedRoute><StudyPlanner /></ProtectedRoute>} />
+        <Route path="/ai-tutor" element={<ProtectedRoute><AiTutor /></ProtectedRoute>} />
+        <Route path="/feynman" element={<ProtectedRoute><FeynmanMode /></ProtectedRoute>} />
+        <Route path="/tool-architect" element={<ProtectedRoute><ToolArchitect /></ProtectedRoute>} />
+        <Route path="/synthesis" element={<ProtectedRoute><SynthesisLab /></ProtectedRoute>} />
+        <Route path="/why-engine" element={<ProtectedRoute><WhyEngine /></ProtectedRoute>} />
+        <Route path="/upload" element={<ProtectedRoute><UploadMaterials /></ProtectedRoute>} />
+        <Route path="/suggestions" element={<ProtectedRoute><Suggestions /></ProtectedRoute>} />
+        <Route path="/math" element={<ProtectedRoute><MathSolver /></ProtectedRoute>} />
+        <Route path="/quiz-builder" element={<ProtectedRoute><QuizBuilder /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/essay" element={<ProtectedRoute><EssayWriter /></ProtectedRoute>} />
+        <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+        <Route path="/daily5" element={<ProtectedRoute><Daily5 /></ProtectedRoute>} />
+        <Route path="/flip-script" element={<ProtectedRoute><FlipScript /></ProtectedRoute>} />
+        <Route path="/spot-error" element={<ProtectedRoute><SpotError /></ProtectedRoute>} />
+        <Route path="/build-def" element={<ProtectedRoute><BuildDef /></ProtectedRoute>} />
+        <Route path="/blank-map" element={<ProtectedRoute><BlankMap /></ProtectedRoute>} />
+        <Route path="/boss-round" element={<ProtectedRoute><BossRound /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/sources" element={<ProtectedRoute><SourceLibrary /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SourceBreadcrumb />
-          <PWAInstallBanner />
-          <Routes>
-            <Route path="/" element={<MobileRootRedirect session={session} loading={authLoading} />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/dashboard" element={<ProtectedRoute session={session} loading={authLoading}><Dashboard /></ProtectedRoute>} />
-            <Route path="/practice" element={<ProtectedRoute session={session} loading={authLoading}><Practice /></ProtectedRoute>} />
-            <Route path="/flashcards" element={<ProtectedRoute session={session} loading={authLoading}><Flashcards /></ProtectedRoute>} />
-            <Route path="/timer" element={<ProtectedRoute session={session} loading={authLoading}><FocusTimer /></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute session={session} loading={authLoading}><Analytics /></ProtectedRoute>} />
-            <Route path="/planner" element={<ProtectedRoute session={session} loading={authLoading}><StudyPlanner /></ProtectedRoute>} />
-            <Route path="/ai-tutor" element={<ProtectedRoute session={session} loading={authLoading}><AiTutor /></ProtectedRoute>} />
-            <Route path="/feynman" element={<ProtectedRoute session={session} loading={authLoading}><FeynmanMode /></ProtectedRoute>} />
-            <Route path="/tool-architect" element={<ProtectedRoute session={session} loading={authLoading}><ToolArchitect /></ProtectedRoute>} />
-            <Route path="/synthesis" element={<ProtectedRoute session={session} loading={authLoading}><SynthesisLab /></ProtectedRoute>} />
-            <Route path="/why-engine" element={<ProtectedRoute session={session} loading={authLoading}><WhyEngine /></ProtectedRoute>} />
-            <Route path="/upload" element={<ProtectedRoute session={session} loading={authLoading}><UploadMaterials /></ProtectedRoute>} />
-            <Route path="/suggestions" element={<ProtectedRoute session={session} loading={authLoading}><Suggestions /></ProtectedRoute>} />
-            <Route path="/math" element={<ProtectedRoute session={session} loading={authLoading}><MathSolver /></ProtectedRoute>} />
-            <Route path="/quiz-builder" element={<ProtectedRoute session={session} loading={authLoading}><QuizBuilder /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute session={session} loading={authLoading}><Settings /></ProtectedRoute>} />
-            <Route path="/essay" element={<ProtectedRoute session={session} loading={authLoading}><EssayWriter /></ProtectedRoute>} />
-            <Route path="/community" element={<ProtectedRoute session={session} loading={authLoading}><Community /></ProtectedRoute>} />
-            <Route path="/daily5" element={<ProtectedRoute session={session} loading={authLoading}><Daily5 /></ProtectedRoute>} />
-            <Route path="/flip-script" element={<ProtectedRoute session={session} loading={authLoading}><FlipScript /></ProtectedRoute>} />
-            <Route path="/spot-error" element={<ProtectedRoute session={session} loading={authLoading}><SpotError /></ProtectedRoute>} />
-            <Route path="/build-def" element={<ProtectedRoute session={session} loading={authLoading}><BuildDef /></ProtectedRoute>} />
-            <Route path="/blank-map" element={<ProtectedRoute session={session} loading={authLoading}><BlankMap /></ProtectedRoute>} />
-            <Route path="/boss-round" element={<ProtectedRoute session={session} loading={authLoading}><BossRound /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute session={session} loading={authLoading}><Admin /></ProtectedRoute>} />
-            <Route path="/sources" element={<ProtectedRoute session={session} loading={authLoading}><SourceLibrary /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+    </AuthProvider>
+  </QueryClientProvider>
+);
 
 export default App;
