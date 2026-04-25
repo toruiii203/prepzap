@@ -137,7 +137,7 @@ export default function FocusTimer() {
   useEffect(() => {
     const mm = String(Math.floor(seconds / 60)).padStart(2, "0")
     const ss = String(seconds % 60).padStart(2, "0")
-    document.title = isRunning ? `${mm}:${ss} ${mode === "focus" ? "🎯" : "☕"} PrepZap` : "Focus Timer · PrepZap"
+    document.title = isRunning ? `${mm}:${ss} ${mode === "focus" ? "🎯" : "☕"} PrepZap` : "Pomodoro Timer · PrepZap"
     return () => { document.title = "PrepZap" }
   }, [seconds, isRunning, mode])
 

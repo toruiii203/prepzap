@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu, ChevronDown, BookOpen, Brain, Clock, BarChart3,
   MessageSquare, Calendar, Sparkles, Mic, Settings, LogOut,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
+import { supabase } from "@/lib/supabase";
 
 const navLinks = [
   { href: "/pricing",     label: "Pricing"     },
@@ -19,18 +20,26 @@ const navLinks = [
 ];
 
 const studyTools = [
-  { href: "/practice",       label: "Practice Mode",     icon: BookOpen,       description: "Learn at your own pace"          },
-  { href: "/flashcards",     label: "Flashcards",         icon: Sparkles,       description: "Spaced repetition learning"       },
-  { href: "/timer",          label: "Focus Timer",        icon: Clock,          description: "Pomodoro with ambient sounds"     },
-  { href: "/analytics",      label: "Analytics",          icon: BarChart3,      description: "Track your progress"             },
-  { href: "/planner",        label: "Study Planner",      icon: Calendar,       description: "Plan your week"                  },
-  { href: "/upload",         label: "Upload Materials",   icon: Upload,         description: "Add PDFs and notes"              },
-  { href: "/tool-architect", label: "Roadmap Generator",  icon: Wrench,         description: "Zero to mastery on any topic"    },
-  { href: "/synthesis",      label: "Synthesis Lab",      icon: Layers,         description: "Connect the dots across notes"   },
-  { href: "/why-engine",     label: "Why Engine",         icon: HelpCircle,     description: "First-principles explanations"   },
-  { href: "/ai-tutor",       label: "AI Tutor",           icon: MessageSquare,  description: "Ask anything",       pro: true  },
-  { href: "/feynman",        label: "Feynman Mode",       icon: Mic,            description: "Teach to master",    pro: true  },
-  { href: "/sources",        label: "Source Library",     icon: Upload,         description: "Your study files"               },
+  // AI & Tutoring
+  { href: "/ai-tutor",       label: "BrainBot",       icon: MessageSquare, description: "Ask anything, anytime",              pro: true  },
+  { href: "/feynman",        label: "Feynman",         icon: Mic,           description: "Teach it to learn it",              pro: true  },
+  { href: "/math",           label: "MathZap",         icon: Sparkles,      description: "Step-by-step solutions"                        },
+  // Practice & Quizzing
+  { href: "/practice",       label: "Practice",        icon: BookOpen,      description: "AI question sets"                              },
+  { href: "/flashcards",     label: "Flashcards",      icon: Layers,        description: "Spaced repetition learning"                    },
+  { href: "/daily5",         label: "Daily Quiz",      icon: Zap,           description: "Quick daily rounds"                            },
+  { href: "/spot-error",     label: "Error Hunt",      icon: HelpCircle,    description: "Find & fix mistakes"                           },
+  // Deep Learning
+  { href: "/blank-map",      label: "Mind Map",        icon: Layers,        description: "Map & connect ideas"                           },
+  { href: "/build-def",      label: "Concepts",        icon: HelpCircle,    description: "Build definitions from memory"                 },
+  { href: "/tool-architect", label: "Roadmap",         icon: Wrench,        description: "Zero to mastery on any topic"                  },
+  // Focus & Tracking
+  { href: "/timer",          label: "Pomodoro",        icon: Clock,         description: "Focus timer with ambient sounds"               },
+  { href: "/analytics",      label: "Progress",        icon: BarChart3,     description: "Track your performance"                        },
+  { href: "/planner",        label: "Planner",         icon: Calendar,      description: "Plan your study week"                          },
+  // Files
+  { href: "/sources",        label: "Sources",         icon: Upload,        description: "Your study files"                              },
+  { href: "/upload",         label: "Upload",          icon: Upload,        description: "Add PDFs and notes"                            },
 ];
 
 const navStyle: React.CSSProperties = {
@@ -51,7 +60,13 @@ interface NavbarProps {
 
 export function Navbar({ isLoggedIn = false, user, extraRight }: NavbarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   return (
     <header
@@ -178,7 +193,7 @@ export function Navbar({ isLoggedIn = false, user, extraRight }: NavbarProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator style={{ background: "var(--pz-border)" }} />
-                  <DropdownMenuItem style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 14px", fontSize: "12px", color: "var(--pz-text-muted)", cursor: "pointer" }}>
+                  <DropdownMenuItem onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 14px", fontSize: "12px", color: "var(--pz-text-muted)", cursor: "pointer" }}>
                     <LogOut style={{ width: 13, height: 13 }} /> Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>

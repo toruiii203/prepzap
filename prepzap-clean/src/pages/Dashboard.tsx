@@ -6,12 +6,8 @@ import {
 import { Link, useNavigate } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { BottomNav } from "@/components/BottomNav"
-import { createClient } from "@supabase/supabase-js"
-
-const supabase = createClient(
-  "https://sieizvhprgcqrkalnkht.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWl6dmhwcmdjcXJrYWxua2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTg2NDksImV4cCI6MjA5MjMzNDY0OX0.-U8zu8Midq8PGaUPSRqhC-vVU1RnCH4yPOs_ZuppC_8"
-)
+import { useAuth } from "@/contexts/AuthContext"
+import { levelFromXp, xpToNextLevel, xpProgressPercent, tierFromLevel, tierEmojiFromLevel } from "@/lib/xp"
 
 // ─── Theme System ─────────────────────────────────────────────────────────────
 type ThemeId = "obsidian" | "midnight" | "emerald" | "crimson"
@@ -57,66 +53,52 @@ const I = ({ c, children }: { c: string; children: React.ReactNode }) => (
 )
 
 const ICONS: Record<string, React.ReactNode> = {
-  "DailyZap":       <I c="#A855F7"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></I>,
-  "ErrorSnap":      <I c="#00CFFF"><circle cx="11" cy="11" r="7"/><circle cx="11" cy="11" r="3" strokeDasharray="2 2"/><line x1="11" y1="8" x2="11" y2="6"/><line x1="14" y1="11" x2="16" y2="11"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></I>,
-  "Define":         <I c="#FF2DAF"><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></I>,
-  "MindMap":        <I c="#A855F7"><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="12" y1="12" x2="4" y2="6"/><line x1="12" y1="12" x2="20" y2="6"/><line x1="12" y1="12" x2="4" y2="18"/><line x1="12" y1="12" x2="20" y2="18"/></I>,
-  "Apex":           <I c="#FFD700"><path d="M8 21h8M12 21v-4"/><path d="M5 6l2 7h10l2-7"/><path d="M5 6c-2 0-2-2 0-2h14c2 0 2 2 0 2"/></I>,
-  "Practice":       <I c="#00CFFF"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="#00CFFF"/></I>,
-  "Flashcards":     <I c="#FF2DAF"><rect x="5" y="7" width="14" height="10" rx="1"/><rect x="3" y="5" width="14" height="10" rx="1"/><line x1="6" y1="9" x2="13" y2="9"/><line x1="6" y1="12" x2="11" y2="12"/></I>,
-  "Timer":          <I c="#A855F7"><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="15"/><line x1="9" y1="3" x2="15" y2="3"/><line x1="12" y1="5" x2="12" y2="2"/></I>,
-  "BrainBot":       <I c="#00CFFF"><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M12 3v3M9 9V7a3 3 0 016 0v2"/><circle cx="9.5" cy="14" r="1" fill="#00CFFF"/><circle cx="14.5" cy="14" r="1" fill="#00CFFF"/><line x1="12" y1="17" x2="12" y2="19"/></I>,
-  "Feynman Mode":   <I c="#FFD700"><path d="M4 17l8-14 8 14H4z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></I>,
-  "MathZap":        <I c="#FF2DAF"><path d="M8 4l-6 8 6 8"/><path d="M16 4l6 8-6 8"/><line x1="3" y1="12" x2="21" y2="12"/></I>,
-  "Progress":       <I c="#A855F7"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="6" y="12" width="2" height="6"/><rect x="10" y="9" width="2" height="9"/><rect x="14" y="6" width="2" height="12"/><path d="M6 10l4-3 4 2 4-4" strokeWidth="1.2"/></I>,
-  "Link":           <I c="#00CFFF"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="2"/><line x1="5" y1="5" x2="19" y2="5"/><line x1="5" y1="5" x2="5" y2="19"/><line x1="19" y1="5" x2="19" y2="19"/><line x1="5" y1="19" x2="19" y2="19"/><line x1="12" y1="12" x2="5" y2="5"/><line x1="12" y1="12" x2="19" y2="5"/><line x1="12" y1="12" x2="5" y2="19"/><line x1="12" y1="12" x2="19" y2="19"/></I>,
-  "Why Engine":     <I c="#FFD700"><rect x="3" y="14" width="18" height="6" rx="1"/><line x1="8" y1="14" x2="8" y2="11"/><line x1="16" y1="14" x2="16" y2="11"/><line x1="8" y1="11" x2="16" y2="11"/><circle cx="12" cy="9" r="2"/><circle cx="12" cy="9" r="0.8" fill="#FFD700" stroke="none"/></I>,
-  "Roadmap":        <I c="#FF2DAF"><polyline points="3,12 6,7 9,12 12,4 15,12 18,8 21,12"/></I>,
-  "ZapQuiz":        <I c="#A855F7"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 2-2.5 2.5-2.5 4.5"/><circle cx="12" cy="17.5" r="0.7" fill="#A855F7"/></I>,
-  "Source Library": <I c="#00CFFF"><path d="M3 7l3-3h12l3 3v13H3z"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="7" y1="14" x2="14" y2="14"/><line x1="7" y1="17" x2="11" y2="17"/></I>,
-  "Suggestions":    <I c="#FFD700"><circle cx="12" cy="12" r="4"/>{[0,45,90,135,180,225,270,315].map((a,k)=><line key={k} x1={12+7*Math.cos(a*Math.PI/180)} y1={12+7*Math.sin(a*Math.PI/180)} x2={12+9.5*Math.cos(a*Math.PI/180)} y2={12+9.5*Math.sin(a*Math.PI/180)}/>)}</I>,
-  "Settings":       <I c="#A855F7"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>,
-  "Go Pro":         <I c="#FFD700"><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></I>,
+  // AI & Tutoring
+  "BrainBot":   <I c="#00CFFF"><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M12 3v3M9 9V7a3 3 0 016 0v2"/><circle cx="9.5" cy="14" r="1" fill="#00CFFF"/><circle cx="14.5" cy="14" r="1" fill="#00CFFF"/><line x1="12" y1="17" x2="12" y2="19"/></I>,
+  "Feynman":    <I c="#FFD700"><path d="M4 17l8-14 8 14H4z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></I>,
+  "MathZap":    <I c="#FF2DAF"><path d="M8 4l-6 8 6 8"/><path d="M16 4l6 8-6 8"/><line x1="3" y1="12" x2="21" y2="12"/></I>,
+  // Practice & Quizzing
+  "Practice":   <I c="#00CFFF"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="#00CFFF"/></I>,
+  "Flashcards": <I c="#FF2DAF"><rect x="5" y="7" width="14" height="10" rx="1"/><rect x="3" y="5" width="14" height="10" rx="1"/><line x1="6" y1="9" x2="13" y2="9"/><line x1="6" y1="12" x2="11" y2="12"/></I>,
+  "Daily Quiz": <I c="#A855F7"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></I>,
+  "Error Hunt": <I c="#00CFFF"><circle cx="11" cy="11" r="7"/><circle cx="11" cy="11" r="3" strokeDasharray="2 2"/><line x1="11" y1="8" x2="11" y2="6"/><line x1="14" y1="11" x2="16" y2="11"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></I>,
+  // Deep Learning
+  "Concepts":   <I c="#FF2DAF"><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></I>,
+  "Mind Map":   <I c="#A855F7"><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="12" y1="12" x2="4" y2="6"/><line x1="12" y1="12" x2="20" y2="6"/><line x1="12" y1="12" x2="4" y2="18"/><line x1="12" y1="12" x2="20" y2="18"/></I>,
+  "Roadmap":    <I c="#FF2DAF"><polyline points="3,12 6,7 9,12 12,4 15,12 18,8 21,12"/></I>,
+  // Focus & Tracking
+  "Pomodoro":   <I c="#A855F7"><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="15"/><line x1="9" y1="3" x2="15" y2="3"/><line x1="12" y1="5" x2="12" y2="2"/></I>,
+  "Progress":   <I c="#A855F7"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="6" y="12" width="2" height="6"/><rect x="10" y="9" width="2" height="9"/><rect x="14" y="6" width="2" height="12"/><path d="M6 10l4-3 4 2 4-4" strokeWidth="1.2"/></I>,
+  "Planner":    <I c="#FFD700"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/><line x1="8" y1="17" x2="13" y2="17"/></I>,
+  // Content & Files
+  "Sources":    <I c="#00CFFF"><path d="M3 7l3-3h12l3 3v13H3z"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="7" y1="14" x2="14" y2="14"/><line x1="7" y1="17" x2="11" y2="17"/></I>,
+  "Upload":     <I c="#FFD700"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></I>,
+  "Essay":      <I c="#FF2DAF"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></I>,
+  // Misc
+  "Settings":   <I c="#A855F7"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>,
+  "Go Pro":     <I c="#FFD700"><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></I>,
 }
 
-export function ThemePill() {
-  const { theme, setTheme } = useContext(ThemeCtx)
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 12px", background:"var(--pz-surface3)", border:"1px solid var(--pz-border)" }}>
-      <span style={{ fontSize:"8.5px", color:"var(--pz-text-muted)", textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:600, whiteSpace:"nowrap" }}>THEME</span>
-      <div style={{ display:"flex", gap:5, alignItems:"center" }}>
-        {THEMES.map(t => {
-          const isActive = theme.id === t.id
-          return (
-            <button key={t.id} title={`${t.label} — ${t.description}`} onClick={() => setTheme(t)} style={{ width: isActive ? 15 : 12, height: isActive ? 15 : 12, borderRadius: "50%", background: t.swatch, border: isActive ? `2px solid ${t.swatch}` : "2px solid rgba(255,255,255,0.12)", outline: isActive ? `2px solid ${t.swatch}40` : "none", outlineOffset: "2px", boxShadow: isActive ? `0 0 8px ${t.swatch}60` : "none", transition: "all 0.2s ease", flexShrink: 0, cursor: "pointer" }} />
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
+// Ordered by usability: AI first → core practice → deep learning → focus/files → admin
 const quickActions = [
-  { href:"/daily5",         label:"DailyZap",       description:"5 Qs in 3 min",         isNew:true   },
-  { href:"/spot-error",     label:"ErrorSnap",      description:"Find the mistakes",      isNew:true   },
-  { href:"/build-def",      label:"Define",         description:"Write from memory",      isNew:true   },
-  { href:"/blank-map",      label:"MindMap",        description:"Draw connections",       isNew:true   },
-  { href:"/boss-round",     label:"Apex",           description:"10 hard Qs for XP",     isNew:true   },
-  { href:"/practice",       label:"Practice",       description:"AI question sets"                     },
-  { href:"/flashcards",     label:"Flashcards",     description:"Spaced repetition"                    },
-  { href:"/timer",          label:"Timer",          description:"Pomodoro + sounds"                    },
-  { href:"/ai-tutor",       label:"BrainBot",       description:"Ask anything"                         },
-  { href:"/feynman",        label:"Feynman Mode",   description:"Teach to master"                      },
-  { href:"/math",           label:"MathZap",        description:"Step-by-step solutions"               },
-  { href:"/analytics",      label:"Progress",       description:"Track progress"                       },
-  { href:"/synthesis",      label:"Link",           description:"Connect concepts"                     },
-  { href:"/why-engine",     label:"Why Engine",     description:"First-principles"                     },
-  { href:"/tool-architect", label:"Roadmap",        description:"Zero to mastery"                      },
-  { href:"/quiz-builder",   label:"ZapQuiz",        description:"Build your quiz"                      },
-  { href:"/sources",        label:"Source Library", description:"Your study files"                     },
-  { href:"/suggestions",    label:"Suggestions",    description:"Shape PrepZap"                        },
-  { href:"/settings",       label:"Settings",       description:"Preferences & plan"                   },
-  { href:"/pricing",        label:"Go Pro",         description:"Unlock everything",      isGoPro:true },
+  { href:"/ai-tutor",       label:"BrainBot",   description:"Ask anything, anytime"         },
+  { href:"/practice",       label:"Practice",   description:"AI question sets"              },
+  { href:"/flashcards",     label:"Flashcards", description:"Spaced repetition"             },
+  { href:"/feynman",        label:"Feynman",    description:"Teach it to learn it"          },
+  { href:"/math",           label:"MathZap",    description:"Step-by-step solutions"        },
+  { href:"/daily5",         label:"Daily Quiz", description:"Quick daily rounds"            },
+  { href:"/spot-error",     label:"Error Hunt", description:"Find & fix mistakes"           },
+  { href:"/blank-map",      label:"Mind Map",   description:"Map & connect ideas"           },
+  { href:"/build-def",      label:"Concepts",   description:"Build definitions from memory" },
+  { href:"/tool-architect", label:"Roadmap",    description:"Zero to mastery on any topic"  },
+  { href:"/timer",          label:"Pomodoro",   description:"Focus timer with sounds"       },
+  { href:"/analytics",      label:"Progress",   description:"Track your performance"        },
+  { href:"/sources",        label:"Sources",    description:"Your study files"              },
+  { href:"/upload",         label:"Upload",     description:"Add PDFs and notes"            },
+  { href:"/essay",          label:"Essay",      description:"AI writing assistant"          },
+  { href:"/planner",        label:"Planner",    description:"Plan your study week"          },
+  { href:"/settings",       label:"Settings",   description:"Preferences & plan"            },
+  { href:"/pricing",        label:"Go Pro",     description:"Unlock everything", isGoPro:true },
 ]
 
 const recentActivity = [
@@ -258,35 +240,35 @@ function ChecklistCard() {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { profile, signOut, lsKey } = useAuth()
   const [showAll,setShowAll]=useState(false)
   const [theme,setTheme]=useState<LuxuryTheme>(() => {
     const saved = localStorage.getItem("pz-theme")
     return THEMES.find(t => t.id === saved) ?? THEMES[0]
   })
 
-  // ─── Real user from Supabase ──────────────────────────────────────────────
-  const [userName, setUserName] = useState("there")
-  const [userEmail, setUserEmail] = useState("")
-  const [userPlan] = useState<"free"|"pro">("free")
-  const [creditBalance] = useState(50)
-  const [streak] = useState(12)
-  const [xp] = useState(2450)
-  const [todayMinutes] = useState(35)
-  const [dailyGoalMinutes] = useState(60)
+  // ─── Live user data from AuthContext ─────────────────────────────────────
+  const userName         = profile?.full_name ?? "there"
+  const userPlan         = profile?.plan ?? "free"
+  const creditBalance    = profile?.credits_remaining ?? 0
+  const streak           = profile?.streak_days ?? 0
+  const xp               = profile?.total_xp ?? 0
+  const dailyGoalMinutes = profile?.daily_goal_minutes ?? 60
+  const questionsAnswered = profile?.questions_answered ?? 0
+  const accuracyPercent  = profile?.accuracy_percent ?? 0
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const meta = session.user.user_metadata
-        const name = meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "there"
-        setUserName(name)
-        setUserEmail(session.user.email || "")
-      }
-    })
-  }, [])
+  // ─── Derived XP values (never hardcoded) ─────────────────────────────────
+  const level      = levelFromXp(xp)
+  const tier       = tierFromLevel(level)
+  const tierEmoji  = tierEmojiFromLevel(level)
+  const toNextXp   = xpToNextLevel(xp)
+  const xpPercent  = xpProgressPercent(xp)
+
+  // todayMinutes: ideally from a sessions table; defaulting to 0 until wired up
+  const [todayMinutes] = useState(0)
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOut()
     navigate("/login")
   }
 
@@ -297,7 +279,7 @@ export default function Dashboard() {
 
   const hour=new Date().getHours()
   const greeting=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening"
-  const displayed=showAll?quickActions:quickActions.slice(0,6)
+  const displayed=showAll?quickActions:quickActions.slice(0,12)
   const dailyProgress=Math.round((todayMinutes/dailyGoalMinutes)*100)
   const card={background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"} as React.CSSProperties
 
@@ -360,20 +342,19 @@ export default function Dashboard() {
                 <div className="p-4 lg:p-6 rounded-none overflow-hidden" style={card}>
                   <div className="h-0.5 -mx-6 -mt-6 mb-6" style={{background:`linear-gradient(90deg,var(--pz-gold) ${dailyProgress}%,var(--pz-surface3) ${dailyProgress}%)`}}/>
                   <div className="flex items-center justify-between mb-5"><h2 className="font-medium text-base" style={{color:"var(--pz-text)"}}>Today's Progress</h2><span className="text-xs px-2.5 py-1 rounded-none" style={{background:"var(--pz-surface3)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace",border:"1px solid var(--pz-border)"}}>{todayMinutes} / {dailyGoalMinutes} min</span></div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{[{emoji:"📝",value:"156",label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:"78%",label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{[{emoji:"📝",value:String(questionsAnswered),label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:`${accuracyPercent}%`,label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
                 </div>
 
                 {/* Quick Start */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-medium" style={{color:"var(--pz-text)"}}>Quick Start</h2>
-                    <button onClick={()=>setShowAll(s=>!s)} className="text-sm" style={{color:"var(--pz-text)"}}>{showAll?"Show less":`+${quickActions.length-6} more`}</button>
+                    <button onClick={()=>setShowAll(s=>!s)} className="text-sm" style={{color:"var(--pz-text)"}}>{showAll?"Show less":`+${quickActions.length-12} more`}</button>
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2">
                     {displayed.map((action,i)=>(
                       <Link to={action.href} key={i}>
                         <div className="relative p-3 text-center transition-all cursor-pointer" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface3)";(e.currentTarget as HTMLElement).style.transform="translateY(-2px)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface2)";(e.currentTarget as HTMLElement).style.transform=""}}>
-                          {(action as any).isNew&&<span className="absolute -top-1.5 -right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-none leading-none shadow-sm" style={{background:"linear-gradient(90deg,#FFD700,#FFA500)",color:"#1a1000"}}>NEW</span>}
                           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center mx-auto mb-2 shadow-md">
                             {ICONS[action.label]??<ZapIcon className="h-5 w-5 text-white opacity-30"/>}
                           </div>
@@ -395,9 +376,9 @@ export default function Dashboard() {
               {/* Sidebar */}
               <div className="hidden lg:block space-y-5">
                 <div className="p-5 rounded-none" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)",borderTop:"2px solid var(--pz-gold)"}}>
-                  <div className="flex items-center justify-between mb-3"><div><p className="text-xs mb-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Level 8 — Gold</p><p className="text-2xl font-semibold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{xp.toLocaleString()} XP</p></div><div className="w-12 h-12 rounded-none flex items-center justify-center text-2xl" style={{background:"var(--pz-surface3)",border:"1px solid rgba(212,175,90,0.2)"}}>🥇</div></div>
-                  <div className="h-1.5 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:"68%",background:"linear-gradient(90deg,var(--pz-gold),var(--pz-teal))",transition:"width 0.6s ease"}}/></div>
-                  <p className="text-xs mt-2" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>550 XP to Level 9</p>
+                  <div className="flex items-center justify-between mb-3"><div><p className="text-xs mb-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Level {level} — {tier}</p><p className="text-2xl font-semibold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{xp.toLocaleString()} XP</p></div><div className="w-12 h-12 rounded-none flex items-center justify-center text-2xl" style={{background:"var(--pz-surface3)",border:"1px solid rgba(212,175,90,0.2)"}}>{tierEmoji}</div></div>
+                  <div className="h-1.5 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:`${xpPercent}%`,background:"linear-gradient(90deg,var(--pz-gold),var(--pz-teal))",transition:"width 0.6s ease"}}/></div>
+                  <p className="text-xs mt-2" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{toNextXp} XP to Level {level + 1}</p>
                 </div>
                 <div className="p-5 rounded-none" style={card}>
                   <div className="flex items-center gap-2 mb-4"><Target className="h-4 w-4" style={{color:"var(--pz-text-muted)"}}/><h3 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Focus Areas</h3></div>
