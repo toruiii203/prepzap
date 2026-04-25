@@ -76,31 +76,32 @@ const I = ({ c, children }: { c: string; children: React.ReactNode }) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
 )
 
+const IC = "var(--pz-gold)"
 const ICONS: Record<string, React.ReactNode> = {
   // AI & Tutoring
-  "BrainBot":   <I c="#00CFFF"><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M12 3v3M9 9V7a3 3 0 016 0v2"/><circle cx="9.5" cy="14" r="1" fill="#00CFFF"/><circle cx="14.5" cy="14" r="1" fill="#00CFFF"/><line x1="12" y1="17" x2="12" y2="19"/></I>,
-  "Feynman":    <I c="#FFD700"><path d="M4 17l8-14 8 14H4z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></I>,
-  "MathZap":    <I c="#FF2DAF"><path d="M8 4l-6 8 6 8"/><path d="M16 4l6 8-6 8"/><line x1="3" y1="12" x2="21" y2="12"/></I>,
+  "BrainBot":   <I c={IC}><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M12 3v3M9 9V7a3 3 0 016 0v2"/><circle cx="9.5" cy="14" r="1" fill="var(--pz-gold)"/><circle cx="14.5" cy="14" r="1" fill="var(--pz-gold)"/><line x1="12" y1="17" x2="12" y2="19"/></I>,
+  "Feynman":    <I c={IC}><path d="M4 17l8-14 8 14H4z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></I>,
+  "MathZap":    <I c={IC}><path d="M8 4l-6 8 6 8"/><path d="M16 4l6 8-6 8"/><line x1="3" y1="12" x2="21" y2="12"/></I>,
   // Practice & Quizzing
-  "Practice":   <I c="#00CFFF"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="#00CFFF"/></I>,
-  "Flashcards": <I c="#FF2DAF"><rect x="5" y="7" width="14" height="10" rx="1"/><rect x="3" y="5" width="14" height="10" rx="1"/><line x1="6" y1="9" x2="13" y2="9"/><line x1="6" y1="12" x2="11" y2="12"/></I>,
-  "Daily Quiz": <I c="#A855F7"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></I>,
-  "Error Hunt": <I c="#00CFFF"><circle cx="11" cy="11" r="7"/><circle cx="11" cy="11" r="3" strokeDasharray="2 2"/><line x1="11" y1="8" x2="11" y2="6"/><line x1="14" y1="11" x2="16" y2="11"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></I>,
+  "Practice":   <I c={IC}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="var(--pz-gold)"/></I>,
+  "Flashcards": <I c={IC}><rect x="5" y="7" width="14" height="10" rx="1"/><rect x="3" y="5" width="14" height="10" rx="1"/><line x1="6" y1="9" x2="13" y2="9"/><line x1="6" y1="12" x2="11" y2="12"/></I>,
+  "Daily Quiz": <I c={IC}><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></I>,
+  "Error Hunt": <I c={IC}><circle cx="11" cy="11" r="7"/><circle cx="11" cy="11" r="3" strokeDasharray="2 2"/><line x1="11" y1="8" x2="11" y2="6"/><line x1="14" y1="11" x2="16" y2="11"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></I>,
   // Deep Learning
-  "Concepts":   <I c="#FF2DAF"><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></I>,
-  "Mind Map":   <I c="#A855F7"><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="12" y1="12" x2="4" y2="6"/><line x1="12" y1="12" x2="20" y2="6"/><line x1="12" y1="12" x2="4" y2="18"/><line x1="12" y1="12" x2="20" y2="18"/></I>,
-  "Roadmap":    <I c="#FF2DAF"><polyline points="3,12 6,7 9,12 12,4 15,12 18,8 21,12"/></I>,
+  "Concepts":   <I c={IC}><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></I>,
+  "Mind Map":   <I c={IC}><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="12" y1="12" x2="4" y2="6"/><line x1="12" y1="12" x2="20" y2="6"/><line x1="12" y1="12" x2="4" y2="18"/><line x1="12" y1="12" x2="20" y2="18"/></I>,
+  "Roadmap":    <I c={IC}><polyline points="3,12 6,7 9,12 12,4 15,12 18,8 21,12"/></I>,
   // Focus & Tracking
-  "Pomodoro":   <I c="#A855F7"><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="15"/><line x1="9" y1="3" x2="15" y2="3"/><line x1="12" y1="5" x2="12" y2="2"/></I>,
-  "Progress":   <I c="#A855F7"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="6" y="12" width="2" height="6"/><rect x="10" y="9" width="2" height="9"/><rect x="14" y="6" width="2" height="12"/><path d="M6 10l4-3 4 2 4-4" strokeWidth="1.2"/></I>,
-  "Planner":    <I c="#FFD700"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/><line x1="8" y1="17" x2="13" y2="17"/></I>,
+  "Pomodoro":   <I c={IC}><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="15"/><line x1="9" y1="3" x2="15" y2="3"/><line x1="12" y1="5" x2="12" y2="2"/></I>,
+  "Progress":   <I c={IC}><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="6" y="12" width="2" height="6"/><rect x="10" y="9" width="2" height="9"/><rect x="14" y="6" width="2" height="12"/><path d="M6 10l4-3 4 2 4-4" strokeWidth="1.2"/></I>,
+  "Planner":    <I c={IC}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/><line x1="8" y1="17" x2="13" y2="17"/></I>,
   // Content & Files
-  "Sources":    <I c="#00CFFF"><path d="M3 7l3-3h12l3 3v13H3z"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="7" y1="14" x2="14" y2="14"/><line x1="7" y1="17" x2="11" y2="17"/></I>,
-  "Upload":     <I c="#FFD700"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></I>,
-  "Essay":      <I c="#FF2DAF"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></I>,
+  "Sources":    <I c={IC}><path d="M3 7l3-3h12l3 3v13H3z"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="7" y1="14" x2="14" y2="14"/><line x1="7" y1="17" x2="11" y2="17"/></I>,
+  "Upload":     <I c={IC}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></I>,
+  "Essay":      <I c={IC}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></I>,
   // Misc
-  "Settings":   <I c="#A855F7"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>,
-  "Go Pro":     <I c="#FFD700"><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></I>,
+  "Settings":   <I c={IC}><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>,
+  "Go Pro":     <I c={IC}><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></I>,
 }
 
 // Ordered by usability: AI first → core practice → deep learning → focus/files → admin
@@ -120,7 +121,6 @@ const quickActions = [
   { href:"/sources",        label:"Sources",    description:"Your study files"              },
   { href:"/upload",         label:"Upload",     description:"Add PDFs and notes"            },
   { href:"/essay",          label:"Essay",      description:"AI writing assistant"          },
-  { href:"/planner",        label:"Planner",    description:"Plan your study week"          },
   { href:"/settings",       label:"Settings",   description:"Preferences & plan"            },
   { href:"/pricing",        label:"Go Pro",     description:"Unlock everything", isGoPro:true },
 ]
@@ -165,6 +165,11 @@ function StudyPlannerCard({ streak }: { streak: number }) {
   const [viewDate, setViewDate] = useState(new Date())
   const [sel, setSel] = useState(todayStr())
   const [modal, setModal] = useState(false)
+  // Derived stats from real events
+  const sessionsDone = events.filter(e => e.completed).length
+  const totalMins    = events.filter(e => e.completed).reduce((a, e) => a + e.duration, 0)
+  const totalHours   = (totalMins / 60).toFixed(1)
+  const goalPct      = events.length > 0 ? Math.round((sessionsDone / events.length) * 100) : 0
   const [newTitle, setNewTitle] = useState("")
   const [newColor, setNewColor] = useState(PALETTE[0])
   const [newDur, setNewDur] = useState(30)
@@ -183,7 +188,7 @@ function StudyPlannerCard({ streak }: { streak: number }) {
         <button onClick={()=>setModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-none text-xs md:text-sm font-semibold transition-opacity hover:opacity-80" style={{background:"var(--pz-teal)",color:"#0A0A0C"}}><Plus className="h-3 w-3 md:h-4 md:w-4"/>Add Session</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 py-4">
-        {[{icon:"🔥",value:String(streak),label:"Day Streak"},{icon:"🕐",value:"12.5h",label:"Hours This Week"},{icon:"✅",value:"24",label:"Sessions Done"},{icon:"🎯",value:"78%",label:"Goal Completion"}].map(s=>(
+        {[{icon:"🔥",value:String(streak),label:"Day Streak"},{icon:"🕐",value:`${totalHours}h`,label:"Hours This Week"},{icon:"✅",value:String(sessionsDone),label:"Sessions Done"},{icon:"🎯",value:`${goalPct}%`,label:"Goal Completion"}].map(s=>(
           <div key={s.label} className="flex items-center gap-3 px-4 py-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}>
             <span className="text-xl">{s.icon}</span>
             <div><div className="text-xl font-bold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] leading-tight" style={{color:"var(--pz-text-muted)"}}>{s.label}</div></div>
@@ -345,8 +350,8 @@ export default function Dashboard() {
             {/* Greeting */}
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl mb-1" style={{fontFamily:"'DM Serif Display',serif"}}>{greeting}, {userName} 👋</h1>
-                <p className="text-sm" style={{color:"var(--pz-text-2)"}}><span style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{creditBalance} credits</span>{" · "}<span>🔥 {streak}-day streak</span></p>
+                <h1 className="text-2xl sm:text-3xl font-semibold mb-1" style={{fontFamily:"'Inter',sans-serif",letterSpacing:"-0.02em"}}>{greeting}, {userName} 👋</h1>
+                <p className="text-sm" style={{color:"var(--pz-text-2)",fontFamily:"'Inter',sans-serif"}}><span style={{color:"var(--pz-text)"}}>{creditBalance} credits</span>{" · "}<span>🔥 {streak}-day streak</span></p>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span className="text-xs px-2.5 py-1 rounded-none hidden sm:inline-flex badge-gold">{userPlan==="free"?"Free Plan":"Pro"}</span>
