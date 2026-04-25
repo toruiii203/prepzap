@@ -5,10 +5,10 @@ import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 
-const mono: React.CSSProperties = { fontFamily: "'Geist Mono', monospace" };
+const mono: React.CSSProperties = { fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif" };
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "10px 12px", fontSize: "13px",
-  fontFamily: "'Geist', sans-serif", fontWeight: 300,
+  fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif", fontWeight: 300,
   background: "transparent", color: "var(--pz-text)",
   border: "0.5px solid var(--pz-border)", outline: "none",
   transition: "border-color 0.15s",
@@ -129,7 +129,7 @@ export default function Login() {
 
           <button type="submit" disabled={loading || success} style={{
             width: "100%", padding: "10px", fontSize: "12px",
-            fontFamily: "'Geist', sans-serif", fontWeight: 400,
+            fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif", fontWeight: 400,
             color: "#000", background: "var(--pz-text)", border: "none",
             cursor: "pointer", letterSpacing: "0.04em", opacity: (loading || success) ? 0.6 : 1,
             transition: "opacity 0.15s",

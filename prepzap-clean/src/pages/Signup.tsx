@@ -5,10 +5,11 @@ import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 
-const mono: React.CSSProperties = { fontFamily: "'Geist Mono', monospace" };
+const brand: React.CSSProperties = { fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif" };
+const mono: React.CSSProperties = { fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif" };
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "10px 12px", fontSize: "13px",
-  fontFamily: "'Geist', sans-serif", fontWeight: 300,
+  fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif", fontWeight: 300,
   background: "transparent", color: "var(--pz-text)",
   border: "0.5px solid var(--pz-border)", outline: "none",
   transition: "border-color 0.15s",
@@ -70,21 +71,24 @@ export default function Signup() {
     })
 
     if (signUpError) {
-      setError(signUpError.message)
+      if (signUpError.message.toLowerCase().includes("already registered") ||
+          signUpError.message.toLowerCase().includes("already exists")) {
+        setError("An account with this email already exists. Try logging in instead.")
+      } else {
+        setError(signUpError.message)
+      }
       setLoading(false)
-      return
-    }
-
-    // If email confirmation is required, tell the user
-    if (data.user && !data.session) {
-      setLoading(false)
-      setError("Check your email to confirm your account before logging in.")
       return
     }
 
     setLoading(false)
     setSuccess(true)
-    setTimeout(() => navigate("/dashboard"), 800)
+
+    // Session exists = email confirmation is OFF, go straight to dashboard
+    if (data.session) {
+      setTimeout(() => navigate("/dashboard"), 800)
+    }
+    // No session = confirmation email sent, success state shows the message below
   }
 
   return (
@@ -201,8 +205,15 @@ export default function Signup() {
               </div>
             )}
             {success ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "0.5px solid rgba(245,245,245,0.14)", fontSize: "12px", color: "var(--pz-text-2)", fontWeight: 300 }}>
-                <CheckCircle2 style={{ width: 12, height: 12 }} /> Account created! Redirecting...
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px", border: "0.5px solid rgba(245,245,245,0.14)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--pz-text-2)", fontWeight: 300 }}>
+                  <CheckCircle2 style={{ width: 13, height: 13, flexShrink: 0 }} />
+                  Account created successfully!
+                </div>
+                <p style={{ fontSize: "11px", color: "var(--pz-text-muted)", fontWeight: 300, lineHeight: 1.6 }}>
+                  Check your email for a confirmation link, then{" "}
+                  <Link to="/login" style={{ color: "var(--pz-text-2)", textDecoration: "none", borderBottom: "0.5px solid var(--pz-border)" }}>log in here</Link>.
+                </p>
               </div>
             ) : (
               <button onClick={handleFinish} disabled={loading} style={{ width: "100%", padding: "10px", fontSize: "12px", fontFamily: "'Geist', sans-serif", fontWeight: 400, color: "#000", background: "var(--pz-text)", border: "none", cursor: "pointer", letterSpacing: "0.04em", opacity: loading ? 0.6 : 1, transition: "opacity 0.15s" }}>

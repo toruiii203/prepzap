@@ -291,7 +291,7 @@ export default function Settings() {
             </Button>
 
             <p className="text-center text-xs text-muted-foreground pb-4">
-              PrepZap v1.0.0 · <a href="#" className="hover:underline">Privacy Policy</a> · <a href="#" className="hover:underline">Terms of Service</a>
+              Studenius v1.0.0 · <a href="#" className="hover:underline">Privacy Policy</a> · <a href="#" className="hover:underline">Terms of Service</a>
             </p>
           </div>
         </div>
