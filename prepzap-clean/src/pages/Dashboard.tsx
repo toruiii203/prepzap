@@ -48,6 +48,30 @@ const THEMES: LuxuryTheme[] = [
 
 const ThemeCtx = createContext<{ theme: LuxuryTheme; setTheme: (t: LuxuryTheme) => void }>({ theme: THEMES[0], setTheme: () => {} })
 
+function ThemePill() {
+  const { theme, setTheme } = useContext(ThemeCtx)
+  return (
+    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+      {THEMES.map(t => (
+        <button
+          key={t.id}
+          onClick={() => setTheme(t)}
+          title={t.label}
+          style={{
+            width: 14, height: 14,
+            borderRadius: "50%",
+            background: t.vars["--pz-gold"] ?? t.vars["--pz-teal"] ?? "#fff",
+            border: theme.id === t.id ? "2px solid #fff" : "2px solid transparent",
+            cursor: "pointer",
+            padding: 0,
+            transition: "border 0.15s",
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 const I = ({ c, children }: { c: string; children: React.ReactNode }) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
 )
