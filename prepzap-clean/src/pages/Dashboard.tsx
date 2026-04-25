@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { BottomNav } from "@/components/BottomNav"
 import { useAuth } from "@/contexts/AuthContext"
+import { supabase } from "@/lib/supabase"
 import { levelFromXp, xpToNextLevel, xpProgressPercent, tierFromLevel, tierEmojiFromLevel } from "@/lib/xp"
 
 // ─── Theme System ─────────────────────────────────────────────────────────────
@@ -125,26 +126,14 @@ const quickActions = [
   { href:"/pricing",        label:"Go Pro",     description:"Unlock everything", isGoPro:true },
 ]
 
-const recentActivity = [
-  { label:"Completed 25 Biology questions", time:"2h ago",    score:"88%",      accent:"var(--pz-gold)"   },
-  { label:"Flashcard session — Chemistry",  time:"4h ago",    score:"32 cards", accent:"var(--pz-teal)"   },
-  { label:"Focus session — 25 min",         time:"Yesterday", score:"✅",       accent:"var(--pz-violet)" },
-  { label:"Math Solver — Calculus",         time:"Yesterday", score:"Solved",   accent:"var(--pz-amber)"  },
-]
-
-const weakAreas = [
-  { subject:"Organic Chemistry", accuracy:58, color:"var(--pz-text-muted)" },
-  { subject:"Calculus",          accuracy:65, color:"var(--pz-text-2)"     },
-  { subject:"Cell Biology",      accuracy:71, color:"var(--pz-text-2)"     },
-]
-
-const achievements = [
-  { label:"7-Day Streak",  emoji:"🔥", earned:true  },
-  { label:"100 Questions", emoji:"📚", earned:true  },
-  { label:"First Exam",    emoji:"🎯", earned:true  },
-  { label:"Top 10%",       emoji:"🏆", earned:false },
-  { label:"30-Day Streak", emoji:"⚡", earned:false },
-  { label:"Perfect Score", emoji:"⭐", earned:false },
+// ─── All achievement definitions (static master list) ─────────────────────────
+const ALL_ACHIEVEMENTS = [
+  { key:"streak_7",       label:"7-Day Streak",  emoji:"🔥" },
+  { key:"questions_100",  label:"100 Questions", emoji:"📚" },
+  { key:"first_exam",     label:"First Exam",    emoji:"🎯" },
+  { key:"top_10",         label:"Top 10%",       emoji:"🏆" },
+  { key:"streak_30",      label:"30-Day Streak", emoji:"⚡" },
+  { key:"perfect_score",  label:"Perfect Score", emoji:"⭐" },
 ]
 
 const PALETTE = ["#10b981","#3b82f6","#a855f7","#f59e0b","#ef4444","#06b6d4","#ec4899"]
@@ -296,6 +285,69 @@ export default function Dashboard() {
   // todayMinutes: ideally from a sessions table; defaulting to 0 until wired up
   const [todayMinutes] = useState(0)
 
+  // ─── Live data state ───────────────────────────────────────────────────────
+  interface ActivityEntry { id:string; label:string; score:string; tool:string; created_at:string }
+  interface WeakArea      { subject:string; accuracy:number }
+  interface Achievement   { achievement:string }
+
+  const [activityLog,  setActivityLog]  = useState<ActivityEntry[]>([])
+  const [weakAreas,    setWeakAreas]    = useState<WeakArea[]>([])
+  const [earnedKeys,   setEarnedKeys]   = useState<string[]>([])
+  const [dataLoading,  setDataLoading]  = useState(true)
+
+  useEffect(() => {
+    if (!profile?.id) return
+    const uid = profile.id
+    setDataLoading(true)
+
+    Promise.all([
+      // Recent activity — last 6 entries
+      supabase
+        .from("activity_log")
+        .select("id, label, score, tool, created_at")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(6),
+
+      // Weak areas — subjects sorted by accuracy asc
+      supabase
+        .from("subject_stats")
+        .select("subject, accuracy")
+        .eq("user_id", uid)
+        .order("accuracy", { ascending: true })
+        .limit(5),
+
+      // Earned achievements
+      supabase
+        .from("user_achievements")
+        .select("achievement")
+        .eq("user_id", uid),
+    ]).then(([actRes, weakRes, achRes]) => {
+      if (actRes.data)  setActivityLog(actRes.data)
+      if (weakRes.data) setWeakAreas(weakRes.data)
+      if (achRes.data)  setEarnedKeys(achRes.data.map((a: Achievement) => a.achievement))
+      setDataLoading(false)
+    })
+  }, [profile?.id])
+
+  // Merge earned keys into the master achievement list
+  const achievements = ALL_ACHIEVEMENTS.map(a => ({
+    ...a,
+    earned: earnedKeys.includes(a.key),
+  }))
+
+  // Format activity timestamp to relative time string
+  function relativeTime(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime()
+    const mins  = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days  = Math.floor(diff / 86400000)
+    if (mins  < 60)  return `${mins}m ago`
+    if (hours < 24)  return `${hours}h ago`
+    if (days  === 1) return "Yesterday"
+    return `${days}d ago`
+  }
+
   const handleSignOut = async () => {
     await signOut()
     navigate("/login")
@@ -398,7 +450,13 @@ export default function Dashboard() {
                 {/* Recent Activity */}
                 <div className="p-6 rounded-none" style={card}>
                   <div className="flex items-center gap-2 mb-4"><TrendingUp className="h-4 w-4" style={{color:"var(--pz-text-2)"}}/><h2 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Recent Activity</h2></div>
-                  <div className="space-y-1">{recentActivity.map((item,i)=><div key={i} className="flex items-center justify-between p-3 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="flex items-center gap-3"><div className="w-1.5 h-1.5 rounded-none" style={{background:item.accent}}/><div><p className="text-sm font-medium" style={{color:"var(--pz-text)"}}>{item.label}</p><p className="text-xs" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{item.time}</p></div></div><span className="text-xs px-2 py-0.5 rounded-none" style={{background:"var(--pz-surface)",border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{item.score}</span></div>)}</div>
+                  {dataLoading ? (
+                    <div className="space-y-1">{[1,2,3].map(i=><div key={i} className="h-12 rounded-none animate-pulse" style={{background:"var(--pz-surface3)"}}/>)}</div>
+                  ) : activityLog.length === 0 ? (
+                    <p className="text-xs text-center py-6" style={{color:"var(--pz-text-muted)"}}>No activity yet — start studying to see your history here!</p>
+                  ) : (
+                    <div className="space-y-1">{activityLog.map((item,i)=><div key={item.id} className="flex items-center justify-between p-3 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="flex items-center gap-3"><div className="w-1.5 h-1.5 rounded-none" style={{background:"var(--pz-gold)"}}/><div><p className="text-sm font-medium" style={{color:"var(--pz-text)"}}>{item.label}</p><p className="text-xs" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{relativeTime(item.created_at)}</p></div></div><span className="text-xs px-2 py-0.5 rounded-none" style={{background:"var(--pz-surface)",border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{item.score}</span></div>)}</div>
+                  )}
                 </div>
               </div>
 
@@ -411,12 +469,22 @@ export default function Dashboard() {
                 </div>
                 <div className="p-5 rounded-none" style={card}>
                   <div className="flex items-center gap-2 mb-4"><Target className="h-4 w-4" style={{color:"var(--pz-text-muted)"}}/><h3 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Focus Areas</h3></div>
-                  <div className="space-y-3">{weakAreas.map(area=><div key={area.subject}><div className="flex justify-between mb-1.5"><span className="text-xs font-medium" style={{color:"var(--pz-text-2)"}}>{area.subject}</span><span className="text-xs" style={{color:area.color,fontFamily:"'DM Mono',monospace"}}>{area.accuracy}%</span></div><div className="h-1 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:`${area.accuracy}%`,background:area.color,transition:"width 0.6s ease"}}/></div></div>)}</div>
+                  {dataLoading ? (
+                    <div className="space-y-3">{[1,2,3].map(i=><div key={i} className="h-8 rounded-none animate-pulse" style={{background:"var(--pz-surface3)"}}/>)}</div>
+                  ) : weakAreas.length === 0 ? (
+                    <p className="text-xs text-center py-4" style={{color:"var(--pz-text-muted)"}}>Complete practice sessions to see your weak areas</p>
+                  ) : (
+                    <div className="space-y-3">{weakAreas.map(area=><div key={area.subject}><div className="flex justify-between mb-1.5"><span className="text-xs font-medium" style={{color:"var(--pz-text-2)"}}>{area.subject}</span><span className="text-xs" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{area.accuracy}%</span></div><div className="h-1 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:`${area.accuracy}%`,background:"var(--pz-gold)",transition:"width 0.6s ease"}}/></div></div>)}</div>
+                  )}
                   <Link to="/practice"><button className="w-full mt-4 py-2 rounded-none text-xs flex items-center justify-center gap-1" style={{border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-gold)";(e.currentTarget as HTMLElement).style.color="var(--pz-gold)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-border)";(e.currentTarget as HTMLElement).style.color="var(--pz-text-muted)"}}>Practice weak areas<ChevronRight className="h-3 w-3"/></button></Link>
                 </div>
                 <div className="p-5 rounded-none" style={card}>
                   <div className="flex items-center gap-2 mb-4"><Award className="h-4 w-4" style={{color:"var(--pz-text)"}}/><h3 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Achievements</h3></div>
-                  <div className="grid grid-cols-3 gap-2">{achievements.map(a=><div key={a.label} className="flex flex-col items-center gap-1 p-2.5 rounded-none text-center" style={{background:a.earned?"var(--pz-gold-dim)":"var(--pz-surface3)",border:`1px solid ${a.earned?"rgba(212,175,90,0.2)":"var(--pz-border)"}`,opacity:a.earned?1:0.4}}><span className="text-xl">{a.emoji}</span><span className="text-[9px] font-semibold leading-tight" style={{color:a.earned?"var(--pz-gold)":"var(--pz-text-muted)"}}>{a.label}</span></div>)}</div>
+                  {dataLoading ? (
+                    <div className="grid grid-cols-3 gap-2">{[1,2,3,4,5,6].map(i=><div key={i} className="h-16 rounded-none animate-pulse" style={{background:"var(--pz-surface3)"}}/>)}</div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">{achievements.map(a=><div key={a.key} title={a.earned?"Earned!":"Locked"} className="flex flex-col items-center gap-1 p-2.5 rounded-none text-center" style={{background:a.earned?"var(--pz-gold-dim)":"var(--pz-surface3)",border:`1px solid ${a.earned?"rgba(212,175,90,0.2)":"var(--pz-border)"}`,opacity:a.earned?1:0.4,transition:"opacity 0.3s"}}><span className="text-xl">{a.emoji}</span><span className="text-[9px] font-semibold leading-tight" style={{color:a.earned?"var(--pz-gold)":"var(--pz-text-muted)"}}>{a.label}</span></div>)}</div>
+                  )}
                 </div>
                 {userPlan==="free"&&<div className="p-5 rounded-none text-center" style={{background:"var(--pz-violet-dim)",border:"1px solid rgba(139,124,246,0.2)",borderTop:"2px solid var(--pz-violet)"}}><div className="w-11 h-11 rounded-none flex items-center justify-center text-xl mx-auto mb-3" style={{background:"rgba(139,124,246,0.2)"}}>⚡</div><p className="font-semibold text-sm mb-1" style={{color:"var(--pz-text)"}}>Upgrade to Pro</p><p className="text-xs mb-4" style={{color:"var(--pz-text-muted)"}}>Unlimited AI, all features, priority support</p><Link to="/pricing"><button className="w-full py-2.5 rounded-none text-sm font-semibold" style={{background:"var(--pz-violet)",color:"#0A0A0C"}}>View Plans</button></Link></div>}
               </div>
