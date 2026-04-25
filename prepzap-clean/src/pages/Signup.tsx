@@ -4,10 +4,6 @@ import { Logo } from "@/components/Logo"
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
-const supabase = createClient(
-  "https://sieizvhprgcqrkalnkht.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWl6dmhwcmdjcXJrYWxua2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NTg2NDksImV4cCI6MjA5MjMzNDY0OX0.-U8zu8Midq8PGaUPSRqhC-vVU1RnCH4yPOs_ZuppC_8"
-)
 
 const mono: React.CSSProperties = { fontFamily: "'Geist Mono', monospace" };
 const inputStyle: React.CSSProperties = {
