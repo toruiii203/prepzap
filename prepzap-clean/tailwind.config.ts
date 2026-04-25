@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        brand: ["'Gill Sans'", "'Gill Sans MT'", "'Trebuchet MS'", "Calibri", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

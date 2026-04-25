@@ -1,50 +1,66 @@
-interface LogoProps {
-  size?: "sm" | "md" | "lg";
-}
-
-export function Logo({ size = "md" }: LogoProps) {
-  const dim = size === "lg" ? 32 : size === "md" ? 26 : 20;
-  const fontSize = size === "lg" ? "15px" : size === "md" ? "13px" : "11px";
-
+export function Logo({ size = 28 }: { size?: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      {/* Multi-line Z mark — matches the brand logo */}
-      <svg
-        width={dim}
-        height={dim}
-        viewBox="0 0 100 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ flexShrink: 0 }}
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      {/* Icon: black square with white S + neural spark — fixed viewBox */}
+      <div
+        style={{
+          width: size,
+          height: size,
+          background: "var(--pz-text)",
+          borderRadius: "6px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
       >
-        {/* Top bar — 5 parallel lines */}
-        <line x1="14" y1="16" x2="86" y2="16" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="14" y1="24" x2="86" y2="24" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="14" y1="32" x2="86" y2="32" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="14" y1="40" x2="86" y2="40" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="14" y1="48" x2="86" y2="48" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        {/* Diagonal — 5 lines from top-right to bottom-left */}
-        <line x1="86" y1="48" x2="14" y2="60" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="86" y1="40" x2="14" y2="52" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="86" y1="32" x2="14" y2="44" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="86" y1="24" x2="14" y2="36" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="86" y1="16" x2="14" y2="28" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        {/* Bottom bar — 5 parallel lines */}
-        <line x1="14" y1="60" x2="86" y2="60" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="14" y1="68" x2="86" y2="68" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="14" y1="76" x2="86" y2="76" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-        <line x1="14" y1="84" x2="86" y2="84" stroke="white" strokeWidth="4.2" strokeLinecap="round"/>
-      </svg>
+        <svg
+          width={size * 0.72}
+          height={size * 0.72}
+          viewBox="0 0 36 42"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Curved S — fully contained within viewBox 0 0 36 42 */}
+          <path
+            d="M24 5
+               C24 5, 10 5, 9 13
+               C8 21, 16 24.5, 22 27
+               C28 29.5, 35 32.5, 34 39
+               C33 45, 25 48, 18 48
+               C11 48, 6 44, 6 44"
+            stroke="var(--pz-bg)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Neural spark node — top right */}
+          <circle cx="32" cy="8" r="2.5" fill="var(--pz-bg)" />
+          <line x1="32" y1="3.5" x2="32" y2="1.5" stroke="var(--pz-bg)" strokeWidth="1.2" strokeLinecap="round" />
+          <line x1="32" y1="12.5" x2="32" y2="14.5" stroke="var(--pz-bg)" strokeWidth="1.2" strokeLinecap="round" />
+          <line x1="27.5" y1="8" x2="25.5" y2="8" stroke="var(--pz-bg)" strokeWidth="1.2" strokeLinecap="round" />
+          <line x1="36.5" y1="8" x2="38.5" y2="8" stroke="var(--pz-bg)" strokeWidth="1.2" strokeLinecap="round" />
+          <line x1="28.9" y1="4.9" x2="27.5" y2="3.5" stroke="var(--pz-bg)" strokeWidth="1" strokeLinecap="round" />
+          <line x1="35.1" y1="11.1" x2="36.5" y2="12.5" stroke="var(--pz-bg)" strokeWidth="1" strokeLinecap="round" />
+          <line x1="35.1" y1="4.9" x2="36.5" y2="3.5" stroke="var(--pz-bg)" strokeWidth="1" strokeLinecap="round" />
+          <line x1="28.9" y1="11.1" x2="27.5" y2="12.5" stroke="var(--pz-bg)" strokeWidth="1" strokeLinecap="round" />
+        </svg>
+      </div>
 
-      {/* Wordmark */}
-      <span style={{
-        fontFamily: "'Geist Mono', monospace",
-        fontSize,
-        fontWeight: 500,
-        color: "var(--pz-text)",
-        letterSpacing: "0.06em",
-      }}>
-        PREPZAP
+      {/* Wordmark — Option D: ultra-spaced light sans */}
+      <span
+        style={{
+          fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif",
+          fontSize: "13px",
+          fontWeight: 300,
+          letterSpacing: "0.28em",
+          color: "var(--pz-text)",
+          textTransform: "uppercase",
+          lineHeight: 1,
+          userSelect: "none",
+        }}
+      >
+        Studenius
       </span>
     </div>
   );

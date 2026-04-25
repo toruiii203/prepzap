@@ -43,12 +43,13 @@ const studyTools = [
 ];
 
 const navStyle: React.CSSProperties = {
-  fontFamily: "'Geist', system-ui, sans-serif",
+  fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif",
   fontWeight: 300,
   fontSize: "12px",
   color: "var(--pz-text-2)",
   textDecoration: "none",
-  letterSpacing: "0.03em",
+  letterSpacing: "0.18em",
+  textTransform: "uppercase",
   transition: "color 0.15s",
 };
 

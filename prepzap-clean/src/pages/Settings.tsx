@@ -12,7 +12,7 @@ import {
   Globe, Volume2, LogOut
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { createClient } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase"
 
 const supabase = createClient(
   "https://sieizvhprgcqrkalnkht.supabase.co",
