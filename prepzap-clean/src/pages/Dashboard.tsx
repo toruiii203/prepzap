@@ -100,6 +100,13 @@ const ICONS: Record<string, React.ReactNode> = {
   "Sources":    <I c={IC}><path d="M3 7l3-3h12l3 3v13H3z"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="7" y1="14" x2="14" y2="14"/><line x1="7" y1="17" x2="11" y2="17"/></I>,
   "Upload":     <I c={IC}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></I>,
   "Essay":      <I c={IC}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></I>,
+  // Emergency & Confidence
+  "Cram Mode":  <I c={IC}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></I>,
+  "Confidence": <I c={IC}><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></I>,
+  "High Yield": <I c={IC}><polyline points="22,7 13.5,15.5 8.5,10.5 2,17"/><polyline points="16,7 22,7 22,13"/></I>,
+  "Mistakes":   <I c={IC}><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/></I>,
+  "Recall Mode":<I c={IC}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/></I>,
+  "Study DNA":  <I c={IC}><path d="M6 3c0 6 12 6 12 12S6 21 6 21"/><path d="M18 3c0 6-12 6-12 12s12 6 12 6"/></I>,
   // Misc
   "Settings":   <I c={IC}><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>,
   "Go Pro":     <I c={IC}><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></I>,
@@ -122,6 +129,12 @@ const quickActions = [
   { href:"/sources",        label:"Sources",    description:"Your study files"              },
   { href:"/upload",         label:"Upload",     description:"Add PDFs and notes"            },
   { href:"/essay",          label:"Essay",      description:"AI writing assistant"          },
+  { href:"/cram",           label:"Cram Mode",  description:"Emergency study plan"          },
+  { href:"/confidence",     label:"Confidence", description:"Know what you know"             },
+  { href:"/high-yield",     label:"High Yield", description:"Most testable concepts"         },
+  { href:"/mistakes",       label:"Mistakes",   description:"Track & fix errors"             },
+  { href:"/recall",         label:"Recall Mode",description:"Type from memory"               },
+  { href:"/study-dna",      label:"Study DNA",  description:"Your learner profile"           },
   { href:"/settings",       label:"Settings",   description:"Preferences & plan"            },
   { href:"/pricing",        label:"Go Pro",     description:"Unlock everything", isGoPro:true },
 ]
