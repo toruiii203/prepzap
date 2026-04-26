@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Mic2, Send, RotateCcw, Brain, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { callGroq, type GroqMessage } from "@/lib/groq";
+import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { GlobalContextBar } from "@/components/GlobalContextBar";
 
 interface Message { role: "user"|"ai"; content: string; }
 
@@ -33,9 +35,11 @@ export default function FlipScript() {
   const [error, setError] = useState<string|null>(null);
 
   const start = () => {
-    if (!topicInput.trim()) return;
-    setTopic(topicInput.trim());
-    setMessages([{role:"ai", content:`Okay, I'm a totally confused beginner. Explain "${topicInput.trim()}" to me like I'm 10. Start anywhere — I'll ask questions when I'm confused! 😕`}]);
+    const t = topicInput.trim() || getActiveSource()?.name?.replace(/\.\w+$/, "") || "";
+    if (!t) return;
+    setTopic(t);
+    setTopicInput(t);
+    setMessages([{role:"ai", content:`Okay, I'm a totally confused beginner. Explain "${t}" to me like I'm 10. Start anywhere — I'll ask questions when I'm confused! 😕`}]);
     setPhase("teaching"); setTurnCount(0);
   };
 
@@ -49,12 +53,14 @@ export default function FlipScript() {
     setIsLoading(true); setError(null);
 
     const shouldScore = turnCount >= 3;
+    const ctx = buildAIContext();
+    const ctxNote = ctx ? `\n\nStudent's study materials context (use this to judge accuracy):\n${ctx}` : "";
 
     try {
       const history: GroqMessage[] = newMsgs.map(m=>({role:m.role==="ai"?"assistant":"user" as "assistant"|"user", content:m.content}));
       if (shouldScore) {
         const raw = await callGroq(history,
-          `You are a confused beginner learning about "${topic}". The student has been explaining for ${turnCount+1} turns. Now score their explanation. Reply with ONE final confused follow-up question, then on a NEW LINE write SCORE_JSON: followed by valid JSON: {"score":0-100,"strengths":["..."],"gaps":["..."],"verdict":"one sentence"}. Be honest — most explanations have real gaps.`,
+          `You are a confused beginner learning about "${topic}". The student has been explaining for ${turnCount+1} turns. Now score their explanation.${ctxNote} Reply with ONE final confused follow-up question, then on a NEW LINE write SCORE_JSON: followed by valid JSON: {"score":0-100,"strengths":["..."],"gaps":["..."],"verdict":"one sentence"}. Be honest — most explanations have real gaps.`,
           "llama-3.3-70b-versatile", 600);
         const jsonMatch = raw.match(/SCORE_JSON:\s*(\{[\s\S]*\})/);
         const reply = raw.replace(/SCORE_JSON:[\s\S]*/, "").trim();
@@ -65,7 +71,7 @@ export default function FlipScript() {
         }
       } else {
         const reply = await callGroq(history,
-          `You are a confused 10-year-old learning about "${topic}". Ask ONE short follow-up question that probes their explanation. Be genuinely confused about something they said or something they skipped. Keep it under 2 sentences.`,
+          `You are a confused 10-year-old learning about "${topic}". Ask ONE short follow-up question that probes their explanation.${ctxNote} Be genuinely confused about something they said or something they skipped. Keep it under 2 sentences.`,
           "llama-3.3-70b-versatile", 200);
         setMessages(prev=>[...prev,{role:"ai",content:reply}]);
       }
@@ -86,6 +92,7 @@ export default function FlipScript() {
         />
         <div className="flex-1 overflow-auto">
       <main className="flex-1 w-full p-4 py-6 md:max-w-2xl md:mx-auto">
+        <GlobalContextBar compact />
         <div className="flex items-center gap-3 mb-6">
           <Link to="/dashboard"><Button variant="ghost" size="sm" className="gap-1"><ChevronLeft className="h-4 w-4"/>Dashboard</Button></Link>
           <div className="flex-1">
@@ -108,6 +115,11 @@ export default function FlipScript() {
             </div>
             <div className="bg-card border border-border rounded-none p-6 text-left space-y-3">
               <label className="font-semibold text-sm">What topic will you explain?</label>
+              {buildAIContext().length > 0 && !topicInput && (
+                <p className="text-xs" style={{ color: "var(--pz-gold)" }}>
+                  ⚡ Source active — topic will be pulled from your library if left blank
+                </p>
+              )}
               <div className="flex gap-2">
                 <input className="flex-1 px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
                   placeholder="e.g. How vaccines work, What is recursion..."

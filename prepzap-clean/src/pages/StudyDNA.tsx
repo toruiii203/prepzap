@@ -6,6 +6,8 @@ import { Dna, RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
+import { buildAIContext } from "@/lib/sourceContext";
+import { GlobalContextBar } from "@/components/GlobalContextBar";
 
 const STORAGE_KEY = "pz_study_dna";
 
@@ -46,9 +48,10 @@ export default function StudyDNA() {
     setLoading(true);
     try {
       const answerSummary = QUESTIONS.map(q => `${q.text} → ${answers[q.id]}`).join("\n");
+      const ctx = buildAIContext();
       const prompt = `Based on this student's answers, create their Study DNA profile:
 ${answerSummary}
-
+${ctx ? `\nTheir current study materials context:\n${ctx}\n` : ""}
 Return ONLY valid JSON (no markdown):
 {
   "learningStyle": "2-3 word label e.g. 'Visual-Analytical Learner'",
@@ -83,6 +86,7 @@ Return ONLY valid JSON (no markdown):
     <div style={{ minHeight: "100vh", background: "var(--pz-bg, #000)", color: "var(--pz-text, #F0E8D4)" }}>
       <Navbar />
       <main className="max-w-2xl mx-auto px-4 pt-6 pb-24">
+        <GlobalContextBar compact />
         <ToolHeader
           icon={<Dna className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />}
           title="Study DNA"

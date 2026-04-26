@@ -6,6 +6,8 @@ import { AlertCircle, Plus, Trash2, RefreshCw, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
+import { buildAIContext } from "@/lib/sourceContext";
+import { GlobalContextBar } from "@/components/GlobalContextBar";
 
 interface Mistake {
   id: string;
@@ -48,11 +50,12 @@ export default function MistakeJournal() {
     }
     setGenerating(true);
     try {
+      const ctx = buildAIContext();
       const prompt = `A student got this wrong:
 Question: "${form.question}"
 Their answer: "${form.myAnswer || "left blank"}"
 Correct answer: "${form.correctAnswer}"
-
+${ctx ? `\nStudy context:\n${ctx}\n` : ""}
 Return ONLY valid JSON (no markdown):
 {"lesson":"1 sentence explaining why the correct answer is right and the common misconception","tags":["tag1","tag2"]}
 Tags should be 1-2 word topic labels. Max 3 tags.`;
@@ -113,6 +116,7 @@ Tags should be 1-2 word topic labels. Max 3 tags.`;
     <div style={{ minHeight: "100vh", background: "var(--pz-bg, #000)", color: "var(--pz-text, #F0E8D4)" }}>
       <Navbar />
       <main className="max-w-2xl mx-auto px-4 pt-6 pb-24">
+        <GlobalContextBar compact />
         <ToolHeader
           icon={<AlertCircle className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />}
           title="Mistake Journal"

@@ -8,7 +8,6 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { setSourceContextUser } from "@/lib/sourceContext";
 import { setHistoryUser } from "@/lib/historyStore";
 
-
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 1800);
@@ -61,6 +60,7 @@ function PWAInstallBanner() {
 }
 
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Onboarding from "./pages/Onboarding";
@@ -76,18 +76,11 @@ import StudyPlanner from "./pages/StudyPlanner";
 import AiTutor from "./pages/AiTutor";
 import FeynmanMode from "./pages/FeynmanMode";
 import ToolArchitect from "./pages/ToolArchitect";
-import SynthesisLab from "./pages/SynthesisLab";
-import WhyEngine from "./pages/WhyEngine";
-import UploadMaterials from "./pages/UploadMaterials";
 import Pricing from "./pages/Pricing";
-import Suggestions from "./pages/Suggestions";
 import MathSolver from "./pages/MathSolver";
-import QuizBuilder from "./pages/QuizBuilder";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Settings from "./pages/Settings";
-import EssayWriter from "./pages/EssayWriter";
-import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
 import Daily5 from "./pages/Daily5";
 import FlipScript from "./pages/FlipScript";
@@ -95,18 +88,17 @@ import SpotError from "./pages/SpotError";
 import BuildDef from "./pages/BuildDef";
 import BlankMap from "./pages/BlankMap";
 import BossRound from "./pages/BossRound";
-import CramMode from "./pages/CramMode"
-import ConfidenceCalibration from "./pages/ConfidenceCalibration"
-import HighYieldDetector from "./pages/HighYieldDetector"
-import MistakeJournal from "./pages/MistakeJournal"
-import RecallMode from "./pages/RecallMode"
-import StudyDNA from "./pages/StudyDNA"
+import CramMode from "./pages/CramMode";
+import ConfidenceCalibration from "./pages/ConfidenceCalibration";
+import HighYieldDetector from "./pages/HighYieldDetector";
+import MistakeJournal from "./pages/MistakeJournal";
+import RecallMode from "./pages/RecallMode";
+import StudyDNA from "./pages/StudyDNA";
 
 const queryClient = new QueryClient();
 
 function isMobile() { return window.innerWidth < 768; }
 
-/** Redirects to /login when not authenticated. Shows nothing while loading. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) return null;
@@ -117,16 +109,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function MobileRootRedirect() {
   const { session, loading } = useAuth();
   if (loading) return null;
-  if (!isMobile()) return <Index />;
+  if (!isMobile()) return <Landing />;
   return <Navigate to={session ? "/dashboard" : "/login"} replace />;
 }
 
-/** Inner app — has access to AuthContext */
 function AppRoutes() {
   const { user } = useAuth();
   const [showSplash, setShowSplash] = useState(isMobile());
 
-  // Once we know the user, scope all localStorage to their UID
   useEffect(() => {
     if (user?.id) {
       setSourceContextUser(user.id);
@@ -142,6 +132,7 @@ function AppRoutes() {
       <PWAInstallBanner />
       <Routes>
         <Route path="/" element={<MobileRootRedirect />} />
+        <Route path="/landing" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/pricing" element={<Pricing />} />
@@ -157,15 +148,8 @@ function AppRoutes() {
         <Route path="/ai-tutor" element={<ProtectedRoute><AiTutor /></ProtectedRoute>} />
         <Route path="/feynman" element={<ProtectedRoute><FeynmanMode /></ProtectedRoute>} />
         <Route path="/tool-architect" element={<ProtectedRoute><ToolArchitect /></ProtectedRoute>} />
-        <Route path="/synthesis" element={<ProtectedRoute><SynthesisLab /></ProtectedRoute>} />
-        <Route path="/why-engine" element={<ProtectedRoute><WhyEngine /></ProtectedRoute>} />
-        <Route path="/upload" element={<ProtectedRoute><UploadMaterials /></ProtectedRoute>} />
-        <Route path="/suggestions" element={<ProtectedRoute><Suggestions /></ProtectedRoute>} />
         <Route path="/math" element={<ProtectedRoute><MathSolver /></ProtectedRoute>} />
-        <Route path="/quiz-builder" element={<ProtectedRoute><QuizBuilder /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/essay" element={<ProtectedRoute><EssayWriter /></ProtectedRoute>} />
-        <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
         <Route path="/daily5" element={<ProtectedRoute><Daily5 /></ProtectedRoute>} />
         <Route path="/flip-script" element={<ProtectedRoute><FlipScript /></ProtectedRoute>} />
         <Route path="/spot-error" element={<ProtectedRoute><SpotError /></ProtectedRoute>} />
