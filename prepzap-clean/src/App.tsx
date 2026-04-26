@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { setSourceContextUser } from "@/lib/sourceContext";
 import { setHistoryUser } from "@/lib/historyStore";
 
+
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 1800);
@@ -94,6 +95,12 @@ import SpotError from "./pages/SpotError";
 import BuildDef from "./pages/BuildDef";
 import BlankMap from "./pages/BlankMap";
 import BossRound from "./pages/BossRound";
+import CramMode from "./pages/CramMode"
+import ConfidenceCalibration from "./pages/ConfidenceCalibration"
+import HighYieldDetector from "./pages/HighYieldDetector"
+import MistakeJournal from "./pages/MistakeJournal"
+import RecallMode from "./pages/RecallMode"
+import StudyDNA from "./pages/StudyDNA"
 
 const queryClient = new QueryClient();
 
