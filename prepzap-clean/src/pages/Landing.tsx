@@ -301,9 +301,9 @@ export default function Landing() {
       {/* Footer */}
       <footer style={{ borderTop: "0.5px solid var(--pz-border)" }}>
         <div style={{ maxWidth: "720px", margin: "0 auto", padding: "20px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ ...mono, fontSize: "10px", color: "var(--pz-text-muted)", letterSpacing: "0.06em" }}>PREPZAP © {new Date().getFullYear()}</span>
+          <span style={{ ...mono, fontSize: "10px", color: "var(--pz-text-muted)", letterSpacing: "0.06em" }}>STUDENIUS © {new Date().getFullYear()}</span>
           <div style={{ display: "flex", gap: "20px" }}>
-            {[["Pricing", "/pricing"], ["Suggestions", "/suggestions"], ["Login", "/login"]].map(([label, href]) => (
+            {[["Pricing", "/pricing"], ["Suggestions", "/suggestions"], ["Privacy Policy", "/privacy"], ["Login", "/login"]].map(([label, href]) => (
               <Link key={href} to={href} style={{ fontSize: "11px", color: "var(--pz-text-muted)", textDecoration: "none", transition: "color 0.15s" }}
                 onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "var(--pz-text-2)")}
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "var(--pz-text-muted)")}>
