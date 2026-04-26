@@ -1,367 +1,224 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { ChevronLeft, Target, Brain, TrendingUp, AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react"
-import { BottomNav } from "@/components/BottomNav"
-import { callGroq } from "@/lib/groq"
-import { buildAIContext } from "@/lib/sourceContext"
-import { MathRenderer } from "@/components/MathRenderer"
+import { useState } from "react";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
+import { ToolHeader } from "@/components/ToolShell";
+import { Star, RefreshCw, CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { callGroq } from "@/lib/groq";
+import { buildAIContext } from "@/lib/sourceContext";
 
-interface TopicResult {
-  topic: string
-  confidence: number
-  score: number
-  questions: { q: string; correct: string; userAnswer: string; isCorrect: boolean }[]
+type Confidence = "know" | "unsure" | "dont-know";
+
+interface Question {
+  id: string;
+  text: string;
+  answer: string;
+  topic: string;
 }
 
-const CONFIDENCE_LABELS = ["", "Very Unsure", "Unsure", "Neutral", "Confident", "Very Confident"]
-const CONFIDENCE_COLORS = ["", "#ef4444", "#f59e0b", "#6366f1", "#10b981", "#059669"]
+interface Response {
+  questionId: string;
+  confidence: Confidence;
+  wasCorrect?: boolean;
+}
 
 export default function ConfidenceCalibration() {
-  const [step, setStep] = useState<"setup" | "confidence" | "quiz" | "results">("setup")
-  const [topics, setTopics] = useState("")
-  const [topicList, setTopicList] = useState<string[]>([])
-  const [currentTopicIdx, setCurrentTopicIdx] = useState(0)
-  const [confidenceRatings, setConfidenceRatings] = useState<Record<string, number>>({})
-  const [questions, setQuestions] = useState<{ q: string; options: string[]; correct: string }[]>([])
-  const [userAnswers, setUserAnswers] = useState<string[]>([])
-  const [currentQ, setCurrentQ] = useState(0)
-  const [results, setResults] = useState<TopicResult[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [subject, setSubject] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [responses, setResponses] = useState<Response[]>([]);
+  const [revealed, setRevealed] = useState<string[]>([]);
+  const [phase, setPhase] = useState<"setup" | "quiz" | "results">("setup");
 
-  const card: React.CSSProperties = { background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }
-
-  const handleSetup = () => {
-    if (!topics.trim()) { setError("Please enter at least one topic."); return }
-    const list = topics.split(",").map(t => t.trim()).filter(Boolean)
-    setTopicList(list)
-    setError(null)
-    setStep("confidence")
-  }
-
-  const handleConfidenceDone = async () => {
-    setLoading(true)
-    setError(null)
-    const topic = topicList[currentTopicIdx]
-    const sourceCtx = buildAIContext()
-
+  const handleGenerate = async () => {
+    if (!subject.trim()) { toast.error("Enter a subject first"); return; }
+    setLoading(true);
     try {
-      const prompt = `Generate exactly 5 multiple choice questions about "${topic}".
-${sourceCtx ? `Base questions on this material:\n${sourceCtx}\n` : ""}
-Return ONLY valid JSON, no markdown, no explanation:
-{
-  "questions": [
-    {
-      "q": "question text",
-      "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
-      "correct": "A) option1"
-    }
-  ]
-}`
-      const response = await callGroq(
-        [{ role: "user", content: prompt }],
-        "You are a quiz generator. Return only valid JSON.",
-        "llama-3.3-70b-versatile",
-        1500
-      )
-      const clean = response.replace(/```json|```/g, "").trim()
-      const parsed = JSON.parse(clean)
-      setQuestions(parsed.questions)
-      setUserAnswers([])
-      setCurrentQ(0)
-      setStep("quiz")
+      const ctx = await buildAIContext();
+      const prompt = `Generate 8 short-answer questions for confidence calibration on: "${subject}".
+${ctx ? `Study context:\n${ctx}\n` : ""}
+Return ONLY valid JSON array:
+[{"id":"q1","text":"question","answer":"concise answer (1-2 sentences)","topic":"subtopic"}]`;
+      const raw = await callGroq(prompt, "llama3-8b-8192");
+      const parsed: Question[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      setQuestions(parsed);
+      setResponses([]);
+      setRevealed([]);
+      setPhase("quiz");
     } catch {
-      setError("Failed to generate questions. Try again.")
+      toast.error("Failed to generate questions. Try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleAnswer = (answer: string) => {
-    const newAnswers = [...userAnswers, answer]
-    setUserAnswers(newAnswers)
+  const setConfidence = (qId: string, confidence: Confidence) => {
+    setResponses(prev => {
+      const existing = prev.find(r => r.questionId === qId);
+      if (existing) return prev.map(r => r.questionId === qId ? { ...r, confidence } : r);
+      return [...prev, { questionId: qId, confidence }];
+    });
+  };
 
-    if (currentQ + 1 < questions.length) {
-      setCurrentQ(q => q + 1)
-    } else {
-      // Calculate score for this topic
-      const topic = topicList[currentTopicIdx]
-      const correct = newAnswers.filter((a, i) => a === questions[i].correct).length
-      const score = Math.round((correct / questions.length) * 100)
+  const revealAnswer = (qId: string) => setRevealed(prev => [...prev, qId]);
 
-      const result: TopicResult = {
-        topic,
-        confidence: confidenceRatings[topic],
-        score,
-        questions: questions.map((q, i) => ({
-          q: q.q,
-          correct: q.correct,
-          userAnswer: newAnswers[i],
-          isCorrect: newAnswers[i] === q.correct,
-        }))
-      }
+  const markCorrect = (qId: string, correct: boolean) => {
+    setResponses(prev => prev.map(r => r.questionId === qId ? { ...r, wasCorrect: correct } : r));
+  };
 
-      const newResults = [...results, result]
-      setResults(newResults)
+  const allAnswered = questions.length > 0 && questions.every(q => responses.find(r => r.questionId === q.id)?.wasCorrect !== undefined);
 
-      if (currentTopicIdx + 1 < topicList.length) {
-        setCurrentTopicIdx(i => i + 1)
-        setStep("confidence")
-        setQuestions([])
-        setUserAnswers([])
-        setCurrentQ(0)
-      } else {
-        setStep("results")
-      }
-    }
-  }
+  const getResults = () => {
+    const knew = responses.filter(r => r.confidence === "know" && r.wasCorrect).length;
+    const overconfident = responses.filter(r => r.confidence === "know" && !r.wasCorrect).length;
+    const underconfident = responses.filter(r => r.confidence === "dont-know" && r.wasCorrect).length;
+    return { knew, overconfident, underconfident, total: questions.length };
+  };
 
-  const reset = () => {
-    setStep("setup")
-    setTopics("")
-    setTopicList([])
-    setCurrentTopicIdx(0)
-    setConfidenceRatings({})
-    setQuestions([])
-    setUserAnswers([])
-    setCurrentQ(0)
-    setResults([])
-    setError(null)
-  }
+  const confBtnStyle = (q: Question, c: Confidence) => {
+    const r = responses.find(r => r.questionId === q.id);
+    const active = r?.confidence === c;
+    const colors: Record<Confidence, string> = { "know": "var(--pz-teal)", "unsure": "var(--pz-gold)", "dont-know": "var(--pz-rose, #E84040)" };
+    return {
+      border: `1px solid ${active ? colors[c] : "var(--pz-border)"}`,
+      background: active ? `${colors[c]}15` : "var(--pz-surface3)",
+      color: active ? colors[c] : "var(--pz-text-muted)",
+      padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400,
+    } as React.CSSProperties;
+  };
 
-  const getCalibrationLabel = (confidence: number, score: number) => {
-    const diff = score - confidence * 20
-    if (diff > 20) return { label: "Underestimating yourself!", color: "#10b981", icon: "🚀" }
-    if (diff < -20) return { label: "Overconfident!", color: "#ef4444", icon: "⚠️" }
-    return { label: "Well calibrated", color: "#6366f1", icon: "✅" }
-  }
+  const results = phase === "results" ? getResults() : null;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40"
-        style={{ background: "rgba(0,0,0,0.95)", borderBottom: "0.5px solid var(--pz-border)", backdropFilter: "blur(12px)" }}>
-        <Link to="/dashboard" style={{ color: "var(--pz-text-muted)", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
-          <ChevronLeft size={14} /> Back
-        </Link>
-        <span style={{ fontFamily: "'DM Serif Display',serif", fontSize: 16 }}>Confidence Check</span>
-        <div style={{ width: 48 }} />
-      </div>
+    <div style={{ minHeight: "100vh", background: "var(--pz-bg, #000)", color: "var(--pz-text, #F0E8D4)" }}>
+      <Navbar />
+      <main className="max-w-2xl mx-auto px-4 pt-6 pb-24">
+        <ToolHeader
+          icon={<Star className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />}
+          title="Confidence Calibration"
+          subtitle="Find out what you actually know vs. what you think you know"
+        />
 
-      <div className="hidden md:flex items-center gap-3 px-8 py-4" style={{ borderBottom: "0.5px solid var(--pz-border)" }}>
-        <Link to="/dashboard">
-          <button className="flex items-center gap-1 text-xs" style={{ color: "var(--pz-text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>
-            <ChevronLeft className="h-3.5 w-3.5" /> Dashboard
-          </button>
-        </Link>
-        <span style={{ color: "var(--pz-border)" }}>|</span>
-        <Target className="h-4 w-4" style={{ color: "var(--pz-gold)" }} />
-        <h1 className="text-lg font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>Confidence Calibration</h1>
-      </div>
-
-      <BottomNav />
-
-      <main className="flex-1 py-6 pb-24 md:pb-6">
-        <div className="container mx-auto px-4 max-w-xl">
-
-          {/* SETUP */}
-          {step === "setup" && (
-            <div className="space-y-6">
-              <div className="text-center py-6">
-                <div className="w-16 h-16 rounded-none flex items-center justify-center mx-auto mb-4"
-                  style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}>
-                  <Target className="h-8 w-8" style={{ color: "#6366f1" }} />
-                </div>
-                <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "'DM Serif Display',serif" }}>Confidence Calibration</h2>
-                <p className="text-sm" style={{ color: "var(--pz-text-muted)" }}>
-                  Rate your confidence before being tested. Discover where you're overconfident or underestimating yourself.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-none" style={card}>
-                <label className="text-xs font-semibold uppercase tracking-wider mb-3 block" style={{ color: "var(--pz-text-muted)" }}>
-                  Topics to test
-                </label>
-                <textarea
-                  value={topics}
-                  onChange={e => setTopics(e.target.value)}
-                  placeholder="e.g. Photosynthesis, Cell Division, DNA Replication..."
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-none focus:outline-none resize-none"
-                  style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
-                  onFocus={e => (e.target.style.borderColor = "var(--pz-gold)")}
-                  onBlur={e => (e.target.style.borderColor = "var(--pz-border)")}
-                />
-                <p className="text-xs mt-2" style={{ color: "var(--pz-text-muted)" }}>Separate topics with commas. Each topic gets 5 questions.</p>
-              </div>
-
-              {error && <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>{error}</p>}
-
-              <button onClick={handleSetup} className="w-full py-4 text-sm font-bold rounded-none transition-all hover:opacity-90"
-                style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)", color: "#fff" }}>
-                Start Calibration Test
-              </button>
+        {phase === "setup" && (
+          <div className="space-y-4 mt-6">
+            <p className="text-sm" style={{ color: "var(--pz-text-2)" }}>
+              Rate your confidence on each question <em>before</em> seeing the answer. Discover your blind spots and overconfident areas.
+            </p>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Subject</label>
+              <input
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                placeholder="e.g. Human Anatomy, JavaScript, French Revolution..."
+                className="w-full px-3 py-2.5 rounded-none text-sm outline-none"
+                style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
+              />
             </div>
-          )}
+            <Button onClick={handleGenerate} disabled={loading || !subject.trim()} className="w-full py-3 rounded-none font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
+              {loading ? "Generating questions..." : "Start Calibration →"}
+            </Button>
+          </div>
+        )}
 
-          {/* CONFIDENCE RATING */}
-          {step === "confidence" && (
-            <div className="space-y-6">
-              <div className="text-center py-4">
-                <p className="text-xs mb-1" style={{ color: "var(--pz-text-muted)" }}>
-                  Topic {currentTopicIdx + 1} of {topicList.length}
-                </p>
-                <h2 className="text-xl font-bold" style={{ fontFamily: "'DM Serif Display',serif" }}>
-                  {topicList[currentTopicIdx]}
-                </h2>
-                <p className="text-sm mt-2" style={{ color: "var(--pz-text-muted)" }}>
-                  Before we test you — how confident are you in this topic?
-                </p>
-              </div>
-
-              <div className="p-5 rounded-none space-y-3" style={card}>
-                {[1, 2, 3, 4, 5].map(level => (
-                  <button key={level} onClick={() => setConfidenceRatings(r => ({ ...r, [topicList[currentTopicIdx]]: level }))}
-                    className="w-full flex items-center gap-4 p-4 rounded-none transition-all text-left"
-                    style={{
-                      background: confidenceRatings[topicList[currentTopicIdx]] === level ? `${CONFIDENCE_COLORS[level]}15` : "var(--pz-surface3)",
-                      border: `1px solid ${confidenceRatings[topicList[currentTopicIdx]] === level ? CONFIDENCE_COLORS[level] : "var(--pz-border)"}`,
-                    }}>
-                    <div className="w-8 h-8 rounded-none flex items-center justify-center text-sm font-bold flex-shrink-0"
-                      style={{ background: CONFIDENCE_COLORS[level], color: "#fff" }}>
-                      {level}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: "var(--pz-text)" }}>{CONFIDENCE_LABELS[level]}</p>
-                      <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>
-                        {level === 1 && "I barely know this topic"}
-                        {level === 2 && "I know some basics"}
-                        {level === 3 && "I know it moderately well"}
-                        {level === 4 && "I know this topic well"}
-                        {level === 5 && "I could teach this topic"}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {error && <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>{error}</p>}
-
-              <button
-                onClick={handleConfidenceDone}
-                disabled={!confidenceRatings[topicList[currentTopicIdx]] || loading}
-                className="w-full py-4 text-sm font-bold rounded-none transition-all hover:opacity-90 flex items-center justify-center gap-2"
-                style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)", color: "#fff", opacity: !confidenceRatings[topicList[currentTopicIdx]] || loading ? 0.5 : 1 }}>
-                {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating questions...</> : "Start Quiz →"}
-              </button>
+        {phase === "quiz" && (
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>Rate confidence → Reveal → Mark correct/wrong</p>
+              <span className="text-xs" style={{ color: "var(--pz-text-muted)", fontFamily: "'DM Mono',monospace" }}>{responses.filter(r => r.wasCorrect !== undefined).length}/{questions.length}</span>
             </div>
-          )}
 
-          {/* QUIZ */}
-          {step === "quiz" && questions.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>
-                  {topicList[currentTopicIdx]} · Question {currentQ + 1} of {questions.length}
-                </p>
-                <div className="flex gap-1">
-                  {questions.map((_, i) => (
-                    <div key={i} className="w-6 h-1.5 rounded-none" style={{ background: i < currentQ ? "#6366f1" : i === currentQ ? "#6366f1" : "var(--pz-surface3)" }} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-5 rounded-none" style={card}>
-                <p className="text-sm font-medium leading-relaxed mb-5" style={{ color: "var(--pz-text)" }}>
-                  {questions[currentQ].q}
-                </p>
-                <div className="space-y-2">
-                  {questions[currentQ].options.map(opt => (
-                    <button key={opt} onClick={() => handleAnswer(opt)}
-                      className="w-full text-left px-4 py-3 text-sm rounded-none transition-all hover:opacity-80"
-                      style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = "#6366f1"}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-border)"}>
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* RESULTS */}
-          {step === "results" && (
-            <div className="space-y-5">
-              <div className="text-center py-4">
-                <Brain className="h-10 w-10 mx-auto mb-3" style={{ color: "var(--pz-gold)" }} />
-                <h2 className="text-xl font-bold" style={{ fontFamily: "'DM Serif Display',serif" }}>Your Calibration Report</h2>
-                <p className="text-sm mt-1" style={{ color: "var(--pz-text-muted)" }}>How well does your confidence match your actual knowledge?</p>
-              </div>
-
-              {results.map((result, i) => {
-                const cal = getCalibrationLabel(result.confidence, result.score)
-                return (
-                  <div key={i} className="p-5 rounded-none space-y-4" style={card}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-sm" style={{ color: "var(--pz-text)" }}>{result.topic}</p>
-                        <p className="text-xs mt-0.5" style={{ color: cal.color }}>{cal.icon} {cal.label}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold" style={{ color: "var(--pz-text)", fontFamily: "'DM Mono',monospace" }}>{result.score}%</p>
-                        <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>actual score</p>
-                      </div>
-                    </div>
-
-                    {/* Confidence vs Score bar */}
-                    <div className="space-y-2">
-                      <div>
-                        <div className="flex justify-between text-xs mb-1" style={{ color: "var(--pz-text-muted)" }}>
-                          <span>Confidence ({CONFIDENCE_LABELS[result.confidence]})</span>
-                          <span>{result.confidence * 20}%</span>
-                        </div>
-                        <div className="h-2 rounded-none" style={{ background: "var(--pz-surface3)" }}>
-                          <div className="h-full rounded-none transition-all" style={{ width: `${result.confidence * 20}%`, background: CONFIDENCE_COLORS[result.confidence] }} />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-1" style={{ color: "var(--pz-text-muted)" }}>
-                          <span>Actual Score</span>
-                          <span>{result.score}%</span>
-                        </div>
-                        <div className="h-2 rounded-none" style={{ background: "var(--pz-surface3)" }}>
-                          <div className="h-full rounded-none transition-all" style={{ width: `${result.score}%`, background: "#6366f1" }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Wrong answers */}
-                    {result.questions.filter(q => !q.isCorrect).length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold mb-2" style={{ color: "var(--pz-text-muted)" }}>Missed questions:</p>
-                        <div className="space-y-2">
-                          {result.questions.filter(q => !q.isCorrect).map((q, j) => (
-                            <div key={j} className="p-3 rounded-none text-xs space-y-1" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}>
-                              <p style={{ color: "var(--pz-text-2)" }}>{q.q}</p>
-                              <p style={{ color: "#ef4444" }}>Your answer: {q.userAnswer}</p>
-                              <p style={{ color: "#10b981" }}>Correct: {q.correct}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+            {questions.map((q, i) => {
+              const resp = responses.find(r => r.questionId === q.id);
+              const isRevealed = revealed.includes(q.id);
+              return (
+                <div key={q.id} className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
+                  <div className="flex items-start gap-2 mb-3">
+                    <span className="text-xs font-mono mt-0.5" style={{ color: "var(--pz-text-muted)" }}>Q{i + 1}</span>
+                    <p className="text-sm" style={{ color: "var(--pz-text)" }}>{q.text}</p>
                   </div>
-                )
-              })}
 
-              <button onClick={reset} className="w-full py-3 text-sm font-semibold rounded-none flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent", cursor: "pointer" }}>
-                <RotateCcw className="h-4 w-4" /> Test Another Topic
-              </button>
+                  {!resp?.confidence && (
+                    <div className="flex gap-2 flex-wrap mb-3">
+                      {(["know", "unsure", "dont-know"] as Confidence[]).map(c => (
+                        <button key={c} style={confBtnStyle(q, c)} onClick={() => setConfidence(q.id, c)}>
+                          {c === "know" ? "✓ I know this" : c === "unsure" ? "~ Unsure" : "✗ Don't know"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {resp?.confidence && !isRevealed && (
+                    <button onClick={() => revealAnswer(q.id)} className="text-xs px-3 py-1.5 rounded-none" style={{ border: "1px solid var(--pz-gold)", color: "var(--pz-gold)", background: "var(--pz-gold-dim)" }}>
+                      Reveal Answer
+                    </button>
+                  )}
+
+                  {isRevealed && (
+                    <div className="mt-2 p-3 rounded-none" style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)" }}>
+                      <p className="text-xs mb-3" style={{ color: "var(--pz-text-2)" }}>{q.answer}</p>
+                      {resp?.wasCorrect === undefined && (
+                        <div className="flex gap-2">
+                          <button onClick={() => markCorrect(q.id, true)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-none" style={{ border: "1px solid var(--pz-teal)", color: "var(--pz-teal)", background: "var(--pz-teal-dim)" }}>
+                            <CheckCircle className="h-3 w-3" /> Got it
+                          </button>
+                          <button onClick={() => markCorrect(q.id, false)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-none" style={{ border: "1px solid var(--pz-rose, #E84040)", color: "var(--pz-rose, #E84040)", background: "rgba(232,64,64,0.06)" }}>
+                            <XCircle className="h-3 w-3" /> Missed it
+                          </button>
+                        </div>
+                      )}
+                      {resp?.wasCorrect !== undefined && (
+                        <span className="text-xs font-medium" style={{ color: resp.wasCorrect ? "var(--pz-teal)" : "var(--pz-rose, #E84040)" }}>
+                          {resp.wasCorrect ? "✓ Correct" : "✗ Incorrect"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {allAnswered && (
+              <Button onClick={() => setPhase("results")} className="w-full py-3 rounded-none font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
+                See Results →
+              </Button>
+            )}
+          </div>
+        )}
+
+        {phase === "results" && results && (
+          <div className="mt-6 space-y-4">
+            <h2 className="font-semibold text-lg" style={{ color: "var(--pz-text)" }}>Calibration Results</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Knew It", value: results.knew, color: "var(--pz-teal)", emoji: "✓" },
+                { label: "Overconfident", value: results.overconfident, color: "var(--pz-rose, #E84040)", emoji: "⚠" },
+                { label: "Underconfident", value: results.underconfident, color: "var(--pz-gold)", emoji: "↑" },
+              ].map(s => (
+                <div key={s.label} className="text-center p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: `1px solid var(--pz-border)`, borderTop: `2px solid ${s.color}` }}>
+                  <div className="text-2xl mb-1">{s.emoji}</div>
+                  <div className="text-2xl font-bold" style={{ color: s.color, fontFamily: "'DM Mono',monospace" }}>{s.value}</div>
+                  <div className="text-[10px] mt-1" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+            <p className="text-sm p-3 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-2)" }}>
+              {results.overconfident > 2 ? "Focus on reviewing topics you felt confident about — you have more blind spots than expected." :
+               results.knew > 5 ? "Strong performance! Shore up your weak areas and you're ready." :
+               "Good calibration. Keep practising the concepts you're unsure about."}
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={() => { setPhase("setup"); setQuestions([]); }} className="flex-1 py-2.5 rounded-none text-sm" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
+                New Subject
+              </Button>
+              <Button onClick={handleGenerate} disabled={loading} className="flex-1 py-2.5 rounded-none text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
+                {loading ? "Loading..." : "Try Again"}
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
+      <BottomNav />
     </div>
-  )
+  );
 }

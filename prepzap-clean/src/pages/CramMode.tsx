@@ -1,266 +1,175 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { ChevronLeft, Zap, Clock, BookOpen, Brain, Target, ArrowRight, Loader2 } from "lucide-react"
-import { BottomNav } from "@/components/BottomNav"
-import { callGroq } from "@/lib/groq"
-import { buildAIContext } from "@/lib/sourceContext"
-import { MathRenderer } from "@/components/MathRenderer"
+import { useState } from "react";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
+import { ToolHeader } from "@/components/ToolShell";
+import { Zap, Clock, BookOpen, ChevronRight, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { callGroq } from "@/lib/groq";
+import { buildAIContext } from "@/lib/sourceContext";
 
-interface CramPlan {
-  timeAvailable: number
-  examCount: number
-  topics: string[]
-  plan: string
+interface CramTopic {
+  topic: string;
+  priority: "critical" | "high" | "medium";
+  timeEstimate: string;
+  keyPoints: string[];
 }
 
-const TIME_OPTIONS = [1, 2, 3, 6, 12, 24]
-const EXAM_OPTIONS = [1, 2, 3, 4, 5]
-
 export default function CramMode() {
-  const navigate = useNavigate()
-  const [step, setStep] = useState<"setup" | "generating" | "plan">("setup")
-  const [hours, setHours] = useState(3)
-  const [examCount, setExamCount] = useState(1)
-  const [topics, setTopics] = useState("")
-  const [cramPlan, setCramPlan] = useState<string>("")
-  const [error, setError] = useState<string | null>(null)
+  const [subject, setSubject] = useState("");
+  const [timeAvailable, setTimeAvailable] = useState("2");
+  const [examDate, setExamDate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState<CramTopic[]>([]);
+  const [phase, setPhase] = useState<"setup" | "plan">("setup");
 
-  const generatePlan = async () => {
-    if (!topics.trim()) { setError("Please enter your exam topics."); return }
-    setError(null)
-    setStep("generating")
-
-    const sourceCtx = buildAIContext()
-    const topicList = topics.split(",").map(t => t.trim()).filter(Boolean)
-
-    const prompt = `You are an expert study strategist. A student has ${hours} hour${hours !== 1 ? "s" : ""} to prepare for ${examCount} exam${examCount !== 1 ? "s" : ""}.
-
-Topics/Exams: ${topicList.join(", ")}
-${sourceCtx ? `\nStudy materials available:\n${sourceCtx}` : ""}
-
-Create an EMERGENCY CRAM PLAN with:
-1. **Time Breakdown** — Exact minutes per topic (must add up to ${hours * 60} minutes total, leave 10% buffer)
-2. **Priority Order** — Which topics to study first and why (highest yield first)
-3. **For each topic, provide:**
-   - Key concepts to focus on (max 5 bullet points)
-   - What to SKIP (low yield content)
-   - Quick memory tricks or mnemonics
-4. **Last 30 minutes** — What to do in the final stretch before the exam
-5. **Emergency tips** — 3 things to do RIGHT NOW to maximize retention
-
-Format with clear headers, be brutally practical, no fluff. Every minute counts.`
-
+  const handleGenerate = async () => {
+    if (!subject.trim()) { toast.error("Enter a subject first"); return; }
+    setLoading(true);
     try {
-      const response = await callGroq(
-        [{ role: "user", content: prompt }],
-        "You are an emergency study strategist. Be direct, practical, and time-focused.",
-        "llama-3.3-70b-versatile",
-        3000
-      )
-      setCramPlan(response)
-      setStep("plan")
-    } catch (err) {
-      setError("Failed to generate plan. Check your API key.")
-      setStep("setup")
-    }
-  }
+      const ctx = await buildAIContext();
+      const prompt = `You are an emergency study planner. Create a focused cram plan for: "${subject}". 
+Time available: ${timeAvailable} hours. ${examDate ? `Exam date: ${examDate}.` : ""}
+${ctx ? `Study context:\n${ctx}\n` : ""}
+Return ONLY valid JSON array (no markdown, no explanation):
+[{"topic":"string","priority":"critical"|"high"|"medium","timeEstimate":"string","keyPoints":["string"]}]
+Max 6 topics. Order by priority. Keep keyPoints to 3-4 per topic.`;
 
-  const card: React.CSSProperties = {
-    background: "var(--pz-surface2)",
-    border: "1px solid var(--pz-border)",
-  }
+      const raw = await callGroq(prompt, "llama3-8b-8192");
+      const cleaned = raw.replace(/```json|```/g, "").trim();
+      const parsed: CramTopic[] = JSON.parse(cleaned);
+      setPlan(parsed);
+      setPhase("plan");
+    } catch {
+      toast.error("Failed to generate plan. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const priorityColor = (p: CramTopic["priority"]) =>
+    p === "critical" ? "var(--pz-rose)" : p === "high" ? "var(--pz-gold)" : "var(--pz-teal)";
+
+  const priorityBg = (p: CramTopic["priority"]) =>
+    p === "critical" ? "rgba(232,64,64,0.08)" : p === "high" ? "var(--pz-gold-dim)" : "var(--pz-teal-dim)";
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40"
-        style={{ background: "rgba(0,0,0,0.95)", borderBottom: "0.5px solid var(--pz-border)", backdropFilter: "blur(12px)" }}>
-        <Link to="/dashboard" style={{ color: "var(--pz-text-muted)", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
-          <ChevronLeft size={14} /> Back
-        </Link>
-        <span style={{ fontFamily: "'DM Serif Display',serif", fontSize: 16, color: "var(--pz-text)" }}>Cram Mode</span>
-        <div style={{ width: 48 }} />
-      </div>
+    <div style={{ minHeight: "100vh", background: "var(--pz-bg, #000)", color: "var(--pz-text, #F0E8D4)" }}>
+      <Navbar />
+      <main className="max-w-2xl mx-auto px-4 pt-6 pb-24">
+        <ToolHeader
+          icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />}
+          title="Cram Mode"
+          subtitle="Emergency study plan — make every minute count"
+        />
 
-      {/* Desktop header */}
-      <div className="hidden md:flex items-center gap-3 px-8 py-4" style={{ borderBottom: "0.5px solid var(--pz-border)" }}>
-        <Link to="/dashboard">
-          <button className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70" style={{ color: "var(--pz-text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>
-            <ChevronLeft className="h-3.5 w-3.5" /> Dashboard
-          </button>
-        </Link>
-        <span style={{ color: "var(--pz-border)" }}>|</span>
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4" style={{ color: "var(--pz-gold)" }} />
-          <h1 className="text-lg font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>Emergency Cram Mode</h1>
-        </div>
-      </div>
-
-      <BottomNav />
-
-      <main className="flex-1 py-6 pb-24 md:pb-6">
-        <div className="container mx-auto px-4 max-w-2xl">
-
-          {step === "setup" && (
-            <div className="space-y-6">
-              {/* Hero */}
-              <div className="text-center py-6">
-                <div className="w-16 h-16 rounded-none flex items-center justify-center mx-auto mb-4"
-                  style={{ background: "rgba(232,64,64,0.1)", border: "1px solid rgba(232,64,64,0.2)" }}>
-                  <Zap className="h-8 w-8" style={{ color: "#E84040" }} />
-                </div>
-                <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "'DM Serif Display',serif" }}>
-                  Emergency Cram Mode
-                </h2>
-                <p className="text-sm" style={{ color: "var(--pz-text-muted)" }}>
-                  Tell us your situation — we'll build the most efficient study plan possible.
-                </p>
+        {phase === "setup" && (
+          <div className="space-y-4 mt-6">
+            <div className="p-4 rounded-none" style={{ background: "rgba(232,64,64,0.06)", border: "1px solid rgba(232,64,64,0.2)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="h-4 w-4" style={{ color: "var(--pz-rose, #E84040)" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--pz-rose, #E84040)" }}>Emergency Mode</span>
               </div>
+              <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>This tool prioritises the most testable content for rapid review. Not a substitute for consistent study.</p>
+            </div>
 
-              {/* Time available */}
-              <div className="p-5 rounded-none" style={card}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock className="h-4 w-4" style={{ color: "var(--pz-gold)" }} />
-                  <h3 className="text-sm font-semibold" style={{ color: "var(--pz-text)" }}>How much time do you have?</h3>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {TIME_OPTIONS.map(h => (
-                    <button key={h} onClick={() => setHours(h)}
-                      className="py-3 text-sm font-semibold rounded-none transition-all"
-                      style={{
-                        background: hours === h ? "var(--pz-gold)" : "var(--pz-surface3)",
-                        color: hours === h ? "#0A0A0C" : "var(--pz-text-2)",
-                        border: `1px solid ${hours === h ? "var(--pz-gold)" : "var(--pz-border)"}`,
-                      }}>
-                      {h}h
-                    </button>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Subject / Topic</label>
+              <input
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                placeholder="e.g. Organic Chemistry, World War II, Calculus..."
+                className="w-full px-3 py-2.5 rounded-none text-sm outline-none"
+                style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Hours Available</label>
+                <select
+                  value={timeAvailable}
+                  onChange={e => setTimeAvailable(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-none text-sm outline-none"
+                  style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
+                >
+                  {["1", "2", "3", "4", "6", "8", "12"].map(h => (
+                    <option key={h} value={h}>{h} hour{h !== "1" ? "s" : ""}</option>
                   ))}
-                </div>
-                <p className="text-xs mt-3" style={{ color: "var(--pz-text-muted)" }}>
-                  Selected: <span style={{ color: "var(--pz-gold)", fontFamily: "'DM Mono',monospace" }}>{hours} hour{hours !== 1 ? "s" : ""} = {hours * 60} minutes</span>
-                </p>
+                </select>
               </div>
-
-              {/* Number of exams */}
-              <div className="p-5 rounded-none" style={card}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Target className="h-4 w-4" style={{ color: "var(--pz-gold)" }} />
-                  <h3 className="text-sm font-semibold" style={{ color: "var(--pz-text)" }}>How many exams?</h3>
-                </div>
-                <div className="flex gap-2">
-                  {EXAM_OPTIONS.map(n => (
-                    <button key={n} onClick={() => setExamCount(n)}
-                      className="flex-1 py-3 text-sm font-semibold rounded-none transition-all"
-                      style={{
-                        background: examCount === n ? "var(--pz-gold)" : "var(--pz-surface3)",
-                        color: examCount === n ? "#0A0A0C" : "var(--pz-text-2)",
-                        border: `1px solid ${examCount === n ? "var(--pz-gold)" : "var(--pz-border)"}`,
-                      }}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Topics */}
-              <div className="p-5 rounded-none" style={card}>
-                <div className="flex items-center gap-2 mb-4">
-                  <BookOpen className="h-4 w-4" style={{ color: "var(--pz-gold)" }} />
-                  <h3 className="text-sm font-semibold" style={{ color: "var(--pz-text)" }}>What are your exam topics?</h3>
-                </div>
-                <textarea
-                  value={topics}
-                  onChange={e => setTopics(e.target.value)}
-                  placeholder="e.g. Cell Biology, Organic Chemistry, Calculus derivatives..."
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-none focus:outline-none resize-none"
-                  style={{
-                    background: "var(--pz-surface3)",
-                    border: "1px solid var(--pz-border)",
-                    color: "var(--pz-text)",
-                  }}
-                  onFocus={e => (e.target.style.borderColor = "var(--pz-gold)")}
-                  onBlur={e => (e.target.style.borderColor = "var(--pz-border)")}
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Exam Date (optional)</label>
+                <input
+                  type="date"
+                  value={examDate}
+                  onChange={e => setExamDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-none text-sm outline-none"
+                  style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
                 />
-                <p className="text-xs mt-2" style={{ color: "var(--pz-text-muted)" }}>
-                  Separate multiple topics with commas. The more specific, the better.
-                </p>
               </div>
+            </div>
 
-              {error && (
-                <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
-                  {error}
-                </p>
-              )}
+            <Button
+              onClick={handleGenerate}
+              disabled={loading || !subject.trim()}
+              className="w-full py-3 rounded-none font-semibold text-sm"
+              style={{ background: "var(--pz-gold)", color: "#000" }}
+            >
+              {loading ? "Building your plan..." : "Generate Cram Plan →"}
+            </Button>
+          </div>
+        )}
 
-              {/* Generate button */}
-              <button
-                onClick={generatePlan}
-                className="w-full py-4 text-sm font-bold rounded-none transition-all hover:opacity-90 flex items-center justify-center gap-2"
-                style={{ background: "linear-gradient(135deg, #E84040, #C02020)", color: "#fff" }}>
-                <Zap className="h-4 w-4" />
-                Generate Emergency Plan
+        {phase === "plan" && plan.length > 0 && (
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-semibold" style={{ color: "var(--pz-text)" }}>Your Cram Plan</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--pz-text-muted)" }}>{subject} · {timeAvailable}h total</p>
+              </div>
+              <button onClick={() => { setPhase("setup"); setPlan([]); }} className="text-xs px-3 py-1.5 rounded-none" style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
+                Reset
               </button>
-
-              <p className="text-center text-xs" style={{ color: "var(--pz-text-muted)" }}>
-                Upload study materials to <Link to="/sources" style={{ color: "var(--pz-gold)" }}>Source Library</Link> for a more personalized plan
-              </p>
             </div>
-          )}
 
-          {step === "generating" && (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <Loader2 className="h-10 w-10 animate-spin" style={{ color: "var(--pz-gold)" }} />
-              <p className="text-sm font-medium" style={{ color: "var(--pz-text)" }}>Building your emergency plan...</p>
-              <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>Analyzing {hours}h available for {examCount} exam{examCount !== 1 ? "s" : ""}</p>
-            </div>
-          )}
-
-          {step === "plan" && (
-            <div className="space-y-4">
-              {/* Plan header */}
-              <div className="p-4 rounded-none flex items-center justify-between"
-                style={{ background: "rgba(232,64,64,0.08)", border: "1px solid rgba(232,64,64,0.2)" }}>
-                <div className="flex items-center gap-3">
-                  <Zap className="h-5 w-5" style={{ color: "#E84040" }} />
-                  <div>
-                    <p className="text-sm font-bold" style={{ color: "var(--pz-text)" }}>Your Emergency Plan</p>
-                    <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>
-                      {hours}h · {examCount} exam{examCount !== 1 ? "s" : ""} · {topics.split(",").length} topic{topics.split(",").length !== 1 ? "s" : ""}
-                    </p>
+            {plan.map((item, i) => (
+              <div key={i} className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderLeft: `3px solid ${priorityColor(item.priority)}` }}>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold" style={{ color: "var(--pz-text)" }}>{item.topic}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-none font-medium uppercase tracking-wide" style={{ background: priorityBg(item.priority), color: priorityColor(item.priority), border: `1px solid ${priorityColor(item.priority)}30` }}>
+                      {item.priority}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0" style={{ color: "var(--pz-text-muted)" }}>
+                    <Clock className="h-3 w-3" />
+                    <span className="text-xs">{item.timeEstimate}</span>
                   </div>
                 </div>
-                <button onClick={() => setStep("setup")}
-                  className="text-xs px-3 py-1.5 rounded-none transition-all hover:opacity-80"
-                  style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent", cursor: "pointer" }}>
-                  Regenerate
-                </button>
+                <ul className="space-y-1.5">
+                  {item.keyPoints.map((pt, j) => (
+                    <li key={j} className="flex items-start gap-2 text-xs" style={{ color: "var(--pz-text-2)" }}>
+                      <ChevronRight className="h-3 w-3 mt-0.5 shrink-0" style={{ color: "var(--pz-gold)" }} />
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
               </div>
+            ))}
 
-              {/* Plan content */}
-              <div className="p-5 rounded-none" style={card}>
-                <MathRenderer content={cramPlan} className="text-sm leading-relaxed" />
-              </div>
-
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-3">
-                <Link to="/ai-tutor">
-                  <button className="w-full py-3 text-xs font-semibold rounded-none flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                    style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-2)", cursor: "pointer" }}>
-                    <Brain className="h-3.5 w-3.5" /> Ask AI Tutor
-                  </button>
-                </Link>
-                <Link to="/practice">
-                  <button className="w-full py-3 text-xs font-semibold rounded-none flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                    style={{ background: "var(--pz-gold)", color: "#0A0A0C", border: "none", cursor: "pointer" }}>
-                    <ArrowRight className="h-3.5 w-3.5" /> Start Practicing
-                  </button>
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+            <Button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="w-full py-2.5 rounded-none text-sm"
+              style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}
+            >
+              {loading ? "Regenerating..." : "Regenerate Plan"}
+            </Button>
+          </div>
+        )}
       </main>
+      <BottomNav />
     </div>
-  )
+  );
 }

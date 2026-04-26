@@ -172,6 +172,12 @@ function AppRoutes() {
         <Route path="/build-def" element={<ProtectedRoute><BuildDef /></ProtectedRoute>} />
         <Route path="/blank-map" element={<ProtectedRoute><BlankMap /></ProtectedRoute>} />
         <Route path="/boss-round" element={<ProtectedRoute><BossRound /></ProtectedRoute>} />
+        <Route path="/cram" element={<ProtectedRoute><CramMode /></ProtectedRoute>} />
+        <Route path="/confidence" element={<ProtectedRoute><ConfidenceCalibration /></ProtectedRoute>} />
+        <Route path="/high-yield" element={<ProtectedRoute><HighYieldDetector /></ProtectedRoute>} />
+        <Route path="/mistakes" element={<ProtectedRoute><MistakeJournal /></ProtectedRoute>} />
+        <Route path="/recall" element={<ProtectedRoute><RecallMode /></ProtectedRoute>} />
+        <Route path="/study-dna" element={<ProtectedRoute><StudyDNA /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/sources" element={<ProtectedRoute><SourceLibrary /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />

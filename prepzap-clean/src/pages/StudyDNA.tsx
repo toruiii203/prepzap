@@ -1,303 +1,201 @@
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { ChevronLeft, Dna, Brain, Clock, TrendingUp, Zap, RotateCcw, Loader2 } from "lucide-react"
-import { BottomNav } from "@/components/BottomNav"
-import { callGroq } from "@/lib/groq"
+import { useState, useEffect } from "react";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
+import { ToolHeader } from "@/components/ToolShell";
+import { Dna, RefreshCw, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { callGroq } from "@/lib/groq";
 
-interface StudyDNAProfile {
-  learningStyle: string
-  peakHours: string
-  strengths: string[]
-  weaknesses: string[]
-  studyPatterns: string[]
-  recommendations: string[]
-  personalityType: string
-  personalityDesc: string
+const STORAGE_KEY = "pz_study_dna";
+
+interface DNAProfile {
+  learningStyle: string;
+  strengths: string[];
+  weaknesses: string[];
+  bestStudyTime: string;
+  recommendedTools: string[];
+  insight: string;
+  generatedAt: string;
 }
 
-const DNA_QUESTIONS = [
-  { id: "style", question: "When learning something new, you prefer to:", options: ["Read detailed explanations", "See diagrams and visuals", "Try it hands-on first", "Discuss it with someone"] },
-  { id: "time", question: "When do you feel most focused?", options: ["Early morning (6AM-10AM)", "Late morning (10AM-12PM)", "Afternoon (12PM-5PM)", "Evening/Night (5PM+)"] },
-  { id: "struggle", question: "You struggle most with:", options: ["Abstract concepts", "Memorizing facts", "Applying theory to problems", "Staying motivated"] },
-  { id: "session", question: "Your typical study session is:", options: ["Short bursts (15-20 min)", "Medium sessions (30-45 min)", "Long focused blocks (1hr+)", "Variable — depends on mood"] },
-  { id: "mistake", question: "When you get something wrong, you:", options: ["Review it immediately", "Move on and come back later", "Ask for an explanation", "Try a different approach"] },
-  { id: "goal", question: "Your main study goal is:", options: ["Pass exams with high grades", "Actually understand the subject", "Build practical skills", "Complete the course quickly"] },
-  { id: "distraction", question: "Your biggest distraction while studying is:", options: ["Phone/social media", "Background noise", "Other thoughts/anxiety", "Boredom with the material"] },
-  { id: "retention", question: "You retain information best when you:", options: ["Write it down in notes", "Create summaries/mind maps", "Teach it to someone else", "Do practice questions"] },
-]
+const QUESTIONS = [
+  { id: "q1", text: "When you learn something new, you prefer to:", options: ["Read detailed notes or textbooks", "Watch videos or visual diagrams", "Do practice problems immediately", "Discuss it with someone or teach it"] },
+  { id: "q2", text: "You tend to remember things best when:", options: ["You write them down yourself", "You see a clear diagram or chart", "You repeat them out loud or explain them", "You connect them to something you already know"] },
+  { id: "q3", text: "When you hit a difficult concept, you usually:", options: ["Re-read it multiple times until it clicks", "Look for a simpler explanation or analogy", "Try practice questions to figure it out", "Ask someone or look for a video"] },
+  { id: "q4", text: "Your most productive study sessions happen:", options: ["Early morning (6am–10am)", "Late morning to midday (10am–2pm)", "Afternoon (2pm–6pm)", "Evening or night (6pm+)"] },
+  { id: "q5", text: "How long can you typically focus before needing a break?", options: ["Under 20 minutes", "20–40 minutes", "40–60 minutes", "Over 60 minutes"] },
+  { id: "q6", text: "Your biggest study challenge is:", options: ["Staying motivated over time", "Understanding difficult concepts", "Remembering what you've studied", "Managing your time and staying organised"] },
+  { id: "q7", text: "You feel most confident when:", options: ["You've reviewed your notes thoroughly", "You can visualise how things connect", "You've practised enough questions", "You can explain it to someone else"] },
+];
 
 export default function StudyDNA() {
-  const [step, setStep] = useState<"intro" | "quiz" | "generating" | "results">("intro")
-  const [currentQ, setCurrentQ] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [profile, setProfile] = useState<StudyDNAProfile | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [savedProfile, setSavedProfile] = useState<StudyDNAProfile | null>(() => {
-    try { return JSON.parse(localStorage.getItem("pz_study_dna") || "null") } catch { return null }
-  })
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [profile, setProfile] = useState<DNAProfile | null>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+  });
+  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState<"quiz" | "profile">(profile ? "profile" : "quiz");
 
-  const handleAnswer = async (answer: string) => {
-    const q = DNA_QUESTIONS[currentQ]
-    const newAnswers = { ...answers, [q.id]: answer }
-    setAnswers(newAnswers)
+  useEffect(() => { if (profile) localStorage.setItem(STORAGE_KEY, JSON.stringify(profile)); }, [profile]);
 
-    if (currentQ + 1 < DNA_QUESTIONS.length) {
-      setCurrentQ(i => i + 1)
-    } else {
-      setStep("generating")
-      await generateProfile(newAnswers)
-    }
-  }
+  const allAnswered = QUESTIONS.every(q => answers[q.id]);
 
-  const generateProfile = async (ans: Record<string, string>) => {
-    const prompt = `Based on these study habit answers, create a personalized Study DNA profile:
-
-${DNA_QUESTIONS.map(q => `${q.question}\nAnswer: ${ans[q.id]}`).join("\n\n")}
-
-Return ONLY valid JSON:
-{
-  "learningStyle": "Visual/Auditory/Reading-Writing/Kinesthetic learner",
-  "peakHours": "their optimal study time",
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "weaknesses": ["weakness 1", "weakness 2", "weakness 3"],
-  "studyPatterns": ["pattern observation 1", "pattern observation 2", "pattern observation 3"],
-  "recommendations": ["specific recommendation 1", "specific recommendation 2", "specific recommendation 3", "specific recommendation 4"],
-  "personalityType": "The [Name] Learner (e.g. The Strategic Learner)",
-  "personalityDesc": "2-3 sentence description of their learning personality"
-}`
-
+  const handleGenerate = async () => {
+    if (!allAnswered) { toast.error("Please answer all questions"); return; }
+    setLoading(true);
     try {
-      const response = await callGroq(
-        [{ role: "user", content: prompt }],
-        "You are a learning psychologist. Return only valid JSON.",
-        "llama-3.3-70b-versatile",
-        1500
-      )
-      const clean = response.replace(/```json|```/g, "").trim()
-      const parsed = JSON.parse(clean)
-      setProfile(parsed)
-      setSavedProfile(parsed)
-      localStorage.setItem("pz_study_dna", JSON.stringify(parsed))
-      setStep("results")
+      const answerSummary = QUESTIONS.map(q => `${q.text} → ${answers[q.id]}`).join("\n");
+      const prompt = `Based on this student's answers, create their Study DNA profile:
+${answerSummary}
+
+Return ONLY valid JSON (no markdown):
+{
+  "learningStyle": "2-3 word label e.g. 'Visual-Analytical Learner'",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "weaknesses": ["area to improve 1", "area to improve 2"],
+  "bestStudyTime": "1 sentence recommendation",
+  "recommendedTools": ["tool or technique 1", "tool or technique 2", "tool or technique 3"],
+  "insight": "2-3 sentence personalised insight about their learning style and how to optimise it"
+}`;
+      const raw = await callGroq(prompt, "llama3-8b-8192");
+      const parsed: Omit<DNAProfile, "generatedAt"> = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      const newProfile: DNAProfile = { ...parsed, generatedAt: new Date().toISOString() };
+      setProfile(newProfile);
+      setPhase("profile");
     } catch {
-      setError("Failed to generate profile. Try again.")
-      setStep("quiz")
-      setCurrentQ(DNA_QUESTIONS.length - 1)
+      toast.error("Failed to generate profile. Try again.");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  const reset = () => {
-    setStep("intro")
-    setCurrentQ(0)
-    setAnswers({})
-    setProfile(null)
-    setError(null)
-  }
+  const handleReset = () => {
+    setProfile(null);
+    setAnswers({});
+    localStorage.removeItem(STORAGE_KEY);
+    setPhase("quiz");
+  };
 
-  const displayProfile = profile || savedProfile
-  const card: React.CSSProperties = { background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }
+  const progress = (Object.keys(answers).length / QUESTIONS.length) * 100;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40"
-        style={{ background: "rgba(0,0,0,0.95)", borderBottom: "0.5px solid var(--pz-border)", backdropFilter: "blur(12px)" }}>
-        <Link to="/dashboard" style={{ color: "var(--pz-text-muted)", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
-          <ChevronLeft size={14} /> Back
-        </Link>
-        <span style={{ fontFamily: "'DM Serif Display',serif", fontSize: 16 }}>Study DNA</span>
-        {displayProfile && <button onClick={reset} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--pz-text-muted)", fontSize: 11 }}>Retake</button>}
-      </div>
+    <div style={{ minHeight: "100vh", background: "var(--pz-bg, #000)", color: "var(--pz-text, #F0E8D4)" }}>
+      <Navbar />
+      <main className="max-w-2xl mx-auto px-4 pt-6 pb-24">
+        <ToolHeader
+          icon={<Dna className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />}
+          title="Study DNA"
+          subtitle="Discover your unique learner profile and study smarter"
+        />
 
-      <div className="hidden md:flex items-center gap-3 px-8 py-4" style={{ borderBottom: "0.5px solid var(--pz-border)" }}>
-        <Link to="/dashboard">
-          <button className="flex items-center gap-1 text-xs" style={{ color: "var(--pz-text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>
-            <ChevronLeft className="h-3.5 w-3.5" /> Dashboard
-          </button>
-        </Link>
-        <span style={{ color: "var(--pz-border)" }}>|</span>
-        <Dna className="h-4 w-4" style={{ color: "var(--pz-gold)" }} />
-        <h1 className="text-lg font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>Study DNA</h1>
-        {displayProfile && (
-          <button onClick={reset} className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-none"
-            style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent", cursor: "pointer" }}>
-            <RotateCcw className="h-3 w-3" /> Retake
-          </button>
-        )}
-      </div>
+        {phase === "quiz" && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>{Object.keys(answers).length} of {QUESTIONS.length} answered</p>
+              <span className="text-xs" style={{ color: "var(--pz-text-muted)", fontFamily: "'DM Mono',monospace" }}>{Math.round(progress)}%</span>
+            </div>
+            <div className="h-1 rounded-none mb-6" style={{ background: "var(--pz-surface3)" }}>
+              <div className="h-full rounded-none" style={{ width: `${progress}%`, background: "var(--pz-gold)", transition: "width 0.3s ease" }} />
+            </div>
 
-      <BottomNav />
-
-      <main className="flex-1 py-6 pb-24 md:pb-6">
-        <div className="container mx-auto px-4 max-w-xl">
-
-          {/* INTRO */}
-          {step === "intro" && !savedProfile && (
-            <div className="space-y-6">
-              <div className="text-center py-6">
-                <div className="w-16 h-16 rounded-none flex items-center justify-center mx-auto mb-4"
-                  style={{ background: "rgba(192,160,96,0.1)", border: "1px solid rgba(192,160,96,0.2)" }}>
-                  <Dna className="h-8 w-8" style={{ color: "var(--pz-gold)" }} />
-                </div>
-                <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "'DM Serif Display',serif" }}>Study DNA</h2>
-                <p className="text-sm" style={{ color: "var(--pz-text-muted)" }}>
-                  Answer 8 questions to discover your unique learning profile — how you learn best, your peak hours, and personalized recommendations.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-none space-y-3" style={card}>
-                {[
-                  { icon: Brain, text: "Discover your learning style" },
-                  { icon: Clock, text: "Find your peak study hours" },
-                  { icon: TrendingUp, text: "Identify your strengths & weaknesses" },
-                  { icon: Zap, text: "Get personalized study recommendations" },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-3 text-sm" style={{ color: "var(--pz-text-2)" }}>
-                    <Icon className="h-4 w-4 flex-shrink-0" style={{ color: "var(--pz-gold)" }} />
-                    {text}
+            <div className="space-y-5">
+              {QUESTIONS.map((q, i) => (
+                <div key={q.id} className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: `1px solid ${answers[q.id] ? "var(--pz-gold)40" : "var(--pz-border)"}`, borderLeft: answers[q.id] ? "3px solid var(--pz-gold)" : "3px solid var(--pz-surface3)" }}>
+                  <p className="text-sm font-medium mb-3" style={{ color: "var(--pz-text)" }}>
+                    <span style={{ color: "var(--pz-text-muted)", marginRight: 8, fontFamily: "'DM Mono',monospace" }}>{i + 1}.</span>
+                    {q.text}
+                  </p>
+                  <div className="space-y-2">
+                    {q.options.map((opt, j) => (
+                      <button
+                        key={j}
+                        onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                        className="w-full text-left px-3 py-2 rounded-none text-sm transition-colors"
+                        style={{
+                          background: answers[q.id] === opt ? "var(--pz-gold-dim)" : "var(--pz-surface3)",
+                          border: `1px solid ${answers[q.id] === opt ? "var(--pz-gold)" : "var(--pz-border)"}`,
+                          color: answers[q.id] === opt ? "var(--pz-gold)" : "var(--pz-text-2)",
+                          fontWeight: answers[q.id] === opt ? 600 : 400,
+                        }}
+                      >
+                        {opt}
+                      </button>
+                    ))}
                   </div>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleGenerate}
+              disabled={loading || !allAnswered}
+              className="w-full py-3 rounded-none font-semibold text-sm mt-6"
+              style={{ background: allAnswered ? "var(--pz-gold)" : "var(--pz-surface3)", color: allAnswered ? "#000" : "var(--pz-text-muted)" }}
+            >
+              {loading ? "Analysing your DNA..." : "Generate My Study DNA →"}
+            </Button>
+          </div>
+        )}
+
+        {phase === "profile" && profile && (
+          <div className="mt-6 space-y-4">
+            <div className="p-5 rounded-none text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-gold)40", borderTop: "2px solid var(--pz-gold)" }}>
+              <div className="w-14 h-14 rounded-none flex items-center justify-center text-2xl mx-auto mb-3" style={{ background: "var(--pz-gold-dim)", border: "1px solid var(--pz-gold)30" }}>🧬</div>
+              <h2 className="text-xl font-bold mb-1" style={{ color: "var(--pz-text)", fontFamily: "'DM Serif Display', serif" }}>{profile.learningStyle}</h2>
+              <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>Generated {new Date(profile.generatedAt).toLocaleDateString()}</p>
+            </div>
+
+            <div className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
+              <p className="text-sm" style={{ color: "var(--pz-text-2)" }}>{profile.insight}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-teal)" }}>
+                <h3 className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--pz-teal)" }}>Strengths</h3>
+                <ul className="space-y-1.5">
+                  {profile.strengths.map((s, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "var(--pz-text-2)" }}>
+                      <span style={{ color: "var(--pz-teal)" }}>✓</span> {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-rose, #E84040)" }}>
+                <h3 className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--pz-rose, #E84040)" }}>Growth Areas</h3>
+                <ul className="space-y-1.5">
+                  {profile.weaknesses.map((w, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "var(--pz-text-2)" }}>
+                      <span style={{ color: "var(--pz-rose, #E84040)" }}>→</span> {w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
+              <h3 className="text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--pz-text-muted)" }}>Best Study Time</h3>
+              <p className="text-sm" style={{ color: "var(--pz-text-2)" }}>⏰ {profile.bestStudyTime}</p>
+            </div>
+
+            <div className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
+              <h3 className="text-xs font-semibold mb-2 uppercase tracking-wide" style={{ color: "var(--pz-text-muted)" }}>Recommended Tools & Techniques</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.recommendedTools.map((tool, i) => (
+                  <span key={i} className="text-xs px-2.5 py-1 rounded-none" style={{ background: "var(--pz-gold-dim)", color: "var(--pz-gold)", border: "1px solid var(--pz-gold)25" }}>
+                    {tool}
+                  </span>
                 ))}
               </div>
-
-              <button onClick={() => setStep("quiz")} className="w-full py-4 text-sm font-bold rounded-none transition-all hover:opacity-90"
-                style={{ background: "linear-gradient(135deg, var(--pz-gold), var(--pz-amber))", color: "#0A0A0C" }}>
-                Discover My Study DNA
-              </button>
             </div>
-          )}
 
-          {/* Show saved profile on intro if exists */}
-          {step === "intro" && savedProfile && (() => {
-            setStep("results")
-            setProfile(savedProfile)
-            return null
-          })()}
-
-          {/* QUIZ */}
-          {step === "quiz" && (
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>Question {currentQ + 1} of {DNA_QUESTIONS.length}</p>
-                <div className="flex gap-1">
-                  {DNA_QUESTIONS.map((_, i) => (
-                    <div key={i} className="w-5 h-1.5 rounded-none" style={{ background: i < currentQ ? "var(--pz-gold)" : i === currentQ ? "var(--pz-gold)" : "var(--pz-surface3)" }} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-5 rounded-none" style={card}>
-                <p className="text-sm font-medium leading-relaxed mb-5" style={{ color: "var(--pz-text)" }}>
-                  {DNA_QUESTIONS[currentQ].question}
-                </p>
-                <div className="space-y-2">
-                  {DNA_QUESTIONS[currentQ].options.map(opt => (
-                    <button key={opt} onClick={() => handleAnswer(opt)}
-                      className="w-full text-left px-4 py-3 text-sm rounded-none transition-all hover:opacity-80"
-                      style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text)", cursor: "pointer" }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-gold)"}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-border)"}>
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {error && <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>{error}</p>}
-            </div>
-          )}
-
-          {/* GENERATING */}
-          {step === "generating" && (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <Dna className="h-10 w-10 animate-spin" style={{ color: "var(--pz-gold)" }} />
-              <p className="text-sm font-medium" style={{ color: "var(--pz-text)" }}>Analyzing your Study DNA...</p>
-              <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>Building your personalized learner profile</p>
-            </div>
-          )}
-
-          {/* RESULTS */}
-          {step === "results" && displayProfile && (
-            <div className="space-y-5">
-              {/* Personality type */}
-              <div className="p-5 rounded-none text-center" style={{ ...card, borderTop: "2px solid var(--pz-gold)" }}>
-                <div className="w-14 h-14 rounded-none flex items-center justify-center mx-auto mb-3"
-                  style={{ background: "rgba(192,160,96,0.1)", border: "1px solid rgba(192,160,96,0.2)" }}>
-                  <Dna className="h-7 w-7" style={{ color: "var(--pz-gold)" }} />
-                </div>
-                <p className="text-xs mb-1" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Your Study DNA</p>
-                <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "'DM Serif Display',serif", color: "var(--pz-gold)" }}>
-                  {displayProfile.personalityType}
-                </h2>
-                <p className="text-sm" style={{ color: "var(--pz-text-2)", lineHeight: 1.7 }}>{displayProfile.personalityDesc}</p>
-              </div>
-
-              {/* Learning style & peak hours */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-none" style={card}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--pz-text-muted)" }}>Learning Style</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--pz-text)" }}>{displayProfile.learningStyle}</p>
-                </div>
-                <div className="p-4 rounded-none" style={card}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--pz-text-muted)" }}>Peak Hours</p>
-                  <p className="text-sm font-semibold" style={{ color: "var(--pz-text)" }}>{displayProfile.peakHours}</p>
-                </div>
-              </div>
-
-              {/* Strengths & Weaknesses */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-none" style={card}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: "#10b981" }}>Strengths</p>
-                  <div className="space-y-1.5">
-                    {displayProfile.strengths.map((s, i) => (
-                      <div key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "var(--pz-text-2)" }}>
-                        <span style={{ color: "#10b981", flexShrink: 0 }}>✓</span>{s}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-4 rounded-none" style={card}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: "#ef4444" }}>Watch Out</p>
-                  <div className="space-y-1.5">
-                    {displayProfile.weaknesses.map((w, i) => (
-                      <div key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "var(--pz-text-2)" }}>
-                        <span style={{ color: "#ef4444", flexShrink: 0 }}>!</span>{w}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Study patterns */}
-              <div className="p-5 rounded-none" style={card}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--pz-text-muted)" }}>Your Study Patterns</p>
-                <div className="space-y-2">
-                  {displayProfile.studyPatterns.map((p, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs" style={{ color: "var(--pz-text-2)" }}>
-                      <span style={{ color: "var(--pz-gold)", flexShrink: 0 }}>›</span>{p}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              <div className="p-5 rounded-none" style={{ ...card, borderTop: "2px solid var(--pz-gold)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--pz-gold)" }}>Personalized Recommendations</p>
-                <div className="space-y-2">
-                  {displayProfile.recommendations.map((r, i) => (
-                    <div key={i} className="p-3 rounded-none text-xs" style={{ background: "rgba(192,160,96,0.05)", border: "1px solid rgba(192,160,96,0.1)", color: "var(--pz-text-2)" }}>
-                      <span style={{ color: "var(--pz-gold)", marginRight: 6 }}>{i + 1}.</span>{r}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button onClick={reset} className="w-full py-3 text-sm font-semibold rounded-none flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent", cursor: "pointer" }}>
-                <RotateCcw className="h-4 w-4" /> Retake Assessment
-              </button>
-            </div>
-          )}
-        </div>
+            <Button onClick={handleReset} className="w-full py-2.5 rounded-none text-sm" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
+              <RefreshCw className="h-3.5 w-3.5 inline mr-2" /> Retake Quiz
+            </Button>
+          </div>
+        )}
       </main>
+      <BottomNav />
     </div>
-  )
+  );
 }
