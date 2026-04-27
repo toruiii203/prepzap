@@ -1,218 +1,71 @@
-import { Link } from "react-router-dom";
-import { Logo } from "@/components/Logo";
+import { Link } from "react-router-dom"
+import { ChevronLeft } from "lucide-react"
 
-const mono: React.CSSProperties = {
-  fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif",
-};
-
-const section = (title: string, content: React.ReactNode) => (
-  <div style={{ marginBottom: "40px" }}>
-    <h2 style={{
-      fontSize: "11px", fontWeight: 500, letterSpacing: "0.12em",
-      textTransform: "uppercase", color: "var(--pz-text)", marginBottom: "12px",
-      ...mono,
-    }}>{title}</h2>
-    <div style={{ fontSize: "13px", color: "var(--pz-text-2)", lineHeight: 1.8, fontWeight: 300 }}>
-      {content}
-    </div>
-  </div>
-);
-
-export default function PrivacyPolicy() {
+export default function Privacy() {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
+    <div style={{ minHeight: "100vh", background: "#000", color: "#F0E8D4", fontFamily: "'Geist', sans-serif" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px" }}>
 
-      {/* Nav */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 50,
-        borderBottom: "0.5px solid var(--pz-border)",
-        background: "rgba(0,0,0,0.92)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-      }}>
-        <div style={{
-          maxWidth: "720px", margin: "0 auto",
-          padding: "0 32px", height: "52px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <Link to="/" style={{ textDecoration: "none" }}><Logo /></Link>
-          <Link to="/login" style={{
-            ...mono, fontSize: "11px", color: "var(--pz-text-muted)",
-            textDecoration: "none", letterSpacing: "0.06em",
-          }}>Back to login</Link>
+        <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(240,232,212,0.4)", fontSize: 13, marginBottom: 40, textDecoration: "none" }}>
+          <ChevronLeft size={14} /> Back to PrepZap
+        </Link>
+
+        <h1 style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-0.02em", marginBottom: 8 }}>Privacy Policy</h1>
+        <p style={{ color: "rgba(240,232,212,0.4)", fontSize: 13, marginBottom: 48 }}>Last updated: April 2026</p>
+
+        {[
+          {
+            title: "1. Information We Collect",
+            content: `When you create an account on PrepZap, we collect your name and email address. If you sign in with Google, we receive your name, email, and profile picture from Google. We also collect usage data such as study sessions, flashcard progress, quiz results, and feature interactions to improve your experience.`
+          },
+          {
+            title: "2. How We Use Your Information",
+            content: `We use your information to provide and improve PrepZap's study tools, personalize your learning experience, track your progress and streaks, send important account notifications, and respond to your support requests. We do not sell your personal information to third parties.`
+          },
+          {
+            title: "3. Data Storage",
+            content: `Your account data is securely stored using Supabase, a trusted database provider. Study materials you upload are stored locally in your browser and are not transmitted to our servers unless explicitly used with AI features. AI interactions are processed through Groq's API and are not permanently stored.`
+          },
+          {
+            title: "4. Cookies and Local Storage",
+            content: `PrepZap uses browser local storage to save your theme preferences, study events, flashcards, and session data. This data stays on your device and is not shared with us unless you are logged in. We do not use tracking cookies or advertising cookies.`
+          },
+          {
+            title: "5. Third-Party Services",
+            content: `PrepZap uses the following third-party services: Supabase for authentication and database storage, Groq for AI-powered study features, and Google OAuth for sign-in. Each of these services has their own privacy policy and data handling practices.`
+          },
+          {
+            title: "6. Data Retention",
+            content: `We retain your account data for as long as your account is active. You may request deletion of your account and associated data at any time by contacting us at prepzaps@gmail.com. Upon deletion, your data will be permanently removed within 30 days.`
+          },
+          {
+            title: "7. Children's Privacy",
+            content: `PrepZap is intended for users aged 13 and older. We do not knowingly collect personal information from children under 13. If you believe a child under 13 has provided us with personal information, please contact us immediately.`
+          },
+          {
+            title: "8. Your Rights",
+            content: `You have the right to access, correct, or delete your personal data at any time. You may also withdraw consent for data processing, request a copy of your data, or opt out of non-essential communications. To exercise these rights, contact us at prepzaps@gmail.com.`
+          },
+          {
+            title: "9. Changes to This Policy",
+            content: `We may update this Privacy Policy from time to time. We will notify you of significant changes by email or through the app. Continued use of PrepZap after changes constitutes acceptance of the updated policy.`
+          },
+          {
+            title: "10. Contact Us",
+            content: `If you have any questions about this Privacy Policy, please contact us at prepzaps@gmail.com.`
+          },
+        ].map(section => (
+          <div key={section.title} style={{ marginBottom: 36 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12, color: "#F0E8D4" }}>{section.title}</h2>
+            <p style={{ fontSize: 14, lineHeight: 1.8, color: "rgba(240,232,212,0.6)", fontWeight: 300 }}>{section.content}</p>
+          </div>
+        ))}
+
+        <div style={{ marginTop: 64, paddingTop: 24, borderTop: "0.5px solid rgba(240,232,212,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "rgba(240,232,212,0.3)" }}>PrepZap · All rights reserved</span>
+          <Link to="/terms" style={{ fontSize: 12, color: "rgba(240,232,212,0.4)", textDecoration: "none" }}>Terms of Service →</Link>
         </div>
-      </header>
-
-      {/* Content */}
-      <main style={{ maxWidth: "720px", margin: "0 auto", padding: "64px 32px" }}>
-
-        <div style={{ marginBottom: "48px" }}>
-          <h1 style={{
-            fontSize: "28px", fontWeight: 300, letterSpacing: "-0.02em",
-            color: "var(--pz-text)", marginBottom: "8px",
-          }}>Privacy Policy</h1>
-          <p style={{ ...mono, fontSize: "11px", color: "var(--pz-text-muted)", letterSpacing: "0.06em" }}>
-            STUDENIUS · Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-          </p>
-        </div>
-
-        <div style={{ borderTop: "0.5px solid var(--pz-border)", paddingTop: "40px" }}>
-
-          {section("Overview", (
-            <p>
-              Studenius ("we", "our", or "us") is an AI-powered learning platform built to help students
-              study more effectively. This Privacy Policy explains what information we collect, how we use
-              it, and what rights you have over your data. By using Studenius, you agree to the practices
-              described in this policy.
-            </p>
-          ))}
-
-          {section("Information We Collect", (
-            <>
-              <p style={{ marginBottom: "12px" }}>We collect the following types of information:</p>
-              <p style={{ marginBottom: "8px" }}>
-                <strong style={{ color: "var(--pz-text)", fontWeight: 500 }}>Account information.</strong>{" "}
-                When you sign up, we collect your name and email address. If you sign in with Google,
-                we receive your name, email address, and profile picture from Google OAuth.
-              </p>
-              <p style={{ marginBottom: "8px" }}>
-                <strong style={{ color: "var(--pz-text)", fontWeight: 500 }}>Study preferences.</strong>{" "}
-                During onboarding, we collect optional information such as your subjects of study and
-                daily study goal. This is used to personalize your experience.
-              </p>
-              <p style={{ marginBottom: "8px" }}>
-                <strong style={{ color: "var(--pz-text)", fontWeight: 500 }}>Usage data.</strong>{" "}
-                We collect data about how you use the app, including study sessions, XP earned, streak
-                history, questions answered, and features accessed. This is used to track your progress
-                and improve the product.
-              </p>
-              <p>
-                <strong style={{ color: "var(--pz-text)", fontWeight: 500 }}>Content you create.</strong>{" "}
-                Any flashcards, notes, tasks, or study materials you create within the app are stored
-                to provide the service.
-              </p>
-            </>
-          ))}
-
-          {section("How We Use Your Information", (
-            <>
-              <p style={{ marginBottom: "8px" }}>We use the information we collect to:</p>
-              <p style={{ marginBottom: "6px" }}>- Provide and operate the Studenius platform</p>
-              <p style={{ marginBottom: "6px" }}>- Personalize your study experience and track your progress</p>
-              <p style={{ marginBottom: "6px" }}>- Power AI features such as question generation, tutoring, and feedback</p>
-              <p style={{ marginBottom: "6px" }}>- Send important account notifications (not marketing emails without consent)</p>
-              <p style={{ marginBottom: "6px" }}>- Improve the product through aggregated, anonymized usage analysis</p>
-              <p>- Comply with legal obligations</p>
-            </>
-          ))}
-
-          {section("Google OAuth and Third-Party Sign-In", (
-            <p>
-              If you choose to sign in with Google, we only access the basic profile information
-              that Google provides: your name, email address, and profile picture. We do not access
-              your Google Drive, Gmail, contacts, or any other Google services. Your Google account
-              credentials are never stored by Studenius. Authentication is handled securely through
-              Supabase.
-            </p>
-          ))}
-
-          {section("Data Storage and Security", (
-            <p>
-              Your data is stored using Supabase, a secure backend platform. We implement
-              industry-standard security practices including encrypted connections (HTTPS),
-              row-level security policies, and access controls. While we take reasonable steps to
-              protect your data, no system is completely immune to security risks.
-            </p>
-          ))}
-
-          {section("Data Sharing", (
-            <>
-              <p style={{ marginBottom: "12px" }}>
-                We do not sell your personal data. We do not share your personal information with
-                third parties except in the following limited cases:
-              </p>
-              <p style={{ marginBottom: "8px" }}>
-                <strong style={{ color: "var(--pz-text)", fontWeight: 500 }}>Service providers.</strong>{" "}
-                We use trusted third-party services to operate Studenius, including Supabase (database
-                and authentication) and AI model providers for study features. These providers only
-                access data necessary to provide their services and are bound by confidentiality obligations.
-              </p>
-              <p>
-                <strong style={{ color: "var(--pz-text)", fontWeight: 500 }}>Legal requirements.</strong>{" "}
-                We may disclose your information if required to do so by law or in response to valid
-                legal processes.
-              </p>
-            </>
-          ))}
-
-          {section("Your Rights", (
-            <>
-              <p style={{ marginBottom: "12px" }}>You have the right to:</p>
-              <p style={{ marginBottom: "6px" }}>- Access the personal data we hold about you</p>
-              <p style={{ marginBottom: "6px" }}>- Request correction of inaccurate data</p>
-              <p style={{ marginBottom: "6px" }}>- Request deletion of your account and associated data</p>
-              <p style={{ marginBottom: "6px" }}>- Withdraw consent at any time by deleting your account</p>
-              <p style={{ marginBottom: "12px" }}>- Export your data upon request</p>
-              <p>
-                To exercise any of these rights, contact us at the email address below.
-              </p>
-            </>
-          ))}
-
-          {section("Data Retention", (
-            <p>
-              We retain your data for as long as your account is active. If you delete your account,
-              we will delete your personal data within 30 days, except where retention is required
-              by law or for legitimate business purposes such as fraud prevention.
-            </p>
-          ))}
-
-          {section("Children's Privacy", (
-            <p>
-              Studenius is not directed at children under the age of 13. We do not knowingly collect
-              personal information from children under 13. If you believe a child has provided us with
-              their information, please contact us and we will promptly delete it.
-            </p>
-          ))}
-
-          {section("Changes to This Policy", (
-            <p>
-              We may update this Privacy Policy from time to time. When we do, we will update the
-              date at the top of this page. Continued use of Studenius after any changes means you
-              accept the updated policy.
-            </p>
-          ))}
-
-          {section("Contact", (
-            <p>
-              If you have any questions about this Privacy Policy or how your data is handled,
-              you can reach us at:{" "}
-              <a
-                href="mailto:support@studenius.com"
-                style={{ color: "var(--pz-text-2)", textDecoration: "none", borderBottom: "0.5px solid var(--pz-border)" }}>
-                support@studenius.com
-              </a>
-            </p>
-          ))}
-
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer style={{ borderTop: "0.5px solid var(--pz-border)" }}>
-        <div style={{
-          maxWidth: "720px", margin: "0 auto", padding: "20px 32px",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
-          <span style={{ ...mono, fontSize: "10px", color: "var(--pz-text-muted)", letterSpacing: "0.06em" }}>
-            STUDENIUS © {new Date().getFullYear()}
-          </span>
-          <Link to="/" style={{ fontSize: "11px", color: "var(--pz-text-muted)", textDecoration: "none" }}>
-            Back to home
-          </Link>
-        </div>
-      </footer>
-
+      </div>
     </div>
-  );
+  )
 }

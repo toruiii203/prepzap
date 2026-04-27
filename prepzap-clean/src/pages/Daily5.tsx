@@ -27,6 +27,10 @@ export default function Daily5() {
   const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
 
 
+  const todayKey = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const completedToday = (() => { try { return localStorage.getItem("pz_daily5_date") === todayKey; } catch { return false; } })();
+  const [alreadyDone, setAlreadyDone] = useState(completedToday);
+
   const [phase, setPhase] = useState<"intro"|"quiz"|"done">("intro");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
@@ -35,7 +39,17 @@ export default function Daily5() {
   const [score, setScore] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
-  const [streak, setStreak] = useState(() => { try { return Number(localStorage.getItem("pz_daily5_streak")||"0"); } catch { return 0; } });
+  const [streak, setStreak] = useState(() => {
+    try {
+      const lastDate = localStorage.getItem("pz_daily5_date");
+      const streakVal = Number(localStorage.getItem("pz_daily5_streak") || "0");
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      const yKey = yesterday.toISOString().slice(0, 10);
+      // Reset streak if last completion wasn't today or yesterday
+      if (lastDate !== todayKey && lastDate !== yKey) return 0;
+      return streakVal;
+    } catch { return 0; }
+  });
   const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
 
@@ -74,7 +88,11 @@ export default function Daily5() {
     if (current+1 >= questions.length) {
       const newStreak = streak+1;
       setStreak(newStreak);
-      try { localStorage.setItem("pz_daily5_streak", String(newStreak)); } catch {}
+      setAlreadyDone(true);
+      try {
+        localStorage.setItem("pz_daily5_streak", String(newStreak));
+        localStorage.setItem("pz_daily5_date", todayKey);
+      } catch {}
       setPhase("done");
     } else {
       setCurrent(c=>c+1); setSelected(null); setAnswered(false);
@@ -111,6 +129,12 @@ export default function Daily5() {
 
         {phase==="intro" && (
           <div className="text-center space-y-6 pt-8">
+            {alreadyDone && (
+              <div className="p-4 mb-2 text-center" style={{ background: "var(--pz-teal-dim)", border: "1px solid var(--pz-teal)40" }}>
+                <p className="text-sm font-semibold" style={{ color: "var(--pz-teal)" }}>✓ You've completed today's Daily 5!</p>
+                <p className="text-xs mt-1" style={{ color: "var(--pz-text-muted)" }}>Come back tomorrow to keep your streak. 🔥 {streak}-day streak</p>
+              </div>
+            )}
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
               <Zap className="h-10 w-10 text-white"/>
             </div>

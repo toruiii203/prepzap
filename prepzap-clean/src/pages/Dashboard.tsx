@@ -98,8 +98,6 @@ const ICONS: Record<string, React.ReactNode> = {
   "Planner":    <I c={IC}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/><line x1="8" y1="17" x2="13" y2="17"/></I>,
   // Content & Files
   "Sources":    <I c={IC}><path d="M3 7l3-3h12l3 3v13H3z"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="7" y1="14" x2="14" y2="14"/><line x1="7" y1="17" x2="11" y2="17"/></I>,
-  "Upload":     <I c={IC}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></I>,
-  "Essay":      <I c={IC}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></I>,
   // Emergency & Confidence
   "Cram Mode":  <I c={IC}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></I>,
   "Confidence": <I c={IC}><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></I>,
@@ -127,8 +125,6 @@ const quickActions = [
   { href:"/timer",          label:"Pomodoro",   description:"Focus timer with sounds"       },
   { href:"/analytics",      label:"Progress",   description:"Track your performance"        },
   { href:"/sources",        label:"Sources",    description:"Your study files"              },
-  { href:"/upload",         label:"Upload",     description:"Add PDFs and notes"            },
-  { href:"/essay",          label:"Essay",      description:"AI writing assistant"          },
   { href:"/cram",           label:"Cram Mode",  description:"Emergency study plan"          },
   { href:"/confidence",     label:"Confidence", description:"Know what you know"             },
   { href:"/high-yield",     label:"High Yield", description:"Most testable concepts"         },

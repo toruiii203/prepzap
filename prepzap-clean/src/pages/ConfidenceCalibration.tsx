@@ -1,219 +1,263 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { ToolHeader } from "@/components/ToolShell";
-import { Star, RefreshCw, CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import { GlobalContextBar } from "@/components/GlobalContextBar";
+import { Star, RotateCcw, Trophy, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 
-type Confidence = "know" | "unsure" | "dont-know";
-
-interface Question {
-  id: string;
-  text: string;
-  answer: string;
-  topic: string;
+interface Concept {
+  concept: string;
+  definition: string;
 }
 
-interface Response {
-  questionId: string;
-  confidence: Confidence;
-  wasCorrect?: boolean;
+type Rating = "know" | "shaky" | "no-idea";
+
+interface RatedConcept extends Concept {
+  rating: Rating;
+  pass: number;
+}
+
+interface HistorySession {
+  topic: string;
+  score: number;
+  date: string;
+  know: number;
+  shaky: number;
+  noIdea: number;
+}
+
+const STORAGE_KEY = "pz_confidence_history";
+
+function loadHistory(): HistorySession[] {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
 }
 
 export default function ConfidenceCalibration() {
   const [subject, setSubject] = useState("");
   const [loading, setLoading] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [responses, setResponses] = useState<Response[]>([]);
-  const [revealed, setRevealed] = useState<string[]>([]);
-  const [phase, setPhase] = useState<"setup" | "quiz" | "results">("setup");
+  const [concepts, setConcepts] = useState<RatedConcept[]>([]);
+  const [queue, setQueue] = useState<number[]>([]);
+  const [queueIdx, setQueueIdx] = useState(0);
+  const [phase, setPhase] = useState<"setup" | "sort" | "review" | "done">("setup");
+  const [showDef, setShowDef] = useState(false);
+  const [history, setHistory] = useState<HistorySession[]>(loadHistory);
+  const [pass, setPass] = useState(1);
+
+  const ctx = buildAIContext();
+  const activeSource = getActiveSource();
+  const hasSource = ctx.length > 0;
+
+  const currentConceptIdx = queue[queueIdx];
+  const current = concepts[currentConceptIdx];
 
   const handleGenerate = async () => {
-    if (!subject.trim()) { toast.error("Enter a subject first"); return; }
+    const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
+    if (!effectiveSubject && !hasSource) { toast.error("Enter a subject or add a source first"); return; }
     setLoading(true);
     try {
-      const ctx = await buildAIContext();
-      const prompt = `Generate 8 short-answer questions for confidence calibration on: "${subject}".
+      const prompt = `Generate 12 key concepts for confidence calibration on: "${effectiveSubject || "the study material below"}".
 ${ctx ? `Study context:\n${ctx}\n` : ""}
-Return ONLY valid JSON array:
-[{"id":"q1","text":"question","answer":"concise answer (1-2 sentences)","topic":"subtopic"}]`;
-      const raw = await callGroq(prompt, "llama3-8b-8192");
-      const parsed: Question[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
-      setQuestions(parsed);
-      setResponses([]);
-      setRevealed([]);
-      setPhase("quiz");
-    } catch {
-      toast.error("Failed to generate questions. Try again.");
-    } finally {
-      setLoading(false);
+Return ONLY valid JSON array, no markdown:
+[{"concept":"short concept name","definition":"1-2 sentence clear explanation"}]
+Make concepts specific and testable — not too broad.`;
+      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const parsed: Concept[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      const rated: RatedConcept[] = parsed.map(c => ({ ...c, rating: "no-idea" as Rating, pass: 0 }));
+      setConcepts(rated);
+      setQueue(parsed.map((_, i) => i));
+      setQueueIdx(0);
+      setPass(1);
+      setShowDef(false);
+      setPhase("sort");
+    } catch { toast.error("Failed to generate. Try again."); }
+    finally { setLoading(false); }
+  };
+
+  const rate = (rating: Rating) => {
+    const updated = [...concepts];
+    updated[currentConceptIdx] = { ...updated[currentConceptIdx], rating, pass };
+    setConcepts(updated);
+    setShowDef(false);
+
+    if (queueIdx + 1 < queue.length) {
+      setQueueIdx(i => i + 1);
+    } else {
+      // Check if there are shaky/no-idea left for a second pass
+      const needsReview = updated
+        .map((c, i) => ({ c, i }))
+        .filter(({ c }) => c.rating === "shaky" || c.rating === "no-idea")
+        .map(({ i }) => i);
+
+      if (needsReview.length > 0 && pass === 1) {
+        toast(`Pass 1 done! Reviewing ${needsReview.length} weak concepts...`);
+        setQueue(needsReview);
+        setQueueIdx(0);
+        setPass(2);
+      } else {
+        // Calculate score and save
+        const know = updated.filter(c => c.rating === "know").length;
+        const shaky = updated.filter(c => c.rating === "shaky").length;
+        const noIdea = updated.filter(c => c.rating === "no-idea").length;
+        const score = Math.round((know * 100 + shaky * 40) / updated.length);
+        const session: HistorySession = {
+          topic: subject.trim() || "Source Library",
+          score, know, shaky, noIdea,
+          date: new Date().toISOString(),
+        };
+        const newHistory = [session, ...history].slice(0, 10);
+        setHistory(newHistory);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
+        setPhase("done");
+      }
     }
   };
 
-  const setConfidence = (qId: string, confidence: Confidence) => {
-    setResponses(prev => {
-      const existing = prev.find(r => r.questionId === qId);
-      if (existing) return prev.map(r => r.questionId === qId ? { ...r, confidence } : r);
-      return [...prev, { questionId: qId, confidence }];
-    });
+  const ratingConfig = {
+    "know":    { label: "Know it ✓", bg: "var(--pz-teal)",         color: "#000" },
+    "shaky":   { label: "Shaky ~",   bg: "var(--pz-gold)",         color: "#000" },
+    "no-idea": { label: "No idea ✗", bg: "var(--pz-rose, #E84040)", color: "#fff" },
   };
 
-  const revealAnswer = (qId: string) => setRevealed(prev => [...prev, qId]);
+  const know   = concepts.filter(c => c.rating === "know").length;
+  const shaky  = concepts.filter(c => c.rating === "shaky").length;
+  const noIdea = concepts.filter(c => c.rating === "no-idea").length;
+  const score  = concepts.length > 0 ? Math.round((know * 100 + shaky * 40) / concepts.length) : 0;
 
-  const markCorrect = (qId: string, correct: boolean) => {
-    setResponses(prev => prev.map(r => r.questionId === qId ? { ...r, wasCorrect: correct } : r));
+  const relTime = (iso: string) => {
+    const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    return d === 0 ? "Today" : d === 1 ? "Yesterday" : `${d}d ago`;
   };
-
-  const allAnswered = questions.length > 0 && questions.every(q => responses.find(r => r.questionId === q.id)?.wasCorrect !== undefined);
-
-  const getResults = () => {
-    const knew = responses.filter(r => r.confidence === "know" && r.wasCorrect).length;
-    const overconfident = responses.filter(r => r.confidence === "know" && !r.wasCorrect).length;
-    const underconfident = responses.filter(r => r.confidence === "dont-know" && r.wasCorrect).length;
-    return { knew, overconfident, underconfident, total: questions.length };
-  };
-
-  const confBtnStyle = (q: Question, c: Confidence) => {
-    const r = responses.find(r => r.questionId === q.id);
-    const active = r?.confidence === c;
-    const colors: Record<Confidence, string> = { "know": "var(--pz-teal)", "unsure": "var(--pz-gold)", "dont-know": "var(--pz-rose, #E84040)" };
-    return {
-      border: `1px solid ${active ? colors[c] : "var(--pz-border)"}`,
-      background: active ? `${colors[c]}15` : "var(--pz-surface3)",
-      color: active ? colors[c] : "var(--pz-text-muted)",
-      padding: "6px 12px", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400,
-    } as React.CSSProperties;
-  };
-
-  const results = phase === "results" ? getResults() : null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg, #000)", color: "var(--pz-text, #F0E8D4)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
       <Navbar />
-      <main className="max-w-2xl mx-auto px-4 pt-6 pb-24">
-        <ToolHeader
-          icon={<Star className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />}
-          title="Confidence Calibration"
-          subtitle="Find out what you actually know vs. what you think you know"
-        />
+      <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
+        <GlobalContextBar compact />
+        <ToolHeader icon={<Star className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Confidence Calibration" subtitle="Sort concepts into Know / Shaky / No idea — weak ones resurface automatically" />
 
+        {/* SETUP */}
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
-            <p className="text-sm" style={{ color: "var(--pz-text-2)" }}>
-              Rate your confidence on each question <em>before</em> seeing the answer. Discover your blind spots and overconfident areas.
-            </p>
             <div>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Subject</label>
-              <input
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                placeholder="e.g. Human Anatomy, JavaScript, French Revolution..."
-                className="w-full px-3 py-2.5 rounded-none text-sm outline-none"
-                style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
-              />
+              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Subject</label>
+              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Human Anatomy, JavaScript..."
+                className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
+              {hasSource && !subject.trim() && <p className="text-xs mt-1" style={{ color: "var(--pz-gold)" }}>⚡ Leave blank to use your active source library</p>}
             </div>
-            <Button onClick={handleGenerate} disabled={loading || !subject.trim()} className="w-full py-3 rounded-none font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
-              {loading ? "Generating questions..." : "Start Calibration →"}
+            <Button onClick={handleGenerate} disabled={loading || (!subject.trim() && !hasSource)} className="w-full py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
+              {loading ? "Generating concepts..." : "Start Calibration →"}
             </Button>
-          </div>
-        )}
 
-        {phase === "quiz" && (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>Rate confidence → Reveal → Mark correct/wrong</p>
-              <span className="text-xs" style={{ color: "var(--pz-text-muted)", fontFamily: "'DM Mono',monospace" }}>{responses.filter(r => r.wasCorrect !== undefined).length}/{questions.length}</span>
-            </div>
-
-            {questions.map((q, i) => {
-              const resp = responses.find(r => r.questionId === q.id);
-              const isRevealed = revealed.includes(q.id);
-              return (
-                <div key={q.id} className="p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
-                  <div className="flex items-start gap-2 mb-3">
-                    <span className="text-xs font-mono mt-0.5" style={{ color: "var(--pz-text-muted)" }}>Q{i + 1}</span>
-                    <p className="text-sm" style={{ color: "var(--pz-text)" }}>{q.text}</p>
-                  </div>
-
-                  {!resp?.confidence && (
-                    <div className="flex gap-2 flex-wrap mb-3">
-                      {(["know", "unsure", "dont-know"] as Confidence[]).map(c => (
-                        <button key={c} style={confBtnStyle(q, c)} onClick={() => setConfidence(q.id, c)}>
-                          {c === "know" ? "✓ I know this" : c === "unsure" ? "~ Unsure" : "✗ Don't know"}
-                        </button>
-                      ))}
+            {history.length > 0 && (
+              <div className="mt-6">
+                <p className="text-xs uppercase tracking-widest mb-3" style={{ color: "var(--pz-text-muted)" }}>Past Sessions</p>
+                <div className="space-y-2">
+                  {history.slice(0, 5).map((h, i) => (
+                    <div key={i} className="p-3 flex items-center justify-between" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: "var(--pz-text)" }}>{h.topic}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--pz-text-muted)" }}>
+                          ✓ {h.know} · ~ {h.shaky} · ✗ {h.noIdea}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-base font-bold" style={{ color: h.score >= 70 ? "var(--pz-teal)" : h.score >= 40 ? "var(--pz-gold)" : "var(--pz-rose)", fontFamily: "monospace" }}>{h.score}</p>
+                        <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>{relTime(h.date)}</p>
+                      </div>
                     </div>
-                  )}
-
-                  {resp?.confidence && !isRevealed && (
-                    <button onClick={() => revealAnswer(q.id)} className="text-xs px-3 py-1.5 rounded-none" style={{ border: "1px solid var(--pz-gold)", color: "var(--pz-gold)", background: "var(--pz-gold-dim)" }}>
-                      Reveal Answer
-                    </button>
-                  )}
-
-                  {isRevealed && (
-                    <div className="mt-2 p-3 rounded-none" style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)" }}>
-                      <p className="text-xs mb-3" style={{ color: "var(--pz-text-2)" }}>{q.answer}</p>
-                      {resp?.wasCorrect === undefined && (
-                        <div className="flex gap-2">
-                          <button onClick={() => markCorrect(q.id, true)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-none" style={{ border: "1px solid var(--pz-teal)", color: "var(--pz-teal)", background: "var(--pz-teal-dim)" }}>
-                            <CheckCircle className="h-3 w-3" /> Got it
-                          </button>
-                          <button onClick={() => markCorrect(q.id, false)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-none" style={{ border: "1px solid var(--pz-rose, #E84040)", color: "var(--pz-rose, #E84040)", background: "rgba(232,64,64,0.06)" }}>
-                            <XCircle className="h-3 w-3" /> Missed it
-                          </button>
-                        </div>
-                      )}
-                      {resp?.wasCorrect !== undefined && (
-                        <span className="text-xs font-medium" style={{ color: resp.wasCorrect ? "var(--pz-teal)" : "var(--pz-rose, #E84040)" }}>
-                          {resp.wasCorrect ? "✓ Correct" : "✗ Incorrect"}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  ))}
                 </div>
-              );
-            })}
-
-            {allAnswered && (
-              <Button onClick={() => setPhase("results")} className="w-full py-3 rounded-none font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
-                See Results →
-              </Button>
+              </div>
             )}
           </div>
         )}
 
-        {phase === "results" && results && (
+        {/* SORT */}
+        {phase === "sort" && current && (
           <div className="mt-6 space-y-4">
-            <h2 className="font-semibold text-lg" style={{ color: "var(--pz-text)" }}>Calibration Results</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Knew It", value: results.knew, color: "var(--pz-teal)", emoji: "✓" },
-                { label: "Overconfident", value: results.overconfident, color: "var(--pz-rose, #E84040)", emoji: "⚠" },
-                { label: "Underconfident", value: results.underconfident, color: "var(--pz-gold)", emoji: "↑" },
-              ].map(s => (
-                <div key={s.label} className="text-center p-4 rounded-none" style={{ background: "var(--pz-surface2)", border: `1px solid var(--pz-border)`, borderTop: `2px solid ${s.color}` }}>
-                  <div className="text-2xl mb-1">{s.emoji}</div>
-                  <div className="text-2xl font-bold" style={{ color: s.color, fontFamily: "'DM Mono',monospace" }}>{s.value}</div>
-                  <div className="text-[10px] mt-1" style={{ color: "var(--pz-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Pass {pass} · {queueIdx + 1} of {queue.length}</span>
+              {pass === 2 && <span className="text-xs px-2 py-0.5" style={{ background: "var(--pz-gold-dim)", color: "var(--pz-gold)", border: "1px solid var(--pz-gold)30" }}>Review pass</span>}
+            </div>
+
+            <div className="h-1.5" style={{ background: "var(--pz-surface3)" }}>
+              <div className="h-full transition-all duration-300" style={{ width: `${(queueIdx / queue.length) * 100}%`, background: "var(--pz-gold)" }} />
+            </div>
+
+            {/* Concept card */}
+            <div className="p-6 text-center min-h-[200px] flex flex-col items-center justify-center"
+              style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-gold)" }}>
+              <p className="text-lg font-semibold mb-4" style={{ color: "var(--pz-text)" }}>{current.concept}</p>
+              {showDef ? (
+                <p className="text-sm" style={{ color: "var(--pz-text-2)" }}>{current.definition}</p>
+              ) : (
+                <button onClick={() => setShowDef(true)} className="text-xs px-3 py-1.5"
+                  style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "var(--pz-surface3)" }}>
+                  Show definition
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {(["know", "shaky", "no-idea"] as Rating[]).map(r => (
+                <button key={r} onClick={() => rate(r)} className="py-3 text-xs font-semibold"
+                  style={{ background: ratingConfig[r].bg, color: ratingConfig[r].color, border: "none" }}>
+                  {ratingConfig[r].label}
+                </button>
               ))}
             </div>
-            <p className="text-sm p-3 rounded-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-2)" }}>
-              {results.overconfident > 2 ? "Focus on reviewing topics you felt confident about — you have more blind spots than expected." :
-               results.knew > 5 ? "Strong performance! Shore up your weak areas and you're ready." :
-               "Good calibration. Keep practising the concepts you're unsure about."}
-            </p>
-            <div className="flex gap-3">
-              <Button onClick={() => { setPhase("setup"); setQuestions([]); }} className="flex-1 py-2.5 rounded-none text-sm" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
-                New Subject
-              </Button>
-              <Button onClick={handleGenerate} disabled={loading} className="flex-1 py-2.5 rounded-none text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
-                {loading ? "Loading..." : "Try Again"}
-              </Button>
+
+            {/* Live tally */}
+            <div className="flex gap-3 justify-center text-xs" style={{ color: "var(--pz-text-muted)" }}>
+              <span style={{ color: "var(--pz-teal)" }}>✓ {know}</span>
+              <span style={{ color: "var(--pz-gold)" }}>~ {shaky}</span>
+              <span style={{ color: "var(--pz-rose)" }}>✗ {noIdea}</span>
+            </div>
+          </div>
+        )}
+
+        {/* DONE */}
+        {phase === "done" && (
+          <div className="mt-6 space-y-4">
+            <div className="p-6 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-gold)" }}>
+              <Trophy className="h-8 w-8 mx-auto mb-3" style={{ color: "var(--pz-gold)" }} />
+              <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Calibration Score</p>
+              <p className="text-5xl font-bold mb-3" style={{ color: score >= 70 ? "var(--pz-teal)" : score >= 40 ? "var(--pz-gold)" : "var(--pz-rose)", fontFamily: "monospace" }}>{score}</p>
+
+              {/* Bar breakdown */}
+              <div className="flex h-4 w-full overflow-hidden mb-3" style={{ border: "1px solid var(--pz-border)" }}>
+                {know > 0    && <div style={{ flex: know,    background: "var(--pz-teal)" }} />}
+                {shaky > 0   && <div style={{ flex: shaky,   background: "var(--pz-gold)" }} />}
+                {noIdea > 0  && <div style={{ flex: noIdea,  background: "var(--pz-rose)" }} />}
+              </div>
+              <div className="flex justify-center gap-4 text-xs" style={{ color: "var(--pz-text-muted)" }}>
+                <span style={{ color: "var(--pz-teal)" }}>✓ Know: {know}</span>
+                <span style={{ color: "var(--pz-gold)" }}>~ Shaky: {shaky}</span>
+                <span style={{ color: "var(--pz-rose)" }}>✗ No idea: {noIdea}</span>
+              </div>
+            </div>
+
+            {(shaky > 0 || noIdea > 0) && (
+              <div>
+                <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--pz-text-muted)" }}>Weak areas to study</p>
+                <div className="space-y-1.5">
+                  {concepts.filter(c => c.rating === "shaky" || c.rating === "no-idea").map((c, i) => (
+                    <div key={i} className="p-3" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderLeft: `3px solid ${c.rating === "no-idea" ? "var(--pz-rose)" : "var(--pz-gold)"}` }}>
+                      <p className="text-sm font-medium mb-1" style={{ color: "var(--pz-text)" }}>{c.concept}</p>
+                      <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>{c.definition}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button onClick={() => { setPhase("setup"); setConcepts([]); }} className="flex-1 py-2.5 text-sm" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>New Subject</Button>
+              <Button onClick={handleGenerate} disabled={loading} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000" }}>{loading ? "Loading..." : "Try Again"}</Button>
             </div>
           </div>
         )}

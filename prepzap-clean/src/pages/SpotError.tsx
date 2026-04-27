@@ -25,11 +25,15 @@ export default function SpotError() {
 
   const [phase, setPhase] = useState<"setup"|"hunt"|"revealed">("setup");
   const [topicInput, setTopicInput] = useState("");
+  const [difficulty, setDifficulty] = useState<"easy"|"medium"|"hard">("medium");
   const [passage, setPassage] = useState("");
   const [errors, setErrors] = useState<{text:string;correction:string;explanation:string}[]>([]);
   const [found, setFound] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
+  const [scores, setScores] = useState<{correct:number;total:number;played:number}>(() => {
+    try { return JSON.parse(localStorage.getItem("pz_spoterror_scores") || '{"correct":0,"total":0,"played":0}'); } catch { return {correct:0,total:0,played:0}; }
+  });
   const [timeLeft, setTimeLeft] = useState(90);
   const [timerRef, setTimerRef] = useState<ReturnType<typeof setInterval>|null>(null);
   const [selectedText, setSelectedText] = useState("");
@@ -37,29 +41,37 @@ export default function SpotError() {
   const start = async () => {
     if (!topicInput.trim() && buildAIContext().length === 0) return;
     setIsLoading(true); setError(null);
+    const difficultyNote = difficulty === "easy" ? "Make errors obvious — wrong numbers or clearly swapped terms." : difficulty === "hard" ? "Make errors extremely subtle — plausible-sounding but factually wrong details that require deep knowledge to catch." : "Make errors moderately subtle — not obvious but detectable with good knowledge.";
+    const timeLimit = difficulty === "easy" ? 120 : difficulty === "hard" ? 60 : 90;
     try {
       const topic = topicInput.trim() || "the source material";
       const sourceCtx = buildAIContext();
       let prompt: string;
       if (sourceCtx) {
-        prompt = `${sourceCtx}\n\nUsing the source material above, write a short passage (4-6 sentences) about "${topic}" but introduce exactly 3 deliberate factual or logical errors. Return ONLY valid JSON:\n{"passage":"...","errors":[{"text":"the exact wrong phrase","correction":"what it should be","explanation":"why it's wrong"}]}`;
+        prompt = `${sourceCtx}\n\nUsing the source material above, write a short passage (4-6 sentences) about "${topic}" but introduce exactly 3 deliberate factual or logical errors. Difficulty: ${difficulty}. ${difficultyNote} Return ONLY valid JSON:\n{"passage":"...","errors":[{"text":"the exact wrong phrase","correction":"what it should be","explanation":"why it's wrong"}]}`;
       } else {
-        prompt = `Create a short ${topic} passage (4-6 sentences) with exactly 3 deliberate factual or logical errors hidden inside. Return ONLY valid JSON:\n{"passage":"...","errors":[{"text":"the exact wrong phrase","correction":"what it should be","explanation":"why it's wrong"}]}`;
+        prompt = `Create a short ${topic} passage (4-6 sentences) with exactly 3 deliberate factual or logical errors. Difficulty: ${difficulty}. ${difficultyNote} Return ONLY valid JSON:\n{"passage":"...","errors":[{"text":"the exact wrong phrase","correction":"what it should be","explanation":"why it's wrong"}]}`;
       }
       const raw = await callGroq(
         [{role:"user",content:prompt}],
-        "You are a tricky educator. Write a convincing passage that sounds authoritative but has subtle errors — wrong numbers, swapped terms, incorrect causal relationships. Errors should be hard to spot without solid knowledge.",
+        "You are a tricky educator. Write a convincing passage that sounds authoritative but has subtle errors.",
         "llama-3.3-70b-versatile", 800
       );
       const clean = raw.replace(/```json|```/g,"").trim();
       const parsed = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]??clean);
       setPassage(parsed.passage); setErrors(parsed.errors);
-      setFound([]); setTimeLeft(90);
+      setFound([]); setTimeLeft(timeLimit);
       setPhase("hunt");
       const t = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(t);setPhase("revealed");return 0;}return prev-1;}),1000);
       setTimerRef(t);
     } catch(e) { setError(e instanceof Error?e.message:"Error"); }
     finally { setIsLoading(false); }
+  };
+
+  const saveScore = (foundCount: number) => {
+    const newScores = { correct: scores.correct + foundCount, total: scores.total + errors.length, played: scores.played + 1 };
+    setScores(newScores);
+    try { localStorage.setItem("pz_spoterror_scores", JSON.stringify(newScores)); } catch {}
   };
 
   const markFound = () => {
@@ -73,7 +85,7 @@ export default function SpotError() {
     }
   };
 
-  const reveal = () => { if(timerRef)clearInterval(timerRef); setPhase("revealed"); };
+  const reveal = () => { if(timerRef)clearInterval(timerRef); saveScore(found.length); setPhase("revealed"); };
 
   const mm = String(Math.floor(timeLeft/60)).padStart(2,"0");
   const ss = String(timeLeft%60).padStart(2,"0");
@@ -107,16 +119,47 @@ export default function SpotError() {
             <div className="text-center space-y-3">
               <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg"><Target className="h-8 w-8 text-white"/></div>
               <h2 className="text-xl font-bold">Spot the Error</h2>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">AI writes a passage with 3 hidden mistakes. You have 90 seconds to find them all. Trains careful reading and critical thinking.</p>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">AI writes a passage with 3 hidden mistakes. Find them before the timer runs out.</p>
             </div>
+
+            {/* Score tracker */}
+            {scores.played > 0 && (
+              <div className="flex gap-3">
+                {[
+                  { label: "Played", val: scores.played, color: "var(--pz-gold)" },
+                  { label: "Found", val: `${scores.correct}/${scores.total}`, color: "var(--pz-teal)" },
+                  { label: "Rate", val: `${Math.round((scores.correct/scores.total)*100)||0}%`, color: "var(--pz-text)" },
+                ].map(s => (
+                  <div key={s.label} className="flex-1 p-3 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
+                    <p className="text-base font-bold" style={{ color: s.color, fontFamily: "monospace" }}>{s.val}</p>
+                    <p className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: "var(--pz-text-muted)" }}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="bg-card border border-border rounded-none p-5 space-y-4">
+              {/* Difficulty selector */}
+              <div>
+                <label className="text-sm font-semibold block mb-2">Difficulty</label>
+                <div className="flex gap-2">
+                  {(["easy","medium","hard"] as const).map(d => (
+                    <button key={d} onClick={() => setDifficulty(d)}
+                      className="flex-1 py-2 text-xs font-semibold capitalize"
+                      style={{ border: `1px solid ${difficulty === d ? (d === "easy" ? "var(--pz-teal)" : d === "hard" ? "var(--pz-rose)" : "var(--pz-gold)") : "var(--pz-border)"}`, background: difficulty === d ? "var(--pz-surface3)" : "transparent", color: difficulty === d ? (d === "easy" ? "var(--pz-teal)" : d === "hard" ? "var(--pz-rose)" : "var(--pz-gold)") : "var(--pz-text-muted)" }}>
+                      {d === "easy" ? "Easy 2min" : d === "hard" ? "Hard 1min" : "Medium 90s"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="text-sm font-semibold block mb-2">Topic or paste your own text</label>
                 <div className="flex gap-2">
                   <textarea
                     value={topicInput}
                     onChange={e => setTopicInput(e.target.value)}
-                    placeholder="e.g. 'Cell Biology', 'World War 2', or paste a paragraph of text for the AI to add errors to..."
+                    placeholder="e.g. 'Cell Biology', 'World War 2', or paste a paragraph..."
                     className="flex-1 px-4 py-3 rounded-none border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none min-h-[80px]"
                   />
                 </div>
