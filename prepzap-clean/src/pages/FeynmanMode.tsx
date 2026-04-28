@@ -74,6 +74,14 @@ export default function FeynmanMode() {
   const [expandedSection, setExpandedSection] = useState<string|null>("strengths");
   const [sessionHistory, setSessionHistory] = useState<{topic: string; score: number; round: number; timestamp: Date}[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [activeSource, setActiveSource] = useState(() => getActiveSource());
+
+  useEffect(() => {
+    const sync = () => setActiveSource(getActiveSource());
+    window.addEventListener("storage", sync);
+    sync();
+    return () => window.removeEventListener("storage", sync);
+  }, []);
   const recognitionRef = useRef<any>(null);
   const { pendingFile, setPendingFile, FileAttachButton } = useFileAttach();
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -317,16 +325,24 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
                 onChange={e=>setTopicInput(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handleStartSession()}
               />
-              {buildAIContext().length > 0 && !topicInput.trim() && (
-                <button onClick={handleStartSession}
-                  className="w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                  style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
-                  ⚡ Start Feynman on "{getActiveSource()?.name?.replace(/\.\w+$/, "") ?? "Active Source"}"
-                </button>
-              )}
-              <Button className="bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 px-6" onClick={handleStartSession} disabled={!topicInput.trim()&&!pendingFile&&buildAIContext().length===0}>
+              <Button className="bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 px-6" onClick={handleStartSession} disabled={!topicInput.trim()&&!pendingFile&&buildAIContext().length===0&&!activeSource}>
                 Start <ChevronRight className="h-4 w-4 ml-1"/>
               </Button>
+            </div>
+            {activeSource && (
+              <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-none"
+                style={{ background: "rgba(212,175,90,0.06)", border: "1px solid rgba(212,175,90,0.3)" }}>
+                <span className="text-xs font-medium truncate" style={{ color: "var(--pz-gold, #d4af5a)" }}>
+                  📄 Active: <strong>{activeSource.name}</strong>
+                </span>
+                <button onClick={handleStartSession}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-80"
+                  style={{ background: "rgba(212,175,90,0.15)", border: "1px solid rgba(212,175,90,0.4)", color: "var(--pz-gold, #d4af5a)" }}>
+                  ⚡ Start from Source
+                </button>
+              </div>
+            )}
+            <div style={{display:"none"}}>
             </div>
             {pendingFile && (
               <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-none text-xs">

@@ -1,7 +1,7 @@
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
-import { buildAIContext } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,6 +37,15 @@ export default function MathSolver() {
   const [copied, setCopied]   = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory("mathsolver"))
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeSource, setActiveSource] = useState(() => getActiveSource())
+
+  useEffect(() => {
+    const sync = () => setActiveSource(getActiveSource())
+    window.addEventListener("storage", sync)
+    sync()
+    return () => window.removeEventListener("storage", sync)
+  }, [])
+
 
   const systemPrompt = `You are an expert mathematics tutor. Format your response using LaTeX and rich text formatting:
 
@@ -50,7 +59,7 @@ export default function MathSolver() {
 8. Use \\div for division symbol when appropriate`
 
   const handleSubmit = async () => {
-    if (!input.trim()) return
+    if (!input.trim() && buildAIContext().length === 0 && !activeSource) return
     setLoading(true)
     setError(null)
     setResult("")
@@ -156,6 +165,21 @@ export default function MathSolver() {
             ))}
           </div>
 
+          {/* Active Source Bar */}
+          {activeSource && (
+            <div className="flex items-center justify-between gap-3 px-3 py-2 mb-3 rounded-none"
+              style={{ background: "rgba(212,175,90,0.06)", border: "1px solid rgba(212,175,90,0.3)" }}>
+              <span className="text-xs font-medium truncate" style={{ color: "var(--pz-gold, #E8B923)" }}>
+                📄 Active: <strong>{activeSource.name}</strong>
+              </span>
+              <button
+                onClick={() => setInput(`Explain the key math concepts from ${activeSource.name?.replace(/\.[^.]+$/, "") || "the source"}`)}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-80"
+                style={{ background: "rgba(212,175,90,0.15)", border: "1px solid rgba(212,175,90,0.4)", color: "var(--pz-gold, #E8B923)" }}>
+                ⚡ Use Source
+              </button>
+            </div>
+          )}
           {/* Input */}
           <Card className="mb-4">
             <CardContent className="p-4 space-y-3">
@@ -174,7 +198,7 @@ export default function MathSolver() {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{input.length} chars</span>
                 <div className="flex items-center gap-3">
-                  <Button onClick={handleSubmit} disabled={loading || !input.trim()}
+                  <Button onClick={handleSubmit} disabled={loading || (!input.trim() && buildAIContext().length === 0 && !activeSource)}
                     className="bg-pink-500 hover:bg-pink-600 text-white gap-2">
                     {loading ? <><span className="animate-spin">⚙️</span> Solving...</> : <><Sparkles className="h-4 w-4" /> {MATH_MODES.find(m=>m.id===mode)?.label}</>}
                   </Button>

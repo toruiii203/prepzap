@@ -804,7 +804,7 @@ Formatting:
 
               <Button
                 onClick={() => sendMessage()}
-                disabled={(!input.trim() && buildAIContext().length === 0) || isLoading}
+                disabled={(!input.trim() && buildAIContext().length === 0 && !getActiveSource()) || isLoading}
                 className="bg-gradient-to-r from-violet-500 to-indigo-600 text-white hover:opacity-90 h-9 px-4 rounded-none flex-shrink-0"
               >
                 {isLoading

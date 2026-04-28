@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -33,9 +33,17 @@ export default function FlipScript() {
   const [score, setScore] = useState<{score:number;gaps:string[];strengths:string[];verdict:string}|null>(null);
   const [turnCount, setTurnCount] = useState(0);
   const [error, setError] = useState<string|null>(null);
+  const [activeSource, setActiveSource] = useState(() => getActiveSource());
 
-  const start = () => {
-    const t = topicInput.trim() || getActiveSource()?.name?.replace(/\.\w+$/, "") || "";
+  useEffect(() => {
+    const sync = () => setActiveSource(getActiveSource());
+    window.addEventListener("storage", sync);
+    sync();
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+
+  const start = (overrideTopic?: string) => {
+    const t = overrideTopic ?? topicInput.trim() || getActiveSource()?.name?.replace(/\.\w+$/, "") || "";
     if (!t) return;
     setTopic(t);
     setTopicInput(t);
@@ -115,17 +123,25 @@ export default function FlipScript() {
             </div>
             <div className="bg-card border border-border rounded-none p-6 text-left space-y-3">
               <label className="font-semibold text-sm">What topic will you explain?</label>
-              {buildAIContext().length > 0 && !topicInput && (
-                <p className="text-xs" style={{ color: "var(--pz-gold)" }}>
-                  ⚡ Source active — topic will be pulled from your library if left blank
-                </p>
+              {activeSource && (
+                <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-none"
+                  style={{ background: "rgba(212,175,90,0.06)", border: "1px solid rgba(212,175,90,0.3)" }}>
+                  <span className="text-xs font-medium truncate" style={{ color: "var(--pz-gold)" }}>
+                    📄 Active: <strong>{activeSource.name}</strong>
+                  </span>
+                  <button onClick={() => start(activeSource.name?.replace(/\.[^.]+$/, "") || "the source material")}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-80"
+                    style={{ background: "rgba(212,175,90,0.15)", border: "1px solid rgba(212,175,90,0.4)", color: "var(--pz-gold)" }}>
+                    ⚡ Start from Source
+                  </button>
+                </div>
               )}
               <div className="flex gap-2">
                 <input className="flex-1 px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
                   placeholder="e.g. How vaccines work, What is recursion..."
                   value={topicInput} onChange={e=>setTopicInput(e.target.value)}
                   onKeyDown={e=>e.key==="Enter"&&start()}/>
-                <Button onClick={start} disabled={!topicInput.trim()} className="bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:opacity-90 px-6">Start</Button>
+                <Button onClick={() => start()} disabled={!topicInput.trim() && !activeSource} className="bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:opacity-90 px-6">Start</Button>
               </div>
             </div>
           </div>
