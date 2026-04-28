@@ -91,8 +91,12 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
     let W = 0, H = 0, raf = 0
 
     const setSize = () => {
+      const dpr = window.devicePixelRatio || 1
       W = window.innerWidth; H = window.innerHeight
-      canvas.width = W; canvas.height = H
+      canvas.width = W * dpr; canvas.height = H * dpr
+      canvas.style.width = W + "px"; canvas.style.height = H + "px"
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.scale(dpr, dpr)
     }
     setSize()
     window.addEventListener("resize", setSize)
@@ -116,7 +120,7 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       speed: 0.003 + Math.random() * 0.004,
     }))
 
-    let pulse = 0, pd = 0.003
+    let pulse = 0, pd = 0.012
 
     const draw = () => {
       ctx.clearRect(0, 0, W, H)
@@ -160,9 +164,10 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
 
       if (t === "pulse") {
         pulse += pd; if (pulse > 1 || pulse < 0) pd *= -1
-        const a = pulse * 0.08 + 0.03
+        const a = pulse * 0.25 + 0.08
         const gr = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.75)
         gr.addColorStop(0, `rgba(0,196,180,${a})`)
+        gr.addColorStop(0.5, `rgba(0,100,120,${a * 0.4})`)
         gr.addColorStop(1, "rgba(0,0,0,0)")
         ctx.fillStyle = gr
         ctx.fillRect(0, 0, W, H)
@@ -191,6 +196,10 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
     const ctx = c.getContext("2d"); if (!ctx) return
     let raf = 0
     const W = 90, H = 44
+    const dpr = window.devicePixelRatio || 1
+    c.width = W * dpr; c.height = H * dpr
+    c.style.width = W + "px"; c.style.height = H + "px"
+    ctx.scale(dpr, dpr)
     const SS = Array.from({ length: 12 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 0.5 + Math.random() * 0.6, ph: Math.random() * Math.PI * 2, sp: 0.025 + Math.random() * 0.03, tl: Math.random() > 0.7 }))
     const CL = Array.from({ length: 2 }, () => ({ x: 10 + Math.random() * 70, y: 5 + Math.random() * 34, r: 12 + Math.random() * 8, dx: (Math.random()-.5)*.06, dy: (Math.random()-.5)*.04, tl: Math.random()>.5, ph: Math.random()*Math.PI*2, sp: 0.015 }))
     let pl = 0, pd2 = 0.018
@@ -223,7 +232,7 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
         transition: "border-color .2s",
       }}
     >
-      <canvas ref={ref} width={90} height={44} style={{ display:"block", width:"100%", height:"100%" }}/>
+      <canvas ref={ref} style={{ display:"block", width:"90px", height:"44px" }}/>
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0,
         padding: "3px 0 4px",
