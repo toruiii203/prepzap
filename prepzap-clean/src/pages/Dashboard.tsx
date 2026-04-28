@@ -1,506 +1,610 @@
-import { useState, useEffect, createContext, useContext } from "react"
-import {
-  CalendarDays, TrendingUp, Award, Target, ChevronRight,
-  Plus, Check, Trash2, CheckSquare, ChevronLeft, X, Clock, Zap as ZapIcon, LogOut
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Navbar } from "@/components/Navbar"
+import { TrendingUp, Award, Plus, Check, X, Zap as ZapIcon, LogOut } from "lucide-react"
 import { BottomNav } from "@/components/BottomNav"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import { levelFromXp, xpToNextLevel, xpProgressPercent, tierFromLevel, tierEmojiFromLevel } from "@/lib/xp"
 
-// ─── Theme System ─────────────────────────────────────────────────────────────
-type ThemeId = "obsidian" | "midnight" | "emerald" | "crimson"
+// ─── Theme Types ──────────────────────────────────────────────────────────────
+type BgTheme = "pure" | "starfield" | "nebula" | "twinkle" | "pulse"
 
-interface LuxuryTheme {
-  id: ThemeId
-  label: string
-  swatch: string
-  description: string
-  vars: Record<string, string>
-  accentA: string
-  accentB: string
-  accentC: string
-}
+// ─── Data Types ───────────────────────────────────────────────────────────────
+interface CheckItem  { id: string; text: string; done: boolean }
+interface ActivityItem { id: string; label: string; score: string; created_at: string }
+interface WeakArea   { subject: string; accuracy: number }
+interface Achievement { key: string; emoji: string; label: string; earned: boolean }
 
-const THEMES: LuxuryTheme[] = [
-  {
-    id: "obsidian", label: "Obsidian", swatch: "#C0A060", description: "Pure black · Gold accents",
-    accentA: "#C0A060", accentB: "#E8C87A", accentC: "#9A7840",
-    vars: { "--pz-bg":"#000000","--pz-surface":"#0a0a0a","--pz-surface2":"#111111","--pz-surface3":"#181818","--pz-border":"rgba(192,160,96,0.12)","--pz-border-hv":"rgba(192,160,96,0.28)","--pz-text":"#F0E8D4","--pz-text-2":"rgba(240,232,212,0.55)","--pz-text-muted":"rgba(240,232,212,0.28)","--pz-gold":"#C0A060","--pz-gold-dim":"rgba(192,160,96,0.08)","--pz-gold-glow":"rgba(192,160,96,0.05)","--pz-teal":"#C0A060","--pz-teal-dim":"rgba(192,160,96,0.06)","--pz-violet":"#A08040","--pz-violet-dim":"rgba(160,128,64,0.07)","--pz-rose":"#9A7840","--pz-amber":"#E8C87A" }
-  },
-  {
-    id: "midnight", label: "Midnight", swatch: "#6C8EEF", description: "Deep navy · Sapphire accents",
-    accentA: "#4A6CF7", accentB: "#9BB5FF", accentC: "#2D4ED8",
-    vars: { "--pz-bg":"#050810","--pz-surface":"#0A0F1E","--pz-surface2":"#0F1628","--pz-surface3":"#151D34","--pz-border":"rgba(74,108,247,0.14)","--pz-border-hv":"rgba(74,108,247,0.32)","--pz-text":"#E8EEFF","--pz-text-2":"rgba(232,238,255,0.55)","--pz-text-muted":"rgba(232,238,255,0.28)","--pz-gold":"#6C8EEF","--pz-gold-dim":"rgba(74,108,247,0.10)","--pz-gold-glow":"rgba(74,108,247,0.06)","--pz-teal":"#9BB5FF","--pz-teal-dim":"rgba(155,181,255,0.08)","--pz-violet":"#4A6CF7","--pz-violet-dim":"rgba(74,108,247,0.08)","--pz-rose":"#7B9CFF","--pz-amber":"#A8C0FF" }
-  },
-  {
-    id: "emerald", label: "Emerald", swatch: "#2ECC8A", description: "Dark forest · Emerald accents",
-    accentA: "#2ECC8A", accentB: "#00FF9D", accentC: "#1A9966",
-    vars: { "--pz-bg":"#030A06","--pz-surface":"#060F08","--pz-surface2":"#0A1810","--pz-surface3":"#0F2018","--pz-border":"rgba(46,204,138,0.12)","--pz-border-hv":"rgba(46,204,138,0.28)","--pz-text":"#D4F5E6","--pz-text-2":"rgba(212,245,230,0.55)","--pz-text-muted":"rgba(212,245,230,0.28)","--pz-gold":"#2ECC8A","--pz-gold-dim":"rgba(46,204,138,0.08)","--pz-gold-glow":"rgba(46,204,138,0.05)","--pz-teal":"#00FF9D","--pz-teal-dim":"rgba(0,255,157,0.07)","--pz-violet":"#1A9966","--pz-violet-dim":"rgba(26,153,102,0.08)","--pz-rose":"#44E8A0","--pz-amber":"#80FFD0" }
-  },
-  {
-    id: "crimson", label: "Crimson", swatch: "#E84040", description: "Black onyx · Ruby accents",
-    accentA: "#E84040", accentB: "#FF7070", accentC: "#C02020",
-    vars: { "--pz-bg":"#060202","--pz-surface":"#0F0505","--pz-surface2":"#180808","--pz-surface3":"#200C0C","--pz-border":"rgba(232,64,64,0.12)","--pz-border-hv":"rgba(232,64,64,0.28)","--pz-text":"#FFE8E8","--pz-text-2":"rgba(255,232,232,0.55)","--pz-text-muted":"rgba(255,232,232,0.28)","--pz-gold":"#E84040","--pz-gold-dim":"rgba(232,64,64,0.08)","--pz-gold-glow":"rgba(232,64,64,0.05)","--pz-teal":"#FF7070","--pz-teal-dim":"rgba(255,112,112,0.07)","--pz-violet":"#C02020","--pz-violet-dim":"rgba(192,32,32,0.08)","--pz-rose":"#FF5555","--pz-amber":"#FF9090" }
-  },
-]
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const GOLD = "#E8B923"
+const TEAL = "#00C4B4"
 
-const ThemeCtx = createContext<{ theme: LuxuryTheme; setTheme: (t: LuxuryTheme) => void }>({ theme: THEMES[0], setTheme: () => {} })
-
-function ThemePill() {
-  const { theme, setTheme } = useContext(ThemeCtx)
-  return (
-    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-      {THEMES.map(t => (
-        <button
-          key={t.id}
-          onClick={() => setTheme(t)}
-          title={t.label}
-          style={{
-            width: 14, height: 14,
-            borderRadius: "50%",
-            background: t.vars["--pz-gold"] ?? t.vars["--pz-teal"] ?? "#fff",
-            border: theme.id === t.id ? "2px solid #fff" : "2px solid transparent",
-            cursor: "pointer",
-            padding: 0,
-            transition: "border 0.15s",
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-const I = ({ c, children }: { c: string; children: React.ReactNode }) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+// ─── Icon factory ─────────────────────────────────────────────────────────────
+const Ic = (d: React.ReactNode, stroke = TEAL) => (
+  <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={stroke}
+    strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
 )
 
-const IC = "var(--pz-gold)"
 const ICONS: Record<string, React.ReactNode> = {
-  // AI & Tutoring
-  "BrainBot":   <I c={IC}><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M12 3v3M9 9V7a3 3 0 016 0v2"/><circle cx="9.5" cy="14" r="1" fill="var(--pz-gold)"/><circle cx="14.5" cy="14" r="1" fill="var(--pz-gold)"/><line x1="12" y1="17" x2="12" y2="19"/></I>,
-  "Feynman":    <I c={IC}><path d="M4 17l8-14 8 14H4z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></I>,
-  "MathZap":    <I c={IC}><path d="M8 4l-6 8 6 8"/><path d="M16 4l6 8-6 8"/><line x1="3" y1="12" x2="21" y2="12"/></I>,
-  // Practice & Quizzing
-  "Practice":   <I c={IC}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="var(--pz-gold)"/></I>,
-  "Flashcards": <I c={IC}><rect x="5" y="7" width="14" height="10" rx="1"/><rect x="3" y="5" width="14" height="10" rx="1"/><line x1="6" y1="9" x2="13" y2="9"/><line x1="6" y1="12" x2="11" y2="12"/></I>,
-  "Daily Quiz": <I c={IC}><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></I>,
-  "Error Hunt": <I c={IC}><circle cx="11" cy="11" r="7"/><circle cx="11" cy="11" r="3" strokeDasharray="2 2"/><line x1="11" y1="8" x2="11" y2="6"/><line x1="14" y1="11" x2="16" y2="11"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></I>,
-  // Deep Learning
-  "Concepts":   <I c={IC}><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></I>,
-  "Mind Map":   <I c={IC}><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="12" y1="12" x2="4" y2="6"/><line x1="12" y1="12" x2="20" y2="6"/><line x1="12" y1="12" x2="4" y2="18"/><line x1="12" y1="12" x2="20" y2="18"/></I>,
-  "Roadmap":    <I c={IC}><polyline points="3,12 6,7 9,12 12,4 15,12 18,8 21,12"/></I>,
-  // Focus & Tracking
-  "Pomodoro":   <I c={IC}><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="15"/><line x1="9" y1="3" x2="15" y2="3"/><line x1="12" y1="5" x2="12" y2="2"/></I>,
-  "Progress":   <I c={IC}><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="6" y="12" width="2" height="6"/><rect x="10" y="9" width="2" height="9"/><rect x="14" y="6" width="2" height="12"/><path d="M6 10l4-3 4 2 4-4" strokeWidth="1.2"/></I>,
-  "Planner":    <I c={IC}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/><line x1="8" y1="17" x2="13" y2="17"/></I>,
-  // Content & Files
-  "Sources":    <I c={IC}><path d="M3 7l3-3h12l3 3v13H3z"/><line x1="7" y1="11" x2="17" y2="11"/><line x1="7" y1="14" x2="14" y2="14"/><line x1="7" y1="17" x2="11" y2="17"/></I>,
-  // Emergency & Confidence
-  "Cram Mode":  <I c={IC}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></I>,
-  "Confidence": <I c={IC}><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></I>,
-  "High Yield": <I c={IC}><polyline points="22,7 13.5,15.5 8.5,10.5 2,17"/><polyline points="16,7 22,7 22,13"/></I>,
-  "Mistakes":   <I c={IC}><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/></I>,
-  "Recall Mode":<I c={IC}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/></I>,
-  "Study DNA":  <I c={IC}><path d="M6 3c0 6 12 6 12 12S6 21 6 21"/><path d="M18 3c0 6-12 6-12 12s12 6 12 6"/></I>,
-  // Misc
-  "Settings":   <I c={IC}><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>,
-  "Go Pro":     <I c={IC}><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></I>,
+  "BrainBot":    Ic(<><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M12 3v3M9 9V7a3 3 0 016 0v2"/><circle cx="9.5" cy="14" r="0.8" fill={TEAL}/><circle cx="14.5" cy="14" r="0.8" fill={TEAL}/></>),
+  "Practice":    Ic(<><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 9h6M9 12h6M9 15h4"/></>),
+  "Flashcards":  Ic(<><rect x="2" y="5" width="10" height="14" rx="1"/><rect x="12" y="5" width="10" height="14" rx="1"/></>),
+  "Feynman":     Ic(<><path d="M12 2L8 10H3l7 6-3 8 5-4 5 4-3-8 7-6h-5z"/></>),
+  "MathZap":     Ic(<><path d="M4 20h4l10-10-4-4L4 16v4z"/><line x1="14" y1="6" x2="18" y2="10"/></>),
+  "Daily Quiz":  Ic(<><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>),
+  "Error Hunt":  Ic(<><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></>),
+  "Mind Map":    Ic(<><circle cx="6" cy="12" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><line x1="8" y1="11" x2="16" y2="7"/><line x1="8" y1="13" x2="16" y2="17"/></>),
+  "Concepts":    Ic(<><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 12h6M12 9v6"/></>),
+  "Roadmap":     Ic(<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>),
+  "Pomodoro":    Ic(<><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></>),
+  "Progress":    Ic(<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>),
+  "Sources":     Ic(<><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></>),
+  "Cram Mode":   Ic(<><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></>),
+  "Confidence":  Ic(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>),
+  "High Yield":  Ic(<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>),
+  "Mistakes":    Ic(<><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill={TEAL}/></>),
+  "Recall Mode": Ic(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>),
+  "Study DNA":   Ic(<><path d="M6 3c0 6 12 6 12 12S6 21 6 21"/><path d="M18 3c0 6-12 6-12 12s12 6 12 6"/></>),
+  "Settings":    Ic(<><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></>),
+  "Go Pro":      Ic(<><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></>, GOLD),
+  "Flip Script": Ic(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/></>),
+  "Spot Error":  Ic(<><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></>),
+  "Build Def":   Ic(<><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M8 12h8M8 8h5M8 16h3"/></>),
+  "Blank Map":   Ic(<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>),
+  "Boss Round":  Ic(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>),
 }
 
-// Ordered by usability: AI first → core practice → deep learning → focus/files → admin
 const quickActions = [
-  { href:"/ai-tutor",       label:"BrainBot",   description:"Ask anything, anytime"         },
-  { href:"/practice",       label:"Practice",   description:"AI question sets"              },
-  { href:"/flashcards",     label:"Flashcards", description:"Spaced repetition"             },
-  { href:"/feynman",        label:"Feynman",    description:"Teach it to learn it"          },
-  { href:"/math",           label:"MathZap",    description:"Step-by-step solutions"        },
-  { href:"/daily5",         label:"Daily Quiz", description:"Quick daily rounds"            },
-  { href:"/spot-error",     label:"Error Hunt", description:"Find & fix mistakes"           },
-  { href:"/blank-map",      label:"Mind Map",   description:"Map & connect ideas"           },
+  { href:"/ai-tutor",       label:"BrainBot",   description:"Ask anything, anytime" },
+  { href:"/practice",       label:"Practice",   description:"AI question sets" },
+  { href:"/flashcards",     label:"Flashcards", description:"Spaced repetition" },
+  { href:"/feynman",        label:"Feynman",    description:"Teach it to learn it" },
+  { href:"/math",           label:"MathZap",    description:"Step-by-step solutions" },
+  { href:"/daily5",         label:"Daily Quiz", description:"Quick daily rounds" },
+  { href:"/spot-error",     label:"Error Hunt", description:"Find & fix mistakes" },
+  { href:"/blank-map",      label:"Mind Map",   description:"Map & connect ideas" },
   { href:"/build-def",      label:"Concepts",   description:"Build definitions from memory" },
-  { href:"/tool-architect", label:"Roadmap",    description:"Zero to mastery on any topic"  },
-  { href:"/timer",          label:"Pomodoro",   description:"Focus timer with sounds"       },
-  { href:"/analytics",      label:"Progress",   description:"Track your performance"        },
-  { href:"/sources",        label:"Sources",    description:"Your study files"              },
-  { href:"/cram",           label:"Cram Mode",  description:"Emergency study plan"          },
-  { href:"/confidence",     label:"Confidence", description:"Know what you know"             },
-  { href:"/high-yield",     label:"High Yield", description:"Most testable concepts"         },
-  { href:"/mistakes",       label:"Mistakes",   description:"Track & fix errors"             },
-  { href:"/recall",         label:"Recall Mode",description:"Type from memory"               },
-  { href:"/study-dna",      label:"Study DNA",  description:"Your learner profile"           },
-  { href:"/settings",       label:"Settings",   description:"Preferences & plan"            },
-  { href:"/pricing",        label:"Go Pro",     description:"Unlock everything", isGoPro:true },
+  { href:"/tool-architect", label:"Roadmap",    description:"Zero to mastery on any topic" },
+  { href:"/timer",          label:"Pomodoro",   description:"Focus timer with sounds" },
+  { href:"/analytics",      label:"Progress",   description:"Track your performance" },
+  { href:"/sources",        label:"Sources",    description:"Your study files" },
+  { href:"/cram",           label:"Cram Mode",  description:"Emergency study plan" },
+  { href:"/confidence",     label:"Confidence", description:"Know what you know" },
+  { href:"/high-yield",     label:"High Yield", description:"Most testable concepts" },
+  { href:"/mistakes",       label:"Mistakes",   description:"Track & fix errors" },
+  { href:"/recall",         label:"Recall Mode",description:"Type from memory" },
+  { href:"/study-dna",      label:"Study DNA",  description:"Your learner profile" },
+  { href:"/settings",       label:"Settings",   description:"Preferences & plan" },
+  { href:"/pricing",        label:"Go Pro",     description:"Unlock everything", isGoPro: true },
 ]
 
-// ─── All achievement definitions (static master list) ─────────────────────────
-const ALL_ACHIEVEMENTS = [
-  { key:"streak_7",       label:"7-Day Streak",  emoji:"🔥" },
-  { key:"questions_100",  label:"100 Questions", emoji:"📚" },
-  { key:"first_exam",     label:"First Exam",    emoji:"🎯" },
-  { key:"top_10",         label:"Top 10%",       emoji:"🏆" },
-  { key:"streak_30",      label:"30-Day Streak", emoji:"⚡" },
-  { key:"perfect_score",  label:"Perfect Score", emoji:"⭐" },
-]
+// ─── Starfield Hook ───────────────────────────────────────────────────────────
+function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
+  const themeRef = useRef(theme)
+  useEffect(() => { themeRef.current = theme }, [theme])
 
-const PALETTE = ["#10b981","#3b82f6","#a855f7","#f59e0b","#ef4444","#06b6d4","#ec4899"]
-function todayStr() { return new Date().toISOString().split("T")[0] }
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    let W = 0, H = 0, raf = 0
 
-interface StudyEvent { id:string; title:string; date:string; duration:number; color:string; completed:boolean }
-const SAMPLE_EVENTS: StudyEvent[] = [
-  { id:"1", title:"Biology Review",    date:todayStr(), duration:60, color:"#10b981", completed:false },
-  { id:"2", title:"Flashcard Session", date:todayStr(), duration:30, color:"#3b82f6", completed:true  },
-  { id:"3", title:"Mock Exam — Math",  date:new Date(Date.now()+86400000).toISOString().split("T")[0], duration:90, color:"#a855f7", completed:false },
-  { id:"4", title:"AI Tutor Session",  date:new Date(Date.now()+172800000).toISOString().split("T")[0], duration:45, color:"#f59e0b", completed:false },
-]
-const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+    const setSize = () => {
+      W = window.innerWidth; H = window.innerHeight
+      canvas.width = W; canvas.height = H
+    }
+    setSize()
+    window.addEventListener("resize", setSize)
 
-function StudyPlannerCard({ streak }: { streak: number }) {
-  const [events, setEvents] = useState<StudyEvent[]>(() => { try { return JSON.parse(localStorage.getItem("pz_study_events")||"null")||SAMPLE_EVENTS } catch { return SAMPLE_EVENTS } })
-  const [viewDate, setViewDate] = useState(new Date())
-  const [sel, setSel] = useState(todayStr())
-  const [modal, setModal] = useState(false)
-  // Derived stats from real events
-  const sessionsDone = events.filter(e => e.completed).length
-  const totalMins    = events.filter(e => e.completed).reduce((a, e) => a + e.duration, 0)
-  const totalHours   = (totalMins / 60).toFixed(1)
-  const goalPct      = events.length > 0 ? Math.round((sessionsDone / events.length) * 100) : 0
-  const [newTitle, setNewTitle] = useState("")
-  const [newColor, setNewColor] = useState(PALETTE[0])
-  const [newDur, setNewDur] = useState(30)
-  useEffect(()=>{ localStorage.setItem("pz_study_events",JSON.stringify(events)) },[events])
-  const yr=viewDate.getFullYear(), mo=viewDate.getMonth()
-  const firstDay=new Date(yr,mo,1).getDay(), days=new Date(yr,mo+1,0).getDate(), today=todayStr()
-  const ds=(d:number)=>`${yr}-${String(mo+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
-  const evOn=(s:string)=>events.filter(e=>e.date===s)
-  const selEvs=evOn(sel), done=selEvs.filter(e=>e.completed).length
-  const upcoming=events.filter(e=>e.date>today&&!e.completed).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3)
-  const S={background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"} as React.CSSProperties
+    const stars = Array.from({ length: 130 }, () => ({
+      x: Math.random(), y: Math.random(),
+      r: Math.random() * 0.7 + 0.2,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.004 + Math.random() * 0.009,
+      teal: Math.random() > 0.75,
+    }))
+
+    const clouds = Array.from({ length: 5 }, () => ({
+      x: Math.random(), y: Math.random(),
+      rx: 0.08 + Math.random() * 0.12,
+      ry: 0.05 + Math.random() * 0.08,
+      dx: (Math.random() - 0.5) * 0.00006,
+      dy: (Math.random() - 0.5) * 0.00004,
+      teal: Math.random() > 0.5,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.003 + Math.random() * 0.004,
+    }))
+
+    let pulse = 0, pd = 0.003
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H)
+      ctx.fillStyle = "#0A0A0A"
+      ctx.fillRect(0, 0, W, H)
+      const t = themeRef.current
+
+      if (t === "starfield" || t === "twinkle") {
+        for (const s of stars) {
+          s.phase += s.speed
+          const a = (Math.sin(s.phase) + 1) * 0.25 + 0.02
+          ctx.beginPath()
+          ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
+          ctx.fillStyle = s.teal ? `rgba(0,196,180,${a})` : `rgba(240,240,240,${a})`
+          ctx.fill()
+        }
+      }
+
+      if (t === "nebula" || t === "twinkle") {
+        for (const c of clouds) {
+          c.x += c.dx; c.y += c.dy
+          if (c.x < -0.2) c.x = 1.2; if (c.x > 1.2) c.x = -0.2
+          if (c.y < -0.15) c.y = 1.15; if (c.y > 1.15) c.y = -0.15
+          c.phase += c.speed
+          const a = (Math.sin(c.phase) + 1) * 0.014 + 0.004
+          const cx = c.x * W, cy = c.y * H
+          const rx = c.rx * W, ry = c.ry * H
+          const sy = ry / rx
+          ctx.save()
+          ctx.scale(1, sy)
+          const gr = ctx.createRadialGradient(cx, cy / sy, 0, cx, cy / sy, rx)
+          gr.addColorStop(0, c.teal ? `rgba(0,196,180,${a})` : `rgba(100,60,200,${a})`)
+          gr.addColorStop(1, "rgba(0,0,0,0)")
+          ctx.beginPath()
+          ctx.arc(cx, cy / sy, rx, 0, Math.PI * 2)
+          ctx.fillStyle = gr
+          ctx.fill()
+          ctx.restore()
+        }
+      }
+
+      if (t === "pulse") {
+        pulse += pd; if (pulse > 1 || pulse < 0) pd *= -1
+        const a = pulse * 0.015 + 0.003
+        const gr = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.75)
+        gr.addColorStop(0, `rgba(0,196,180,${a})`)
+        gr.addColorStop(1, "rgba(0,0,0,0)")
+        ctx.fillStyle = gr
+        ctx.fillRect(0, 0, W, H)
+      }
+
+      raf = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", setSize) }
+  }, [ref])
+}
+
+// ─── Swatch ───────────────────────────────────────────────────────────────────
+function Swatch({ id, active, onClick }: { id: BgTheme; active: boolean; onClick(): void }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const TITLES: Record<BgTheme, string> = { pure:"Pure Black", starfield:"Gentle Starfield", nebula:"Drifting Nebula", twinkle:"Twinkle & Drift", pulse:"Minimal Pulse" }
+
+  useEffect(() => {
+    const c = ref.current; if (!c) return
+    const ctx = c.getContext("2d"); if (!ctx) return
+    let raf = 0
+    const SS = Array.from({ length: 8 }, () => ({ x: Math.random() * 22, y: Math.random() * 22, r: 0.4 + Math.random() * 0.5, ph: Math.random() * Math.PI * 2, sp: 0.04 + Math.random() * 0.05, tl: Math.random() > 0.6 }))
+    const CL = Array.from({ length: 2 }, () => ({ x: 4 + Math.random() * 14, y: 4 + Math.random() * 14, r: 5 + Math.random() * 4, dx: (Math.random()-.5)*.05, dy: (Math.random()-.5)*.04, tl: Math.random()>.5, ph: Math.random()*Math.PI*2, sp: 0.02 }))
+    let pl = 0, pd2 = 0.025
+    const draw = () => {
+      ctx.clearRect(0,0,22,22); ctx.fillStyle="#0A0A0A"; ctx.fillRect(0,0,22,22)
+      if (id==="starfield"||id==="twinkle") SS.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)*0.35+0.04;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.tl?`rgba(0,196,180,${a})`:`rgba(240,240,240,${a})`;ctx.fill()})
+      if (id==="nebula"||id==="twinkle") CL.forEach(c=>{c.x+=c.dx;c.y+=c.dy;if(c.x<-4)c.x=26;if(c.x>26)c.x=-4;if(c.y<-4)c.y=26;if(c.y>26)c.y=-4;c.ph+=c.sp;const a=(Math.sin(c.ph)+1)*0.1+0.03;const g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.r);g.addColorStop(0,c.tl?`rgba(0,196,180,${a})`:`rgba(100,60,200,${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill()})
+      if (id==="pulse"){pl+=pd2;if(pl>1||pl<0)pd2*=-1;const a=pl*0.12+0.03;const g=ctx.createRadialGradient(11,11,0,11,11,13);g.addColorStop(0,`rgba(0,196,180,${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,22,22)}
+      raf=requestAnimationFrame(draw)
+    }
+    draw()
+    return ()=>cancelAnimationFrame(raf)
+  },[id])
+
   return (
-    <div className="rounded-none" style={S}>
-      <div className="flex items-center justify-between px-5 pt-4 pb-0">
-        <div><h2 className="text-xl font-bold" style={{color:"var(--pz-text)",fontFamily:"'DM Serif Display',serif"}}>Study Planner</h2><p className="text-xs mt-0.5 hidden sm:block" style={{color:"var(--pz-text-muted)"}}>Plan your sessions, hit your goals</p></div>
-        <button onClick={()=>setModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-none text-xs md:text-sm font-semibold transition-opacity hover:opacity-80" style={{background:"var(--pz-teal)",color:"#0A0A0C"}}><Plus className="h-3 w-3 md:h-4 md:w-4"/>Add Session</button>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 py-4">
-        {[{icon:"🔥",value:String(streak),label:"Day Streak"},{icon:"🕐",value:`${totalHours}h`,label:"Hours This Week"},{icon:"✅",value:String(sessionsDone),label:"Sessions Done"},{icon:"🎯",value:`${goalPct}%`,label:"Goal Completion"}].map(s=>(
-          <div key={s.label} className="flex items-center gap-3 px-4 py-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}>
-            <span className="text-xl">{s.icon}</span>
-            <div><div className="text-xl font-bold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] leading-tight" style={{color:"var(--pz-text-muted)"}}>{s.label}</div></div>
+    <button onClick={onClick} title={TITLES[id]} style={{ width:22,height:22,borderRadius:"50%",padding:0,overflow:"hidden",cursor:"pointer",flexShrink:0, border: active?`2px solid ${GOLD}`:"1.5px solid #2A2A2A", transition:"border-color .2s" }}>
+      <canvas ref={ref} width={22} height={22} style={{display:"block",width:"100%",height:"100%"}}/>
+    </button>
+  )
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function relTime(iso: string) {
+  const d = Math.floor((Date.now()-new Date(iso).getTime())/60000)
+  if(d<1)return"just now"; if(d<60)return`${d}m ago`; if(d<1440)return`${Math.floor(d/60)}h ago`; return`${Math.floor(d/1440)}d ago`
+}
+function greeting(){ const h=new Date().getHours(); return h<12?"Good morning":h<17?"Good afternoon":"Good evening" }
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+export default function Dashboard() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [bgTheme, setBgTheme] = useState<BgTheme>("starfield")
+  useStarfield(canvasRef, bgTheme)
+
+  // State
+  const [xp,setXp]           = useState(0)
+  const [streak,setStreak]   = useState(0)
+  const [todayMin,setTodayMin] = useState(0)
+  const [qa,setQa]           = useState(0)
+  const [acc,setAcc]         = useState(0)
+  const [activity,setActivity] = useState<ActivityItem[]>([])
+  const [weak,setWeak]       = useState<WeakArea[]>([])
+  const [plan,setPlan]       = useState<"free"|"pro">("free")
+  const [loading,setLoading] = useState(true)
+  const [showAll,setShowAll] = useState(false)
+
+  const [checks,setChecks] = useState<CheckItem[]>(()=>{try{return JSON.parse(localStorage.getItem("pz_checklist")||"[]")}catch{return[]}})
+  const [cInput,setCInput] = useState("")
+  useEffect(()=>{localStorage.setItem("pz_checklist",JSON.stringify(checks))},[checks])
+
+  const addCheck = ()=>{ if(!cInput.trim())return; setChecks(p=>[...p,{id:Date.now().toString(),text:cInput.trim(),done:false}]); setCInput("") }
+  const toggleCheck = (id:string)=>setChecks(p=>p.map(c=>c.id===id?{...c,done:!c.done}:c))
+  const removeCheck = (id:string)=>setChecks(p=>p.filter(c=>c.id!==id))
+
+  // Load data
+  useEffect(()=>{
+    if(!user)return
+    const load=async()=>{
+      setLoading(true)
+      try{
+        const{data:prof}=await supabase.from("profiles").select("xp,streak,plan").eq("id",user.id).maybeSingle()
+        if(prof){setXp(prof.xp??0);setStreak(prof.streak??0);setPlan(prof.plan??"free")}
+        const today=new Date().toISOString().slice(0,10)
+        const{data:sess}=await supabase.from("study_sessions").select("duration_minutes").eq("user_id",user.id).gte("created_at",today)
+        if(sess)setTodayMin(sess.reduce((s:number,r:any)=>s+(r.duration_minutes??0),0))
+        const{data:acts}=await supabase.from("activity_log").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(6)
+        if(acts)setActivity(acts)
+        const{data:ans}=await supabase.from("question_attempts").select("correct").eq("user_id",user.id).gte("created_at",today)
+        if(ans){setQa(ans.length);setAcc(ans.length>0?Math.round(ans.filter((a:any)=>a.correct).length/ans.length*100):0)}
+        const{data:w}=await supabase.from("weak_areas").select("subject,accuracy").eq("user_id",user.id).order("accuracy").limit(4)
+        if(w)setWeak(w)
+      }catch{}
+      setLoading(false)
+    }
+    load()
+  },[user])
+
+  const level=levelFromXp(xp), tier=tierFromLevel(level), tierEmoji=tierEmojiFromLevel(level)
+  const toNext=xpToNextLevel(xp), xpPct=xpProgressPercent(xp)
+  const dailyGoal=60, dailyPct=Math.min(100,Math.round(todayMin/dailyGoal*100))
+
+  const achievements: Achievement[] = [
+    {key:"first",emoji:"🎯",label:"First Step",earned:xp>0},
+    {key:"s3",emoji:"🔥",label:"3-Day Streak",earned:streak>=3},
+    {key:"s7",emoji:"⚡",label:"Week Strong",earned:streak>=7},
+    {key:"x500",emoji:"🏆",label:"500 XP",earned:xp>=500},
+    {key:"x1000",emoji:"💎",label:"1000 XP",earned:xp>=1000},
+    {key:"q50",emoji:"📚",label:"50 Qs",earned:qa>=50},
+  ]
+
+  const displayName=(user?.user_metadata?.username||user?.user_metadata?.full_name||user?.email?.split("@")[0]||"Student").toUpperCase()
+  const displayed=showAll?quickActions:quickActions.slice(0,20)
+
+  // Heatmap (placeholder — replace with real data)
+  const heatmap=Array.from({length:91},()=>{const r=Math.random();return r>.75?"l4":r>.6?"l3":r>.5?"l2":r>.42?"l1":""})
+
+  // Shared styles
+  const card: React.CSSProperties = { background:"rgba(17,17,17,0.85)", border:"1px solid #1E1E1E", backdropFilter:"blur(8px)" }
+
+  const metrics = [
+    { label:"Day Streak",  value:streak,                 sub:streak>0?`${streak} day${streak!==1?"s":""}` :"Start today", accent:GOLD, ibg:"#1A1400", ibr:"#2A2000", icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={GOLD} strokeWidth={1.7} strokeLinecap="round"><path d="M12 2c0 0-4 4-4 9a4 4 0 008 0c0-5-4-9-4-9z"/></svg> },
+    { label:"Hours / Week",value:(todayMin/60).toFixed(1),sub:`Goal: ${dailyGoal/60}h`,              accent:TEAL, ibg:"#001A18", ibr:"#002A26", icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={TEAL} strokeWidth={1.7} strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> },
+    { label:"Sessions Done",value:activity.length,        sub:"This week",                            accent:TEAL, ibg:"#001A18", ibr:"#002A26", icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={TEAL} strokeWidth={1.7} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg> },
+    { label:"Goal",        value:`${dailyPct}%`,          sub:dailyPct>0?"Keep going!":"Set a goal",  accent:GOLD, ibg:"#1A1400", ibr:"#2A2000", icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={GOLD} strokeWidth={1.7} strokeLinecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="7"/></svg> },
+  ]
+
+  const SB_BTN = (label: string, href: string) => (
+    <Link key={href} to={href} style={{textDecoration:"none"}}>
+      <button style={{width:"100%",padding:"7px 9px",background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,cursor:"pointer",fontFamily:"inherit",transition:"all .2s",letterSpacing:"0.04em",textAlign:"left"}}
+        onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
+        onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
+        {label}
+      </button>
+    </Link>
+  )
+
+  return (
+    <div style={{minHeight:"100vh",background:"#0A0A0A",color:"#F0F0F0",fontFamily:"'Inter',system-ui,sans-serif",position:"relative",overflow:"hidden"}}>
+      {/* Animated canvas */}
+      <canvas ref={canvasRef} style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",zIndex:0,pointerEvents:"none"}}/>
+
+      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",minHeight:"100vh"}}>
+
+        {/* ── NAV ─────────────────────────────────────────────────────── */}
+        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",backdropFilter:"blur(12px)",background:"rgba(10,10,10,0.7)",flexShrink:0}}>
+          <span style={{fontSize:14,fontWeight:700,letterSpacing:"0.2em"}}>STUDENIUS</span>
+          <div style={{display:"flex",gap:24}}>
+            {([["STUDY TOOLS","/dashboard"],["PRICING","/pricing"],["SUGGESTIONS","/suggestions"]] as [string,string][]).map(([l,h])=>(
+              <Link key={h} to={h} style={{fontSize:10,fontWeight:600,letterSpacing:"0.14em",color:"#555",textDecoration:"none",transition:"color .2s"}}
+                onMouseEnter={e=>(e.currentTarget.style.color="#F0F0F0")}
+                onMouseLeave={e=>(e.currentTarget.style.color="#555")}>{l}</Link>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-0 border-t" style={{borderColor:"var(--pz-border)"}}>
-        <div className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4" style={{color:"var(--pz-teal)"}}/><h3 className="font-semibold" style={{color:"var(--pz-text)"}}>{MONTHS[mo]} {yr}</h3></div>
-            <div className="flex gap-1">
-              <button onClick={()=>setViewDate(d=>new Date(d.getFullYear(),d.getMonth()-1,1))} className="w-7 h-7 rounded-none flex items-center justify-center" style={{border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)"}}><ChevronLeft className="h-3.5 w-3.5"/></button>
-              <button onClick={()=>setViewDate(d=>new Date(d.getFullYear(),d.getMonth()+1,1))} className="w-7 h-7 rounded-none flex items-center justify-center" style={{border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)"}}><ChevronRight className="h-3.5 w-3.5"/></button>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {/* Theme pill */}
+            <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",background:"#0D0D0D",border:"0.5px solid #2A2A2A",borderRadius:20}}>
+              <span style={{fontSize:9,letterSpacing:"0.1em",color:"#444",textTransform:"uppercase",marginRight:2}}>Theme</span>
+              {(["pure","starfield","nebula","twinkle","pulse"] as BgTheme[]).map(id=>(
+                <Swatch key={id} id={id} active={bgTheme===id} onClick={()=>setBgTheme(id)}/>
+              ))}
+            </div>
+            {/* Avatar */}
+            <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${TEAL},#0097A7)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#0A0A0A",cursor:"pointer"}}
+              onClick={()=>navigate("/settings")}>
+              {displayName.slice(0,2)}
             </div>
           </div>
-          <div className="grid grid-cols-7 mb-2">{DAY_LABELS.map(d=><div key={d} className="text-center text-xs font-medium py-1" style={{color:"var(--pz-text-muted)"}}>{d}</div>)}</div>
-          <div className="grid grid-cols-7 gap-y-1">
-            {Array.from({length:firstDay}).map((_,i)=><div key={`e${i}`}/>)}
-            {Array.from({length:days}).map((_,i)=>{
-              const day=i+1,d=ds(day),evs=evOn(d),isT=d===today,isS=d===sel
-              return <button key={day} onClick={()=>setSel(d)} className="flex flex-col items-center gap-0.5 py-1 rounded-none transition-all" style={{background:isS?"var(--pz-teal)":isT?"rgba(16,185,129,0.15)":"transparent",color:isS?"#0A0A0C":isT?"var(--pz-teal)":"var(--pz-text)"}}>
-                <span className="text-xs font-medium w-7 h-7 flex items-center justify-center">{day}</span>
-                <div className="flex gap-0.5 h-2 items-center">{evs.slice(0,3).map(ev=><div key={ev.id} className="w-1.5 h-1.5 rounded-full" style={{background:isS?"rgba(0,0,0,0.4)":ev.color}}/>)}</div>
-              </button>
-            })}
-          </div>
-        </div>
-        <div className="p-4 space-y-4" style={{borderLeft:"1px solid var(--pz-border)"}}>
-          <div>
-            <p className="font-semibold text-sm" style={{color:"var(--pz-text)"}}>{new Date(sel+"T12:00:00").toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p>
-            {selEvs.length>0&&<div className="mt-1"><span className="text-[10px]" style={{color:"var(--pz-text-muted)"}}>{done}/{selEvs.length} done</span><div className="h-1 rounded-none mt-1" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:`${selEvs.length?(done/selEvs.length)*100:0}%`,background:"var(--pz-teal)"}}/></div></div>}
-          </div>
-          <div className="space-y-2">
-            {selEvs.length===0&&<p className="text-xs text-center py-4" style={{color:"var(--pz-text-muted)"}}>No sessions — add one!</p>}
-            {selEvs.map(ev=>(
-              <div key={ev.id} className="flex items-start gap-2.5 p-2.5 rounded-none group" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}>
-                <button onClick={()=>setEvents(p=>p.map(e=>e.id===ev.id?{...e,completed:!e.completed}:e))} className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5" style={{background:ev.completed?ev.color:"transparent",borderColor:ev.completed?ev.color:"var(--pz-border)"}}>
-                  {ev.completed&&<Check className="h-2.5 w-2.5 text-white"/>}
-                </button>
-                <div className="flex-1 min-w-0"><p className="text-xs font-medium truncate" style={{color:ev.completed?"var(--pz-text-muted)":"var(--pz-text)",textDecoration:ev.completed?"line-through":"none"}}>{ev.title}</p><div className="flex items-center gap-1 mt-0.5"><Clock className="h-2.5 w-2.5" style={{color:"var(--pz-text-muted)"}}/><span className="text-[10px]" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{ev.duration}min</span></div></div>
-                <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{background:ev.color}}/>
-                <button onClick={()=>setEvents(p=>p.filter(e=>e.id!==ev.id))} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{color:"var(--pz-text-muted)"}}><X className="h-3 w-3"/></button>
-              </div>
-            ))}
-            <button onClick={()=>setModal(true)} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-none text-xs" style={{border:"1px dashed var(--pz-border)",color:"var(--pz-text-muted)"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-teal)";(e.currentTarget as HTMLElement).style.color="var(--pz-teal)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-border)";(e.currentTarget as HTMLElement).style.color="var(--pz-text-muted)"}}>
-              <Plus className="h-3 w-3"/>Add another
-            </button>
-          </div>
-          {upcoming.length>0&&<div><div className="flex items-center gap-1.5 mb-2"><span className="text-sm">🔔</span><span className="text-xs font-semibold" style={{color:"var(--pz-text)"}}>Upcoming</span></div><div className="space-y-1.5">{upcoming.map(ev=><div key={ev.id} className="flex items-center gap-2 px-2 py-1.5 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="w-1.5 h-1.5 rounded-full" style={{background:ev.color}}/><span className="flex-1 text-xs truncate" style={{color:"var(--pz-text-2)"}}>{ev.title}</span><span className="text-[10px]" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{new Date(ev.date+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span></div>)}</div></div>}
-        </div>
-      </div>
-      {modal&&<><div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={()=>setModal(false)}/><div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-80 rounded-none shadow-2xl p-5 space-y-4" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"}}><div className="flex items-center justify-between"><h3 className="font-semibold text-sm" style={{color:"var(--pz-text)"}}>Add Study Session</h3><button onClick={()=>setModal(false)} style={{color:"var(--pz-text-muted)"}}><X className="h-4 w-4"/></button></div><input autoFocus className="w-full px-3 py-2 rounded-none text-sm focus:outline-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)",color:"var(--pz-text)"}} placeholder="Session title..." value={newTitle} onChange={e=>setNewTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&newTitle.trim()&&(setEvents(p=>[...p,{id:Date.now().toString(),title:newTitle.trim(),date:sel,duration:newDur,color:newColor,completed:false}]),setNewTitle(""),setModal(false))}/><div><p className="text-xs mb-2" style={{color:"var(--pz-text-muted)"}}>Duration</p><div className="flex gap-2 flex-wrap">{[15,25,30,45,60,90].map(d=><button key={d} onClick={()=>setNewDur(d)} className="px-2.5 py-1 rounded-none text-xs font-medium border" style={{background:newDur===d?"var(--pz-teal)":"var(--pz-surface3)",color:newDur===d?"#0A0A0C":"var(--pz-text-2)",borderColor:newDur===d?"var(--pz-teal)":"var(--pz-border)"}}>{d}m</button>)}</div></div><div><p className="text-xs mb-2" style={{color:"var(--pz-text-muted)"}}>Color</p><div className="flex gap-2">{PALETTE.map(c=><button key={c} onClick={()=>setNewColor(c)} className="w-5 h-5 rounded-full border-2" style={{background:c,borderColor:newColor===c?"white":"transparent"}}/>)}</div></div><div className="flex gap-2 pt-1"><button onClick={()=>{if(!newTitle.trim())return;setEvents(p=>[...p,{id:Date.now().toString(),title:newTitle.trim(),date:sel,duration:newDur,color:newColor,completed:false}]);setNewTitle("");setModal(false)}} className="flex-1 py-2 rounded-none text-sm font-semibold" style={{background:"var(--pz-teal)",color:"#0A0A0C"}}>Add Session</button><button onClick={()=>setModal(false)} className="flex-1 py-2 rounded-none text-sm" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)"}}>Cancel</button></div></div></>}
-    </div>
-  )
-}
+        </nav>
 
-interface CheckTask { id:string; text:string; done:boolean }
-const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+        {/* ── BODY ────────────────────────────────────────────────────── */}
+        <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
-function ChecklistCard() {
-  const [tasks,setTasks]=useState<CheckTask[]>(()=>{ try{return JSON.parse(localStorage.getItem("pz_dashboard_checklist")||"[]")}catch{return []} })
-  const [newTask,setNewTask]=useState("")
-  const todayIdx=(new Date().getDay()||7)-1
-  useEffect(()=>{ localStorage.setItem("pz_dashboard_checklist",JSON.stringify(tasks)) },[tasks])
-  const add=()=>{ if(!newTask.trim())return; setTasks(t=>[...t,{id:Date.now().toString(),text:newTask.trim(),done:false}]); setNewTask("") }
-  return (
-    <div className="p-5 rounded-none" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"}}>
-      <div className="flex items-center gap-2 mb-3"><CheckSquare className="h-4 w-4" style={{color:"var(--pz-text-2)"}}/><h2 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Today's Checklist</h2><span className="ml-auto text-xs" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{tasks.filter(t=>t.done).length}/{tasks.length}</span></div>
-      <div className="flex justify-between mb-4">{DAYS.map((d,i)=>{ const dateNum=new Date(Date.now()+(i-todayIdx)*86400000).getDate(); return <div key={d} className="flex flex-col items-center gap-1"><span className="text-[10px]" style={{color:i===todayIdx?"var(--pz-teal)":"var(--pz-text-muted)"}}>{d}</span><div className="w-7 h-7 rounded-none flex items-center justify-center text-xs font-semibold" style={{background:i===todayIdx?"var(--pz-teal)":"var(--pz-surface3)",color:i===todayIdx?"#0A0A0C":"var(--pz-text-muted)",border:i===todayIdx?"none":"1px solid var(--pz-border)"}}>{dateNum}</div></div> })}</div>
-      <div className="space-y-1.5 mb-3 max-h-40 overflow-y-auto">
-        {tasks.map(t=><div key={t.id} className="flex items-center gap-2 group px-1"><button onClick={()=>setTasks(p=>p.map(x=>x.id===t.id?{...x,done:!x.done}:x))} className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0" style={{background:t.done?"var(--pz-teal)":"transparent",borderColor:t.done?"var(--pz-teal)":"var(--pz-border)"}}>{t.done&&<Check className="h-2.5 w-2.5" style={{color:"#0A0A0C"}}/>}</button><span className="text-xs flex-1" style={{color:t.done?"var(--pz-text-muted)":"var(--pz-text)",textDecoration:t.done?"line-through":"none"}}>{t.text}</span><button onClick={()=>setTasks(p=>p.filter(x=>x.id!==t.id))} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{color:"var(--pz-text-muted)"}}><Trash2 className="h-3 w-3"/></button></div>)}
-        {tasks.length===0&&<p className="text-xs text-center py-3" style={{color:"var(--pz-text-muted)"}}>No tasks yet — add one below</p>}
-      </div>
-      <div className="flex gap-2"><input value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder="Add a task..." className="flex-1 px-3 py-1.5 rounded-none text-xs focus:outline-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)",color:"var(--pz-text)"}}/><button onClick={add} className="w-7 h-7 rounded-none flex items-center justify-center flex-shrink-0" style={{background:"var(--pz-teal)",color:"#0A0A0C"}}><Plus className="h-3.5 w-3.5"/></button></div>
-    </div>
-  )
-}
-
-export default function Dashboard() {
-  const navigate = useNavigate()
-  const { profile, signOut, lsKey } = useAuth()
-  const [showAll,setShowAll]=useState(false)
-  const [theme,setTheme]=useState<LuxuryTheme>(() => {
-    const saved = localStorage.getItem("pz-theme")
-    return THEMES.find(t => t.id === saved) ?? THEMES[0]
-  })
-
-  // ─── Live user data from AuthContext ─────────────────────────────────────
-  const userName         = profile?.full_name ?? "there"
-  const userPlan         = profile?.plan ?? "free"
-  const creditBalance    = profile?.credits_remaining ?? 0
-  const streak           = profile?.streak_days ?? 0
-  const xp               = profile?.total_xp ?? 0
-  const dailyGoalMinutes = profile?.daily_goal_minutes ?? 60
-  const questionsAnswered = profile?.questions_answered ?? 0
-  const accuracyPercent  = profile?.accuracy_percent ?? 0
-
-  // ─── Derived XP values (never hardcoded) ─────────────────────────────────
-  const level      = levelFromXp(xp)
-  const tier       = tierFromLevel(level)
-  const tierEmoji  = tierEmojiFromLevel(level)
-  const toNextXp   = xpToNextLevel(xp)
-  const xpPercent  = xpProgressPercent(xp)
-
-  // todayMinutes: ideally from a sessions table; defaulting to 0 until wired up
-  const [todayMinutes] = useState(0)
-
-  // ─── Live data state ───────────────────────────────────────────────────────
-  interface ActivityEntry { id:string; label:string; score:string; tool:string; created_at:string }
-  interface WeakArea      { subject:string; accuracy:number }
-  interface Achievement   { achievement:string }
-
-  const [activityLog,  setActivityLog]  = useState<ActivityEntry[]>([])
-  const [weakAreas,    setWeakAreas]    = useState<WeakArea[]>([])
-  const [earnedKeys,   setEarnedKeys]   = useState<string[]>([])
-  const [dataLoading,  setDataLoading]  = useState(true)
-
-  useEffect(() => {
-    if (!profile?.id) return
-    const uid = profile.id
-    setDataLoading(true)
-
-    Promise.all([
-      // Recent activity — last 6 entries
-      supabase
-        .from("activity_log")
-        .select("id, label, score, tool, created_at")
-        .eq("user_id", uid)
-        .order("created_at", { ascending: false })
-        .limit(6),
-
-      // Weak areas — subjects sorted by accuracy asc
-      supabase
-        .from("subject_stats")
-        .select("subject, accuracy")
-        .eq("user_id", uid)
-        .order("accuracy", { ascending: true })
-        .limit(5),
-
-      // Earned achievements
-      supabase
-        .from("user_achievements")
-        .select("achievement")
-        .eq("user_id", uid),
-    ]).then(([actRes, weakRes, achRes]) => {
-      if (actRes.data)  setActivityLog(actRes.data)
-      if (weakRes.data) setWeakAreas(weakRes.data)
-      if (achRes.data)  setEarnedKeys(achRes.data.map((a: Achievement) => a.achievement))
-      setDataLoading(false)
-    })
-  }, [profile?.id])
-
-  // Merge earned keys into the master achievement list
-  const achievements = ALL_ACHIEVEMENTS.map(a => ({
-    ...a,
-    earned: earnedKeys.includes(a.key),
-  }))
-
-  // Format activity timestamp to relative time string
-  function relativeTime(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime()
-    const mins  = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
-    const days  = Math.floor(diff / 86400000)
-    if (mins  < 60)  return `${mins}m ago`
-    if (hours < 24)  return `${hours}h ago`
-    if (days  === 1) return "Yesterday"
-    return `${days}d ago`
-  }
-
-  const handleSignOut = async () => {
-    await signOut()
-    navigate("/login")
-  }
-
-  const applyTheme = (t: LuxuryTheme) => {
-    setTheme(t)
-    localStorage.setItem("pz-theme", t.id)
-  }
-
-  const hour=new Date().getHours()
-  const greeting=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening"
-  const displayed=showAll?quickActions:quickActions.slice(0,12)
-  const dailyProgress=Math.round((todayMinutes/dailyGoalMinutes)*100)
-  const card={background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"} as React.CSSProperties
-
-  useEffect(() => {
-    const root = document.documentElement
-    Object.entries(theme.vars).forEach(([k, v]) => root.style.setProperty(k, v))
-    document.body.style.background = theme.vars["--pz-bg"] || ""
-    document.body.style.color = theme.vars["--pz-text"] || ""
-  }, [theme])
-
-  useEffect(() => {
-    const saved = localStorage.getItem("pz-theme")
-    const t = THEMES.find(x => x.id === saved) ?? THEMES[0]
-    const root = document.documentElement
-    Object.entries(t.vars).forEach(([k, v]) => root.style.setProperty(k, v))
-    document.body.style.background = t.vars["--pz-bg"] || ""
-  }, [])
-
-  return (
-    <ThemeCtx.Provider value={{theme,setTheme:applyTheme}}>
-      <div className="min-h-screen flex flex-col" style={{background:theme.vars["--pz-bg"],color:theme.vars["--pz-text"]}}>
-        <div className="hidden md:block">
-          <Navbar isLoggedIn user={{name:userName,xp,streak,plan:userPlan}} extraRight={<ThemePill/>}/>
-        </div>
-        {/* Mobile top bar */}
-        <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40" style={{background:"rgba(0,0,0,0.95)",borderBottom:"0.5px solid var(--pz-border)",backdropFilter:"blur(12px)"}}>
-          <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"16px",color:"var(--pz-text)"}}>PrepZap</span>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <ThemePill/>
-            <button onClick={handleSignOut} style={{background:"transparent",border:"none",cursor:"pointer",color:"var(--pz-text-muted)",display:"flex",alignItems:"center"}} title="Sign out">
-              <LogOut size={16}/>
-            </button>
-          </div>
-        </div>
-        <BottomNav/>
-        <main className="flex-1 py-4 lg:py-10 pb-20 md:pb-6">
-          <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+          {/* ── MAIN CONTENT ──────────────────────────────────────────── */}
+          <div style={{flex:1,padding:"20px 20px 80px 24px",overflowY:"auto"}}>
 
             {/* Greeting */}
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-semibold mb-1" style={{fontFamily:"'Inter',sans-serif",letterSpacing:"-0.02em"}}>{greeting}, {userName} 👋</h1>
-                <p className="text-sm" style={{color:"var(--pz-text-2)",fontFamily:"'Inter',sans-serif"}}><span style={{color:"var(--pz-text)"}}>{creditBalance} credits</span>{" · "}<span>🔥 {streak}-day streak</span></p>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span className="text-xs px-2.5 py-1 rounded-none hidden sm:inline-flex badge-gold">{userPlan==="free"?"Free Plan":"Pro"}</span>
-                <button onClick={handleSignOut} className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs" style={{border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)",background:"transparent",cursor:"pointer"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-gold)";(e.currentTarget as HTMLElement).style.color="var(--pz-gold)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-border)";(e.currentTarget as HTMLElement).style.color="var(--pz-text-muted)"}}>
-                  <LogOut size={12}/> Sign out
-                </button>
+            <div style={{marginBottom:18}}>
+              <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:4}}>Study Planner</div>
+              <div style={{fontSize:20,fontWeight:600,letterSpacing:"-0.02em",lineHeight:1.2}}>
+                {greeting()}, {displayName} <span style={{color:GOLD}}>👋</span>
               </div>
             </div>
 
-            <div className="mb-6"><StudyPlannerCard streak={streak}/></div>
-
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
-                <ChecklistCard/>
-
-                {/* Progress */}
-                <div className="p-4 lg:p-6 rounded-none overflow-hidden" style={card}>
-                  <div className="h-0.5 -mx-6 -mt-6 mb-6" style={{background:`linear-gradient(90deg,var(--pz-gold) ${dailyProgress}%,var(--pz-surface3) ${dailyProgress}%)`}}/>
-                  <div className="flex items-center justify-between mb-5"><h2 className="font-medium text-base" style={{color:"var(--pz-text)"}}>Today's Progress</h2><span className="text-xs px-2.5 py-1 rounded-none" style={{background:"var(--pz-surface3)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace",border:"1px solid var(--pz-border)"}}>{todayMinutes} / {dailyGoalMinutes} min</span></div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">{[{emoji:"📝",value:String(questionsAnswered),label:"Questions",color:"var(--pz-text)"},{emoji:"🎯",value:`${accuracyPercent}%`,label:"Accuracy",color:"var(--pz-text-2)"},{emoji:"🔥",value:String(streak),label:"Streak",color:"var(--pz-text-2)"},{emoji:"⚡",value:xp.toLocaleString(),label:"XP",color:"var(--pz-text-muted)"}].map(s=><div key={s.label} className="text-center p-3 rounded-none" style={{background:"var(--pz-surface3)",border:"1px solid var(--pz-border)"}}><div className="text-xl mb-1">{s.emoji}</div><div className="text-xl font-semibold" style={{color:s.color,fontFamily:"'DM Mono',monospace"}}>{s.value}</div><div className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>{s.label}</div></div>)}</div>
+            {/* Metrics */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
+              {metrics.map(m=>(
+                <div key={m.label} style={{...card,padding:12,position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",top:0,left:0,right:0,height:1.5,background:m.accent}}/>
+                  <div style={{width:26,height:26,borderRadius:6,background:m.ibg,border:`0.5px solid ${m.ibr}`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:9}}>{m.icon}</div>
+                  <div style={{fontSize:21,fontWeight:700,letterSpacing:"-0.03em",lineHeight:1,fontVariantNumeric:"tabular-nums",marginBottom:3}}>{m.value}</div>
+                  <div style={{fontSize:9,color:"#555",letterSpacing:"0.1em",textTransform:"uppercase"}}>{m.label}</div>
+                  <div style={{fontSize:9,color:TEAL,marginTop:3}}>{m.sub}</div>
                 </div>
+              ))}
+            </div>
 
-                {/* Quick Start */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-medium" style={{color:"var(--pz-text)"}}>Quick Start</h2>
-                    <button onClick={()=>setShowAll(s=>!s)} className="text-sm" style={{color:"var(--pz-text)"}}>{showAll?"Show less":`+${quickActions.length-12} more`}</button>
+            {/* Calendar + Sessions */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              {/* Calendar */}
+              <div style={{...card,padding:13}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:9}}>
+                  <span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em"}}>{new Date().toLocaleString("default",{month:"long",year:"numeric"})}</span>
+                  <div style={{display:"flex",gap:3}}>
+                    {["‹","›"].map(ch=><button key={ch} style={{width:20,height:20,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:12,borderRadius:3}}>{ch}</button>)}
                   </div>
-                  <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                    {displayed.map((action,i)=>(
-                      <Link to={action.href} key={i}>
-                        <div className="relative p-3 text-center transition-all cursor-pointer" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface3)";(e.currentTarget as HTMLElement).style.transform="translateY(-2px)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="var(--pz-surface2)";(e.currentTarget as HTMLElement).style.transform=""}}>
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center mx-auto mb-2 shadow-md">
-                            {ICONS[action.label]??<ZapIcon className="h-5 w-5 text-white opacity-30"/>}
-                          </div>
-                          <p className="font-semibold leading-tight" style={{fontSize:"11px",letterSpacing:"0.01em",color:"var(--pz-text)"}}>{action.label}</p>
-                          <p className="text-[10px] mt-0.5 leading-tight hidden sm:block" style={{color:"var(--pz-text-muted)"}}>{action.description}</p>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,textAlign:"center"}}>
+                  {["M","T","W","T","F","S","S"].map((d,i)=><div key={i} style={{fontSize:8,color:"#444",padding:"2px 0",textTransform:"uppercase"}}>{d}</div>)}
+                  {Array(2).fill(null).map((_,i)=><div key={"p"+i}/>)}
+                  {Array.from({length:30},(_,i)=>{
+                    const day=i+1, isToday=day===new Date().getDate()&&new Date().getMonth()===3
+                    return <div key={day} style={{fontSize:10,color:isToday?"#0A0A0A":"#555",padding:"4px 1px",borderRadius:3,cursor:"pointer",background:isToday?GOLD:"transparent",fontWeight:isToday?700:400,transition:"all .15s"}}
+                      onMouseEnter={e=>{if(!isToday)(e.currentTarget as HTMLElement).style.color="#F0F0F0"}}
+                      onMouseLeave={e=>{if(!isToday)(e.currentTarget as HTMLElement).style.color="#555"}}>{day}</div>
+                  })}
+                </div>
+              </div>
+              {/* Sessions */}
+              <div style={{...card,padding:13}}>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555",marginBottom:8}}>
+                  {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+                </div>
+                <div style={{textAlign:"center",paddingTop:10}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px"}}>
+                    <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="#444" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <div style={{fontSize:10,color:"#333",marginBottom:9}}>No sessions — add one!</div>
+                  <button style={{background:"transparent",border:"0.5px solid #2A2A2A",color:"#555",fontSize:10,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                    onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
+                    onMouseLeave={e=>{(e.currentTarget.style.borderColor="#2A2A2A");(e.currentTarget.style.color="#555")}}>
+                    + Add Session
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Checklist */}
+            <div style={{...card,padding:13,marginBottom:13}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:checks.length>0?9:3}}>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555"}}>Today's Checklist</div>
+                <span style={{background:"#001A18",color:TEAL,border:"0.5px solid #002A26",fontSize:9,fontWeight:700,padding:"2px 6px",letterSpacing:"0.08em"}}>{checks.filter(c=>c.done).length}/{checks.length}</span>
+              </div>
+              {checks.length===0&&<div style={{fontSize:10,color:"#333",paddingBottom:5}}>No tasks yet. Add something to get started.</div>}
+              {checks.map(c=>(
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"0.5px solid #1A1A1A"}}>
+                  <button onClick={()=>toggleCheck(c.id)} style={{width:13,height:13,borderRadius:2,border:`1px solid ${c.done?TEAL:"#2A2A2A"}`,background:c.done?TEAL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,padding:0}}>
+                    {c.done&&<Check size={8} color="#0A0A0A" strokeWidth={3}/>}
+                  </button>
+                  <span style={{flex:1,fontSize:11,color:c.done?"#444":"#CCC",textDecoration:c.done?"line-through":"none"}}>{c.text}</span>
+                  <button onClick={()=>removeCheck(c.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#333",padding:2}}
+                    onMouseEnter={e=>(e.currentTarget as HTMLElement).style.color="#666"}
+                    onMouseLeave={e=>(e.currentTarget as HTMLElement).style.color="#333"}><X size={10}/></button>
+                </div>
+              ))}
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:7,padding:"6px 8px",border:"0.5px solid #1E1E1E",background:"rgba(13,13,13,0.8)"}}>
+                <Plus size={10} color="#333"/>
+                <input value={cInput} onChange={e=>setCInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCheck()}
+                  placeholder="Add a task and press Enter..."
+                  style={{background:"transparent",border:"none",outline:"none",color:"#AAAAAA",fontSize:11,flex:1,fontFamily:"inherit"}}/>
+              </div>
+            </div>
+
+            {/* XP Bar */}
+            <div style={{...card,padding:"11px 13px",marginBottom:13}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+                <div style={{display:"flex",alignItems:"center",gap:5}}>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:GOLD}}/>
+                  <span style={{fontSize:10,color:GOLD,fontWeight:600,letterSpacing:"0.06em"}}>Level {level} — {tier} {tierEmoji}</span>
+                </div>
+                <span style={{background:"#1A1400",color:GOLD,border:"0.5px solid #2A2000",fontSize:9,fontWeight:700,padding:"2px 6px",letterSpacing:"0.08em"}}>{xp.toLocaleString()} XP</span>
+              </div>
+              <div style={{height:3,background:"#1A1A1A",borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.max(0.4,xpPct)}%`,background:GOLD,borderRadius:2,transition:"width .6s ease"}}/>
+              </div>
+              <div style={{fontSize:9,color:"#444",marginTop:4}}>{toNext} XP to Level {level+1}</div>
+              {xp===0&&<div style={{fontSize:10,color:"#444",marginTop:6,padding:"5px 8px",background:"#0D0D0D",border:"0.5px solid #1E1E1E"}}>Complete your first session to earn XP and start levelling up.</div>}
+            </div>
+
+            {/* Quick Start */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:9}}>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555"}}>Quick Start</span>
+              <button onClick={()=>setShowAll(s=>!s)} style={{background:"none",border:"none",color:"#444",fontSize:9,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"}}>
+                {showAll?"SHOW LESS":`+${quickActions.length-20} MORE`}
+              </button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:7,marginBottom:14}}>
+              {displayed.map((a,i)=>(
+                <Link to={a.href} key={i} style={{textDecoration:"none"}}>
+                  <div style={{...card,padding:"10px 7px 9px",textAlign:"center",cursor:"pointer",transition:"all .18s"}}
+                    onMouseEnter={e=>{const el=e.currentTarget as HTMLElement;el.style.background="rgba(20,20,20,0.95)";el.style.borderColor="#2E2E2E";el.style.transform="translateY(-1px)"}}
+                    onMouseLeave={e=>{const el=e.currentTarget as HTMLElement;el.style.background="rgba(17,17,17,0.85)";el.style.borderColor="#1E1E1E";el.style.transform=""}}>
+                    <div style={{width:32,height:32,borderRadius:7,background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 6px"}}>
+                      {ICONS[a.label]??<ZapIcon size={14} color={TEAL}/>}
+                    </div>
+                    <div style={{fontSize:9,fontWeight:600,color:"#CCC",letterSpacing:"0.04em",lineHeight:1.3}}>{a.label}</div>
+                    <div style={{fontSize:8,color:"#333",marginTop:1,lineHeight:1.3}}>{a.description}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Recent Activity */}
+            <div style={{...card,borderTop:`2px solid ${GOLD}`,padding:13,marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:10}}>
+                <TrendingUp size={12} color="#555"/>
+                <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555"}}>Recent Activity</span>
+              </div>
+              {loading?(
+                <div style={{display:"flex",flexDirection:"column",gap:5}}>{[1,2,3].map(i=><div key={i} style={{height:40,background:"#1A1A1A"}}/>)}</div>
+              ):activity.length===0?(
+                <div style={{fontSize:10,textAlign:"center",padding:"14px 0",color:"#333"}}>No activity yet — start studying to see your history!</div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                  {activity.map(item=>(
+                    <div key={item.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 9px",background:"rgba(20,20,20,0.6)",border:"0.5px solid #1A1A1A"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:7}}>
+                        <div style={{width:4,height:4,background:TEAL,flexShrink:0}}/>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:500,color:"#F0F0F0"}}>{item.label}</div>
+                          <div style={{fontSize:9,color:"#444",fontFamily:"monospace"}}>{relTime(item.created_at)}</div>
                         </div>
-                      </Link>
-                    ))}
-                  </div>
+                      </div>
+                      <span style={{fontSize:9,padding:"2px 5px",background:"#0D0D0D",border:"0.5px solid #1E1E1E",color:"#555",fontFamily:"monospace"}}>{item.score}</span>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Recent Activity */}
-                <div className="p-6 rounded-none" style={card}>
-                  <div className="flex items-center gap-2 mb-4"><TrendingUp className="h-4 w-4" style={{color:"var(--pz-text-2)"}}/><h2 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Recent Activity</h2></div>
-                  {dataLoading ? (
-                    <div className="space-y-1">{[1,2,3].map(i=><div key={i} className="h-12 rounded-none animate-pulse" style={{background:"var(--pz-surface3)"}}/>)}</div>
-                  ) : activityLog.length === 0 ? (
-                    <p className="text-xs text-center py-6" style={{color:"var(--pz-text-muted)"}}>No activity yet — start studying to see your history here!</p>
-                  ) : (
-                    <div className="space-y-1">{activityLog.map((item,i)=><div key={item.id} className="flex items-center justify-between p-3 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="flex items-center gap-3"><div className="w-1.5 h-1.5 rounded-none" style={{background:"var(--pz-gold)"}}/><div><p className="text-sm font-medium" style={{color:"var(--pz-text)"}}>{item.label}</p><p className="text-xs" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{relativeTime(item.created_at)}</p></div></div><span className="text-xs px-2 py-0.5 rounded-none" style={{background:"var(--pz-surface)",border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{item.score}</span></div>)}</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Sidebar */}
-              <div className="hidden lg:block space-y-5">
-                <div className="p-5 rounded-none" style={{background:"var(--pz-surface2)",border:"1px solid var(--pz-border)",borderTop:"2px solid var(--pz-gold)"}}>
-                  <div className="flex items-center justify-between mb-3"><div><p className="text-xs mb-0.5" style={{color:"var(--pz-text-muted)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Level {level} — {tier}</p><p className="text-2xl font-semibold" style={{color:"var(--pz-text)",fontFamily:"'DM Mono',monospace"}}>{xp.toLocaleString()} XP</p></div><div className="w-12 h-12 rounded-none flex items-center justify-center text-2xl" style={{background:"var(--pz-surface3)",border:"1px solid rgba(212,175,90,0.2)"}}>{tierEmoji}</div></div>
-                  <div className="h-1.5 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:`${xpPercent}%`,background:"linear-gradient(90deg,var(--pz-gold),var(--pz-teal))",transition:"width 0.6s ease"}}/></div>
-                  <p className="text-xs mt-2" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{toNextXp} XP to Level {level + 1}</p>
-                </div>
-                <div className="p-5 rounded-none" style={card}>
-                  <div className="flex items-center gap-2 mb-4"><Target className="h-4 w-4" style={{color:"var(--pz-text-muted)"}}/><h3 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Focus Areas</h3></div>
-                  {dataLoading ? (
-                    <div className="space-y-3">{[1,2,3].map(i=><div key={i} className="h-8 rounded-none animate-pulse" style={{background:"var(--pz-surface3)"}}/>)}</div>
-                  ) : weakAreas.length === 0 ? (
-                    <p className="text-xs text-center py-4" style={{color:"var(--pz-text-muted)"}}>Complete practice sessions to see your weak areas</p>
-                  ) : (
-                    <div className="space-y-3">{weakAreas.map(area=><div key={area.subject}><div className="flex justify-between mb-1.5"><span className="text-xs font-medium" style={{color:"var(--pz-text-2)"}}>{area.subject}</span><span className="text-xs" style={{color:"var(--pz-text-muted)",fontFamily:"'DM Mono',monospace"}}>{area.accuracy}%</span></div><div className="h-1 rounded-none" style={{background:"var(--pz-surface3)"}}><div className="h-full rounded-none" style={{width:`${area.accuracy}%`,background:"var(--pz-gold)",transition:"width 0.6s ease"}}/></div></div>)}</div>
-                  )}
-                  <Link to="/practice"><button className="w-full mt-4 py-2 rounded-none text-xs flex items-center justify-center gap-1" style={{border:"1px solid var(--pz-border)",color:"var(--pz-text-muted)"}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-gold)";(e.currentTarget as HTMLElement).style.color="var(--pz-gold)"}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--pz-border)";(e.currentTarget as HTMLElement).style.color="var(--pz-text-muted)"}}>Practice weak areas<ChevronRight className="h-3 w-3"/></button></Link>
-                </div>
-                <div className="p-5 rounded-none" style={card}>
-                  <div className="flex items-center gap-2 mb-4"><Award className="h-4 w-4" style={{color:"var(--pz-text)"}}/><h3 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Achievements</h3></div>
-                  {dataLoading ? (
-                    <div className="grid grid-cols-3 gap-2">{[1,2,3,4,5,6].map(i=><div key={i} className="h-16 rounded-none animate-pulse" style={{background:"var(--pz-surface3)"}}/>)}</div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2">{achievements.map(a=><div key={a.key} title={a.earned?"Earned!":"Locked"} className="flex flex-col items-center gap-1 p-2.5 rounded-none text-center" style={{background:a.earned?"var(--pz-gold-dim)":"var(--pz-surface3)",border:`1px solid ${a.earned?"rgba(212,175,90,0.2)":"var(--pz-border)"}`,opacity:a.earned?1:0.4,transition:"opacity 0.3s"}}><span className="text-xl">{a.emoji}</span><span className="text-[9px] font-semibold leading-tight" style={{color:a.earned?"var(--pz-gold)":"var(--pz-text-muted)"}}>{a.label}</span></div>)}</div>
-                  )}
-                </div>
-                {userPlan==="free"&&<div className="p-5 rounded-none text-center" style={{background:"var(--pz-violet-dim)",border:"1px solid rgba(139,124,246,0.2)",borderTop:"2px solid var(--pz-violet)"}}><div className="w-11 h-11 rounded-none flex items-center justify-center text-xl mx-auto mb-3" style={{background:"rgba(139,124,246,0.2)"}}>⚡</div><p className="font-semibold text-sm mb-1" style={{color:"var(--pz-text)"}}>Upgrade to Pro</p><p className="text-xs mb-4" style={{color:"var(--pz-text-muted)"}}>Unlimited AI, all features, priority support</p><Link to="/pricing"><button className="w-full py-2.5 rounded-none text-sm font-semibold" style={{background:"var(--pz-violet)",color:"#0A0A0C"}}>View Plans</button></Link></div>}
-              </div>
+              )}
             </div>
           </div>
-        </main>
+
+          {/* ── SIDEBAR ───────────────────────────────────────────────── */}
+          <div className="hidden lg:flex" style={{width:215,flexDirection:"column",padding:"16px 14px 20px",background:"rgba(10,10,10,0.75)",borderLeft:"0.5px solid #1A1A1A",overflowY:"auto",flexShrink:0}}>
+            <div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+            <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#444",marginBottom:12}}>Today's Schedule</div>
+            <div style={{textAlign:"center",padding:"10px 0 12px"}}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 7px"}}>
+                <svg viewBox="0 0 24 24" width={11} height={11} fill="none" stroke="#333" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div style={{fontSize:10,color:"#333",marginBottom:7}}>No sessions — add one!</div>
+              <button style={{background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,padding:"4px 10px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
+                onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
+                + Add Session
+              </button>
+            </div>
+
+            <div style={{height:.5,background:"#1A1A1A",margin:"0 0 10px"}}/>
+
+            {/* Heatmap */}
+            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:6}}>Study Heatmap</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(13,1fr)",gap:2}}>
+              {heatmap.map((l,i)=><div key={i} style={{aspectRatio:"1",borderRadius:1,background:l==="l4"?TEAL:l==="l3"?"#009988":l==="l2"?"#006B62":l==="l1"?"#003D38":"#141414"}}/>)}
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:4,marginBottom:10}}>
+              <span style={{fontSize:8,color:"#333"}}>4 wks ago</span><span style={{fontSize:8,color:"#333"}}>Today</span>
+            </div>
+
+            <div style={{height:.5,background:"#1A1A1A",margin:"0 0 10px"}}/>
+
+            {/* XP */}
+            <div style={{...card,borderTop:`2px solid ${GOLD}`,padding:"10px 11px",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+                <div>
+                  <div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:2}}>Level {level} — {tier}</div>
+                  <div style={{fontSize:17,fontWeight:700,fontFamily:"monospace",letterSpacing:"-0.02em"}}>{xp.toLocaleString()} XP</div>
+                </div>
+                <div style={{width:32,height:32,background:"#1A1A1A",border:"1px solid #2A2A2A",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{tierEmoji}</div>
+              </div>
+              <div style={{height:2,background:"#1A1A1A",borderRadius:1,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.max(.4,xpPct)}%`,background:`linear-gradient(90deg,${GOLD},${TEAL})`,transition:"width .6s"}}/>
+              </div>
+              <div style={{fontSize:9,color:"#444",marginTop:3,fontFamily:"monospace"}}>{toNext} XP to Level {level+1}</div>
+            </div>
+
+            {/* Streak */}
+            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:5}}>Streak</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:11}}>
+              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke={GOLD} strokeWidth={2} strokeLinecap="round"><path d="M12 2c0 0-4 4-4 9a4 4 0 008 0c0-5-4-9-4-9z"/></svg>
+              <span style={{fontSize:12,color:GOLD,fontWeight:600}}>{streak} day{streak!==1?"s":""}</span>
+              {streak===0&&<span style={{fontSize:9,color:"#444"}}>Start today</span>}
+            </div>
+
+            <div style={{height:.5,background:"#1A1A1A",margin:"0 0 10px"}}/>
+
+            {/* Focus Areas */}
+            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:7}}>Focus Areas</div>
+            {loading?<div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>{[1,2].map(i=><div key={i} style={{height:24,background:"#1A1A1A"}}/>)}</div>
+            :weak.length===0?<div style={{fontSize:10,color:"#333",marginBottom:10}}>Complete practice to see weak areas</div>
+            :<div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:10}}>
+              {weak.map(a=>(
+                <div key={a.subject}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                    <span style={{fontSize:10,color:"#AAA"}}>{a.subject}</span>
+                    <span style={{fontSize:9,color:"#555",fontFamily:"monospace"}}>{a.accuracy}%</span>
+                  </div>
+                  <div style={{height:2,background:"#1A1A1A"}}>
+                    <div style={{height:"100%",width:`${a.accuracy}%`,background:GOLD,transition:"width .6s"}}/>
+                  </div>
+                </div>
+              ))}
+            </div>}
+
+            <div style={{height:.5,background:"#1A1A1A",margin:"0 0 10px"}}/>
+
+            {/* Quick Actions */}
+            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:6}}>Quick Actions</div>
+            <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+              {SB_BTN("Study Planner","/planner")}
+              {SB_BTN("AI Tutor","/ai-tutor")}
+              {SB_BTN("Go Pro ↗","/pricing")}
+            </div>
+
+            {/* Achievements */}
+            <div style={{height:.5,background:"#1A1A1A",margin:"0 0 10px"}}/>
+            <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:7}}>
+              <Award size={10} color="#555"/>
+              <span style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444"}}>Achievements</span>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:4,marginBottom:12}}>
+              {achievements.map(a=>(
+                <div key={a.key} title={a.label} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"7px 3px",background:a.earned?"#1A1400":"#0D0D0D",border:`0.5px solid ${a.earned?"#2A2000":"#1A1A1A"}`,opacity:a.earned?1:.3,transition:"opacity .3s"}}>
+                  <span style={{fontSize:15}}>{a.emoji}</span>
+                  <span style={{fontSize:7,fontWeight:600,color:a.earned?GOLD:"#444",textAlign:"center",lineHeight:1.2}}>{a.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Sign out */}
+            <button onClick={async()=>{await supabase.auth.signOut();navigate("/login")}}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:5,padding:"6px 8px",background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+              onMouseEnter={e=>{(e.currentTarget.style.borderColor="#E84040");(e.currentTarget.style.color="#E84040")}}
+              onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
+              <LogOut size={10}/>Sign Out
+            </button>
+          </div>
+        </div>
       </div>
-    </ThemeCtx.Provider>
+
+      <BottomNav/>
+    </div>
   )
 }
