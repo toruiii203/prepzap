@@ -97,15 +97,15 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
     setSize()
     window.addEventListener("resize", setSize)
 
-    const stars = Array.from({ length: 150 }, () => ({
+    const stars = Array.from({ length: 300 }, () => ({
       x: Math.random(), y: Math.random(),
-      r: Math.random() * 0.7 + 0.2,
+      r: Math.random() * 1.2 + 0.4,
       phase: Math.random() * Math.PI * 2,
       speed: 0.004 + Math.random() * 0.009,
       teal: Math.random() > 0.8,
     }))
 
-    const clouds = Array.from({ length: 6 }, () => ({
+    const clouds = Array.from({ length: 10 }, () => ({
       x: Math.random(), y: Math.random(),
       rx: 0.08 + Math.random() * 0.12,
       ry: 0.05 + Math.random() * 0.08,
@@ -127,7 +127,7 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       if (t === "starfield" || t === "twinkle") {
         for (const s of stars) {
           s.phase += s.speed
-          const a = (Math.sin(s.phase) + 1) * 0.215 + 0.02
+          const a = (Math.sin(s.phase) + 1) * 0.45 + 0.1
           ctx.beginPath()
           ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
           ctx.fillStyle = s.teal ? `rgba(0,196,180,${a})` : `rgba(240,240,240,${a})`
@@ -141,7 +141,7 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
           if (c.x < -0.2) c.x = 1.2; if (c.x > 1.2) c.x = -0.2
           if (c.y < -0.15) c.y = 1.15; if (c.y > 1.15) c.y = -0.15
           c.phase += c.speed
-          const a = (Math.sin(c.phase) + 1) * 0.014 + 0.004
+          const a = (Math.sin(c.phase) + 1) * 0.08 + 0.04
           const cx = c.x * W, cy = c.y * H
           const rx = c.rx * W, ry = c.ry * H
           const sy = ry / rx
@@ -160,7 +160,7 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
 
       if (t === "pulse") {
         pulse += pd; if (pulse > 1 || pulse < 0) pd *= -1
-        const a = pulse * 0.015 + 0.003
+        const a = pulse * 0.08 + 0.03
         const gr = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.75)
         gr.addColorStop(0, `rgba(0,196,180,${a})`)
         gr.addColorStop(1, "rgba(0,0,0,0)")
@@ -318,7 +318,7 @@ export default function Dashboard() {
   const heatmap=Array.from({length:91},()=>{const r=Math.random();return r>.75?"l4":r>.6?"l3":r>.5?"l2":r>.42?"l1":""})
 
   // Shared styles
-  const card: React.CSSProperties = { background:"rgba(13,13,13,0.88)", border:"1px solid #252525" }
+  const card: React.CSSProperties = { background:"rgba(10,10,10,0.65)", border:"1px solid #252525" }
 
   const metrics = [
     { label:"Day Streak",   value:streak,                  sub:streak>0?`${streak} day${streak!==1?"s":""}` :"Start today", accent:GOLD, ibg:"#1A1400", ibr:"#2A2000",
@@ -350,6 +350,7 @@ export default function Dashboard() {
     const s = document.createElement("style")
     s.id = id
     s.textContent = `
+      * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
       @media (max-width: 767px) {
         .sdn-metrics { grid-template-columns: repeat(2, 1fr) !important; }
         .sdn-quickstart { grid-template-columns: repeat(3, 1fr) !important; }
@@ -364,11 +365,11 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div style={{minHeight:"100vh",background:"transparent",color:"#F0F0F0",fontFamily:"'Inter',system-ui,sans-serif",position:"relative",overflow:"hidden"}}>
+    <div style={{minHeight:"100vh",background:"#0A0A0A",color:"#F0F0F0",fontFamily:"'Inter',system-ui,sans-serif",position:"relative"}}>
       {/* Animated canvas — fixed behind everything */}
       <canvas ref={canvasRef} style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",zIndex:0,pointerEvents:"none"}}/>
 
-      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",minHeight:"100vh"}}>
+      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",minHeight:"100vh",WebkitFontSmoothing:"antialiased",MozOsxFontSmoothing:"grayscale"}}>
 
         {/* ── NAV ──────────────────────────────────────────────────────────── */}
         <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",background:"rgba(8,8,8,0.6)",flexShrink:0}}>
@@ -404,7 +405,7 @@ export default function Dashboard() {
         <div style={{display:"flex",flex:1,overflow:"hidden",maxWidth:1400,margin:"0 auto",width:"100%"}}>
 
           {/* ── MAIN CONTENT ─────────────────────────────────────────────── */}
-          <div className="sdn-main" style={{flex:1,padding:"18px 20px 80px 22px",overflowY:"auto",background:"transparent",transform:"translateZ(0)"}}>
+          <div className="sdn-main" style={{flex:1,padding:"18px 20px 80px 22px",overflowY:"auto",background:"transparent"}}>
 
             {/* Greeting */}
             <div style={{marginBottom:16}}>
