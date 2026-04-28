@@ -101,26 +101,42 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
     setSize()
     window.addEventListener("resize", setSize)
 
+    // BUG 2 FIX: stars now have velocity (vx, vy) so they drift across screen
     const stars = Array.from({ length: 300 }, () => ({
       x: Math.random(), y: Math.random(),
       r: Math.random() * 1.2 + 0.4,
       phase: Math.random() * Math.PI * 2,
       speed: 0.004 + Math.random() * 0.009,
       teal: Math.random() > 0.8,
+      vx: (Math.random() - 0.5) * 0.00012,  // drift velocity X
+      vy: (Math.random() - 0.5) * 0.00008,  // drift velocity Y
     }))
 
-    const clouds = Array.from({ length: 10 }, () => ({
-      x: Math.random(), y: Math.random(),
-      rx: 0.08 + Math.random() * 0.12,
-      ry: 0.05 + Math.random() * 0.08,
-      dx: (Math.random() - 0.5) * 0.00006,
-      dy: (Math.random() - 0.5) * 0.00004,
-      teal: Math.random() > 0.5,
+    // BUG 3 FIX: nebula clouds are off-center, multi-color (purple/magenta/teal/indigo), larger spread
+    const NEBULA_COLORS = [
+      "100,40,220",   // deep purple
+      "180,0,180",    // magenta
+      "0,196,180",    // teal
+      "60,0,200",     // indigo
+      "220,60,120",   // rose-purple
+      "0,120,220",    // blue
+      "140,0,255",    // violet
+    ]
+    const clouds = Array.from({ length: 12 }, (_, i) => ({
+      x: Math.random(),
+      y: Math.random(),
+      rx: 0.14 + Math.random() * 0.20,   // bigger clouds
+      ry: 0.08 + Math.random() * 0.14,
+      dx: (Math.random() - 0.5) * 0.00005,
+      dy: (Math.random() - 0.5) * 0.00003,
+      color: NEBULA_COLORS[i % NEBULA_COLORS.length],
       phase: Math.random() * Math.PI * 2,
-      speed: 0.003 + Math.random() * 0.004,
+      speed: 0.002 + Math.random() * 0.003,
     }))
 
-    let pulse = 0, pd = 0.012
+    // BUG 1 FIX: separate aurora and pulse state — no more shared variable
+    let auroraTick = 0
+    let pulseVal = 0, pulseDelta = 0.012
 
     const draw = () => {
       ctx.clearRect(0, 0, W, H)
@@ -130,6 +146,11 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
 
       if (t === "starfield") {
         for (const s of stars) {
+          // BUG 2 FIX: move star position each frame (drift), wrap around edges
+          s.x += s.vx; s.y += s.vy
+          if (s.x < 0) s.x = 1; if (s.x > 1) s.x = 0
+          if (s.y < 0) s.y = 1; if (s.y > 1) s.y = 0
+          // twinkle alpha still applies on top of drift
           s.phase += s.speed
           const a = (Math.sin(s.phase) + 1) * 0.45 + 0.1
           ctx.beginPath()
@@ -140,19 +161,21 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       }
 
       if (t === "nebula") {
+        // BUG 3 FIX: multi-color off-center drifting clouds — distinctly different from pulse
         for (const c of clouds) {
           c.x += c.dx; c.y += c.dy
-          if (c.x < -0.2) c.x = 1.2; if (c.x > 1.2) c.x = -0.2
-          if (c.y < -0.15) c.y = 1.15; if (c.y > 1.15) c.y = -0.15
+          if (c.x < -0.25) c.x = 1.25; if (c.x > 1.25) c.x = -0.25
+          if (c.y < -0.2) c.y = 1.2; if (c.y > 1.2) c.y = -0.2
           c.phase += c.speed
-          const a = (Math.sin(c.phase) + 1) * 0.08 + 0.04
+          const a = (Math.sin(c.phase) + 1) * 0.07 + 0.03
           const cx = c.x * W, cy = c.y * H
           const rx = c.rx * W, ry = c.ry * H
           const sy = ry / rx
           ctx.save()
           ctx.scale(1, sy)
           const gr = ctx.createRadialGradient(cx, cy / sy, 0, cx, cy / sy, rx)
-          gr.addColorStop(0, c.teal ? `rgba(0,196,180,${a})` : `rgba(100,60,200,${a})`)
+          gr.addColorStop(0, `rgba(${c.color},${a * 1.8})`)
+          gr.addColorStop(0.4, `rgba(${c.color},${a})`)
           gr.addColorStop(1, "rgba(0,0,0,0)")
           ctx.beginPath()
           ctx.arc(cx, cy / sy, rx, 0, Math.PI * 2)
@@ -163,7 +186,8 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       }
 
       if (t === "aurora") {
-        pulse += pd
+        // BUG 1 FIX: use auroraTick, not pulse
+        auroraTick += 0.012
         const bands = [
           { yRatio: 0.25, color: "0,220,160" },
           { yRatio: 0.45, color: "0,160,220" },
@@ -171,9 +195,9 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
           { yRatio: 0.82, color: "0,220,120" },
         ]
         bands.forEach((b, i) => {
-          const wave = Math.sin(pulse * 1.5 + i * 1.3) * H * 0.06
+          const wave = Math.sin(auroraTick * 1.5 + i * 1.3) * H * 0.06
           const thick = H * 0.12
-          const a = (Math.sin(pulse * 0.8 + i) * 0.5 + 0.5) * 0.28 + 0.08
+          const a = (Math.sin(auroraTick * 0.8 + i) * 0.5 + 0.5) * 0.28 + 0.08
           const gy = b.yRatio * H + wave
           const g = ctx.createLinearGradient(0, gy - thick, 0, gy + thick)
           g.addColorStop(0, "rgba(0,0,0,0)")
@@ -185,8 +209,11 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       }
 
       if (t === "pulse") {
-        pulse += pd; if (pulse > 1 || pulse < 0) pd *= -1
-        const a = pulse * 0.25 + 0.08
+        // BUG 1 FIX: use pulseVal/pulseDelta — fully independent from aurora
+        pulseVal += pulseDelta
+        if (pulseVal > 1 || pulseVal < 0) pulseDelta *= -1
+        pulseVal = Math.max(0, Math.min(1, pulseVal))
+        const a = pulseVal * 0.25 + 0.08
         const gr = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.75)
         gr.addColorStop(0, `rgba(0,196,180,${a})`)
         gr.addColorStop(0.5, `rgba(0,100,120,${a * 0.4})`)
