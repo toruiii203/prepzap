@@ -43,7 +43,7 @@ export default function FlipScript() {
   }, []);
 
   const start = (overrideTopic?: string) => {
-    const t = overrideTopic ?? topicInput.trim() || getActiveSource()?.name?.replace(/\.\w+$/, "") || "";
+    const t = (overrideTopic ?? topicInput.trim()) || getActiveSource()?.name?.replace(/\.\w+$/, "") || "";
     if (!t) return;
     setTopic(t);
     setTopicInput(t);
