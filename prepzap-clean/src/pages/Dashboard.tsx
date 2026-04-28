@@ -331,6 +331,29 @@ export default function Dashboard() {
   const [checks,setChecks] = useState<CheckItem[]>(()=>{try{return JSON.parse(localStorage.getItem("pz_checklist")||"[]")}catch{return[]}})
   const [cInput,setCInput] = useState("")
 
+  // ── Add Session Modal state ──
+  const SESSION_PALETTE = ["#10b981","#3b82f6","#a855f7","#f59e0b","#ef4444","#06b6d4","#ec4899","#84cc16","#f97316","#6366f1"]
+  const [showSessionModal, setShowSessionModal] = useState(false)
+  const [sessionTitle,    setSessionTitle]    = useState("")
+  const [sessionColor,    setSessionColor]    = useState(SESSION_PALETTE[0])
+  const [sessionDate,     setSessionDate]     = useState(() => new Date().toISOString().split("T")[0])
+  const [sessionDuration, setSessionDuration] = useState(30)
+  const openSessionModal = () => {
+    setSessionTitle(""); setSessionColor(SESSION_PALETTE[0])
+    setSessionDate(new Date().toISOString().split("T")[0])
+    setSessionDuration(30); setShowSessionModal(true)
+  }
+  const saveSession = async () => {
+    if (!sessionTitle.trim() || !user) return
+    try {
+      await supabase.from("study_sessions").insert({
+        user_id: user.id, title: sessionTitle.trim(),
+        date: sessionDate, duration_minutes: sessionDuration, color: sessionColor,
+      })
+    } catch {}
+    setShowSessionModal(false)
+  }
+
   useEffect(()=>{localStorage.setItem("pz_checklist",JSON.stringify(checks))},[checks])
 
   const addCheck = ()=>{ if(!cInput.trim())return; setChecks(p=>[...p,{id:Date.now().toString(),text:cInput.trim(),done:false}]); setCInput("") }
@@ -635,7 +658,7 @@ export default function Dashboard() {
                 <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="#333" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               </div>
               <div style={{fontSize:10,color:"#333",marginBottom:6}}>No sessions — add one!</div>
-              <button onClick={()=>navigate("/planner")} style={{background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,padding:"4px 10px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+              <button onClick={openSessionModal} style={{background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,padding:"4px 10px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
                 onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
                 onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
                 + Add Session
@@ -733,6 +756,94 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── Add Session Modal ── */}
+      {showSessionModal && (
+        <div style={{position:"fixed",inset:0,zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}} onClick={()=>setShowSessionModal(false)}/>
+          <div style={{position:"relative",width:"100%",maxWidth:400,background:"#0E0E0E",border:"1px solid #252525",padding:20,zIndex:10,display:"flex",flexDirection:"column",gap:14}}>
+
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontSize:13,fontWeight:700,letterSpacing:"0.04em"}}>Add Study Session</span>
+              <button onClick={()=>setShowSessionModal(false)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",padding:4,lineHeight:1}}>
+                <X size={14}/>
+              </button>
+            </div>
+
+            {/* Title */}
+            <div>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>What are you studying?</div>
+              <input autoFocus
+                value={sessionTitle} onChange={e=>setSessionTitle(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&saveSession()}
+                placeholder="e.g. Chapter 5, Calculus problems..."
+                style={{width:"100%",background:"#141414",border:"0.5px solid #252525",color:"#F0F0F0",fontSize:12,padding:"8px 10px",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            </div>
+
+            {/* Color */}
+            <div>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>Color</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {SESSION_PALETTE.map(c=>(
+                  <button key={c} onClick={()=>setSessionColor(c)}
+                    style={{width:18,height:18,borderRadius:"50%",background:c,border:"none",cursor:"pointer",
+                      outline:sessionColor===c?`2px solid ${c}`:"none",outlineOffset:2,
+                      transform:sessionColor===c?"scale(1.25)":"scale(1)",transition:"transform .15s"}}/>
+                ))}
+              </div>
+            </div>
+
+            {/* Date + Duration */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>Date</div>
+                <input type="date" value={sessionDate} onChange={e=>setSessionDate(e.target.value)}
+                  style={{width:"100%",background:"#141414",border:"0.5px solid #252525",color:"#F0F0F0",fontSize:11,padding:"6px 8px",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>Duration</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                  {[15,30,45,60,90,120].map(d=>(
+                    <button key={d} onClick={()=>setSessionDuration(d)}
+                      style={{padding:"3px 7px",fontSize:10,cursor:"pointer",fontFamily:"inherit",transition:"all .15s",
+                        background:sessionDuration===d?sessionColor:"#141414",
+                        color:sessionDuration===d?"#fff":"#555",
+                        border:`0.5px solid ${sessionDuration===d?sessionColor:"#252525"}`}}>
+                      {d<60?`${d}m`:`${d/60}h`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Preview */}
+            {sessionTitle.trim() && (
+              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:`${sessionColor}10`,border:`0.5px solid ${sessionColor}40`}}>
+                <div style={{width:3,height:28,background:sessionColor,flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:12,fontWeight:500,color:"#F0F0F0"}}>{sessionTitle}</div>
+                  <div style={{fontSize:10,color:"#555",fontFamily:"monospace"}}>{sessionDuration<60?`${sessionDuration}min`:`${sessionDuration/60}h`} · {sessionDate}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setShowSessionModal(false)}
+                style={{flex:1,padding:"8px 0",background:"transparent",border:"0.5px solid #252525",color:"#555",fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="#555"}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="#252525"}}>
+                Cancel
+              </button>
+              <button onClick={saveSession} disabled={!sessionTitle.trim()}
+                style={{flex:1,padding:"8px 0",background:sessionTitle.trim()?sessionColor:"#1A1A1A",border:"none",color:sessionTitle.trim()?"#fff":"#333",fontSize:11,fontWeight:600,cursor:sessionTitle.trim()?"pointer":"default",fontFamily:"inherit",transition:"all .2s"}}>
+                Add Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav/>
     </div>
