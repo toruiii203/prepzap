@@ -190,7 +190,7 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
     const c = ref.current; if (!c) return
     const ctx = c.getContext("2d"); if (!ctx) return
     let raf = 0
-    const W = 72, H = 32
+    const W = 90, H = 44
     const SS = Array.from({ length: 12 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 0.5 + Math.random() * 0.6, ph: Math.random() * Math.PI * 2, sp: 0.025 + Math.random() * 0.03, tl: Math.random() > 0.7 }))
     const CL = Array.from({ length: 2 }, () => ({ x: 10 + Math.random() * 70, y: 5 + Math.random() * 34, r: 12 + Math.random() * 8, dx: (Math.random()-.5)*.06, dy: (Math.random()-.5)*.04, tl: Math.random()>.5, ph: Math.random()*Math.PI*2, sp: 0.015 }))
     let pl = 0, pd2 = 0.018
@@ -211,8 +211,8 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
       title={TITLES[id]}
       style={{
         position: "relative",
-        width: 72,
-        height: 32,
+        width: 90,
+        height: 44,
         flexShrink: 0,
         border: "none",
         padding: 0,
@@ -223,14 +223,14 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
         transition: "border-color .2s",
       }}
     >
-      <canvas ref={ref} width={72} height={32} style={{ display:"block", width:"100%", height:"100%" }}/>
+      <canvas ref={ref} width={90} height={44} style={{ display:"block", width:"100%", height:"100%" }}/>
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0,
-        padding: "2px 0 3px",
+        padding: "3px 0 4px",
         background: active ? "rgba(232,185,35,0.12)" : "rgba(0,0,0,0.55)",
-        fontSize: 7,
+        fontSize: 8,
         fontWeight: 700,
-        letterSpacing: "0.1em",
+        letterSpacing: "0.12em",
         textTransform: "uppercase",
         color: active ? GOLD : "#555",
         textAlign: "center",
@@ -318,7 +318,7 @@ export default function Dashboard() {
   const heatmap=Array.from({length:91},()=>{const r=Math.random();return r>.75?"l4":r>.6?"l3":r>.5?"l2":r>.42?"l1":""})
 
   // Shared styles
-  const card: React.CSSProperties = { background:"rgba(17,17,17,0.85)", border:"1px solid #1E1E1E", backdropFilter:"blur(8px)" }
+  const card: React.CSSProperties = { background:"rgba(17,17,17,0.95)", border:"1px solid #1E1E1E" }
 
   const metrics = [
     { label:"Day Streak",   value:streak,                  sub:streak>0?`${streak} day${streak!==1?"s":""}` :"Start today", accent:GOLD, ibg:"#1A1400", ibr:"#2A2000",
@@ -371,7 +371,7 @@ export default function Dashboard() {
       <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",minHeight:"100vh"}}>
 
         {/* ── NAV ──────────────────────────────────────────────────────────── */}
-        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",backdropFilter:"blur(12px)",background:"rgba(10,10,10,0.7)",flexShrink:0}}>
+        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",background:"rgba(10,10,10,0.95)",flexShrink:0}}>
           <span style={{fontSize:14,fontWeight:700,letterSpacing:"0.2em"}}>STUDENIUS</span>
           <div style={{display:"flex",gap:20}}>
             {([["SOURCE LIBRARY","/sources"],["PRICING","/pricing"]] as [string,string][]).map(([l,h])=>(
@@ -392,9 +392,9 @@ export default function Dashboard() {
 
 
         {/* ── THEME STRIP ─────────────────────────────────────────────────── */}
-        <div style={{display:"flex",alignItems:"center",gap:0,overflowX:"auto",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.7)",flexShrink:0,scrollbarWidth:"none",msOverflowStyle:"none",height:32}}>
-          <div style={{padding:"0 10px",flexShrink:0,fontSize:7,letterSpacing:"0.16em",textTransform:"uppercase",color:"#333",fontWeight:700,whiteSpace:"nowrap"}}>Theme</div>
-          <div style={{width:"0.5px",height:18,background:"#1E1E1E",flexShrink:0}}/>
+        <div style={{display:"flex",alignItems:"center",gap:0,overflowX:"auto",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.7)",flexShrink:0,scrollbarWidth:"none",msOverflowStyle:"none"}}>
+          <div style={{padding:"0 12px",flexShrink:0,fontSize:7,letterSpacing:"0.16em",textTransform:"uppercase",color:"#333",fontWeight:700,whiteSpace:"nowrap"}}>Theme</div>
+          <div style={{width:"0.5px",height:28,background:"#1E1E1E",flexShrink:0}}/>
           {(["pure","starfield","nebula","twinkle","pulse"] as BgTheme[]).map(id=>(
             <ThemePanel key={id} id={id} active={bgTheme===id} onClick={()=>setBgTheme(id)}/>
           ))}
@@ -564,7 +564,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── SIDEBAR (desktop only) ───────────────────────────────────── */}
-          <div className="sdn-sidebar" style={{width:210,flexDirection:"column",padding:"14px 13px 20px",background:"rgba(10,10,10,0.75)",borderLeft:"0.5px solid #1A1A1A",overflowY:"auto",flexShrink:0,display:"flex"}}>
+          <div className="sdn-sidebar" style={{width:210,flexDirection:"column",padding:"14px 13px 20px",background:"rgba(10,10,10,0.97)",borderLeft:"0.5px solid #1A1A1A",overflowY:"auto",flexShrink:0,display:"flex"}}>
             <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
             <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#444",marginBottom:11}}>Today's Schedule</div>
             <div style={{textAlign:"center",padding:"9px 0 11px"}}>
@@ -657,15 +657,6 @@ export default function Dashboard() {
                   <span style={{fontSize:14}}>{a.emoji}</span>
                   <span style={{fontSize:7,fontWeight:600,color:a.earned?GOLD:"#444",textAlign:"center",lineHeight:1.2}}>{a.label}</span>
                 </div>
-              ))}
-            </div>
-
-            {/* Theme Selector */}
-            <div style={{height:.5,background:"#1A1A1A",margin:"0 0 9px"}}/>
-            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:5}}>Theme</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:2,marginBottom:11,overflow:"hidden"}}>
-              {(["pure","starfield","nebula","twinkle","pulse"] as BgTheme[]).map(id=>(
-                <ThemePanel key={id} id={id} active={bgTheme===id} onClick={()=>setBgTheme(id)}/>
               ))}
             </div>
 
