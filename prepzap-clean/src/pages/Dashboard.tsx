@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase"
 import { levelFromXp, xpToNextLevel, xpProgressPercent, tierFromLevel, tierEmojiFromLevel } from "@/lib/xp"
 
 // ─── Theme Types ──────────────────────────────────────────────────────────────
-type BgTheme = "pure" | "starfield" | "nebula" | "twinkle" | "pulse"
+type BgTheme = "pure" | "starfield" | "nebula" | "aurora" | "pulse"
 
 // ─── Data Types ───────────────────────────────────────────────────────────────
 interface CheckItem  { id: string; text: string; done: boolean }
@@ -128,7 +128,7 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       ctx.fillRect(0, 0, W, H)
       const t = themeRef.current
 
-      if (t === "starfield" || t === "twinkle") {
+      if (t === "starfield") {
         for (const s of stars) {
           s.phase += s.speed
           const a = (Math.sin(s.phase) + 1) * 0.45 + 0.1
@@ -139,7 +139,7 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
         }
       }
 
-      if (t === "nebula" || t === "twinkle") {
+      if (t === "nebula") {
         for (const c of clouds) {
           c.x += c.dx; c.y += c.dy
           if (c.x < -0.2) c.x = 1.2; if (c.x > 1.2) c.x = -0.2
@@ -160,6 +160,28 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
           ctx.fill()
           ctx.restore()
         }
+      }
+
+      if (t === "aurora") {
+        pulse += pd
+        const bands = [
+          { yRatio: 0.25, color: "0,220,160" },
+          { yRatio: 0.45, color: "0,160,220" },
+          { yRatio: 0.65, color: "80,0,220" },
+          { yRatio: 0.82, color: "0,220,120" },
+        ]
+        bands.forEach((b, i) => {
+          const wave = Math.sin(pulse * 1.5 + i * 1.3) * H * 0.06
+          const thick = H * 0.12
+          const a = (Math.sin(pulse * 0.8 + i) * 0.5 + 0.5) * 0.28 + 0.08
+          const gy = b.yRatio * H + wave
+          const g = ctx.createLinearGradient(0, gy - thick, 0, gy + thick)
+          g.addColorStop(0, "rgba(0,0,0,0)")
+          g.addColorStop(0.5, `rgba(${b.color},${a})`)
+          g.addColorStop(1, "rgba(0,0,0,0)")
+          ctx.fillStyle = g
+          ctx.fillRect(0, gy - thick, W, thick * 2)
+        })
       }
 
       if (t === "pulse") {
@@ -187,7 +209,7 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
     pure: "Pure Black",
     starfield: "Starfield",
     nebula: "Nebula",
-    twinkle: "Twinkle",
+    aurora: "Aurora",
     pulse: "Pulse"
   }
 
@@ -201,12 +223,13 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
     c.style.width = W + "px"; c.style.height = H + "px"
     ctx.scale(dpr, dpr)
     const SS = Array.from({ length: 12 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 0.5 + Math.random() * 0.6, ph: Math.random() * Math.PI * 2, sp: 0.025 + Math.random() * 0.03, tl: Math.random() > 0.7 }))
-    const CL = Array.from({ length: 2 }, () => ({ x: 10 + Math.random() * 70, y: 5 + Math.random() * 34, r: 12 + Math.random() * 8, dx: (Math.random()-.5)*.06, dy: (Math.random()-.5)*.04, tl: Math.random()>.5, ph: Math.random()*Math.PI*2, sp: 0.015 }))
+    const CL = Array.from({ length: 2 }, () => ({ x: 10 + Math.random() * 70, y: 5 + Math.random() * 34, r: 12 + Math.random() * 8, dx: (Math.random()-.5)*.3, dy: (Math.random()-.5)*.2, tl: Math.random()>.5, ph: Math.random()*Math.PI*2, sp: 0.015 }))
     let pl = 0, pd2 = 0.018
     const draw = () => {
       ctx.clearRect(0,0,W,H); ctx.fillStyle="#0A0A0A"; ctx.fillRect(0,0,W,H)
-      if (id==="starfield"||id==="twinkle") SS.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)*0.3+0.04;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.tl?`rgba(0,196,180,${a})`:`rgba(240,240,240,${a})`;ctx.fill()})
-      if (id==="nebula"||id==="twinkle") CL.forEach(c=>{c.x+=c.dx;c.y+=c.dy;if(c.x<-10)c.x=W+10;if(c.x>W+10)c.x=-10;if(c.y<-10)c.y=H+10;if(c.y>H+10)c.y=-10;c.ph+=c.sp;const a=(Math.sin(c.ph)+1)*0.09+0.025;const g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.r);g.addColorStop(0,c.tl?`rgba(0,196,180,${a})`:`rgba(100,60,200,${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill()})
+      if (id==="starfield") SS.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)*0.45+0.1;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.tl?`rgba(0,196,180,${a})`:`rgba(240,240,240,${a})`;ctx.fill()})
+      if (id==="nebula") CL.forEach(c=>{c.x+=c.dx;c.y+=c.dy;if(c.x<-10)c.x=W+10;if(c.x>W+10)c.x=-10;if(c.y<-10)c.y=H+10;if(c.y>H+10)c.y=-10;c.ph+=c.sp;const a=(Math.sin(c.ph)+1)*0.18+0.06;const g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.r);g.addColorStop(0,c.tl?`rgba(0,196,180,${a})`:`rgba(100,60,200,${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill()})
+      if (id==="aurora"){pl+=pd2;const bands=[{y:H*0.3,color:"0,220,160"},{y:H*0.5,color:"0,160,220"},{y:H*0.7,color:"80,0,220"}];bands.forEach((b,i)=>{const wave=Math.sin(pl*2+i*1.2)*H*0.08;const a=(Math.sin(pl+i)*0.5+0.5)*0.35+0.1;const g=ctx.createLinearGradient(0,b.y+wave-10,0,b.y+wave+10);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(0.5,`rgba(${b.color},${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,b.y+wave-10,W,20)})}
       if (id==="pulse"){pl+=pd2;if(pl>1||pl<0)pd2*=-1;const a=pl*0.1+0.02;const g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.6);g.addColorStop(0,`rgba(0,196,180,${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
       raf=requestAnimationFrame(draw)
     }
@@ -405,7 +428,7 @@ export default function Dashboard() {
         <div style={{display:"flex",alignItems:"center",gap:0,overflowX:"auto",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.7)",flexShrink:0,scrollbarWidth:"none",msOverflowStyle:"none"}}>
           <div style={{padding:"0 12px",flexShrink:0,fontSize:7,letterSpacing:"0.16em",textTransform:"uppercase",color:"#333",fontWeight:700,whiteSpace:"nowrap"}}>Theme</div>
           <div style={{width:"0.5px",height:28,background:"#1E1E1E",flexShrink:0}}/>
-          {(["pure","starfield","nebula","twinkle","pulse"] as BgTheme[]).map(id=>(
+          {(["pure","starfield","nebula","aurora","pulse"] as BgTheme[]).map(id=>(
             <ThemePanel key={id} id={id} active={bgTheme===id} onClick={()=>setBgTheme(id)}/>
           ))}
         </div>
