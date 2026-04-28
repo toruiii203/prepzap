@@ -318,7 +318,7 @@ export default function Dashboard() {
   const heatmap=Array.from({length:91},()=>{const r=Math.random();return r>.75?"l4":r>.6?"l3":r>.5?"l2":r>.42?"l1":""})
 
   // Shared styles
-  const card: React.CSSProperties = { background:"rgba(17,17,17,0.95)", border:"1px solid #1E1E1E" }
+  const card: React.CSSProperties = { background:"rgba(13,13,13,0.88)", border:"1px solid #252525" }
 
   const metrics = [
     { label:"Day Streak",   value:streak,                  sub:streak>0?`${streak} day${streak!==1?"s":""}` :"Start today", accent:GOLD, ibg:"#1A1400", ibr:"#2A2000",
@@ -364,14 +364,14 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div style={{minHeight:"100vh",background:"#0A0A0A",color:"#F0F0F0",fontFamily:"'Inter',system-ui,sans-serif",position:"relative",overflow:"hidden"}}>
+    <div style={{minHeight:"100vh",background:"transparent",color:"#F0F0F0",fontFamily:"'Inter',system-ui,sans-serif",position:"relative",overflow:"hidden"}}>
       {/* Animated canvas — fixed behind everything */}
       <canvas ref={canvasRef} style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",zIndex:0,pointerEvents:"none"}}/>
 
       <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",minHeight:"100vh"}}>
 
         {/* ── NAV ──────────────────────────────────────────────────────────── */}
-        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",background:"rgba(10,10,10,0.95)",flexShrink:0}}>
+        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",background:"rgba(8,8,8,0.6)",flexShrink:0}}>
           <span style={{fontSize:14,fontWeight:700,letterSpacing:"0.2em"}}>STUDENIUS</span>
           <div style={{display:"flex",gap:20}}>
             {([["SOURCE LIBRARY","/sources"],["PRICING","/pricing"]] as [string,string][]).map(([l,h])=>(
@@ -404,7 +404,7 @@ export default function Dashboard() {
         <div style={{display:"flex",flex:1,overflow:"hidden",maxWidth:1400,margin:"0 auto",width:"100%"}}>
 
           {/* ── MAIN CONTENT ─────────────────────────────────────────────── */}
-          <div className="sdn-main" style={{flex:1,padding:"18px 20px 80px 22px",overflowY:"auto"}}>
+          <div className="sdn-main" style={{flex:1,padding:"18px 20px 80px 22px",overflowY:"auto",background:"transparent",transform:"translateZ(0)"}}>
 
             {/* Greeting */}
             <div style={{marginBottom:16}}>
@@ -564,7 +564,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── SIDEBAR (desktop only) ───────────────────────────────────── */}
-          <div className="sdn-sidebar" style={{width:210,flexDirection:"column",padding:"14px 13px 20px",background:"rgba(10,10,10,0.97)",borderLeft:"0.5px solid #1A1A1A",overflowY:"auto",flexShrink:0,display:"flex"}}>
+          <div className="sdn-sidebar" style={{width:210,flexDirection:"column",padding:"14px 13px 20px",background:"rgba(8,8,8,0.6)",borderLeft:"0.5px solid #1A1A1A",overflowY:"auto",flexShrink:0,display:"flex"}}>
             <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
             <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#444",marginBottom:11}}>Today's Schedule</div>
             <div style={{textAlign:"center",padding:"9px 0 11px"}}>
