@@ -91,10 +91,13 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
     let W = 0, H = 0, raf = 0
 
     const setSize = () => {
-      const dpr = window.devicePixelRatio || 1
-      W = window.innerWidth; H = window.innerHeight
-      canvas.width = W * dpr; canvas.height = H * dpr
-      canvas.style.width = W + "px"; canvas.style.height = H + "px"
+      const dpr = Math.min(window.devicePixelRatio || 1, 2) // cap at 2x — no benefit beyond that
+      W = Math.floor(window.innerWidth)
+      H = Math.floor(window.innerHeight)
+      canvas.width = W * dpr
+      canvas.height = H * dpr
+      canvas.style.width = W + "px"
+      canvas.style.height = H + "px"
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.scale(dpr, dpr)
     }
@@ -409,7 +412,7 @@ export default function Dashboard() {
     const s = document.createElement("style")
     s.id = id
     s.textContent = `
-      * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+      *, *::before, *::after { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; text-rendering: optimizeLegibility !important; }
       @media (max-width: 767px) {
         .sdn-metrics { grid-template-columns: repeat(2, 1fr) !important; }
         .sdn-quickstart { grid-template-columns: repeat(3, 1fr) !important; }
@@ -426,9 +429,9 @@ export default function Dashboard() {
   return (
     <div style={{minHeight:"100vh",background:"#0A0A0A",color:"#F0F0F0",fontFamily:"'Inter',system-ui,sans-serif",position:"relative"}}>
       {/* Animated canvas — fixed behind everything */}
-      <canvas ref={canvasRef} style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",zIndex:0,pointerEvents:"none"}}/>
+      <canvas ref={canvasRef} style={{position:"fixed",top:0,left:0,zIndex:0,pointerEvents:"none"}}/>
 
-      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",minHeight:"100vh",WebkitFontSmoothing:"antialiased",MozOsxFontSmoothing:"grayscale"}}>
+      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",minHeight:"100vh",WebkitFontSmoothing:"antialiased",MozOsxFontSmoothing:"grayscale",transform:"translateZ(0)"}}>
 
         {/* ── NAV ──────────────────────────────────────────────────────────── */}
         <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",background:"rgba(8,8,8,0.6)",flexShrink:0}}>
