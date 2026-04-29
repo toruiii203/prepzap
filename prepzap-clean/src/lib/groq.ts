@@ -1,12 +1,9 @@
 // ─── Groq API helper ──────────────────────────────────────────────────────────
-// Add your Groq API key to a .env file in the project root:
-//   VITE_GROQ_API_KEY=gsk_your_key_here
-//
-// Get a free key at: https://console.groq.com/keys
+// Requests are proxied through a Cloudflare Worker to avoid CORS issues.
+// The API key lives in the Worker secret — not exposed in the frontend.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY as string;
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_API_URL = "/api/groq";
 
 const DEFAULT_MODEL  = "llama-3.3-70b-versatile";
 const VISION_MODEL   = "meta-llama/llama-4-scout-17b-16e-instruct"; // Groq vision model
@@ -22,12 +19,6 @@ export async function callGroq(
   model: string = DEFAULT_MODEL,
   maxTokens: number = 1024
 ): Promise<string> {
-  if (!GROQ_API_KEY) {
-    throw new Error(
-      "Missing VITE_GROQ_API_KEY. Add it to your .env file.\nGet a free key at https://console.groq.com/keys"
-    );
-  }
-
   // Auto-detect active image sources and inject them into the last user message
   const { buildImageMessages } = await import("@/lib/sourceContext")
   const imageBlocks = buildImageMessages()
@@ -58,7 +49,6 @@ export async function callGroq(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
       model: hasImages ? VISION_MODEL : model,
@@ -89,10 +79,6 @@ export async function callGroqWithImages(
   systemPrompt?: string,
   maxTokens: number = 1024
 ): Promise<string> {
-  if (!GROQ_API_KEY) {
-    throw new Error("Missing VITE_GROQ_API_KEY.");
-  }
-
   // Build multimodal user message
   const userContent: Array<{type: string; [key: string]: unknown}> = [
     ...imageBlocks.map(img => ({
@@ -113,7 +99,6 @@ export async function callGroqWithImages(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
       model: VISION_MODEL,
