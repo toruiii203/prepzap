@@ -218,12 +218,12 @@ export default function Practice() {
           )}
         </div>
       </main>
-      {{showSourcePicker && (
-        <div style={{{{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}}}>
-          <div style={{{{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}}}} onClick={{()=>setShowSourcePicker(false)}}/>
-          <div style={{{{position:"relative",width:"100%",maxWidth:380,background:"#0E0E0E",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Inter',system-ui,sans-serif"}}}}>
-            <div style={{{{fontSize:12,fontWeight:700,marginBottom:12,color:"#F0F0F0"}}}}>Pick a source to generate from</div>
-            <div style={{{{display:"flex",flexDirection:"column",gap:4}}}}>
+      {showSourcePicker && (
+  <div style={{position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16}}>
+    <div style={{position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)"}} onClick={() => setShowSourcePicker(false)} />
+    <div style={{position: "relative", width: "100%", maxWidth: 380, background: "#0E0E0E", border: "0.5px solid #252525", padding: 18, zIndex: 10, fontFamily: "'Inter', system-ui"}}>
+      <div style={{fontSize: 12, fontWeight: 700, marginBottom: 12, color: "#F0F0F0"}}>Pick a source to generate from</div>
+      <div style={{display: "flex", flexDirection: "column", gap: 4}}>
               {{loadLibrary().map((s:any)=>(
                 <button key={{s.id}} onClick={{()=>{{setShowSourcePicker(false); startQuiz(s.name.replace(/\.\w+$/, ''));}}}}
                   style={{{{width:"100%",padding:"9px 12px",background:"rgba(0,196,180,0.04)",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:11,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s"}}}}
