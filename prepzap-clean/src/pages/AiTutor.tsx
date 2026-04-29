@@ -1,6 +1,5 @@
-
-      <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 16px",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.5)"}}><HistoryButton count={historyEntries.length} onClick={()=>setHistoryOpen(true)}/></div>import { ChatBubbleSkeleton } from "@/components/SkeletonLoader";
-import { buildAIContext, buildImageMessages } from "@/lib/sourceContext";
+import { ChatBubbleSkeleton } from "@/components/SkeletonLoader";
+import { buildAIContext, buildImageMessages, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
@@ -11,11 +10,10 @@ import {
   Clock, Trash2, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 import { cn } from "@/lib/utils";
 import { callGroq, callGroqWithImages, type GroqMessage } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
-import { ToolPageShell, useModel } from "@/components/ToolPageShell";
+import { useToolHistory, ToolHistoryPanel, HistoryButton } from "@/components/ToolHistory";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Message {
@@ -176,7 +174,6 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
     } else { setPhase("work"); setSecs(workMins * 60); }
   };
 
-  const { model, setModel } = useModel();
   return (
     <div className={cn(
       "fixed bottom-6 right-6 z-50 rounded-none border shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-md",
@@ -264,8 +261,6 @@ function HistorySidebar({
       "h-full flex flex-col border-r transition-all duration-300 overflow-hidden flex-shrink-0",
       "md:relative md:translate-x-0",
       open ? "fixed inset-y-0 left-0 z-50 w-64 md:w-64 md:static" : "w-0",
-      // FIX: removed bg-slate-900/80 (semi-transparent) — replaced with solid bg-[#0a0a0a]
-      // so the sidebar is fully opaque when it slides in over chat on mobile
       darkMode ? "border-slate-700 bg-[#0a0a0a]" : "border-border bg-[#0a0a0a]",
     )}>
       <div className="flex-1 overflow-hidden flex flex-col min-w-64">
@@ -499,8 +494,12 @@ Formatting:
 
   return (
     <div className="min-h-screen flex flex-col bg-background transition-colors duration-300">
-      {/* Desktop Navbar — already hidden on mobile via hidden md:block */}
-      <div className="hidden md:block">      </div>
+      {/* Desktop Navbar */}
+      <div className="hidden md:block">
+        <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 16px",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.5)"}}>
+          <HistoryButton count={historyEntries.length} onClick={() => setHistoryOpen(true)} />
+        </div>
+      </div>
       <div className="hidden md:block" style={{padding:"8px 24px 0"}}><GlobalContextBar compact /></div>
 
       {/* ── Mobile top bar ── */}
@@ -534,7 +533,7 @@ Formatting:
         {/* ── Main Panel ── */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16 md:pb-0">
 
-          {/* ── Inner chat header — HIDDEN ON MOBILE (was causing duplicate "AI Tutor" title) ── */}
+          {/* ── Inner chat header ── */}
           <div className="hidden md:flex items-center justify-between px-4 py-2.5 border-b border-border">
             <div className="flex items-center gap-3">
               <button
@@ -819,10 +818,10 @@ Formatting:
           </div>
         </main>
       </div>
-        <ToolHistoryPanel entries={historyEntries}
+      <ToolHistoryPanel entries={historyEntries}
         onSelect={(e) => { setInput(e.prompt); setHistoryOpen(false); }}
         onRemove={removeHistory} onClear={clearHistory}
-        open={historyOpen} onClose={()=>setHistoryOpen(false)}/>
-  </ToolPageShell>
+        open={historyOpen} onClose={() => setHistoryOpen(false)} />
+    </div>
   );
 }
