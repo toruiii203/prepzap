@@ -47,7 +47,10 @@ const ICONS: Record<string, React.ReactNode> = {
   "Study DNA":   Ic(<><path d="M6 3c0 6 12 6 12 12S6 21 6 21"/><path d="M18 3c0 6-12 6-12 12s12 6 12 6"/></>),
   "Settings":    Ic(<><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></>),
   "Go Pro":      Ic(<><path d="M3 17l3-8 6 4 6-4 3 8H3z"/><line x1="3" y1="19" x2="21" y2="19"/></>, GOLD),
-  "Flip Script": Ic(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/></>),
+  "Flip Script":    Ic(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/></>),
+  "Math Solver":    Ic(<><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>),
+  "Visual Learner": Ic(<><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></>),
+  "Focus State":    Ic(<><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></>),
   "Spot Error":  Ic(<><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></>),
   "Build Def":   Ic(<><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M8 12h8M8 8h5M8 16h3"/></>),
   "Blank Map":   Ic(<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>),
@@ -75,7 +78,11 @@ const quickActions = [
   { href:"/recall",         label:"Recall Mode",description:"Type from memory" },
   { href:"/study-dna",      label:"Study DNA",  description:"Your learner profile" },
   { href:"/settings",       label:"Settings",   description:"Preferences & plan" },
-  { href:"/pricing",        label:"Go Pro",     description:"Unlock everything", isGoPro: true },
+  { href:"/pricing",        label:"Go Pro",         description:"Unlock everything", isGoPro: true },
+  { href:"/flip-script",   label:"Flip Script",    description:"Rewrite to remember" },
+  { href:"/math",          label:"Math Solver",    description:"Step-by-step solutions" },
+  { href:"/visual-learner",label:"Visual Learner", description:"Learn through visuals" },
+  { href:"/focus-state",   label:"Focus State",    description:"Deep work mode" },
 ]
 
 // ─── Background Canvas Hook ───────────────────────────────────────────────────
@@ -333,6 +340,10 @@ const DASH_TOOLS = [
   {href:"/recall",label:"Recall Mode",desc:"Type from memory"},
   {href:"/study-dna",label:"Study DNA",desc:"Your learner profile"},
   {href:"/settings",label:"Settings",desc:"Preferences & plan"},
+  {href:"/flip-script",label:"Flip Script",desc:"Rewrite to remember"},
+  {href:"/math",label:"Math Solver",desc:"Step-by-step solutions"},
+  {href:"/visual-learner",label:"Visual Learner",desc:"Learn through visuals"},
+  {href:"/focus-state",label:"Focus State",desc:"Deep work mode"},
 ]
 
 function DashStudyToolsDropdown() {
