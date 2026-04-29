@@ -1,9 +1,8 @@
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { QuestionSkeleton } from "@/components/SkeletonLoader";
-import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { buildAIContext, loadLibrary, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useEffect, useRef } from "react";
-import { Navbar } from "@/components/Navbar";
 import {
   BookOpen, CheckCircle2, XCircle, ChevronRight, RotateCcw,
   Sparkles, Zap, Trophy, Brain, Timer, Target
@@ -13,8 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
-import { ToolHeader, ModelSelector, HistorySidebar, type HistoryEntry } from "@/components/ToolShell";
+import { ToolHeader, HistorySidebar, type HistoryEntry } from "@/components/ToolShell";
 import { MathRenderer } from "@/components/MathRenderer";
+import { ToolPageShell, useModel } from "@/components/ToolPageShell";
+import { useToolHistory, ToolHistoryPanel, HistoryButton } from "@/components/ToolHistory";
 
 interface Question {
   question: string;
@@ -26,10 +27,10 @@ interface Question {
 
 const SUBJECTS = [
   { name: "Biology", emoji: "🧬", color: "bg-white/10 text-emerald-600 border-emerald-500/20" },
-  { name: "Physics", emoji: "⚡", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  { name: "Physics", emoji: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#E8B923" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></>, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
   { name: "Chemistry", emoji: "🧪", color: "bg-violet-500/10 text-violet-600 border-violet-500/20" },
   { name: "History", emoji: "📜", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { name: "Economics", emoji: "📊", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
+  { name: "Economics", emoji: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#00C4B4" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></>, color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
   { name: "Mathematics", emoji: "∑", color: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
 ];
 
@@ -37,6 +38,10 @@ export default function Practice() {
 
   const [phase, setPhase] = useState<"setup" | "quiz" | "results">("setup");
   const [subject, setSubject] = useState("");
+
+  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("practice");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
   const [customTopic, setCustomTopic] = useState("");
   const [difficulty, setDifficulty] = useState<"easy" | "mixed" | "hard">("mixed");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -118,9 +123,9 @@ export default function Practice() {
   const q = questions[currentQ];
   const pct = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
 
+  const { model, setModel } = useModel();
   if (phase === "setup") return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
+    <ToolPageShell showModelPicker model={model} setModel={setModel}>
       <div className="container mx-auto px-4 pt-4 max-w-4xl"><GlobalContextBar compact /></div>
       <main className="flex-1 max-w-3xl mx-auto w-full p-6 space-y-8">
         <div className="flex items-center gap-3 mb-6 flex-wrap">
@@ -136,8 +141,7 @@ export default function Practice() {
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
             {quizHistory.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-none bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">{quizHistory.length > 9 ? "9+" : quizHistory.length}</span>}
           </button>
-          <ModelSelector />
-        </div>
+          </div>
         <div className="bg-card border border-border rounded-none p-6 space-y-5">
           <div>
             <label className="text-sm font-semibold mb-2 block">Pick a subject or enter your own topic</label>
@@ -214,12 +218,30 @@ export default function Practice() {
           )}
         </div>
       </main>
-    </div>
+      {{showSourcePicker && (
+        <div style={{{{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}}}>
+          <div style={{{{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}}}} onClick={{()=>setShowSourcePicker(false)}}/>
+          <div style={{{{position:"relative",width:"100%",maxWidth:380,background:"#0E0E0E",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Inter',system-ui,sans-serif"}}}}>
+            <div style={{{{fontSize:12,fontWeight:700,marginBottom:12,color:"#F0F0F0"}}}}>Pick a source to generate from</div>
+            <div style={{{{display:"flex",flexDirection:"column",gap:4}}}}>
+              {{loadLibrary().map((s:any)=>(
+                <button key={{s.id}} onClick={{()=>{{setShowSourcePicker(false); startQuiz(s.name.replace(/\.\w+$/, ''));}}}}
+                  style={{{{width:"100%",padding:"9px 12px",background:"rgba(0,196,180,0.04)",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:11,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s"}}}}
+                  onMouseEnter={{e=>{{e.currentTarget.style.borderColor="#00C4B4";e.currentTarget.style.color="#00C4B4"}}}}
+                  onMouseLeave={{e=>{{e.currentTarget.style.borderColor="#252525";e.currentTarget.style.color="#C0C0C0"}}}}>
+                  {{s.name}}
+                </button>
+              ))}}
+            </div>
+            <button onClick={{()=>setShowSourcePicker(false)}} style={{{{marginTop:10,width:"100%",padding:"7px 0",background:"transparent",border:"0.5px solid #252525",color:"#555",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}}}>Cancel</button>
+          </div>
+        </div>
+      )}}
+    </ToolPageShell>
   );
 
   if (phase === "quiz" && q) return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
+    <ToolPageShell showModelPicker model={model} setModel={setModel}>
       <div className="container mx-auto px-4 pt-4 max-w-4xl"><GlobalContextBar compact /></div>
       <main className="flex-1 max-w-2xl mx-auto w-full p-4 space-y-6 pt-6">
         <div className="space-y-2">
@@ -265,12 +287,11 @@ export default function Practice() {
           </div>
         )}
       </main>
-    </div>
+    </ToolPageShell>
   );
 
   if (phase === "results") return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
+    <ToolPageShell showModelPicker model={model} setModel={setModel}>
       <div className="container mx-auto px-4 pt-4 max-w-4xl"><GlobalContextBar compact /></div>
       <main className="flex-1 max-w-lg mx-auto w-full p-6 space-y-6 flex flex-col justify-center">
         <div className="text-center">
@@ -294,7 +315,7 @@ export default function Practice() {
           </Button>
         </div>
       </main>
-    </div>
+    </ToolPageShell>
   );
   return null;
 }

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { TrendingUp, Award, Plus, Check, X, Zap as ZapIcon, LogOut } from "lucide-react"
+import { TrendingUp, Award, Plus, Check, X, Zap as ZapIcon, LogOut, ChevronDown } from "lucide-react"
 import { BottomNav } from "@/components/BottomNav"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
@@ -310,18 +310,154 @@ function relTime(iso: string) {
 }
 function greeting(){ const h=new Date().getHours(); return h<12?"Good morning":h<17?"Good afternoon":"Good evening" }
 
+
+// ─── Dashboard Study Tools Dropdown ─────────────────────────────────────────
+const DASH_TOOLS = [
+  {href:"/ai-tutor",label:"BrainBot",desc:"Ask anything"},
+  {href:"/practice",label:"Practice",desc:"AI question sets"},
+  {href:"/flashcards",label:"Flashcards",desc:"Spaced repetition"},
+  {href:"/feynman",label:"Feynman",desc:"Teach to learn"},
+  {href:"/math",label:"MathZap",desc:"Step-by-step math"},
+  {href:"/daily5",label:"Daily Quiz",desc:"Quick rounds"},
+  {href:"/spot-error",label:"Error Hunt",desc:"Find & fix mistakes"},
+  {href:"/blank-map",label:"Mind Map",desc:"Connect ideas"},
+  {href:"/build-def",label:"Concepts",desc:"Build from memory"},
+  {href:"/tool-architect",label:"Roadmap",desc:"Zero to mastery"},
+  {href:"/timer",label:"Pomodoro",desc:"Focus timer"},
+  {href:"/analytics",label:"Progress",desc:"Track performance"},
+  {href:"/sources",label:"Sources",desc:"Study files"},
+  {href:"/cram",label:"Cram Mode",desc:"Emergency plan"},
+  {href:"/confidence",label:"Confidence",desc:"Know what you know"},
+  {href:"/high-yield",label:"High Yield",desc:"Most testable"},
+  {href:"/mistakes",label:"Mistakes",desc:"Track & fix errors"},
+  {href:"/recall",label:"Recall Mode",desc:"Type from memory"},
+  {href:"/study-dna",label:"Study DNA",desc:"Your learner profile"},
+  {href:"/settings",label:"Settings",desc:"Preferences & plan"},
+]
+
+function DashStudyToolsDropdown() {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <div style={{position:"relative"}}>
+      <button onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:4,background:"none",border:"none",color:"#555",fontSize:9,fontWeight:600,letterSpacing:"0.14em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"color .2s",padding:"4px 0"}}
+        onMouseEnter={e=>(e.currentTarget.style.color="#F0F0F0")} onMouseLeave={e=>(e.currentTarget.style.color="#555")}>
+        STUDY TOOLS <ChevronDown size={9} style={{marginTop:1}}/>
+      </button>
+      {open&&(<>
+        <div style={{position:"fixed",inset:0,zIndex:90}} onClick={()=>setOpen(false)}/>
+        <div style={{position:"absolute",top:"calc(100% + 8px)",left:0,width:320,background:"#0E0E0E",border:"0.5px solid #252525",zIndex:100,boxShadow:"0 8px 32px rgba(0,0,0,0.7)",display:"grid",gridTemplateColumns:"1fr 1fr",fontFamily:"'Inter',system-ui,sans-serif"}}>
+          <div style={{padding:"8px 10px",gridColumn:"1/-1",borderBottom:"0.5px solid #1A1A1A"}}>
+            <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#333"}}>All Tools</span>
+          </div>
+          {DASH_TOOLS.map(t=>(
+            <Link key={t.href} to={t.href} onClick={()=>setOpen(false)} style={{textDecoration:"none",padding:"7px 10px",borderBottom:"0.5px solid #111",display:"flex",flexDirection:"column",gap:1,transition:"background .15s"}}
+              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(0,196,180,0.04)"}}
+              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="transparent"}}>
+              <span style={{fontSize:10,fontWeight:600,color:"#C0C0C0"}}>{t.label}</span>
+              <span style={{fontSize:9,color:"#444"}}>{t.desc}</span>
+            </Link>
+          ))}
+        </div>
+      </>)}
+    </div>
+  )
+}
+
+// ─── Dashboard Source Pill ────────────────────────────────────────────────────
+function DashSourcePill() {
+  const [sources, setSources] = React.useState<any[]>([])
+  const [active, setActive] = React.useState<any>(null)
+  const [open, setOpen] = React.useState(false)
+
+  React.useEffect(()=>{
+    try{
+      const lib = JSON.parse(localStorage.getItem("studenius_sources")||"[]")
+      const activeId = localStorage.getItem("studenius_active_source")
+      setSources(lib)
+      setActive(lib.find((s:any)=>s.id===activeId)||null)
+    }catch{}
+  },[])
+
+  const select = (s:any|null) => {
+    if(s){localStorage.setItem("studenius_active_source",s.id)}
+    else{localStorage.removeItem("studenius_active_source")}
+    setActive(s); setOpen(false)
+  }
+
+  return (
+    <div style={{position:"relative"}}>
+      <button onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",background:active?"rgba(0,196,180,0.08)":"rgba(255,255,255,0.04)",border:`0.5px solid ${active?"rgba(0,196,180,0.35)":"#252525"}`,color:active?TEAL:"#555",fontSize:9,fontWeight:600,letterSpacing:"0.06em",cursor:"pointer",fontFamily:"inherit",transition:"all .2s",whiteSpace:"nowrap",maxWidth:180}}
+        onMouseEnter={e=>{e.currentTarget.style.borderColor=TEAL;e.currentTarget.style.color=TEAL}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor=active?"rgba(0,196,180,0.35)":"#252525";e.currentTarget.style.color=active?TEAL:"#555"}}>
+        <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        <span style={{overflow:"hidden",textOverflow:"ellipsis",maxWidth:120}}>
+          {active?active.name.slice(0,16)+(active.name.length>16?"…":""):"Source Library"}
+        </span>
+        <ChevronDown size={9} style={{flexShrink:0,opacity:0.5}}/>
+      </button>
+      {open&&(<>
+        <div style={{position:"fixed",inset:0,zIndex:90}} onClick={()=>setOpen(false)}/>
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,width:240,background:"#0E0E0E",border:"0.5px solid #252525",zIndex:100,boxShadow:"0 8px 32px rgba(0,0,0,0.6)",fontFamily:"'Inter',system-ui,sans-serif"}}>
+          <div style={{padding:"7px 10px",borderBottom:"0.5px solid #1A1A1A",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555"}}>Source Library</span>
+            <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",padding:2}}><X size={11}/></button>
+          </div>
+          <button onClick={()=>select(null)} style={{width:"100%",padding:"7px 10px",background:!active?"rgba(0,196,180,0.06)":"transparent",border:"none",borderBottom:"0.5px solid #1A1A1A",color:!active?TEAL:"#555",fontSize:10,fontWeight:600,cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
+            General AI (no source)
+          </button>
+          {sources.length===0?(
+            <div style={{padding:"10px",fontSize:10,color:"#333",textAlign:"center"}}>
+              No sources yet — <Link to="/sources" style={{color:TEAL,textDecoration:"none"}} onClick={()=>setOpen(false)}>add one</Link>
+            </div>
+          ):(
+            <div style={{maxHeight:180,overflowY:"auto"}}>
+              {sources.map((s:any)=>(
+                <button key={s.id} onClick={()=>select(s)} style={{width:"100%",padding:"7px 10px",background:active?.id===s.id?"rgba(0,196,180,0.06)":"transparent",border:"none",borderBottom:"0.5px solid #141414",color:active?.id===s.id?TEAL:"#C0C0C0",fontSize:10,cursor:"pointer",textAlign:"left",fontFamily:"inherit",display:"flex",alignItems:"center",gap:7}}>
+                  <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke={active?.id===s.id?TEAL:"#555"} strokeWidth={1.7} strokeLinecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                  <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{s.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{padding:"6px 10px",borderTop:"0.5px solid #1A1A1A"}}>
+            <Link to="/sources" onClick={()=>setOpen(false)} style={{fontSize:9,color:"#555",textDecoration:"none",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:600}}
+              onMouseEnter={e=>(e.currentTarget.style.color=TEAL)} onMouseLeave={e=>(e.currentTarget.style.color="#555")}>
+              Manage Source Library →
+            </Link>
+          </div>
+        </div>
+      </>)}
+    </div>
+  )
+}
+
+// ─── Achievement SVG Icons ─────────────────────────────────────────────────────
+function AchievementIcon({id, earned}: {id:string; earned:boolean}) {
+  const color = earned ? GOLD : "#333"
+  const icons: Record<string,React.ReactNode> = {
+    target:  <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="7"/></svg>,
+    flame:   <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round"><path d="M12 2c0 0-4 4-4 9a4 4 0 008 0c0-5-4-9-4-9z"/></svg>,
+    bolt:    <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    trophy:  <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round"><path d="M6 9H3V4h3M18 9h3V4h-3M6 9a6 6 0 0012 0M12 15v4M8 19h8"/></svg>,
+    gem:     <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>,
+    book:    <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M4 4.5A2.5 2.5 0 016.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15z"/></svg>,
+  }
+  return <>{icons[id] ?? icons.target}</>
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [bgTheme, setBgTheme] = useState<BgTheme>("starfield")
+  const [bgTheme, setBgTheme] = useState<BgTheme>(() => (localStorage.getItem("studenius_bg_theme") as BgTheme) || "starfield")
   useStarfield(canvasRef, bgTheme)
 
   // State
   const [xp,setXp]           = useState(0)
   const [streak,setStreak]   = useState(0)
   const [todayMin,setTodayMin] = useState(0)
+  const [weeklySessionCount,setWeeklySessionCount] = useState(0)
   const [qa,setQa]           = useState(0)
   const [activity,setActivity] = useState<ActivityItem[]>([])
   const [weak,setWeak]       = useState<WeakArea[]>([])
@@ -369,10 +505,16 @@ export default function Dashboard() {
         const{data:prof}=await supabase.from("profiles").select("xp,streak,plan").eq("id",user.id).maybeSingle()
         if(prof){setXp(prof.xp??0);setStreak(prof.streak??0)}
         const today=new Date().toISOString().slice(0,10)
-        const{data:sess}=await supabase.from("study_sessions").select("duration_minutes").eq("user_id",user.id).gte("created_at",today)
+        const weekAgo=new Date(Date.now()-7*86400000).toISOString().slice(0,10)
+        // Weekly hours from study_sessions
+        const{data:sess}=await supabase.from("study_sessions").select("duration_minutes").eq("user_id",user.id).gte("date",weekAgo)
         if(sess)setTodayMin(sess.reduce((s:number,r:any)=>s+(r.duration_minutes??0),0))
-        const{data:acts}=await supabase.from("activity_log").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(6)
+        // Activity log — no limit so heatmap and Sessions Done are accurate
+        const{data:acts}=await supabase.from("activity_log").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(91)
         if(acts)setActivity(acts)
+        // Weekly sessions count
+        const{data:weeklySess}=await supabase.from("study_sessions").select("id").eq("user_id",user.id).gte("date",weekAgo)
+        if(weeklySess)setWeeklySessionCount(weeklySess.length)
         const{data:ans}=await supabase.from("question_attempts").select("correct").eq("user_id",user.id).gte("created_at",today)
         if(ans){setQa(ans.length)}
         const{data:w}=await supabase.from("weak_areas").select("subject,accuracy").eq("user_id",user.id).order("accuracy").limit(4)
@@ -388,19 +530,31 @@ export default function Dashboard() {
   const dailyGoal=60, dailyPct=Math.min(100,Math.round(todayMin/dailyGoal*100))
 
   const achievements: Achievement[] = [
-    {key:"first",emoji:"🎯",label:"First Step",earned:xp>0},
-    {key:"s3",emoji:"🔥",label:"3-Day Streak",earned:streak>=3},
-    {key:"s7",emoji:"⚡",label:"Week Strong",earned:streak>=7},
-    {key:"x500",emoji:"🏆",label:"500 XP",earned:xp>=500},
-    {key:"x1000",emoji:"💎",label:"1000 XP",earned:xp>=1000},
-    {key:"q50",emoji:"📚",label:"50 Qs",earned:qa>=50},
+    {key:"first",emoji:"target",label:"First Step",earned:xp>0},
+    {key:"s3",emoji:"flame",label:"3-Day Streak",earned:streak>=3},
+    {key:"s7",emoji:"bolt",label:"Week Strong",earned:streak>=7},
+    {key:"x500",emoji:"trophy",label:"500 XP",earned:xp>=500},
+    {key:"x1000",emoji:"gem",label:"1000 XP",earned:xp>=1000},
+    {key:"q50",emoji:"book",label:"50 Qs",earned:qa>=50},
   ]
 
   const displayName=(user?.user_metadata?.username||user?.user_metadata?.full_name||user?.email?.split("@")[0]||"Student").toUpperCase()
   const displayed=showAll?quickActions:quickActions.slice(0,20)
 
-  // Heatmap (91 cells = 13 weeks)
-  const heatmap=Array.from({length:91},()=>{const r=Math.random();return r>.75?"l4":r>.6?"l3":r>.5?"l2":r>.42?"l1":""})
+  // Heatmap — built from real activity_log data (last 91 days)
+  const heatmap = useMemo(() => {
+    const cells: string[] = Array(91).fill("")
+    const now = Date.now()
+    activity.forEach(item => {
+      const daysAgo = Math.floor((now - new Date(item.created_at).getTime()) / 86400000)
+      if (daysAgo >= 0 && daysAgo < 91) {
+        const idx = 90 - daysAgo
+        const cur = cells[idx]
+        cells[idx] = cur === "l4" ? "l4" : cur === "l3" ? "l4" : cur === "l2" ? "l3" : cur === "l1" ? "l2" : "l1"
+      }
+    })
+    return cells
+  }, [activity])
 
   // Shared styles
   const card: React.CSSProperties = { background:"rgba(10,10,10,0.65)", border:"1px solid #252525" }
@@ -408,23 +562,31 @@ export default function Dashboard() {
   const metrics = [
     { label:"Day Streak",   value:streak,                  sub:streak>0?`${streak} day${streak!==1?"s":""}` :"Start today", accent:GOLD, ibg:"#1A1400", ibr:"#2A2000",
       icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={GOLD} strokeWidth={1.7} strokeLinecap="round"><path d="M12 2c0 0-4 4-4 9a4 4 0 008 0c0-5-4-9-4-9z"/></svg> },
-    { label:"Hours / Week", value:(todayMin/60).toFixed(1), sub:`Goal: ${dailyGoal/60}h`,             accent:TEAL, ibg:"#001A18", ibr:"#002A26",
+    { label:"Hours / Week", value:(todayMin/60).toFixed(1), sub:`Goal: ${dailyGoal/60}h/wk`,             accent:TEAL, ibg:"#001A18", ibr:"#002A26",
       icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={TEAL} strokeWidth={1.7} strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> },
-    { label:"Sessions Done", value:activity.length,         sub:"This week",                           accent:TEAL, ibg:"#001A18", ibr:"#002A26",
+    { label:"Sessions Done", value:weeklySessionCount,      sub:"This week",                           accent:TEAL, ibg:"#001A18", ibr:"#002A26",
       icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={TEAL} strokeWidth={1.7} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg> },
     { label:"Goal",          value:`${dailyPct}%`,           sub:dailyPct>0?"Keep going!":"Set a goal", accent:GOLD, ibg:"#1A1400", ibr:"#2A2000",
       icon:<svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke={GOLD} strokeWidth={1.7} strokeLinecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="7"/></svg> },
   ]
 
-  const SB_BTN = (label: string, href: string) => (
-    <Link key={href} to={href} style={{textDecoration:"none"}}>
-      <button style={{width:"100%",padding:"7px 9px",background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,cursor:"pointer",fontFamily:"inherit",transition:"all .2s",letterSpacing:"0.04em",textAlign:"left"}}
-        onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
-        onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
-        {label}
-      </button>
-    </Link>
-  )
+  const SB_BTN = (label: string, href: string) => {
+    const icons: Record<string,React.ReactNode> = {
+      "Study Planner": <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+      "AI Tutor":      <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+      "Go Pro ↗":      <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="#E8B923" strokeWidth={1.7} strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    }
+    return (
+      <Link key={href} to={href} style={{textDecoration:"none"}}>
+        <button style={{width:"100%",padding:"7px 9px",background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,cursor:"pointer",fontFamily:"inherit",transition:"all .2s",letterSpacing:"0.04em",textAlign:"left",display:"flex",alignItems:"center",gap:6}}
+          onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
+          onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
+          {icons[label] && <span style={{flexShrink:0,opacity:0.7}}>{icons[label]}</span>}
+          {label}
+        </button>
+      </Link>
+    )
+  }
 
   // ── Responsive helpers ────────────────────────────────────────────────────
   // We use a CSS-variable-based approach via a style tag for responsive breakpoints
@@ -459,12 +621,12 @@ export default function Dashboard() {
         {/* ── NAV ──────────────────────────────────────────────────────────── */}
         <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"0.5px solid #1E1E1E",background:"rgba(8,8,8,0.6)",flexShrink:0}}>
           <span style={{fontSize:14,fontWeight:700,letterSpacing:"0.2em"}}>STUDENIUS</span>
-          <div style={{display:"flex",gap:20}}>
-            {([["SOURCE LIBRARY","/sources"],["PRICING","/pricing"]] as [string,string][]).map(([l,h])=>(
-              <Link key={h} to={h} style={{fontSize:10,fontWeight:600,letterSpacing:"0.14em",color:"#555",textDecoration:"none",transition:"color .2s"}}
-                onMouseEnter={e=>(e.currentTarget.style.color="#F0F0F0")}
-                onMouseLeave={e=>(e.currentTarget.style.color="#555")}>{l}</Link>
-            ))}
+          <div style={{display:"flex",alignItems:"center",gap:18}}>
+            <DashStudyToolsDropdown />
+            <DashSourcePill />
+            <Link to="/pricing" style={{fontSize:9,fontWeight:600,letterSpacing:"0.14em",color:"#555",textDecoration:"none",transition:"color .2s",textTransform:"uppercase"}}
+              onMouseEnter={e=>(e.currentTarget.style.color="#F0F0F0")}
+              onMouseLeave={e=>(e.currentTarget.style.color="#555")}>PRICING</Link>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             {/* Avatar */}
@@ -482,7 +644,7 @@ export default function Dashboard() {
           <div style={{padding:"0 12px",flexShrink:0,fontSize:7,letterSpacing:"0.16em",textTransform:"uppercase",color:"#333",fontWeight:700,whiteSpace:"nowrap"}}>Theme</div>
           <div style={{width:"0.5px",height:28,background:"#1E1E1E",flexShrink:0}}/>
           {(["pure","starfield","nebula","aurora","pulse"] as BgTheme[]).map(id=>(
-            <ThemePanel key={id} id={id} active={bgTheme===id} onClick={()=>setBgTheme(id)}/>
+            <ThemePanel key={id} id={id} active={bgTheme===id} onClick={()=>{ setBgTheme(id); localStorage.setItem("studenius_bg_theme",id) }}/>
           ))}
         </div>
 
@@ -496,7 +658,7 @@ export default function Dashboard() {
             <div style={{marginBottom:16}}>
               <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:3}}>Study Planner</div>
               <div className="sdn-greeting-name" style={{fontSize:20,fontWeight:600,letterSpacing:"-0.02em",lineHeight:1.2}}>
-                {greeting()}, {displayName} <span style={{color:GOLD}}>👋</span>
+                {greeting()}, {displayName} <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke={GOLD} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginLeft:4}}><path d="M7 11V7a2 2 0 014 0v4M11 9V5a2 2 0 014 0v6M15 9a2 2 0 014 0v4a8 8 0 01-16 0v-4"/></svg>
               </div>
             </div>
 
@@ -740,7 +902,7 @@ export default function Dashboard() {
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:4,marginBottom:11}}>
               {achievements.map(a=>(
                 <div key={a.key} title={a.label} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"6px 3px",background:a.earned?"#1A1400":"#0D0D0D",border:`0.5px solid ${a.earned?"#2A2000":"#1A1A1A"}`,opacity:a.earned?1:.3,transition:"opacity .3s"}}>
-                  <span style={{fontSize:14}}>{a.emoji}</span>
+                  <AchievementIcon id={a.emoji} earned={a.earned} />
                   <span style={{fontSize:7,fontWeight:600,color:a.earned?GOLD:"#444",textAlign:"center",lineHeight:1.2}}>{a.label}</span>
                 </div>
               ))}

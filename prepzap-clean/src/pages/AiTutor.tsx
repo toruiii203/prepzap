@@ -1,8 +1,8 @@
-import { ChatBubbleSkeleton } from "@/components/SkeletonLoader";
+
+      <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 16px",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.5)"}}><HistoryButton count={historyEntries.length} onClick={()=>setHistoryOpen(true)}/></div>import { ChatBubbleSkeleton } from "@/components/SkeletonLoader";
 import { buildAIContext, buildImageMessages } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Navbar } from "@/components/Navbar";
 import {
   Send, Sparkles, BookOpen, RotateCcw, Copy, ThumbsUp, ThumbsDown,
   ChevronDown, Bot, User, Layers, Zap, HelpCircle, FileText, Brain,
@@ -11,10 +11,11 @@ import {
   Clock, Trash2, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileBadge } from "@/components/ToolShell";
+
 import { cn } from "@/lib/utils";
 import { callGroq, callGroqWithImages, type GroqMessage } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
+import { ToolPageShell, useModel } from "@/components/ToolPageShell";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Message {
@@ -98,6 +99,8 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
   const [phase, setPhase] = useState<"work" | "short" | "long">("work");
   const [secs, setSecs] = useState(25 * 60);
   const [running, setRunning] = useState(false);
+  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("ai-tutor");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -173,6 +176,7 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
     } else { setPhase("work"); setSecs(workMins * 60); }
   };
 
+  const { model, setModel } = useModel();
   return (
     <div className={cn(
       "fixed bottom-6 right-6 z-50 rounded-none border shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-md",
@@ -314,6 +318,8 @@ export default function AiTutor() {
   const [darkMode, setDarkMode] = useState(false);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("ai-tutor");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     try {
       const raw = localStorage.getItem("pz_history_aitutor");
@@ -397,7 +403,7 @@ export default function AiTutor() {
   const buildSystemPrompt = (mode: TutorMode) => {
     const m = TUTOR_MODES.find(x => x.id === mode)!;
     const sourceCtx = buildAIContext();
-    return `You are PrepZap's AI Tutor — an expert educator who adapts to any subject. Mode: "${m.label}".
+    return `You are Studenius AI Tutor — an expert educator who adapts to any subject. Mode: "${m.label}".
 
 Instruction: ${m.prompt}
 ${sourceCtx ? `\nIMPORTANT: The student has loaded study sources. Base your answers on the source content below and cite specific details from it where relevant.${sourceCtx}` : ""}
@@ -494,9 +500,7 @@ Formatting:
   return (
     <div className="min-h-screen flex flex-col bg-background transition-colors duration-300">
       {/* Desktop Navbar — already hidden on mobile via hidden md:block */}
-      <div className="hidden md:block">
-        <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
-      </div>
+      <div className="hidden md:block">      </div>
       <div className="hidden md:block" style={{padding:"8px 24px 0"}}><GlobalContextBar compact /></div>
 
       {/* ── Mobile top bar ── */}
@@ -545,7 +549,7 @@ Formatting:
                 </div>
                 <div>
                   <h1 className="font-bold text-sm">AI Tutor</h1>
-                  <p className="text-xs text-muted-foreground">PrepZap · Multi-model</p>
+                  <p className="text-xs text-muted-foreground">Studenius · Multi-model</p>
                 </div>
               </div>
             </div>
@@ -679,13 +683,13 @@ Formatting:
                         onClick={() => sendMessage("Generate a comprehensive summary of the source material")}
                         className="w-full mb-3 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all hover:opacity-90 active:scale-95"
                         style={{ background: "linear-gradient(135deg, var(--pz-gold), var(--pz-teal))", color: "#0A0A0C", borderRadius: 0 }}>
-                        ⚡ Generate Summary
+                        Generate Summary
                       </button>
                       <div className="grid grid-cols-2 gap-2">
                         {[
                           { label: "Extract key concepts", icon: "🔑" },
                           { label: "Quiz me on it", icon: "❓" },
-                          { label: "Explain the main ideas", icon: "💡" },
+                          { label: "Explain the main ideas", icon: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#E8B923" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><path d="M9 21h6M12 3a6 6 0 016 6c0 2.5-1.4 4.7-3.5 5.9l-.5.3V18H10v-2.8l-.5-.3C7.4 13.7 6 11.5 6 9a6 6 0 016-6z"/></svg></> },
                           { label: "Create flashcards", icon: "🃏" },
                         ].map(a => (
                           <button key={a.label}
@@ -725,12 +729,6 @@ Formatting:
                           </div>
                         ) : null;
                       })()}
-
-                      {msg.attachedFile && (
-                        <div className="mb-1.5">
-                          <FileBadge file={msg.attachedFile} />
-                        </div>
-                      )}
 
                       {msg.role === "assistant" ? (
                         <MathRenderer
@@ -821,6 +819,10 @@ Formatting:
           </div>
         </main>
       </div>
-    </div>
+        <ToolHistoryPanel entries={historyEntries}
+        onSelect={(e) => { setInput(e.prompt); setHistoryOpen(false); }}
+        onRemove={removeHistory} onClear={clearHistory}
+        open={historyOpen} onClose={()=>setHistoryOpen(false)}/>
+  </ToolPageShell>
   );
 }

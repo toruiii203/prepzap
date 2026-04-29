@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
-import { Navbar } from "@/components/Navbar";
 import {
   Mic, MicOff, Send, RotateCcw, Lightbulb, CheckCircle2,
   AlertCircle, ChevronRight, Brain, Sparkles, BookOpen,
@@ -13,9 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { callGroq, type GroqMessage } from "@/lib/groq";
-import { ModelSelector, useFileAttach } from "@/components/ToolShell";
-import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { buildAIContext, loadLibrary, getActiveSource } from "@/lib/sourceContext";
 import { MathRenderer } from "@/components/MathRenderer";
+import { ToolPageShell, useModel } from "@/components/ToolPageShell";
 
 interface FeedbackItem {
   type: "strength" | "gap" | "hint";
@@ -54,6 +53,11 @@ export default function FeynmanMode() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("feynman");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const handleSourcePick = (s: any) => { setTopicInput(s.name.replace(/\.\w+$/, "")); setTimeout(() => handleStartSession(), 0); };
+
   const handleNewSession = () => { setActiveSessionId(null) }
   const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
 
@@ -83,7 +87,6 @@ export default function FeynmanMode() {
     return () => window.removeEventListener("storage", sync);
   }, []);
   const recognitionRef = useRef<any>(null);
-  const { pendingFile, setPendingFile, FileAttachButton } = useFileAttach();
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { chatBottomRef.current?.scrollIntoView({behavior:"smooth"}); }, [conversation, deepDiveResponse, isLoading]);
@@ -134,14 +137,9 @@ export default function FeynmanMode() {
   }, []);
 
   const handleStartSession = () => {
-    if (!topicInput.trim() && !pendingFile && buildAIContext().length === 0) return;
-    const t = topicInput.trim() || pendingFile?.name?.replace(/\.[^.]+$/, "") || getActiveSource()?.name?.replace(/\.\w+$/, "") || "the source material";
-    const notesContext = pendingFile?.content
-      ? `
-
-📎 I have your notes on "${pendingFile.name}" as reference. Use them to ask sharper follow-up questions.`
-      : "";
-    setPendingFile(null);
+    if (!topicInput.trim() && buildAIContext().length === 0) return;
+    const t = topicInput.trim() || getActiveSource()?.name?.replace(/\.\w+$/, "") || "the source material";
+    const notesContext = buildAIContext();
     setTopic(t);
     setError(null);
     setPhase("teaching");
@@ -272,9 +270,10 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
   };
 
   // ── SETUP ──────────────────────────────────────────────────────────────────
+  const { model, setModel } = useModel();
   if (phase==="setup") return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
+    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+      <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 16px",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.5)"}}>  <HistoryButton count={historyEntries.length} onClick={()=>setHistoryOpen(true)}/></div>
       {/* History Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         <ToolHistorySidebar
@@ -317,7 +316,6 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
           <div className="bg-card rounded-none border border-border p-6 space-y-4">
             <label className="font-semibold text-sm">What concept do you want to master?</label>
             <div className="flex gap-2">
-              <FileAttachButton />
               <input
                 className="flex-1 px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="e.g. Photosynthesis, Newton's Second Law... or attach notes"
@@ -325,7 +323,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
                 onChange={e=>setTopicInput(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&handleStartSession()}
               />
-              <Button className="bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 px-6" onClick={handleStartSession} disabled={!topicInput.trim()&&!pendingFile&&buildAIContext().length===0&&!activeSource}>
+              <Button className="bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90 px-6" onClick={handleStartSession} disabled={!topicInput.trim()&&buildAIContext().length===0&&!activeSource}>
                 Start <ChevronRight className="h-4 w-4 ml-1"/>
               </Button>
             </div>
@@ -338,20 +336,12 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
                 <button onClick={handleStartSession}
                   className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-80"
                   style={{ background: "rgba(212,175,90,0.15)", border: "1px solid rgba(212,175,90,0.4)", color: "var(--pz-gold, #d4af5a)" }}>
-                  ⚡ Start from Source
+                  Start from Source
                 </button>
               </div>
             )}
             <div style={{display:"none"}}>
             </div>
-            {pendingFile && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-none text-xs">
-                <span className="text-red-400">📎</span>
-                <span className="font-medium text-red-300 truncate">{pendingFile.name}</span>
-                <span className="text-muted-foreground ml-1">— will be used as reference during session</span>
-                <button onClick={()=>setPendingFile(null)} className="ml-auto text-muted-foreground hover:text-foreground">×</button>
-              </div>
-            )}
             <div>
               <p className="text-xs text-muted-foreground mb-2">Quick picks:</p>
               <div className="flex flex-wrap gap-2">
@@ -406,8 +396,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
 
   // ── TEACHING ───────────────────────────────────────────────────────────────
   if (phase==="teaching") return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
+    <ToolPageShell showModelPicker model={model} setModel={setModel}>
       <main className="flex-1 flex flex-col w-full p-4 gap-4 md:max-w-3xl md:mx-auto">
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-3">
@@ -514,7 +503,28 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
          <p className="text-xs text-muted-foreground">⌘+Enter to submit</p>
         </div>
       </main>
-    </div>
+          <ToolHistoryPanel entries={historyEntries} (e) => { if (e.output) { setPhase('feedback'); setHistoryOpen(false); } } onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={()=>setHistoryOpen(false)}/>
+      {showSourcePicker && (
+        <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}} onClick={()=>setShowSourcePicker(false)}/>
+          <div style={{position:"relative",width:"100%",maxWidth:380,background:"#0E0E0E",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Inter',system-ui,sans-serif"}}>
+            <div style={{fontSize:12,fontWeight:700,letterSpacing:"0.04em",marginBottom:12,color:"#F0F0F0"}}>Pick a source to generate from</div>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {loadLibrary().map((s:any)=>(
+                <button key={s.id} onClick={()=>{ setShowSourcePicker(false); handleSourcePick(s) }}
+                  style={{width:"100%",padding:"9px 12px",background:"rgba(0,196,180,0.04)",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s",display:"flex",alignItems:"center",gap:8}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor="#00C4B4";e.currentTarget.style.color="#00C4B4"}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#252525";e.currentTarget.style.color="#C0C0C0"}}>
+                  <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            <button onClick={()=>setShowSourcePicker(false)} style={{marginTop:10,width:"100%",padding:"7px 0",background:"transparent",border:"0.5px solid #252525",color:"#555",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </ToolPageShell>
   );
 
   // ── FEEDBACK ───────────────────────────────────────────────────────────────
@@ -523,8 +533,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
     const gaps = feedback.feedback.filter(f=>f.type==="gap");
     const hints = feedback.feedback.filter(f=>f.type==="hint");
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
+      <ToolPageShell showModelPicker model={model} setModel={setModel}>
         <main className="flex-1 w-full p-4 pb-8 space-y-4 md:max-w-3xl md:mx-auto">
           <div className="flex items-center justify-between pt-2">
             <h2 className="font-bold text-lg">{topic} — Feedback</h2>
@@ -649,7 +658,7 @@ Include at least 1 strength, 1 gap, and 1 hint in feedback array. Be honest — 
           <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-orange-500/20 rounded-none p-4">
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="h-4 w-4 text-orange-500"/>
-              <span className="text-sm font-semibold text-orange-500">PrepZap Says</span>
+              <span className="text-sm font-semibold text-orange-500">Studenius Says</span>
             </div>
             <MathRenderer content={feedback.encouragement} className="text-sm" />
           </div>

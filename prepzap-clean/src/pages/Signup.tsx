@@ -84,11 +84,17 @@ export default function Signup() {
     setLoading(false)
     setSuccess(true)
 
-    // Session exists = email confirmation is OFF, go straight to dashboard
     if (data.session) {
+      // Email confirmation is OFF — session created immediately, go to dashboard
       setTimeout(() => navigate("/dashboard"), 800)
+    } else {
+      // Email confirmation is ON — try signing in anyway (some Supabase configs allow it)
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+      if (!signInErr && signInData.session) {
+        setTimeout(() => navigate("/dashboard"), 800)
+      }
+      // else: confirmation email was sent — success state shows the message below
     }
-    // No session = confirmation email sent, success state shows the message below
   }
 
   return (

@@ -1,8 +1,7 @@
 import { FlashcardSkeleton } from "@/components/SkeletonLoader";
-import { buildAIContext } from "@/lib/sourceContext";
+import { buildAIContext, loadLibrary, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState } from "react";
-import { Navbar } from "@/components/Navbar";
 import {
   Sparkles, RotateCcw, ChevronRight, ChevronLeft,
   Check, X, Brain, Zap, BookOpen, Shuffle, Trophy, Layers
@@ -14,10 +13,12 @@ import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { toast } from "sonner";
 import {
-  ToolHeader, ModelSelector, HistorySidebar, useFileAttach, FileBadge,
+  ToolHeader, HistorySidebar,
   type HistoryEntry
 } from "@/components/ToolShell";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
+import { ToolPageShell, useModel } from "@/components/ToolPageShell";
+import { useToolHistory, ToolHistoryPanel, HistoryButton } from "@/components/ToolHistory";
 
 interface Flashcard {
   id: string;
@@ -29,7 +30,7 @@ interface Flashcard {
 
 const SAMPLE_TOPICS = [
   { name: "Cell Biology", emoji: "🧬", color: "from-zinc-500 to-teal-500" },
-  { name: "Classical Mechanics", emoji: "⚡", color: "from-blue-500 to-indigo-500" },
+  { name: "Classical Mechanics", emoji: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#E8B923" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></>, color: "from-blue-500 to-indigo-500" },
   { name: "Microeconomics", emoji: "📈", color: "from-amber-500 to-orange-500" },
 ];
 
@@ -39,6 +40,10 @@ export default function Flashcards() {
 
   const [phase, setPhase] = useState<"home" | "study" | "results">("home");
   const [topic, setTopic] = useState("");
+
+  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("flashcards");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
   const [topicInput, setTopicInput] = useState("");
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -50,21 +55,14 @@ export default function Flashcards() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cardHistory, setCardHistory] = useState<HistoryEntry[]>(() => loadHistory(TOOL_KEY));
 
-  // ✅ Fixed: useFileAttach properly used here (not referencing non-existent state)
-  const { pendingFile, setPendingFile, FileAttachButton } = useFileAttach();
-
-  const hasSource = buildAIContext().length > 0 || !!pendingFile;
+  const hasSource = buildAIContext().length > 0;
 
   const generateCards = async () => {
-    // ✅ Allow generate with file/source even if no text typed
     if (!topicInput.trim() && !hasSource) return;
     setIsLoading(true);
     setError(null);
-    const fileContext = pendingFile?.content
-      ? `\n\nBase the flashcards on this material:\n${pendingFile.content.slice(0, 4000)}`
-      : buildAIContext();
-    const cardTopic = topicInput.trim() || pendingFile?.name || "Uploaded Notes";
-    setPendingFile(null);
+    const fileContext = buildAIContext();
+    const cardTopic = topicInput.trim() || getActiveSource()?.name?.replace(/\.\w+$/, "") || "Active Source";
     try {
       const raw = await callGroq(
         [{ role: "user", content: `Generate exactly ${numCards} flashcards about "${cardTopic}".${fileContext} Return ONLY a raw JSON object with no markdown, no code fences, no preamble. Format: {"cards":[{"front":"question","back":"answer","difficulty":"easy|medium|hard"}]}` }],
@@ -87,7 +85,7 @@ export default function Flashcards() {
       setFlipped(false);
       setResults({ know: 0, unsure: 0, forgot: 0 });
 
-      // ✅ Fixed: persist history to localStorage
+      // Fixed: persist history to localStorage
       const entry: HistoryEntry = {
         id: Date.now().toString(), title: cardTopic,
         subtitle: `${generated.length} cards`, timestamp: new Date(),
@@ -118,9 +116,9 @@ export default function Flashcards() {
   const card = cards[currentIndex];
   const progress = cards.length > 0 ? (currentIndex / cards.length) * 100 : 0;
 
+  const { model, setModel } = useModel();
   if (phase === "home") return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
+    <ToolPageShell showModelPicker model={model} setModel={setModel}>
       <div className="container mx-auto px-4 pt-4 max-w-4xl"><GlobalContextBar compact /></div>
       <main className="flex-1 max-w-3xl mx-auto w-full p-6 space-y-8">
         <HistorySidebar
@@ -150,8 +148,7 @@ export default function Flashcards() {
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
             {cardHistory.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-none bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">{cardHistory.length > 9 ? "9+" : cardHistory.length}</span>}
           </button>
-          <ModelSelector />
-        </div>
+          </div>
 
         <div className="bg-card border border-border rounded-none p-6 space-y-4">
           <div className="flex items-center gap-2 mb-1">
@@ -159,15 +156,8 @@ export default function Flashcards() {
             <span className="font-semibold">Generate a Deck</span>
           </div>
 
-          {/* File attach row */}
-          <div className="flex items-center gap-2">
-            <FileAttachButton />
-            {pendingFile && <FileBadge file={pendingFile} onRemove={() => setPendingFile(null)} />}
-            {!pendingFile && <span className="text-xs text-muted-foreground">Attach a PDF or txt to generate from your notes</span>}
-          </div>
-
           <input className="w-full px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder={hasSource && !topicInput ? "Leave blank to use file/source, or type a topic..." : "e.g. Mitosis and Meiosis, Newton's Laws, Cold War..."}
+            placeholder={hasSource && !topicInput ? "Leave blank to generate from active source, or type a topic..." : "e.g. Mitosis and Meiosis, Newton's Laws, Cold War..."}
             value={topicInput} onChange={e => setTopicInput(e.target.value)} onKeyDown={e => e.key === "Enter" && generateCards()} />
 
           <div className="flex items-center gap-3 flex-wrap">
@@ -185,13 +175,12 @@ export default function Flashcards() {
             </Button>
           </div>
 
-          {/* ✅ Generate from file/source button when source active and no text */}
           {hasSource && !topicInput.trim() && (
             <button onClick={generateCards} disabled={isLoading}
               className="w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-              style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
+              style={{ background: "rgba(0,196,180,0.08)", border: "1px solid rgba(0,196,180,0.25)", color: "#00C4B4" }}>
               <Sparkles className="h-4 w-4" />
-              Generate Deck from Active Source
+              Generate from Active Source
             </button>
           )}
 
@@ -218,12 +207,30 @@ export default function Flashcards() {
           </div>
         </div>
       </main>
-    </div>
+      {{showSourcePicker && (
+        <div style={{{{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}}}>
+          <div style={{{{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}}}} onClick={{()=>setShowSourcePicker(false)}}/>
+          <div style={{{{position:"relative",width:"100%",maxWidth:380,background:"#0E0E0E",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Inter',system-ui,sans-serif"}}}}>
+            <div style={{{{fontSize:12,fontWeight:700,marginBottom:12,color:"#F0F0F0"}}}}>Pick a source to generate from</div>
+            <div style={{{{display:"flex",flexDirection:"column",gap:4}}}}>
+              {{loadLibrary().map((s:any)=>(
+                <button key={{s.id}} onClick={{()=>{{setTopicInput(s.name.replace(/\.\w+$/, "")); setShowSourcePicker(false); setTimeout(()=>generateCards(), 0);}}}}
+                  style={{{{width:"100%",padding:"9px 12px",background:"rgba(0,196,180,0.04)",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:11,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s"}}}}
+                  onMouseEnter={{e=>{{e.currentTarget.style.borderColor="#00C4B4";e.currentTarget.style.color="#00C4B4"}}}}
+                  onMouseLeave={{e=>{{e.currentTarget.style.borderColor="#252525";e.currentTarget.style.color="#C0C0C0"}}}}>
+                  {{s.name}}
+                </button>
+              ))}}
+            </div>
+            <button onClick={{()=>setShowSourcePicker(false)}} style={{{{marginTop:10,width:"100%",padding:"7px 0",background:"transparent",border:"0.5px solid #252525",color:"#555",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}}}>Cancel</button>
+          </div>
+        </div>
+      )}}
+    </ToolPageShell>
   );
 
   if (phase === "study" && card) return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
+    <ToolPageShell showModelPicker model={model} setModel={setModel}>
       <div className="container mx-auto px-4 pt-4 max-w-4xl"><GlobalContextBar compact /></div>
       <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full p-4 gap-4">
         <div className="flex items-center justify-between pt-2">
@@ -274,14 +281,13 @@ export default function Flashcards() {
           </div>
         )}
       </main>
-    </div>
+    </ToolPageShell>
   );
 
   if (phase === "results") {
     const pct = Math.round((results.know / cards.length) * 100);
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
+      <ToolPageShell showModelPicker model={model} setModel={setModel}>
         <main className="flex-1 max-w-lg mx-auto w-full p-6 space-y-6 flex flex-col justify-center">
           <div className="text-center">
             <Trophy className={cn("h-16 w-16 mx-auto mb-4", pct >= 80 ? "text-amber-500" : "text-muted-foreground")} />
