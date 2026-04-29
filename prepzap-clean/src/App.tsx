@@ -94,6 +94,8 @@ import HighYieldDetector from "./pages/HighYieldDetector";
 import MistakeJournal from "./pages/MistakeJournal";
 import RecallMode from "./pages/RecallMode";
 import StudyDNA from "./pages/StudyDNA";
+import FocusState from "./pages/FocusState";
+import VisualLearner from "./pages/VisualLearner";
 
 const queryClient = new QueryClient();
 
@@ -162,6 +164,8 @@ function AppRoutes() {
         <Route path="/mistakes" element={<ProtectedRoute><MistakeJournal /></ProtectedRoute>} />
         <Route path="/recall" element={<ProtectedRoute><RecallMode /></ProtectedRoute>} />
         <Route path="/study-dna" element={<ProtectedRoute><StudyDNA /></ProtectedRoute>} />
+        <Route path="/focus-state" element={<ProtectedRoute><FocusState /></ProtectedRoute>} />
+        <Route path="/visual-learner" element={<ProtectedRoute><VisualLearner /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/sources" element={<ProtectedRoute><SourceLibrary /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
