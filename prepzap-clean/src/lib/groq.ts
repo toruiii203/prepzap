@@ -3,7 +3,7 @@
 // The API key lives in the Worker secret — not exposed in the frontend.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GROQ_API_URL = "/api/groq";
+const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
 
 const DEFAULT_MODEL  = "llama-3.3-70b-versatile";
 const VISION_MODEL   = "meta-llama/llama-4-scout-17b-16e-instruct"; // Groq vision model
