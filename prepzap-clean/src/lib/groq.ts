@@ -5,39 +5,64 @@
 
 const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
 
-const DEFAULT_MODEL  = "llama-3.3-70b-versatile";
-const VISION_MODEL   = "meta-llama/llama-4-scout-17b-16e-instruct"; // Groq vision model
+const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const VISION_MODEL  = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 export interface GroqMessage {
   role: "system" | "user" | "assistant";
-  content: string | Array<{type: string; [key: string]: unknown}>;
+  content: string | Array<{ type: string; [key: string]: unknown }>;
 }
 
-// Known model name substrings — used to detect when a model string is passed
-// as the second argument instead of a systemPrompt.
+// ─── Shared JSON parser used by all pages ─────────────────────────────────────
+// Strips markdown fences, extracts the first JSON object or array,
+// and throws a clear error if nothing parseable is found.
+export function safeParseJSON<T = unknown>(raw: string): T {
+  // 1. Strip code fences
+  let clean = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+
+  // 2. Try to extract a JSON object or array
+  const objMatch = clean.match(/\{[\s\S]*\}/);
+  const arrMatch = clean.match(/\[[\s\S]*\]/);
+
+  // Prefer whichever appears first in the string
+  let jsonStr = clean;
+  if (objMatch && arrMatch) {
+    jsonStr = raw.indexOf("{") < raw.indexOf("[") ? objMatch[0] : arrMatch[0];
+  } else if (objMatch) {
+    jsonStr = objMatch[0];
+  } else if (arrMatch) {
+    jsonStr = arrMatch[0];
+  }
+
+  try {
+    return JSON.parse(jsonStr) as T;
+  } catch {
+    console.error("[safeParseJSON] Failed to parse. Raw response:", raw);
+    throw new Error("AI returned malformed JSON. Please try again.");
+  }
+}
+
+// ─── Model detection helpers ──────────────────────────────────────────────────
 const MODEL_PREFIXES = ["llama", "gemma", "mixtral", "mistral", "deepseek", "qwen", "meta-llama"];
 
 function looksLikeModel(s: string): boolean {
   return MODEL_PREFIXES.some(p => s.toLowerCase().startsWith(p));
 }
 
+// ─── Main callGroq ────────────────────────────────────────────────────────────
 export async function callGroq(
   messages: GroqMessage[] | string,
   systemPromptOrModel?: string,
   model: string = DEFAULT_MODEL,
   maxTokens: number = 1024
 ): Promise<string> {
-  // ── Normalise overloaded arguments ──────────────────────────────────────────
-  // Legacy callers pass:  callGroq(promptString, "llama-3.3-70b-versatile")
-  // Correct callers pass: callGroq([{role,content}], systemPrompt, model, maxTokens)
+  // Normalise overloaded arguments
   let normMessages: GroqMessage[];
   let systemPrompt: string | undefined;
 
   if (typeof messages === "string") {
-    // First arg is a plain string prompt → wrap it
     normMessages = [{ role: "user", content: messages }];
     if (systemPromptOrModel && looksLikeModel(systemPromptOrModel)) {
-      // Second arg is actually a model name
       model = systemPromptOrModel;
       systemPrompt = undefined;
     } else {
@@ -46,49 +71,50 @@ export async function callGroq(
   } else {
     normMessages = messages;
     if (systemPromptOrModel && looksLikeModel(systemPromptOrModel) && model === DEFAULT_MODEL) {
-      // Caller accidentally passed model as systemPrompt slot
       model = systemPromptOrModel;
       systemPrompt = undefined;
     } else {
       systemPrompt = systemPromptOrModel;
     }
   }
-  // ────────────────────────────────────────────────────────────────────────────
-  // Auto-detect active image sources and inject them into the last user message
-  const { buildImageMessages } = await import("@/lib/sourceContext")
-  const imageBlocks = buildImageMessages()
-  const hasImages = imageBlocks.length > 0
+
+  // Auto-detect active image sources and inject into the last user message
+  const { buildImageMessages } = await import("@/lib/sourceContext");
+  const imageBlocks = buildImageMessages();
+  const hasImages = imageBlocks.length > 0;
 
   const fullMessages = [
     ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
     ...normMessages.map((m, i) => {
-      // Inject images into the last user message
       if (hasImages && i === normMessages.length - 1 && m.role === "user") {
-        const textContent = typeof m.content === "string" ? m.content : ""
+        const textContent = typeof m.content === "string" ? m.content : "";
         return {
           role: "user" as const,
           content: [
             ...imageBlocks.map(img => ({
               type: "image_url",
-              image_url: { url: `data:${img.source.media_type};base64,${img.source.data}` }
+              image_url: { url: `data:${img.source.media_type};base64,${img.source.data}` },
             })),
-            { type: "text", text: textContent }
-          ]
-        }
+            { type: "text", text: textContent },
+          ],
+        };
       }
-      return m
+      return m;
     }),
-  ]
+  ];
 
   const resolvedModel = hasImages ? VISION_MODEL : model;
-  const isOpenRouterModel = resolvedModel.includes("/"); // e.g. "anthropic/claude-3.5-sonnet"
+  const isOpenRouterModel = resolvedModel.includes("/");
 
-  console.log("[groq] sending request, model:", resolvedModel, "messages count:", fullMessages.length, "first msg role:", fullMessages[0]?.role);
+  console.log(
+    "[groq] sending request, model:", resolvedModel,
+    "messages count:", fullMessages.length,
+    "first msg role:", fullMessages[0]?.role
+  );
+
   const res = await fetch(GROQ_API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: resolvedModel,
       max_tokens: maxTokens,
@@ -102,48 +128,54 @@ export async function callGroq(
     const err = await res.json().catch(() => ({}));
     console.error("[groq] API error:", res.status, err);
     throw new Error(
-      `Groq API error ${res.status}: ${(err as {error?: {message?: string}}).error?.message ?? res.statusText}`
+      `Groq API error ${res.status}: ${(err as { error?: { message?: string } }).error?.message ?? res.statusText}`
     );
   }
 
   const data = await res.json();
-  const result = data.choices?.[0]?.message?.content ?? "";
+
+  // Guard: malformed or empty response structure
+  if (!data?.choices?.length) {
+    console.error("[groq] Unexpected response structure:", JSON.stringify(data));
+    throw new Error("Empty or invalid response from AI model. Please try again.");
+  }
+
+  const result: string = data.choices[0]?.message?.content ?? "";
   console.log("[groq] response received, length:", result.length, result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓");
+
+  if (result.length === 0) {
+    throw new Error("AI returned an empty response. Please try again.");
+  }
+
   return result;
 }
 
-/**
- * Call Groq with vision support — pass image content blocks alongside text.
- * Automatically switches to the vision model when images are present.
- */
+// ─── Vision-specific helper ───────────────────────────────────────────────────
 export async function callGroqWithImages(
   textPrompt: string,
-  imageBlocks: Array<{type: string; source: {type: string; media_type: string; data: string}}>,
+  imageBlocks: Array<{ type: string; source: { type: string; media_type: string; data: string } }>,
   systemPrompt?: string,
   maxTokens: number = 1024
 ): Promise<string> {
-  // Build multimodal user message
-  const userContent: Array<{type: string; [key: string]: unknown}> = [
+  const userContent: Array<{ type: string; [key: string]: unknown }> = [
     ...imageBlocks.map(img => ({
       type: "image_url",
-      image_url: {
-        url: `data:${img.source.media_type};base64,${img.source.data}`
-      }
+      image_url: { url: `data:${img.source.media_type};base64,${img.source.data}` },
     })),
-    { type: "text", text: textPrompt }
-  ]
+    { type: "text", text: textPrompt },
+  ];
 
   const messages = [
     ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
-    { role: "user" as const, content: userContent }
-  ]
+    { role: "user" as const, content: userContent },
+  ];
 
-  console.log("[groq] sending request, model:", hasImages ? VISION_MODEL : model, "messages count:", fullMessages.length, "first msg role:", fullMessages[0]?.role);
+  // FIX: was incorrectly referencing `hasImages` and `model` from callGroq scope
+  console.log("[groq] sending vision request, model:", VISION_MODEL, "messages count:", messages.length);
+
   const res = await fetch(GROQ_API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: VISION_MODEL,
       max_tokens: maxTokens,
@@ -155,12 +187,24 @@ export async function callGroqWithImages(
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(
-      `Groq Vision API error ${res.status}: ${(err as {error?: {message?: string}}).error?.message ?? res.statusText}`
+      `Groq Vision API error ${res.status}: ${(err as { error?: { message?: string } }).error?.message ?? res.statusText}`
     );
   }
 
   const data = await res.json();
-  const result = data.choices?.[0]?.message?.content ?? "";
+
+  // Guard: malformed or empty response structure
+  if (!data?.choices?.length) {
+    console.error("[groq] Unexpected vision response structure:", JSON.stringify(data));
+    throw new Error("Empty or invalid response from vision model. Please try again.");
+  }
+
+  const result: string = data.choices[0]?.message?.content ?? "";
   console.log("[groq] response received, length:", result.length, result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓");
+
+  if (result.length === 0) {
+    throw new Error("Vision model returned an empty response. Please try again.");
+  }
+
   return result;
 }
