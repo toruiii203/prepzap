@@ -1,5 +1,5 @@
 import { ChatBubbleSkeleton } from "@/components/SkeletonLoader";
-import { buildAIContext, buildImageMessages, getActiveSource } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { callGroq, callGroqWithImages, type GroqMessage } from "@/lib/groq";
+import { callGroq, type GroqMessage } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
 import { useToolHistory, ToolHistoryPanel, HistoryButton } from "@/components/ToolHistory";
 
@@ -451,15 +451,7 @@ Formatting:
     }));
 
     try {
-      const imageBlocks = buildImageMessages();
-      const response = imageBlocks.length > 0
-        ? await callGroqWithImages(
-            history.map(m => typeof m.content === "string" ? m.content : "").join("\n"),
-            imageBlocks,
-            buildSystemPrompt(activeMode),
-            2000
-          )
-        : await callGroq(history, buildSystemPrompt(activeMode), activeModelInfo.routerModel, 2000);
+      const response = await callGroq(history, buildSystemPrompt(activeMode), activeModelInfo.routerModel, 2000);
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
