@@ -1,7 +1,6 @@
-import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react";
-
-
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
 import { ToolHeader } from "@/components/ToolShell";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { AlertCircle, Plus, Trash2, RefreshCw, Flame, Play } from "lucide-react";
@@ -125,7 +124,8 @@ Create ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to 
     const q = reviewQuestions[reviewIdx];
     const allDone = reviewRevealed.every(Boolean);
     return (
-      <ToolPageShell>
+      <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
+        <Navbar />
         <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
           <GlobalContextBar compact />
           <div className="flex items-center justify-between mb-6 mt-4">
@@ -168,12 +168,14 @@ Create ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to 
             </div>
           )}
         </main>
-    </ToolPageShell>
-  );
+        <BottomNav />
+      </div>
+    );
   }
 
   return (
-    <ToolPageShell>
+    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
+      <Navbar />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<AlertCircle className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Mistake Journal" subtitle="Log errors — auto-sorted by overdue for review" />
@@ -290,6 +292,7 @@ Create ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to 
           </div>
         )}
       </main>
-    </ToolPageShell>
+      <BottomNav />
+    </div>
   );
 }

@@ -96,7 +96,7 @@ export function buildAIContext(maxCharsPerSource = 5000, maxSources = 3): string
 
   const active = ctx.mode === "all"
     ? files.slice(0, maxSources)
-    : files.filter(f => ctx.selectedIds.includes(f.id)).slice(0, maxSources)
+    : files.filter(f => (ctx.selectedIds ?? []).includes(f.id)).slice(0, maxSources)
 
   if (active.length === 0) return ""
 
@@ -128,7 +128,7 @@ export function buildImageMessages(maxSources = 3): Array<{type: string; source:
 
   const active = ctx.mode === "all"
     ? files.slice(0, maxSources)
-    : files.filter(f => ctx.selectedIds.includes(f.id)).slice(0, maxSources)
+    : files.filter(f => (ctx.selectedIds ?? []).includes(f.id)).slice(0, maxSources)
 
   return active
     .filter(f => (f.type === "image/jpeg" || f.type === "image/png") && f.fullText)
@@ -170,6 +170,6 @@ export function getActiveSource(): SourceFile | null {
   const files = loadLibrary()
   if (ctx.mode === "none") return null
   if (ctx.mode === "all" && files.length > 0) return files[0]
-  const sel = files.find(f => ctx.selectedIds.includes(f.id))
+  const sel = files.find(f => (ctx.selectedIds ?? []).includes(f.id))
   return sel ?? null
 }

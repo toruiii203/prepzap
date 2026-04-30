@@ -33,14 +33,15 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
   }, [])
 
   const setMode = (mode: SourceContextState["mode"]) => {
-    const next: SourceContextState = { mode, selectedIds: ctx.selectedIds }
+    const next: SourceContextState = { mode, selectedIds: ctx.selectedIds ?? [] }
     saveContext(next); setCtx(next)
   }
 
   const toggleSelected = (id: string) => {
-    const ids = ctx.selectedIds.includes(id)
-      ? ctx.selectedIds.filter(x => x !== id)
-      : [...ctx.selectedIds, id]
+    const currentIds = ctx.selectedIds ?? []
+    const ids = currentIds.includes(id)
+      ? currentIds.filter(x => x !== id)
+      : [...currentIds, id]
     const next: SourceContextState = { mode: "selected", selectedIds: ids }
     saveContext(next); setCtx(next)
   }
@@ -53,7 +54,7 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
   const activeCount = ctx.mode === "all"
     ? files.length
     : ctx.mode === "selected"
-    ? ctx.selectedIds.length
+    ? (ctx.selectedIds ?? []).length
     : 0
 
   const isActive = activeCount > 0
@@ -62,15 +63,16 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
   const pillBorder = isActive ? "rgba(212,175,90,0.35)" : "var(--pz-border)"
   const pillText = isActive ? "var(--pz-gold)" : "var(--pz-text-muted)"
 
+  const selectedIds = ctx.selectedIds ?? []
   const modeLabel = ctx.mode === "none"
     ? "General AI"
     : ctx.mode === "all"
     ? `All Sources (${files.length})`
-    : ctx.selectedIds.length === 0
+    : selectedIds.length === 0
     ? "Select source…"
-    : ctx.selectedIds.length === 1
-    ? (files.find(f => f.id === ctx.selectedIds[0])?.name ?? "1 source")
-    : `${ctx.selectedIds.length} sources active`
+    : selectedIds.length === 1
+    ? (files.find(f => f.id === selectedIds[0])?.name ?? "1 source")
+    : `${selectedIds.length} sources active`
 
   if (files.length === 0) {
     return (
@@ -164,7 +166,7 @@ export function GlobalContextBar({ compact = false }: GlobalContextBarProps) {
               </p>
               <div className="max-h-48 overflow-y-auto">
                 {files.map(f => {
-                  const checked = ctx.selectedIds.includes(f.id)
+                  const checked = selectedIds.includes(f.id)
                   return (
                     <button
                       key={f.id}
