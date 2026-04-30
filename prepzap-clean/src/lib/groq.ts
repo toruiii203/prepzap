@@ -13,12 +13,47 @@ export interface GroqMessage {
   content: string | Array<{type: string; [key: string]: unknown}>;
 }
 
+// Known model name substrings — used to detect when a model string is passed
+// as the second argument instead of a systemPrompt.
+const MODEL_PREFIXES = ["llama", "gemma", "mixtral", "mistral", "deepseek", "qwen", "meta-llama"];
+
+function looksLikeModel(s: string): boolean {
+  return MODEL_PREFIXES.some(p => s.toLowerCase().startsWith(p));
+}
+
 export async function callGroq(
-  messages: GroqMessage[],
-  systemPrompt?: string,
+  messages: GroqMessage[] | string,
+  systemPromptOrModel?: string,
   model: string = DEFAULT_MODEL,
   maxTokens: number = 1024
 ): Promise<string> {
+  // ── Normalise overloaded arguments ──────────────────────────────────────────
+  // Legacy callers pass:  callGroq(promptString, "llama-3.3-70b-versatile")
+  // Correct callers pass: callGroq([{role,content}], systemPrompt, model, maxTokens)
+  let normMessages: GroqMessage[];
+  let systemPrompt: string | undefined;
+
+  if (typeof messages === "string") {
+    // First arg is a plain string prompt → wrap it
+    normMessages = [{ role: "user", content: messages }];
+    if (systemPromptOrModel && looksLikeModel(systemPromptOrModel)) {
+      // Second arg is actually a model name
+      model = systemPromptOrModel;
+      systemPrompt = undefined;
+    } else {
+      systemPrompt = systemPromptOrModel;
+    }
+  } else {
+    normMessages = messages;
+    if (systemPromptOrModel && looksLikeModel(systemPromptOrModel) && model === DEFAULT_MODEL) {
+      // Caller accidentally passed model as systemPrompt slot
+      model = systemPromptOrModel;
+      systemPrompt = undefined;
+    } else {
+      systemPrompt = systemPromptOrModel;
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────────
   // Auto-detect active image sources and inject them into the last user message
   const { buildImageMessages } = await import("@/lib/sourceContext")
   const imageBlocks = buildImageMessages()
@@ -26,9 +61,9 @@ export async function callGroq(
 
   const fullMessages = [
     ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
-    ...messages.map((m, i) => {
+    ...normMessages.map((m, i) => {
       // Inject images into the last user message
-      if (hasImages && i === messages.length - 1 && m.role === "user") {
+      if (hasImages && i === normMessages.length - 1 && m.role === "user") {
         const textContent = typeof m.content === "string" ? m.content : ""
         return {
           role: "user" as const,
