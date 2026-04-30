@@ -1,6 +1,7 @@
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect, useRef } from "react";
-import { Navbar } from "@/components/Navbar";
-import { BottomNav } from "@/components/BottomNav";
+
+
 import { ToolHeader } from "@/components/ToolShell";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { Zap, Clock, CheckCircle, RotateCcw, Trophy, ChevronRight, AlertTriangle } from "lucide-react";
@@ -97,8 +98,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
   const timerColor = timeLeft < 30 ? "var(--pz-rose)" : timeLeft < 60 ? "var(--pz-gold)" : "var(--pz-teal)";
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <Navbar />
+    <ToolPageShell>
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Cram Mode" subtitle="Guided timed session — one topic at a time" />
@@ -211,7 +211,6 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
           </div>
         )}
       </main>
-      <BottomNav />
-    </div>
+    </ToolPageShell>
   );
 }

@@ -1,6 +1,7 @@
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
-import { BottomNav } from "@/components/BottomNav";
+
+
 import { ToolHeader } from "@/components/ToolShell";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { Dna, RefreshCw, BarChart2 } from "lucide-react";
@@ -118,8 +119,7 @@ Return ONLY valid JSON, no markdown:
     : 0;
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <Navbar />
+    <ToolPageShell>
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader
@@ -277,7 +277,6 @@ Return ONLY valid JSON, no markdown:
           </div>
         )}
       </main>
-      <BottomNav />
-    </div>
+    </ToolPageShell>
   );
 }

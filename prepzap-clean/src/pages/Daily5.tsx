@@ -1,9 +1,10 @@
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { QuestionSkeleton } from "@/components/SkeletonLoader";
 import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Zap, CheckCircle2, XCircle, Trophy, RotateCcw } from "lucide-react";
@@ -104,8 +105,7 @@ export default function Daily5() {
   const ss = String(elapsed%60).padStart(2,"0");
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
+    <ToolPageShell>
       {/* History Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         <ToolHistorySidebar
@@ -121,7 +121,7 @@ export default function Daily5() {
           <div className="flex-1">
             <h1 className="text-xl font-bold flex items-center gap-2">
               <div className="w-7 h-7 rounded-none bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center"><Zap className="h-4 w-4 text-white"/></div>
-              Daily 5
+              Daily Quiz
             </h1>
             <p className="text-xs text-muted-foreground">5 targeted questions · under 3 minutes · 🔥 {streak}-day streak</p>
           </div>
@@ -131,7 +131,7 @@ export default function Daily5() {
           <div className="text-center space-y-6 pt-8">
             {alreadyDone && (
               <div className="p-4 mb-2 text-center" style={{ background: "var(--pz-teal-dim)", border: "1px solid var(--pz-teal)40" }}>
-                <p className="text-sm font-semibold" style={{ color: "var(--pz-teal)" }}>✓ You've completed today's Daily 5!</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--pz-teal)" }}>✓ You've completed today's Daily Quiz!</p>
                 <p className="text-xs mt-1" style={{ color: "var(--pz-text-muted)" }}>Come back tomorrow to keep your streak. 🔥 {streak}-day streak</p>
               </div>
             )}
@@ -139,7 +139,7 @@ export default function Daily5() {
               <Zap className="h-10 w-10 text-white"/>
             </div>
             <div>
-              <h2 className="text-2xl font-bold mb-2">Your Daily 5</h2>
+              <h2 className="text-2xl font-bold mb-2">Your Daily Quiz</h2>
               <p className="text-muted-foreground">5 fresh questions targeting your weak spots. Under 3 minutes. Build the habit.</p>
             </div>
             <div className="flex justify-center gap-6 text-sm text-muted-foreground">
@@ -152,7 +152,7 @@ export default function Daily5() {
               <button onClick={start} disabled={isLoading}
                 className="w-full max-w-sm py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
                 style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
-                ⚡ Generate Daily 5 from Active Source
+                ⚡ Generate Daily Quiz from Active Source
               </button>
             )}
             <div className="flex flex-col items-center gap-3">
@@ -231,6 +231,6 @@ export default function Daily5() {
      </main>
         </div>
       </div>
-    </div>
+    </ToolPageShell>
   );
 }

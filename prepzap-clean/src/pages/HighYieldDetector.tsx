@@ -1,6 +1,7 @@
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState } from "react";
-import { Navbar } from "@/components/Navbar";
-import { BottomNav } from "@/components/BottomNav";
+
+
 import { ToolHeader } from "@/components/ToolShell";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { TrendingUp, ChevronDown, ChevronUp, CheckCircle, XCircle } from "lucide-react";
@@ -127,8 +128,7 @@ Mix question types: definition, application, comparison.`;
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <Navbar />
+    <ToolPageShell>
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<TrendingUp className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="High Yield Detector" subtitle="Find what's most testable — then drill it instantly" />
@@ -262,7 +262,6 @@ Mix question types: definition, application, comparison.`;
           </div>
         )}
       </main>
-      <BottomNav />
-    </div>
+    </ToolPageShell>
   );
 }

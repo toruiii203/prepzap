@@ -1,287 +1,255 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { Navbar } from "@/components/Navbar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import {
-  BarChart3, TrendingUp, Target, Clock, Flame, BookOpen,
-  ChevronLeft, Trophy, Brain, Zap, Calendar, ArrowUp, ArrowDown,
-  CheckCircle2, XCircle, Star
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react"
+import { ToolPageShell } from "@/components/ToolPageShell"
+import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/contexts/AuthContext"
+import { BarChart3, Clock, Target, Flame, Trophy, TrendingUp, Calendar } from "lucide-react"
 
-const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-const weeklyMinutes = [45, 70, 30, 90, 55, 120, 40]
-const weeklyAccuracy = [72, 80, 65, 84, 78, 88, 71]
+const TEAL  = "#00C4B4"
+const GOLD  = "#E8B923"
+const ROSE  = "#E84040"
+const FONT  = "'Inter', system-ui, sans-serif"
+const MONO  = "'Geist Mono', 'Courier New', monospace"
 
-const subjectStats = [
-  { name: "Biology",   emoji: "🧬", accuracy: 82, trend: +5,  color: "bg-white" },
-  { name: "Chemistry", emoji: "🧪", accuracy: 68, trend: +2,  color: "bg-blue-500" },
-  { name: "Math",      emoji: "∑",  accuracy: 74, trend: -3,  color: "bg-white/500" },
-  { name: "Physics",   emoji: "⚡", accuracy: 61, trend: +8,  color: "bg-amber-500" },
-  { name: "History",   emoji: "📜", accuracy: 88, trend: +1,  color: "bg-rose-500" },
-  { name: "English",   emoji: "📝", accuracy: 79, trend: 0,   color: "bg-cyan-500" },
-]
-
-const recentSessions = [
-  { subject: "Biology",   questions: 25, correct: 21, duration: 40, date: "Today, 2:30 PM",     icon: "🧬" },
-  { subject: "Chemistry", questions: 20, correct: 13, duration: 35, date: "Today, 10:00 AM",    icon: "🧪" },
-  { subject: "Math",      questions: 30, correct: 22, duration: 50, date: "Yesterday, 6:00 PM", icon: "∑"  },
-  { subject: "Physics",   questions: 15, correct: 9,  duration: 25, date: "Yesterday, 3:00 PM", icon: "⚡" },
-  { subject: "Biology",   questions: 20, correct: 17, duration: 30, date: "2 days ago",         icon: "🧬" },
-]
-
-const milestones = [
-  { label: "First Session",  icon: "🎉", earned: true  },
-  { label: "100 Questions",  icon: "📚", earned: true  },
-  { label: "7-Day Streak",   icon: "🔥", earned: true  },
-  { label: "80% Accuracy",   icon: "🎯", earned: true  },
-  { label: "500 Questions",  icon: "⚡", earned: false },
-  { label: "30-Day Streak",  icon: "💎", earned: false },
-  { label: "Perfect Score",  icon: "⭐", earned: false },
-  { label: "All Subjects",   icon: "🏆", earned: false },
-  { label: "Top 10%",        icon: "👑", earned: false },
-]
-
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
 type Period = "week" | "month" | "all"
 
+interface ActivityItem { id: string; label: string; score: string; created_at: string }
+
+function relTime(iso: string) {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
+  if (d === 0) return "Today"
+  if (d === 1) return "Yesterday"
+  return `${d}d ago`
+}
+
+function parseScore(score: string): { correct: number; total: number } | null {
+  const m = score?.match(/(\d+)\s*\/\s*(\d+)/)
+  if (m) return { correct: parseInt(m[1]), total: parseInt(m[2]) }
+  return null
+}
+
 export default function Analytics() {
+  const { user } = useAuth()
+  const [activity, setActivity] = useState<ActivityItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<Period>("week")
 
-  const totalMinutes = weeklyMinutes.reduce((a, b) => a + b, 0)
-  const totalQuestions = weeklyMinutes.map((m) => Math.round(m * 0.6)).reduce((a, b) => a + b, 0)
-  const avgAccuracy = Math.round(weeklyAccuracy.reduce((a, b) => a + b, 0) / weeklyAccuracy.length)
-  const maxMinutes = Math.max(...weeklyMinutes)
+  useEffect(() => {
+    if (!user?.id) return
+    supabase
+      .from("activity_log")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        if (data) setActivity(data)
+        setLoading(false)
+      })
+  }, [user?.id])
+
+  // Filter by period
+  const now = Date.now()
+  const cutoff = period === "week" ? now - 7 * 86400000 : period === "month" ? now - 30 * 86400000 : 0
+  const filtered = activity.filter(a => new Date(a.created_at).getTime() >= cutoff)
+
+  // Stats from real data
+  const totalSessions = filtered.length
+  const scoredItems = filtered.map(a => parseScore(a.score)).filter(Boolean) as { correct: number; total: number }[]
+  const totalCorrect = scoredItems.reduce((s, x) => s + x.correct, 0)
+  const totalQs = scoredItems.reduce((s, x) => s + x.total, 0)
+  const avgAccuracy = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0
+
+  // Streak — consecutive days with activity
+  const activityDays = new Set(activity.map(a => a.created_at.slice(0, 10)))
+  let streak = 0
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(now - i * 86400000).toISOString().slice(0, 10)
+    if (activityDays.has(d)) streak++
+    else break
+  }
+
+  // Last 7 days bar data
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(now - (6 - i) * 86400000)
+    const key = date.toISOString().slice(0, 10)
+    const dayActivity = activity.filter(a => a.created_at.slice(0, 10) === key)
+    const dayScored = dayActivity.map(a => parseScore(a.score)).filter(Boolean) as { correct: number; total: number }[]
+    const dayQs = dayScored.reduce((s, x) => s + x.total, 0)
+    const dayCorrect = dayScored.reduce((s, x) => s + x.correct, 0)
+    return {
+      day: DAYS[date.getDay()],
+      sessions: dayActivity.length,
+      questions: dayQs,
+      accuracy: dayQs > 0 ? Math.round((dayCorrect / dayQs) * 100) : 0,
+    }
+  })
+
+  const maxQs = Math.max(...last7.map(d => d.questions), 1)
+
+  // Tool usage breakdown
+  const toolCounts: Record<string, number> = {}
+  filtered.forEach(a => {
+    const tool = a.label?.split("·")[0]?.trim() || "Unknown"
+    toolCounts[tool] = (toolCounts[tool] || 0) + 1
+  })
+  const topTools = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+  const maxTool = topTools[0]?.[1] || 1
+
+  const stat = (label: string, value: string | number, sub: string, color = TEAL) => (
+    <div style={{ flex: 1, padding: "16px", background: "#0E0E0E", border: "0.5px solid #1E1E1E" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: MONO, letterSpacing: "-0.02em" }}>{value}</div>
+      <div style={{ fontSize: 10, color: "#F0F0F0", fontWeight: 600, marginTop: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 9, color: "#555", marginTop: 2 }}>{sub}</div>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
-      <main className="flex-1 py-6 lg:py-8">
-        <div className="container mx-auto px-4 lg:px-8 max-w-6xl">
+    <ToolPageShell>
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px 80px", fontFamily: FONT }}>
 
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="gap-1">
-                  <ChevronLeft className="h-4 w-4" /> Dashboard
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                  <BarChart3 className="h-6 w-6 text-indigo-500" /> Analytics
-                </h1>
-                <p className="text-sm text-muted-foreground">Your study patterns & performance</p>
-              </div>
-            </div>
-            <div className="flex rounded-none border overflow-hidden text-xs">
-              {(["week", "month", "all"] as Period[]).map(p => (
-                <button key={p} onClick={() => setPeriod(p)}
-                  className={cn("px-3 py-1.5 font-medium transition-colors capitalize",
-                    period === p ? "bg-indigo-500 text-white" : "hover:bg-muted text-muted-foreground")}>
-                  {p === "all" ? "All time" : `This ${p}`}
-                </button>
-              ))}
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <BarChart3 style={{ color: GOLD, width: 18, height: 18 }} />
+            <div>
+              <h1 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Progress</h1>
+              <p style={{ fontSize: 10, color: "#555", margin: 0 }}>Real data from your study sessions</p>
             </div>
           </div>
-
-          {/* Top stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {[
-              { icon: Clock,    label: "Study Time",   value: `${Math.round(totalMinutes / 60)}h ${totalMinutes % 60}m`, sub: "+12% vs last week", up: true,  color: "text-blue-500",    bg: "bg-blue-50 dark:bg-blue-950" },
-              { icon: BookOpen, label: "Questions",    value: totalQuestions,                                              sub: "+8% vs last week",  up: true,  color: "text-white/60", bg: "bg-emerald-50 dark:bg-emerald-950" },
-              { icon: Target,   label: "Avg Accuracy", value: `${avgAccuracy}%`,                                          sub: "+3% vs last week",  up: true,  color: "text-white/500",  bg: "bg-white/50 dark:bg-white/950" },
-              { icon: Flame,    label: "Day Streak",   value: "12 🔥",                                                    sub: "Personal best: 14", up: false, color: "text-orange-500",  bg: "bg-orange-50 dark:bg-orange-950" },
-            ].map(({ icon: Icon, label, value, sub, up, color, bg }) => (
-              <Card key={label}>
-                <CardContent className="p-4">
-                  <div className={cn("w-9 h-9 rounded-none flex items-center justify-center mb-2", bg)}>
-                    <Icon className={cn("h-5 w-5", color)} />
-                  </div>
-                  <p className="text-2xl font-black leading-none">{value}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-                  <div className={cn("flex items-center gap-1 mt-1 text-[10px]", up ? "text-white/60" : "text-muted-foreground")}>
-                    {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                    {sub}
-                  </div>
-                </CardContent>
-              </Card>
+          <div style={{ display: "flex", border: "0.5px solid #252525", overflow: "hidden" }}>
+            {(["week", "month", "all"] as Period[]).map(p => (
+              <button key={p} onClick={() => setPeriod(p)}
+                style={{ padding: "5px 14px", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", background: period === p ? GOLD : "transparent", color: period === p ? "#000" : "#555", border: "none", cursor: "pointer", fontFamily: FONT, transition: "all 0.15s" }}>
+                {p === "all" ? "All time" : `This ${p}`}
+              </button>
             ))}
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Study time bar chart */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-500" /> Daily Study Time (minutes)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-end gap-2 h-36">
-                    {weeklyMinutes.map((min, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground font-medium">{min}</span>
-                        <div className="w-full rounded-t-md" style={{ height: `${Math.max(8, (min / maxMinutes) * 96)}px`, background: "rgb(59 130 246 / 0.15)" }}>
-                          <div className="w-full rounded-t-md bg-blue-500 h-full" />
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">{WEEK_DAYS[i]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Accuracy trend */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-white/60" /> Accuracy Trend (%)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative h-28 pl-6">
-                    <svg viewBox="0 0 280 80" className="w-full h-full" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="accGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
-                        </linearGradient>
-                      </defs>
-                      <path d={`M ${weeklyAccuracy.map((v, i) => `${i * (280 / 6)},${80 - ((v - 50) / 50) * 80}`).join(" L ")} L 280,80 L 0,80 Z`} fill="url(#accGrad)" />
-                      <polyline points={weeklyAccuracy.map((v, i) => `${i * (280 / 6)},${80 - ((v - 50) / 50) * 80}`).join(" ")} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round" />
-                      {weeklyAccuracy.map((v, i) => (
-                        <circle key={i} cx={i * (280 / 6)} cy={80 - ((v - 50) / 50) * 80} r="4" fill="#10b981" stroke="white" strokeWidth="2" />
-                      ))}
-                    </svg>
-                    <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[9px] text-muted-foreground">
-                      <span>100%</span><span>75%</span><span>50%</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between mt-1 pl-6">
-                    {WEEK_DAYS.map(d => <span key={d} className="text-[10px] text-muted-foreground flex-1 text-center">{d}</span>)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent sessions */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-white/500" /> Recent Sessions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {recentSessions.map((s, i) => {
-                    const pct = Math.round((s.correct / s.questions) * 100)
-                    return (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-muted/40 rounded-none hover:bg-muted/70 transition-colors">
-                        <span className="text-xl w-8 text-center">{s.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold">{s.subject}</span>
-                            <Badge variant="outline" className={cn("text-[10px] py-0",
-                              pct >= 80 ? "border-emerald-500 text-emerald-600" : pct >= 65 ? "border-amber-500 text-amber-600" : "border-red-500 text-red-600")}>
-                              {pct}%
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{s.date} · {s.duration}min · {s.questions} Qs</p>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs shrink-0">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-white/60" /><span className="font-medium">{s.correct}</span>
-                          <XCircle className="h-3.5 w-3.5 text-red-400 ml-1" /><span className="font-medium">{s.questions - s.correct}</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right sidebar */}
-            <div className="space-y-5">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-indigo-500" /> By Subject
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {subjectStats.sort((a, b) => b.accuracy - a.accuracy).map(s => (
-                    <div key={s.name}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium">{s.emoji} {s.name}</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn("text-[10px] flex items-center",
-                            s.trend > 0 ? "text-white/60" : s.trend < 0 ? "text-red-400" : "text-muted-foreground")}>
-                            {s.trend > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : s.trend < 0 ? <ArrowDown className="h-2.5 w-2.5" /> : null}
-                            {Math.abs(s.trend)}%
-                          </span>
-                          <span className="text-xs font-bold">{s.accuracy}%</span>
-                        </div>
-                      </div>
-                      <div className="h-2 bg-muted rounded-none overflow-hidden">
-                        <div className={cn("h-full rounded-none", s.color)} style={{ width: `${s.accuracy}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-indigo-500/10 to-zinc-500/5 border-indigo-200 dark:border-indigo-800">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold">XP This Week</p>
-                    <Zap className="h-4 w-4 text-indigo-500" />
-                  </div>
-                  <p className="text-3xl font-black text-indigo-500">+840 XP</p>
-                  <Progress value={68} className="h-1.5 mt-2" />
-                  <p className="text-[10px] text-muted-foreground mt-1">550 XP to Level 9</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-amber-500" /> Milestones
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-2">
-                    {milestones.map(m => (
-                      <div key={m.label} className={cn("flex flex-col items-center gap-1 p-2 rounded-none text-center",
-                        m.earned ? "bg-amber-50 dark:bg-amber-950 ring-1 ring-amber-200 dark:ring-amber-800" : "bg-muted opacity-40")}>
-                        <span className="text-lg">{m.icon}</span>
-                        <span className="text-[9px] font-medium leading-tight">{m.label}</span>
-                        {m.earned && <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <p className="text-sm font-semibold mb-2">Today's Goal</p>
-                  <div className="flex items-end gap-2 mb-1">
-                    <span className="text-3xl font-black">35</span>
-                    <span className="text-muted-foreground text-sm mb-1">/ 60 min</span>
-                  </div>
-                  <Progress value={58} className="h-2" />
-                  <p className="text-[11px] text-muted-foreground mt-1.5">25 min left to hit your goal</p>
-                  <Link to="/practice">
-                    <Button size="sm" className="w-full mt-3 bg-white hover:bg-white/80 text-white">Practice Now →</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
         </div>
+
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#555", fontSize: 13 }}>Loading your data...</div>
+        ) : activity.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#555" }}>
+            <BarChart3 style={{ width: 40, height: 40, opacity: 0.2, margin: "0 auto 12px" }} />
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#555" }}>No activity yet</p>
+            <p style={{ fontSize: 12, color: "#333", marginTop: 4 }}>Start studying to see your progress here</p>
+          </div>
+        ) : (
+          <>
+            {/* Stats row */}
+            <div style={{ display: "flex", gap: 1, marginBottom: 1 }}>
+              {stat("Sessions", totalSessions, `In this ${period}`)}
+              {stat("Questions", totalQs || "—", totalQs > 0 ? `${totalCorrect} correct` : "Score data unavailable")}
+              {stat("Accuracy", totalQs > 0 ? `${avgAccuracy}%` : "—", totalQs > 0 ? (avgAccuracy >= 80 ? "Great work!" : avgAccuracy >= 60 ? "Keep going" : "Needs work") : "Complete scored sessions", avgAccuracy >= 80 ? TEAL : avgAccuracy >= 60 ? GOLD : ROSE)}
+              {stat("Streak", `${streak}🔥`, streak > 0 ? "Consecutive days" : "Study today to start!")}
+            </div>
+
+            {/* 7-day bar chart */}
+            <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px", marginTop: 1, marginBottom: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <Clock style={{ color: TEAL, width: 14, height: 14 }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Questions per day (last 7 days)</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
+                {last7.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    {d.questions > 0 && <span style={{ fontSize: 9, color: "#555", fontFamily: MONO }}>{d.questions}</span>}
+                    <div style={{ width: "100%", background: "#1A1A1A", flex: 1, display: "flex", alignItems: "flex-end" }}>
+                      <div style={{ width: "100%", height: `${Math.max(4, (d.questions / maxQs) * 100)}%`, background: d.questions > 0 ? TEAL : "#1A1A1A", transition: "height 0.5s" }} />
+                    </div>
+                    <span style={{ fontSize: 9, color: "#555" }}>{d.day}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tool breakdown + recent activity side by side */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, marginBottom: 1 }}>
+              {/* Tool usage */}
+              <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <TrendingUp style={{ color: GOLD, width: 14, height: 14 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Top Tools Used</span>
+                </div>
+                {topTools.length === 0 ? (
+                  <p style={{ fontSize: 11, color: "#333" }}>No tool data yet</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {topTools.map(([tool, count]) => (
+                      <div key={tool}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <span style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "75%" }}>{tool}</span>
+                          <span style={{ fontSize: 10, color: "#555", fontFamily: MONO }}>{count}</span>
+                        </div>
+                        <div style={{ height: 3, background: "#1A1A1A" }}>
+                          <div style={{ height: "100%", width: `${(count / maxTool) * 100}%`, background: GOLD, transition: "width 0.6s" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent activity */}
+              <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px", overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <Calendar style={{ color: TEAL, width: 14, height: 14 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Recent Sessions</span>
+                </div>
+                {filtered.length === 0 ? (
+                  <p style={{ fontSize: 11, color: "#333" }}>No sessions in this period</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 200, overflowY: "auto" }}>
+                    {filtered.slice(0, 10).map(item => {
+                      const scored = parseScore(item.score)
+                      const pct = scored ? Math.round((scored.correct / scored.total) * 100) : null
+                      return (
+                        <div key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "6px 0", borderBottom: "0.5px solid #141414" }}>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ fontSize: 11, color: "#C0C0C0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{item.label}</p>
+                            <p style={{ fontSize: 9, color: "#444", margin: "2px 0 0", fontFamily: MONO }}>{relTime(item.created_at)}</p>
+                          </div>
+                          {pct !== null && (
+                            <span style={{ fontSize: 10, fontWeight: 700, fontFamily: MONO, color: pct >= 80 ? TEAL : pct >= 60 ? GOLD : ROSE, flexShrink: 0 }}>
+                              {item.score}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Milestones based on real data */}
+            <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <Trophy style={{ color: GOLD, width: 14, height: 14 }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Milestones</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 }}>
+                {[
+                  { label: "First Session",  icon: "🎉", earned: activity.length >= 1 },
+                  { label: "10 Sessions",    icon: "📚", earned: activity.length >= 10 },
+                  { label: "50 Sessions",    icon: "⚡", earned: activity.length >= 50 },
+                  { label: "100 Questions",  icon: "🎯", earned: totalQs >= 100 },
+                  { label: "500 Questions",  icon: "🏆", earned: totalQs >= 500 },
+                  { label: "3-Day Streak",   icon: "🔥", earned: streak >= 3 },
+                  { label: "7-Day Streak",   icon: "💎", earned: streak >= 7 },
+                  { label: "80% Accuracy",   icon: "⭐", earned: avgAccuracy >= 80 },
+                ].map(m => (
+                  <div key={m.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "10px 8px", background: m.earned ? "rgba(232,185,35,0.06)" : "#0A0A0A", border: `0.5px solid ${m.earned ? "rgba(232,185,35,0.25)" : "#1A1A1A"}`, opacity: m.earned ? 1 : 0.4 }}>
+                    <span style={{ fontSize: 18 }}>{m.icon}</span>
+                    <span style={{ fontSize: 9, color: m.earned ? GOLD : "#555", textAlign: "center", fontWeight: m.earned ? 600 : 400, lineHeight: 1.3 }}>{m.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </main>
-    </div>
+    </ToolPageShell>
   )
 }

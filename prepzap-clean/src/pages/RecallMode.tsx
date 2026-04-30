@@ -1,6 +1,7 @@
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useRef, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
-import { BottomNav } from "@/components/BottomNav";
+
+
 import { ToolHeader } from "@/components/ToolShell";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { MessageSquare, Flame, Trophy, SkipForward } from "lucide-react";
@@ -109,8 +110,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <Navbar />
+    <ToolPageShell>
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<MessageSquare className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Recall Mode" subtitle="Type from memory — scored instantly by keyword matching" />
@@ -237,7 +237,6 @@ keywords: 4-6 essential words from the answer that a correct response would incl
           </div>
         )}
       </main>
-      <BottomNav />
-    </div>
+    </ToolPageShell>
   );
 }

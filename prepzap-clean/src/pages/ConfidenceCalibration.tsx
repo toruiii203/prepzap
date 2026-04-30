@@ -1,6 +1,7 @@
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
-import { BottomNav } from "@/components/BottomNav";
+
+
 import { ToolHeader } from "@/components/ToolShell";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { Star, RotateCcw, Trophy, Clock } from "lucide-react";
@@ -133,8 +134,7 @@ Make concepts specific and testable — not too broad.`;
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <Navbar />
+    <ToolPageShell>
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<Star className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Confidence Calibration" subtitle="Sort concepts into Know / Shaky / No idea — weak ones resurface automatically" />
@@ -262,7 +262,6 @@ Make concepts specific and testable — not too broad.`;
           </div>
         )}
       </main>
-      <BottomNav />
-    </div>
+    </ToolPageShell>
   );
 }
