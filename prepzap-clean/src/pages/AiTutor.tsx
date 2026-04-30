@@ -45,10 +45,10 @@ type TutorMode = "explain" | "quiz" | "analogy" | "eli5" | "debate" | "summary";
 type ModelId = "llama-3.3-70b-versatile" | "claude-3-5-sonnet" | "gpt-4o";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const MODELS: { id: ModelId; label: string; provider: string; badge: string; badgeColor: string }[] = [
-  { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", badge: "Fast", badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { id: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet", provider: "Anthropic", badge: "Deep", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20" },
-  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", badge: "Balanced", badgeColor: "bg-white/10 text-emerald-600 border-emerald-500/20" },
+const MODELS: { id: ModelId; label: string; provider: string; badge: string; badgeColor: string; routerModel: string }[] = [
+  { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", badge: "Fast", badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20", routerModel: "llama-3.3-70b-versatile" },
+  { id: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet", provider: "Anthropic", badge: "Deep", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20", routerModel: "anthropic/claude-3.5-sonnet" },
+  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", badge: "Balanced", badgeColor: "bg-white/10 text-emerald-600 border-emerald-500/20", routerModel: "openai/gpt-4o" },
 ];
 
 const TUTOR_MODES: {
@@ -459,7 +459,7 @@ Formatting:
             buildSystemPrompt(activeMode),
             2000
           )
-        : await callGroq(history, buildSystemPrompt(activeMode), "llama-3.3-70b-versatile", 2000);
+        : await callGroq(history, buildSystemPrompt(activeMode), activeModelInfo.routerModel, 2000);
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",

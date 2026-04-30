@@ -74,7 +74,7 @@ Make concepts specific and testable — not too broad.`;
       setPass(1);
       setShowDef(false);
       setPhase("sort");
-    } catch { toast.error("Failed to generate. Try again."); }
+    } catch(err:any) { console.error("[ConfidenceCalibration] generate failed:", err); toast.error("Error: " + (err?.message ?? String(err))); }
     finally { setLoading(false); }
   };
 

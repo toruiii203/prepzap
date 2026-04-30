@@ -75,7 +75,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
       startTopicTimer(parsed[0].timeMinutes);
       setPhase("session");
       localStorage.setItem("pz_cram_last", JSON.stringify({ subject: effectiveSubject, date: new Date().toISOString() }));
-    } catch { toast.error("Failed to generate. Try again."); }
+    } catch(err:any) { console.error("[CramMode] generate failed:", err); toast.error("Error: " + (err?.message ?? String(err))); }
     finally { setLoading(false); }
   };
 

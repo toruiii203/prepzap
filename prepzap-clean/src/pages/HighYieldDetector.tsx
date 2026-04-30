@@ -67,7 +67,7 @@ Order by frequency descending.`;
       setDrills({});
       setExpanded(null);
       setDrillingIdx(null);
-    } catch { toast.error("Failed to generate. Try again."); }
+    } catch(err:any) { console.error("[HighYieldDetector] generate failed:", err); toast.error("Error: " + (err?.message ?? String(err))); }
     finally { setLoading(false); }
   };
 

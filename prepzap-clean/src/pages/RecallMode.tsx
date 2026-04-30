@@ -62,7 +62,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
       setStreak(0); setBestStreak(0);
       setShowAnswer(false);
       setPhase("recall");
-    } catch { toast.error("Failed to generate. Try again."); }
+    } catch(err:any) { console.error("[RecallMode] generate failed:", err); toast.error("Error: " + (err?.message ?? String(err))); }
     finally { setLoading(false); }
   };
 

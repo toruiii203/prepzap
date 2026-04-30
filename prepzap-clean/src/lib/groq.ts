@@ -80,28 +80,36 @@ export async function callGroq(
     }),
   ]
 
+  const resolvedModel = hasImages ? VISION_MODEL : model;
+  const isOpenRouterModel = resolvedModel.includes("/"); // e.g. "anthropic/claude-3.5-sonnet"
+
+  console.log("[groq] sending request, model:", resolvedModel, "messages count:", fullMessages.length, "first msg role:", fullMessages[0]?.role);
   const res = await fetch(GROQ_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: hasImages ? VISION_MODEL : model,
+      model: resolvedModel,
       max_tokens: maxTokens,
       messages: fullMessages,
       temperature: 0.7,
+      ...(isOpenRouterModel ? { route: "openrouter" } : {}),
     }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    console.error("[groq] API error:", res.status, err);
     throw new Error(
       `Groq API error ${res.status}: ${(err as {error?: {message?: string}}).error?.message ?? res.statusText}`
     );
   }
 
   const data = await res.json();
-  return data.choices?.[0]?.message?.content ?? "";
+  const result = data.choices?.[0]?.message?.content ?? "";
+  console.log("[groq] response received, length:", result.length, result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓");
+  return result;
 }
 
 /**
@@ -130,6 +138,7 @@ export async function callGroqWithImages(
     { role: "user" as const, content: userContent }
   ]
 
+  console.log("[groq] sending request, model:", hasImages ? VISION_MODEL : model, "messages count:", fullMessages.length, "first msg role:", fullMessages[0]?.role);
   const res = await fetch(GROQ_API_URL, {
     method: "POST",
     headers: {
@@ -151,5 +160,7 @@ export async function callGroqWithImages(
   }
 
   const data = await res.json();
-  return data.choices?.[0]?.message?.content ?? "";
+  const result = data.choices?.[0]?.message?.content ?? "";
+  console.log("[groq] response received, length:", result.length, result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓");
+  return result;
 }
