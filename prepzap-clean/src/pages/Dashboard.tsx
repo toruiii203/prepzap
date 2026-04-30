@@ -513,7 +513,7 @@ export default function Dashboard() {
         const{data:sess}=await supabase.from("study_sessions").select("duration_minutes").eq("user_id",user.id).gte("date",weekAgo)
         if(sess)setTodayMin(sess.reduce((s:number,r:any)=>s+(r.duration_minutes??0),0))
         // Activity log — no limit so heatmap and Sessions Done are accurate
-        const{data:acts}=await supabase.from("activity_log").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(91)
+        const{data:acts}=await supabase.from("activity_log").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(500)
         if(acts)setActivity(acts)
         // Weekly sessions count
         const{data:weeklySess}=await supabase.from("study_sessions").select("id").eq("user_id",user.id).gte("date",weekAgo)
@@ -544,20 +544,49 @@ export default function Dashboard() {
   const displayName=(user?.user_metadata?.username||user?.user_metadata?.full_name||user?.email?.split("@")[0]||"Student").toUpperCase()
   const displayed=showAll?quickActions:quickActions.slice(0,20)
 
-  // Heatmap — built from real activity_log data (last 91 days)
+  // Heatmap — 13 weeks × 7 days, column-first (like GitHub contribution graph)
   const heatmap = useMemo(() => {
-    const cells: string[] = Array(91).fill("")
-    const now = Date.now()
+    // Count activity events per calendar day
+    const dayCounts: Record<string, number> = {}
     activity.forEach(item => {
-      const daysAgo = Math.floor((now - new Date(item.created_at).getTime()) / 86400000)
-      if (daysAgo >= 0 && daysAgo < 91) {
-        const idx = 90 - daysAgo
-        const cur = cells[idx]
-        cells[idx] = cur === "l4" ? "l4" : cur === "l3" ? "l4" : cur === "l2" ? "l3" : cur === "l1" ? "l2" : "l1"
-      }
+      const day = item.created_at.slice(0, 10)
+      dayCounts[day] = (dayCounts[day] || 0) + 1
     })
-    return cells
+
+    // Build 91 cells: cell[0] = oldest day (91 days ago), cell[90] = today
+    // But we render column-first: col 0 = week 13 ago, col 12 = current week
+    // Each column has 7 rows (Sun→Sat). We align so today falls on correct weekday row.
+    const now = new Date()
+    const todayDow = now.getDay() // 0=Sun…6=Sat
+    // Total cells = 13 cols × 7 rows = 91
+    // Last cell index = 90 (today), first = 0 (90 days ago adjusted to week start)
+    // We'll build an array of { dateStr, level } for 91 slots
+    const cells: { date: string; level: string }[] = []
+    for (let i = 90; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const key = d.toISOString().slice(0, 10)
+      const count = dayCounts[key] || 0
+      const level = count === 0 ? "" : count === 1 ? "l1" : count <= 3 ? "l2" : count <= 6 ? "l3" : "l4"
+      cells.push({ date: key, level })
+    }
+
+    // Pad the start so col 0 row 0 = Sunday of the oldest week
+    // Find how many empty days to prepend so first cell lands on Sunday
+    const firstDow = new Date(cells[0].date).getDay()
+    const padStart = firstDow // days before the first real day in that week
+    const padEnd = 6 - new Date(cells[cells.length - 1].date).getDay()
+
+    const padded = [
+      ...Array(padStart).fill({ date: "", level: "pad" }),
+      ...cells,
+      ...Array(padEnd).fill({ date: "", level: "pad" }),
+    ]
+
+    return padded
   }, [activity])
+
+  const heatmapCols = Math.ceil(heatmap.length / 7)
 
   // Shared styles
   const card: React.CSSProperties = { background:"rgba(10,10,10,0.65)", border:"1px solid #252525" }
@@ -832,13 +861,25 @@ export default function Dashboard() {
 
             <div style={{height:.5,background:"#1A1A1A",margin:"0 0 9px"}}/>
 
-            {/* Heatmap — 91 cells in 13-col grid */}
-            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:5}}>Study Heatmap</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(13,1fr)",gap:2}}>
-              {heatmap.map((l,i)=><div key={i} style={{aspectRatio:"1",borderRadius:1,background:l==="l4"?TEAL:l==="l3"?"#009988":l==="l2"?"#006B62":l==="l1"?"#003D38":"#141414"}}/>)}
+            {/* Heatmap — 7-row × N-col grid (day rows, week columns) */}
+            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",marginBottom:5}}>Study Heatmap · 13 weeks</div>
+            <div style={{display:"grid",gridTemplateRows:"repeat(7,1fr)",gridTemplateColumns:`repeat(${heatmapCols},1fr)`,gridAutoFlow:"column",gap:2}}>
+              {heatmap.map((cell,i)=>(
+                <div key={i} title={cell.date || undefined} style={{aspectRatio:"1",borderRadius:1,
+                  background:cell.level==="l4"?TEAL:cell.level==="l3"?"#009988":cell.level==="l2"?"#006B62":cell.level==="l1"?"#003D38":cell.level==="pad"?"transparent":"#141414"
+                }}/>
+              ))}
             </div>
             <div style={{display:"flex",justifyContent:"space-between",marginTop:3,marginBottom:9}}>
-              <span style={{fontSize:8,color:"#333"}}>4 wks ago</span><span style={{fontSize:8,color:"#333"}}>Today</span>
+              <span style={{fontSize:8,color:"#333"}}>13 wks ago</span>
+              <div style={{display:"flex",alignItems:"center",gap:3}}>
+                <span style={{fontSize:8,color:"#333"}}>Less</span>
+                {["#141414","#003D38","#006B62","#009988",TEAL].map((c,i)=>(
+                  <div key={i} style={{width:7,height:7,borderRadius:1,background:c}}/>
+                ))}
+                <span style={{fontSize:8,color:"#333"}}>More</span>
+              </div>
+              <span style={{fontSize:8,color:"#333"}}>Today</span>
             </div>
 
             <div style={{height:.5,background:"#1A1A1A",margin:"0 0 9px"}}/>
