@@ -30,7 +30,7 @@ const QUICK_TOOLS = [
   { href: "/practice",       label: "Practice",    desc: "AI question sets" },
   { href: "/flashcards",     label: "Flashcards",  desc: "Spaced repetition" },
   { href: "/feynman",        label: "Feynman",     desc: "Teach it to learn it" },
-  { href: "/math",           label: "MathZap",     desc: "Step-by-step solutions" },
+  { href: "/math",           label: "Math Solver",     desc: "Step-by-step solutions" },
   { href: "/daily5",         label: "Daily Quiz",  desc: "Quick daily rounds" },
   { href: "/spot-error",     label: "Error Hunt",  desc: "Find & fix mistakes" },
   { href: "/blank-map",      label: "Mind Map",    desc: "Map & connect ideas" },
