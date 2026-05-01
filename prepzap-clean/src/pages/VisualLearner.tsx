@@ -215,7 +215,7 @@ If source material is provided, base the scenes on its actual content, not gener
       // Fetch photos staggered — 1.5s apart to avoid Pollinations 429 rate limit
       ;(async () => {
         for (let i = 0; i < parsed.scenes.length; i++) {
-          if (i > 0) await new Promise(r => setTimeout(r, 1500))
+         if (i > 0) await new Promise(r => setTimeout(r, 3000))
           const scene = parsed.scenes[i]
           fetchPollinationsPhoto(parsed.concept, scene).then(photo => {
             setScenes(prev => prev.map((s, idx) => idx === i
