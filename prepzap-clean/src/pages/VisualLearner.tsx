@@ -282,12 +282,13 @@ Return ONLY valid JSON (no markdown, no backticks):
       "title": "<scene title, 3-5 words>",
       "anchorPhrase": "<1 sentence the student says when they see this image>",
       "whyItWorks": "<1 sentence explaining the memory connection>",
-      "unsplashQuery": "<4-6 words describing a specific, concrete, photographable subject that visually represents this scene — be as accurate to the concept as possible>"
+      "unsplashQuery": "<Wikipedia-optimized search phrase: use the exact scientific/historical term plus diagram or photograph where applicable. Examples: water cycle evaporation diagram, mitosis cell division diagram, black hole event horizon photograph, French Revolution guillotine, supply demand curve economics. Must be 3-7 words, highly specific, matching a real Wikipedia article title or image.>"
     }
   ]
 }
 Generate 4 scenes. Make each scene visually distinct and directly tied to the concept.
-If source material is provided, base the scenes on its actual content, not general knowledge.${context}`
+Each unsplashQuery must target a SPECIFIC Wikipedia-searchable subject — not vague words like evaporation alone, but water evaporation sunlight ocean diagram.
+If source material is provided, base the scenes on its actual content, not general knowledge.\${context}`
 
     try {
       const raw = await callGroq(
@@ -330,6 +331,53 @@ If source material is provided, base the scenes on its actual content, not gener
     } catch (e: any) {
       setError(e.message ?? "Could not generate storyboard. Try again.")
       setPhase("setup")
+    }
+  }
+
+  // ── Regenerate a single scene ─────────────────────────────────────────────
+  const handleRegenerateScene = async (index: number) => {
+    const scene = scenes[index]
+    if (!scene || scene.photoLoading) return
+
+    // Mark this scene as loading
+    setScenes(prev => prev.map((s, i) => i === index ? { ...s, photoLoading: true } : s))
+
+    try {
+      // Ask AI for a fresh scene with a different angle
+      const systemPrompt = `You are a visual memory expert. Generate ONE alternative scene for a concept.
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "id": "${scene.id}",
+  "title": "<scene title, 3-5 words>",
+  "anchorPhrase": "<1 sentence the student says when they see this image>",
+  "whyItWorks": "<1 sentence explaining the memory connection>",
+  "unsplashQuery": "<Wikipedia-optimized search phrase: exact scientific/historical term plus diagram or photograph where applicable. 3-7 words, matching a real Wikipedia article title or image.>"
+}
+Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
+
+      const raw = await callGroq(
+        [{ role: "user", content: `Generate an alternative scene for the concept: "${concept}". Current scene was: "${scene.title}". Give me something visually different.` }],
+        systemPrompt,
+        model,
+        600
+      )
+      const clean = raw.replace(/```json|```/gi, "").trim()
+      const parsed: Scene = JSON.parse(clean)
+
+      // Fetch new photo for the regenerated scene
+      const photo = await fetchScenePhoto(concept, parsed)
+
+      setScenes(prev => prev.map((s, i) => i === index
+        ? { ...parsed, photoUrl: photo.url, photoAlt: photo.alt, photoLoading: false }
+        : s
+      ))
+    } catch {
+      // On error, just try a fresh image for the existing scene data
+      const photo = await fetchScenePhoto(concept, scene)
+      setScenes(prev => prev.map((s, i) => i === index
+        ? { ...s, photoUrl: photo.url, photoAlt: photo.alt, photoLoading: false }
+        : s
+      ))
     }
   }
 
@@ -471,7 +519,7 @@ If source material is provided, base the scenes on its actual content, not gener
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16, marginBottom: 32 }}>
           {scenes.map((scene, i) => (
-            <SceneCard key={scene.id} scene={scene} index={i} concept={concept} />
+            <SceneCard key={scene.id} scene={scene} index={i} concept={concept} onRegenerate={() => handleRegenerateScene(i)} />
           ))}
         </div>
 
@@ -495,7 +543,7 @@ If source material is provided, base the scenes on its actual content, not gener
 }
 
 // ── Scene card ────────────────────────────────────────────────────────────────
-function SceneCard({ scene, index, concept }: { scene: SceneWithPhoto; index: number; concept: string }) {
+function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPhoto; index: number; concept: string; onRegenerate: () => void }) {
   const TEAL   = "#00C4B4"
   const CARD   = "#0E0E0E"
   const BORDER = "#252525"
@@ -551,6 +599,22 @@ function SceneCard({ scene, index, concept }: { scene: SceneWithPhoto; index: nu
         <div style={{ position: "absolute", top: 10, left: 10, background: TEAL, color: "#0A0A0A", fontSize: 10, fontWeight: 800, padding: "3px 8px", letterSpacing: "0.08em", fontFamily: FONT }}>
           SCENE {index + 1}
         </div>
+
+        {/* Regenerate button — top right */}
+        <button
+          onClick={onRegenerate}
+          disabled={scene.photoLoading}
+          title="Regenerate this scene"
+          style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, background: "rgba(10,10,10,0.75)", border: "0.5px solid #333", color: scene.photoLoading ? "#333" : "#888", cursor: scene.photoLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", transition: "all .2s", borderRadius: 2 }}
+          onMouseEnter={e => { if (!scene.photoLoading) { e.currentTarget.style.borderColor = TEAL; e.currentTarget.style.color = TEAL } }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#333"; e.currentTarget.style.color = scene.photoLoading ? "#333" : "#888" }}
+        >
+          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+            style={{ animation: scene.photoLoading ? "spin 0.7s linear infinite" : "none" }}>
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
 
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 60, background: "linear-gradient(to top, rgba(10,10,10,0.9), transparent)" }} />
       </div>
