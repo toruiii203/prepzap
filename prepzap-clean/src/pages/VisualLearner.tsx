@@ -212,15 +212,19 @@ If source material is provided, base the scenes on its actual content, not gener
       setPhase("result")
       setProgress(100)
 
-      // Fetch Pollinations images concurrently — URLs are built client-side,
-      // no rate limit, no API key, images match the concept accurately
-      parsed.scenes.forEach(async (scene, i) => {
-        const photo = await fetchPollinationsPhoto(parsed.concept, scene)
-        setScenes(prev => prev.map((s, idx) => idx === i
-          ? { ...s, photoUrl: photo?.url, photoAlt: photo?.alt, photoLoading: false }
-          : s
-        ))
-      })
+      // Fetch photos staggered — 1.5s apart to avoid Pollinations 429 rate limit
+      ;(async () => {
+        for (let i = 0; i < parsed.scenes.length; i++) {
+          if (i > 0) await new Promise(r => setTimeout(r, 1500))
+          const scene = parsed.scenes[i]
+          fetchPollinationsPhoto(parsed.concept, scene).then(photo => {
+            setScenes(prev => prev.map((s, idx) => idx === i
+              ? { ...s, photoUrl: photo?.url, photoAlt: photo?.alt, photoLoading: false }
+              : s
+            ))
+          })
+        }
+      })()
 
       saveHistory({
         prompt: target,
