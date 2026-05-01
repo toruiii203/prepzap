@@ -1,7 +1,7 @@
 /**
  * VisualLearner.tsx — Studenius
- * Breaks any concept into 3-5 memorable visual scenes using Pollinations AI images.
- * Each scene is a storyboard card: photo, scene number, title, anchor phrase, why-it-works.
+ * Breaks any concept into 4 memorable visual scenes.
+ * Images: Pollinations AI → LoremFlickr → Source Unsplash → Picsum (fallback chain)
  *
  * Dashboard card: label "Visual Learner", description "See concepts, remember them"
  * Route: /visual-learner
@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from "react"
 import { callGroq } from "@/lib/groq"
-import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
+import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
 import { useToolHistory, HistoryButton, ToolHistoryPanel, type HistoryEntry } from "@/components/ToolHistory"
 
@@ -39,8 +39,7 @@ interface Scene {
   title: string
   anchorPhrase: string
   whyItWorks: string
-  unsplashQuery: string   // reused as image prompt hint from AI
-  imagePrompt?: string    // richer Pollinations prompt built client-side
+  unsplashQuery: string
 }
 
 interface StoryboardResult {
@@ -54,42 +53,81 @@ interface SceneWithPhoto extends Scene {
   photoLoading: boolean
 }
 
-// ── Build a rich Pollinations prompt from scene data ─────────────────────────
-// Combines the concept, scene title, and AI-suggested query into a detailed
-// educational illustration prompt so images match the source content accurately.
-function buildPollinationsPrompt(concept: string, scene: Scene): string {
-  const base = safeQuery(scene.unsplashQuery)
-  // Compose a descriptive educational prompt
-  const prompt = [
-    base,
-    `related to ${concept}`,
-    `scene: ${scene.title}`,
-    "educational illustration",
-    "photorealistic",
-    "clear and vivid",
-    "safe for school",
-  ].join(", ")
-  return encodeURIComponent(prompt)
+// ── Stable numeric seed from strings ─────────────────────────────────────────
+function makeSeed(...parts: string[]): number {
+  return Math.abs(
+    parts.join("").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  )
 }
 
-// ── Fetch one Pollinations image (free, no API key, AI-generated) ─────────────
-async function fetchPollinationsPhoto(
+// ── Image provider URL builders ───────────────────────────────────────────────
+
+function pollinationsUrl(concept: string, scene: Scene): string {
+  const base = safeQuery(scene.unsplashQuery)
+  const prompt = encodeURIComponent(
+    [base, `related to ${concept}`, scene.title, "educational illustration", "photorealistic", "safe for school"].join(", ")
+  )
+  const seed = makeSeed(concept, scene.id, scene.title)
+  return `https://image.pollinations.ai/prompt/${prompt}?width=800&height=500&seed=${seed}&nologo=true&model=flux`
+}
+
+function loremFlickrUrl(scene: Scene): string {
+  const keyword = encodeURIComponent(safeQuery(scene.unsplashQuery).split(" ").slice(0, 2).join(","))
+  const seed = makeSeed(scene.id, scene.title)
+  return `https://loremflickr.com/800/500/${keyword}?lock=${seed}`
+}
+
+function sourceUnsplashUrl(scene: Scene): string {
+  const keyword = encodeURIComponent(safeQuery(scene.unsplashQuery))
+  const seed = makeSeed(scene.id, scene.title)
+  return `https://source.unsplash.com/800x500/?${keyword}&sig=${seed}`
+}
+
+function picsumUrl(concept: string, scene: Scene): string {
+  const seed = makeSeed(concept, scene.id, scene.title)
+  return `https://picsum.photos/seed/${seed}/800/500`
+}
+
+// ── Test if a URL actually responds OK ───────────────────────────────────────
+async function urlLoads(url: string, timeoutMs = 6000): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+// ── Main image fetcher: Pollinations → LoremFlickr → Unsplash → Picsum ───────
+async function fetchScenePhoto(
   concept: string,
   scene: Scene
-): Promise<{ url: string; alt: string } | null> {
+): Promise<{ url: string; alt: string }> {
+  const alt = `${concept} — ${scene.title}`
+
+  // 1. Pollinations (AI-generated, most concept-accurate)
   try {
-    const prompt = buildPollinationsPrompt(concept, scene)
-    // Use a seed based on concept+sceneId so the image is stable on re-renders
-    const seed = Math.abs(
-      (concept + scene.id + scene.title)
-        .split("")
-        .reduce((acc, c) => acc + c.charCodeAt(0), 0)
-    )
-    const url = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=500&seed=${seed}&nologo=true&model=flux`
-    return { url, alt: `${concept} — ${scene.title}` }
-  } catch {
-    return null
-  }
+    const url = pollinationsUrl(concept, scene)
+    if (await urlLoads(url, 7000)) return { url, alt }
+  } catch { /* fall through */ }
+
+  // 2. LoremFlickr (keyword-matched real photos, very reliable)
+  try {
+    const url = loremFlickrUrl(scene)
+    if (await urlLoads(url, 5000)) return { url, alt }
+  } catch { /* fall through */ }
+
+  // 3. Source Unsplash (keyword-matched, no API key needed)
+  try {
+    const url = sourceUnsplashUrl(scene)
+    if (await urlLoads(url, 5000)) return { url, alt }
+  } catch { /* fall through */ }
+
+  // 4. Picsum — always works, random but stable per seed
+  return { url: picsumUrl(concept, scene), alt }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,14 +136,13 @@ export default function VisualLearner() {
   const { entries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("visual-learner")
   const [historyOpen, setHistoryOpen] = useState(false)
 
-  const [phase, setPhase]         = useState<"setup"|"loading"|"result">("setup")
-  const [concept, setConcept]     = useState("")
+  const [phase, setPhase]           = useState<"setup"|"loading"|"result">("setup")
+  const [concept, setConcept]       = useState("")
   const [conceptInput, setConceptInput] = useState("")
-  const [scenes, setScenes]       = useState<SceneWithPhoto[]>([])
-  const [error, setError]         = useState<string|null>(null)
-  const [progress, setProgress]   = useState(0) // 0-100 during loading
+  const [scenes, setScenes]         = useState<SceneWithPhoto[]>([])
+  const [error, setError]           = useState<string|null>(null)
+  const [progress, setProgress]     = useState(0)
   const [sourceChips, setSourceChips] = useState<string[]>([])
-  const [showSourcePicker, setShowSourcePicker] = useState(false)
   const activeSource = getActiveSource()
 
   // Animate progress bar during loading
@@ -118,7 +155,7 @@ export default function VisualLearner() {
     return () => clearInterval(interval)
   }, [phase])
 
-  // If source active — extract key concepts as chips
+  // Extract key concept chips from active source
   useEffect(() => {
     if (!activeSource?.preview) return
     const extractChips = async () => {
@@ -142,21 +179,13 @@ export default function VisualLearner() {
     try {
       const parsed: StoryboardResult = JSON.parse(entry.output)
       setConcept(parsed.concept)
-      // Restore scenes without photos (Pollinations URLs are deterministic — rebuild them)
-      const restored: SceneWithPhoto[] = parsed.scenes.map(s => {
-        const photo = buildPollinationsPrompt(parsed.concept, s)
-        const seed = Math.abs(
-          (parsed.concept + s.id + s.title)
-            .split("")
-            .reduce((acc, c) => acc + c.charCodeAt(0), 0)
-        )
-        return {
-          ...s,
-          photoUrl: `https://image.pollinations.ai/prompt/${photo}?width=800&height=500&seed=${seed}&nologo=true&model=flux`,
-          photoAlt: `${parsed.concept} — ${s.title}`,
-          photoLoading: false,
-        }
-      })
+      // Restore with Pollinations URL — SceneCard onError will cascade to fallbacks if needed
+      const restored: SceneWithPhoto[] = parsed.scenes.map(s => ({
+        ...s,
+        photoUrl: pollinationsUrl(parsed.concept, s),
+        photoAlt: `${parsed.concept} — ${s.title}`,
+        photoLoading: false,
+      }))
       setScenes(restored)
       setPhase("result")
     } catch { /* ignore */ }
@@ -186,7 +215,7 @@ Return ONLY valid JSON (no markdown, no backticks):
       "title": "<scene title, 3-5 words>",
       "anchorPhrase": "<1 sentence the student says when they see this image>",
       "whyItWorks": "<1 sentence explaining the memory connection>",
-      "unsplashQuery": "<4-6 words describing a specific, concrete, photographable or illustratable subject that visually represents this scene — be as specific and accurate to the concept as possible>"
+      "unsplashQuery": "<4-6 words describing a specific, concrete, photographable subject that visually represents this scene — be as accurate to the concept as possible>"
     }
   ]
 }
@@ -203,26 +232,24 @@ If source material is provided, base the scenes on its actual content, not gener
       const clean = raw.replace(/```json|```/gi, "").trim()
       const parsed: StoryboardResult = JSON.parse(clean)
 
-      // Init scenes with loading state
-      const initialScenes: SceneWithPhoto[] = parsed.scenes.map(s => ({
-        ...s, photoLoading: true
-      }))
-      setScenes(initialScenes)
+      setScenes(parsed.scenes.map(s => ({ ...s, photoLoading: true })))
       setProgress(90)
       setPhase("result")
       setProgress(100)
 
-      // Fetch photos staggered — 1.5s apart to avoid Pollinations 429 rate limit
+      // Sequential fetching with full fallback chain per scene
+      // 800ms gap between scenes to be polite to all providers
       ;(async () => {
         for (let i = 0; i < parsed.scenes.length; i++) {
-         if (i > 0) await new Promise(r => setTimeout(r, 3000))
           const scene = parsed.scenes[i]
-          fetchPollinationsPhoto(parsed.concept, scene).then(photo => {
-            setScenes(prev => prev.map((s, idx) => idx === i
-              ? { ...s, photoUrl: photo?.url, photoAlt: photo?.alt, photoLoading: false }
-              : s
-            ))
-          })
+          const photo = await fetchScenePhoto(parsed.concept, scene)
+          setScenes(prev => prev.map((s, idx) => idx === i
+            ? { ...s, photoUrl: photo.url, photoAlt: photo.alt, photoLoading: false }
+            : s
+          ))
+          if (i < parsed.scenes.length - 1) {
+            await new Promise(r => setTimeout(r, 800))
+          }
         }
       })()
 
@@ -248,7 +275,6 @@ If source material is provided, base the scenes on its actual content, not gener
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          {/* Eye icon */}
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth={1.7}>
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
@@ -276,7 +302,6 @@ If source material is provided, base the scenes on its actual content, not gener
         </p>
 
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: "28px 24px" }}>
-          {/* Active source chips */}
           {sourceChips.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
@@ -307,7 +332,6 @@ If source material is provided, base the scenes on its actual content, not gener
             style={{ width: "100%", padding: "12px 14px", background: "#141414", border: `0.5px solid ${BORDER}`, color: TEXT, fontSize: 14, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 20 }}
           />
 
-          {/* Example concepts */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
             {["Mitosis","Black Holes","The Immune System","Keynesian Economics","Neural Networks","The Water Cycle"].map(c => (
               <button key={c} onClick={() => setConceptInput(c)}
@@ -357,7 +381,6 @@ If source material is provided, base the scenes on its actual content, not gener
         </svg>
         <p style={{ fontSize: 15, color: TEXT, marginBottom: 8, fontWeight: 600 }}>Building your visual story…</p>
         <p style={{ fontSize: 12, color: MUTED, marginBottom: 32 }}>Finding the perfect scenes for "{concept}"</p>
-        {/* Teal progress bar */}
         <div style={{ width: 280, height: 2, background: "#1A1A1A" }}>
           <div style={{ height: "100%", width: `${progress}%`, background: TEAL, transition: "width 0.5s ease" }} />
         </div>
@@ -373,21 +396,18 @@ If source material is provided, base the scenes on its actual content, not gener
       <main style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
         <HeaderRow />
 
-        {/* Concept title */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
           <div style={{ height: 1, flex: 1, background: BORDER }} />
           <span style={{ fontSize: 13, fontWeight: 600, color: "#888", padding: "4px 14px", border: `0.5px solid ${BORDER}` }}>{concept}</span>
           <div style={{ height: 1, flex: 1, background: BORDER }} />
         </div>
 
-        {/* Storyboard grid — 2 columns on wide, 1 on narrow */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16, marginBottom: 32 }}>
           {scenes.map((scene, i) => (
-            <SceneCard key={scene.id} scene={scene} index={i} />
+            <SceneCard key={scene.id} scene={scene} index={i} concept={concept} />
           ))}
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={resetAll}
             style={{ flex: 1, padding: "13px 0", background: TEAL, color: BG, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: FONT, letterSpacing: "0.06em" }}>
@@ -408,7 +428,7 @@ If source material is provided, base the scenes on its actual content, not gener
 }
 
 // ── Scene card ────────────────────────────────────────────────────────────────
-function SceneCard({ scene, index }: { scene: SceneWithPhoto; index: number }) {
+function SceneCard({ scene, index, concept }: { scene: SceneWithPhoto; index: number; concept: string }) {
   const TEAL   = "#00C4B4"
   const CARD   = "#0E0E0E"
   const BORDER = "#252525"
@@ -416,9 +436,29 @@ function SceneCard({ scene, index }: { scene: SceneWithPhoto; index: number }) {
   const MUTED  = "#555"
   const FONT   = "'Inter', system-ui, sans-serif"
 
+  // DOM-level fallback cascade: if the <img> itself fails to render,
+  // swap to the next provider in the chain without any React re-render
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    const src = img.src
+    const seed = Math.abs((concept + scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0))
+    const safeQ = safeQuery(scene.unsplashQuery)
+
+    if (src.includes("pollinations")) {
+      const keyword = encodeURIComponent(safeQ.split(" ").slice(0, 2).join(","))
+      img.src = `https://loremflickr.com/800/500/${keyword}?lock=${seed}`
+    } else if (src.includes("loremflickr")) {
+      const keyword = encodeURIComponent(safeQ)
+      img.src = `https://source.unsplash.com/800x500/?${keyword}&sig=${seed}`
+    } else if (src.includes("unsplash")) {
+      img.src = `https://picsum.photos/seed/${seed}/800/500`
+    } else {
+      img.style.display = "none"
+    }
+  }
+
   return (
     <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, overflow: "hidden" }}>
-      {/* Photo */}
       <div style={{ position: "relative", height: 200, background: "#111", overflow: "hidden" }}>
         {scene.photoLoading ? (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -430,13 +470,9 @@ function SceneCard({ scene, index }: { scene: SceneWithPhoto; index: number }) {
             alt={scene.photoAlt ?? scene.title}
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             loading="lazy"
-            onError={e => {
-              // If Pollinations fails to load, show the fallback placeholder
-              (e.target as HTMLImageElement).style.display = "none"
-            }}
+            onError={handleImgError}
           />
         ) : (
-          // Fallback if no photo
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,196,180,0.05)" }}>
             <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth={1} opacity={0.3}>
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -444,27 +480,21 @@ function SceneCard({ scene, index }: { scene: SceneWithPhoto; index: number }) {
           </div>
         )}
 
-        {/* Scene number badge */}
         <div style={{ position: "absolute", top: 10, left: 10, background: TEAL, color: "#0A0A0A", fontSize: 10, fontWeight: 800, padding: "3px 8px", letterSpacing: "0.08em", fontFamily: FONT }}>
           SCENE {index + 1}
         </div>
 
-        {/* Gradient overlay at bottom */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 60, background: "linear-gradient(to top, rgba(10,10,10,0.9), transparent)" }} />
       </div>
 
-      {/* Content */}
       <div style={{ padding: "16px 18px" }}>
-        {/* Title */}
         <h3 style={{ fontSize: 15, fontWeight: 700, color: TEXT, margin: "0 0 12px", lineHeight: 1.3 }}>{scene.title}</h3>
 
-        {/* Anchor phrase */}
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: TEAL, marginBottom: 5 }}>Anchor Phrase</div>
           <p style={{ fontSize: 13, color: "#D0D0D0", margin: 0, lineHeight: 1.6, fontStyle: "italic" }}>"{scene.anchorPhrase}"</p>
         </div>
 
-        {/* Why it works */}
         <div style={{ paddingTop: 10, borderTop: `0.5px solid #1A1A1A` }}>
           <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 5 }}>Why This Works</div>
           <p style={{ fontSize: 11, color: "#666", margin: 0, lineHeight: 1.55 }}>{scene.whyItWorks}</p>
