@@ -749,98 +749,99 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* ── Standalone Calendar ──────────────────────────────────── */}
+            {/* Calendar + Sessions — same 2-col layout as before */}
             {(()=>{
               const today = new Date()
               const todayStr = today.toISOString().slice(0,10)
-              const firstDay = new Date(calYear, calMonth, 1).getDay() // 0=Sun
+              const firstDay = new Date(calYear, calMonth, 1).getDay()
               const daysInMonth = new Date(calYear, calMonth+1, 0).getDate()
               const monthLabel = new Date(calYear, calMonth).toLocaleString("default",{month:"long",year:"numeric"})
-              // sessions indexed by date
               const sessByDate: Record<string, typeof calSessions> = {}
               calSessions.forEach(s => { if(!sessByDate[s.date])sessByDate[s.date]=[]; sessByDate[s.date].push(s) })
               const selectedSessions = calSelectedDate ? (sessByDate[calSelectedDate]??[]) : []
-
               const prevMonth=()=>{ if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1)}else{setCalMonth(m=>m-1)} }
               const nextMonth=()=>{ if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1)}else{setCalMonth(m=>m+1)} }
 
               return (
-                <div style={{...card,padding:14,marginBottom:12}}>
-                  {/* Header */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                    <span style={{fontSize:12,fontWeight:600,letterSpacing:"0.04em"}}>{monthLabel}</span>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <button onClick={()=>openSessionModal(calSelectedDate??todayStr)}
-                        style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:TEAL,border:"none",color:"#0A0A0A",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.04em"}}>
-                        <Plus size={10}/> Add Session
-                      </button>
+                <div className="sdn-cal-row" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:12}}>
+                  {/* Left — compact calendar */}
+                  <div style={{...card,padding:12}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                      <span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em"}}>{monthLabel}</span>
                       <div style={{display:"flex",gap:3}}>
-                        <button onClick={prevMonth} style={{width:20,height:20,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:13,borderRadius:3,lineHeight:1}}>‹</button>
-                        <button onClick={nextMonth} style={{width:20,height:20,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:13,borderRadius:3,lineHeight:1}}>›</button>
+                        <button onClick={prevMonth} style={{width:19,height:19,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:12,borderRadius:3,lineHeight:1}}>‹</button>
+                        <button onClick={nextMonth} style={{width:19,height:19,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:12,borderRadius:3,lineHeight:1}}>›</button>
                       </div>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,textAlign:"center"}}>
+                      {["M","T","W","T","F","S","S"].map((d,i)=><div key={i} style={{fontSize:8,color:"#444",padding:"2px 0",textTransform:"uppercase"}}>{d}</div>)}
+                      {Array(firstDay===0?6:firstDay-1).fill(null).map((_,i)=><div key={"pad"+i}/>)}
+                      {Array.from({length:daysInMonth},(_,i)=>{
+                        const day=i+1
+                        const dateStr=`${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`
+                        const isToday=dateStr===todayStr
+                        const isSelected=dateStr===calSelectedDate
+                        const dotColors=sessByDate[dateStr]?.slice(0,3).map(s=>s.color)??[]
+                        return (
+                          <div key={day} onClick={()=>setCalSelectedDate(isSelected?null:dateStr)}
+                            style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontSize:10,padding:"3px 1px",borderRadius:3,cursor:"pointer",
+                              color:isSelected?TEAL:isToday?"#0A0A0A":"#555",
+                              background:isSelected?"rgba(0,196,180,0.18)":isToday?GOLD:"transparent",
+                              fontWeight:isToday||isSelected?700:400,transition:"all .15s"}}
+                            onMouseEnter={e=>{if(!isToday&&!isSelected)(e.currentTarget as HTMLElement).style.color="#F0F0F0"}}
+                            onMouseLeave={e=>{if(!isToday&&!isSelected)(e.currentTarget as HTMLElement).style.color="#555"}}>
+                            {day}
+                            {dotColors.length>0&&(
+                              <div style={{display:"flex",gap:1,marginTop:1}}>
+                                {dotColors.map((c,ci)=><div key={ci} style={{width:3,height:3,borderRadius:"50%",background:isToday?"rgba(0,0,0,0.5)":c}}/>)}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
 
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
-                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
-                      <div key={d} style={{fontSize:8,color:"#444",padding:"2px 0",textAlign:"center",textTransform:"uppercase",letterSpacing:"0.06em"}}>{d}</div>
-                    ))}
-                    {Array(firstDay).fill(null).map((_,i)=><div key={"pad"+i}/>)}
-                    {Array.from({length:daysInMonth},(_,i)=>{
-                      const day=i+1
-                      const dateStr=`${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`
-                      const isToday=dateStr===todayStr
-                      const isSelected=dateStr===calSelectedDate
-                      const hasSessions=(sessByDate[dateStr]?.length??0)>0
-                      const dotColors=sessByDate[dateStr]?.slice(0,3).map(s=>s.color)??[]
-                      return (
-                        <div key={day} onClick={()=>setCalSelectedDate(isSelected?null:dateStr)}
-                          style={{position:"relative",aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:4,cursor:"pointer",
-                            background:isSelected?"rgba(0,196,180,0.15)":isToday?"rgba(232,185,35,0.12)":"transparent",
-                            border:`1px solid ${isSelected?TEAL:isToday?"rgba(232,185,35,0.4)":"transparent"}`,
-                            transition:"all .15s"}}
-                          onMouseEnter={e=>{if(!isSelected&&!isToday)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)"}}
-                          onMouseLeave={e=>{if(!isSelected&&!isToday)(e.currentTarget as HTMLElement).style.background="transparent"}}>
-                          <span style={{fontSize:11,color:isSelected?TEAL:isToday?GOLD:"#888",fontWeight:isToday||isSelected?700:400}}>{day}</span>
-                          {hasSessions&&(
-                            <div style={{display:"flex",gap:2,marginTop:2}}>
-                              {dotColors.map((c,ci)=><div key={ci} style={{width:4,height:4,borderRadius:"50%",background:c}}/>)}
-                            </div>
-                          )}
+                  {/* Right — selected day sessions (or today if nothing selected) */}
+                  <div style={{...card,padding:12}}>
+                    <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555",marginBottom:7}}>
+                      {calSelectedDate
+                        ? new Date(calSelectedDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})
+                        : new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+                    </div>
+                    {selectedSessions.length===0?(
+                      <div style={{textAlign:"center",paddingTop:10}}>
+                        <div style={{width:28,height:28,borderRadius:"50%",background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 7px"}}>
+                          <svg viewBox="0 0 24 24" width={11} height={11} fill="none" stroke="#444" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Selected day sessions panel */}
-                  {calSelectedDate&&(
-                    <div style={{marginTop:12,borderTop:"0.5px solid #1E1E1E",paddingTop:10}}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-                        <span style={{fontSize:10,fontWeight:600,color:"#AAA"}}>
-                          {new Date(calSelectedDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
-                        </span>
-                        <button onClick={()=>openSessionModal(calSelectedDate)}
-                          style={{fontSize:9,color:TEAL,background:"transparent",border:`0.5px solid ${TEAL}`,padding:"2px 7px",cursor:"pointer",fontFamily:"inherit"}}>
-                          + Add
+                        <div style={{fontSize:10,color:"#333",marginBottom:8}}>No sessions — add one!</div>
+                        <button onClick={()=>openSessionModal(calSelectedDate??todayStr)}
+                          style={{background:"transparent",border:"0.5px solid #2A2A2A",color:"#555",fontSize:10,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                          onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
+                          onMouseLeave={e=>{(e.currentTarget.style.borderColor="#2A2A2A");(e.currentTarget.style.color="#555")}}>
+                          + Add Session
                         </button>
                       </div>
-                      {selectedSessions.length===0?(
-                        <div style={{fontSize:10,color:"#333",padding:"6px 0"}}>No sessions — click + Add to schedule one.</div>
-                      ):(
-                        <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                          {selectedSessions.map(s=>(
-                            <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 9px",background:"rgba(20,20,20,0.7)",border:"0.5px solid #1E1E1E"}}>
-                              <div style={{width:3,height:28,background:s.color,flexShrink:0,borderRadius:2}}/>
-                              <div style={{flex:1}}>
-                                <div style={{fontSize:11,fontWeight:500,color:"#F0F0F0"}}>{s.title}</div>
-                                <div style={{fontSize:9,color:"#555",fontFamily:"monospace"}}>{s.duration_minutes<60?`${s.duration_minutes}min`:`${s.duration_minutes/60}h`}</div>
-                              </div>
+                    ):(
+                      <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                        {selectedSessions.map(s=>(
+                          <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"rgba(20,20,20,0.7)",border:"0.5px solid #1E1E1E"}}>
+                            <div style={{width:3,alignSelf:"stretch",background:s.color,flexShrink:0,borderRadius:2}}/>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:11,fontWeight:500,color:"#F0F0F0"}}>{s.title}</div>
+                              <div style={{fontSize:9,color:"#555",fontFamily:"monospace"}}>{s.duration_minutes<60?`${s.duration_minutes}min`:`${s.duration_minutes/60}h`}</div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                          </div>
+                        ))}
+                        <button onClick={()=>openSessionModal(calSelectedDate??todayStr)}
+                          style={{marginTop:2,background:"transparent",border:"0.5px solid #1E1E1E",color:"#444",fontSize:9,padding:"3px 0",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                          onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
+                          onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#444")}}>
+                          + Add another
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })()}
@@ -944,38 +945,33 @@ export default function Dashboard() {
           {/* ── SIDEBAR (desktop only) ───────────────────────────────────── */}
           <div className="sdn-sidebar" style={{width:210,flexDirection:"column",padding:"14px 13px 20px",background:"rgba(8,8,8,0.6)",borderLeft:"0.5px solid #1A1A1A",overflowY:"auto",flexShrink:0,display:"flex"}}>
             <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-            <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#444",marginBottom:11}}>Upcoming Sessions</div>
-            {upcomingSessions.length===0?(
-              <div style={{textAlign:"center",padding:"9px 0 11px"}}>
-                <div style={{width:26,height:26,borderRadius:"50%",background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 6px"}}>
-                  <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="#333" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                </div>
-                <div style={{fontSize:10,color:"#333",marginBottom:6}}>No upcoming sessions</div>
-                <button onClick={()=>openSessionModal()} style={{background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,padding:"4px 10px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
-                  onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
-                  onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
-                  + Schedule one
-                </button>
+
+            {/* Upcoming — styled like Image 5 */}
+            <div style={{marginBottom:11}}>
+              <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:7}}>
+                <svg viewBox="0 0 24 24" width={11} height={11} fill="none" stroke={GOLD} strokeWidth={1.7} strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+                <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555"}}>Upcoming</span>
               </div>
-            ):(
-              <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:8}}>
-                {upcomingSessions.slice(0,5).map(s=>{
-                  const d=new Date(s.date+"T12:00:00")
-                  const label=d.toLocaleDateString("en-US",{month:"short",day:"numeric"})
-                  return (
-                    <div key={s.id} style={{display:"flex",alignItems:"center",gap:7,padding:"6px 8px",background:"rgba(20,20,20,0.6)",border:"0.5px solid #1A1A1A"}}>
-                      <div style={{width:3,height:28,background:s.color,flexShrink:0,borderRadius:2}}/>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:10,fontWeight:500,color:"#F0F0F0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title}</div>
-                        <div style={{fontSize:9,color:"#555",fontFamily:"monospace"}}>{s.duration_minutes<60?`${s.duration_minutes}min`:`${s.duration_minutes/60}h`}</div>
+              {upcomingSessions.length===0?(
+                <div style={{fontSize:10,color:"#333",padding:"4px 0 6px"}}>No upcoming sessions</div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  {upcomingSessions.slice(0,5).map(s=>{
+                    const d=new Date(s.date+"T12:00:00")
+                    const label=d.toLocaleDateString("en-US",{month:"short",day:"numeric"})
+                    return (
+                      <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 0",borderBottom:"0.5px solid #141414"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <div style={{width:7,height:7,borderRadius:"50%",background:s.color,flexShrink:0}}/>
+                          <span style={{fontSize:10,color:"#CCC",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>{s.title}</span>
+                        </div>
+                        <span style={{fontSize:9,color:"#444",flexShrink:0,marginLeft:4}}>{label}</span>
                       </div>
-                      <span style={{fontSize:9,color:"#444",flexShrink:0}}>{label}</span>
-                    </div>
-                  )
-                })}
-                {upcomingSessions.length>5&&<div style={{fontSize:9,color:"#444",textAlign:"center"}}>+{upcomingSessions.length-5} more</div>}
-              </div>
-            )}
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             <div style={{height:.5,background:"#1A1A1A",margin:"0 0 9px"}}/>
 
