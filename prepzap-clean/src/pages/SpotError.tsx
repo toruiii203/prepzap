@@ -1,28 +1,20 @@
 import { TextSkeleton } from "@/components/SkeletonLoader";
-import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
 import { buildAIContext } from "@/lib/sourceContext";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
+import { ToolPageShell } from "@/pages/ToolPageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Target, CheckCircle2, XCircle, RotateCcw, Timer } from "lucide-react";
+import { Target, CheckCircle2, XCircle, RotateCcw, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
+
+const TEAL = "#00C4B4";
+const GOLD = "#E8B923";
+const ROSE = "#ef4444";
 
 export default function SpotError() {
-  const toolKey = "spoterror"
-  const lsKey = `pz_hist_${toolKey}`
-  const { sessions: toolSessions, addSession, deleteSession } = useToolHistory(toolKey)
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  const handleNewSession = () => { setActiveSessionId(null) }
-  const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
-
-
   const [phase, setPhase] = useState<"setup"|"hunt"|"revealed">("setup");
   const [topicInput, setTopicInput] = useState("");
   const [difficulty, setDifficulty] = useState<"easy"|"medium"|"hard">("medium");
@@ -59,12 +51,11 @@ export default function SpotError() {
       );
       const clean = raw.replace(/```json|```/g,"").trim();
       const parsed = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]??clean);
-      setPassage(parsed.passage); setErrors(parsed.errors);
-      setFound([]); setTimeLeft(timeLimit);
-      setPhase("hunt");
-      const t = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(t);setPhase("revealed");return 0;}return prev-1;}),1000);
+      setPassage(parsed.passage); setErrors(parsed.errors); setFound([]);
+      setTimeLeft(timeLimit); setPhase("hunt");
+      const t = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(t);saveScore(found.length);setPhase("revealed");return 0;}return prev-1;}),1000);
       setTimerRef(t);
-    } catch(e) { setError(e instanceof Error?e.message:"Error"); }
+    } catch(e) { setError(e instanceof Error?e.message:"Failed to generate passage"); }
     finally { setIsLoading(false); }
   };
 
@@ -91,151 +82,175 @@ export default function SpotError() {
   const ss = String(timeLeft%60).padStart(2,"0");
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
-      {/* History Sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        <ToolHistorySidebar
-          toolKey="spoterror"
-          onNew={handleNewSession}
-          onSelect={handleSelectSession}
-          activeId={activeSessionId}
-        />
-        <div className="flex-1 overflow-auto">
-      <main className="flex-1 w-full p-4 py-6 md:max-w-2xl md:mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Link to="/dashboard"><Button variant="ghost" size="sm" className="gap-1"><ChevronLeft className="h-4 w-4"/>Dashboard</Button></Link>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <div className="w-7 h-7 rounded-none bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center"><Target className="h-4 w-4 text-white"/></div>
-              Spot the Error
-            </h1>
-            <p className="text-xs text-muted-foreground">Find all 3 deliberate mistakes before time runs out</p>
-          </div>
-        </div>
+    <ToolPageShell>
+      <main style={{ flex: 1, padding: "24px 16px" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
 
-        {phase==="setup" && (
-          <div className="space-y-6 pt-4">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg"><Target className="h-8 w-8 text-white"/></div>
-              <h2 className="text-xl font-bold">Spot the Error</h2>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">AI writes a passage with 3 hidden mistakes. Find them before the timer runs out.</p>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+            <div style={{ width: 28, height: 28, background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Target style={{ width: 14, height: 14, color: "#fff" }} />
             </div>
+            <div>
+              <h1 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Spot the Error</h1>
+              <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em" }}>FIND ALL 3 DELIBERATE MISTAKES BEFORE TIME RUNS OUT</p>
+            </div>
+          </div>
 
-            {/* Score tracker */}
-            {scores.played > 0 && (
-              <div className="flex gap-3">
-                {[
-                  { label: "Played", val: scores.played, color: "var(--pz-gold)" },
-                  { label: "Found", val: `${scores.correct}/${scores.total}`, color: "var(--pz-teal)" },
-                  { label: "Rate", val: `${Math.round((scores.correct/scores.total)*100)||0}%`, color: "var(--pz-text)" },
-                ].map(s => (
-                  <div key={s.label} className="flex-1 p-3 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
-                    <p className="text-base font-bold" style={{ color: s.color, fontFamily: "monospace" }}>{s.val}</p>
-                    <p className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: "var(--pz-text-muted)" }}>{s.label}</p>
+          {/* SETUP */}
+          {phase === "setup" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <div style={{ width: 56, height: 56, background: "linear-gradient(135deg,#ef4444,#f97316)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                  <Target style={{ width: 28, height: 28, color: "#fff" }} />
+                </div>
+                <h2 style={{ fontSize: 18, fontWeight: 900, color: "#F0F0F0", margin: "0 0 6px" }}>Spot the Error</h2>
+                <p style={{ fontSize: 12, color: "#555", margin: 0 }}>AI writes a passage with 3 hidden mistakes. Find them before the timer runs out.</p>
+              </div>
+
+              {/* Score tracker */}
+              {scores.played > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  {[
+                    { label: "Played", val: scores.played, color: GOLD },
+                    { label: "Found", val: `${scores.correct}/${scores.total}`, color: TEAL },
+                    { label: "Rate", val: `${Math.round((scores.correct/scores.total)*100)||0}%`, color: "#F0F0F0" },
+                  ].map(s => (
+                    <div key={s.label} style={{ padding: "10px 8px", textAlign: "center", background: "rgba(255,255,255,0.02)", border: "0.5px solid #1E1E1E" }}>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: s.color, margin: "0 0 4px", fontFamily: "monospace" }}>{s.val}</p>
+                      <p style={{ fontSize: 10, color: "#555", margin: 0, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525", padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                {/* Difficulty */}
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#999", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>Difficulty</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {(["easy","medium","hard"] as const).map(d => {
+                      const col = d === "easy" ? TEAL : d === "hard" ? ROSE : GOLD;
+                      return (
+                        <button key={d} onClick={() => setDifficulty(d)}
+                          style={{ flex: 1, padding: "8px 0", fontSize: 11, fontWeight: 600, cursor: "pointer", border: `0.5px solid ${difficulty === d ? col : "#252525"}`, background: difficulty === d ? `${col}12` : "transparent", color: difficulty === d ? col : "#555", fontFamily: "inherit", transition: "all .15s" }}>
+                          {d === "easy" ? "Easy 2min" : d === "hard" ? "Hard 1min" : "Medium 90s"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Topic */}
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#999", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>Topic or paste your own text</label>
+                  <textarea value={topicInput} onChange={e => setTopicInput(e.target.value)}
+                    placeholder="e.g. 'Cell Biology', 'World War 2', or paste a paragraph..."
+                    rows={3}
+                    style={{ width: "100%", padding: "10px 12px", fontSize: 12, background: "rgba(255,255,255,0.03)", border: "0.5px solid #252525", color: "#F0F0F0", outline: "none", resize: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+                </div>
+
+                {buildAIContext().length > 0 && !topicInput.trim() && (
+                  <button onClick={start} disabled={isLoading}
+                    style={{ width: "100%", padding: "10px", background: "rgba(232,185,35,0.08)", border: `0.5px solid rgba(232,185,35,0.3)`, color: GOLD, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    ⚡ Generate from Active Source
+                  </button>
+                )}
+                {error && <p style={{ fontSize: 12, color: ROSE, background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.2)", padding: "10px 12px" }}>{error}</p>}
+                {isLoading && <TextSkeleton />}
+                <button onClick={start} disabled={isLoading || (!topicInput.trim() && buildAIContext().length === 0)}
+                  style={{ width: "100%", padding: "12px", background: "linear-gradient(135deg,#ef4444,#f97316)", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (isLoading || (!topicInput.trim() && buildAIContext().length === 0)) ? 0.5 : 1 }}>
+                  {isLoading ? <div style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> : <><Target style={{ width: 16, height: 16 }} />Generate Passage</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* HUNT */}
+          {phase === "hunt" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Badge variant="secondary">{found.length} / {errors.length} found</Badge>
+                <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: timeLeft <= 20 ? ROSE : "#555", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Timer style={{ width: 14, height: 14 }} />{mm}:{ss}
+                </div>
+                <button onClick={reveal}
+                  style={{ padding: "4px 10px", border: "0.5px solid #252525", background: "transparent", color: "#555", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                  Reveal All
+                </button>
+              </div>
+
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525", padding: 20 }}>
+                <p style={{ fontSize: 11, color: "#555", marginBottom: 12 }}>Select the error text with your cursor, then click "Mark as Error"</p>
+                <div style={{ fontSize: 13, lineHeight: 1.8, color: "#C0C0C0", cursor: "text", userSelect: "text" as const }}
+                  onMouseUp={() => setSelectedText(window.getSelection()?.toString() || "")}>
+                  <MathRenderer content={passage} />
+                </div>
+              </div>
+
+              {selectedText && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(232,185,35,0.06)", border: "0.5px solid rgba(232,185,35,0.3)" }}>
+                  <span style={{ flex: 1, fontSize: 12, color: GOLD, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>"{selectedText}"</span>
+                  <button onClick={markFound}
+                    style={{ padding: "5px 12px", background: GOLD, color: "#000", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                    Mark as Error
+                  </button>
+                  <button onClick={() => setSelectedText("")}
+                    style={{ padding: "5px 8px", background: "transparent", border: "none", color: "#555", cursor: "pointer", fontSize: 13, flexShrink: 0 }}>
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {found.length > 0 && (
+                <p style={{ fontSize: 12, color: TEAL }}>✅ Found {found.length} error{found.length > 1 ? "s" : ""}. Keep looking!</p>
+              )}
+            </div>
+          )}
+
+          {/* REVEALED */}
+          {phase === "revealed" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: found.length === errors.length ? TEAL : found.length >= 2 ? GOLD : ROSE, marginBottom: 4 }}>
+                  {found.length}/{errors.length} Found
+                </div>
+                <p style={{ fontSize: 12, color: "#555", margin: 0 }}>
+                  {found.length === errors.length ? "Perfect! You caught every error 🎉" : "Here's what you missed:"}
+                </p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {errors.map((e, i) => (
+                  <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525", padding: 16 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <XCircle style={{ width: 16, height: 16, color: ROSE, marginTop: 2, flexShrink: 0 }} />
+                      <div>
+                        <p style={{ fontSize: 13, color: ROSE, textDecoration: "line-through", margin: "0 0 4px" }}>{e.text}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                          <CheckCircle2 style={{ width: 13, height: 13, color: TEAL }} />
+                          <p style={{ fontSize: 13, color: TEAL, fontWeight: 600, margin: 0 }}>{e.correction}</p>
+                        </div>
+                        <p style={{ fontSize: 11, color: "#555", margin: 0 }}>{e.explanation}</p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-
-            <div className="bg-card border border-border rounded-none p-5 space-y-4">
-              {/* Difficulty selector */}
-              <div>
-                <label className="text-sm font-semibold block mb-2">Difficulty</label>
-                <div className="flex gap-2">
-                  {(["easy","medium","hard"] as const).map(d => (
-                    <button key={d} onClick={() => setDifficulty(d)}
-                      className="flex-1 py-2 text-xs font-semibold capitalize"
-                      style={{ border: `1px solid ${difficulty === d ? (d === "easy" ? "var(--pz-teal)" : d === "hard" ? "var(--pz-rose)" : "var(--pz-gold)") : "var(--pz-border)"}`, background: difficulty === d ? "var(--pz-surface3)" : "transparent", color: difficulty === d ? (d === "easy" ? "var(--pz-teal)" : d === "hard" ? "var(--pz-rose)" : "var(--pz-gold)") : "var(--pz-text-muted)" }}>
-                      {d === "easy" ? "Easy 2min" : d === "hard" ? "Hard 1min" : "Medium 90s"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold block mb-2">Topic or paste your own text</label>
-                <div className="flex gap-2">
-                  <textarea
-                    value={topicInput}
-                    onChange={e => setTopicInput(e.target.value)}
-                    placeholder="e.g. 'Cell Biology', 'World War 2', or paste a paragraph..."
-                    className="flex-1 px-4 py-3 rounded-none border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none min-h-[80px]"
-                  />
-                </div>
-              </div>
-              {buildAIContext().length > 0 && !topicInput.trim() && (
-                <button onClick={start} disabled={isLoading}
-                  className="w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                  style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
-                  ⚡ Generate Error Passage from Active Source
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setPhase("setup")}
+                  style={{ flex: 1, padding: "10px", border: "0.5px solid #252525", background: "transparent", color: "#C0C0C0", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <RotateCcw style={{ width: 14, height: 14 }} /> New Passage
                 </button>
-              )}
-              {error&&<p className="text-sm text-red-500 bg-red-500/10 rounded-none p-3">{error}</p>}
-              <Button onClick={start} disabled={isLoading || (!topicInput.trim() && buildAIContext().length === 0)} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90">
-                {isLoading?<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-none animate-spin"/>:<><Target className="h-4 w-4 mr-2"/>Generate Passage</>}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {phase==="hunt" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Badge variant="secondary">{found.length} / {errors.length} found</Badge>
-              <div className={cn("flex items-center gap-1 font-mono text-sm font-bold",timeLeft<=20?"text-red-500":"text-muted-foreground")}>
-                <Timer className="h-4 w-4"/>{mm}:{ss}
-              </div>
-              <Button size="sm" variant="outline" onClick={reveal}>Reveal All</Button>
-            </div>
-            <div className="bg-card border border-border rounded-none p-5">
-              <p className="text-xs text-muted-foreground mb-3 font-medium">Select the error text with your cursor, then click "Mark as Error"</p>
-              <div className="text-sm leading-loose select-text cursor-text" onMouseUp={()=>setSelectedText(window.getSelection()?.toString()||"")}>
-                <MathRenderer content={passage}/>
+                <Link to="/dashboard" style={{ flex: 1 }}>
+                  <button style={{ width: "100%", padding: "10px", background: "linear-gradient(135deg,#ef4444,#f97316)", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    Dashboard
+                  </button>
+                </Link>
               </div>
             </div>
-            {selectedText && (
-              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-none text-sm">
-                <span className="flex-1 truncate text-amber-700 dark:text-amber-400">"{selectedText}"</span>
-                <Button size="sm" onClick={markFound} className="bg-amber-500 text-white hover:bg-amber-600">Mark as Error</Button>
-                <Button size="sm" variant="ghost" onClick={()=>setSelectedText("")}>✕</Button>
-              </div>
-            )}
-            {found.length>0&&<p className="text-xs text-white/60 font-medium">✅ Found {found.length} error{found.length>1?"s":""}. Keep looking!</p>}
-          </div>
-        )}
-
-        {phase==="revealed" && (
-          <div className="space-y-4">
-            <div className="text-center">
-              <div className={cn("text-3xl font-bold mb-1",found.length===errors.length?"text-white/60":found.length>=2?"text-amber-500":"text-red-500")}>
-                {found.length}/{errors.length} Found
-              </div>
-              <p className="text-muted-foreground text-sm">{found.length===errors.length?"Perfect! You caught every error 🎉":"Here's what you missed:"}</p>
-            </div>
-            <div className="space-y-3">
-              {errors.map((e,i)=>(
-                <div key={i} className="bg-card border border-border rounded-none p-4 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0"/>
-                    <div>
-                      <p className="text-sm font-medium text-red-500 line-through">{e.text}</p>
-                      <div className="flex items-center gap-1 mt-1"><CheckCircle2 className="h-3.5 w-3.5 text-white/60"/><p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{e.correction}</p></div>
-                      <p className="text-xs text-muted-foreground mt-1">{e.explanation}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <Button onClick={()=>setPhase("setup")} variant="outline" className="flex-1 gap-2"><RotateCcw className="h-4 w-4"/>New Passage</Button>
-              <Link to="/dashboard" className="flex-1"><Button className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white hover:opacity-90">Dashboard</Button></Link>
-            </div>
-          </div>
-        )}
-     </main>
+          )}
         </div>
-      </div>
-    </div>
+      </main>
+    </ToolPageShell>
   );
 }

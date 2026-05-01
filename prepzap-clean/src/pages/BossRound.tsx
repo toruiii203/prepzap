@@ -1,40 +1,27 @@
-import { QuestionSkeleton } from "@/components/SkeletonLoader";
-import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { buildAIContext } from "@/lib/sourceContext";
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Award, CheckCircle2, XCircle, RotateCcw, Zap, Trophy } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Award, CheckCircle2, XCircle, RotateCcw, Zap, Trophy } from "lucide-react";
 import { callGroq } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
 import { toast } from "sonner";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
+import { Link } from "react-router-dom";
 
 interface Question { question: string; options: string[]; correct: number; explanation: string; topic: string; }
 
 type Difficulty = "Easy" | "Medium" | "Hard" | "Nightmare";
-const DIFFICULTIES: { label: Difficulty; color: string }[] = [
-  { label: "Easy",      color: "border-emerald-500 bg-white/10 text-emerald-400" },
-  { label: "Medium",    color: "border-amber-500 bg-amber-500/10 text-amber-400" },
-  { label: "Hard",      color: "border-red-500 bg-red-500/10 text-red-400" },
-  { label: "Nightmare", color: "border-violet-500 bg-violet-500/10 text-violet-400" },
+const DIFFICULTIES = [
+  { label: "Easy" as Difficulty,      color: "#10b981", bg: "rgba(16,185,129,0.12)" },
+  { label: "Medium" as Difficulty,    color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  { label: "Hard" as Difficulty,      color: "#ef4444", bg: "rgba(239,68,68,0.12)"  },
+  { label: "Nightmare" as Difficulty, color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
 ];
 
+const TEAL = "#00C4B4";
+const GOLD = "#E8B923";
+
 export default function BossRound() {
-  const toolKey = "bossround"
-  const lsKey = `pz_hist_${toolKey}`
-  const { sessions: toolSessions, addSession, deleteSession } = useToolHistory(toolKey)
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  const handleNewSession = () => { setActiveSessionId(null) }
-  const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
-
-
   const [phase, setPhase] = useState<"setup"|"quiz"|"done">("setup");
   const [topicInput, setTopicInput] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
@@ -52,21 +39,17 @@ export default function BossRound() {
     const hasSource = buildAIContext().length > 0;
     if (!topicInput.trim() && !hasSource) return;
     setIsLoading(true); setError(null);
-    const nightmareExtra = difficulty === "Nightmare"
-      ? " Include multi-step reasoning, tricky edge cases, and questions requiring synthesis of multiple concepts."
-      : "";
+    const nightmareExtra = difficulty === "Nightmare" ? " Include multi-step reasoning, tricky edge cases, and questions requiring synthesis of multiple concepts." : "";
     const fileContext = buildAIContext();
     const topic = topicInput.trim() || "the attached material";
     try {
       const raw = await callGroq(
-        [{role:"user",content:`Generate exactly 10 ${difficulty}-difficulty multiple-choice questions about "${topic}" for a Boss Round challenge. Make them appropriately challenging for the ${difficulty} level — test application, analysis, and edge cases, not just recall.${nightmareExtra}${fileContext} Return ONLY this exact JSON format with no other text: {"questions":[{"question":"...","options":["A","B","C","D"],"correct":0,"explanation":"...","topic":"subtopic"}]}`}],
-        "Return ONLY valid compact JSON with no extra whitespace. No markdown, no explanation, just the JSON object. You are a demanding exam writer creating questions that separate students who truly understand from those who just memorized.",
+        [{role:"user",content:`Generate exactly 10 ${difficulty}-difficulty multiple-choice questions about "${topic}" for a Boss Round challenge.${nightmareExtra}${fileContext} Return ONLY: {"questions":[{"question":"...","options":["A","B","C","D"],"correct":0,"explanation":"...","topic":"subtopic"}]}`}],
+        "Return ONLY valid compact JSON. No markdown, no explanation.",
         "llama-3.3-70b-versatile", 3000
       );
-      let clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-      const objMatch = clean.match(/\{[\s\S]*\}/);
-      const jsonStr = objMatch ? objMatch[0] : clean;
-      const parsed = JSON.parse(jsonStr);
+      const clean = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+      const parsed = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0] ?? clean);
       setQuestions(parsed.questions.slice(0,10));
       setCurrent(0); setSelected(null); setAnswered(false); setResults([]); setTimeLeft(300);
       setPhase("quiz");
@@ -77,163 +60,141 @@ export default function BossRound() {
     finally { setIsLoading(false); }
   };
 
-  const choose = (i: number) => {
-    if (answered) return;
-    setSelected(i); setAnswered(true);
-  };
+  const choose = (i: number) => { if (answered) return; setSelected(i); setAnswered(true); };
 
   const next = () => {
-    const newResults = [...results, {correct:selected===questions[current].correct, selected:selected??-1, correct_idx:questions[current].correct}];
+    const newResults = [...results, {correct:selected===questions[current].correct,selected:selected??-1,correct_idx:questions[current].correct}];
     setResults(newResults);
-    if (current+1 >= questions.length) {
-      if(timerRef) clearInterval(timerRef);
-      setPhase("done");
-    } else {
-      setCurrent(c=>c+1); setSelected(null); setAnswered(false);
-    }
+    if (current+1 >= questions.length) { if(timerRef) clearInterval(timerRef); setPhase("done"); }
+    else { setCurrent(c=>c+1); setSelected(null); setAnswered(false); }
   };
 
   const score = results.filter(r=>r.correct).length;
-  const xpEarned = Math.round((score/10)*500);
-  const diffMult = difficulty === "Nightmare" ? 2 : difficulty === "Hard" ? 1.5 : difficulty === "Easy" ? 0.75 : 1;
-  const finalXP = Math.round(xpEarned * diffMult);
+  const diffMult = difficulty==="Nightmare"?2:difficulty==="Hard"?1.5:difficulty==="Easy"?0.75:1;
+  const finalXP = Math.round((score/10)*500*diffMult);
   const mm = String(Math.floor(timeLeft/60)).padStart(2,"0");
   const ss = String(timeLeft%60).padStart(2,"0");
   const q = questions[current];
+  const curDiff = DIFFICULTIES.find(d=>d.label===difficulty)!;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
-      {/* History Sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        <ToolHistorySidebar
-          toolKey="bossround"
-          onNew={handleNewSession}
-          onSelect={handleSelectSession}
-          activeId={activeSessionId}
-        />
-        <div className="flex-1 overflow-auto">
-      <main className="flex-1 w-full p-4 py-6 md:max-w-2xl md:mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Link to="/dashboard"><Button variant="ghost" size="sm" className="gap-1"><ChevronLeft className="h-4 w-4"/>Dashboard</Button></Link>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <div className="w-7 h-7 rounded-none bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center"><Award className="h-4 w-4 text-white"/></div>
-              Boss Round
-            </h1>
-            <p className="text-xs text-muted-foreground">10 hard questions · 5 minute limit · earn up to 500 XP</p>
-          </div>
-        </div>
+    <ToolPageShell>
+      <main style={{flex:1,padding:"28px 20px",maxWidth:680,margin:"0 auto",width:"100%"}}>
 
         {phase==="setup" && (
-          <div className="space-y-6 pt-4">
-            <div className="text-center space-y-3">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
-                <Award className="h-10 w-10 text-white"/>
+          <div style={{display:"flex",flexDirection:"column",gap:28}}>
+            <div style={{textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
+              <div style={{width:72,height:72,background:`linear-gradient(135deg,${GOLD},#f59e0b)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 0 40px ${GOLD}30`}}>
+                <Award style={{width:36,height:36,color:"#0A0A0A"}}/>
               </div>
-              <h2 className="text-2xl font-bold">Boss Round</h2>
-              <p className="text-muted-foreground max-w-md mx-auto">The ultimate end-of-session challenge. 10 hard questions. 5 minutes. Your score determines XP earned. Are you ready?</p>
-              <div className="flex justify-center gap-6 text-sm text-muted-foreground">
+              <div>
+                <h1 style={{fontSize:24,fontWeight:700,color:"#F0F0F0",margin:0}}>Boss Round</h1>
+                <p style={{fontSize:13,color:"#666",marginTop:6}}>The ultimate challenge. 10 questions. 5 minutes. Your score determines XP earned.</p>
+              </div>
+              <div style={{display:"flex",gap:32}}>
                 {[{v:"10",l:"Questions"},{v:"5m",l:"Time limit"},{v:"500",l:"Max XP"}].map(s=>(
-                  <div key={s.l} className="text-center"><div className="text-2xl font-bold text-amber-500">{s.v}</div><div>{s.l}</div></div>
+                  <div key={s.l} style={{textAlign:"center"}}>
+                    <div style={{fontSize:26,fontWeight:700,color:GOLD,fontFamily:"monospace"}}>{s.v}</div>
+                    <div style={{fontSize:11,color:"#555",marginTop:2}}>{s.l}</div>
+                  </div>
                 ))}
               </div>
             </div>
-            <div className="bg-card border border-border rounded-none p-5 space-y-4">
-              <ConceptChipSelector
-                onSelect={(concept) => { setTopicInput(concept); setTimeout(() => start(), 0); }}
-                placeholder="e.g. Cell Biology, World War 2, Calculus, Python…"
-                label="What topic do you want to be tested on?"
-              />
+
+            <div style={{background:"#111",border:"0.5px solid #222",padding:20,display:"flex",flexDirection:"column",gap:16}}>
+              <ConceptChipSelector onSelect={(c)=>{setTopicInput(c);setTimeout(()=>start(),0);}} placeholder="e.g. Cell Biology, World War 2, Calculus…" label="What topic do you want to be tested on?"/>
               <div>
-                <label className="font-semibold text-sm block mb-2">Difficulty</label>
-                <div className="flex gap-2 flex-wrap">
-                  {DIFFICULTIES.map(d => (
-                    <button key={d.label} onClick={() => setDifficulty(d.label)}
-                      className={cn("px-4 py-1.5 rounded-none text-xs border font-semibold transition-all",
-                        difficulty === d.label ? d.color : "border-border text-muted-foreground hover:border-amber-400")}>
+                <label style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#555",display:"block",marginBottom:10}}>Difficulty</label>
+                <div style={{display:"flex",gap:8}}>
+                  {DIFFICULTIES.map(d=>(
+                    <button key={d.label} onClick={()=>setDifficulty(d.label)}
+                      style={{flex:1,padding:"8px 0",fontSize:11,fontWeight:700,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer",transition:"all .15s",
+                        border:`0.5px solid ${difficulty===d.label?d.color:"#252525"}`,
+                        background:difficulty===d.label?d.bg:"transparent",
+                        color:difficulty===d.label?d.color:"#444"}}>
                       {d.label}
                     </button>
                   ))}
                 </div>
               </div>
-              {error&&<p className="text-sm text-red-500 bg-red-500/10 rounded-none p-3">{error}</p>}
-              {isLoading && (
-                <div className="space-y-2">
-                  {[...Array(4)].map((_,i) => <div key={i} className="h-10 rounded-none bg-muted animate-pulse" />)}
-                </div>
-              )}
+              {error&&<p style={{fontSize:12,color:"#ef4444",background:"rgba(239,68,68,0.08)",border:"0.5px solid rgba(239,68,68,0.2)",padding:"10px 14px"}}>{error}</p>}
+              <button onClick={start} disabled={isLoading||(!topicInput.trim()&&buildAIContext().length===0)}
+                style={{padding:"12px 0",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#0A0A0A",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",opacity:(isLoading||(!topicInput.trim()&&buildAIContext().length===0))?0.4:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {isLoading?<div style={{width:14,height:14,border:"2px solid rgba(0,0,0,0.3)",borderTop:"2px solid #0A0A0A",borderRadius:"50%"}}/>:<><Award style={{width:14,height:14}}/>Start Boss Round</>}
+              </button>
             </div>
           </div>
         )}
 
         {phase==="quiz" && q && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Badge variant="secondary" className="font-mono">{current+1} / {questions.length}</Badge>
-              <div className={cn("flex items-center gap-1 font-mono text-sm font-bold",timeLeft<=60?"text-red-500 animate-pulse":"text-muted-foreground")}>
-                ⏱ {mm}:{ss}
-              </div>
-              <Badge className="bg-amber-500/20 text-amber-600 border-0 text-xs">+{Math.round((1/questions.length)*500)} XP</Badge>
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#555",fontFamily:"monospace"}}>{current+1} / {questions.length}</span>
+              <div style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:timeLeft<=60?"#ef4444":"#666"}}>⏱ {mm}:{ss}</div>
+              <span style={{fontSize:10,padding:"2px 8px",background:`rgba(232,185,35,0.12)`,color:GOLD,fontWeight:700,border:`0.5px solid ${GOLD}40`}}>+{Math.round((1/questions.length)*500)} XP</span>
             </div>
-            <div className="h-1.5 rounded-none bg-muted overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-yellow-500 to-amber-500 transition-all" style={{width:`${(current/questions.length)*100}%`}}/>
+            <div style={{height:2,background:"#1A1A1A"}}>
+              <div style={{height:"100%",background:`linear-gradient(90deg,${GOLD},#f59e0b)`,width:`${(current/questions.length)*100}%`,transition:"width .4s"}}/>
             </div>
-            <div className="bg-card border border-border rounded-none p-6">
-              <Badge variant="outline" className="text-[10px] mb-3">{q.topic}</Badge>
+            <div style={{background:"#111",border:"0.5px solid #222",padding:24}}>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#444",display:"block",marginBottom:12}}>{q.topic}</span>
               <MathRenderer content={q.question} className="text-base font-medium mb-5"/>
-              <div className="space-y-2">
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:20}}>
                 {q.options.map((opt,i)=>(
                   <button key={i} onClick={()=>choose(i)} disabled={answered}
-                    className={cn("w-full text-left px-4 py-3 rounded-none border text-sm transition-all",
-                      !answered&&"hover:border-amber-400 hover:bg-amber-500/5",
-                      answered&&i===q.correct&&"border-emerald-500 bg-white/10 font-medium",
-                      answered&&selected===i&&i!==q.correct&&"border-red-500 bg-red-500/10",
-                      (!answered||(answered&&i!==q.correct&&i!==selected))&&"border-border")}>
-                    <span className="font-mono text-xs mr-2 opacity-60">{String.fromCharCode(65+i)}.</span>{opt}
+                    style={{textAlign:"left",padding:"12px 16px",fontSize:13,fontFamily:"'Inter',system-ui,sans-serif",cursor:answered?"default":"pointer",transition:"all .15s",
+                      border:`0.5px solid ${answered&&i===q.correct?"#10b981":answered&&selected===i&&i!==q.correct?"#ef4444":"#252525"}`,
+                      background:answered&&i===q.correct?"rgba(16,185,129,0.08)":answered&&selected===i&&i!==q.correct?"rgba(239,68,68,0.08)":"transparent",
+                      color:answered&&i===q.correct?"#10b981":answered&&selected===i&&i!==q.correct?"#ef4444":"#C0C0C0"}}>
+                    <span style={{fontFamily:"monospace",fontSize:11,opacity:0.5,marginRight:10}}>{String.fromCharCode(65+i)}.</span>{opt}
                   </button>
                 ))}
               </div>
             </div>
             {answered&&(
-              <div className="bg-card border border-border rounded-none p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  {selected===q.correct?<CheckCircle2 className="h-4 w-4 text-white/60"/>:<XCircle className="h-4 w-4 text-red-500"/>}
-                  <span className="font-semibold text-sm">{selected===q.correct?"Correct! +"+Math.round(500/questions.length)+" XP":"Wrong"}</span>
+              <div style={{background:"#111",border:"0.5px solid #222",padding:16,display:"flex",flexDirection:"column",gap:12}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  {selected===q.correct?<CheckCircle2 style={{width:16,height:16,color:"#10b981"}}/>:<XCircle style={{width:16,height:16,color:"#ef4444"}}/>}
+                  <span style={{fontWeight:700,fontSize:13,color:selected===q.correct?"#10b981":"#ef4444"}}>{selected===q.correct?`Correct! +${Math.round(500/questions.length)} XP`:"Wrong"}</span>
                 </div>
                 <MathRenderer content={q.explanation} className="text-xs text-muted-foreground"/>
-                <Button onClick={next} className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 text-white hover:opacity-90">
+                <button onClick={next} style={{padding:"10px 0",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#0A0A0A",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif"}}>
                   {current+1<questions.length?"Next →":"See Final Score →"}
-                </Button>
+                </button>
               </div>
             )}
           </div>
         )}
 
-        {phase==="done" && (
-          <div className="text-center space-y-6 pt-8">
-            <Trophy className={cn("h-16 w-16 mx-auto",score>=8?"text-amber-500":score>=6?"text-teal-500":"text-muted-foreground")}/>
+        {phase==="done"&&(
+          <div style={{textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:24,paddingTop:32}}>
+            <Trophy style={{width:64,height:64,color:score>=8?GOLD:score>=6?TEAL:"#444"}}/>
             <div>
-              <h2 className="text-3xl font-bold">{score}/10</h2>
-              <p className="text-muted-foreground">{score>=9?"Legendary! 🏆":score>=7?"Strong work! 💪":score>=5?"Keep grinding! 📚":"Tougher than expected — review and retry"}</p>
+              <div style={{fontSize:48,fontWeight:700,color:"#F0F0F0",fontFamily:"monospace"}}>{score}<span style={{fontSize:24,color:"#555"}}>/10</span></div>
+              <p style={{fontSize:14,color:"#666",marginTop:6}}>{score>=9?"Legendary! 🏆":score>=7?"Strong work! 💪":score>=5?"Keep grinding! 📚":"Tougher than expected — review and retry"}</p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[{l:"Score",v:`${score}/10`,c:"text-amber-500"},{l:"XP Earned",v:`+${finalXP}`,c:"text-teal-500"},{l:"Accuracy",v:`${Math.round(score/10*100)}%`,c:"text-violet-500"}].map(s=>(
-                <div key={s.l} className="bg-card border border-border rounded-none p-3 text-center">
-                  <div className={cn("text-2xl font-bold",s.c)}>{s.v}</div>
-                  <div className="text-xs text-muted-foreground">{s.l}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,width:"100%"}}>
+              {[{l:"Score",v:`${score}/10`,c:GOLD},{l:"XP Earned",v:`+${finalXP}`,c:TEAL},{l:"Accuracy",v:`${Math.round(score/10*100)}%`,c:"#8b5cf6"}].map(s=>(
+                <div key={s.l} style={{background:"#111",border:"0.5px solid #222",padding:"14px 10px",textAlign:"center"}}>
+                  <div style={{fontSize:22,fontWeight:700,color:s.c,fontFamily:"monospace"}}>{s.v}</div>
+                  <div style={{fontSize:11,color:"#555",marginTop:4}}>{s.l}</div>
                 </div>
               ))}
             </div>
-            <div className="flex gap-3 justify-center">
-              <Button onClick={()=>{setPhase("setup");setTopicInput("");}} variant="outline" className="gap-2"><RotateCcw className="h-4 w-4"/>Retry</Button>
-              <Link to="/dashboard"><Button className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white hover:opacity-90 gap-2"><Zap className="h-4 w-4"/>Back to Dashboard</Button></Link>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>{setPhase("setup");setTopicInput("");setResults([]);}}
+                style={{padding:"10px 20px",background:"transparent",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",display:"flex",alignItems:"center",gap:6}}>
+                <RotateCcw style={{width:14,height:14}}/> Retry
+              </button>
+              <Link to="/dashboard">
+                <button style={{padding:"10px 20px",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#0A0A0A",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",display:"flex",alignItems:"center",gap:6}}>
+                  <Zap style={{width:14,height:14}}/> Back to Dashboard
+                </button>
+              </Link>
             </div>
           </div>
         )}
       </main>
-        </div>
-      </div>
-    </div>
+    </ToolPageShell>
   );
 }

@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
-import { BottomNav } from "@/components/BottomNav";
-import { ToolHeader } from "@/components/ToolShell";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
+import { ToolPageShell } from "@/pages/ToolPageShell";
 import { AlertCircle, Plus, Trash2, RefreshCw, Flame, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext } from "@/lib/sourceContext";
@@ -24,6 +20,9 @@ interface ReviewQuestion { question: string; answer: string; }
 
 const STORAGE_KEY = "pz_mistake_journal";
 const STREAK_KEY  = "pz_mistake_streak";
+const TEAL = "#00C4B4";
+const GOLD = "#E8B923";
+const ROSE = "#ef4444";
 
 function loadMistakes(): Mistake[] { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
 function saveMistakes(m: Mistake[]) { localStorage.setItem(STORAGE_KEY, JSON.stringify(m)); }
@@ -93,12 +92,7 @@ export default function MistakeJournal() {
     try {
       const ctx = buildAIContext();
       const mistakeList = toReview.map(m => `Q: ${m.question}\nA: ${m.correctAnswer}`).join("\n\n");
-      const prompt = `Based on these mistakes a student made, create a focused review quiz:
-${mistakeList}
-${ctx ? `\nAdditional context:\n${ctx}\n` : ""}
-Return ONLY valid JSON array, no markdown:
-[{"question":"rephrased or related question","answer":"correct answer"}]
-Create ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to test understanding, not just memory.`;
+      const prompt = `Based on these mistakes a student made, create a focused review quiz:\n${mistakeList}\n${ctx ? `\nAdditional context:\n${ctx}\n` : ""}\nReturn ONLY valid JSON array, no markdown:\n[{"question":"rephrased or related question","answer":"correct answer"}]\nCreate ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to test understanding, not just memory.`;
       const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
       const parsed: ReviewQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setReviewQuestions(parsed);
@@ -124,175 +118,192 @@ Create ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to 
     const q = reviewQuestions[reviewIdx];
     const allDone = reviewRevealed.every(Boolean);
     return (
-      <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-        <Navbar />
-        <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
-          <GlobalContextBar compact />
-          <div className="flex items-center justify-between mb-6 mt-4">
-            <h2 className="font-semibold" style={{ color: "var(--pz-text)" }}>Review Session</h2>
-            <button onClick={() => setReviewMode(false)} className="text-xs px-3 py-1.5" style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent" }}>Exit</button>
-          </div>
-
-          <div className="h-1.5 mb-6" style={{ background: "var(--pz-surface3)" }}>
-            <div className="h-full transition-all" style={{ width: `${(reviewIdx / reviewQuestions.length) * 100}%`, background: "var(--pz-gold)" }} />
-          </div>
-
-          {!allDone && q ? (
-            <div className="space-y-4">
-              <div className="p-5" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-gold)" }}>
-                <p className="text-xs mb-2 uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>{reviewIdx + 1} / {reviewQuestions.length}</p>
-                <p className="text-base font-medium mb-4" style={{ color: "var(--pz-text)" }}>{q.question}</p>
+      <ToolPageShell>
+        <main style={{ flex: 1, padding: "24px 16px" }}>
+          <div style={{ maxWidth: 560, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Review Session</h2>
+              <button onClick={() => setReviewMode(false)}
+                style={{ fontSize: 11, padding: "4px 10px", border: "0.5px solid #252525", color: "#555", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}>
+                Exit
+              </button>
+            </div>
+            <div style={{ height: 3, background: "#1A1A1A", marginBottom: 24 }}>
+              <div style={{ height: "100%", width: `${(reviewIdx / reviewQuestions.length) * 100}%`, background: GOLD, transition: "width .3s" }} />
+            </div>
+            {!allDone && q ? (
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525", borderTop: `2px solid ${GOLD}`, padding: 20 }}>
+                <p style={{ fontSize: 10, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em" }}>{reviewIdx + 1} / {reviewQuestions.length}</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#F0F0F0", marginBottom: 16 }}>{q.question}</p>
                 <textarea value={reviewAnswers[reviewIdx]}
                   onChange={e => { const a = [...reviewAnswers]; a[reviewIdx] = e.target.value; setReviewAnswers(a); }}
                   disabled={reviewRevealed[reviewIdx]}
                   placeholder="Your answer..." rows={3}
-                  className="w-full px-3 py-2.5 text-sm outline-none resize-none mb-3"
-                  style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
+                  style={{ width: "100%", padding: "10px 12px", fontSize: 12, background: "rgba(255,255,255,0.03)", border: "0.5px solid #252525", color: "#F0F0F0", outline: "none", resize: "none", marginBottom: 12, fontFamily: "inherit", boxSizing: "border-box" }} />
                 {!reviewRevealed[reviewIdx] ? (
                   <button onClick={() => { const r = [...reviewRevealed]; r[reviewIdx] = true; setReviewRevealed(r); if (reviewIdx + 1 < reviewQuestions.length) setTimeout(() => setReviewIdx(i => i + 1), 1200); }}
-                    className="w-full py-2.5 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000", border: "none" }}>
+                    style={{ width: "100%", padding: 10, background: GOLD, color: "#000", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     Reveal Answer
                   </button>
                 ) : (
-                  <div className="p-3" style={{ background: "var(--pz-surface3)", borderLeft: "2px solid var(--pz-gold)" }}>
-                    <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>{q.answer}</p>
+                  <div style={{ padding: 12, background: "rgba(232,185,35,0.06)", borderLeft: `2px solid ${GOLD}` }}>
+                    <p style={{ fontSize: 12, color: "#C0C0C0", margin: 0 }}>{q.answer}</p>
                   </div>
                 )}
               </div>
-            </div>
-          ) : (
-            <div className="text-center p-6 space-y-4" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
-              <p className="text-xl font-bold" style={{ color: "var(--pz-gold)" }}>Review Complete! 🎉</p>
-              <p className="text-sm" style={{ color: "var(--pz-text-muted)" }}>Streak: {streak} day{streak !== 1 ? "s" : ""} 🔥</p>
-              <Button onClick={() => setReviewMode(false)} className="w-full py-2.5 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000" }}>Back to Journal</Button>
-            </div>
-          )}
+            ) : (
+              <div style={{ textAlign: "center", padding: 32, background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
+                <p style={{ fontSize: 20, fontWeight: 700, color: GOLD, margin: "0 0 8px" }}>Review Complete! 🎉</p>
+                <p style={{ fontSize: 12, color: "#555", margin: "0 0 16px" }}>Streak: {streak} day{streak !== 1 ? "s" : ""} 🔥</p>
+                <button onClick={() => setReviewMode(false)}
+                  style={{ width: "100%", padding: 10, background: GOLD, color: "#000", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Back to Journal
+                </button>
+              </div>
+            )}
+          </div>
         </main>
-        <BottomNav />
-      </div>
+      </ToolPageShell>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <Navbar />
-      <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
-        <GlobalContextBar compact />
-        <ToolHeader icon={<AlertCircle className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Mistake Journal" subtitle="Log errors — auto-sorted by overdue for review" />
+    <ToolPageShell>
+      <main style={{ flex: 1, padding: "24px 16px" }}>
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
 
-        {/* Stats bar */}
-        <div className="flex gap-3 mt-6 mb-4">
-          <div className="flex-1 p-3 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
-            <p className="text-xl font-bold" style={{ color: "var(--pz-text)", fontFamily: "monospace" }}>{mistakes.length}</p>
-            <p className="text-[10px] mt-0.5 uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Total</p>
-          </div>
-          <div className="flex-1 p-3 text-center" style={{ background: "var(--pz-surface2)", border: `1px solid ${overdue.length > 0 ? "var(--pz-rose)" : "var(--pz-border)"}` }}>
-            <p className="text-xl font-bold" style={{ color: overdue.length > 0 ? "var(--pz-rose)" : "var(--pz-text)", fontFamily: "monospace" }}>{overdue.length}</p>
-            <p className="text-[10px] mt-0.5 uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Overdue</p>
-          </div>
-          <div className="flex-1 p-3 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
-            <p className="text-xl font-bold flex items-center justify-center gap-1" style={{ color: "var(--pz-rose)", fontFamily: "monospace" }}>
-              {streak > 0 && <Flame className="h-4 w-4" />}{streak}
-            </p>
-            <p className="text-[10px] mt-0.5 uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Streak</p>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2 mb-4">
-          <Button onClick={startReviewSession} disabled={reviewLoading || mistakes.length === 0}
-            className="flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2"
-            style={{ background: overdue.length > 0 ? "var(--pz-rose)" : "var(--pz-gold)", color: overdue.length > 0 ? "#fff" : "#000" }}>
-            <Play className="h-3.5 w-3.5" />
-            {reviewLoading ? "Loading..." : overdue.length > 0 ? `Review ${overdue.length} overdue` : "Start Review Session"}
-          </Button>
-          <button onClick={() => setAdding(a => !a)} className="px-3 py-2.5 flex items-center gap-1.5 text-xs font-semibold"
-            style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
-            <Plus className="h-3.5 w-3.5" /> Log
-          </button>
-        </div>
-
-        {adding && (
-          <div className="p-4 mb-4 space-y-3" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-gold)", borderTop: "2px solid var(--pz-gold)" }}>
-            <h3 className="text-sm font-semibold" style={{ color: "var(--pz-text)" }}>New Mistake</h3>
-            {[
-              { key: "subject", label: "Subject (optional)", placeholder: "e.g. Biology" },
-              { key: "question", label: "Question / Concept *", placeholder: "What were you asked?" },
-              { key: "correctAnswer", label: "Correct Answer *", placeholder: "What's the right answer?" },
-              { key: "tags", label: "Tags (comma separated)", placeholder: "e.g. mitosis, cell division" },
-            ].map(f => (
-              <div key={f.key}>
-                <label className="text-xs font-medium mb-1 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>{f.label}</label>
-                <input value={form[f.key as keyof typeof form]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                  placeholder={f.placeholder} className="w-full px-3 py-2 text-sm outline-none"
-                  style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <Button onClick={handleAdd} className="flex-1 py-2 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000" }}>Save</Button>
-              <Button onClick={() => setAdding(false)} className="px-4 py-2 text-sm" style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>Cancel</Button>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+            <div style={{ width: 28, height: 28, background: `linear-gradient(135deg,${ROSE},#f97316)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AlertCircle style={{ width: 14, height: 14, color: "#fff" }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Mistake Journal</h1>
+              <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em" }}>LOG ERRORS — AUTO-SORTED BY OVERDUE</p>
             </div>
           </div>
-        )}
 
-        {/* Tag filter */}
-        {allTags.length > 0 && (
-          <div className="flex gap-2 flex-wrap mb-4">
-            <button onClick={() => setFilterTag(null)} className="text-xs px-2.5 py-1"
-              style={{ border: `1px solid ${!filterTag ? "var(--pz-gold)" : "var(--pz-border)"}`, color: !filterTag ? "var(--pz-gold)" : "var(--pz-text-muted)", background: !filterTag ? "var(--pz-gold-dim)" : "transparent" }}>
-              All
+          {/* Stats bar */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+            <div style={{ padding: "10px 8px", textAlign: "center", background: "rgba(255,255,255,0.02)", border: "0.5px solid #1E1E1E" }}>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "#F0F0F0", margin: "0 0 4px", fontFamily: "monospace" }}>{mistakes.length}</p>
+              <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>Total</p>
+            </div>
+            <div style={{ padding: "10px 8px", textAlign: "center", background: "rgba(255,255,255,0.02)", border: `0.5px solid ${overdue.length > 0 ? "rgba(239,68,68,0.4)" : "#1E1E1E"}` }}>
+              <p style={{ fontSize: 20, fontWeight: 700, color: overdue.length > 0 ? ROSE : "#F0F0F0", margin: "0 0 4px", fontFamily: "monospace" }}>{overdue.length}</p>
+              <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>Overdue</p>
+            </div>
+            <div style={{ padding: "10px 8px", textAlign: "center", background: "rgba(255,255,255,0.02)", border: "0.5px solid #1E1E1E" }}>
+              <p style={{ fontSize: 20, fontWeight: 700, color: ROSE, margin: "0 0 4px", fontFamily: "monospace", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                {streak > 0 && <Flame style={{ width: 14, height: 14 }} />}{streak}
+              </p>
+              <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>Streak</p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <button onClick={startReviewSession} disabled={reviewLoading || mistakes.length === 0}
+              style={{ flex: 1, padding: "10px", background: overdue.length > 0 ? ROSE : GOLD, color: overdue.length > 0 ? "#fff" : "#000", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: (reviewLoading || mistakes.length === 0) ? 0.5 : 1 }}>
+              <Play style={{ width: 12, height: 12 }} />
+              {reviewLoading ? "Loading..." : overdue.length > 0 ? `Review ${overdue.length} overdue` : "Start Review Session"}
             </button>
-            {allTags.map(tag => (
-              <button key={tag} onClick={() => setFilterTag(tag === filterTag ? null : tag)} className="text-xs px-2.5 py-1"
-                style={{ border: `1px solid ${filterTag === tag ? "var(--pz-gold)" : "var(--pz-border)"}`, color: filterTag === tag ? "var(--pz-gold)" : "var(--pz-text-muted)", background: filterTag === tag ? "var(--pz-gold-dim)" : "transparent" }}>
-                {tag}
-              </button>
-            ))}
+            <button onClick={() => setAdding(a => !a)}
+              style={{ padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525", color: "#555", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus style={{ width: 12, height: 12 }} /> Log
+            </button>
           </div>
-        )}
 
-        {filtered.length === 0 ? (
-          <div className="text-center py-16" style={{ color: "var(--pz-text-muted)" }}>
-            <AlertCircle className="h-10 w-10 mx-auto mb-3 opacity-20" />
-            <p className="text-sm">No mistakes logged yet</p>
-            <p className="text-xs mt-1 opacity-60">Every mistake is a lesson — start logging</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map(m => {
-              const overdueDays = daysSinceReview(m);
-              const due = isOverdue(m);
-              return (
-                <div key={m.id} className="p-4" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderLeft: `3px solid ${due ? "var(--pz-rose)" : "var(--pz-border)"}` }}>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>{m.subject}</span>
-                      {due && <span className="text-[10px] px-1.5 py-0.5" style={{ background: "rgba(232,64,64,0.1)", color: "var(--pz-rose)", border: "1px solid rgba(232,64,64,0.2)" }}>Overdue {overdueDays}d</span>}
-                      {m.reviewCount > 0 && <span className="text-[10px] px-1.5 py-0.5" style={{ background: "var(--pz-teal-dim)", color: "var(--pz-teal)", border: "1px solid var(--pz-teal)30" }}>×{m.reviewCount}</span>}
-                    </div>
-                    <button onClick={() => deleteMistake(m.id)} style={{ color: "var(--pz-text-muted)", background: "none", border: "none", cursor: "pointer", shrink: 0 }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <p className="text-sm font-medium mb-1.5" style={{ color: "var(--pz-text)" }}>{m.question}</p>
-                  <p className="text-xs mb-3" style={{ color: "var(--pz-text-2)" }}>{m.correctAnswer}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-1 flex-wrap">
-                      {m.tags.map(tag => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5" style={{ background: "var(--pz-gold-dim)", color: "var(--pz-gold)", border: "1px solid var(--pz-gold)20" }}>{tag}</span>
-                      ))}
-                    </div>
-                    <button onClick={() => markReviewed(m.id)} className="flex items-center gap-1 text-[10px] px-2.5 py-1" style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent" }}>
-                      <RefreshCw className="h-2.5 w-2.5" /> Mark reviewed
-                    </button>
-                  </div>
+          {/* Add form */}
+          {adding && (
+            <div style={{ padding: 16, marginBottom: 16, background: "rgba(255,255,255,0.02)", border: `0.5px solid ${GOLD}`, borderTop: `2px solid ${GOLD}` }}>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: "#F0F0F0", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.08em" }}>New Mistake</h3>
+              {[
+                { key: "subject", label: "Subject (optional)", placeholder: "e.g. Biology" },
+                { key: "question", label: "Question / Concept *", placeholder: "What were you asked?" },
+                { key: "correctAnswer", label: "Correct Answer *", placeholder: "What's the right answer?" },
+                { key: "tags", label: "Tags (comma separated)", placeholder: "e.g. mitosis, cell division" },
+              ].map(f => (
+                <div key={f.key} style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 10, fontWeight: 600, color: "#555", display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{f.label}</label>
+                  <input value={form[f.key as keyof typeof form]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    style={{ width: "100%", padding: "8px 10px", fontSize: 12, background: "rgba(255,255,255,0.03)", border: "0.5px solid #252525", color: "#F0F0F0", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))}
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button onClick={handleAdd}
+                  style={{ flex: 1, padding: "8px", background: GOLD, color: "#000", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Save
+                </button>
+                <button onClick={() => setAdding(false)}
+                  style={{ padding: "8px 14px", background: "transparent", border: "0.5px solid #252525", color: "#555", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tag filter */}
+          {allTags.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+              <button onClick={() => setFilterTag(null)}
+                style={{ fontSize: 10, padding: "3px 8px", border: `0.5px solid ${!filterTag ? GOLD : "#252525"}`, color: !filterTag ? GOLD : "#555", background: !filterTag ? "rgba(232,185,35,0.06)" : "transparent", cursor: "pointer", fontFamily: "inherit" }}>
+                All
+              </button>
+              {allTags.map(tag => (
+                <button key={tag} onClick={() => setFilterTag(tag === filterTag ? null : tag)}
+                  style={{ fontSize: 10, padding: "3px 8px", border: `0.5px solid ${filterTag === tag ? GOLD : "#252525"}`, color: filterTag === tag ? GOLD : "#555", background: filterTag === tag ? "rgba(232,185,35,0.06)" : "transparent", cursor: "pointer", fontFamily: "inherit" }}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Mistakes list */}
+          {filtered.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "48px 16px", color: "#333" }}>
+              <AlertCircle style={{ width: 36, height: 36, margin: "0 auto 12px", opacity: 0.2 }} />
+              <p style={{ fontSize: 13, margin: "0 0 6px" }}>No mistakes logged yet</p>
+              <p style={{ fontSize: 11, opacity: 0.6, margin: 0 }}>Every mistake is a lesson — start logging</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {filtered.map(m => {
+                const overdueDays = daysSinceReview(m);
+                const due = isOverdue(m);
+                return (
+                  <div key={m.id} style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525", borderLeft: `3px solid ${due ? ROSE : "#252525"}` }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: "0.08em" }}>{m.subject}</span>
+                        {due && <span style={{ fontSize: 9, padding: "1px 5px", background: "rgba(239,68,68,0.1)", color: ROSE, border: "0.5px solid rgba(239,68,68,0.2)" }}>Overdue {overdueDays}d</span>}
+                        {m.reviewCount > 0 && <span style={{ fontSize: 9, padding: "1px 5px", background: "rgba(0,196,180,0.06)", color: TEAL, border: "0.5px solid rgba(0,196,180,0.2)" }}>×{m.reviewCount}</span>}
+                      </div>
+                      <button onClick={() => deleteMistake(m.id)} style={{ color: "#444", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}>
+                        <Trash2 style={{ width: 13, height: 13 }} />
+                      </button>
+                    </div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#F0F0F0", margin: "0 0 6px" }}>{m.question}</p>
+                    <p style={{ fontSize: 11, color: "#999", margin: "0 0 12px" }}>{m.correctAnswer}</p>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {m.tags.map(tag => (
+                          <span key={tag} style={{ fontSize: 9, padding: "2px 6px", background: "rgba(232,185,35,0.06)", color: GOLD, border: "0.5px solid rgba(232,185,35,0.15)" }}>{tag}</span>
+                        ))}
+                      </div>
+                      <button onClick={() => markReviewed(m.id)}
+                        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, padding: "4px 8px", border: "0.5px solid #252525", color: "#555", background: "transparent", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                        <RefreshCw style={{ width: 10, height: 10 }} /> Mark reviewed
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </main>
-      <BottomNav />
-    </div>
+    </ToolPageShell>
   );
 }

@@ -1,24 +1,35 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Navbar } from "@/components/Navbar"
-import { BottomNav } from "@/components/BottomNav"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ToolPageShell } from "@/pages/ToolPageShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import {
-  Settings as SettingsIcon, ChevronLeft, User, Bell, Lock, Palette,
+  Settings as SettingsIcon, User, Bell, Lock, Palette,
   Target, Zap, CreditCard, Trash2, Check, ChevronRight,
   Globe, Volume2, LogOut
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 
-
 type Theme = "light" | "dark" | "system"
 type DailyGoal = 15 | 30 | 45 | 60 | 90 | 120
 
+const TEAL = "#00C4B4"
+const GOLD = "#E8B923"
 const SUBJECTS_LIST = ["Biology", "Chemistry", "Math", "Physics", "History", "English", "Economics"]
+
+function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1E1E1E", marginBottom: 12 }}>
+      <div style={{ padding: "10px 14px", borderBottom: "0.5px solid #1A1A1A", display: "flex", alignItems: "center", gap: 8 }}>
+        {icon}
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#555" }}>{title}</span>
+      </div>
+      <div style={{ padding: "14px" }}>{children}</div>
+    </div>
+  )
+}
 
 export default function Settings() {
   const navigate = useNavigate()
@@ -56,246 +67,188 @@ export default function Settings() {
     navigate("/login")
   }
 
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <div className="hidden md:block">
-        <Navbar isLoggedIn user={{ name: userName, xp: 2450, streak: 12, plan: "free" }} />
-      </div>
-      {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between px-4 h-12 sticky top-0 z-40 bg-background border-b border-border">
-        <span className="font-bold text-sm">Settings</span>
-        <button onClick={handleSignOut} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-red-500 transition-colors">
-          <LogOut className="h-4 w-4" /> Sign out
-        </button>
-      </div>
-      <BottomNav />
-      <main className="flex-1 py-6 lg:py-8 pb-20 md:pb-6">
-        <div className="container mx-auto px-4 lg:px-8 max-w-2xl">
+  const chipStyle = (active: boolean) => ({
+    padding: "6px 12px",
+    border: `0.5px solid ${active ? TEAL : "#252525"}`,
+    background: active ? "rgba(0,196,180,0.08)" : "transparent",
+    color: active ? TEAL : "#555",
+    fontSize: 11,
+    fontWeight: 600,
+    cursor: "pointer",
+    fontFamily: "'Inter',system-ui,sans-serif",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    transition: "all .15s",
+  })
 
-          {/* Header */}
-          <div className="hidden md:flex items-center gap-3 mb-6">
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm" className="gap-1">
-                <ChevronLeft className="h-4 w-4" /> Dashboard
-              </Button>
-            </Link>
+  return (
+    <ToolPageShell>
+      <main style={{ flex: 1, padding: "24px 16px", paddingBottom: 40 }}>
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+
+          {/* Page header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+            <div style={{ width: 28, height: 28, background: `linear-gradient(135deg,${TEAL},#0097A7)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <SettingsIcon style={{ width: 14, height: 14, color: "#0A0A0A" }} />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <SettingsIcon className="h-6 w-6 text-muted-foreground" /> Settings
-              </h1>
-              <p className="text-sm text-muted-foreground">Manage your account & preferences</p>
+              <h1 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Settings</h1>
+              <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em" }}>ACCOUNT & PREFERENCES</p>
             </div>
           </div>
 
-          <div className="space-y-5">
-
-            {/* Profile */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <User className="h-4 w-4 text-blue-500" /> Profile
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-none bg-gradient-to-br from-zinc-400 to-teal-500 flex items-center justify-center text-2xl font-black text-white shadow-md">{userInitial}</div>
-                  <div>
-                    <p className="font-bold">{userName}</p>
-                    <p className="text-sm text-muted-foreground">{userEmail}</p>
-                    <Badge className="bg-white/10 text-emerald-600 border-emerald-200 mt-1 text-xs">Free Plan</Badge>
-                  </div>
-                  <Button variant="outline" size="sm" className="ml-auto">Edit</Button>
+          {/* Profile */}
+          <Section title="Profile" icon={<User style={{ width: 12, height: 12, color: TEAL }} />}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+              <div style={{ width: 52, height: 52, background: `linear-gradient(135deg,${TEAL},#0097A7)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#0A0A0A", flexShrink: 0 }}>
+                {userInitial}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#F0F0F0", margin: "0 0 2px" }}>{userName}</p>
+                <p style={{ fontSize: 11, color: "#555", margin: "0 0 6px" }}>{userEmail}</p>
+                <span style={{ fontSize: 9, padding: "2px 6px", background: "rgba(0,196,180,0.08)", color: TEAL, border: `0.5px solid rgba(0,196,180,0.25)`, fontWeight: 700, letterSpacing: "0.08em" }}>FREE PLAN</span>
+              </div>
+              <button style={{ padding: "4px 10px", border: "0.5px solid #252525", background: "transparent", color: "#555", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Edit</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {[{ label: "XP", value: "2,450" }, { label: "Streak", value: "12 🔥" }, { label: "Level", value: "8 🥇" }].map(s => (
+                <div key={s.label} style={{ padding: "10px 8px", background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A1A1A", textAlign: "center" }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F0", margin: "0 0 3px", fontFamily: "monospace" }}>{s.value}</p>
+                  <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.label}</p>
                 </div>
+              ))}
+            </div>
+          </Section>
 
-                <div className="grid grid-cols-3 gap-3 p-3 bg-muted/50 rounded-none">
-                  {[
-                    { label: "XP",     value: "2,450" },
-                    { label: "Streak", value: "12 🔥" },
-                    { label: "Level",  value: "8 🥇"  },
-                  ].map(s => (
-                    <div key={s.label} className="text-center">
-                      <p className="font-black text-lg leading-none">{s.value}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Study preferences */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Target className="h-4 w-4 text-white/60" /> Study Preferences
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Daily goal</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {([15, 30, 45, 60, 90, 120] as DailyGoal[]).map(g => (
-                      <button key={g} onClick={() => setDailyGoal(g)}
-                        className={cn("px-3 py-1.5 rounded-none border text-sm font-medium transition-all",
-                          dailyGoal === g ? "bg-white text-white border-emerald-500" : "border-border hover:border-emerald-400")}>
-                        {g < 60 ? `${g}m` : `${g / 60}h`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">My subjects</label>
-                  <div className="flex flex-wrap gap-2">
-                    {SUBJECTS_LIST.map(s => (
-                      <button key={s} onClick={() => toggleSubject(s)}
-                        className={cn("px-3 py-1.5 rounded-none border text-sm font-medium transition-all flex items-center gap-1.5",
-                          subjects.has(s) ? "bg-white text-white border-emerald-500" : "border-border hover:border-emerald-400 text-muted-foreground")}>
-                        {subjects.has(s) && <Check className="h-3 w-3" />}
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Appearance */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-white/500" /> Appearance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <label className="text-sm font-medium mb-2 block">Theme</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {([
-                    ["light",  "☀️",  "Light"],
-                    ["dark",   "🌙",  "Dark"],
-                    ["system", "💻",  "System"],
-                  ] as [Theme, string, string][]).map(([t, icon, label]) => (
-                    <button key={t} onClick={() => setTheme(t)}
-                      className={cn("flex flex-col items-center gap-2 p-3 rounded-none border transition-all",
-                        theme === t ? "border-purple-500 bg-white/500/10" : "border-border hover:border-purple-300")}>
-                      <span className="text-2xl">{icon}</span>
-                      <span className="text-xs font-medium">{label}</span>
-                      {theme === t && <Check className="h-3.5 w-3.5 text-white/500" />}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notifications */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-amber-500" /> Notifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {([
-                  ["streak",     "Streak reminders",    "Get reminded to keep your streak alive"],
-                  ["reminders",  "Daily study reminder", "A gentle nudge at your chosen time"],
-                  ["community",  "Community activity",   "Replies and likes on your posts"],
-                  ["weekly",     "Weekly summary",       "Your stats every Sunday"],
-                ] as [keyof typeof notifs, string, string][]).map(([key, label, sub]) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{label}</p>
-                      <p className="text-xs text-muted-foreground">{sub}</p>
-                    </div>
-                    <button onClick={() => setNotifs(prev => ({ ...prev, [key]: !prev[key] }))}
-                      className={cn("w-11 h-6 rounded-none transition-colors relative",
-                        notifs[key] ? "bg-white" : "bg-muted")}>
-                      <span className={cn("absolute top-1 w-4 h-4 rounded-none bg-white shadow transition-all",
-                        notifs[key] ? "left-6" : "left-1")} />
-                    </button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Subscription */}
-            <Card className="bg-gradient-to-br from-zinc-500/10 to-zinc-500/5 border-purple-200 dark:border-purple-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-white/500" /> Plan
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="font-bold">Free Plan</p>
-                    <p className="text-sm text-muted-foreground">50 credits remaining</p>
-                  </div>
-                  <Badge className="bg-white text-white">Active</Badge>
-                </div>
-                <Progress value={50} className="h-2 mb-3" />
-                <p className="text-xs text-muted-foreground mb-4">Upgrade to Pro for unlimited AI questions, Feynman Mode, and more.</p>
-                <Link to="/pricing">
-                  <Button className="w-full bg-white/500 hover:bg-white/600 text-white gap-2">
-                    <CreditCard className="h-4 w-4" /> Upgrade to Pro
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Account actions */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-muted-foreground" /> Account
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {[
-                  { label: "Change password", icon: Lock },
-                  { label: "Language & region", icon: Globe },
-                  { label: "Sound & haptics", icon: Volume2 },
-                ].map(({ label, icon: Icon }) => (
-                  <button key={label} className="w-full flex items-center justify-between p-3 rounded-none hover:bg-muted transition-colors text-sm">
-                    <div className="flex items-center gap-2.5">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      {label}
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          {/* Study preferences */}
+          <Section title="Study Preferences" icon={<Target style={{ width: 12, height: 12, color: GOLD }} />}>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#999", display: "block", marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>Daily goal</label>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {([15, 30, 45, 60, 90, 120] as DailyGoal[]).map(g => (
+                  <button key={g} onClick={() => setDailyGoal(g)} style={chipStyle(dailyGoal === g)}>
+                    {g < 60 ? `${g}m` : `${g / 60}h`}
                   </button>
                 ))}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#999", display: "block", marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>My subjects</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {SUBJECTS_LIST.map(s => (
+                  <button key={s} onClick={() => toggleSubject(s)} style={chipStyle(subjects.has(s))}>
+                    {subjects.has(s) && <Check style={{ width: 10, height: 10 }} />} {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Section>
 
-                {/* Sign Out */}
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center justify-between p-3 rounded-none hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors text-sm text-amber-600 group">
-                  <div className="flex items-center gap-2.5">
-                    <LogOut className="h-4 w-4" />
-                    Sign out
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
+          {/* Appearance */}
+          <Section title="Appearance" icon={<Palette style={{ width: 12, height: 12, color: "#a78bfa" }} />}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#999", display: "block", marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>Theme</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {([["light", "☀️", "Light"], ["dark", "🌙", "Dark"], ["system", "💻", "System"]] as [Theme, string, string][]).map(([t, icon, label]) => (
+                <button key={t} onClick={() => setTheme(t)}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: 12, border: `0.5px solid ${theme === t ? "#a78bfa" : "#252525"}`, background: theme === t ? "rgba(167,139,250,0.06)" : "transparent", cursor: "pointer" }}>
+                  <span style={{ fontSize: 22 }}>{icon}</span>
+                  <span style={{ fontSize: 11, color: theme === t ? "#a78bfa" : "#555", fontFamily: "inherit" }}>{label}</span>
+                  {theme === t && <Check style={{ width: 10, height: 10, color: "#a78bfa" }} />}
                 </button>
+              ))}
+            </div>
+            <p style={{ fontSize: 10, color: "#444", marginTop: 8 }}>Note: The animated canvas background is controlled via the theme strip above all pages.</p>
+          </Section>
 
-                <button className="w-full flex items-center justify-between p-3 rounded-none hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-sm text-red-500 group">
-                  <div className="flex items-center gap-2.5">
-                    <Trash2 className="h-4 w-4" />
-                    Delete account
+          {/* Notifications */}
+          <Section title="Notifications" icon={<Bell style={{ width: 12, height: 12, color: "#f59e0b" }} />}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {([
+                ["streak",    "Streak reminders",     "Get reminded to keep your streak alive"],
+                ["reminders", "Daily study reminder",  "A gentle nudge at your chosen time"],
+                ["community", "Community activity",    "Replies and likes on your posts"],
+                ["weekly",    "Weekly summary",        "Your stats every Sunday"],
+              ] as [keyof typeof notifs, string, string][]).map(([key, label, sub]) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#C0C0C0", margin: "0 0 2px" }}>{label}</p>
+                    <p style={{ fontSize: 10, color: "#555", margin: 0 }}>{sub}</p>
                   </div>
-                  <ChevronRight className="h-4 w-4" />
+                  <button onClick={() => setNotifs(prev => ({ ...prev, [key]: !prev[key] }))}
+                    style={{ width: 36, height: 18, background: notifs[key] ? TEAL : "#252525", border: "none", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}>
+                    <div style={{ position: "absolute", top: 2, left: notifs[key] ? 20 : 2, width: 14, height: 14, background: "#fff", transition: "left .2s" }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          {/* Plan */}
+          <Section title="Plan" icon={<Zap style={{ width: 12, height: 12, color: GOLD }} />}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#F0F0F0", margin: "0 0 2px" }}>Free Plan</p>
+                <p style={{ fontSize: 11, color: "#555", margin: 0 }}>50 credits remaining</p>
+              </div>
+              <span style={{ fontSize: 9, padding: "2px 6px", background: "rgba(0,196,180,0.08)", color: TEAL, border: `0.5px solid rgba(0,196,180,0.25)`, fontWeight: 700, letterSpacing: "0.08em" }}>ACTIVE</span>
+            </div>
+            <div style={{ height: 4, background: "#1A1A1A", marginBottom: 10 }}>
+              <div style={{ height: "100%", width: "50%", background: TEAL }} />
+            </div>
+            <p style={{ fontSize: 11, color: "#555", marginBottom: 12 }}>Upgrade to Pro for unlimited AI questions, Feynman Mode, and more.</p>
+            <Link to="/pricing">
+              <button style={{ width: "100%", padding: "10px", background: `linear-gradient(135deg,${TEAL},#0097A7)`, border: "none", color: "#0A0A0A", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit", letterSpacing: "0.06em" }}>
+                <CreditCard style={{ width: 14, height: 14 }} /> UPGRADE TO PRO
+              </button>
+            </Link>
+          </Section>
+
+          {/* Account */}
+          <Section title="Account" icon={<Lock style={{ width: 12, height: 12, color: "#555" }} />}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {[
+                { label: "Change password", icon: Lock },
+                { label: "Language & region", icon: Globe },
+                { label: "Sound & haptics", icon: Volume2 },
+              ].map(({ label, icon: Icon }) => (
+                <button key={label}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", background: "none", border: "none", borderBottom: "0.5px solid #141414", cursor: "pointer", color: "#C0C0C0", fontFamily: "inherit", fontSize: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Icon style={{ width: 14, height: 14, color: "#555" }} />
+                    {label}
+                  </div>
+                  <ChevronRight style={{ width: 14, height: 14, color: "#333" }} />
                 </button>
-              </CardContent>
-            </Card>
+              ))}
+              <button onClick={handleSignOut}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", background: "none", border: "none", borderBottom: "0.5px solid #141414", cursor: "pointer", color: "#f59e0b", fontFamily: "inherit", fontSize: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <LogOut style={{ width: 14, height: 14 }} /> Sign out
+                </div>
+                <ChevronRight style={{ width: 14, height: 14 }} />
+              </button>
+              <button
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontFamily: "inherit", fontSize: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Trash2 style={{ width: 14, height: 14 }} /> Delete account
+                </div>
+                <ChevronRight style={{ width: 14, height: 14 }} />
+              </button>
+            </div>
+          </Section>
 
-            {/* Save button */}
-            <Button onClick={handleSave}
-              className={cn("w-full gap-2", saved ? "bg-white hover:bg-white" : "bg-foreground hover:bg-foreground/90 text-background")}>
-              {saved ? <><Check className="h-4 w-4" /> Saved!</> : "Save changes"}
-            </Button>
+          {/* Save */}
+          <button onClick={handleSave}
+            style={{ width: "100%", padding: "12px", background: saved ? "rgba(0,196,180,0.12)" : "rgba(255,255,255,0.06)", border: `0.5px solid ${saved ? TEAL : "#252525"}`, color: saved ? TEAL : "#F0F0F0", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.06em", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all .2s", marginBottom: 16 }}>
+            {saved ? <><Check style={{ width: 14, height: 14 }} /> SAVED!</> : "SAVE CHANGES"}
+          </button>
 
-            <p className="text-center text-xs text-muted-foreground pb-4">
-              Studenius v1.0.0 · <a href="#" className="hover:underline">Privacy Policy</a> · <a href="#" className="hover:underline">Terms of Service</a>
-            </p>
-          </div>
+          <p style={{ textAlign: "center", fontSize: 10, color: "#333" }}>
+            Studenius v1.0.0 · <a href="#" style={{ color: "#444", textDecoration: "none" }}>Privacy Policy</a> · <a href="#" style={{ color: "#444", textDecoration: "none" }}>Terms</a>
+          </p>
         </div>
       </main>
-    </div>
+    </ToolPageShell>
   )
 }

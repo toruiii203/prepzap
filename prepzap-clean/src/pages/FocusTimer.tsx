@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Link } from "react-router-dom"
 import {
   Play, Pause, RotateCcw, Settings,
   Coffee, Brain,
-  ChevronLeft, X, Bell, AlarmClock
+  X, Bell, AlarmClock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Navbar } from "@/components/Navbar"
+import { ToolPageShell } from "@/pages/ToolPageShell"
 import { cn } from "@/lib/utils"
 
 type TimerMode = "focus" | "shortBreak" | "longBreak"
@@ -79,6 +78,8 @@ const motivationalQuotes = [
   "One question at a time. One session at a time.",
 ]
 
+const TEAL = "#00C4B4"
+
 export default function FocusTimer() {
   const loadPersisted = (): Partial<PersistedTimer> => {
     try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {}; } catch { return {} }
@@ -137,8 +138,8 @@ export default function FocusTimer() {
   useEffect(() => {
     const mm = String(Math.floor(seconds / 60)).padStart(2, "0")
     const ss = String(seconds % 60).padStart(2, "0")
-    document.title = isRunning ? `${mm}:${ss} ${mode === "focus" ? "🎯" : "☕"} PrepZap` : "Pomodoro Timer · PrepZap"
-    return () => { document.title = "PrepZap" }
+    document.title = isRunning ? `${mm}:${ss} ${mode === "focus" ? "🎯" : "☕"} Studenius` : "Pomodoro Timer · Studenius"
+    return () => { document.title = "Studenius" }
   }, [seconds, isRunning, mode])
 
   const dismissAlarm = useCallback((snooze5 = false) => {
@@ -207,154 +208,167 @@ export default function FocusTimer() {
   const secs = String(seconds % 60).padStart(2, "0")
 
   const modeConfig = {
-    focus:      { label: "Focus",       color: "text-rose-400",    ring: "#f87171", grad: "from-rose-500 to-orange-500" },
-    shortBreak: { label: "Short Break", color: "text-emerald-400", ring: "#34d399", grad: "from-zinc-500 to-teal-500" },
-    longBreak:  { label: "Long Break",  color: "text-blue-400",    ring: "#60a5fa", grad: "from-blue-500 to-indigo-500" },
+    focus:      { label: "Focus",       color: "#f87171", ring: "#f87171", grad: "linear-gradient(135deg,#ef4444,#f97316)" },
+    shortBreak: { label: "Short Break", color: TEAL,      ring: TEAL,      grad: `linear-gradient(135deg,${TEAL},#0097A7)` },
+    longBreak:  { label: "Long Break",  color: "#60a5fa", ring: "#60a5fa", grad: "linear-gradient(135deg,#3b82f6,#6366f1)" },
   }
   const cur = modeConfig[mode]
   const circ = 2 * Math.PI * 54
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
-      <main className="flex-1 py-6">
-        <div className="container mx-auto px-4 max-w-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <Link to="/dashboard"><Button variant="ghost" size="sm" className="gap-1 text-muted-foreground"><ChevronLeft className="h-4 w-4" />Dashboard</Button></Link>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <div className="w-7 h-7 rounded-none bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center"><Brain className="h-4 w-4 text-white" /></div>
-                Focus Timer
-              </h1>
+    <ToolPageShell>
+      <main style={{ flex: 1, padding: "24px 16px" }}>
+        <div style={{ maxWidth: 520, margin: "0 auto" }}>
+
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 28, height: 28, background: cur.grad, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Brain style={{ width: 14, height: 14, color: "#fff" }} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Focus Timer</h1>
+                <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em" }}>POMODORO</p>
+              </div>
             </div>
-            <button onClick={() => setShowSettings(v=>!v)} className="w-8 h-8 rounded-none border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors">
-              <Settings className="h-4 w-4" />
+            <button onClick={() => setShowSettings(v => !v)}
+              style={{ width: 32, height: 32, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555" }}>
+              <Settings style={{ width: 14, height: 14 }} />
             </button>
           </div>
 
+          {/* Running banner */}
           {isRunning && (
-            <div className="mb-4 px-4 py-2.5 rounded-none bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-none bg-rose-400 animate-pulse" />
-              Timer runs in background — tab title shows countdown
+            <div style={{ marginBottom: 16, padding: "8px 14px", background: "rgba(248,113,113,0.08)", border: "0.5px solid rgba(248,113,113,0.2)", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 6, height: 6, background: "#f87171", borderRadius: "50%", animation: "pulse 1.5s infinite" }} />
+              <span style={{ fontSize: 11, color: "#f87171" }}>Timer runs in background — tab title shows countdown</span>
             </div>
           )}
 
-          <div className="flex rounded-none border border-border p-1 bg-muted/30 mb-6">
-            {(["focus","shortBreak","longBreak"] as TimerMode[]).map(m => (
+          {/* Mode tabs */}
+          <div style={{ display: "flex", border: "0.5px solid #252525", background: "rgba(255,255,255,0.02)", marginBottom: 32 }}>
+            {(["focus", "shortBreak", "longBreak"] as TimerMode[]).map(m => (
               <button key={m} onClick={() => handleModeChange(m)}
-                className={cn("flex-1 py-2 text-xs font-medium rounded-none transition-all", mode===m ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
-                {m==="focus" ? "Focus" : m==="shortBreak" ? "Short Break" : "Long Break"}
+                style={{ flex: 1, padding: "8px 0", fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none", background: mode === m ? "rgba(255,255,255,0.06)" : "transparent", color: mode === m ? "#F0F0F0" : "#555", transition: "all .2s", fontFamily: "'Inter',system-ui,sans-serif" }}>
+                {m === "focus" ? "Focus" : m === "shortBreak" ? "Short Break" : "Long Break"}
               </button>
             ))}
           </div>
 
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative w-52 h-52 mb-5">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" strokeWidth="5" className="text-muted/30" />
+          {/* Timer circle */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
+            <div style={{ position: "relative", width: 208, height: 208, marginBottom: 20 }}>
+              <svg style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }} viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#1A1A1A" strokeWidth="5" />
                 <circle cx="60" cy="60" r="54" fill="none" stroke={cur.ring} strokeWidth="5"
                   strokeDasharray={circ} strokeDashoffset={circ - (circ * progress) / 100}
-                  strokeLinecap="round" className="transition-all duration-1000"
-                  style={{filter:`drop-shadow(0 0 8px ${cur.ring}60)`}} />
+                  strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s linear", filter: `drop-shadow(0 0 8px ${cur.ring}60)` }} />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={cn("text-5xl font-bold font-mono tabular-nums tracking-tight", cur.color)}>{mins}:{secs}</span>
-                <span className="text-xs text-muted-foreground mt-1 font-medium">{cur.label}</span>
-                {sessions > 0 && <span className="text-xs text-muted-foreground mt-0.5">🍅 {sessions} sessions</span>}
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 48, fontWeight: 700, fontFamily: "monospace", color: cur.color, letterSpacing: "-2px" }}>{mins}:{secs}</span>
+                <span style={{ fontSize: 11, color: "#555", marginTop: 4 }}>{cur.label}</span>
+                {sessions > 0 && <span style={{ fontSize: 11, color: "#555", marginTop: 2 }}>🍅 {sessions} sessions</span>}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* Controls */}
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <button onClick={() => { setIsRunning(false); setSeconds(totalSeconds); beep.stopLoop(); setAlarmActive(false) }}
-                className="w-11 h-11 rounded-none border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors">
-                <RotateCcw className="h-4 w-4" />
+                style={{ width: 44, height: 44, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555" }}>
+                <RotateCcw style={{ width: 16, height: 16 }} />
               </button>
               <button onClick={handleStart}
-                className={cn("w-32 h-11 rounded-none font-semibold text-sm flex items-center justify-center gap-2 text-white transition-all shadow-lg",
-                  `bg-gradient-to-r ${cur.grad}`, isRunning ? "opacity-90 hover:opacity-100" : "hover:scale-105")}>
-                {isRunning ? <><Pause className="h-4 w-4" />Pause</> : <><Play className="h-4 w-4" />Start</>}
+                style={{ width: 128, height: 44, background: cur.grad, border: "none", fontWeight: 600, fontSize: 13, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "'Inter',system-ui,sans-serif", transition: "opacity .2s" }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
+                {isRunning ? <><Pause style={{ width: 16, height: 16 }} />Pause</> : <><Play style={{ width: 16, height: 16 }} />Start</>}
               </button>
               <button onClick={() => { if (Notification.permission === "default") Notification.requestPermission() }}
-                className="w-11 h-11 rounded-none border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
-                title="Enable notifications">
-                <Bell className="h-4 w-4" />
+                title="Enable notifications"
+                style={{ width: 44, height: 44, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555" }}>
+                <Bell style={{ width: 16, height: 16 }} />
               </button>
             </div>
 
+            {/* Alarm */}
             {alarmActive && (
-              <div className="mt-4 w-full space-y-2 px-4 py-3 rounded-none bg-rose-500/15 border border-rose-500/30 animate-pulse">
-                <div className="flex items-center gap-3">
-                  <AlarmClock className="h-4 w-4 text-rose-400 shrink-0" />
-                  <span className="text-sm font-semibold text-rose-400 flex-1">
+              <div style={{ marginTop: 16, width: "100%", padding: "12px 14px", background: "rgba(248,113,113,0.1)", border: "0.5px solid rgba(248,113,113,0.3)", animation: "pulse 1.5s infinite" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                  <AlarmClock style={{ width: 16, height: 16, color: "#f87171", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171", flex: 1 }}>
                     {mode === "focus" ? "🎉 Session complete! Take a break." : "⚡ Break over — time to focus!"}
                   </span>
-                  <button onClick={() => dismissAlarm(false)} className="px-3 py-1.5 rounded-none bg-rose-500 text-white text-xs font-bold hover:bg-rose-600 transition-colors shrink-0">Dismiss</button>
+                  <button onClick={() => dismissAlarm(false)}
+                    style={{ padding: "4px 10px", background: "#f87171", color: "#fff", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                    Dismiss
+                  </button>
                 </div>
                 <button onClick={() => dismissAlarm(true)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-none border border-rose-500/30 text-xs text-rose-300 hover:bg-rose-500/10 transition-colors">
-                  <Coffee className="h-3.5 w-3.5" /> Snooze 5 min
+                  style={{ width: "100%", padding: "8px", border: "0.5px solid rgba(248,113,113,0.3)", background: "transparent", color: "#f87171", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit" }}>
+                  <Coffee style={{ width: 14, height: 14 }} /> Snooze 5 min
                 </button>
               </div>
             )}
 
-            <p className="text-xs text-muted-foreground mt-4 italic text-center max-w-xs">"{quote}"</p>
+            <p style={{ fontSize: 11, color: "#444", marginTop: 16, fontStyle: "italic", textAlign: "center", maxWidth: 280 }}>"{quote}"</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          {/* Stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 24 }}>
             {[
               { label: "Sessions", val: sessions },
-              { label: "Focused", val: `${todayFocusMins}m` },
-              { label: "Streak", val: "12🔥" },
+              { label: "Focused",  val: `${todayFocusMins}m` },
+              { label: "Streak",   val: "12🔥" },
             ].map(item => (
-              <Card key={item.label} className="border-border">
-                <CardContent className="p-3 text-center">
-                  <p className="text-xl font-bold">{item.val}</p>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                </CardContent>
-              </Card>
+              <div key={item.label} style={{ padding: 12, background: "rgba(255,255,255,0.02)", border: "0.5px solid #1E1E1E", textAlign: "center" }}>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#F0F0F0", margin: "0 0 4px", fontFamily: "monospace" }}>{item.val}</p>
+                <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>{item.label}</p>
+              </div>
             ))}
           </div>
 
+          {/* Settings panel */}
           {showSettings && (
-            <Card className="border-border">
-              <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm">Settings</CardTitle>
-                <button onClick={() => setShowSettings(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 space-y-4">
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
+              <div style={{ padding: "10px 14px", borderBottom: "0.5px solid #1A1A1A", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#555" }}>Timer Settings</span>
+                <button onClick={() => setShowSettings(false)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer" }}><X style={{ width: 14, height: 14 }} /></button>
+              </div>
+              <div style={{ padding: "12px 14px" }}>
                 {([
-                  { key: "focusMinutes" as const, label: "Focus duration (min)", min: 1, max: 90 },
-                  { key: "shortBreakMinutes" as const, label: "Short break (min)", min: 1, max: 30 },
-                  { key: "longBreakMinutes" as const, label: "Long break (min)", min: 5, max: 60 },
+                  { key: "focusMinutes" as const,         label: "Focus duration (min)",       min: 1, max: 90 },
+                  { key: "shortBreakMinutes" as const,    label: "Short break (min)",           min: 1, max: 30 },
+                  { key: "longBreakMinutes" as const,     label: "Long break (min)",            min: 5, max: 60 },
                   { key: "sessionsUntilLongBreak" as const, label: "Sessions until long break", min: 1, max: 10 },
                 ]).map(({ key, label, min, max }) => (
-                  <div key={key} className="flex items-center justify-between gap-4">
-                    <Label className="text-sm text-muted-foreground">{label}</Label>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setSettings(s => ({ ...s, [key]: Math.max(min, s[key]-1) }))} className="w-7 h-7 rounded-none border border-border flex items-center justify-center text-sm hover:bg-muted">−</button>
-                      <span className="w-8 text-center text-sm font-mono font-medium">{settings[key]}</span>
-                      <button onClick={() => setSettings(s => ({ ...s, [key]: Math.min(max, s[key]+1) }))} className="w-7 h-7 rounded-none border border-border flex items-center justify-center text-sm hover:bg-muted">+</button>
+                  <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: "#999" }}>{label}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button onClick={() => setSettings(s => ({ ...s, [key]: Math.max(min, s[key] - 1) }))}
+                        style={{ width: 28, height: 28, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", color: "#F0F0F0", cursor: "pointer", fontFamily: "monospace", fontSize: 14 }}>−</button>
+                      <span style={{ width: 32, textAlign: "center", fontSize: 13, fontFamily: "monospace", color: "#F0F0F0" }}>{settings[key]}</span>
+                      <button onClick={() => setSettings(s => ({ ...s, [key]: Math.min(max, s[key] + 1) }))}
+                        style={{ width: 28, height: 28, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", color: "#F0F0F0", cursor: "pointer", fontFamily: "monospace", fontSize: 14 }}>+</button>
                     </div>
                   </div>
                 ))}
                 {([
-                  { key: "autoStartBreaks" as const, label: "Auto-start breaks" },
-                  { key: "autoStartFocus" as const, label: "Auto-start focus sessions" },
-                  { key: "autoSnooze" as const, label: "Auto-dismiss alarm after 30s" },
+                  { key: "autoStartBreaks" as const,  label: "Auto-start breaks" },
+                  { key: "autoStartFocus" as const,   label: "Auto-start focus sessions" },
+                  { key: "autoSnooze" as const,       label: "Auto-dismiss alarm after 30s" },
                 ]).map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <Label className="text-sm text-muted-foreground">{label}</Label>
+                  <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: "#999" }}>{label}</span>
                     <button onClick={() => setSettings(s => ({ ...s, [key]: !s[key] }))}
-                      className={cn("w-10 h-5 rounded-none transition-colors relative", settings[key] ? "bg-primary" : "bg-muted border border-border")}>
-                      <div className={cn("w-4 h-4 rounded-none bg-white shadow-sm absolute top-0.5 transition-transform", settings[key] ? "left-5" : "left-0.5")} />
+                      style={{ width: 40, height: 20, background: settings[key] ? TEAL : "#252525", border: "none", cursor: "pointer", position: "relative", transition: "background .2s" }}>
+                      <div style={{ position: "absolute", top: 2, left: settings[key] ? 22 : 2, width: 16, height: 16, background: "#fff", transition: "left .2s" }} />
                     </button>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
       </main>
-    </div>
+    </ToolPageShell>
   )
 }
