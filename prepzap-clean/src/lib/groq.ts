@@ -5,8 +5,8 @@
 
 const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
 
-const DEFAULT_MODEL = "llama-3.3-70b-versatile";
-const VISION_MODEL  = "llama-4-scout-17b-16e-instruct";
+const DEFAULT_MODEL = "deepseek/deepseek-chat-v3-0324:free";
+const VISION_MODEL  = "google/gemini-2.0-flash-exp:free";
 
 export interface GroqMessage {
   role: "system" | "user" | "assistant";
@@ -43,7 +43,7 @@ export function safeParseJSON<T = unknown>(raw: string): T {
 }
 
 // ─── Model detection helpers ──────────────────────────────────────────────────
-const MODEL_PREFIXES = ["llama", "gemma", "mixtral", "mistral", "deepseek", "qwen", "meta-llama"];
+const MODEL_PREFIXES = ["llama", "gemma", "mixtral", "mistral", "deepseek", "qwen", "meta-llama", "google", "anthropic", "openai"];
 
 function looksLikeModel(s: string): boolean {
   return MODEL_PREFIXES.some(p => s.toLowerCase().startsWith(p));
@@ -104,7 +104,7 @@ export async function callGroq(
   ];
 
   const resolvedModel = hasImages ? VISION_MODEL : model;
-  const isOpenRouterModel = resolvedModel.includes("/");
+  const isOpenRouterModel = true; // Always route through OpenRouter
 
   console.log(
     "[groq] sending request, model:", resolvedModel,
