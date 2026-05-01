@@ -5,8 +5,8 @@
 
 const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
 
-const DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";
-const VISION_MODEL  = "google/gemini-2.0-flash-exp:free";
+const DEFAULT_MODEL = "gemini-2.0-flash";
+const VISION_MODEL  = "gemini-2.0-flash";
 
 export interface GroqMessage {
   role: "system" | "user" | "assistant";
@@ -104,7 +104,7 @@ export async function callGroq(
   ];
 
   const resolvedModel = hasImages ? VISION_MODEL : model;
-  const isOpenRouterModel = true; // Always route through OpenRouter
+  const isOpenRouterModel = !resolvedModel.startsWith("gemini"); // Gemini routes direct
 
   console.log(
     "[groq] sending request, model:", resolvedModel,
@@ -134,13 +134,19 @@ export async function callGroq(
 
   const data = await res.json();
 
-  // Guard: malformed or empty response structure
-  if (!data?.choices?.length) {
+  // Handle both Gemini format and OpenAI/OpenRouter format
+  let result: string = "";
+  if (data?.candidates?.length) {
+    // Gemini format
+    result = data.candidates[0]?.content?.parts?.[0]?.text ?? "";
+  } else if (data?.choices?.length) {
+    // OpenAI/OpenRouter format
+    result = data.choices[0]?.message?.content ?? "";
+  } else {
     console.error("[groq] Unexpected response structure:", JSON.stringify(data));
     throw new Error("Empty or invalid response from AI model. Please try again.");
   }
 
-  const result: string = data.choices[0]?.message?.content ?? "";
   console.log("[groq] response received, length:", result.length, result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓");
 
   if (result.length === 0) {
