@@ -1,5 +1,5 @@
 import { ChatBubbleSkeleton } from "@/components/SkeletonLoader";
-import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { buildAIContext, buildImageMessages, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { callGroq, type GroqMessage } from "@/lib/groq";
+import { callGroq, callGroqWithImages, type GroqMessage } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
 import { useToolHistory, ToolHistoryPanel, HistoryButton } from "@/components/ToolHistory";
 
@@ -42,13 +42,13 @@ interface ChatSession {
 }
 
 type TutorMode = "explain" | "quiz" | "analogy" | "eli5" | "debate" | "summary";
-type ModelId = "llama-3.3-70b-versatile" | "claude-3-5-sonnet" | "gpt-4o";
+type ModelId = "deepseek/deepseek-chat-v3-0324:free" | "claude-3-5-sonnet" | "gpt-4o";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const MODELS: { id: ModelId; label: string; provider: string; badge: string; badgeColor: string; routerModel: string }[] = [
-  { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", badge: "Fast", badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20", routerModel: "llama-3.3-70b-versatile" },
-  { id: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet", provider: "Anthropic", badge: "Deep", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20", routerModel: "anthropic/claude-3.5-sonnet" },
-  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", badge: "Balanced", badgeColor: "bg-white/10 text-emerald-600 border-emerald-500/20", routerModel: "openai/gpt-4o" },
+const MODELS: { id: string; label: string; provider: string; badge: string; badgeColor: string; routerModel: string }[] = [
+  { id: "deepseek/deepseek-chat-v3-0324:free", label: "DeepSeek V3", provider: "OpenRouter", badge: "Fast", badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20", routerModel: "deepseek/deepseek-chat-v3-0324:free" },
+  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B", provider: "OpenRouter", badge: "Balanced", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20", routerModel: "meta-llama/llama-3.3-70b-instruct:free" },
+  { id: "google/gemini-2.0-flash-exp:free", label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart", badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", routerModel: "google/gemini-2.0-flash-exp:free" },
 ];
 
 const TUTOR_MODES: {
@@ -331,7 +331,7 @@ export default function AiTutor() {
   const [showModes, setShowModes] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<ModelId>("llama-3.3-70b-versatile");
+  const [activeModel, setActiveModel] = useState<string>("deepseek/deepseek-chat-v3-0324:free");
   const [showModelMenu, setShowModelMenu] = useState(false);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -451,7 +451,15 @@ Formatting:
     }));
 
     try {
-      const response = await callGroq(history, buildSystemPrompt(activeMode), activeModelInfo.routerModel, 2000);
+      const imageBlocks = buildImageMessages();
+      const response = imageBlocks.length > 0
+        ? await callGroqWithImages(
+            history.map(m => typeof m.content === "string" ? m.content : "").join("\n"),
+            imageBlocks,
+            buildSystemPrompt(activeMode),
+            2000
+          )
+        : await callGroq(history, buildSystemPrompt(activeMode), activeModelInfo.routerModel, 2000);
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",

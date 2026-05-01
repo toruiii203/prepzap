@@ -292,9 +292,9 @@ function StudyToolsDropdown() {
 
 // ─── Model Selector ───────────────────────────────────────────────────────────
 export const AI_MODELS = [
-  { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq",      badge: "Fast" },
-  { id: "llama3-8b-8192",          label: "Llama 3 8B",    provider: "Groq",      badge: "Light" },
-  { id: "mixtral-8x7b-32768",      label: "Mixtral 8x7B",  provider: "Groq",      badge: "Balanced" },
+  { id: "deepseek/deepseek-chat-v3-0324:free", label: "DeepSeek V3",      provider: "OpenRouter", badge: "Fast" },
+  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B", provider: "OpenRouter", badge: "Balanced" },
+  { id: "google/gemini-2.0-flash-exp:free",    label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart" },
 ] as const
 
 export type ModelId = typeof AI_MODELS[number]["id"]
@@ -303,7 +303,7 @@ export const MODEL_KEY = "studenius_selected_model"
 export function useModel() {
   const [model, setModelState] = useState<ModelId>(() => {
     const saved = localStorage.getItem(MODEL_KEY)
-    return (AI_MODELS.find(m => m.id === saved)?.id ?? "llama-3.3-70b-versatile") as ModelId
+    return (AI_MODELS.find(m => m.id === saved)?.id ?? "deepseek/deepseek-chat-v3-0324:free") as ModelId
   })
   const setModel = (id: ModelId) => { setModelState(id); localStorage.setItem(MODEL_KEY, id) }
   return { model, setModel }
