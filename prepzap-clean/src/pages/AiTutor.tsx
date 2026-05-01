@@ -42,13 +42,13 @@ interface ChatSession {
 }
 
 type TutorMode = "explain" | "quiz" | "analogy" | "eli5" | "debate" | "summary";
-type ModelId = "deepseek/deepseek-chat-v3-0324:free" | "claude-3-5-sonnet" | "gpt-4o";
+type ModelId = "meta-llama/llama-3.1-8b-instruct:free" | "claude-3-5-sonnet" | "gpt-4o";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODELS: { id: string; label: string; provider: string; badge: string; badgeColor: string; routerModel: string }[] = [
-  { id: "deepseek/deepseek-chat-v3-0324:free", label: "DeepSeek V3", provider: "OpenRouter", badge: "Fast", badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20", routerModel: "deepseek/deepseek-chat-v3-0324:free" },
-  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B", provider: "OpenRouter", badge: "Balanced", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20", routerModel: "meta-llama/llama-3.3-70b-instruct:free" },
-  { id: "google/gemini-2.0-flash-exp:free", label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart", badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", routerModel: "google/gemini-2.0-flash-exp:free" },
+  { id: "meta-llama/llama-3.1-8b-instruct:free",  label: "Llama 3.1 8B",    provider: "OpenRouter", badge: "Fast",     badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20",   routerModel: "meta-llama/llama-3.1-8b-instruct:free" },
+  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B",   provider: "OpenRouter", badge: "Balanced", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20", routerModel: "meta-llama/llama-3.3-70b-instruct:free" },
+  { id: "google/gemini-2.0-flash-exp:free",        label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart",    badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", routerModel: "google/gemini-2.0-flash-exp:free" },
 ];
 
 const TUTOR_MODES: {
@@ -331,7 +331,7 @@ export default function AiTutor() {
   const [showModes, setShowModes] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<string>("deepseek/deepseek-chat-v3-0324:free");
+  const [activeModel, setActiveModel] = useState<string>("meta-llama/llama-3.1-8b-instruct:free");
   const [showModelMenu, setShowModelMenu] = useState(false);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -576,7 +576,7 @@ Formatting:
                         )}>
                         <div>
                           <p className="text-xs font-semibold">{m.label}</p>
-                          <p className="text-xs text-muted-foreground">{m.provider}</p>
+
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={cn("px-1.5 py-0.5 rounded border text-xs", m.badgeColor)}>{m.badge}</span>
@@ -663,7 +663,7 @@ Formatting:
                   Switch modes to change how I teach. Upload a file with <span className="font-semibold text-primary">+</span> for context-aware help.
                 </p>
                 <p className="text-xs text-muted-foreground mb-6">
-                  Active model: <span className="font-semibold text-primary">{activeModelInfo.label}</span> via {activeModelInfo.provider}
+                  Active model: <span className="font-semibold text-primary">{activeModelInfo.label}</span>
                 </p>
                 <div className="grid grid-cols-2 gap-2 w-full max-w-md mb-3">
                   {VISUAL_QUICK_ACTIONS.map(a => (

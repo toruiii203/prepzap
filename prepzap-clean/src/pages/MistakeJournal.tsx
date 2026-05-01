@@ -99,7 +99,7 @@ ${ctx ? `\nAdditional context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"question":"rephrased or related question","answer":"correct answer"}]
 Create ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to test understanding, not just memory.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
       const parsed: ReviewQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setReviewQuestions(parsed);
       setReviewIdx(0);

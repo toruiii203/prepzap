@@ -66,7 +66,7 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"topic":"string","keyPoints":["string","string","string"],"timeMinutes":number}]
 Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints each, order by importance.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
       const parsed: CramTopic[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setTopics(parsed);
       setCurrentIdx(0);

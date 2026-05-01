@@ -292,9 +292,9 @@ function StudyToolsDropdown() {
 
 // ─── Model Selector ───────────────────────────────────────────────────────────
 export const AI_MODELS = [
-  { id: "deepseek/deepseek-chat-v3-0324:free", label: "DeepSeek V3",      provider: "OpenRouter", badge: "Fast" },
-  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B", provider: "OpenRouter", badge: "Balanced" },
-  { id: "google/gemini-2.0-flash-exp:free",    label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart" },
+  { id: "meta-llama/llama-3.1-8b-instruct:free",  label: "Llama 3.1 8B",    provider: "OpenRouter", badge: "Fast" },
+  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B",   provider: "OpenRouter", badge: "Balanced" },
+  { id: "google/gemini-2.0-flash-exp:free",        label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart" },
 ] as const
 
 export type ModelId = typeof AI_MODELS[number]["id"]
@@ -303,7 +303,7 @@ export const MODEL_KEY = "studenius_selected_model"
 export function useModel() {
   const [model, setModelState] = useState<ModelId>(() => {
     const saved = localStorage.getItem(MODEL_KEY)
-    return (AI_MODELS.find(m => m.id === saved)?.id ?? "deepseek/deepseek-chat-v3-0324:free") as ModelId
+    return (AI_MODELS.find(m => m.id === saved)?.id ?? "meta-llama/llama-3.1-8b-instruct:free") as ModelId
   })
   const setModel = (id: ModelId) => { setModelState(id); localStorage.setItem(MODEL_KEY, id) }
   return { model, setModel }
@@ -336,7 +336,7 @@ export function ModelPicker({ model, setModel }: { model: ModelId; setModel: (id
                 onMouseLeave={e => { if (model !== m.id) e.currentTarget.style.background = "transparent" }}>
                 <div>
                   <div style={{ fontWeight: 600, marginBottom: 1 }}>{m.label}</div>
-                  <div style={{ fontSize: 9, color: "#555" }}>{m.provider}</div>
+
                 </div>
                 <span style={{ fontSize: 8, padding: "1px 4px", background: model === m.id ? "rgba(0,196,180,0.12)" : "rgba(255,255,255,0.05)", color: model === m.id ? TEAL : "#555", fontWeight: 700 }}>{m.badge}</span>
               </button>

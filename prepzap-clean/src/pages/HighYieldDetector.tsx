@@ -81,7 +81,7 @@ Order by frequency descending.`;
 ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"question":"string","answer":"concise answer in 1-2 sentences"}]`;
-      const raw = await callGroq(prompt, "llama3-8b-8192");
+      const raw = await callGroq(prompt, "meta-llama/llama-3.1-8b-instruct:free");
       const parsed: DrillQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setDrills(prev => ({
         ...prev,

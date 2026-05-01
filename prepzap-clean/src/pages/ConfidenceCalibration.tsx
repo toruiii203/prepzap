@@ -65,7 +65,7 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"concept":"short concept name","definition":"1-2 sentence clear explanation"}]
 Make concepts specific and testable — not too broad.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
       const parsed: Concept[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       const rated: RatedConcept[] = parsed.map(c => ({ ...c, rating: "no-idea" as Rating, pass: 0 }));
       setConcepts(rated);

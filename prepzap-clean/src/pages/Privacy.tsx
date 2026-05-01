@@ -24,7 +24,7 @@ export default function Privacy() {
           },
           {
             title: "3. Data Storage",
-            content: `Your account data is securely stored using Supabase, a trusted database provider. Study materials you upload are stored locally in your browser and are not transmitted to our servers unless explicitly used with AI features. AI interactions are processed through Groq's API and are not permanently stored.`
+            content: `Your account data is securely stored using Supabase, a trusted database provider. Study materials you upload are stored locally in your browser and are not transmitted to our servers unless explicitly used with AI features. AI interactions are processed through our AI API and are not permanently stored.`
           },
           {
             title: "4. Cookies and Local Storage",
@@ -32,7 +32,7 @@ export default function Privacy() {
           },
           {
             title: "5. Third-Party Services",
-            content: `PrepZap uses the following third-party services: Supabase for authentication and database storage, Groq for AI-powered study features, and Google OAuth for sign-in. Each of these services has their own privacy policy and data handling practices.`
+            content: `PrepZap uses the following third-party services: Supabase for authentication and database storage, AI services for study features, and Google OAuth for sign-in. Each of these services has their own privacy policy and data handling practices.`
           },
           {
             title: "6. Data Retention",

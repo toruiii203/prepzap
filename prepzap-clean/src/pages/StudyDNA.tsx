@@ -90,7 +90,7 @@ Return ONLY valid JSON, no markdown:
   "recommendedTools": ["tool 1","tool 2","tool 3"],
   "insight": "2-3 sentence personalised insight that references their quiz answers and tool usage patterns"
 }`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
       const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
       const newProfile: DNAProfile = { ...parsed, generatedAt: new Date().toISOString() };
       setProfile(newProfile);
