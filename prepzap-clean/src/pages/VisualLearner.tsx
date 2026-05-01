@@ -1,6 +1,6 @@
 /**
  * VisualLearner.tsx — Studenius
- * Breaks any concept into 3-5 memorable visual scenes using Unsplash photos.
+ * Breaks any concept into 3-5 memorable visual scenes using Pollinations AI images.
  * Each scene is a storyboard card: photo, scene number, title, anchor phrase, why-it-works.
  *
  * Dashboard card: label "Visual Learner", description "See concepts, remember them"
@@ -23,15 +23,12 @@ const MUTED  = "#555"
 const TEXT   = "#F0F0F0"
 const FONT   = "'Inter', system-ui, sans-serif"
 
-const UNSPLASH_KEY = "_k2DLBfHgFEhkm0lTRgqTLMdg6QnrIrGxnE4SEZi6o8"
-const UNSPLASH_URL = "https://api.unsplash.com/search/photos"
-
 // ── Safety blocklist ──────────────────────────────────────────────────────────
 const BLOCKED = ["nude","naked","gore","violence","weapon","gun","knife","blood","death","war","sexy","adult","nsfw"]
 function safeQuery(q: string): string {
   const lower = q.toLowerCase()
   for (const word of BLOCKED) {
-    if (lower.includes(word)) return "abstract background texture"
+    if (lower.includes(word)) return "abstract educational background texture"
   }
   return q
 }
@@ -42,7 +39,8 @@ interface Scene {
   title: string
   anchorPhrase: string
   whyItWorks: string
-  unsplashQuery: string
+  unsplashQuery: string   // reused as image prompt hint from AI
+  imagePrompt?: string    // richer Pollinations prompt built client-side
 }
 
 interface StoryboardResult {
@@ -56,20 +54,39 @@ interface SceneWithPhoto extends Scene {
   photoLoading: boolean
 }
 
-// ── Fetch one Unsplash photo ──────────────────────────────────────────────────
-async function fetchUnsplashPhoto(query: string): Promise<{ url: string; alt: string } | null> {
+// ── Build a rich Pollinations prompt from scene data ─────────────────────────
+// Combines the concept, scene title, and AI-suggested query into a detailed
+// educational illustration prompt so images match the source content accurately.
+function buildPollinationsPrompt(concept: string, scene: Scene): string {
+  const base = safeQuery(scene.unsplashQuery)
+  // Compose a descriptive educational prompt
+  const prompt = [
+    base,
+    `related to ${concept}`,
+    `scene: ${scene.title}`,
+    "educational illustration",
+    "photorealistic",
+    "clear and vivid",
+    "safe for school",
+  ].join(", ")
+  return encodeURIComponent(prompt)
+}
+
+// ── Fetch one Pollinations image (free, no API key, AI-generated) ─────────────
+async function fetchPollinationsPhoto(
+  concept: string,
+  scene: Scene
+): Promise<{ url: string; alt: string } | null> {
   try {
-    const safe = safeQuery(query)
-    const url  = `${UNSPLASH_URL}?query=${encodeURIComponent(safe)}&per_page=1&orientation=landscape&client_id=${UNSPLASH_KEY}`
-    const res  = await fetch(url)
-    if (!res.ok) return null
-    const data = await res.json()
-    const photo = data.results?.[0]
-    if (!photo) return null
-    return {
-      url: photo.urls?.regular ?? photo.urls?.small,
-      alt: photo.alt_description ?? safe,
-    }
+    const prompt = buildPollinationsPrompt(concept, scene)
+    // Use a seed based on concept+sceneId so the image is stable on re-renders
+    const seed = Math.abs(
+      (concept + scene.id + scene.title)
+        .split("")
+        .reduce((acc, c) => acc + c.charCodeAt(0), 0)
+    )
+    const url = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=500&seed=${seed}&nologo=true&model=flux`
+    return { url, alt: `${concept} — ${scene.title}` }
   } catch {
     return null
   }
@@ -125,8 +142,22 @@ export default function VisualLearner() {
     try {
       const parsed: StoryboardResult = JSON.parse(entry.output)
       setConcept(parsed.concept)
-      // Restore scenes without photos (will lazy-load if needed)
-      setScenes(parsed.scenes.map(s => ({ ...s, photoLoading: false })))
+      // Restore scenes without photos (Pollinations URLs are deterministic — rebuild them)
+      const restored: SceneWithPhoto[] = parsed.scenes.map(s => {
+        const photo = buildPollinationsPrompt(parsed.concept, s)
+        const seed = Math.abs(
+          (parsed.concept + s.id + s.title)
+            .split("")
+            .reduce((acc, c) => acc + c.charCodeAt(0), 0)
+        )
+        return {
+          ...s,
+          photoUrl: `https://image.pollinations.ai/prompt/${photo}?width=800&height=500&seed=${seed}&nologo=true&model=flux`,
+          photoAlt: `${parsed.concept} — ${s.title}`,
+          photoLoading: false,
+        }
+      })
+      setScenes(restored)
       setPhase("result")
     } catch { /* ignore */ }
   }
@@ -144,6 +175,7 @@ export default function VisualLearner() {
     const systemPrompt = `You are a visual memory expert trained in dual-coding theory.
 You create vivid, concrete scene associations that make abstract concepts memorable.
 Every scene must be grounded in a real, visual, photographable moment — no abstract metaphors.
+The scenes must be directly and accurately related to the concept and any source material provided.
 
 Return ONLY valid JSON (no markdown, no backticks):
 {
@@ -154,18 +186,19 @@ Return ONLY valid JSON (no markdown, no backticks):
       "title": "<scene title, 3-5 words>",
       "anchorPhrase": "<1 sentence the student says when they see this image>",
       "whyItWorks": "<1 sentence explaining the memory connection>",
-      "unsplashQuery": "<3-4 words, realistic photo subject, safe for work, concrete not abstract>"
+      "unsplashQuery": "<4-6 words describing a specific, concrete, photographable or illustratable subject that visually represents this scene — be as specific and accurate to the concept as possible>"
     }
   ]
 }
-Generate 4 scenes. Make each scene visually distinct and memorable.${context}`
+Generate 4 scenes. Make each scene visually distinct and directly tied to the concept.
+If source material is provided, base the scenes on its actual content, not general knowledge.${context}`
 
     try {
       const raw = await callGroq(
         [{ role: "user", content: `Create a visual storyboard for: "${target}"` }],
         systemPrompt,
         model,
-        1200
+        2000
       )
       const clean = raw.replace(/```json|```/gi, "").trim()
       const parsed: StoryboardResult = JSON.parse(clean)
@@ -179,9 +212,10 @@ Generate 4 scenes. Make each scene visually distinct and memorable.${context}`
       setPhase("result")
       setProgress(100)
 
-      // Fetch photos concurrently
+      // Fetch Pollinations images concurrently — URLs are built client-side,
+      // no rate limit, no API key, images match the concept accurately
       parsed.scenes.forEach(async (scene, i) => {
-        const photo = await fetchUnsplashPhoto(scene.unsplashQuery)
+        const photo = await fetchPollinationsPhoto(parsed.concept, scene)
         setScenes(prev => prev.map((s, idx) => idx === i
           ? { ...s, photoUrl: photo?.url, photoAlt: photo?.alt, photoLoading: false }
           : s
@@ -234,7 +268,7 @@ Generate 4 scenes. Make each scene visually distinct and memorable.${context}`
         <HeaderRow />
 
         <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
-          Type any concept and get a 4-scene visual storyboard — each scene is a real photo paired with a memory anchor phrase you'll actually remember.
+          Type any concept and get a 4-scene visual storyboard — each scene is an AI-generated image paired with a memory anchor phrase you'll actually remember.
         </p>
 
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: "28px 24px" }}>
@@ -371,12 +405,12 @@ Generate 4 scenes. Make each scene visually distinct and memorable.${context}`
 
 // ── Scene card ────────────────────────────────────────────────────────────────
 function SceneCard({ scene, index }: { scene: SceneWithPhoto; index: number }) {
-  const TEAL  = "#00C4B4"
-  const CARD  = "#0E0E0E"
+  const TEAL   = "#00C4B4"
+  const CARD   = "#0E0E0E"
   const BORDER = "#252525"
-  const TEXT  = "#F0F0F0"
-  const MUTED = "#555"
-  const FONT  = "'Inter', system-ui, sans-serif"
+  const TEXT   = "#F0F0F0"
+  const MUTED  = "#555"
+  const FONT   = "'Inter', system-ui, sans-serif"
 
   return (
     <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, overflow: "hidden" }}>
@@ -392,6 +426,10 @@ function SceneCard({ scene, index }: { scene: SceneWithPhoto; index: number }) {
             alt={scene.photoAlt ?? scene.title}
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             loading="lazy"
+            onError={e => {
+              // If Pollinations fails to load, show the fallback placeholder
+              (e.target as HTMLImageElement).style.display = "none"
+            }}
           />
         ) : (
           // Fallback if no photo
