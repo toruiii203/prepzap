@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase"
 import { levelFromXp, xpToNextLevel, xpProgressPercent, tierFromLevel, tierEmojiFromLevel } from "@/lib/xp"
 
 // ─── Theme Types ──────────────────────────────────────────────────────────────
-type BgTheme = "pure" | "starfield" | "planets" | "milkyway" | "cosmos"
+type BgTheme = "pure" | "starfield" | "planets" | "milkyway" | "constellations"
 
 // ─── Data Types ───────────────────────────────────────────────────────────────
 interface CheckItem  { id: string; text: string; done: boolean }
@@ -124,12 +124,12 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
     }))
 
     // ── Planets theme data ────────────────────────────────────────────────────
+    // orbitR kept ≤ 0.32 so planets never go offscreen; only ONE ring planet (Saturn)
     const PLANET_DEFS = [
-      { color: "180,120,60",  ring: true,  r: 18, orbitR: 0.38, orbitY: 0.42, speed: 0.00018, phase: 0.0 },
-      { color: "100,160,220", ring: false, r: 11, orbitR: 0.28, orbitY: 0.58, speed: 0.00028, phase: 1.8 },
-      { color: "220,80,60",   ring: false, r:  8, orbitR: 0.18, orbitY: 0.30, speed: 0.00042, phase: 3.5 },
-      { color: "160,200,140", ring: false, r:  6, orbitR: 0.44, orbitY: 0.72, speed: 0.00022, phase: 2.1 },
-      { color: "220,180,100", ring: true,  r: 13, orbitR: 0.50, orbitY: 0.55, speed: 0.00014, phase: 5.0 },
+      { color: "180,120,60",  ring: true,  r: 26, orbitR: 0.28, orbitY: 0.44, speed: 0.00018, phase: 0.0 },  // Saturn – big, one ring only
+      { color: "100,160,220", ring: false, r: 16, orbitR: 0.22, orbitY: 0.60, speed: 0.00028, phase: 1.8 },  // Ice giant
+      { color: "220,80,60",   ring: false, r: 12, orbitR: 0.18, orbitY: 0.28, speed: 0.00042, phase: 3.5 },  // Red planet
+      { color: "160,200,140", ring: false, r:  9, orbitR: 0.30, orbitY: 0.74, speed: 0.00022, phase: 2.1 },  // Green gas
     ]
     const planets = PLANET_DEFS.map(p => ({ ...p }))
     let planetTick = 0
@@ -144,13 +144,25 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
     }))
     let mwAngle = 0
 
-    // ── Cosmos (vortex) theme data ─────────────────────────────────────────────
-    let cosmosTick = 0
-    const cosmosRings = Array.from({ length: 8 }, (_, i) => ({
-      baseRadius: 0.04 + i * 0.055,
-      color: i % 3 === 0 ? "0,196,180" : i % 3 === 1 ? "120,60,220" : "220,120,60",
-      speed: 0.008 + i * 0.003,
-      offset: (i * Math.PI) / 4,
+    // ── Constellations theme data ──────────────────────────────────────────────
+    let constellationTick = 0
+    // Each constellation: array of [x,y] anchor points (0-1 normalized) + edges between indices
+    const CONSTELLATIONS = [
+      { pts: [[0.12,0.18],[0.19,0.12],[0.26,0.16],[0.31,0.10],[0.24,0.23],[0.17,0.28]], edges: [[0,1],[1,2],[2,3],[2,4],[4,5],[0,4]] },
+      { pts: [[0.55,0.08],[0.63,0.14],[0.70,0.09],[0.68,0.22],[0.60,0.26],[0.52,0.20]], edges: [[0,1],[1,2],[1,3],[3,4],[4,5],[5,0]] },
+      { pts: [[0.78,0.40],[0.85,0.33],[0.92,0.38],[0.88,0.50],[0.80,0.55],[0.74,0.47]], edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,3]] },
+      { pts: [[0.10,0.55],[0.18,0.48],[0.25,0.54],[0.22,0.65],[0.14,0.70],[0.08,0.63]], edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]] },
+      { pts: [[0.42,0.60],[0.50,0.54],[0.58,0.58],[0.55,0.70],[0.48,0.76],[0.40,0.70],[0.44,0.62]], edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[1,3],[0,5]] },
+      { pts: [[0.28,0.80],[0.36,0.75],[0.44,0.80],[0.40,0.90],[0.32,0.92]], edges: [[0,1],[1,2],[2,3],[3,4],[4,0]] },
+      { pts: [[0.68,0.72],[0.76,0.66],[0.84,0.70],[0.82,0.82],[0.72,0.85]], edges: [[0,1],[1,2],[2,3],[3,4],[4,0],[1,3]] },
+    ]
+    // Give each star a twinkle phase
+    const constStarPhases = CONSTELLATIONS.map(c => c.pts.map(() => Math.random() * Math.PI * 2))
+    // Moving "shooting" star particles
+    const shooters = Array.from({ length: 3 }, (_, i) => ({
+      x: Math.random(), y: Math.random() * 0.5,
+      vx: 0.0012 + Math.random() * 0.0008, vy: 0.0006 + Math.random() * 0.0004,
+      tail: 0.06 + Math.random() * 0.04, alpha: 0, life: Math.random() * 300, maxLife: 200 + Math.random() * 200
     }))
 
     const draw = () => {
@@ -226,96 +238,117 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       if (t === "milkyway") {
         mwAngle += 0.0003
         const cx = W / 2, cy = H / 2
-        // Galactic core glow
-        const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.35)
-        coreGlow.addColorStop(0, "rgba(255,230,180,0.18)")
-        coreGlow.addColorStop(0.4, "rgba(180,120,60,0.08)")
+        // Galactic core glow — much brighter
+        const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.45)
+        coreGlow.addColorStop(0, "rgba(255,240,200,0.45)")
+        coreGlow.addColorStop(0.3, "rgba(220,160,80,0.22)")
+        coreGlow.addColorStop(0.7, "rgba(100,60,160,0.10)")
         coreGlow.addColorStop(1, "rgba(0,0,0,0)")
         ctx.fillStyle = coreGlow
         ctx.fillRect(0, 0, W, H)
-        // Rotating star field
+        // Rotating star field — boosted alpha
         for (const s of mwStars) {
           s.phase += s.speed
           const distFromCenter = Math.sqrt((s.x - 0.5) ** 2 + (s.y - 0.5) ** 2)
-          // Stars near center are warmer/brighter
           const warmth = Math.max(0, 1 - distFromCenter * 2.5)
           const r = Math.round(200 + warmth * 55)
           const g2 = Math.round(200 + warmth * 30)
           const b2 = Math.round(220 - warmth * 80)
-          // Apply rotation
           const dx = (s.x - 0.5) * W, dy = (s.y - 0.5) * H
           const rotX = cx + dx * Math.cos(mwAngle) - dy * Math.sin(mwAngle)
           const rotY = cy + dx * Math.sin(mwAngle) + dy * Math.cos(mwAngle)
-          const twinkle = (Math.sin(s.phase) + 1) * 0.4 + 0.15
-          const a = twinkle * (0.3 + s.brightness * 0.7)
-          // Milky Way density band — more stars along a diagonal band
+          const twinkle = (Math.sin(s.phase) + 1) * 0.4 + 0.25  // raised floor
+          const a = twinkle * (0.5 + s.brightness * 0.5)          // much brighter
           const bandDist = Math.abs((s.x - 0.5) * Math.cos(0.4) - (s.y - 0.5) * Math.sin(0.4))
-          const bandBoost = Math.max(0, 1 - bandDist * 4)
-          if (Math.random() < 0.002 && bandBoost < 0.1) continue // thin out stars far from band
+          const bandBoost = Math.max(0, 1 - bandDist * 3.5)
+          if (Math.random() < 0.001 && bandBoost < 0.1) continue
           ctx.beginPath()
-          ctx.arc(rotX, rotY, s.r * (1 + bandBoost * 0.5), 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(${r},${g2},${b2},${a * (0.6 + bandBoost * 0.6)})`
+          ctx.arc(rotX, rotY, s.r * (1 + bandBoost * 0.8), 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(${r},${g2},${b2},${Math.min(1, a * (0.8 + bandBoost * 0.8))})`
           ctx.fill()
         }
-        // Arm nebulosity overlay
-        const armColors = ["60,40,120", "80,30,100", "40,60,140"]
+        // Arm nebulosity overlay — brighter purples/blues
+        const armColors = ["80,60,180", "120,50,160", "60,80,200"]
         for (let i = 0; i < 3; i++) {
           const armAngle = mwAngle * 0.5 + (i * Math.PI * 2) / 3
           const armX = cx + Math.cos(armAngle) * W * 0.22
           const armY = cy + Math.sin(armAngle) * H * 0.22
-          const armG = ctx.createRadialGradient(armX, armY, 0, armX, armY, W * 0.28)
-          armG.addColorStop(0, `rgba(${armColors[i]},0.06)`)
+          const armG = ctx.createRadialGradient(armX, armY, 0, armX, armY, W * 0.30)
+          armG.addColorStop(0, `rgba(${armColors[i]},0.14)`)
           armG.addColorStop(1, "rgba(0,0,0,0)")
           ctx.fillStyle = armG
           ctx.fillRect(0, 0, W, H)
         }
       }
 
-      if (t === "cosmos") {
-        cosmosTick += 0.018
-        const cx = W / 2, cy = H / 2
-        // Deep void background pulse
-        const voidA = (Math.sin(cosmosTick * 0.5) + 1) * 0.04
-        const voidG = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.6)
-        voidG.addColorStop(0, `rgba(20,0,40,${voidA + 0.06})`)
-        voidG.addColorStop(1, "rgba(0,0,0,0)")
-        ctx.fillStyle = voidG
-        ctx.fillRect(0, 0, W, H)
-        // Spinning rings converging to center
-        for (const ring of cosmosRings) {
-          const angle = cosmosTick * ring.speed + ring.offset
-          const radius = ring.baseRadius * Math.min(W, H) * (0.85 + Math.sin(cosmosTick * 0.4 + ring.offset) * 0.12)
-          const alpha = (Math.sin(cosmosTick * 0.6 + ring.offset) + 1) * 0.12 + 0.04
-          ctx.save()
-          ctx.translate(cx, cy)
-          ctx.rotate(angle)
-          ctx.scale(1, 0.35) // flatten into ellipse for depth
+      if (t === "constellations") {
+        constellationTick++
+        // Faint background stars
+        for (const s of stars) {
+          s.phase += s.speed * 0.4
+          const a = (Math.sin(s.phase) + 1) * 0.2 + 0.04
           ctx.beginPath()
-          ctx.arc(0, 0, radius, 0, Math.PI * 2)
-          ctx.strokeStyle = `rgba(${ring.color},${alpha})`
-          ctx.lineWidth = 1.5
-          ctx.stroke()
-          // Energy dots on ring
-          for (let d = 0; d < 4; d++) {
-            const da = (d / 4) * Math.PI * 2 + angle * 2
-            const dotX = Math.cos(da) * radius
-            const dotY = Math.sin(da) * radius
-            const dotA = (Math.sin(cosmosTick * 2 + d) + 1) * 0.2 + 0.1
-            ctx.beginPath()
-            ctx.arc(dotX, dotY, 2, 0, Math.PI * 2)
-            ctx.fillStyle = `rgba(${ring.color},${dotA})`
-            ctx.fill()
-          }
-          ctx.restore()
+          ctx.arc(s.x * W, s.y * H, s.r * 0.5, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(200,210,255,${a})`
+          ctx.fill()
         }
-        // Central singularity
-        const singA = (Math.sin(cosmosTick * 3) + 1) * 0.3 + 0.2
-        const singG = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30)
-        singG.addColorStop(0, `rgba(255,255,255,${singA})`)
-        singG.addColorStop(0.3, `rgba(0,196,180,${singA * 0.6})`)
-        singG.addColorStop(1, "rgba(0,0,0,0)")
-        ctx.fillStyle = singG
-        ctx.fillRect(cx - 30, cy - 30, 60, 60)
+        // Draw each constellation
+        CONSTELLATIONS.forEach((con, ci) => {
+          const drift = constellationTick * 0.00006 * (ci % 2 === 0 ? 1 : -1)
+          const floatY = Math.sin(constellationTick * 0.001 + ci * 1.3) * 0.012
+          const pts = con.pts.map(([px, py]) => [px * W + drift * W, (py + floatY) * H])
+          // Draw edges
+          for (const [a, b] of con.edges) {
+            const lineAlpha = 0.18 + Math.sin(constellationTick * 0.008 + ci) * 0.06
+            ctx.beginPath()
+            ctx.moveTo(pts[a][0], pts[a][1])
+            ctx.lineTo(pts[b][0], pts[b][1])
+            ctx.strokeStyle = `rgba(150,200,255,${lineAlpha})`
+            ctx.lineWidth = 0.7
+            ctx.stroke()
+          }
+          // Draw stars at vertices
+          pts.forEach(([sx, sy], si) => {
+            constStarPhases[ci][si] += 0.022
+            const ta = (Math.sin(constStarPhases[ci][si]) + 1) * 0.45 + 0.3
+            const sr = 1.8 + Math.sin(constStarPhases[ci][si] * 0.7) * 0.5
+            // Glow
+            const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 4)
+            sg.addColorStop(0, `rgba(180,220,255,${ta * 0.5})`)
+            sg.addColorStop(1, "rgba(0,0,0,0)")
+            ctx.fillStyle = sg
+            ctx.beginPath()
+            ctx.arc(sx, sy, sr * 4, 0, Math.PI * 2)
+            ctx.fill()
+            // Star dot
+            ctx.beginPath()
+            ctx.arc(sx, sy, sr, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(220,240,255,${ta})`
+            ctx.fill()
+          })
+        })
+        // Shooting stars
+        for (const sh of shooters) {
+          sh.life++
+          if (sh.life > sh.maxLife) {
+            sh.x = Math.random() * 0.6; sh.y = Math.random() * 0.4
+            sh.life = 0; sh.maxLife = 200 + Math.random() * 300
+          }
+          const progress = sh.life / sh.maxLife
+          sh.alpha = progress < 0.1 ? progress * 10 : progress > 0.85 ? (1 - progress) * 6.67 : 1
+          const ex = sh.x * W, ey = sh.y * H
+          const tx2 = ex - sh.tail * W * sh.vx * 80, ty2 = ey - sh.tail * H * sh.vy * 80
+          sh.x += sh.vx; sh.y += sh.vy
+          const grad = ctx.createLinearGradient(tx2, ty2, ex, ey)
+          grad.addColorStop(0, "rgba(200,230,255,0)")
+          grad.addColorStop(1, `rgba(255,255,255,${sh.alpha * 0.8})`)
+          ctx.beginPath()
+          ctx.moveTo(tx2, ty2)
+          ctx.lineTo(ex, ey)
+          ctx.strokeStyle = grad
+          ctx.lineWidth = 1.2
+          ctx.stroke()
+        }
       }
 
       raf = requestAnimationFrame(draw)
@@ -333,7 +366,7 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
     starfield: "Starfield",
     planets: "Planets",
     milkyway: "Milky Way",
-    cosmos: "Cosmos"
+    constellations: "Constellations"
   }
 
   useEffect(() => {
