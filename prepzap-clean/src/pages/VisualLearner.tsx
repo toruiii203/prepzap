@@ -1,7 +1,7 @@
 /**
  * VisualLearner.tsx — Studenius
  * Breaks any concept into 4 memorable visual scenes.
- * Images: Pollinations AI → LoremFlickr → Source Unsplash → Picsum (fallback chain)
+ * Images: Google Custom Search → LoremFlickr → Source Unsplash → Picsum (fallback chain)
  *
  * Dashboard card: label "Visual Learner", description "See concepts, remember them"
  * Route: /visual-learner
@@ -62,27 +62,88 @@ function makeSeed(...parts: string[]): number {
 
 // ── Image provider URL builders ───────────────────────────────────────────────
 
-function pollinationsUrl(concept: string, scene: Scene): string {
-  const base = safeQuery(scene.unsplashQuery)
-  const prompt = encodeURIComponent(
-    [base, `related to ${concept}`, scene.title, "educational illustration", "photorealistic", "safe for school"].join(", ")
-  )
-  const seed = makeSeed(concept, scene.id, scene.title)
-  return `https://image.pollinations.ai/prompt/${prompt}?width=800&height=500&seed=${seed}&nologo=true&model=flux`
+// 1. Wikimedia/Wikipedia — free, unlimited, no key needed.
+//    Searches Wikipedia for the concept + scene title and grabs the lead image.
+//    Best for science, history, biology, geography — canonical, accurate images.
+async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string | null> {
+  // Try scene title first, then concept, then unsplashQuery words
+  const queries = [
+    `${scene.title} ${concept}`,
+    concept,
+    safeQuery(scene.unsplashQuery),
+  ]
+
+  for (const q of queries) {
+    try {
+      const search = encodeURIComponent(q)
+      // Step 1: find the top Wikipedia article for the query
+      const searchRes = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${search}&srlimit=3&format=json&origin=*`,
+        { signal: AbortSignal.timeout(5000) }
+      )
+      if (!searchRes.ok) continue
+      const searchData = await searchRes.json()
+      const pages = searchData?.query?.search ?? []
+      if (!pages.length) continue
+
+      // Step 2: for each result, try to get the page image
+      for (const page of pages.slice(0, 2)) {
+        const title = encodeURIComponent(page.title)
+        const imgRes = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&titles=${title}&prop=pageimages&pithumbsize=800&format=json&origin=*`,
+          { signal: AbortSignal.timeout(5000) }
+        )
+        if (!imgRes.ok) continue
+        const imgData = await imgRes.json()
+        const imgPages = Object.values(imgData?.query?.pages ?? {}) as any[]
+        const thumb = imgPages[0]?.thumbnail?.source
+        if (thumb) return thumb
+      }
+    } catch { /* try next query */ }
+  }
+  return null
 }
 
+// 2. Pexels — free API, unlimited, high quality keyword-matched photos.
+//    Get a free key at https://www.pexels.com/api/
+//    Add to .env.local: NEXT_PUBLIC_PEXELS_KEY=your_key_here
+async function pexelsImageUrl(concept: string, scene: Scene): Promise<string | null> {
+  const key = process.env.NEXT_PUBLIC_PEXELS_KEY
+  if (!key) return null
+
+  const q = encodeURIComponent(`${safeQuery(scene.unsplashQuery)} ${concept}`)
+  try {
+    const res = await fetch(
+      `https://api.pexels.com/v1/search?query=${q}&per_page=3&orientation=landscape`,
+      { headers: { Authorization: key }, signal: AbortSignal.timeout(6000) }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    // Pick a photo based on seed for variety but stability
+    const photos = data?.photos ?? []
+    if (!photos.length) return null
+    const idx = makeSeed(concept, scene.id) % photos.length
+    return photos[idx]?.src?.large ?? photos[0]?.src?.large ?? null
+  } catch {
+    return null
+  }
+}
+
+// 3. LoremFlickr — free, no key, pulls real Flickr CC photos by keyword
 function loremFlickrUrl(scene: Scene): string {
   const keyword = encodeURIComponent(safeQuery(scene.unsplashQuery).split(" ").slice(0, 2).join(","))
   const seed = makeSeed(scene.id, scene.title)
   return `https://loremflickr.com/800/500/${keyword}?lock=${seed}`
 }
 
+// 4. Source Unsplash — free, no key, keyword-matched
 function sourceUnsplashUrl(scene: Scene): string {
   const keyword = encodeURIComponent(safeQuery(scene.unsplashQuery))
   const seed = makeSeed(scene.id, scene.title)
   return `https://source.unsplash.com/800x500/?${keyword}&sig=${seed}`
 }
 
+// 5. Picsum — always works, random but stable per seed (last resort)
 function picsumUrl(concept: string, scene: Scene): string {
   const seed = makeSeed(concept, scene.id, scene.title)
   return `https://picsum.photos/seed/${seed}/800/500`
@@ -101,20 +162,26 @@ async function urlLoads(url: string, timeoutMs = 6000): Promise<boolean> {
   }
 }
 
-// ── Main image fetcher: Pollinations → LoremFlickr → Unsplash → Picsum ───────
+// ── Main image fetcher: Wikimedia → Pexels → LoremFlickr → Unsplash → Picsum ─
 async function fetchScenePhoto(
   concept: string,
   scene: Scene
 ): Promise<{ url: string; alt: string }> {
   const alt = `${concept} — ${scene.title}`
 
-  // 1. Pollinations (AI-generated, most concept-accurate)
+  // 1. Wikimedia — free, unlimited, highly accurate for educational topics
   try {
-    const url = pollinationsUrl(concept, scene)
-    if (await urlLoads(url, 7000)) return { url, alt }
+    const url = await wikimediaImageUrl(concept, scene)
+    if (url) return { url, alt }
   } catch { /* fall through */ }
 
-  // 2. LoremFlickr (keyword-matched real photos, very reliable)
+  // 2. Pexels — free API key, unlimited, high quality (add NEXT_PUBLIC_PEXELS_KEY)
+  try {
+    const url = await pexelsImageUrl(concept, scene)
+    if (url) return { url, alt }
+  } catch { /* fall through */ }
+
+  // 3. LoremFlickr — no key needed, keyword-matched real photos
   try {
     const url = loremFlickrUrl(scene)
     if (await urlLoads(url, 5000)) return { url, alt }
@@ -182,7 +249,7 @@ export default function VisualLearner() {
       // Restore with Pollinations URL — SceneCard onError will cascade to fallbacks if needed
       const restored: SceneWithPhoto[] = parsed.scenes.map(s => ({
         ...s,
-        photoUrl: pollinationsUrl(parsed.concept, s),
+        photoUrl: loremFlickrUrl(s),
         photoAlt: `${parsed.concept} — ${s.title}`,
         photoLoading: false,
       }))
@@ -436,15 +503,16 @@ function SceneCard({ scene, index, concept }: { scene: SceneWithPhoto; index: nu
   const MUTED  = "#555"
   const FONT   = "'Inter', system-ui, sans-serif"
 
-  // DOM-level fallback cascade: if the <img> itself fails to render,
-  // swap to the next provider in the chain without any React re-render
+  // DOM-level fallback cascade: Wikimedia/Pexels already resolved by fetchScenePhoto.
+  // This handles render-time failures: LoremFlickr → Unsplash → Picsum
   const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget
     const src = img.src
     const seed = Math.abs((concept + scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0))
     const safeQ = safeQuery(scene.unsplashQuery)
 
-    if (src.includes("pollinations")) {
+    if (src.includes("wikipedia") || src.includes("wikimedia") || src.includes("pexels")) {
+      // Wikimedia/Pexels image failed at render time → try LoremFlickr
       const keyword = encodeURIComponent(safeQ.split(" ").slice(0, 2).join(","))
       img.src = `https://loremflickr.com/800/500/${keyword}?lock=${seed}`
     } else if (src.includes("loremflickr")) {
