@@ -151,7 +151,6 @@ export default function Practice() {
             staticChips={SUBJECTS.map(s => s.name)}
           />
           <div>
-          <div>
             <label className="text-sm font-semibold mb-2 block">Difficulty</label>
             <div className="flex gap-2">
               {(["easy", "mixed", "hard"] as const).map(d => (
@@ -166,7 +165,6 @@ export default function Practice() {
             </div>
           </div>
           {error && <div className="bg-red-500/10 border border-red-500/20 rounded-none p-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
-          {/* Skeleton while loading */}
           {isLoading && (
             <div className="pt-2">
               <QuestionSkeleton />
