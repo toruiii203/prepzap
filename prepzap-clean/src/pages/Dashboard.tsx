@@ -491,11 +491,12 @@ export default function Dashboard() {
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [sessionTitle,    setSessionTitle]    = useState("")
   const [sessionColor,    setSessionColor]    = useState(SESSION_PALETTE[0])
-  const [sessionDate,     setSessionDate]     = useState(() => new Date().toISOString().split("T")[0])
+  const localDateStr = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` }
+  const [sessionDate,     setSessionDate]     = useState(() => localDateStr())
   const [sessionDuration, setSessionDuration] = useState(30)
   const openSessionModal = (date?: string) => {
     setSessionTitle(""); setSessionColor(SESSION_PALETTE[0])
-    setSessionDate(date ?? new Date().toISOString().split("T")[0])
+    setSessionDate(date ?? localDateStr())
     setSessionDuration(30); setShowSessionModal(true)
   }
   const saveSession = async () => {
@@ -520,6 +521,33 @@ export default function Dashboard() {
     } catch {}
     setShowSessionModal(false)
   }
+
+  // ── Session edit state ──
+  const [editSession, setEditSession] = useState<{id:string;title:string;date:string;duration_minutes:number;color:string}|null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editColor, setEditColor] = useState("")
+  const [editDate, setEditDate] = useState("")
+  const [editDuration, setEditDuration] = useState(30)
+  const openEdit = (s: typeof editSession) => {
+    if (!s) return
+    setEditSession(s); setEditTitle(s.title); setEditColor(s.color); setEditDate(s.date); setEditDuration(s.duration_minutes)
+  }
+  const saveEdit = async () => {
+    if (!editSession || !editTitle.trim()) return
+    await supabase.from("study_sessions").update({ title:editTitle.trim(), color:editColor, date:editDate, duration_minutes:editDuration }).eq("id", editSession.id)
+    const updated = { ...editSession, title:editTitle.trim(), color:editColor, date:editDate, duration_minutes:editDuration }
+    setCalSessions(prev => prev.map(s => s.id===editSession.id ? updated : s))
+    const todayL = localDateStr()
+    setUpcomingSessions(prev => prev.map(s => s.id===editSession.id ? updated : s).filter(s=>s.date>=todayL).sort((a,b)=>a.date.localeCompare(b.date)))
+    setEditSession(null)
+  }
+  const deleteSession = async (id: string) => {
+    await supabase.from("study_sessions").delete().eq("id", id)
+    setCalSessions(prev => prev.filter(s => s.id !== id))
+    setUpcomingSessions(prev => prev.filter(s => s.id !== id))
+  }
+  const [calSessionsCollapsed, setCalSessionsCollapsed] = useState(false)
+  const [upcomingCollapsed, setUpcomingCollapsed] = useState(false)
 
   // Load calendar sessions
   useEffect(() => {
@@ -549,8 +577,10 @@ export default function Dashboard() {
       try{
         const{data:prof}=await supabase.from("profiles").select("xp,streak,plan").eq("id",user.id).maybeSingle()
         if(prof){setXp(prof.xp??0);setStreak(prof.streak??0)}
-        const today=new Date().toISOString().slice(0,10)
-        const weekAgo=new Date(Date.now()-7*86400000).toISOString().slice(0,10)
+        const _d=new Date(), _ld=`${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`
+        const today=_ld
+        const _w=new Date(_d); _w.setDate(_w.getDate()-7)
+        const weekAgo=`${_w.getFullYear()}-${String(_w.getMonth()+1).padStart(2,"0")}-${String(_w.getDate()).padStart(2,"0")}`
         // Weekly hours from study_sessions
         const{data:sess}=await supabase.from("study_sessions").select("duration_minutes").eq("user_id",user.id).gte("date",weekAgo)
         if(sess)setTodayMin(sess.reduce((s:number,r:any)=>s+(r.duration_minutes??0),0))
@@ -752,7 +782,7 @@ export default function Dashboard() {
             {/* Calendar + Sessions — same 2-col layout as before */}
             {(()=>{
               const today = new Date()
-              const todayStr = today.toISOString().slice(0,10)
+              const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`
               const firstDay = new Date(calYear, calMonth, 1).getDay()
               const daysInMonth = new Date(calYear, calMonth+1, 0).getDate()
               const monthLabel = new Date(calYear, calMonth).toLocaleString("default",{month:"long",year:"numeric"})
@@ -804,10 +834,19 @@ export default function Dashboard() {
 
                   {/* Right — selected day sessions (or today if nothing selected) */}
                   <div style={{...card,padding:12}}>
-                    <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555",marginBottom:7}}>
-                      {calSelectedDate
-                        ? new Date(calSelectedDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})
-                        : new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+                      <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555"}}>
+                        {calSelectedDate
+                          ? new Date(calSelectedDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})
+                          : new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+                      </div>
+                      {selectedSessions.length>0&&(
+                        <button onClick={()=>setCalSessionsCollapsed(c=>!c)}
+                          style={{background:"none",border:"none",color:"#444",fontSize:9,cursor:"pointer",padding:"0 2px",letterSpacing:"0.06em",fontFamily:"inherit",transition:"color .15s"}}
+                          onMouseEnter={e=>(e.currentTarget.style.color=TEAL)} onMouseLeave={e=>(e.currentTarget.style.color="#444")}>
+                          {calSessionsCollapsed?`show (${selectedSessions.length})`:"hide"}
+                        </button>
+                      )}
                     </div>
                     {selectedSessions.length===0?(
                       <div style={{textAlign:"center",paddingTop:10}}>
@@ -822,7 +861,7 @@ export default function Dashboard() {
                           + Add Session
                         </button>
                       </div>
-                    ):(
+                    ):!calSessionsCollapsed?(
                       <div style={{display:"flex",flexDirection:"column",gap:5}}>
                         {selectedSessions.map(s=>(
                           <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"rgba(20,20,20,0.7)",border:"0.5px solid #1E1E1E"}}>
@@ -831,6 +870,18 @@ export default function Dashboard() {
                               <div style={{fontSize:11,fontWeight:500,color:"#F0F0F0"}}>{s.title}</div>
                               <div style={{fontSize:9,color:"#555",fontFamily:"monospace"}}>{s.duration_minutes<60?`${s.duration_minutes}min`:`${s.duration_minutes/60}h`}</div>
                             </div>
+                            {/* Edit */}
+                            <button onClick={()=>openEdit(s)} title="Edit"
+                              style={{background:"none",border:"none",cursor:"pointer",color:"#333",padding:"2px 3px",lineHeight:1,transition:"color .15s"}}
+                              onMouseEnter={e=>(e.currentTarget.style.color=TEAL)} onMouseLeave={e=>(e.currentTarget.style.color="#333")}>
+                              <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            {/* Delete */}
+                            <button onClick={()=>deleteSession(s.id)} title="Remove"
+                              style={{background:"none",border:"none",cursor:"pointer",color:"#333",padding:"2px 3px",lineHeight:1,transition:"color .15s"}}
+                              onMouseEnter={e=>(e.currentTarget.style.color="#E84040")} onMouseLeave={e=>(e.currentTarget.style.color="#333")}>
+                              <X size={10}/>
+                            </button>
                           </div>
                         ))}
                         <button onClick={()=>openSessionModal(calSelectedDate??todayStr)}
@@ -840,7 +891,7 @@ export default function Dashboard() {
                           + Add another
                         </button>
                       </div>
-                    )}
+                    ):null}
                   </div>
                 </div>
               )
@@ -950,27 +1001,48 @@ export default function Dashboard() {
             <div style={{marginBottom:11}}>
               <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:7}}>
                 <svg viewBox="0 0 24 24" width={11} height={11} fill="none" stroke={GOLD} strokeWidth={1.7} strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-                <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555"}}>Upcoming</span>
+                <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",flex:1}}>Upcoming</span>
+                {upcomingSessions.length>0&&(
+                  <button onClick={()=>setUpcomingCollapsed(c=>!c)}
+                    style={{background:"none",border:"none",color:"#444",fontSize:8,cursor:"pointer",padding:0,letterSpacing:"0.06em",fontFamily:"inherit",transition:"color .15s"}}
+                    onMouseEnter={e=>(e.currentTarget.style.color=TEAL)} onMouseLeave={e=>(e.currentTarget.style.color="#444")}>
+                    {upcomingCollapsed?`show (${upcomingSessions.length})`:"hide"}
+                  </button>
+                )}
               </div>
               {upcomingSessions.length===0?(
                 <div style={{fontSize:10,color:"#333",padding:"4px 0 6px"}}>No upcoming sessions</div>
-              ):(
+              ):!upcomingCollapsed?(
                 <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                  {upcomingSessions.slice(0,5).map(s=>{
+                  {upcomingSessions.map(s=>{
                     const d=new Date(s.date+"T12:00:00")
                     const label=d.toLocaleDateString("en-US",{month:"short",day:"numeric"})
                     return (
                       <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"5px 0",borderBottom:"0.5px solid #141414"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
                           <div style={{width:7,height:7,borderRadius:"50%",background:s.color,flexShrink:0}}/>
-                          <span style={{fontSize:10,color:"#CCC",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>{s.title}</span>
+                          <span style={{fontSize:10,color:"#CCC",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{s.title}</span>
                         </div>
-                        <span style={{fontSize:9,color:"#444",flexShrink:0,marginLeft:4}}>{label}</span>
+                        <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0,marginLeft:4}}>
+                          <span style={{fontSize:9,color:"#444"}}>{label}</span>
+                          {/* Edit */}
+                          <button onClick={()=>openEdit(s)} title="Edit"
+                            style={{background:"none",border:"none",cursor:"pointer",color:"#333",padding:"1px 2px",lineHeight:1,transition:"color .15s"}}
+                            onMouseEnter={e=>(e.currentTarget.style.color=TEAL)} onMouseLeave={e=>(e.currentTarget.style.color="#333")}>
+                            <svg viewBox="0 0 24 24" width={9} height={9} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          {/* Delete */}
+                          <button onClick={()=>deleteSession(s.id)} title="Remove"
+                            style={{background:"none",border:"none",cursor:"pointer",color:"#333",padding:"1px 2px",lineHeight:1,transition:"color .15s"}}
+                            onMouseEnter={e=>(e.currentTarget.style.color="#E84040")} onMouseLeave={e=>(e.currentTarget.style.color="#333")}>
+                            <X size={9}/>
+                          </button>
+                        </div>
                       </div>
                     )
                   })}
                 </div>
-              )}
+              ):null}
             </div>
 
             <div style={{height:.5,background:"#1A1A1A",margin:"0 0 9px"}}/>
@@ -1076,6 +1148,74 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── Edit Session Modal ── */}
+      {editSession && (
+        <div style={{position:"fixed",inset:0,zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}} onClick={()=>setEditSession(null)}/>
+          <div style={{position:"relative",width:"100%",maxWidth:400,background:"#0E0E0E",border:"1px solid #252525",padding:20,zIndex:10,display:"flex",flexDirection:"column",gap:14}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontSize:13,fontWeight:700,letterSpacing:"0.04em"}}>Edit Session</span>
+              <button onClick={()=>setEditSession(null)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",padding:4}}><X size={14}/></button>
+            </div>
+            <div>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>Title</div>
+              <input autoFocus value={editTitle} onChange={e=>setEditTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEdit()}
+                style={{width:"100%",background:"#141414",border:"0.5px solid #252525",color:"#F0F0F0",fontSize:12,padding:"8px 10px",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+            </div>
+            <div>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>Color</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {SESSION_PALETTE.map(c=>(
+                  <button key={c} onClick={()=>setEditColor(c)}
+                    style={{width:18,height:18,borderRadius:"50%",background:c,border:"none",cursor:"pointer",
+                      outline:editColor===c?`2px solid ${c}`:"none",outlineOffset:2,
+                      transform:editColor===c?"scale(1.25)":"scale(1)",transition:"transform .15s"}}/>
+                ))}
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>Date</div>
+                <input type="date" value={editDate} onChange={e=>setEditDate(e.target.value)}
+                  style={{width:"100%",background:"#141414",border:"0.5px solid #252525",color:"#F0F0F0",fontSize:11,padding:"6px 8px",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#555",marginBottom:5}}>Duration</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                  {[15,30,45,60,90,120].map(d=>(
+                    <button key={d} onClick={()=>setEditDuration(d)}
+                      style={{padding:"3px 7px",fontSize:10,cursor:"pointer",fontFamily:"inherit",transition:"all .15s",
+                        background:editDuration===d?editColor:"#141414",
+                        color:editDuration===d?"#fff":"#555",
+                        border:`0.5px solid ${editDuration===d?editColor:"#252525"}`}}>
+                      {d<60?`${d}m`:`${d/60}h`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{ deleteSession(editSession.id); setEditSession(null) }}
+                style={{padding:"8px 12px",background:"transparent",border:"0.5px solid #3A1A1A",color:"#E84040",fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                onMouseEnter={e=>{e.currentTarget.style.background="#1A0808"}}
+                onMouseLeave={e=>{e.currentTarget.style.background="transparent"}}>
+                Delete
+              </button>
+              <button onClick={()=>setEditSession(null)}
+                style={{flex:1,padding:"8px 0",background:"transparent",border:"0.5px solid #252525",color:"#555",fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="#555"}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="#252525"}}>
+                Cancel
+              </button>
+              <button onClick={saveEdit} disabled={!editTitle.trim()}
+                style={{flex:1,padding:"8px 0",background:editTitle.trim()?editColor:"#1A1A1A",border:"none",color:editTitle.trim()?"#fff":"#333",fontSize:11,fontWeight:600,cursor:editTitle.trim()?"pointer":"default",fontFamily:"inherit",transition:"all .2s"}}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Add Session Modal ── */}
       {showSessionModal && (
