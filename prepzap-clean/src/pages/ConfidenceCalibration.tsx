@@ -1,5 +1,6 @@
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react";
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 
 
 import { ToolHeader } from "@/components/ToolShell";
@@ -142,15 +143,11 @@ Make concepts specific and testable — not too broad.`;
         {/* SETUP */}
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
-            <div>
-              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Subject</label>
-              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Human Anatomy, JavaScript..."
-                className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
-              {hasSource && !subject.trim() && <p className="text-xs mt-1" style={{ color: "var(--pz-gold)" }}>⚡ Leave blank to use your active source library</p>}
-            </div>
-            <Button onClick={handleGenerate} disabled={loading || (!subject.trim() && !hasSource)} className="w-full py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
-              {loading ? "Generating concepts..." : "Start Calibration →"}
-            </Button>
+            <ConceptChipSelector
+              onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
+              placeholder="e.g. Human Anatomy, JavaScript…"
+              label="Subject"
+            />
 
             {history.length > 0 && (
               <div className="mt-6">

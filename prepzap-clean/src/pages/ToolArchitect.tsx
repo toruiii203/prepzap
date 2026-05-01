@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { Link } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
@@ -187,26 +188,14 @@ export default function ToolArchitect() {
                 <div className="flex items-center gap-2 px-3 py-2 rounded-none text-xs" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
                   <span style={{ color: "var(--pz-text-muted)" }}>Context:</span>
                   <span className="font-medium truncate max-w-xs" style={{ color: "var(--pz-teal)" }}>{activeSourceName}</span>
-                  <Button
-                    size="sm"
-                    onClick={() => generate(activeSourceName.replace(/\.\w+$/, ""))}
-                    className="ml-auto h-6 text-xs px-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white hover:opacity-90"
-                  >
-                    ⚡ Generate Roadmap
-                  </Button>
                 </div>
               )}
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  placeholder="What do you want to learn? (e.g. Machine Learning, Guitar, Spanish)"
-                  value={input} onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && input.trim() && generate(input.trim())}
-                />
-                <Button onClick={() => input.trim() && generate(input.trim())} disabled={!input.trim()} className="bg-gradient-to-r from-amber-500 to-yellow-600 text-white hover:opacity-90 px-5 gap-2">
-                  <Sparkles className="h-4 w-4"/>Generate
-                </Button>
-              </div>
+              <ConceptChipSelector
+                onSelect={(topic) => generate(topic)}
+                placeholder="e.g. Machine Learning, Guitar, Spanish…"
+                label="What do you want to learn?"
+                staticChips={TOPIC_CATEGORIES.flatMap(c => c.topics).slice(0, 8)}
+              />
               {error && <p className="text-sm text-red-500 bg-red-500/10 rounded-none p-3">{error}</p>}
               {TOPIC_CATEGORIES.map(cat => (
                 <div key={cat.label}>

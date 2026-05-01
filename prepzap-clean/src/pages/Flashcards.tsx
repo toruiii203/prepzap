@@ -17,6 +17,7 @@ import {
   type HistoryEntry
 } from "@/components/ToolShell";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { ToolPageShell, useModel } from "@/components/ToolPageShell";
 import { useToolHistory, ToolHistoryPanel, HistoryButton } from "@/components/ToolHistory";
 
@@ -156,9 +157,12 @@ export default function Flashcards() {
             <span className="font-semibold">Generate a Deck</span>
           </div>
 
-          <input className="w-full px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder={hasSource && !topicInput ? "Leave blank to generate from active source, or type a topic..." : "e.g. Mitosis and Meiosis, Newton's Laws, Cold War..."}
-            value={topicInput} onChange={e => setTopicInput(e.target.value)} onKeyDown={e => e.key === "Enter" && generateCards()} />
+          <ConceptChipSelector
+            onSelect={(concept) => { setTopicInput(concept); setTimeout(() => { setTopicInput(concept); generateCards(); }, 0); }}
+            placeholder="e.g. Mitosis and Meiosis, Newton's Laws, Cold War…"
+            label="Topic"
+            staticChips={SAMPLE_TOPICS.map(t => t.name)}
+          />
 
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm text-muted-foreground">Cards:</span>
@@ -169,20 +173,7 @@ export default function Flashcards() {
                 {n}
               </button>
             ))}
-            <Button onClick={generateCards} disabled={(!topicInput.trim() && !hasSource) || isLoading}
-              className="ml-auto bg-gradient-to-r from-violet-500 to-zinc-600 text-white hover:opacity-90">
-              {isLoading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-none animate-spin mr-2" />Generating...</> : <><Sparkles className="h-4 w-4 mr-2" />Generate</>}
-            </Button>
           </div>
-
-          {hasSource && !topicInput.trim() && (
-            <button onClick={generateCards} disabled={isLoading}
-              className="w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-              style={{ background: "rgba(0,196,180,0.08)", border: "1px solid rgba(0,196,180,0.25)", color: "#00C4B4" }}>
-              <Sparkles className="h-4 w-4" />
-              Generate from Active Source
-            </button>
-          )}
 
           {isLoading && (
             <div className="space-y-2 mt-2">

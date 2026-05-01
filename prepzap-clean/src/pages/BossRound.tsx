@@ -1,5 +1,6 @@
 import { QuestionSkeleton } from "@/components/SkeletonLoader";
 import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { buildAIContext } from "@/lib/sourceContext";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -139,18 +140,11 @@ export default function BossRound() {
               </div>
             </div>
             <div className="bg-card border border-border rounded-none p-5 space-y-4">
-              <div>
-                <label className="font-semibold text-sm block mb-2">What topic do you want to be tested on?</label>
-                <div className="flex gap-2">
-                  <input
-                    value={topicInput}
-                    onChange={e => setTopicInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && !isLoading && start()}
-                    placeholder="e.g. Cell Biology, World War 2, Calculus, Python..."
-                    className="flex-1 px-4 py-3 rounded-none border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40 placeholder:text-muted-foreground"
-                  />
-                </div>
-              </div>
+              <ConceptChipSelector
+                onSelect={(concept) => { setTopicInput(concept); setTimeout(() => start(), 0); }}
+                placeholder="e.g. Cell Biology, World War 2, Calculus, Python…"
+                label="What topic do you want to be tested on?"
+              />
               <div>
                 <label className="font-semibold text-sm block mb-2">Difficulty</label>
                 <div className="flex gap-2 flex-wrap">
@@ -169,16 +163,6 @@ export default function BossRound() {
                   {[...Array(4)].map((_,i) => <div key={i} className="h-10 rounded-none bg-muted animate-pulse" />)}
                 </div>
               )}
-              {buildAIContext().length > 0 && !topicInput.trim() && (
-                <button onClick={start} disabled={isLoading}
-                  className="w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80 mb-2"
-                  style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
-                  <span>⚡</span> Start Boss Round from Active Source
-                </button>
-              )}
-              <Button onClick={start} disabled={isLoading || (!topicInput.trim() && buildAIContext().length === 0)} className="w-full h-12 bg-gradient-to-r from-yellow-500 to-amber-500 text-white hover:opacity-90 text-base font-bold disabled:opacity-50">
-                {isLoading?<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-none animate-spin"/>:<><Zap className="h-5 w-5 mr-2"/>Start Boss Round</>}
-              </Button>
             </div>
           </div>
         )}

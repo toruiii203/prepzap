@@ -1,5 +1,6 @@
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect, useRef } from "react";
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 
 
 import { ToolHeader } from "@/components/ToolShell";
@@ -109,12 +110,11 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--pz-rose)" }} />
               <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>Emergency mode — walks you through each topic with a live timer. Stay focused.</p>
             </div>
-            <div>
-              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Subject / Topic</label>
-              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Organic Chemistry, WW2, Calculus..."
-                className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
-              {hasSource && !subject.trim() && <p className="text-xs mt-1" style={{ color: "var(--pz-gold)" }}>⚡ Leave blank to use your active source library</p>}
-            </div>
+            <ConceptChipSelector
+              onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
+              placeholder="e.g. Organic Chemistry, WW2, Calculus…"
+              label="Subject / Topic"
+            />
             <div>
               <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Time Available</label>
               <div className="flex gap-2 flex-wrap">
@@ -126,9 +126,6 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
                 ))}
               </div>
             </div>
-            <Button onClick={handleGenerate} disabled={loading || (!subject.trim() && !hasSource)} className="w-full py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
-              {loading ? "Building session..." : "Start Cram Session →"}
-            </Button>
           </div>
         )}
 

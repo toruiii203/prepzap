@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,18 @@ export default function BlankMap() {
     if (!top) return;
     setTopic(top); setNodes([]); setEdges([]); setPhase("mapping"); setIdeal(null);
   };
+
+  // Auto-start from active source on mount
+  useEffect(() => {
+    const src = getActiveSource();
+    if (src) {
+      const name = src.name.replace(/\.\w+$/, "");
+      setTopic(name);
+      setNodes([]);
+      setEdges([]);
+      setPhase("mapping");
+    }
+  }, []);
 
   const addNode = () => {
     if (!newNode.trim()) return;
@@ -118,24 +131,13 @@ export default function BlankMap() {
               <h2 className="text-xl font-bold">Blank Map</h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">Pick a topic, add concepts as nodes, draw the connections between them. Then submit — AI reveals the ideal map and scores your understanding.</p>
             </div>
-            <div className="bg-card border border-border rounded-none p-5 space-y-4">
-              <label className="font-semibold text-sm">Topic to map</label>
-              {buildAIContext().length > 0 && !topicInput.trim() && (
-                <button onClick={() => start()} className="w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                  style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
-                  ⚡ Map "{getActiveSource()?.name?.replace(/\.\w+$/, "") ?? "Active Source"}"
-                </button>
-              )}
-              <div className="flex gap-2">
-                <input className="flex-1 px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
-                  placeholder="e.g. Photosynthesis, Newton's Laws..."
-                  value={topicInput} onChange={e=>setTopicInput(e.target.value)}
-                  onKeyDown={e=>e.key==="Enter"&&start()}/>
-                <Button onClick={()=>start()} disabled={!topicInput.trim() && buildAIContext().length === 0} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:opacity-90">Start</Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {TOPICS.map(t=><button key={t} onClick={()=>start(t)} className="text-xs px-3 py-1.5 rounded-none border border-border hover:border-teal-400 hover:text-teal-500 transition-all">{t}</button>)}
-              </div>
+            <div className="bg-card border border-border rounded-none p-5">
+              <ConceptChipSelector
+                onSelect={(t) => start(t)}
+                placeholder="e.g. Photosynthesis, Newton's Laws…"
+                label="Topic to map"
+                staticChips={TOPICS}
+              />
             </div>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState } from "react";
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 
 
 import { ToolHeader } from "@/components/ToolShell";
@@ -134,22 +135,16 @@ Mix question types: definition, application, comparison.`;
         <ToolHeader icon={<TrendingUp className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="High Yield Detector" subtitle="Find what's most testable — then drill it instantly" />
 
         <div className="space-y-3 mt-6">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Subject</label>
-              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Biochemistry..."
-                className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
-              {hasSource && !subject.trim() && <p className="text-xs mt-1" style={{ color: "var(--pz-gold)" }}>⚡ Uses source library</p>}
-            </div>
-            <div>
-              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Exam Type</label>
-              <input value={examType} onChange={e => setExamType(e.target.value)} placeholder="e.g. USMLE, SAT..."
-                className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
-            </div>
+          <ConceptChipSelector
+            onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
+            placeholder="e.g. Biochemistry, Calculus, WW2…"
+            label="Subject"
+          />
+          <div>
+            <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Exam Type (optional)</label>
+            <input value={examType} onChange={e => setExamType(e.target.value)} placeholder="e.g. USMLE, SAT…"
+              className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
           </div>
-          <Button onClick={handleGenerate} disabled={loading || (!subject.trim() && !hasSource)} className="w-full py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
-            {loading ? "Analysing..." : "Find High-Yield Concepts →"}
-          </Button>
         </div>
 
         {concepts.length > 0 && (

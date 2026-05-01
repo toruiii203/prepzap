@@ -1,4 +1,5 @@
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { QuestionSkeleton } from "@/components/SkeletonLoader";
 import { buildAIContext, loadLibrary, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
@@ -143,20 +144,13 @@ export default function Practice() {
           </button>
           </div>
         <div className="bg-card border border-border rounded-none p-6 space-y-5">
+          <ConceptChipSelector
+            onSelect={(concept) => startQuiz(concept)}
+            placeholder="e.g. Krebs Cycle, WW2 Causes, Newton's Laws…"
+            label="Subject / Topic"
+            staticChips={SUBJECTS.map(s => s.name)}
+          />
           <div>
-            <label className="text-sm font-semibold mb-2 block">Pick a subject or enter your own topic</label>
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {SUBJECTS.map(s => (
-                <button key={s.name} onClick={() => { setSubject(s.name); setCustomTopic(""); }}
-                  className={cn("flex items-center gap-2 px-3 py-2.5 rounded-none border text-sm font-medium transition-all", subject === s.name && !customTopic ? s.color : "border-border hover:border-primary bg-card")}>
-                  <span>{s.emoji}</span>{s.name}
-                </button>
-              ))}
-            </div>
-            <input className="w-full px-4 py-3 rounded-none border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Or type a specific topic: e.g. Krebs Cycle, WW2 Causes..."
-              value={customTopic} onChange={e => { setCustomTopic(e.target.value); setSubject(""); }} />
-          </div>
           <div>
             <label className="text-sm font-semibold mb-2 block">Difficulty</label>
             <div className="flex gap-2">
@@ -172,44 +166,6 @@ export default function Practice() {
             </div>
           </div>
           {error && <div className="bg-red-500/10 border border-red-500/20 rounded-none p-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
-
-          {/* ── Generate from Active Source ── */}
-          {activeSource ? (
-            <div
-              className="rounded-none border p-3 flex items-center justify-between gap-3"
-              style={{ background: "rgba(212,175,90,0.06)", borderColor: "rgba(212,175,90,0.3)" }}>
-              <div className="flex items-center gap-2 min-w-0">
-                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="var(--pz-gold, #E8B923)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-                </svg>
-                <span className="text-xs font-medium truncate" style={{ color: "var(--pz-gold, #E8B923)" }}>
-                  Active: <span className="font-semibold">{activeSource.name ?? "Source"}</span>
-                </span>
-              </div>
-              <button
-                onClick={() => startQuiz(activeSource.name?.replace(/\.[^.]+$/, "") || "the source material")}
-                disabled={isLoading}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-40"
-                style={{ background: "rgba(212,175,90,0.15)", border: "1px solid rgba(212,175,90,0.4)", color: "var(--pz-gold, #E8B923)" }}>
-                <Sparkles className="h-3 w-3" />
-                Generate from Source
-              </button>
-            </div>
-          ) : (
-            buildAIContext().length > 0 && !topic && (
-              <button onClick={() => startQuiz("the source material")}
-                disabled={isLoading}
-                className="w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                style={{ background: "rgba(212,175,90,0.08)", border: "1px solid rgba(212,175,90,0.3)", color: "var(--pz-gold, #E8B923)" }}>
-                <Sparkles className="h-4 w-4" />
-                Generate Questions from Active Source
-              </button>
-            )
-          )}
-
-          <Button onClick={() => startQuiz()} disabled={(!topic && buildAIContext().length === 0 && !activeSource) || isLoading} className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:opacity-90 h-12">
-            {isLoading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-none animate-spin mr-2" />Generating Questions...</> : <><Sparkles className="h-4 w-4 mr-2" />Start Practice</>}
-          </Button>
           {/* Skeleton while loading */}
           {isLoading && (
             <div className="pt-2">

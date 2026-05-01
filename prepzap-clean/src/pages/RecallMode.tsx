@@ -1,5 +1,6 @@
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useRef, useEffect } from "react";
+import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 
 
 import { ToolHeader } from "@/components/ToolShell";
@@ -117,15 +118,11 @@ keywords: 4-6 essential words from the answer that a correct response would incl
 
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
-            <div>
-              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Subject</label>
-              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Photosynthesis, The Cold War..."
-                className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
-              {hasSource && !subject.trim() && <p className="text-xs mt-1" style={{ color: "var(--pz-gold)" }}>⚡ Leave blank to use your active source library</p>}
-            </div>
-            <Button onClick={handleGenerate} disabled={loading || (!subject.trim() && !hasSource)} className="w-full py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000" }}>
-              {loading ? "Generating..." : "Start Recall Session →"}
-            </Button>
+            <ConceptChipSelector
+              onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
+              placeholder="e.g. Photosynthesis, The Cold War…"
+              label="Subject"
+            />
 
             {history.length > 0 && (
               <div className="mt-4">
