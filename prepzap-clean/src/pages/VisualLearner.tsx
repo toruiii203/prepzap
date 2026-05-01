@@ -40,6 +40,7 @@ interface Scene {
   anchorPhrase: string
   whyItWorks: string
   unsplashQuery: string
+  exactWikipediaTitle?: string  // Groq-supplied exact Wikipedia article title for direct lookup
 }
 
 interface StoryboardResult {
@@ -63,41 +64,64 @@ function makeSeed(...parts: string[]): number {
 // ── Image provider URL builders ───────────────────────────────────────────────
 
 // 1. Wikimedia/Wikipedia — free, unlimited, no key needed.
-//    Searches Wikipedia for the concept + scene title and grabs the lead image.
-//    Best for science, history, biology, geography — canonical, accurate images.
+//    Step 1: If Groq supplied an exactWikipediaTitle, do a direct article lookup (fastest, most accurate).
+//    Step 2: Fall back to keyword search, shortest/most specific first.
 async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string | null> {
-  // Try scene title first, then concept, then unsplashQuery words
-  const queries = [
-    `${scene.title} ${concept}`,
-    concept,
-    safeQuery(scene.unsplashQuery),
-  ]
 
-  for (const q of queries) {
+  // ── Helper: fetch lead image for a known Wikipedia article title ─────────
+  async function fetchImageForTitle(articleTitle: string): Promise<string | null> {
+    try {
+      const title = encodeURIComponent(articleTitle)
+      const res = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&titles=${title}&prop=pageimages&pithumbsize=800&format=json&origin=*`,
+        { signal: AbortSignal.timeout(5000) }
+      )
+      if (!res.ok) return null
+      const data = await res.json()
+      const pages = Object.values(data?.query?.pages ?? {}) as any[]
+      const thumb = pages[0]?.thumbnail?.source
+      if (thumb && !thumb.includes("Flag_of") && !thumb.includes("OOjs") && !thumb.includes("commons-logo")) {
+        return thumb
+      }
+    } catch { /* fall through */ }
+    return null
+  }
+
+  // ── Step 1: Direct lookup via Groq-supplied exact Wikipedia article title ─
+  if (scene.exactWikipediaTitle) {
+    const img = await fetchImageForTitle(scene.exactWikipediaTitle)
+    if (img) return img
+  }
+
+  // ── Step 2: Keyword search — shortest/most specific first ─────────────────
+  const queryWords = safeQuery(scene.unsplashQuery).split(" ").filter(w => w.length > 2)
+  const coreKeyword = queryWords.slice(0, 2).join(" ")
+  const shortPhrase = queryWords.slice(0, 3).join(" ")
+  const fullQuery   = safeQuery(scene.unsplashQuery)
+
+  const searchQueries = [
+    coreKeyword,
+    shortPhrase,
+    fullQuery,
+    concept,
+    `${coreKeyword} ${concept}`,
+  ].filter((q, i, arr) => q.trim() && arr.indexOf(q) === i) // dedupe
+
+  for (const q of searchQueries) {
     try {
       const search = encodeURIComponent(q)
-      // Step 1: find the top Wikipedia article for the query
       const searchRes = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${search}&srlimit=3&format=json&origin=*`,
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${search}&srlimit=5&format=json&origin=*`,
         { signal: AbortSignal.timeout(5000) }
       )
       if (!searchRes.ok) continue
       const searchData = await searchRes.json()
-      const pages = searchData?.query?.search ?? []
+      const pages: Array<{ title: string }> = searchData?.query?.search ?? []
       if (!pages.length) continue
 
-      // Step 2: for each result, try to get the page image
-      for (const page of pages.slice(0, 2)) {
-        const title = encodeURIComponent(page.title)
-        const imgRes = await fetch(
-          `https://en.wikipedia.org/w/api.php?action=query&titles=${title}&prop=pageimages&pithumbsize=800&format=json&origin=*`,
-          { signal: AbortSignal.timeout(5000) }
-        )
-        if (!imgRes.ok) continue
-        const imgData = await imgRes.json()
-        const imgPages = Object.values(imgData?.query?.pages ?? {}) as any[]
-        const thumb = imgPages[0]?.thumbnail?.source
-        if (thumb) return thumb
+      for (const page of pages.slice(0, 3)) {
+        const img = await fetchImageForTitle(page.title)
+        if (img) return img
       }
     } catch { /* try next query */ }
   }
@@ -282,12 +306,13 @@ Return ONLY valid JSON (no markdown, no backticks):
       "title": "<scene title, 3-5 words>",
       "anchorPhrase": "<1 sentence the student says when they see this image>",
       "whyItWorks": "<1 sentence explaining the memory connection>",
-      "unsplashQuery": "<Wikipedia-optimized search phrase: use the exact scientific/historical term plus diagram or photograph where applicable. Examples: water cycle evaporation diagram, mitosis cell division diagram, black hole event horizon photograph, French Revolution guillotine, supply demand curve economics. Must be 3-7 words, highly specific, matching a real Wikipedia article title or image.>"
+      "unsplashQuery": "<3-7 word image search phrase, specific and visual. Examples: evaporation water sunlight, mitosis cell division, black hole event horizon, guillotine French Revolution, supply demand curve>",
+      "exactWikipediaTitle": "<The EXACT title of the most relevant Wikipedia article for this scene's image. Must be a real Wikipedia article title you are confident exists. Examples: Evaporation, Mitosis, Black hole, Guillotine, Supply and demand. If unsure, leave as empty string.>"
     }
   ]
 }
 Generate 4 scenes. Make each scene visually distinct and directly tied to the concept.
-Each unsplashQuery must target a SPECIFIC Wikipedia-searchable subject — not vague words like evaporation alone, but water evaporation sunlight ocean diagram.
+The exactWikipediaTitle is the most important field — it should be the precise Wikipedia article title whose lead image best represents this scene. Think: what would you search on Wikipedia to find the perfect image?
 If source material is provided, base the scenes on its actual content, not general knowledge.\${context}`
 
     try {
@@ -351,7 +376,8 @@ Return ONLY valid JSON (no markdown, no backticks):
   "title": "<scene title, 3-5 words>",
   "anchorPhrase": "<1 sentence the student says when they see this image>",
   "whyItWorks": "<1 sentence explaining the memory connection>",
-  "unsplashQuery": "<Wikipedia-optimized search phrase: exact scientific/historical term plus diagram or photograph where applicable. 3-7 words, matching a real Wikipedia article title or image.>"
+  "unsplashQuery": "<3-7 word image search phrase, specific and visual>",
+  "exactWikipediaTitle": "<Exact Wikipedia article title whose lead image best represents this scene. Must be a real article you are confident exists. Leave as empty string if unsure.>"
 }
 Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
 
