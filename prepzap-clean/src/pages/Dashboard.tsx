@@ -72,6 +72,11 @@ const quickActions = [
   { href:"/build-def",      label:"Concepts",    description:"Build definitions from memory" },
   { href:"/tool-architect", label:"Roadmap",     description:"Zero to mastery on any topic" },
   { href:"/mistakes",       label:"Mistakes",    description:"Track & fix errors" },
+  // ── Visual & creative tools ───────────────────────────────────────────────
+  { href:"/visual-learner",  label:"Visual Learner", description:"See it to remember it" },
+  { href:"/flip-script",     label:"Flip Script",    description:"Rewrite to understand" },
+  { href:"/focus-state",     label:"Focus State",    description:"Deep focus mode" },
+  { href:"/boss-round",      label:"Boss Round",     description:"Ultimate challenge mode" },
   // ── Tracking & utilities ──────────────────────────────────────────────────
   { href:"/sources",        label:"Sources",     description:"Your study files" },
   { href:"/timer",          label:"Pomodoro",    description:"Focus timer with sounds" },
@@ -334,6 +339,10 @@ const DASH_TOOLS = [
   {href:"/high-yield",label:"High Yield",desc:"Most testable"},
   {href:"/mistakes",label:"Mistakes",desc:"Track & fix errors"},
   {href:"/recall",label:"Recall Mode",desc:"Type from memory"},
+  {href:"/visual-learner",label:"Visual Learner",desc:"See it to remember it"},
+  {href:"/flip-script",label:"Flip Script",desc:"Rewrite to understand"},
+  {href:"/focus-state",label:"Focus State",desc:"Deep focus mode"},
+  {href:"/boss-round",label:"Boss Round",desc:"Ultimate challenge"},
   {href:"/study-dna",label:"Study DNA",desc:"Your learner profile"},
   {href:"/settings",label:"Settings",desc:"Preferences & plan"},
 ]

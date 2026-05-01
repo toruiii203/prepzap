@@ -42,11 +42,11 @@ interface ChatSession {
 }
 
 type TutorMode = "explain" | "quiz" | "analogy" | "eli5" | "debate" | "summary";
-type ModelId = "meta-llama/llama-3.1-8b-instruct:free" | "claude-3-5-sonnet" | "gpt-4o";
+type ModelId = "google/gemini-2.0-flash-exp:free" | "claude-3-5-sonnet" | "gpt-4o";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODELS: { id: string; label: string; provider: string; badge: string; badgeColor: string; routerModel: string }[] = [
-  { id: "meta-llama/llama-3.1-8b-instruct:free",  label: "Llama 3.1 8B",    provider: "OpenRouter", badge: "Fast",     badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20",   routerModel: "meta-llama/llama-3.1-8b-instruct:free" },
+  { id: "google/gemini-2.0-flash-exp:free",  label: "Llama 3.1 8B",    provider: "OpenRouter", badge: "Fast",     badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20",   routerModel: "google/gemini-2.0-flash-exp:free" },
   { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B",   provider: "OpenRouter", badge: "Balanced", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20", routerModel: "meta-llama/llama-3.3-70b-instruct:free" },
   { id: "google/gemini-2.0-flash-exp:free",        label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart",    badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", routerModel: "google/gemini-2.0-flash-exp:free" },
 ];
@@ -331,7 +331,7 @@ export default function AiTutor() {
   const [showModes, setShowModes] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<string>("meta-llama/llama-3.1-8b-instruct:free");
+  const [activeModel, setActiveModel] = useState<string>("google/gemini-2.0-flash-exp:free");
   const [showModelMenu, setShowModelMenu] = useState(false);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);

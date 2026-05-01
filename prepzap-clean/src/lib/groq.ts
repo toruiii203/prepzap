@@ -5,8 +5,8 @@
 
 const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
 
-const DEFAULT_MODEL = "meta-llama/llama-3.1-8b-instruct:free";
-const VISION_MODEL  = "meta-llama/llama-3.2-11b-vision-instruct:free";
+const DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";
+const VISION_MODEL  = "google/gemini-2.0-flash-exp:free";
 
 export interface GroqMessage {
   role: "system" | "user" | "assistant";

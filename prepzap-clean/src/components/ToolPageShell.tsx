@@ -292,7 +292,7 @@ function StudyToolsDropdown() {
 
 // ─── Model Selector ───────────────────────────────────────────────────────────
 export const AI_MODELS = [
-  { id: "meta-llama/llama-3.1-8b-instruct:free",  label: "Llama 3.1 8B",    provider: "OpenRouter", badge: "Fast" },
+  { id: "google/gemini-2.0-flash-exp:free",  label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Fast" },
   { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B",   provider: "OpenRouter", badge: "Balanced" },
   { id: "google/gemini-2.0-flash-exp:free",        label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart" },
 ] as const
@@ -303,7 +303,7 @@ export const MODEL_KEY = "studenius_selected_model"
 export function useModel() {
   const [model, setModelState] = useState<ModelId>(() => {
     const saved = localStorage.getItem(MODEL_KEY)
-    return (AI_MODELS.find(m => m.id === saved)?.id ?? "meta-llama/llama-3.1-8b-instruct:free") as ModelId
+    return (AI_MODELS.find(m => m.id === saved)?.id ?? "google/gemini-2.0-flash-exp:free") as ModelId
   })
   const setModel = (id: ModelId) => { setModelState(id); localStorage.setItem(MODEL_KEY, id) }
   return { model, setModel }
