@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase"
 import { levelFromXp, xpToNextLevel, xpProgressPercent, tierFromLevel, tierEmojiFromLevel } from "@/lib/xp"
 
 // ─── Theme Types ──────────────────────────────────────────────────────────────
-type BgTheme = "pure" | "starfield" | "nebula" | "aurora" | "pulse"
+type BgTheme = "pure" | "starfield" | "planets" | "milkyway" | "cosmos"
 
 // ─── Data Types ───────────────────────────────────────────────────────────────
 interface CheckItem  { id: string; text: string; done: boolean }
@@ -123,31 +123,35 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       vy: (Math.random() - 0.5) * 0.00008,  // drift velocity Y
     }))
 
-    // BUG 3 FIX: nebula clouds are off-center, multi-color (purple/magenta/teal/indigo), larger spread
-    const NEBULA_COLORS = [
-      "100,40,220",   // deep purple
-      "180,0,180",    // magenta
-      "0,196,180",    // teal
-      "60,0,200",     // indigo
-      "220,60,120",   // rose-purple
-      "0,120,220",    // blue
-      "140,0,255",    // violet
+    // ── Planets theme data ────────────────────────────────────────────────────
+    const PLANET_DEFS = [
+      { color: "180,120,60",  ring: true,  r: 18, orbitR: 0.38, orbitY: 0.42, speed: 0.00018, phase: 0.0 },
+      { color: "100,160,220", ring: false, r: 11, orbitR: 0.28, orbitY: 0.58, speed: 0.00028, phase: 1.8 },
+      { color: "220,80,60",   ring: false, r:  8, orbitR: 0.18, orbitY: 0.30, speed: 0.00042, phase: 3.5 },
+      { color: "160,200,140", ring: false, r:  6, orbitR: 0.44, orbitY: 0.72, speed: 0.00022, phase: 2.1 },
+      { color: "220,180,100", ring: true,  r: 13, orbitR: 0.50, orbitY: 0.55, speed: 0.00014, phase: 5.0 },
     ]
-    const clouds = Array.from({ length: 12 }, (_, i) => ({
-      x: Math.random(),
-      y: Math.random(),
-      rx: 0.14 + Math.random() * 0.20,   // bigger clouds
-      ry: 0.08 + Math.random() * 0.14,
-      dx: (Math.random() - 0.5) * 0.00005,
-      dy: (Math.random() - 0.5) * 0.00003,
-      color: NEBULA_COLORS[i % NEBULA_COLORS.length],
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.002 + Math.random() * 0.003,
-    }))
+    const planets = PLANET_DEFS.map(p => ({ ...p }))
+    let planetTick = 0
 
-    // BUG 1 FIX: separate aurora and pulse state — no more shared variable
-    let auroraTick = 0
-    let pulseVal = 0, pulseDelta = 0.012
+    // ── Milky Way theme data ───────────────────────────────────────────────────
+    const mwStars = Array.from({ length: 500 }, () => ({
+      x: Math.random(), y: Math.random(),
+      r: Math.random() * 1.0 + 0.2,
+      brightness: Math.random(),
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.003 + Math.random() * 0.006,
+    }))
+    let mwAngle = 0
+
+    // ── Cosmos (vortex) theme data ─────────────────────────────────────────────
+    let cosmosTick = 0
+    const cosmosRings = Array.from({ length: 8 }, (_, i) => ({
+      baseRadius: 0.04 + i * 0.055,
+      color: i % 3 === 0 ? "0,196,180" : i % 3 === 1 ? "120,60,220" : "220,120,60",
+      speed: 0.008 + i * 0.003,
+      offset: (i * Math.PI) / 4,
+    }))
 
     const draw = () => {
       ctx.clearRect(0, 0, W, H)
@@ -171,66 +175,147 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
         }
       }
 
-      if (t === "nebula") {
-        // BUG 3 FIX: multi-color off-center drifting clouds — distinctly different from pulse
-        for (const c of clouds) {
-          c.x += c.dx; c.y += c.dy
-          if (c.x < -0.25) c.x = 1.25; if (c.x > 1.25) c.x = -0.25
-          if (c.y < -0.2) c.y = 1.2; if (c.y > 1.2) c.y = -0.2
-          c.phase += c.speed
-          const a = (Math.sin(c.phase) + 1) * 0.07 + 0.03
-          const cx = c.x * W, cy = c.y * H
-          const rx = c.rx * W, ry = c.ry * H
-          const sy = ry / rx
-          ctx.save()
-          ctx.scale(1, sy)
-          const gr = ctx.createRadialGradient(cx, cy / sy, 0, cx, cy / sy, rx)
-          gr.addColorStop(0, `rgba(${c.color},${a * 1.8})`)
-          gr.addColorStop(0.4, `rgba(${c.color},${a})`)
-          gr.addColorStop(1, "rgba(0,0,0,0)")
+      if (t === "planets") {
+        planetTick++
+        // Background dust stars
+        for (const s of stars) {
+          s.phase += s.speed * 0.3
+          const a = (Math.sin(s.phase) + 1) * 0.25 + 0.05
           ctx.beginPath()
-          ctx.arc(cx, cy / sy, rx, 0, Math.PI * 2)
-          ctx.fillStyle = gr
+          ctx.arc(s.x * W, s.y * H, s.r * 0.6, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(220,220,255,${a})`
           ctx.fill()
-          ctx.restore()
+        }
+        // Draw each planet orbiting
+        for (const p of planets) {
+          const angle = planetTick * p.speed + p.phase
+          const px = W / 2 + Math.cos(angle) * p.orbitR * W
+          const py = p.orbitY * H + Math.sin(angle) * p.orbitR * W * 0.18
+          // Planet body glow
+          const glow = ctx.createRadialGradient(px - p.r * 0.3, py - p.r * 0.3, p.r * 0.1, px, py, p.r * 1.8)
+          glow.addColorStop(0, `rgba(${p.color},0.15)`)
+          glow.addColorStop(1, "rgba(0,0,0,0)")
+          ctx.fillStyle = glow
+          ctx.beginPath()
+          ctx.arc(px, py, p.r * 1.8, 0, Math.PI * 2)
+          ctx.fill()
+          // Planet body
+          const grad = ctx.createRadialGradient(px - p.r * 0.3, py - p.r * 0.3, 0, px, py, p.r)
+          grad.addColorStop(0, `rgba(${p.color},0.95)`)
+          grad.addColorStop(0.6, `rgba(${p.color},0.7)`)
+          grad.addColorStop(1, `rgba(0,0,0,0.6)`)
+          ctx.beginPath()
+          ctx.arc(px, py, p.r, 0, Math.PI * 2)
+          ctx.fillStyle = grad
+          ctx.fill()
+          // Saturn-style ring
+          if (p.ring) {
+            ctx.save()
+            ctx.translate(px, py)
+            ctx.scale(1, 0.28)
+            ctx.beginPath()
+            ctx.arc(0, 0, p.r * 1.9, 0, Math.PI * 2)
+            ctx.lineWidth = p.r * 0.45
+            ctx.strokeStyle = `rgba(${p.color},0.35)`
+            ctx.stroke()
+            ctx.restore()
+          }
         }
       }
 
-      if (t === "aurora") {
-        // BUG 1 FIX: use auroraTick, not pulse
-        auroraTick += 0.012
-        const bands = [
-          { yRatio: 0.25, color: "0,220,160" },
-          { yRatio: 0.45, color: "0,160,220" },
-          { yRatio: 0.65, color: "80,0,220" },
-          { yRatio: 0.82, color: "0,220,120" },
-        ]
-        bands.forEach((b, i) => {
-          const wave = Math.sin(auroraTick * 1.5 + i * 1.3) * H * 0.06
-          const thick = H * 0.12
-          const a = (Math.sin(auroraTick * 0.8 + i) * 0.5 + 0.5) * 0.28 + 0.08
-          const gy = b.yRatio * H + wave
-          const g = ctx.createLinearGradient(0, gy - thick, 0, gy + thick)
-          g.addColorStop(0, "rgba(0,0,0,0)")
-          g.addColorStop(0.5, `rgba(${b.color},${a})`)
-          g.addColorStop(1, "rgba(0,0,0,0)")
-          ctx.fillStyle = g
-          ctx.fillRect(0, gy - thick, W, thick * 2)
-        })
+      if (t === "milkyway") {
+        mwAngle += 0.0003
+        const cx = W / 2, cy = H / 2
+        // Galactic core glow
+        const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.35)
+        coreGlow.addColorStop(0, "rgba(255,230,180,0.18)")
+        coreGlow.addColorStop(0.4, "rgba(180,120,60,0.08)")
+        coreGlow.addColorStop(1, "rgba(0,0,0,0)")
+        ctx.fillStyle = coreGlow
+        ctx.fillRect(0, 0, W, H)
+        // Rotating star field
+        for (const s of mwStars) {
+          s.phase += s.speed
+          const distFromCenter = Math.sqrt((s.x - 0.5) ** 2 + (s.y - 0.5) ** 2)
+          // Stars near center are warmer/brighter
+          const warmth = Math.max(0, 1 - distFromCenter * 2.5)
+          const r = Math.round(200 + warmth * 55)
+          const g2 = Math.round(200 + warmth * 30)
+          const b2 = Math.round(220 - warmth * 80)
+          // Apply rotation
+          const dx = (s.x - 0.5) * W, dy = (s.y - 0.5) * H
+          const rotX = cx + dx * Math.cos(mwAngle) - dy * Math.sin(mwAngle)
+          const rotY = cy + dx * Math.sin(mwAngle) + dy * Math.cos(mwAngle)
+          const twinkle = (Math.sin(s.phase) + 1) * 0.4 + 0.15
+          const a = twinkle * (0.3 + s.brightness * 0.7)
+          // Milky Way density band — more stars along a diagonal band
+          const bandDist = Math.abs((s.x - 0.5) * Math.cos(0.4) - (s.y - 0.5) * Math.sin(0.4))
+          const bandBoost = Math.max(0, 1 - bandDist * 4)
+          if (Math.random() < 0.002 && bandBoost < 0.1) continue // thin out stars far from band
+          ctx.beginPath()
+          ctx.arc(rotX, rotY, s.r * (1 + bandBoost * 0.5), 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(${r},${g2},${b2},${a * (0.6 + bandBoost * 0.6)})`
+          ctx.fill()
+        }
+        // Arm nebulosity overlay
+        const armColors = ["60,40,120", "80,30,100", "40,60,140"]
+        for (let i = 0; i < 3; i++) {
+          const armAngle = mwAngle * 0.5 + (i * Math.PI * 2) / 3
+          const armX = cx + Math.cos(armAngle) * W * 0.22
+          const armY = cy + Math.sin(armAngle) * H * 0.22
+          const armG = ctx.createRadialGradient(armX, armY, 0, armX, armY, W * 0.28)
+          armG.addColorStop(0, `rgba(${armColors[i]},0.06)`)
+          armG.addColorStop(1, "rgba(0,0,0,0)")
+          ctx.fillStyle = armG
+          ctx.fillRect(0, 0, W, H)
+        }
       }
 
-      if (t === "pulse") {
-        // BUG 1 FIX: use pulseVal/pulseDelta — fully independent from aurora
-        pulseVal += pulseDelta
-        if (pulseVal > 1 || pulseVal < 0) pulseDelta *= -1
-        pulseVal = Math.max(0, Math.min(1, pulseVal))
-        const a = pulseVal * 0.25 + 0.08
-        const gr = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.75)
-        gr.addColorStop(0, `rgba(0,196,180,${a})`)
-        gr.addColorStop(0.5, `rgba(0,100,120,${a * 0.4})`)
-        gr.addColorStop(1, "rgba(0,0,0,0)")
-        ctx.fillStyle = gr
+      if (t === "cosmos") {
+        cosmosTick += 0.018
+        const cx = W / 2, cy = H / 2
+        // Deep void background pulse
+        const voidA = (Math.sin(cosmosTick * 0.5) + 1) * 0.04
+        const voidG = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.6)
+        voidG.addColorStop(0, `rgba(20,0,40,${voidA + 0.06})`)
+        voidG.addColorStop(1, "rgba(0,0,0,0)")
+        ctx.fillStyle = voidG
         ctx.fillRect(0, 0, W, H)
+        // Spinning rings converging to center
+        for (const ring of cosmosRings) {
+          const angle = cosmosTick * ring.speed + ring.offset
+          const radius = ring.baseRadius * Math.min(W, H) * (0.85 + Math.sin(cosmosTick * 0.4 + ring.offset) * 0.12)
+          const alpha = (Math.sin(cosmosTick * 0.6 + ring.offset) + 1) * 0.12 + 0.04
+          ctx.save()
+          ctx.translate(cx, cy)
+          ctx.rotate(angle)
+          ctx.scale(1, 0.35) // flatten into ellipse for depth
+          ctx.beginPath()
+          ctx.arc(0, 0, radius, 0, Math.PI * 2)
+          ctx.strokeStyle = `rgba(${ring.color},${alpha})`
+          ctx.lineWidth = 1.5
+          ctx.stroke()
+          // Energy dots on ring
+          for (let d = 0; d < 4; d++) {
+            const da = (d / 4) * Math.PI * 2 + angle * 2
+            const dotX = Math.cos(da) * radius
+            const dotY = Math.sin(da) * radius
+            const dotA = (Math.sin(cosmosTick * 2 + d) + 1) * 0.2 + 0.1
+            ctx.beginPath()
+            ctx.arc(dotX, dotY, 2, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(${ring.color},${dotA})`
+            ctx.fill()
+          }
+          ctx.restore()
+        }
+        // Central singularity
+        const singA = (Math.sin(cosmosTick * 3) + 1) * 0.3 + 0.2
+        const singG = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30)
+        singG.addColorStop(0, `rgba(255,255,255,${singA})`)
+        singG.addColorStop(0.3, `rgba(0,196,180,${singA * 0.6})`)
+        singG.addColorStop(1, "rgba(0,0,0,0)")
+        ctx.fillStyle = singG
+        ctx.fillRect(cx - 30, cy - 30, 60, 60)
       }
 
       raf = requestAnimationFrame(draw)
@@ -246,9 +331,9 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
   const TITLES: Record<BgTheme, string> = {
     pure: "Pure Black",
     starfield: "Starfield",
-    nebula: "Nebula",
-    aurora: "Aurora",
-    pulse: "Pulse"
+    planets: "Planets",
+    milkyway: "Milky Way",
+    cosmos: "Cosmos"
   }
 
   useEffect(() => {
@@ -266,9 +351,27 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
     const draw = () => {
       ctx.clearRect(0,0,W,H); ctx.fillStyle="#0A0A0A"; ctx.fillRect(0,0,W,H)
       if (id==="starfield") SS.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)*0.45+0.1;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.tl?`rgba(0,196,180,${a})`:`rgba(240,240,240,${a})`;ctx.fill()})
-      if (id==="nebula") CL.forEach(c=>{c.x+=c.dx;c.y+=c.dy;if(c.x<-10)c.x=W+10;if(c.x>W+10)c.x=-10;if(c.y<-10)c.y=H+10;if(c.y>H+10)c.y=-10;c.ph+=c.sp;const a=(Math.sin(c.ph)+1)*0.18+0.06;const g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.r);g.addColorStop(0,c.tl?`rgba(0,196,180,${a})`:`rgba(100,60,200,${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill()})
-      if (id==="aurora"){pl+=pd2;const bands=[{y:H*0.3,color:"0,220,160"},{y:H*0.5,color:"0,160,220"},{y:H*0.7,color:"80,0,220"}];bands.forEach((b,i)=>{const wave=Math.sin(pl*2+i*1.2)*H*0.08;const a=(Math.sin(pl+i)*0.5+0.5)*0.35+0.1;const g=ctx.createLinearGradient(0,b.y+wave-10,0,b.y+wave+10);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(0.5,`rgba(${b.color},${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,b.y+wave-10,W,20)})}
-      if (id==="pulse"){pl+=pd2;if(pl>1||pl<0)pd2*=-1;const a=pl*0.1+0.02;const g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.6);g.addColorStop(0,`rgba(0,196,180,${a})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
+      if (id==="planets"){
+        // Mini planet orbiting
+        const px2=W/2+Math.cos(pl*0.0008)*W*0.3, py2=H/2+Math.sin(pl*0.0008)*H*0.12
+        const pg=ctx.createRadialGradient(px2,py2,0,px2,py2,8);pg.addColorStop(0,"rgba(180,120,60,0.9)");pg.addColorStop(1,"rgba(0,0,0,0.5)");ctx.beginPath();ctx.arc(px2,py2,8,0,Math.PI*2);ctx.fillStyle=pg;ctx.fill()
+        const px3=W/2+Math.cos(pl*0.0014+2)*W*0.2, py3=H/2+Math.sin(pl*0.0014+2)*H*0.1
+        const pg2=ctx.createRadialGradient(px3,py3,0,px3,py3,5);pg2.addColorStop(0,"rgba(100,160,220,0.9)");pg2.addColorStop(1,"rgba(0,0,0,0.5)");ctx.beginPath();ctx.arc(px3,py3,5,0,Math.PI*2);ctx.fillStyle=pg2;ctx.fill()
+        pl+=pd2*20
+      }
+      if (id==="milkyway"){
+        pl+=0.001
+        CL.forEach(c=>{c.x+=c.dx;c.y+=c.dy;if(c.x<-5)c.x=W+5;if(c.x>W+5)c.x=-5;const dx=c.x-W/2,dy=c.y-H/2;const rx2=W/2+dx*Math.cos(pl)-dy*Math.sin(pl),ry2=H/2+dx*Math.sin(pl)+dy*Math.cos(pl);c.ph+=c.sp;const a=(Math.sin(c.ph)+1)*0.3+0.1;const wm=Math.max(0,1-Math.abs((c.x/W-0.5)*Math.cos(0.4)-(c.y/H-0.5)*Math.sin(0.4))*4);const g=ctx.createRadialGradient(rx2,ry2,0,rx2,ry2,c.r*(1+wm));g.addColorStop(0,`rgba(220,200,160,${a*(0.5+wm*0.8)})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(rx2,ry2,c.r*(1+wm),0,Math.PI*2);ctx.fill()})
+        SS.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)*0.3+0.1;const dx=s.x-W/2,dy=s.y-H/2;const rx2=W/2+dx*Math.cos(pl)-dy*Math.sin(pl),ry2=H/2+dx*Math.sin(pl)+dy*Math.cos(pl);ctx.beginPath();ctx.arc(rx2,ry2,s.r*0.7,0,Math.PI*2);ctx.fillStyle=`rgba(220,210,180,${a})`;ctx.fill()})
+      }
+      if (id==="cosmos"){
+        pl+=pd2*0.8
+        ctx.save();ctx.translate(W/2,H/2)
+        const rings2=[{r:8,color:"0,196,180",sp:0.02},{r:14,color:"120,60,220",sp:0.015},{r:20,color:"220,120,60",sp:0.01}]
+        rings2.forEach((rg,i)=>{const a2=pl*rg.sp+i;ctx.save();ctx.rotate(a2);ctx.scale(1,0.35);ctx.beginPath();ctx.arc(0,0,rg.r,0,Math.PI*2);ctx.strokeStyle=`rgba(${rg.color},0.5)`;ctx.lineWidth=1.5;ctx.stroke();ctx.restore()})
+        const sg=ctx.createRadialGradient(0,0,0,0,0,5);sg.addColorStop(0,"rgba(255,255,255,0.8)");sg.addColorStop(0.5,"rgba(0,196,180,0.4)");sg.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=sg;ctx.fillRect(-5,-5,10,10)
+        ctx.restore()
+      }
       raf=requestAnimationFrame(draw)
     }
     draw()
@@ -747,7 +850,7 @@ export default function Dashboard() {
         <div style={{display:"flex",alignItems:"center",gap:0,overflowX:"auto",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.7)",flexShrink:0,scrollbarWidth:"none",msOverflowStyle:"none"}}>
           <div style={{padding:"0 12px",flexShrink:0,fontSize:7,letterSpacing:"0.16em",textTransform:"uppercase",color:"#333",fontWeight:700,whiteSpace:"nowrap"}}>Theme</div>
           <div style={{width:"0.5px",height:28,background:"#1E1E1E",flexShrink:0}}/>
-          {(["pure","starfield","nebula","aurora","pulse"] as BgTheme[]).map(id=>(
+          {(["pure","starfield","planets","milkyway","cosmos"] as BgTheme[]).map(id=>(
             <ThemePanel key={id} id={id} active={bgTheme===id} onClick={()=>{ setBgTheme(id); localStorage.setItem("studenius_bg_theme",id) }}/>
           ))}
         </div>
