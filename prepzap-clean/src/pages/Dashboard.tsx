@@ -479,28 +479,61 @@ export default function Dashboard() {
   const [checks,setChecks] = useState<CheckItem[]>(()=>{try{return JSON.parse(localStorage.getItem("pz_checklist")||"[]")}catch{return[]}})
   const [cInput,setCInput] = useState("")
 
-  // ── Add Session Modal state ──
+  // ── Calendar state ──
+  const [calYear,  setCalYear]  = useState(() => new Date().getFullYear())
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth()) // 0-indexed
+  const [calSelectedDate, setCalSelectedDate] = useState<string | null>(null) // "YYYY-MM-DD"
+  const [calSessions, setCalSessions] = useState<{id:string;title:string;date:string;duration_minutes:number;color:string}[]>([])
+  const [upcomingSessions, setUpcomingSessions] = useState<{id:string;title:string;date:string;duration_minutes:number;color:string}[]>([])
+
+  // ── Add Session inline state ──
   const SESSION_PALETTE = ["#10b981","#3b82f6","#a855f7","#f59e0b","#ef4444","#06b6d4","#ec4899","#84cc16","#f97316","#6366f1"]
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [sessionTitle,    setSessionTitle]    = useState("")
   const [sessionColor,    setSessionColor]    = useState(SESSION_PALETTE[0])
   const [sessionDate,     setSessionDate]     = useState(() => new Date().toISOString().split("T")[0])
   const [sessionDuration, setSessionDuration] = useState(30)
-  const openSessionModal = () => {
+  const openSessionModal = (date?: string) => {
     setSessionTitle(""); setSessionColor(SESSION_PALETTE[0])
-    setSessionDate(new Date().toISOString().split("T")[0])
+    setSessionDate(date ?? new Date().toISOString().split("T")[0])
     setSessionDuration(30); setShowSessionModal(true)
   }
   const saveSession = async () => {
     if (!sessionTitle.trim() || !user) return
     try {
-      await supabase.from("study_sessions").insert({
+      const { data } = await supabase.from("study_sessions").insert({
         user_id: user.id, title: sessionTitle.trim(),
         date: sessionDate, duration_minutes: sessionDuration, color: sessionColor,
-      })
+      }).select().single()
+      if (data) {
+        setCalSessions(prev => [...prev, data])
+        setUpcomingSessions(prev => {
+          const updated = [...prev, data].sort((a,b)=>a.date.localeCompare(b.date))
+          return updated
+        })
+        // Award XP for logging a session
+        const newXp = xp + Math.round(sessionDuration / 2)
+        setXp(newXp)
+        await supabase.from("profiles").update({ xp: newXp }).eq("id", user.id)
+        await supabase.from("activity_log").insert({ user_id: user.id, label: `Study session: ${sessionTitle.trim()}`, score: `+${Math.round(sessionDuration/2)} XP` })
+      }
     } catch {}
     setShowSessionModal(false)
   }
+
+  // Load calendar sessions
+  useEffect(() => {
+    if (!user) return
+    const load = async () => {
+      const today = new Date().toISOString().slice(0,10)
+      const { data } = await supabase.from("study_sessions").select("*").eq("user_id", user.id).order("date")
+      if (data) {
+        setCalSessions(data)
+        setUpcomingSessions(data.filter((s:any) => s.date >= today))
+      }
+    }
+    load()
+  }, [user])
 
   useEffect(()=>{localStorage.setItem("pz_checklist",JSON.stringify(checks))},[checks])
 
@@ -716,45 +749,101 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Calendar + Sessions */}
-            <div className="sdn-cal-row" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:12}}>
-              {/* Calendar */}
-              <div style={{...card,padding:12}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                  <span style={{fontSize:11,fontWeight:600,letterSpacing:"0.04em"}}>{new Date().toLocaleString("default",{month:"long",year:"numeric"})}</span>
-                  <div style={{display:"flex",gap:3}}>
-                    {["‹","›"].map(ch=><button key={ch} style={{width:19,height:19,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:12,borderRadius:3}}>{ch}</button>)}
+            {/* ── Standalone Calendar ──────────────────────────────────── */}
+            {(()=>{
+              const today = new Date()
+              const todayStr = today.toISOString().slice(0,10)
+              const firstDay = new Date(calYear, calMonth, 1).getDay() // 0=Sun
+              const daysInMonth = new Date(calYear, calMonth+1, 0).getDate()
+              const monthLabel = new Date(calYear, calMonth).toLocaleString("default",{month:"long",year:"numeric"})
+              // sessions indexed by date
+              const sessByDate: Record<string, typeof calSessions> = {}
+              calSessions.forEach(s => { if(!sessByDate[s.date])sessByDate[s.date]=[]; sessByDate[s.date].push(s) })
+              const selectedSessions = calSelectedDate ? (sessByDate[calSelectedDate]??[]) : []
+
+              const prevMonth=()=>{ if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1)}else{setCalMonth(m=>m-1)} }
+              const nextMonth=()=>{ if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1)}else{setCalMonth(m=>m+1)} }
+
+              return (
+                <div style={{...card,padding:14,marginBottom:12}}>
+                  {/* Header */}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                    <span style={{fontSize:12,fontWeight:600,letterSpacing:"0.04em"}}>{monthLabel}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <button onClick={()=>openSessionModal(calSelectedDate??todayStr)}
+                        style={{display:"flex",alignItems:"center",gap:4,padding:"4px 9px",background:TEAL,border:"none",color:"#0A0A0A",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.04em"}}>
+                        <Plus size={10}/> Add Session
+                      </button>
+                      <div style={{display:"flex",gap:3}}>
+                        <button onClick={prevMonth} style={{width:20,height:20,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:13,borderRadius:3,lineHeight:1}}>‹</button>
+                        <button onClick={nextMonth} style={{width:20,height:20,border:"0.5px solid #2A2A2A",background:"transparent",color:"#555",cursor:"pointer",fontSize:13,borderRadius:3,lineHeight:1}}>›</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,textAlign:"center"}}>
-                  {["M","T","W","T","F","S","S"].map((d,i)=><div key={i} style={{fontSize:8,color:"#444",padding:"2px 0",textTransform:"uppercase"}}>{d}</div>)}
-                  {Array(2).fill(null).map((_,i)=><div key={"p"+i}/>)}
-                  {Array.from({length:30},(_,i)=>{
-                    const day=i+1, isToday=day===new Date().getDate()&&new Date().getMonth()===3
-                    return <div key={day} style={{fontSize:10,color:isToday?"#0A0A0A":"#555",padding:"4px 1px",borderRadius:3,cursor:"pointer",background:isToday?GOLD:"transparent",fontWeight:isToday?700:400,transition:"all .15s"}}
-                      onMouseEnter={e=>{if(!isToday)(e.currentTarget as HTMLElement).style.color="#F0F0F0"}}
-                      onMouseLeave={e=>{if(!isToday)(e.currentTarget as HTMLElement).style.color="#555"}}>{day}</div>
-                  })}
-                </div>
-              </div>
-              {/* Sessions */}
-              <div style={{...card,padding:12}}>
-                <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"#555",marginBottom:7}}>
-                  {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
-                </div>
-                <div style={{textAlign:"center",paddingTop:10}}>
-                  <div style={{width:28,height:28,borderRadius:"50%",background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 7px"}}>
-                    <svg viewBox="0 0 24 24" width={11} height={11} fill="none" stroke="#444" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
+                      <div key={d} style={{fontSize:8,color:"#444",padding:"2px 0",textAlign:"center",textTransform:"uppercase",letterSpacing:"0.06em"}}>{d}</div>
+                    ))}
+                    {Array(firstDay).fill(null).map((_,i)=><div key={"pad"+i}/>)}
+                    {Array.from({length:daysInMonth},(_,i)=>{
+                      const day=i+1
+                      const dateStr=`${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`
+                      const isToday=dateStr===todayStr
+                      const isSelected=dateStr===calSelectedDate
+                      const hasSessions=(sessByDate[dateStr]?.length??0)>0
+                      const dotColors=sessByDate[dateStr]?.slice(0,3).map(s=>s.color)??[]
+                      return (
+                        <div key={day} onClick={()=>setCalSelectedDate(isSelected?null:dateStr)}
+                          style={{position:"relative",aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:4,cursor:"pointer",
+                            background:isSelected?"rgba(0,196,180,0.15)":isToday?"rgba(232,185,35,0.12)":"transparent",
+                            border:`1px solid ${isSelected?TEAL:isToday?"rgba(232,185,35,0.4)":"transparent"}`,
+                            transition:"all .15s"}}
+                          onMouseEnter={e=>{if(!isSelected&&!isToday)(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.04)"}}
+                          onMouseLeave={e=>{if(!isSelected&&!isToday)(e.currentTarget as HTMLElement).style.background="transparent"}}>
+                          <span style={{fontSize:11,color:isSelected?TEAL:isToday?GOLD:"#888",fontWeight:isToday||isSelected?700:400}}>{day}</span>
+                          {hasSessions&&(
+                            <div style={{display:"flex",gap:2,marginTop:2}}>
+                              {dotColors.map((c,ci)=><div key={ci} style={{width:4,height:4,borderRadius:"50%",background:c}}/>)}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div style={{fontSize:10,color:"#333",marginBottom:8}}>No sessions — add one!</div>
-                  <button onClick={()=>navigate("/planner")} style={{background:"transparent",border:"0.5px solid #2A2A2A",color:"#555",fontSize:10,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
-                    onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
-                    onMouseLeave={e=>{(e.currentTarget.style.borderColor="#2A2A2A");(e.currentTarget.style.color="#555")}}>
-                    + Add Session
-                  </button>
+
+                  {/* Selected day sessions panel */}
+                  {calSelectedDate&&(
+                    <div style={{marginTop:12,borderTop:"0.5px solid #1E1E1E",paddingTop:10}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+                        <span style={{fontSize:10,fontWeight:600,color:"#AAA"}}>
+                          {new Date(calSelectedDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+                        </span>
+                        <button onClick={()=>openSessionModal(calSelectedDate)}
+                          style={{fontSize:9,color:TEAL,background:"transparent",border:`0.5px solid ${TEAL}`,padding:"2px 7px",cursor:"pointer",fontFamily:"inherit"}}>
+                          + Add
+                        </button>
+                      </div>
+                      {selectedSessions.length===0?(
+                        <div style={{fontSize:10,color:"#333",padding:"6px 0"}}>No sessions — click + Add to schedule one.</div>
+                      ):(
+                        <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                          {selectedSessions.map(s=>(
+                            <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 9px",background:"rgba(20,20,20,0.7)",border:"0.5px solid #1E1E1E"}}>
+                              <div style={{width:3,height:28,background:s.color,flexShrink:0,borderRadius:2}}/>
+                              <div style={{flex:1}}>
+                                <div style={{fontSize:11,fontWeight:500,color:"#F0F0F0"}}>{s.title}</div>
+                                <div style={{fontSize:9,color:"#555",fontFamily:"monospace"}}>{s.duration_minutes<60?`${s.duration_minutes}min`:`${s.duration_minutes/60}h`}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              )
+            })()}
 
             {/* Checklist */}
             <div style={{...card,padding:12,marginBottom:12}}>
@@ -795,7 +884,7 @@ export default function Dashboard() {
                 <div style={{height:"100%",width:`${Math.max(0.4,xpPct)}%`,background:GOLD,borderRadius:2,transition:"width .6s ease"}}/>
               </div>
               <div style={{fontSize:9,color:"#444",marginTop:3}}>{toNext} XP to Level {level+1}</div>
-              {xp===0&&<div style={{fontSize:10,color:"#444",marginTop:5,padding:"4px 7px",background:"#0D0D0D",border:"0.5px solid #1E1E1E"}}>Complete your first session to earn XP and start levelling up.</div>}
+              {xp===0&&<div style={{fontSize:10,color:"#444",marginTop:5,padding:"4px 7px",background:"#0D0D0D",border:"0.5px solid #1E1E1E"}}>Log a session or complete practice questions to earn XP.</div>}
             </div>
 
             {/* Quick Start */}
@@ -855,18 +944,38 @@ export default function Dashboard() {
           {/* ── SIDEBAR (desktop only) ───────────────────────────────────── */}
           <div className="sdn-sidebar" style={{width:210,flexDirection:"column",padding:"14px 13px 20px",background:"rgba(8,8,8,0.6)",borderLeft:"0.5px solid #1A1A1A",overflowY:"auto",flexShrink:0,display:"flex"}}>
             <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-            <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#444",marginBottom:11}}>Today's Schedule</div>
-            <div style={{textAlign:"center",padding:"9px 0 11px"}}>
-              <div style={{width:26,height:26,borderRadius:"50%",background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 6px"}}>
-                <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="#333" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#444",marginBottom:11}}>Upcoming Sessions</div>
+            {upcomingSessions.length===0?(
+              <div style={{textAlign:"center",padding:"9px 0 11px"}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:"#141414",border:"0.5px solid #222",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 6px"}}>
+                  <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="#333" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div style={{fontSize:10,color:"#333",marginBottom:6}}>No upcoming sessions</div>
+                <button onClick={()=>openSessionModal()} style={{background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,padding:"4px 10px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
+                  onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
+                  onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
+                  + Schedule one
+                </button>
               </div>
-              <div style={{fontSize:10,color:"#333",marginBottom:6}}>No sessions — add one!</div>
-              <button onClick={openSessionModal} style={{background:"transparent",border:"0.5px solid #1E1E1E",color:"#555",fontSize:10,padding:"4px 10px",cursor:"pointer",fontFamily:"inherit",transition:"all .2s"}}
-                onMouseEnter={e=>{(e.currentTarget.style.borderColor=TEAL);(e.currentTarget.style.color=TEAL)}}
-                onMouseLeave={e=>{(e.currentTarget.style.borderColor="#1E1E1E");(e.currentTarget.style.color="#555")}}>
-                + Add Session
-              </button>
-            </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:8}}>
+                {upcomingSessions.slice(0,5).map(s=>{
+                  const d=new Date(s.date+"T12:00:00")
+                  const label=d.toLocaleDateString("en-US",{month:"short",day:"numeric"})
+                  return (
+                    <div key={s.id} style={{display:"flex",alignItems:"center",gap:7,padding:"6px 8px",background:"rgba(20,20,20,0.6)",border:"0.5px solid #1A1A1A"}}>
+                      <div style={{width:3,height:28,background:s.color,flexShrink:0,borderRadius:2}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:10,fontWeight:500,color:"#F0F0F0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title}</div>
+                        <div style={{fontSize:9,color:"#555",fontFamily:"monospace"}}>{s.duration_minutes<60?`${s.duration_minutes}min`:`${s.duration_minutes/60}h`}</div>
+                      </div>
+                      <span style={{fontSize:9,color:"#444",flexShrink:0}}>{label}</span>
+                    </div>
+                  )
+                })}
+                {upcomingSessions.length>5&&<div style={{fontSize:9,color:"#444",textAlign:"center"}}>+{upcomingSessions.length-5} more</div>}
+              </div>
+            )}
 
             <div style={{height:.5,background:"#1A1A1A",margin:"0 0 9px"}}/>
 
