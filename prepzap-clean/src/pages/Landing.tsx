@@ -58,6 +58,34 @@ const CSS = `
     0%,100% { clip-path: inset(65% 0 8% 0); transform: translate(2px,0); }
     50%     { clip-path: inset(5% 0 70% 0);  transform: translate(-1px,0); }
   }
+  @keyframes cinematic-zoom {
+    0% { transform: scale(1); filter: blur(0px); }
+    50% { transform: scale(1.08); filter: blur(0.3px); }
+    100% { transform: scale(1); filter: blur(0px); }
+  }
+  @keyframes text-reveal {
+    0% { clip-path: inset(0 100% 0 0); opacity: 0; }
+    100% { clip-path: inset(0 0 0 0); opacity: 1; }
+  }
+  @keyframes fade-up {
+    0% { opacity: 0; transform: translateY(60px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes vortex-spin {
+    0% { transform: rotate(0deg) scale(1); }
+    100% { transform: rotate(360deg) scale(1.5); }
+  }
+  @keyframes chromatic-shift {
+    0%,100% { text-shadow: -2px 0 rgba(0,196,180,0.5), 2px 0 rgba(232,185,35,0.5); }
+    50% { text-shadow: -4px 0 rgba(0,196,180,0.8), 4px 0 rgba(232,185,35,0.8); }
+  }
+  @keyframes grain-move {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-5%, -5%); }
+    50% { transform: translate(-10%, 5%); }
+    75% { transform: translate(5%, -10%); }
+    100% { transform: translate(0, 0); }
+  }
 `;
 
 // ── Data ───────────────────────────────────────────────────────────────────
@@ -787,7 +815,8 @@ function AstronautScene({ progress }: { progress: number }) {
 function CinematicSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
-
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     function onScroll() {
       const el = sectionRef.current;
@@ -798,42 +827,107 @@ function CinematicSection() {
       setProgress(p);
     }
     window.addEventListener("scroll", onScroll, { passive:true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const bgY   = progress * 45;
   const midY  = progress * 90;
+  const scale = 1 + progress * 0.15;
 
   return (
-    <div ref={sectionRef} style={{ position:"relative", height:"320vh" }}>
-      <div style={{
+    <div ref={sectionRef} style={{ position:"relative", height:"420vh" }}>
+      <div ref={containerRef} style={{
         position:"sticky", top:0, height:"100vh", overflow:"hidden",
         display:"flex", alignItems:"center", justifyContent:"center",
+        transform: `scale(${scale})`,
+        transformOrigin: "center center",
       }}>
+        {/* Film grain overlay */}
+        <div style={{
+          position:"absolute", inset:0, pointerEvents:"none", zIndex:50,
+          opacity: 0.035,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          animation: "grain-move 0.8s steps(4) infinite",
+        }} />
+
+        {/* Vortex background */}
+        <div style={{
+          position:"absolute", inset:"-50%",
+          background: `conic-gradient(from ${progress*360}deg at 50% 50%, 
+            rgba(0,196,180,0.03) 0deg, 
+            transparent 60deg,
+            rgba(123,94,167,0.04) 120deg,
+            transparent 180deg,
+            rgba(232,185,35,0.03) 240deg,
+            transparent 300deg,
+            rgba(0,196,180,0.03) 360deg)`,
+          animation: "vortex-spin 20s linear infinite",
+          opacity: 0.5 + progress * 0.5,
+        }} />
+
         {/* Nebula backdrop */}
         <div style={{
           position:"absolute", inset:0,
           background:`
-            radial-gradient(ellipse 70% 60% at ${28+progress*22}% ${38+bgY*0.3}%, rgba(0,196,180,0.09) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 40% at ${72-progress*16}% ${60+bgY*0.2}%, rgba(232,185,35,0.06) 0%, transparent 60%),
-            radial-gradient(ellipse 40% 30% at 50% 50%, rgba(123,94,167,0.07) 0%, transparent 60%)
+            radial-gradient(ellipse 90% 80% at ${28+progress*22}% ${38+bgY*0.3}%, rgba(0,196,180,0.12) 0%, transparent 70%),
+            radial-gradient(ellipse 70% 60% at ${72-progress*16}% ${60+bgY*0.2}%, rgba(232,185,35,0.08) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 50% at 50% 50%, rgba(123,94,167,0.1) 0%, transparent 60%)
           `,
+          filter: "blur(40px)",
+          transition: "background 0.1s ease-out",
+        }} />
+
+        {/* Chromatic aberration layers */}
+        <div style={{
+          position:"absolute", inset:0,
+          background: `radial-gradient(ellipse 50% 50% at ${50+progress*10}% ${50-progress*5}%, rgba(0,196,180,0.06) 0%, transparent 60%)`,
+          mixBlendMode: "screen" as any,
+          transform: `translateX(${-progress*8}px)`,
+        }} />
+        <div style={{
+          position:"absolute", inset:0,
+          background: `radial-gradient(ellipse 50% 50% at ${50-progress*10}% ${50+progress*5}%, rgba(232,185,35,0.05) 0%, transparent 60%)`,
+          mixBlendMode: "screen" as any,
+          transform: `translateX(${progress*8}px)`,
         }} />
 
         {/* Perspective grid */}
         <div style={{
-          position:"absolute", inset:0, opacity:0.04,
+          position:"absolute", inset:0, opacity:0.06,
           backgroundImage:`
             linear-gradient(rgba(0,196,180,1) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0,196,180,1) 1px, transparent 1px)`,
           backgroundSize:"64px 64px",
-          transform:`translateY(${midY}px) perspective(400px) rotateX(8deg)`,
+          transform:`translateY(${midY}px) perspective(600px) rotateX(12deg)`,
+          maskImage: "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
         }} />
+
+        {/* Floating particles */}
+        {[...Array(20)].map((_, i) => {
+          const px = (i * 37) % 100;
+          const py = (i * 53) % 100;
+          const size = 2 + (i % 4);
+          return (
+            <div key={i} style={{
+              position:"absolute",
+              left:`${px}%`,
+              top:`${py}%`,
+              width:size,
+              height:size,
+              background: i%3===0 ? TEAL : i%3===1 ? GOLD : PURPLE,
+              borderRadius:"50%",
+              opacity: 0.2 + Math.sin(progress*Math.PI + i)*0.2,
+              filter: "blur(1px)",
+              transform: `translateY(${progress*(20+i%10)}px) translateX(${Math.sin(progress*2+i)*10}px)`,
+            }} />
+          );
+        })}
 
         {/* Horizon glow */}
         <div style={{
-          position:"absolute", bottom:0, left:0, right:0, height:"220px",
-          background:"linear-gradient(transparent, rgba(0,196,180,0.05))",
+          position:"absolute", bottom:0, left:0, right:0, height:"280px",
+          background:`linear-gradient(transparent, rgba(0,196,180,${0.05+progress*0.08}))`,
         }} />
 
         {/* Astronaut */}
@@ -844,6 +938,7 @@ function CinematicSection() {
           position:"absolute", bottom:"12%", left:"50%",
           transform:"translateX(-50%)", textAlign:"center",
           opacity: progress < 0.15 ? progress/0.15 : progress > 0.5 ? Math.max(0,(1-progress)/0.35) : 1,
+          transition: "opacity 0.3s",
         }}>
           <p style={{...mono,fontSize:"10px",color:`rgba(0,196,180,0.6)`,letterSpacing:"0.2em",marginBottom:"8px"}}>
             SCROLL TO EXPLORE
@@ -851,29 +946,57 @@ function CinematicSection() {
           <div style={{width:"1px",height:"44px",background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto"}} />
         </div>
 
-        {/* Headline reveal */}
+        {/* Headline reveal with cinematic effects */}
         <div style={{
           position:"absolute", top:"13%", left:"50%",
-          transform:"translateX(-50%)", textAlign:"center",
+          transform:`translateX(-50%) translateY(${progress*30}px)`,
+          textAlign:"center",
           opacity: progress < 0.12 ? 0 : progress < 0.32 ? (progress-0.12)/0.2 : progress > 0.78 ? Math.max(0,(1-progress)/0.14) : 1,
           width:"min(640px,90vw)",
+          filter: `blur(${Math.abs(progress-0.5)*2}px)`,
         }}>
           {progress < 0.5 ? (
-            <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
+            <h2 style={{
+              fontSize:"clamp(22px,4vw,44px)",
+              fontWeight:300,
+              letterSpacing:"-0.03em",
+              color:"#F2F5F8",
+              lineHeight:1.12,
+              animation: "chromatic-shift 4s ease-in-out infinite, cinematic-zoom 8s ease-in-out infinite",
+              textShadow: "0 0 80px rgba(0,196,180,0.3)",
+            }}>
               Knowledge travels<br/>
-              <span style={{color:TEAL}}>at the speed of curiosity.</span>
+              <span style={{
+                color:TEAL,
+                display: "inline-block",
+                animation: "fade-up 1.2s ease-out",
+              }}>at the speed of curiosity.</span>
             </h2>
           ) : (
-            <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
+            <h2 style={{
+              fontSize:"clamp(22px,4vw,44px)",
+              fontWeight:300,
+              letterSpacing:"-0.03em",
+              color:"#F2F5F8",
+              lineHeight:1.12,
+              animation: "chromatic-shift 4s ease-in-out infinite, cinematic-zoom 8s ease-in-out infinite",
+              textShadow: "0 0 80px rgba(232,185,35,0.3)",
+            }}>
               AI-powered tools.<br/>
-              <span style={{color:GOLD}}>Built for students who demand results.</span>
+              <span style={{
+                color:GOLD,
+                display: "inline-block",
+                animation: "fade-up 1.2s ease-out",
+              }}>Built for students who demand results.</span>
             </h2>
           )}
           {/* Hairline separator */}
           <div style={{
-            width:"120px",height:"0.5px",
-            background:`rgba(0,196,180,0.3)`,
+            width:`${120 + progress*40}px`,
+            height:"0.5px",
+            background:`linear-gradient(90deg, transparent, ${TEAL}, ${GOLD}, transparent)`,
             margin:"20px auto 0",
+            boxShadow: `0 0 20px ${TEAL}`,
           }} />
         </div>
 
@@ -888,10 +1011,11 @@ function CinematicSection() {
               position:"absolute", top:0, left:0, right:0,
               height:`${progress*100}%`,
               background:`linear-gradient(${TEAL},${GOLD})`,
+              boxShadow: `0 0 20px ${TEAL}`,
               transition:"height 0.08s",
             }} />
           </div>
-          <span style={{...mono,fontSize:"9px",color:"#333",letterSpacing:"0.1em",writingMode:"vertical-lr"}}>
+          <span style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.1em",writingMode:"vertical-lr"}}>
             {Math.round(progress*100)}%
           </span>
         </div>
@@ -899,46 +1023,33 @@ function CinematicSection() {
         {/* Coordinates HUD */}
         <div style={{
           position:"absolute", left:"24px", bottom:"10%",
-          ...mono, fontSize:"9px", color:"rgba(0,196,180,0.2)",
+          ...mono, fontSize:"9px", color:TEAL,
           letterSpacing:"0.12em", lineHeight:1.8,
           opacity: progress > 0.1 ? 0.7 : 0,
           transition:"opacity 0.4s",
+          textShadow: `0 0 10px ${TEAL}`,
         }}>
           <div>LAT  {(progress*90-45).toFixed(2)}°</div>
           <div>LON  {(progress*360-180).toFixed(2)}°</div>
           <div>ALT  {Math.round(400 + progress*1200)} km</div>
         </div>
+
+        {/* Circular progress rings */}
+        <svg style={{
+          position:"absolute",
+          width:"600px",
+          height:"600px",
+          pointerEvents:"none",
+          opacity: 0.15 + progress * 0.3,
+        }} viewBox="0 0 600 600">
+          <circle cx="300" cy="300" r="280" fill="none" stroke={TEAL} strokeWidth="0.5" strokeDasharray={`${progress*1400} 1400`} opacity="0.4" />
+          <circle cx="300" cy="300" r="250" fill="none" stroke={GOLD} strokeWidth="0.5" strokeDasharray={`${progress*1200} 1200`} strokeDashoffset={progress*200} opacity="0.3" />
+          <circle cx="300" cy="300" r="220" fill="none" stroke={PURPLE} strokeWidth="0.5" strokeDasharray={`${progress*1000} 1000`} strokeDashoffset={-progress*150} opacity="0.2" />
+        </svg>
       </div>
     </div>
   );
 }
-
-// ── Practice demo ──────────────────────────────────────────────────────────
-function PracticeDemo() {
-  const [selected, setSelected] = useState<string|null>(null);
-  const [showAnswer, setShowAnswer] = useState(false);
-  function reset() { setSelected(null); setShowAnswer(false); }
-
-  return (
-    <div style={{background:"#080d1a",border:"0.5px solid #0d1220",padding:"20px"}}>
-      <div style={{...mono,fontSize:"10px",color:"#444",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"14px"}}>
-        Practice Question
-      </div>
-      <p style={{fontSize:"13px",color:"#C0CCD8",lineHeight:1.6,fontWeight:300,marginBottom:"16px"}}>
-        {mockQuestion.text}
-      </p>
-      <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"14px"}}>
-        {mockQuestion.choices.map(c => {
-          const isCorrect = showAnswer && c.id === mockQuestion.correct;
-          const isWrong   = showAnswer && c.id === selected && c.id !== mockQuestion.correct;
-          return (
-            <div key={c.id} onClick={() => !showAnswer && setSelected(c.id)} style={{
-              padding:"9px 12px",
-              border:`0.5px solid ${isCorrect?TEAL:isWrong?"#ff4444":c.id===selected?TEAL:"#0d1220"}`,
-              cursor: showAnswer?"default":"pointer",
-              display:"flex",alignItems:"center",gap:"10px",
-              background: isCorrect?"rgba(0,196,180,0.06)":isWrong?"rgba(255,68,68,0.04)":"transparent",
-              transition:"all 0.2s",
             }}>
               <span style={{...mono,fontSize:"9px",color:c.id===selected||isCorrect?TEAL:"#333",minWidth:"14px"}}>{c.id}</span>
               <span style={{fontSize:"12px",color:"#666",fontWeight:300,lineHeight:1.5}}>{c.text}</span>
