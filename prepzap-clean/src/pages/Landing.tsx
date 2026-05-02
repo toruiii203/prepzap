@@ -8,10 +8,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { FileText, Hash, Mic, Image as ImageIcon } from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const TEAL   = "#00C4B4";
@@ -59,6 +56,10 @@ const CSS = `
   @keyframes glitch2{
     0%,100%{clip-path:inset(65% 0 8% 0);transform:translate(2px,0);}
     50%{clip-path:inset(5% 0 70% 0);transform:translate(-1px,0);}
+  }
+  @keyframes hero-enter{
+    from{opacity:0;transform:translateY(54px);filter:blur(8px);}
+    to{opacity:1;transform:translateY(0);filter:blur(0px);}
   }
   @keyframes mote-drift{
     0%{transform:translate(0,0);}
@@ -219,36 +220,15 @@ function StarField(){
   return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none"}}/>;
 }
 
-// ─── Nebula — GSAP breathe + scroll drift ─────────────────────────────────────
+// ─── Nebula — pure CSS breathe ────────────────────────────────────────────────
 function NebulaLayer(){
-  const refs=[useRef<HTMLDivElement>(null),useRef<HTMLDivElement>(null),useRef<HTMLDivElement>(null),useRef<HTMLDivElement>(null)];
-
-  useEffect(()=>{
-    const ctx=gsap.context(()=>{
-      refs.forEach((r,i)=>{
-        if(!r.current)return;
-        // Breathe
-        gsap.to(r.current,{scale:1.07+i*0.02,rotate:(i%2===0?2:-2),
-          duration:18+i*6,ease:"sine.inOut",repeat:-1,yoyo:true});
-        // Scroll drift
-        const speeds=[0.06,0.04,0.035,0.025];
-        gsap.to(r.current,{
-          y:()=>-window.scrollY*speeds[i],ease:"none",
-          scrollTrigger:{trigger:"body",start:"top top",end:"bottom bottom",scrub:1.6},
-        });
-      });
-    });
-    return ()=>ctx.revert();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[]);
-
-  const base:React.CSSProperties={position:"absolute",inset:"-20%",zIndex:0,pointerEvents:"none",transformOrigin:"center center",willChange:"transform"};
+  const base:React.CSSProperties={position:"absolute",inset:"-20%",zIndex:0,pointerEvents:"none",transformOrigin:"center center"};
   return(
     <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
-      <div ref={refs[0]} style={{...base,background:"radial-gradient(ellipse 80% 60% at 22% 30%, rgba(180,40,160,0.11) 0%, transparent 65%)"}}/>
-      <div ref={refs[1]} style={{...base,background:"radial-gradient(ellipse 55% 70% at 15% 65%, rgba(0,196,180,0.09) 0%, transparent 60%)"}}/>
-      <div ref={refs[2]} style={{...base,background:"radial-gradient(ellipse 45% 32% at 80% 30%, rgba(232,185,35,0.07) 0%, transparent 50%)"}}/>
-      <div ref={refs[3]} style={{...base,background:"radial-gradient(ellipse 65% 22% at 60% 50%, rgba(120,180,255,0.06) 0%, transparent 55%)"}}/>
+      <div style={{...base,background:"radial-gradient(ellipse 80% 60% at 22% 30%, rgba(180,40,160,0.11) 0%, transparent 65%)",animation:"float-slow 24s ease-in-out infinite"}}/>
+      <div style={{...base,background:"radial-gradient(ellipse 55% 70% at 15% 65%, rgba(0,196,180,0.09) 0%, transparent 60%)",animation:"float-slow 30s ease-in-out 4s infinite"}}/>
+      <div style={{...base,background:"radial-gradient(ellipse 45% 32% at 80% 30%, rgba(232,185,35,0.07) 0%, transparent 50%)",animation:"float-slow 36s ease-in-out 8s infinite"}}/>
+      <div style={{...base,background:"radial-gradient(ellipse 65% 22% at 60% 50%, rgba(120,180,255,0.06) 0%, transparent 55%)",animation:"float-slow 42s ease-in-out 2s infinite"}}/>
       <div style={{position:"absolute",inset:0,background:"linear-gradient(112deg,transparent 30%,rgba(232,185,35,0.045) 45%,transparent 48%,rgba(232,185,35,0.03) 52%,transparent 58%,rgba(120,180,255,0.03) 65%,transparent 70%)",animation:"god-ray 9s ease-in-out infinite"}}/>
     </div>
   );
@@ -823,36 +803,24 @@ function CinematicSection(){
   );
 }
 
-// ─── Hero section — GSAP stagger on mount ─────────────────────────────────────
+// ─── Hero section — CSS stagger on mount ──────────────────────────────────────
 function HeroSection(){
-  const ref=useRef<HTMLDivElement>(null);
-  useEffect(()=>{
-    const ctx=gsap.context(()=>{
-      gsap.fromTo(
-        ref.current!.querySelectorAll(".gt"),
-        {opacity:0,y:54,filter:"blur(8px)"},
-        {opacity:1,y:0,filter:"blur(0px)",duration:1.4,ease:"power3.out",stagger:0.16,delay:0.15}
-      );
-    },ref);
-    return ()=>ctx.revert();
-  },[]);
-
   return(
-    <section ref={ref} style={{padding:"110px 32px 88px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
+    <section style={{padding:"110px 32px 88px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
       <OrbitalRings/>
-      <p className="gt" style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"32px",animation:"pulse-glow 3s ease-in-out infinite"}}>
+      <p style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"32px",animation:"pulse-glow 3s ease-in-out infinite, hero-enter 1.4s ease 0.15s both"}}>
         AI-Powered Study Platform
       </p>
-      <h1 className="gt" style={{fontSize:"clamp(38px,6.5vw,68px)",fontWeight:300,letterSpacing:"-0.038em",lineHeight:1.04,marginBottom:"22px",color:"#F2F5F8"}}>
+      <h1 style={{fontSize:"clamp(38px,6.5vw,68px)",fontWeight:300,letterSpacing:"-0.038em",lineHeight:1.04,marginBottom:"22px",color:"#F2F5F8",animation:"hero-enter 1.4s ease 0.31s both"}}>
         <GlitchText text="Study smarter."/><br/>
         <span style={{background:`linear-gradient(135deg,${TEAL},${PURPLE})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
           Master it faster.
         </span>
       </h1>
-      <p className="gt" style={{fontSize:"15px",color:"#555",maxWidth:"480px",marginBottom:"36px",lineHeight:1.78,fontWeight:300}}>
+      <p style={{fontSize:"15px",color:"#555",maxWidth:"480px",marginBottom:"36px",lineHeight:1.78,fontWeight:300,animation:"hero-enter 1.4s ease 0.47s both"}}>
         12 AI-powered study tools in one platform — flashcards, cram mode, tutor, recall, confidence tracking and more. Built for students who demand results.
       </p>
-      <div className="gt" style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap",animation:"hero-enter 1.4s ease 0.63s both"}}>
         <Link to="/signup">
           <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s"}}
             onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.boxShadow=`0 0 40px rgba(0,196,180,0.55)`;e.currentTarget.style.transform="translateY(-2px)";}}
@@ -868,7 +836,7 @@ function HeroSection(){
           </button>
         </Link>
       </div>
-      <p className="gt" style={{...mono,fontSize:"10px",color:"#1e2a44",marginTop:"18px",letterSpacing:"0.06em"}}>
+      <p style={{...mono,fontSize:"10px",color:"#1e2a44",marginTop:"18px",letterSpacing:"0.06em",animation:"hero-enter 1.4s ease 0.79s both"}}>
         No credit card required · Free plan always available
       </p>
     </section>
@@ -1007,46 +975,8 @@ export default function Landing(){
         </div>
       </div>
 
-      {/* Cinematic */}
-      <div style={{position:"relative",zIndex:2}}><CinematicSection/></div>
-
       {/* Content */}
       <div style={{position:"relative",zIndex:2,background:"#05080f"}}>
-
-        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
-          <SectionParticles count={20} color={TEAL}/>
-          <Reveal><div style={sectionLabel}><span>See it in action</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
-          <Reveal delay={0.1}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1px",background:"#0d1220"}}>
-              <PracticeDemo/><ChatDemo/>
-            </div>
-          </Reveal>
-        </div>
-
-        <div style={hairline}/>
-
-        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
-          <SectionParticles count={15} color={GOLD}/>
-          <Reveal><div style={sectionLabel}><span>Upload anything</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
-          <Reveal delay={0.1}><h2 style={{fontSize:"clamp(22px,3vw,32px)",fontWeight:300,letterSpacing:"-0.02em",marginBottom:"8px"}}>Upload anything, learn everything</h2></Reveal>
-          <Reveal delay={0.15}><p style={{fontSize:"14px",color:"#555",marginBottom:"28px",fontWeight:300}}>Every tool reads from your uploaded materials automatically — upload once, use everywhere.</p></Reveal>
-          <Reveal delay={0.2}>
-            <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
-              {[{icon:FileText,label:"PDF Notes"},{icon:ImageIcon,label:"Images"},{icon:Mic,label:"Voice Notes"},{icon:Hash,label:"Topic Name"}].map(item=>(
-                <TiltCard key={item.label}>
-                  <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 14px",border:"0.5px solid #0d1220",cursor:"default",transition:"border-color 0.15s,box-shadow 0.2s"}}
-                    onMouseEnter={(e)=>{(e.currentTarget as HTMLElement).style.borderColor=TEAL;(e.currentTarget as HTMLElement).style.boxShadow=`0 0 20px rgba(0,196,180,0.1)`;}}
-                    onMouseLeave={(e)=>{(e.currentTarget as HTMLElement).style.borderColor="#0d1220";(e.currentTarget as HTMLElement).style.boxShadow="none";}}>
-                    <item.icon style={{width:13,height:13,color:"#444"}}/>
-                    <span style={{...mono,fontSize:"11px",color:"#666",letterSpacing:"0.04em"}}>{item.label}</span>
-                  </div>
-                </TiltCard>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-
-        <div style={hairline}/>
 
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
           <SectionParticles count={25} color={PURPLE}/>
