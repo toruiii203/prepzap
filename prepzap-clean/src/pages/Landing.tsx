@@ -234,46 +234,14 @@ function NebulaLayer(){
   );
 }
 
-// ─── Planets — GSAP scroll-driven parallax ────────────────────────────────────
+// ─── Planets — CSS + scroll parallax (no GSAP needed) ────────────────────────
 function FloatingPlanets(){
-  const cobaltRef=useRef<HTMLDivElement>(null);
-  const ring1Ref=useRef<HTMLDivElement>(null);
-  const ring2Ref=useRef<HTMLDivElement>(null);
-  const ring3Ref=useRef<HTMLDivElement>(null);
-  const emeraldRef=useRef<HTMLDivElement>(null);
-  const asteroidRef=useRef<HTMLDivElement>(null);
-
-  useEffect(()=>{
-    const ctx=gsap.context(()=>{
-      const mkTrigger=(el:HTMLElement|null,speed:number,scrub:number)=>{
-        if(!el)return;
-        gsap.to(el,{y:()=>-window.scrollY*speed,ease:"none",
-          scrollTrigger:{trigger:"body",start:"top top",end:"bottom bottom",scrub}});
-      };
-      mkTrigger(cobaltRef.current,0.10,2);
-      mkTrigger(ring1Ref.current,0.10,2.2);
-      mkTrigger(ring2Ref.current,0.09,2.4);
-      mkTrigger(ring3Ref.current,0.08,2.6);
-      mkTrigger(emeraldRef.current,0.06,2);
-      // Asteroid: y + rotation
-      if(asteroidRef.current){
-        gsap.to(asteroidRef.current,{
-          y:()=>-window.scrollY*0.16,
-          rotation:()=>window.scrollY*0.06,
-          ease:"none",
-          scrollTrigger:{trigger:"body",start:"top top",end:"bottom bottom",scrub:1.5},
-        });
-      }
-      // Planet breathe
-      gsap.to(cobaltRef.current,{scale:1.04,duration:9,ease:"sine.inOut",repeat:-1,yoyo:true});
-    });
-    return ()=>ctx.revert();
-  },[]);
+  const sy=useScrollY();
 
   return(
     <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
       {/* Cobalt Giant */}
-      <div ref={cobaltRef} style={{
+      <div style={{
         position:"absolute",right:"-60px",top:"-60px",
         width:"340px",height:"340px",borderRadius:"50%",
         background:"radial-gradient(circle at 32% 32%,#1d3a7e 0%,#0d1b6e 35%,#080f40 60%,#04081a 100%)",
@@ -281,6 +249,7 @@ function FloatingPlanets(){
         border:"0.5px solid rgba(123,94,167,0.2)",
         animation:"rim-pulse 8s ease-in-out infinite",
         overflow:"hidden",willChange:"transform",
+        transform:`translateY(${-sy*0.10}px)`,
       }}>
         {[18,38,52,68,80].map((pct,i)=>(
           <div key={i} style={{position:"absolute",left:0,right:0,top:`${pct}%`,height:`${[8,6,10,5,7][i]}%`,
@@ -292,28 +261,30 @@ function FloatingPlanets(){
 
       {/* Rings */}
       {[
-        {ref:ring1Ref,w:480,bw:"10px",col:"rgba(200,220,255,0.18)"},
-        {ref:ring2Ref,w:560,bw:"5px", col:"rgba(232,185,35,0.10)"},
-        {ref:ring3Ref,w:630,bw:"2px", col:"rgba(120,180,255,0.06)"},
+        {w:480,bw:"10px",col:"rgba(200,220,255,0.18)",speed:0.10},
+        {w:560,bw:"5px", col:"rgba(232,185,35,0.10)",  speed:0.09},
+        {w:630,bw:"2px", col:"rgba(120,180,255,0.06)", speed:0.08},
       ].map((r,i)=>(
-        <div key={i} ref={r.ref} style={{
+        <div key={i} style={{
           position:"absolute",
           right:`${-60-(r.w-340)/2}px`,
           top:`${-60+(340-r.w)/2+(i+1)*-40+80}px`,
           width:`${r.w}px`,height:`${r.w}px`,borderRadius:"50%",
           border:`${r.bw} solid ${r.col}`,
-          transform:"rotateX(72deg)",willChange:"transform",
+          transform:`rotateX(72deg) translateY(${-sy*r.speed}px)`,
+          willChange:"transform",
         }}/>
       ))}
 
       {/* Emerald Giant */}
-      <div ref={emeraldRef} style={{
+      <div style={{
         position:"absolute",left:"-100px",top:"320px",
         width:"220px",height:"220px",borderRadius:"50%",
         background:"radial-gradient(circle at 45% 35%,#1e4a30 0%,#1a3a2a 40%,#040c0c 100%)",
         boxShadow:"inset -15px -15px 40px rgba(0,0,0,0.85),0 0 40px rgba(0,196,180,0.12)",
         border:"0.5px solid rgba(0,196,180,0.15)",
         overflow:"hidden",willChange:"transform",
+        transform:`translateY(${-sy*0.06}px)`,
       }}>
         <svg viewBox="0 0 220 220" style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.5}}>
           {[0,1,2].map(i=>(
@@ -324,11 +295,12 @@ function FloatingPlanets(){
       </div>
 
       {/* Asteroid */}
-      <div ref={asteroidRef} style={{
+      <div style={{
         position:"absolute",right:"7%",top:"820px",
         width:"48px",height:"32px",borderRadius:"40% 60% 55% 45%",
         background:"#111828",boxShadow:"0 0 24px rgba(232,185,35,0.1)",
         opacity:0.45,willChange:"transform",
+        transform:`translateY(${-sy*0.16}px) rotate(${sy*0.06}deg)`,
       }}/>
     </div>
   );
