@@ -733,6 +733,318 @@ function AstronautScene({ progress }: { progress: number }) {
   );
 }
 
+// ── GSAP loader (CDN, no install needed) ──────────────────────────────────
+function useGSAP(cb: () => (() => void) | void) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const load = () => {
+      const cleanup = cb();
+      return () => { cleanup?.(); };
+    };
+    if ((window as any).gsap && (window as any).ScrollTrigger) { load(); return; }
+    const s1 = document.createElement("script");
+    s1.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js";
+    s1.onload = () => {
+      const s2 = document.createElement("script");
+      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js";
+      s2.onload = () => {
+        (window as any).gsap.registerPlugin((window as any).ScrollTrigger);
+        load();
+      };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+// ── Scene definitions ──────────────────────────────────────────────────────
+const PHOTO_SCENES = [
+  {
+    // ← filename must match exactly what you put in /public/
+    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_0.jpg",
+    section:  "01 — HERO",
+    tag:      "AI-Powered Study Platform",
+    headline: "Every question you ask\nis a step toward mastery.",
+    body:     "12 AI study tools. One platform. Built for students who demand results.",
+    accent:   TEAL, accentRgb: "0,196,180", pos: "center 35%", cta: false,
+  },
+  {
+    img:      "Phoenix_10_Lone_young_male_student_early_20s_identical_dark_na_2.jpg",
+    section:  "02 — AI INTELLIGENCE",
+    tag:      "BrainBot AI Tutor",
+    headline: "Think deeper.\nLearn faster.",
+    body:     "Ask anything. Get ELI5, analogies, debate, quiz, or a Socratic breakdown — instantly.",
+    accent:   "#78B4FF", accentRgb: "120,180,255", pos: "center 40%", cta: false,
+  },
+  {
+    img:      "Phoenix_10_Lone_young_male_student_early_20s_identical_dark_na_3.jpg",
+    section:  "03 — LEARNING PATHS",
+    tag:      "Roadmap Generator",
+    headline: "Map the unknown.\nConquer it systematically.",
+    body:     "Zero-to-mastery plans for any subject — broken into phases, paced to your schedule.",
+    accent:   PURPLE, accentRgb: "123,94,167", pos: "center 45%", cta: false,
+  },
+  {
+    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_2.jpg",
+    section:  "04 — KNOWLEDGE",
+    tag:      "Source Library",
+    headline: "Upload anything.\nLearn everything.",
+    body:     "PDFs, images, voice notes, or a topic name — every tool reads from your uploads.",
+    accent:   GOLD, accentRgb: "232,185,35", pos: "center 50%", cta: false,
+  },
+  {
+    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_3.jpg",
+    section:  "05 — DISCOVERY",
+    tag:      "Feynman + Recall Mode",
+    headline: "Teach it to master it.\nRecall it to own it.",
+    body:     "The hardest study methods, made effortless by AI that pokes holes until none remain.",
+    accent:   TEAL, accentRgb: "0,196,180", pos: "center 40%", cta: false,
+  },
+  {
+    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_2__1_.jpg",
+    section:  "06 — BREAKTHROUGH",
+    tag:      "Start today",
+    headline: "Break through.\nBegin now.",
+    body:     "Free to start. No credit card. Your first session is one click away.",
+    accent:   GOLD, accentRgb: "232,185,35", pos: "center 40%", cta: true,
+  },
+];
+
+// ── PhotoCinematicScroll ───────────────────────────────────────────────────
+function PhotoCinematicScroll() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scenesRef    = useRef<HTMLDivElement[]>([]);
+  const overlaysRef  = useRef<HTMLDivElement[]>([]);
+  const textsRef     = useRef<HTMLDivElement[]>([]);
+  const barRef       = useRef<HTMLDivElement>(null);
+
+  const [activeIdx,     setActiveIdx]     = useState(0);
+  const [sceneProgress, setSceneProgress] = useState(0);
+  const [globalProg,    setGlobalProg]    = useState(0);
+  const [gsapReady,     setGsapReady]     = useState(false);
+
+  // ── GSAP ─────────────────────────────────────────────────────────────────
+  useGSAP(() => {
+    const gsap = (window as any).gsap;
+    const ST   = (window as any).ScrollTrigger;
+    if (!gsap || !ST || !containerRef.current) return;
+    setGsapReady(true);
+    const kills: any[] = [];
+
+    PHOTO_SCENES.forEach((_, i) => {
+      const el      = scenesRef.current[i];
+      const overlay = overlaysRef.current[i];
+      const text    = textsRef.current[i];
+      if (!el || !overlay || !text) return;
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: el, start: "top top", end: "+=100%",
+          scrub: 1.4, pin: true, pinSpacing: true, anticipatePin: 1,
+          onUpdate: (self: any) => {
+            setActiveIdx(i);
+            setSceneProgress(self.progress);
+            setGlobalProg((i + self.progress) / PHOTO_SCENES.length);
+          },
+        },
+      });
+
+      tl.fromTo(el.querySelector(".sp"), { scale:1, y:0, filter:"brightness(0.35)" },
+                                          { scale:1.08, y:-30, filter:"brightness(0.46)", ease:"none" })
+        .fromTo(overlay, { opacity:0.5 }, { opacity:0.9, ease:"none" }, 0)
+        .fromTo(text, { opacity:0, y:50 }, { opacity:1, y:0, ease:"power2.out", duration:0.25 }, 0)
+        .to(text,   { opacity:0, y:-30, ease:"power2.in", duration:0.2 }, 0.76);
+
+      kills.push(tl.scrollTrigger);
+    });
+
+    ST.refresh();
+    return () => kills.forEach(k => k?.kill());
+  });
+
+  // ── CSS fallback ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (gsapReady) return;
+    const el = containerRef.current;
+    if (!el) return;
+    function onScroll() {
+      if (!el) return;
+      const rect  = el.getBoundingClientRect();
+      const total = el.offsetHeight - window.innerHeight;
+      const gp    = Math.max(0, Math.min(1, -rect.top / total));
+      setGlobalProg(gp);
+      const per = 1 / PHOTO_SCENES.length;
+      const idx = Math.min(PHOTO_SCENES.length - 1, Math.floor(gp / per));
+      setActiveIdx(idx);
+      setSceneProgress(Math.max(0, Math.min(1, (gp - idx * per) / per)));
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [gsapReady]);
+
+  const scene = PHOTO_SCENES[activeIdx];
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      {PHOTO_SCENES.map((sc, i) => {
+        const isActive = i === activeIdx;
+        const sp = isActive ? sceneProgress : 0;
+        const textOpacity = !gsapReady
+          ? (isActive ? (sp < 0.1 ? sp / 0.1 : sp > 0.82 ? Math.max(0, (1 - sp) / 0.18) : 1) : 0)
+          : 1;
+        const textY = !gsapReady ? (isActive ? (1 - Math.min(1, sp / 0.12)) * 44 : 44) : 0;
+
+        return (
+          <div key={i}
+            ref={el => { if (el) scenesRef.current[i] = el; }}
+            style={{ position:"relative", height: gsapReady ? "200vh" : "100vh", overflow:"hidden" }}>
+
+            {/* ── Photo — note: url(/${sc.img}) — no /images/ folder needed ── */}
+            <div className="sp" style={{
+              position:"absolute", inset:0,
+              backgroundImage: `url(/${sc.img})`,   // ← images live in /public/ root
+              backgroundSize:"cover", backgroundPosition:sc.pos,
+              filter:`brightness(${!gsapReady ? (isActive ? 0.35 + sp * 0.1 : 0.35) : 0.35})`,
+              transform: !gsapReady
+                ? `scale(${1 + (isActive ? sp * 0.07 : 0)}) translateY(${isActive ? sp * -25 : 0}px)`
+                : undefined,
+              transition: gsapReady ? "none" : "transform 0.06s linear, filter 0.06s linear",
+              willChange: "transform, filter",
+            }} />
+
+            {/* Cinematic vignette */}
+            <div style={{
+              position:"absolute", inset:0, pointerEvents:"none",
+              background:`
+                radial-gradient(ellipse 55% 75% at 50% 50%, transparent 15%, rgba(2,4,10,0.65) 100%),
+                linear-gradient(to top,    rgba(2,4,10,0.95) 0%,  transparent 45%),
+                linear-gradient(to bottom, rgba(2,4,10,0.75) 0%,  transparent 28%),
+                linear-gradient(to right,  rgba(2,4,10,0.55) 0%,  transparent 22%),
+                linear-gradient(to left,   rgba(2,4,10,0.55) 0%,  transparent 22%)
+              `,
+            }} />
+
+            {/* Accent overlay */}
+            <div ref={el => { if (el) overlaysRef.current[i] = el; }} style={{
+              position:"absolute", inset:0, pointerEvents:"none",
+              background:`rgba(${sc.accentRgb},0.07)`, mixBlendMode:"screen",
+            }} />
+
+            {/* Film grain */}
+            <div style={{
+              position:"absolute", inset:0, opacity:0.045, pointerEvents:"none",
+              backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+              animation:"grain-move 0.5s steps(3) infinite",
+            }} />
+
+            {/* Scan line */}
+            <div style={{
+              position:"absolute", left:0, right:0, height:"1px",
+              background:`linear-gradient(90deg, transparent, ${sc.accent}, transparent)`,
+              opacity:0.2, animation:"scanline 5s linear infinite",
+            }} />
+
+            {/* Section label */}
+            <div style={{
+              position:"absolute", top:24, left:36,
+              ...mono, fontSize:"9px", letterSpacing:"0.18em",
+              color:"rgba(255,255,255,0.28)", textTransform:"uppercase",
+            }}>{sc.section}</div>
+
+            {/* Dot indicators */}
+            <div style={{ position:"absolute", top:24, right:36, display:"flex", gap:10, alignItems:"center" }}>
+              {PHOTO_SCENES.map((_,di) => (
+                <div key={di} style={{
+                  height:"1px", width: di===i ? 28 : 8,
+                  background: di===i ? sc.accent : "rgba(255,255,255,0.18)",
+                  boxShadow: di===i ? `0 0 8px ${sc.accent}` : "none",
+                  transition:"all 0.4s ease",
+                }} />
+              ))}
+            </div>
+
+            {/* Main text */}
+            <div ref={el => { if (el) textsRef.current[i] = el; }} style={{
+              position:"absolute", bottom:"17%", left:"7%",
+              maxWidth:"min(580px,78vw)",
+              opacity: textOpacity,
+              transform: `translateY(${textY}px)`,
+              transition: gsapReady ? "none" : "opacity 0.12s, transform 0.12s",
+            }}>
+              <div style={{
+                ...mono, fontSize:"10px", letterSpacing:"0.18em",
+                textTransform:"uppercase", color:sc.accent,
+                marginBottom:14, opacity:0.85,
+                textShadow:`0 0 20px ${sc.accent}60`,
+              }}>{sc.tag}</div>
+
+              <h2 style={{
+                fontSize:"clamp(30px,4.8vw,62px)", fontWeight:300,
+                letterSpacing:"-0.03em", lineHeight:1.08,
+                color:"#F6F9FF", whiteSpace:"pre-line", marginBottom:18,
+                textShadow:`0 0 100px rgba(${sc.accentRgb},0.35), 0 2px 60px rgba(0,0,0,0.9)`,
+              }}>{sc.headline}</h2>
+
+              <div style={{
+                width:60, height:"0.5px",
+                background:`linear-gradient(90deg,${sc.accent},transparent)`,
+                marginBottom:16, boxShadow:`0 0 12px ${sc.accent}`,
+              }} />
+
+              <p style={{
+                fontSize:14, fontWeight:300, lineHeight:1.7,
+                color:"rgba(210,220,240,0.65)", maxWidth:440,
+                marginBottom: sc.cta ? 28 : 0,
+              }}>{sc.body}</p>
+
+              {sc.cta && (
+                <Link to="/signup" style={{ textDecoration:"none" }}>
+                  <button style={{
+                    fontSize:13, fontFamily:"'Inter',system-ui,sans-serif",
+                    fontWeight:600, color:"#020408",
+                    background:sc.accent, border:"none",
+                    padding:"13px 32px", cursor:"pointer",
+                    letterSpacing:"0.04em",
+                    boxShadow:`0 0 48px rgba(${sc.accentRgb},0.5)`,
+                    transition:"opacity 0.15s,transform 0.2s,box-shadow 0.2s",
+                  }}
+                    onMouseEnter={e=>{e.currentTarget.style.opacity="0.85";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 0 64px rgba(${sc.accentRgb},0.7)`;}}
+                    onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow=`0 0 48px rgba(${sc.accentRgb},0.5)`;}}>
+                    Begin your journey →
+                  </button>
+                </Link>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"1.5px", background:"rgba(255,255,255,0.05)" }}>
+              <div ref={i===0 ? barRef : undefined} style={{
+                height:"100%", width:`${globalProg*100}%`,
+                background:`linear-gradient(90deg,${TEAL},${GOLD})`,
+                boxShadow:`0 0 10px ${TEAL}`,
+                transition: gsapReady ? "none" : "width 0.1s linear",
+              }} />
+            </div>
+
+            {/* Scroll hint — first scene only */}
+            {i===0 && (
+              <div style={{
+                position:"absolute", bottom:"9%", right:"7%", textAlign:"center",
+                opacity: !gsapReady ? Math.max(0,1-sp/0.25) : 0.7, transition:"opacity 0.3s",
+              }}>
+                <p style={{...mono,fontSize:"9px",letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:8}}>Scroll</p>
+                <div style={{width:"1px",height:36,background:`linear-gradient(${sc.accent},transparent)`,margin:"0 auto",boxShadow:`0 0 8px ${sc.accent}`}} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Cinematic Section ──────────────────────────────────────────────────────
 function CinematicSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -1047,7 +1359,7 @@ export default function Landing() {
   return (
     <div style={{
       minHeight:"100vh", display:"flex", flexDirection:"column",
-      background:`linear-gradient(180deg, ${VOID} 0%, #060D1F 100%)`,
+      background:`radial-gradient(ellipse 120% 80% at 60% -10%, #0d1640 0%, #070b1e 30%, #03050f 60%, #02040b 100%)`,
       color:"#E0E8F0",
       fontFamily:"'Inter', system-ui, sans-serif",
     }}>
@@ -1177,6 +1489,14 @@ export default function Landing() {
       <div style={{position:"relative",zIndex:2}}>
         <CinematicSection />
       </div>
+
+      {/* ── 6 cinematic photo scenes ── */}
+      <div style={{position:"relative",zIndex:2}}>
+        <PhotoCinematicScroll />
+      </div>
+
+      {/* smooth fade into content */}
+      <div style={{height:80,background:"linear-gradient(to bottom,#02040a,#05080f)",position:"relative",zIndex:2,marginTop:-2}} />
 
       <div style={{position:"relative",zIndex:2,background:"#05080f"}}>
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
