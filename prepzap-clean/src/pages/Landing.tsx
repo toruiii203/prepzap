@@ -1,1316 +1,923 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+/**
+ * STUDENIUS — Landing Page
+ * Cinematic parallax with GSAP + ScrollTrigger
+ *
+ *  npm install gsap
+ */
+
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { FileText, Hash, Mic, Image as ImageIcon } from "lucide-react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-// ── Brand palette ──────────────────────────────────────────────────────────
+gsap.registerPlugin(ScrollTrigger);
+
+// ─── Brand ────────────────────────────────────────────────────────────────────
 const TEAL   = "#00C4B4";
 const GOLD   = "#E8B923";
 const PURPLE = "#7B5EA7";
 const VOID   = "#03050F";
-const mono: React.CSSProperties = {
-  fontFamily: "'Geist Mono', 'Courier New', monospace",
-};
+const mono: React.CSSProperties = { fontFamily:"'Geist Mono','Courier New',monospace" };
 
-// ── CSS injected once ──────────────────────────────────────────────────────
+// ─── Global CSS ───────────────────────────────────────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  ::selection { background: rgba(0,196,180,0.25); }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:auto;}
+  ::selection{background:rgba(0,196,180,0.25);}
 
-  @keyframes float-astronaut {
-    0%,100% { transform: translateY(0px) rotate(-4deg); }
-    50%      { transform: translateY(-22px) rotate(5deg); }
+  @keyframes float-slow{
+    0%,100%{transform:translateY(0px) rotate(-4deg);}
+    50%{transform:translateY(-26px) rotate(5deg);}
   }
-  @keyframes pulse-glow {
-    0%,100% { opacity:0.55; }
-    50%      { opacity:1; }
+  @keyframes pulse-glow{0%,100%{opacity:.55;}50%{opacity:1;}}
+  @keyframes orbit1{to{transform:rotateX(75deg) rotateZ(360deg);}}
+  @keyframes orbit2{to{transform:rotateX(65deg) rotateZ(480deg);}}
+  @keyframes orbit3{to{transform:rotateX(80deg) rotateZ(600deg);}}
+  @keyframes star-twinkle{0%,100%{opacity:.3;transform:scale(1);}50%{opacity:1;transform:scale(1.5);}}
+  @keyframes drift-eq{
+    0%{transform:translateY(0) translateX(0) rotate(0deg);}
+    33%{transform:translateY(-10px) translateX(6px) rotate(2deg);}
+    66%{transform:translateY(5px) translateX(-4px) rotate(-1.5deg);}
+    100%{transform:translateY(0) translateX(0) rotate(0deg);}
   }
-  @keyframes orbit1 { from { transform:rotateX(75deg) rotateZ(0deg); }   to { transform:rotateX(75deg) rotateZ(360deg); } }
-  @keyframes orbit2 { from { transform:rotateX(65deg) rotateZ(120deg); } to { transform:rotateX(65deg) rotateZ(480deg); } }
-  @keyframes orbit3 { from { transform:rotateX(80deg) rotateZ(240deg); } to { transform:rotateX(80deg) rotateZ(600deg); } }
-  @keyframes star-twinkle { 0%,100%{opacity:0.3;transform:scale(1)} 50%{opacity:1;transform:scale(1.4)} }
-  @keyframes scanline { from{top:-2px} to{top:100%} }
-  @keyframes drift-eq {
-    0%   { transform: translateY(0px) translateX(0px) rotate(0deg);   opacity: var(--o); }
-    33%  { transform: translateY(-8px) translateX(5px) rotate(2deg);  opacity: calc(var(--o)*0.7); }
-    66%  { transform: translateY(4px)  translateX(-3px) rotate(-1deg); opacity: var(--o); }
-    100% { transform: translateY(0px)  translateX(0px) rotate(0deg);  opacity: var(--o); }
+  @keyframes binary-fall{
+    from{transform:translateY(-40px);opacity:0;}
+    10%{opacity:1;}90%{opacity:1;}
+    to{transform:translateY(130vh);opacity:0;}
   }
-  @keyframes binary-fall {
-    from { transform: translateY(-40px); opacity: 0; }
-    10%  { opacity: 1; }
-    90%  { opacity: 1; }
-    to   { transform: translateY(120vh); opacity: 0; }
+  @keyframes rim-pulse{
+    0%,100%{box-shadow:0 0 60px rgba(0,196,180,.12);}
+    50%{box-shadow:0 0 120px rgba(0,196,180,.28);}
   }
-  @keyframes rim-pulse {
-    0%,100% { box-shadow: 0 0 60px rgba(0,196,180,0.12); }
-    50%      { box-shadow: 0 0 100px rgba(0,196,180,0.22); }
+  @keyframes god-ray{0%,100%{opacity:.03;}50%{opacity:.08;}}
+  @keyframes glitch1{
+    0%,100%{clip-path:inset(20% 0 55% 0);transform:translate(-2px,0);}
+    50%{clip-path:inset(35% 0 15% 0);transform:translate(3px,0);}
   }
-  @keyframes god-ray-pulse {
-    0%,100% { opacity:0.03; }
-    50%      { opacity:0.07; }
+  @keyframes glitch2{
+    0%,100%{clip-path:inset(65% 0 8% 0);transform:translate(2px,0);}
+    50%{clip-path:inset(5% 0 70% 0);transform:translate(-1px,0);}
   }
-  @keyframes glitch-clip1 {
-    0%,100% { clip-path: inset(20% 0 55% 0); transform: translate(-2px,0); }
-    50%     { clip-path: inset(35% 0 15% 0); transform: translate(3px,0); }
-  }
-  @keyframes glitch-clip2 {
-    0%,100% { clip-path: inset(65% 0 8% 0); transform: translate(2px,0); }
-    50%     { clip-path: inset(5% 0 70% 0);  transform: translate(-1px,0); }
-  }
-  @keyframes cinematic-zoom {
-    0% { transform: scale(1); filter: blur(0px); }
-    50% { transform: scale(1.08); filter: blur(0.3px); }
-    100% { transform: scale(1); filter: blur(0px); }
-  }
-  @keyframes text-reveal {
-    0% { clip-path: inset(0 100% 0 0); opacity: 0; }
-    100% { clip-path: inset(0 0 0 0); opacity: 1; }
-  }
-  @keyframes fade-up {
-    0% { opacity: 0; transform: translateY(60px); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes vortex-spin {
-    0% { transform: rotate(0deg) scale(1); }
-    100% { transform: rotate(360deg) scale(1.5); }
-  }
-  @keyframes chromatic-shift {
-    0%,100% { text-shadow: -2px 0 rgba(0,196,180,0.5), 2px 0 rgba(232,185,35,0.5); }
-    50% { text-shadow: -4px 0 rgba(0,196,180,0.8), 4px 0 rgba(232,185,35,0.8); }
-  }
-  @keyframes grain-move {
-    0% { transform: translate(0, 0); }
-    25% { transform: translate(-5%, -5%); }
-    50% { transform: translate(-10%, 5%); }
-    75% { transform: translate(5%, -10%); }
-    100% { transform: translate(0, 0); }
+  @keyframes mote-drift{
+    0%{transform:translate(0,0);}
+    25%{transform:translate(8px,-12px);}
+    50%{transform:translate(-5px,-20px);}
+    75%{transform:translate(-12px,-8px);}
+    100%{transform:translate(0,0);}
   }
 `;
 
-// ── Data ───────────────────────────────────────────────────────────────────
+// ─── Data ─────────────────────────────────────────────────────────────────────
 const mockQuestion = {
-  text: "Which of the following best describes the process of osmosis?",
-  choices: [
-    { id: "a", text: "Movement of solute from high to low concentration" },
-    { id: "b", text: "Movement of water across a semipermeable membrane" },
-    { id: "c", text: "Active transport requiring ATP energy" },
-    { id: "d", text: "Diffusion of large molecules through cell walls" },
+  text:"Which of the following best describes the process of osmosis?",
+  choices:[
+    {id:"a",text:"Movement of solute from high to low concentration"},
+    {id:"b",text:"Movement of water across a semipermeable membrane"},
+    {id:"c",text:"Active transport requiring ATP energy"},
+    {id:"d",text:"Diffusion of large molecules through cell walls"},
   ],
-  correct: "b",
-  explanation: "Osmosis is the passive movement of water molecules across a selectively permeable membrane from an area of lower solute concentration to higher.",
+  correct:"b",
+  explanation:"Osmosis is the passive movement of water molecules across a selectively permeable membrane from an area of lower solute concentration to higher.",
 };
 
 const features = [
-  { n:"01", title:"AI Tutor (BrainBot)",     desc:"Ask anything — Explain, ELI5, Analogy, Quiz, Debate, Summary" },
-  { n:"02", title:"Practice & Flashcards",   desc:"AI-generated questions and spaced-repetition from your materials" },
-  { n:"03", title:"Cram Mode",               desc:"Emergency timed session — AI breaks subjects into prioritised topics" },
-  { n:"04", title:"High Yield Detector",     desc:"Identifies the most testable concepts and drills you instantly" },
-  { n:"05", title:"Recall Mode",             desc:"Type from memory and get scored — the hardest way to study" },
-  { n:"06", title:"Confidence Calibration",  desc:"Sort every concept into Know / Shaky / No idea" },
-  { n:"07", title:"Mistake Journal",         desc:"Log errors with spaced-repetition — overdue items resurface" },
-  { n:"08", title:"Roadmap Generator",       desc:"Zero-to-mastery plan for any subject, broken into phases" },
-  { n:"09", title:"Feynman Mode",            desc:"Teach the AI — it pokes holes until you truly understand" },
-  { n:"10", title:"Source Library",          desc:"Upload PDFs, images, or notes — every tool reads them" },
-  { n:"11", title:"Study DNA",               desc:"Your living learner profile — adapts and reveals your patterns" },
-  { n:"12", title:"Focus Timer + Progress",  desc:"Built-in Pomodoro with activity tracking and session analytics" },
+  {n:"01",title:"AI Tutor (BrainBot)",    desc:"Ask anything — Explain, ELI5, Analogy, Quiz, Debate, Summary"},
+  {n:"02",title:"Practice & Flashcards",  desc:"AI-generated questions and spaced-repetition from your materials"},
+  {n:"03",title:"Cram Mode",              desc:"Emergency timed session — AI breaks subjects into prioritised topics"},
+  {n:"04",title:"High Yield Detector",    desc:"Identifies the most testable concepts and drills you instantly"},
+  {n:"05",title:"Recall Mode",            desc:"Type from memory and get scored — the hardest way to study"},
+  {n:"06",title:"Confidence Calibration", desc:"Sort every concept into Know / Shaky / No idea"},
+  {n:"07",title:"Mistake Journal",        desc:"Log errors with spaced-repetition — overdue items resurface"},
+  {n:"08",title:"Roadmap Generator",      desc:"Zero-to-mastery plan for any subject, broken into phases"},
+  {n:"09",title:"Feynman Mode",           desc:"Teach the AI — it pokes holes until you truly understand"},
+  {n:"10",title:"Source Library",         desc:"Upload PDFs, images, or notes — every tool reads them"},
+  {n:"11",title:"Study DNA",              desc:"Your living learner profile — adapts and reveals your patterns"},
+  {n:"12",title:"Focus Timer + Progress", desc:"Built-in Pomodoro with activity tracking and session analytics"},
 ];
 
 const testimonials = [
-  { name:"Maria S.",  role:"Nursing Student",      text:"Uploaded my lecture notes and got 200 practice questions instantly. Passed my boards first try." },
-  { name:"James W.",  role:"Medical Student",       text:"Cram Mode the night before exams is genuinely a lifesaver. It structures everything perfectly." },
-  { name:"Sarah C.",  role:"Teacher",              text:"Feynman Mode exposed every gap in my knowledge. Not just for exams — for any subject." },
-  { name:"Ahmed R.",  role:"Engineering Student",  text:"High Yield Detector told me exactly what to study before finals. Went from C to A." },
+  {name:"Maria S.", role:"Nursing Student",     text:"Uploaded my lecture notes and got 200 practice questions instantly. Passed my boards first try."},
+  {name:"James W.", role:"Medical Student",      text:"Cram Mode the night before exams is genuinely a lifesaver. It structures everything perfectly."},
+  {name:"Sarah C.", role:"Teacher",             text:"Feynman Mode exposed every gap in my knowledge. Not just for exams — for any subject."},
+  {name:"Ahmed R.", role:"Engineering Student", text:"High Yield Detector told me exactly what to study before finals. Went from C to A."},
 ];
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-const hairline: React.CSSProperties = { height:"0.5px", background:"#0d1220", margin:0 };
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const hairline: React.CSSProperties = {height:"0.5px",background:"#0d1220",margin:0};
 const sectionLabel: React.CSSProperties = {
-  ...mono, fontSize:"10px", color:"#444", letterSpacing:"0.14em",
-  textTransform:"uppercase", marginBottom:"40px",
-  display:"flex", alignItems:"center", gap:"12px",
+  ...mono,fontSize:"10px",color:"#444",letterSpacing:"0.14em",
+  textTransform:"uppercase",marginBottom:"40px",
+  display:"flex",alignItems:"center",gap:"12px",
 };
 
-function useScrollY() {
-  const [scrollY, setScrollY] = useState(0);
-  useEffect(() => {
-    const h = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", h, { passive:true });
-    return () => window.removeEventListener("scroll", h);
-  }, []);
-  return scrollY;
+function useScrollY(){
+  const [sy,setSy]=useState(0);
+  useEffect(()=>{
+    const h=()=>setSy(window.scrollY);
+    window.addEventListener("scroll",h,{passive:true});
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
+  return sy;
 }
 
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setInView(true); },
-      { threshold }
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, inView };
+function useInView(threshold=0.1){
+  const ref=useRef<HTMLDivElement>(null);
+  const [inView,setInView]=useState(false);
+  useEffect(()=>{
+    const obs=new IntersectionObserver(([e])=>{if(e.isIntersecting)setInView(true);},{threshold});
+    if(ref.current)obs.observe(ref.current);
+    return ()=>obs.disconnect();
+  },[threshold]);
+  return {ref,inView};
 }
 
-// ── ★ Layer A+B+C Star field with parallax ─────────────────────────────────
-function StarField({ scrollY }: { scrollY: number }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const starsRef = useRef<{
-    x:number; y:number; r:number; o:number; sp:number; layer:number;
-    phase:number; freq:number; warm:boolean; spike:boolean;
-  }[]>([]);
+// ─── Star field canvas — own RAF loop, parallax via scroll ref ────────────────
+function StarField(){
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  const scrollRef=useRef(0);
 
-  useEffect(() => {
-    const c = ref.current!;
-    const ctx = c.getContext("2d")!;
-    let raf: number;
+  useEffect(()=>{
+    const h=()=>{scrollRef.current=window.scrollY;};
+    window.addEventListener("scroll",h,{passive:true});
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
 
-    function resize() { c.width=window.innerWidth; c.height=window.innerHeight; }
+  useEffect(()=>{
+    const c=canvasRef.current!;
+    const ctx=c.getContext("2d")!;
+    let raf:number;
+
+    function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize",resize);
 
-    const stars = starsRef.current;
-    stars.length = 0;
+    type Star={x:number;y:number;r:number;o:number;phase:number;freq:number;layer:number;warm:boolean;spike:boolean};
+    const stars:Star[]=[];
+    const PARALLAX=[0.018,0.055,0.13];
 
-    for (let i=0;i<1800;i++) {
-      const gx = (Math.random()*2-1)*0.8;
-      const x = Math.random()*c.width + gx*(c.width*0.2);
-      stars.push({
-        x: Math.max(0,Math.min(c.width,x)),
-        y: Math.random()*c.height*3,
-        r: Math.random()*0.5+0.15, o:Math.random()*0.7+0.1,
-        sp:Math.random()*0.004+0.001, layer:0,
-        phase:Math.random()*Math.PI*2, freq:Math.random()*0.003+0.001,
-        warm:Math.random()<0.05, spike:false,
-      });
-    }
-    for (let i=0;i<400;i++) {
-      stars.push({
-        x:Math.random()*c.width, y:Math.random()*c.height*3,
-        r:Math.random()*0.8+0.6, o:Math.random()*0.7+0.15,
-        sp:Math.random()*0.005+0.002, layer:1,
-        phase:Math.random()*Math.PI*2, freq:Math.random()*0.006+0.002,
-        warm:Math.random()<0.05, spike:false,
-      });
-    }
-    for (let i=0;i<80;i++) {
-      stars.push({
-        x:Math.random()*c.width, y:Math.random()*c.height*3,
-        r:Math.random()*1.6+1.4, o:Math.random()*0.5+0.4,
-        sp:Math.random()*0.008+0.003, layer:2,
-        phase:Math.random()*Math.PI*2, freq:Math.random()*0.008+0.003,
-        warm:Math.random()<0.12, spike:i<3,
-      });
-    }
+    const addLayer=(n:number,rMin:number,rMax:number,layer:number,warmChance:number,spikes:number)=>{
+      for(let i=0;i<n;i++){
+        stars.push({
+          x:Math.random()*c.width,
+          y:Math.random()*c.height*3,
+          r:Math.random()*(rMax-rMin)+rMin,
+          o:Math.random()*0.7+0.15,
+          phase:Math.random()*Math.PI*2,
+          freq:Math.random()*0.006+0.001,
+          layer,warm:Math.random()<warmChance,spike:i<spikes,
+        });
+      }
+    };
+    addLayer(1800,0.15,0.65,0,0.04,0);
+    addLayer(400,0.6,1.4,1,0.06,0);
+    addLayer(80,1.4,3.0,2,0.12,3);
 
-    let t = 0;
-    const parallaxSpeeds = [0.02, 0.06, 0.14];
-
-    function draw() {
+    let t=0;
+    function draw(){
       t++;
       ctx.clearRect(0,0,c.width,c.height);
-      for (const s of stars) {
-        const parallax = parallaxSpeeds[s.layer] * scrollY;
-        const ry = ((s.y - parallax) % (c.height*3) + c.height*3) % (c.height*3);
-        if (ry < 0 || ry > c.height) continue;
-
-        const pulse = s.o * (0.6 + 0.4 * Math.sin(t * s.freq * 60 + s.phase));
-        const col = s.warm ? `rgba(232,185,35,${pulse*0.7})` :
-          s.layer===2 ? `rgba(120,180,255,${pulse})` :
-          s.layer===1 ? `rgba(180,240,235,${pulse*0.8})` :
-                        `rgba(200,220,255,${pulse})`;
-
-        ctx.beginPath();
-        ctx.arc(s.x, ry, s.r, 0, Math.PI*2);
-        ctx.fillStyle = col;
-        ctx.fill();
-
-        if (s.layer===2) {
-          ctx.beginPath();
-          ctx.arc(s.x, ry, s.r*3, 0, Math.PI*2);
-          const g = ctx.createRadialGradient(s.x,ry,0,s.x,ry,s.r*3);
-          g.addColorStop(0, s.warm ? `rgba(232,185,35,${pulse*0.3})` : `rgba(120,180,255,${pulse*0.3})`);
-          g.addColorStop(1, "transparent");
-          ctx.fillStyle = g;
-          ctx.fill();
+      const sy=scrollRef.current;
+      for(const s of stars){
+        const py=((s.y-PARALLAX[s.layer]*sy)%(c.height*3)+c.height*3)%(c.height*3);
+        if(py<-4||py>c.height+4)continue;
+        const pulse=s.o*(0.55+0.45*Math.sin(t*s.freq*60+s.phase));
+        const col=s.warm
+          ?`rgba(232,185,35,${pulse*0.75})`
+          :s.layer===2?`rgba(120,180,255,${pulse})`
+          :s.layer===1?`rgba(180,240,235,${pulse*0.85})`
+          :`rgba(200,220,255,${pulse})`;
+        ctx.beginPath();ctx.arc(s.x,py,s.r,0,Math.PI*2);
+        ctx.fillStyle=col;ctx.fill();
+        if(s.layer===2){
+          const g=ctx.createRadialGradient(s.x,py,0,s.x,py,s.r*3.5);
+          g.addColorStop(0,s.warm?`rgba(232,185,35,${pulse*0.35})`:`rgba(120,180,255,${pulse*0.3})`);
+          g.addColorStop(1,"transparent");
+          ctx.beginPath();ctx.arc(s.x,py,s.r*3.5,0,Math.PI*2);
+          ctx.fillStyle=g;ctx.fill();
         }
-
-        if (s.spike) {
-          const spikeLen = s.r * 12;
-          ctx.save();
-          ctx.globalAlpha = pulse * 0.6;
-          ctx.strokeStyle = `rgba(120,180,255,0.5)`;
-          ctx.lineWidth = 0.5;
-          for (const angle of [0, Math.PI/2]) {
+        if(s.spike){
+          const len=s.r*14;
+          ctx.save();ctx.globalAlpha=pulse*0.55;
+          ctx.strokeStyle="rgba(120,180,255,0.6)";ctx.lineWidth=0.5;
+          [[1,0],[0,1]].forEach(([cx,cy])=>{
             ctx.beginPath();
-            ctx.moveTo(s.x - Math.cos(angle)*spikeLen, ry - Math.sin(angle)*spikeLen);
-            ctx.lineTo(s.x + Math.cos(angle)*spikeLen, ry + Math.sin(angle)*spikeLen);
+            ctx.moveTo(s.x-cx*len,py-cy*len);
+            ctx.lineTo(s.x+cx*len,py+cy*len);
             ctx.stroke();
-          }
+          });
           ctx.restore();
         }
       }
-      raf = requestAnimationFrame(draw);
+      raf=requestAnimationFrame(draw);
     }
     draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize",resize); };
-  }, [scrollY]);
+    return ()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",resize);};
+  },[]);
 
-  return <canvas ref={ref} style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none" }} />;
+  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none"}}/>;
 }
 
-// ── Nebula ────────────────────────────────────────────────────────────────
-function NebulaLayer({ scrollY }: { scrollY: number }) {
-  const p = scrollY * 0.001;
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none" }}>
-      <div style={{
-        position:"absolute", inset:0,
-        background:`radial-gradient(ellipse 80% 60% at 20% ${30 - scrollY*0.007}%, rgba(180,40,160,0.1) 0%, transparent 65%)`,
-        animation:"nebula-drift 40s ease-in-out infinite",
-      }} />
-      <div style={{
-        position:"absolute", inset:0,
-        background:`radial-gradient(ellipse 50% 70% at ${15+p*5}% ${65+scrollY*0.005}%, rgba(0,196,180,0.08) 0%, transparent 60%)`,
-      }} />
-      <div style={{
-        position:"absolute", inset:0,
-        background:`radial-gradient(ellipse 40% 30% at 80% ${30+p*8}%, rgba(232,185,35,0.06) 0%, transparent 50%)`,
-      }} />
-      <div style={{
-        position:"absolute", inset:0,
-        background:`radial-gradient(ellipse 60% 20% at 60% ${50+p*4}%, rgba(120,180,255,0.05) 0%, transparent 55%)`,
-      }} />
-      <div style={{
-        position:"absolute", inset:0, pointerEvents:"none",
-        background:`linear-gradient(112deg, transparent 30%, rgba(232,185,35,0.04) 45%, transparent 48%, rgba(232,185,35,0.03) 52%, transparent 58%, rgba(120,180,255,0.03) 65%, transparent 70%)`,
-        animation:"god-ray-pulse 8s ease-in-out infinite",
-      }} />
+// ─── Nebula — GSAP breathe + scroll drift ─────────────────────────────────────
+function NebulaLayer(){
+  const refs=[useRef<HTMLDivElement>(null),useRef<HTMLDivElement>(null),useRef<HTMLDivElement>(null),useRef<HTMLDivElement>(null)];
+
+  useEffect(()=>{
+    const ctx=gsap.context(()=>{
+      refs.forEach((r,i)=>{
+        if(!r.current)return;
+        // Breathe
+        gsap.to(r.current,{scale:1.07+i*0.02,rotate:(i%2===0?2:-2),
+          duration:18+i*6,ease:"sine.inOut",repeat:-1,yoyo:true});
+        // Scroll drift
+        const speeds=[0.06,0.04,0.035,0.025];
+        gsap.to(r.current,{
+          y:()=>-window.scrollY*speeds[i],ease:"none",
+          scrollTrigger:{trigger:"body",start:"top top",end:"bottom bottom",scrub:1.6},
+        });
+      });
+    });
+    return ()=>ctx.revert();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+  const base:React.CSSProperties={position:"absolute",inset:"-20%",zIndex:0,pointerEvents:"none",transformOrigin:"center center",willChange:"transform"};
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
+      <div ref={refs[0]} style={{...base,background:"radial-gradient(ellipse 80% 60% at 22% 30%, rgba(180,40,160,0.11) 0%, transparent 65%)"}}/>
+      <div ref={refs[1]} style={{...base,background:"radial-gradient(ellipse 55% 70% at 15% 65%, rgba(0,196,180,0.09) 0%, transparent 60%)"}}/>
+      <div ref={refs[2]} style={{...base,background:"radial-gradient(ellipse 45% 32% at 80% 30%, rgba(232,185,35,0.07) 0%, transparent 50%)"}}/>
+      <div ref={refs[3]} style={{...base,background:"radial-gradient(ellipse 65% 22% at 60% 50%, rgba(120,180,255,0.06) 0%, transparent 55%)"}}/>
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(112deg,transparent 30%,rgba(232,185,35,0.045) 45%,transparent 48%,rgba(232,185,35,0.03) 52%,transparent 58%,rgba(120,180,255,0.03) 65%,transparent 70%)",animation:"god-ray 9s ease-in-out infinite"}}/>
     </div>
   );
 }
 
-// ── Planets ────────────────────────────────────────────────────────────────
-function FloatingPlanets({ scrollY }: { scrollY: number }) {
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", overflow:"hidden" }}>
-      <div style={{
-        position:"absolute", right:"-60px",
-        top:`${-60 + scrollY*0.12}px`,
-        width:"340px", height:"340px",
-        borderRadius:"50%",
-        background:`radial-gradient(circle at 32% 32%, #1d3a7e 0%, #0d1b6e 35%, #080f40 60%, #04081a 100%)`,
-        boxShadow:`inset -30px -30px 80px rgba(0,0,0,0.85), inset 20px 20px 60px rgba(13,27,110,0.3), 0 0 80px rgba(123,94,167,0.18), 0 0 200px rgba(13,27,110,0.08)`,
+// ─── Planets — GSAP scroll-driven parallax ────────────────────────────────────
+function FloatingPlanets(){
+  const cobaltRef=useRef<HTMLDivElement>(null);
+  const ring1Ref=useRef<HTMLDivElement>(null);
+  const ring2Ref=useRef<HTMLDivElement>(null);
+  const ring3Ref=useRef<HTMLDivElement>(null);
+  const emeraldRef=useRef<HTMLDivElement>(null);
+  const asteroidRef=useRef<HTMLDivElement>(null);
+
+  useEffect(()=>{
+    const ctx=gsap.context(()=>{
+      const mkTrigger=(el:HTMLElement|null,speed:number,scrub:number)=>{
+        if(!el)return;
+        gsap.to(el,{y:()=>-window.scrollY*speed,ease:"none",
+          scrollTrigger:{trigger:"body",start:"top top",end:"bottom bottom",scrub}});
+      };
+      mkTrigger(cobaltRef.current,0.10,2);
+      mkTrigger(ring1Ref.current,0.10,2.2);
+      mkTrigger(ring2Ref.current,0.09,2.4);
+      mkTrigger(ring3Ref.current,0.08,2.6);
+      mkTrigger(emeraldRef.current,0.06,2);
+      // Asteroid: y + rotation
+      if(asteroidRef.current){
+        gsap.to(asteroidRef.current,{
+          y:()=>-window.scrollY*0.16,
+          rotation:()=>window.scrollY*0.06,
+          ease:"none",
+          scrollTrigger:{trigger:"body",start:"top top",end:"bottom bottom",scrub:1.5},
+        });
+      }
+      // Planet breathe
+      gsap.to(cobaltRef.current,{scale:1.04,duration:9,ease:"sine.inOut",repeat:-1,yoyo:true});
+    });
+    return ()=>ctx.revert();
+  },[]);
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
+      {/* Cobalt Giant */}
+      <div ref={cobaltRef} style={{
+        position:"absolute",right:"-60px",top:"-60px",
+        width:"340px",height:"340px",borderRadius:"50%",
+        background:"radial-gradient(circle at 32% 32%,#1d3a7e 0%,#0d1b6e 35%,#080f40 60%,#04081a 100%)",
+        boxShadow:"inset -30px -30px 80px rgba(0,0,0,0.85),0 0 80px rgba(123,94,167,0.18)",
         border:"0.5px solid rgba(123,94,167,0.2)",
         animation:"rim-pulse 8s ease-in-out infinite",
-        overflow:"hidden",
+        overflow:"hidden",willChange:"transform",
       }}>
-        {[18,38,52,68,80].map((pct,i) => (
-          <div key={i} style={{
-            position:"absolute", left:0, right:0,
-            top:`${pct}%`, height:`${[8,6,10,5,7][i]}%`,
-            background: i%2===0 ? "rgba(10,20,80,0.35)" : "rgba(40,80,160,0.12)",
-          }} />
+        {[18,38,52,68,80].map((pct,i)=>(
+          <div key={i} style={{position:"absolute",left:0,right:0,top:`${pct}%`,height:`${[8,6,10,5,7][i]}%`,
+            background:i%2===0?"rgba(10,20,80,0.35)":"rgba(40,80,160,0.12)"}}/>
         ))}
-        <div style={{
-          position:"absolute", left:"30%", top:"62%",
-          width:"28%", height:"14%", borderRadius:"50%",
-          background:"rgba(6,10,50,0.6)", transform:"rotate(-8deg)",
-        }} />
-        <div style={{
-          position:"absolute", inset:0, borderRadius:"50%",
-          background:"radial-gradient(circle at 100% 50%, rgba(80,120,255,0.15) 0%, transparent 45%)",
-        }} />
+        <div style={{position:"absolute",left:"30%",top:"62%",width:"28%",height:"14%",borderRadius:"50%",background:"rgba(6,10,50,0.6)",transform:"rotate(-8deg)"}}/>
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",background:"radial-gradient(circle at 100% 50%,rgba(80,120,255,0.15) 0%,transparent 45%)"}}/>
       </div>
 
+      {/* Rings */}
       {[
-        { w:480, h:480, bw:"10px", col:"rgba(200,220,255,0.18)", top:"-6px", blur:"1px" },
-        { w:560, h:560, bw:"5px",  col:"rgba(232,185,35,0.10)",  top:"-50px", blur:"0px" },
-        { w:620, h:620, bw:"2px",  col:"rgba(120,180,255,0.06)", top:"-80px", blur:"0px" },
-      ].map((r,i) => (
-        <div key={i} style={{
+        {ref:ring1Ref,w:480,bw:"10px",col:"rgba(200,220,255,0.18)"},
+        {ref:ring2Ref,w:560,bw:"5px", col:"rgba(232,185,35,0.10)"},
+        {ref:ring3Ref,w:630,bw:"2px", col:"rgba(120,180,255,0.06)"},
+      ].map((r,i)=>(
+        <div key={i} ref={r.ref} style={{
           position:"absolute",
-          right:`${-60 - (r.w-340)/2}px`,
-          top:`${-60 + scrollY*0.12 + parseFloat(r.top) + (340-r.h)/2}px`,
-          width:`${r.w}px`, height:`${r.h}px`,
-          borderRadius:"50%",
+          right:`${-60-(r.w-340)/2}px`,
+          top:`${-60+(340-r.w)/2+(i+1)*-40+80}px`,
+          width:`${r.w}px`,height:`${r.w}px`,borderRadius:"50%",
           border:`${r.bw} solid ${r.col}`,
-          transform:"rotateX(72deg)",
-          filter: r.blur!=="0px" ? `blur(${r.blur})` : undefined,
-          pointerEvents:"none",
-        }} />
+          transform:"rotateX(72deg)",willChange:"transform",
+        }}/>
       ))}
 
-      <div style={{
-        position:"absolute", left:"-100px",
-        top:`${320 + scrollY*0.07}px`,
-        width:"220px", height:"220px",
-        borderRadius:"50%",
-        background:`radial-gradient(circle at 45% 35%, #1e4a30 0%, #1a3a2a 40%, #040c0c 100%)`,
-        boxShadow:`inset -15px -15px 40px rgba(0,0,0,0.85), 0 0 40px rgba(0,196,180,0.12)`,
+      {/* Emerald Giant */}
+      <div ref={emeraldRef} style={{
+        position:"absolute",left:"-100px",top:"320px",
+        width:"220px",height:"220px",borderRadius:"50%",
+        background:"radial-gradient(circle at 45% 35%,#1e4a30 0%,#1a3a2a 40%,#040c0c 100%)",
+        boxShadow:"inset -15px -15px 40px rgba(0,0,0,0.85),0 0 40px rgba(0,196,180,0.12)",
         border:"0.5px solid rgba(0,196,180,0.15)",
-        overflow:"hidden",
+        overflow:"hidden",willChange:"transform",
       }}>
-        <svg viewBox="0 0 220 220" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity:0.5 }}>
-          {[0,1,2].map(i => (
+        <svg viewBox="0 0 220 220" style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.5}}>
+          {[0,1,2].map(i=>(
             <ellipse key={i} cx={110+i*8} cy={110} rx={130+i*20} ry={80+i*12}
-              fill="none" stroke="rgba(0,196,180,0.25)" strokeWidth="0.5"
-              strokeDasharray={`${4+i*2} ${6+i}`} />
+              fill="none" stroke="rgba(0,196,180,0.25)" strokeWidth="0.5" strokeDasharray={`${4+i*2} ${6+i}`}/>
           ))}
         </svg>
       </div>
 
-      <div style={{
-        position:"absolute", right:"7%",
-        top:`${820 + scrollY*0.18}px`,
-        width:"48px", height:"32px",
-        borderRadius:"40% 60% 55% 45%",
-        background:"#111828",
-        boxShadow:"0 0 24px rgba(232,185,35,0.1)",
-        opacity:0.45,
-        transform:`rotate(${scrollY*0.06}deg)`,
-      }} />
-
-      <div style={{
-        position:"absolute", right:"18%",
-        top:`${1400 + scrollY*0.1}px`,
-        width:"18px", height:"14px",
-        borderRadius:"50%",
-        background:"#0e1628",
-        boxShadow:"0 0 12px rgba(0,196,180,0.08)",
-        opacity:0.3,
-        transform:`rotate(${scrollY*0.03}deg)`,
-      }} />
+      {/* Asteroid */}
+      <div ref={asteroidRef} style={{
+        position:"absolute",right:"7%",top:"820px",
+        width:"48px",height:"32px",borderRadius:"40% 60% 55% 45%",
+        background:"#111828",boxShadow:"0 0 24px rgba(232,185,35,0.1)",
+        opacity:0.45,willChange:"transform",
+      }}/>
     </div>
   );
 }
 
-// ── Particle Bokeh ─────────────────────────────────────────────────────────
-function ParticleBokeh() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const c = ref.current!;
-    const ctx = c.getContext("2d")!;
-    let raf: number;
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
-
-    const motes: { x:number; y:number; r:number; vx:number; vy:number; col:string; t:number }[] = [];
-    const cols = ["rgba(120,180,255,VAL)","rgba(0,196,180,VAL)","rgba(232,185,35,VAL)"];
-    const weights = [0.6, 0.25, 0.15];
-
-    for (let i=0;i<200;i++) {
-      const pick = Math.random();
-      const ci = pick < weights[0] ? 0 : pick < weights[0]+weights[1] ? 1 : 2;
-      const r = Math.random()*3.5+0.5;
+// ─── Foreground particle motes canvas ─────────────────────────────────────────
+function ParticleMotes(){
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  useEffect(()=>{
+    const c=canvasRef.current!;
+    const ctx=c.getContext("2d")!;
+    let raf:number;
+    c.width=window.innerWidth;c.height=window.innerHeight;
+    type Mote={x:number;y:number;r:number;vx:number;vy:number;col:string;t:number;sp:number};
+    const motes:Mote[]=[];
+    const palettes=["rgba(120,180,255,V)","rgba(0,196,180,V)","rgba(232,185,35,V)"];
+    const wt=[0.6,0.25,0.15];
+    for(let i=0;i<220;i++){
+      const pr=Math.random();
+      const ci=pr<wt[0]?0:pr<wt[0]+wt[1]?1:2;
       motes.push({
-        x:Math.random()*c.width, y:Math.random()*c.height,
-        r, vx:(Math.random()-0.5)*0.08, vy:(Math.random()-0.5)*0.06,
-        col: cols[ci], t: Math.random()*1000,
+        x:Math.random()*c.width,y:Math.random()*c.height,
+        r:Math.random()*4+0.5,
+        vx:(Math.random()-.5)*0.07,vy:(Math.random()-.5)*0.055,
+        col:palettes[ci],t:Math.random()*1000,sp:Math.random()*0.6+0.3,
       });
     }
-
-    function draw() {
+    function draw(){
       ctx.clearRect(0,0,c.width,c.height);
-      for (const m of motes) {
-        m.t += 0.5;
-        m.x += m.vx + Math.sin(m.t*0.012)*0.15;
-        m.y += m.vy + Math.cos(m.t*0.009)*0.12;
-        if (m.x < 0) m.x = c.width;
-        if (m.x > c.width) m.x = 0;
-        if (m.y < 0) m.y = c.height;
-        if (m.y > c.height) m.y = 0;
-
-        const alpha = 0.3 + 0.3*Math.sin(m.t*0.02);
-        ctx.beginPath();
-        ctx.arc(m.x, m.y, m.r, 0, Math.PI*2);
-        ctx.fillStyle = m.col.replace("VAL", String(alpha));
-        ctx.fill();
-
-        if (m.r > 5) {
-          const g = ctx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r*2.5);
-          g.addColorStop(0, m.col.replace("VAL", String(alpha*0.5)));
-          g.addColorStop(1, "transparent");
-          ctx.beginPath();
-          ctx.arc(m.x, m.y, m.r*2.5, 0, Math.PI*2);
-          ctx.fillStyle = g;
-          ctx.fill();
+      for(const m of motes){
+        m.t+=m.sp;
+        m.x+=m.vx+Math.sin(m.t*0.011)*0.18;
+        m.y+=m.vy+Math.cos(m.t*0.009)*0.14;
+        if(m.x<0)m.x=c.width;if(m.x>c.width)m.x=0;
+        if(m.y<0)m.y=c.height;if(m.y>c.height)m.y=0;
+        const a=0.25+0.28*Math.sin(m.t*0.022);
+        ctx.beginPath();ctx.arc(m.x,m.y,m.r,0,Math.PI*2);
+        ctx.fillStyle=m.col.replace("V",String(a));ctx.fill();
+        if(m.r>3.5){
+          const g=ctx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r*3);
+          g.addColorStop(0,m.col.replace("V",String(a*0.5)));g.addColorStop(1,"transparent");
+          ctx.beginPath();ctx.arc(m.x,m.y,m.r*3,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
         }
       }
-      raf = requestAnimationFrame(draw);
+      raf=requestAnimationFrame(draw);
     }
     draw();
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  return <canvas ref={ref} style={{ position:"fixed", inset:0, zIndex:1, pointerEvents:"none", opacity:0.7 }} />;
+    return ()=>cancelAnimationFrame(raf);
+  },[]);
+  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:1,pointerEvents:"none",opacity:0.65}}/>;
 }
 
-// ── Binary Rain ────────────────────────────────────────────────────────────
-function BinaryRain() {
-  const cols = Array.from({length:8},(_,i)=>i*12+5);
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", overflow:"hidden", opacity:0.06 }}>
-      {cols.map((x,i) => (
+// ─── Binary rain ──────────────────────────────────────────────────────────────
+function BinaryRain(){
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden",opacity:0.055}}>
+      {Array.from({length:8},(_,i)=>(
         <div key={i} style={{
-          position:"absolute", left:`${x}%`, top:0,
-          ...mono, fontSize:"9px", color:TEAL,
+          position:"absolute",left:`${i*12+5}%`,top:0,
+          ...mono,fontSize:"9px",color:TEAL,whiteSpace:"nowrap",
           animation:`binary-fall ${14+i*3}s linear ${-i*2}s infinite`,
-          whiteSpace:"nowrap",
         }}>
-          {Array.from({length:30},()=>Math.round(Math.random())).join("\n")}
+          {Array.from({length:34},()=>Math.round(Math.random())).join("\n")}
         </div>
       ))}
     </div>
   );
 }
 
-// ── TiltCard ───────────────────────────────────────────────────────────────
-function TiltCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ x:0, y:0 });
-  const [hovered, setHovered] = useState(false);
+// ─── Per-section particle overlay ─────────────────────────────────────────────
+function SectionParticles({count=25,color=TEAL}:{count?:number;color?:string}){
+  const motes=Array.from({length:count},()=>({
+    left:`${Math.random()*100}%`,top:`${Math.random()*100}%`,
+    r:Math.random()*3+1,
+    dur:`${12+Math.random()*16}s`,delay:`${-Math.random()*12}s`,
+    op:0.06+Math.random()*0.1,
+  }));
+  return(
+    <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden",zIndex:0}}>
+      {motes.map((m,i)=>(
+        <div key={i} style={{
+          position:"absolute",left:m.left,top:m.top,
+          width:`${m.r*2}px`,height:`${m.r*2}px`,borderRadius:"50%",
+          background:`radial-gradient(circle,${color} 0%,transparent 80%)`,
+          opacity:m.op,
+          animation:`mote-drift ${m.dur} ease-in-out ${m.delay} infinite`,
+        }}/>
+      ))}
+    </div>
+  );
+}
 
-  function onMouseMove(e: React.MouseEvent) {
-    const el = ref.current!;
-    const rect = el.getBoundingClientRect();
-    const dx = (e.clientX - rect.left - rect.width/2) / (rect.width/2);
-    const dy = (e.clientY - rect.top - rect.height/2) / (rect.height/2);
-    setTilt({ x: dy*-5, y: dx*5 });
+// ─── TiltCard ─────────────────────────────────────────────────────────────────
+function TiltCard({children,style}:{children:React.ReactNode;style?:React.CSSProperties}){
+  const ref=useRef<HTMLDivElement>(null);
+  const [tilt,setTilt]=useState({x:0,y:0});
+  const [hovered,setHovered]=useState(false);
+  function onMove(e:React.MouseEvent){
+    const rect=ref.current!.getBoundingClientRect();
+    setTilt({x:((e.clientY-rect.top-rect.height/2)/(rect.height/2))*-5,
+              y:((e.clientX-rect.left-rect.width/2)/(rect.width/2))*5});
   }
-
-  return (
-    <div ref={ref}
-      onMouseMove={onMouseMove}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setTilt({x:0,y:0}); setHovered(false); }}
-      style={{
-        ...style,
+  return(
+    <div ref={ref} onMouseMove={onMove}
+      onMouseEnter={()=>setHovered(true)}
+      onMouseLeave={()=>{setTilt({x:0,y:0});setHovered(false);}}
+      style={{...style,
         transform:`perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) ${hovered?"translateZ(10px)":"translateZ(0)"}`,
-        transition: hovered ? "transform 0.1s ease-out" : "transform 0.4s ease-out",
-      }}
-    >{children}</div>
+        transition:hovered?"transform 0.08s ease-out":"transform 0.45s ease-out",
+      }}>
+      {children}
+    </div>
   );
 }
 
-// ── Reveal ─────────────────────────────────────────────────────────────────
-function Reveal({ children, delay=0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
-  const { ref, inView } = useInView(0.1);
-  return (
-    <div ref={ref} style={{
-      ...style,
-      opacity: inView ? 1 : 0,
-      transform: inView ? "translateY(0)" : "translateY(28px)",
-      transition: `opacity 0.9s ease ${delay}s, transform 0.9s ease ${delay}s`,
-    }}>{children}</div>
+// ─── CSS Reveal ───────────────────────────────────────────────────────────────
+function Reveal({children,delay=0,style}:{children:React.ReactNode;delay?:number;style?:React.CSSProperties}){
+  const {ref,inView}=useInView(0.08);
+  return(
+    <div ref={ref} style={{...style,
+      opacity:inView?1:0,
+      transform:inView?"translateY(0)":"translateY(32px)",
+      filter:inView?"blur(0px)":"blur(4px)",
+      transition:`opacity 1s ease ${delay}s,transform 1s ease ${delay}s,filter 1s ease ${delay}s`,
+    }}>
+      {children}
+    </div>
   );
 }
 
-// ── GlitchText ─────────────────────────────────────────────────────────────
-function GlitchText({ text, style }: { text: string; style?: React.CSSProperties }) {
-  const [g, setG] = useState(false);
-  useEffect(() => {
-    const id = setInterval(() => { setG(true); setTimeout(()=>setG(false),160); }, 4500);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <span style={{ position:"relative", display:"inline-block", ...style }}>
+// ─── GlitchText ───────────────────────────────────────────────────────────────
+function GlitchText({text,style}:{text:string;style?:React.CSSProperties}){
+  const [g,setG]=useState(false);
+  useEffect(()=>{
+    const id=setInterval(()=>{setG(true);setTimeout(()=>setG(false),160);},4200);
+    return ()=>clearInterval(id);
+  },[]);
+  return(
+    <span style={{position:"relative",display:"inline-block",...style}}>
       {text}
-      {g && <>
-        <span style={{
-          position:"absolute", left:0, top:0, color:TEAL, opacity:0.75,
-          animation:"glitch-clip1 0.16s steps(1) infinite",
-        }}>{text}</span>
-        <span style={{
-          position:"absolute", left:0, top:0, color:GOLD, opacity:0.55,
-          animation:"glitch-clip2 0.16s steps(1) 0.05s infinite",
-        }}>{text}</span>
+      {g&&<>
+        <span style={{position:"absolute",left:0,top:0,color:TEAL,opacity:0.75,animation:"glitch1 0.16s steps(1) infinite"}}>{text}</span>
+        <span style={{position:"absolute",left:0,top:0,color:GOLD,opacity:0.55,animation:"glitch2 0.16s steps(1) 0.05s infinite"}}>{text}</span>
       </>}
     </span>
   );
 }
 
-// ── Orbital Rings ──────────────────────────────────────────────────────────
-function OrbitalRings() {
-  return (
-    <div style={{
-      position:"absolute", right:"-120px", top:"50%",
-      transform:"translateY(-50%)",
-      width:"520px", height:"520px",
-      pointerEvents:"none", opacity:0.12,
-    }}>
-      {[
-        { size:300, dur:"13s", col:TEAL, anim:"orbit1" },
-        { size:420, dur:"19s", col:PURPLE, anim:"orbit2" },
-        { size:210, dur:"8s",  col:GOLD, anim:"orbit3" },
-      ].map((ring,i) => (
-        <div key={i} style={{
-          position:"absolute",
-          left:"50%", top:"50%",
-          marginLeft:`-${ring.size/2}px`,
-          marginTop:`-${ring.size/2}px`,
-          width:ring.size, height:ring.size,
-          borderRadius:"50%",
-          border:`0.8px solid ${ring.col}`,
-          animation:`${ring.anim} ${ring.dur} linear infinite`,
-        }} />
-      ))}
+// ─── Orbital rings ────────────────────────────────────────────────────────────
+function OrbitalRings(){
+  return(
+    <div style={{position:"absolute",right:"-120px",top:"50%",transform:"translateY(-50%)",width:"520px",height:"520px",pointerEvents:"none",opacity:0.11}}>
+      {[{sz:300,dur:"13s",col:TEAL,a:"orbit1"},{sz:420,dur:"19s",col:PURPLE,a:"orbit2"},{sz:210,dur:"8s",col:GOLD,a:"orbit3"}]
+        .map((r,i)=>(
+          <div key={i} style={{
+            position:"absolute",left:"50%",top:"50%",
+            marginLeft:`-${r.sz/2}px`,marginTop:`-${r.sz/2}px`,
+            width:r.sz,height:r.sz,borderRadius:"50%",
+            border:`0.8px solid ${r.col}`,
+            animation:`${r.a} ${r.dur} linear infinite`,
+          }}/>
+        ))
+      }
     </div>
   );
 }
 
-// ── Astronaut Scene ────────────────────────────────────────────────────────
-function AstronautScene({ progress }: { progress: number }) {
-  const y   = -50 + progress * 140;
-  const rot = -8  + progress * 22;
-  const opacityRaw = progress < 0.05 ? progress/0.05 :
-                     progress > 0.85 ? (1-progress)/0.15 : 1;
-  const opacity = Math.max(0, Math.min(1, opacityRaw));
+// ─── Astronaut scene ──────────────────────────────────────────────────────────
+// The outer wrapper is controlled by GSAP ScrollTrigger (scale+opacity entrance).
+// The inner SVG has its own continuous float animation.
+function AstronautScene(){
+  const wrapRef=useRef<HTMLDivElement>(null);
+  const bodyRef=useRef<HTMLDivElement>(null);
 
-  const equations = [
-    { x:48,  y:190, label:"E=mc²",      o:0.3,  dur:"23s", delay:"0s" },
-    { x:398, y:255, label:"∫f(x)dx",    o:0.22, dur:"31s", delay:"4s" },
-    { x:60,  y:370, label:"PV=nRT",     o:0.2,  dur:"27s", delay:"8s" },
-    { x:390, y:390, label:"F=ma",       o:0.25, dur:"19s", delay:"2s" },
-    { x:80,  y:440, label:"ΔG=ΔH−TΔS", o:0.15, dur:"35s", delay:"11s" },
-    { x:340, y:130, label:"∇×B=μ₀J",   o:0.18, dur:"41s", delay:"6s" },
+  useEffect(()=>{
+    const ctx=gsap.context(()=>{
+      // Continuous breathing float
+      gsap.to(bodyRef.current,{
+        y:"-28px",rotation:"5deg",
+        duration:7,ease:"sine.inOut",repeat:-1,yoyo:true,
+        transformOrigin:"center center",
+      });
+      // ScrollTrigger entrance + exit — the cinematic section is 320vh
+      const section=wrapRef.current?.closest("[data-cinematic]") as HTMLElement;
+      if(!section)return;
+      const tl=gsap.timeline({
+        scrollTrigger:{trigger:section,start:"top bottom",end:"bottom top",scrub:1.8},
+      });
+      tl.fromTo(wrapRef.current,
+        {scale:0.78,opacity:0,y:70},
+        {scale:1,   opacity:1,y:0,ease:"none"},0
+      ).to(wrapRef.current,
+        {scale:1.08,opacity:0,y:-70,ease:"none"},0.62
+      );
+    },wrapRef);
+    return ()=>ctx.revert();
+  },[]);
+
+  const eqs=[
+    {x:48, y:190,label:"E=mc²",     dur:"24s",delay:"0s"},
+    {x:398,y:255,label:"∫f(x)dx",   dur:"32s",delay:"4s"},
+    {x:60, y:370,label:"PV=nRT",    dur:"28s",delay:"8s"},
+    {x:390,y:390,label:"F=ma",      dur:"20s",delay:"2s"},
+    {x:80, y:440,label:"ΔG=ΔH−TΔS",dur:"36s",delay:"11s"},
+    {x:340,y:130,label:"∇×B=μ₀J",  dur:"42s",delay:"6s"},
   ];
 
-  return (
-    <div style={{
-      position:"absolute", left:"50%", top:"50%",
-      transform:`translate(-50%, calc(-50% + ${y}px)) rotate(${rot}deg)`,
-      opacity,
-      transition:"opacity 0.3s",
-      pointerEvents:"none", userSelect:"none",
-      width:"min(560px, 85vw)",
-      animation:"float-astronaut 7s ease-in-out infinite",
-      filter:"drop-shadow(0 0 60px rgba(0,196,180,0.3)) drop-shadow(0 0 120px rgba(123,94,167,0.18))",
+  return(
+    <div ref={wrapRef} style={{
+      position:"absolute",left:"50%",top:"50%",
+      transform:"translate(-50%,-50%)",
+      pointerEvents:"none",userSelect:"none",
+      width:"min(560px,85vw)",willChange:"transform,opacity",
+      filter:"drop-shadow(0 0 60px rgba(0,196,180,0.32)) drop-shadow(0 0 120px rgba(123,94,167,0.18))",
     }}>
-      <svg viewBox="0 0 560 520" xmlns="http://www.w3.org/2000/svg" style={{ width:"100%" }}>
-        <defs>
-          <radialGradient id="pgrad" cx="33%" cy="30%">
-            <stop offset="0%" stopColor="#1e3a6e" />
-            <stop offset="100%" stopColor="#060d20" />
-          </radialGradient>
-          <radialGradient id="visorGrad" cx="30%" cy="25%">
-            <stop offset="0%" stopColor="#0a1830" />
-            <stop offset="60%" stopColor="#040a14" />
-            <stop offset="100%" stopColor="#020509" />
-          </radialGradient>
-          <radialGradient id="suitGrad" cx="40%" cy="30%">
-            <stop offset="0%" stopColor="#151f38" />
-            <stop offset="100%" stopColor="#0e1628" />
-          </radialGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
+      <div ref={bodyRef} style={{willChange:"transform"}}>
+        <svg viewBox="0 0 560 520" xmlns="http://www.w3.org/2000/svg" style={{width:"100%"}}>
+          <defs>
+            <radialGradient id="pgrad" cx="33%" cy="30%">
+              <stop offset="0%" stopColor="#1e3a6e"/><stop offset="100%" stopColor="#060d20"/>
+            </radialGradient>
+            <radialGradient id="visorGrad" cx="30%" cy="25%">
+              <stop offset="0%" stopColor="#0a1830"/>
+              <stop offset="60%" stopColor="#040a14"/>
+              <stop offset="100%" stopColor="#020509"/>
+            </radialGradient>
+            <radialGradient id="suitGrad" cx="40%" cy="30%">
+              <stop offset="0%" stopColor="#151f38"/><stop offset="100%" stopColor="#0e1628"/>
+            </radialGradient>
+          </defs>
 
-        <ellipse cx="280" cy="490" rx="180" ry="18" fill="rgba(0,196,180,0.05)" />
+          <ellipse cx="280" cy="490" rx="180" ry="18" fill="rgba(0,196,180,0.05)"/>
 
-        <circle cx="420" cy="88" r="58" fill="url(#pgrad)" stroke="rgba(0,196,180,0.2)" strokeWidth="0.8" />
-        <ellipse cx="420" cy="78"  rx="52" ry="6"  fill="rgba(0,20,80,0.3)" />
-        <ellipse cx="420" cy="94"  rx="48" ry="5"  fill="rgba(30,60,150,0.15)" />
-        <ellipse cx="420" cy="88"  rx="82" ry="18" fill="none" stroke="rgba(200,220,255,0.25)" strokeWidth="1.2" />
-        <ellipse cx="420" cy="88"  rx="96" ry="22" fill="none" stroke="rgba(232,185,35,0.12)" strokeWidth="0.7" />
-        <ellipse cx="420" cy="88"  rx="110" ry="26" fill="none" stroke="rgba(120,180,255,0.06)" strokeWidth="0.5" />
-        <circle cx="420" cy="88" r="58" fill="none" stroke="rgba(80,140,255,0.18)" strokeWidth="4" />
+          {/* Mini planet */}
+          <circle cx="420" cy="88" r="58" fill="url(#pgrad)" stroke="rgba(0,196,180,0.2)" strokeWidth="0.8"/>
+          <ellipse cx="420" cy="78" rx="52" ry="6" fill="rgba(0,20,80,0.3)"/>
+          <ellipse cx="420" cy="94" rx="48" ry="5" fill="rgba(30,60,150,0.15)"/>
+          <ellipse cx="420" cy="88" rx="82"  ry="18" fill="none" stroke="rgba(200,220,255,0.25)" strokeWidth="1.2"/>
+          <ellipse cx="420" cy="88" rx="96"  ry="22" fill="none" stroke="rgba(232,185,35,0.12)"  strokeWidth="0.7"/>
+          <ellipse cx="420" cy="88" rx="110" ry="26" fill="none" stroke="rgba(120,180,255,0.06)" strokeWidth="0.5"/>
+          <circle  cx="420" cy="88" r="58" fill="none" stroke="rgba(80,140,255,0.18)" strokeWidth="4"/>
 
-        <g transform="translate(148,108)">
-          <ellipse cx="122" cy="72" rx="60" ry="64"
-            fill="url(#suitGrad)" stroke="rgba(200,220,255,0.2)" strokeWidth="1.2" />
-          <ellipse cx="122" cy="68" rx="42" ry="44" fill="url(#visorGrad)" stroke="rgba(0,196,180,0.35)" strokeWidth="0.9" />
-          {[
-            {cx:118,cy:60,rx:16,ry:8,  col:"rgba(123,94,167,0.18)"},
-            {cx:125,cy:65,rx:9, ry:5,  col:"rgba(0,196,180,0.12)"},
-            {cx:112,cy:72,rx:6, ry:3,  col:"rgba(232,185,35,0.08)"},
-          ].map((g,i) => (
-            <ellipse key={i} cx={g.cx} cy={g.cy} rx={g.rx} ry={g.ry}
-              fill={g.col} style={{mixBlendMode:"screen"}} />
-          ))}
-          {[{x:116,y:56,s:1.3,d:"2s"},{x:130,y:50,s:0.9,d:"3.1s"},{x:110,y:75,s:0.9,d:"2.4s"},
-            {x:134,y:70,s:0.7,d:"1.8s"},{x:108,y:62,s:0.6,d:"4s"}].map((st,i) => (
-            <circle key={i} cx={st.x} cy={st.y} r={st.s} fill="rgba(200,220,255,0.7)"
-              style={{animation:`star-twinkle ${st.d} ease-in-out infinite`}} />
-          ))}
-          <ellipse cx="100" cy="50" rx="14" ry="8" fill="rgba(255,255,255,0.06)" transform="rotate(-20,100,50)" />
-          <ellipse cx="122" cy="133" rx="38" ry="8" fill="#0e1628" stroke="rgba(200,220,255,0.12)" strokeWidth="1" />
-          <rect x="68" y="133" width="108" height="100" rx="22"
-            fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" />
-          <rect x="90" y="152" width="64" height="36" rx="5"
-            fill="rgba(0,196,180,0.07)" stroke="rgba(0,196,180,0.35)" strokeWidth="0.7" />
-          <line x1="100" y1="162" x2="144" y2="162" stroke="rgba(0,196,180,0.5)" strokeWidth="0.8" />
-          <line x1="100" y1="168" x2="136" y2="168" stroke="rgba(0,196,180,0.3)" strokeWidth="0.8" />
-          <rect x="100" y="173" width="44" height="3" rx="1.5" fill="rgba(0,196,180,0.15)" />
-          <rect x="100" y="173" width="24" height="3" rx="1.5" fill={TEAL}
-            style={{animation:"pulse-glow 2.5s ease-in-out infinite"}} />
-          <text x="122" y="195" textAnchor="middle" fill="rgba(0,196,180,0.55)"
-            style={{fontFamily:"monospace",fontSize:"5px",letterSpacing:"0.18em"}}>STUDENIUS</text>
-          {[[68,140,176,140],[68,195,176,195],[68,165,176,165]].map(([x1,y1,x2,y2],i) => (
-            <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
-              stroke="rgba(0,196,180,0.08)" strokeWidth="0.5" strokeDasharray="3 8" />
-          ))}
-          <path d="M68 140 Q30 158 22 198" stroke="rgba(200,220,255,0.1)" strokeWidth="0.8" fill="none" />
-          <rect x="50" y="136" width="24" height="92" rx="12"
-            fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-28,62,182)" />
-          <g transform="translate(-14,196) rotate(12)">
-            <rect x="0" y="0" width="54" height="40" rx="3" fill={TEAL} opacity="0.85" />
-            <rect x="4" y="4" width="46" height="32" rx="2" fill="#0a1a2e" />
-            {[8,14,20,26].map((y,i) => (
-              <line key={i} x1="8" y1={y} x2={38-i*2} y2={y}
-                stroke={`rgba(0,196,180,${0.6-i*0.12})`} strokeWidth="0.8" />
+          <g transform="translate(148,108)">
+            <ellipse cx="122" cy="72" rx="60" ry="64" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.2)" strokeWidth="1.2"/>
+            <ellipse cx="122" cy="68" rx="42" ry="44" fill="url(#visorGrad)" stroke="rgba(0,196,180,0.35)" strokeWidth="0.9"/>
+            <ellipse cx="118" cy="60" rx="16" ry="8"  fill="rgba(123,94,167,0.18)"/>
+            <ellipse cx="125" cy="65" rx="9"  ry="5"  fill="rgba(0,196,180,0.12)"/>
+            <ellipse cx="112" cy="72" rx="6"  ry="3"  fill="rgba(232,185,35,0.08)"/>
+            {[{x:116,y:56,s:1.3,d:"2s"},{x:130,y:50,s:0.9,d:"3.1s"},{x:110,y:75,s:0.9,d:"2.4s"},
+              {x:134,y:70,s:0.7,d:"1.8s"},{x:108,y:62,s:0.6,d:"4s"}].map((st,i)=>(
+              <circle key={i} cx={st.x} cy={st.y} r={st.s} fill="rgba(200,220,255,0.7)"
+                style={{animation:`star-twinkle ${st.d} ease-in-out infinite`}}/>
             ))}
-            {[12,20,28,36].map((x,i) => (
-              <line key={i} x1={x} y1="4" x2={x+1} y2={-8-i*3}
-                stroke="rgba(232,185,35,0.5)" strokeWidth="0.7"
-                strokeDasharray="2 3" />
+            <ellipse cx="100" cy="50" rx="14" ry="8" fill="rgba(255,255,255,0.06)" transform="rotate(-20,100,50)"/>
+            <ellipse cx="122" cy="133" rx="38" ry="8" fill="#0e1628" stroke="rgba(200,220,255,0.12)" strokeWidth="1"/>
+            <rect x="68" y="133" width="108" height="100" rx="22" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1"/>
+            <rect x="90" y="152" width="64" height="36" rx="5" fill="rgba(0,196,180,0.07)" stroke="rgba(0,196,180,0.35)" strokeWidth="0.7"/>
+            <line x1="100" y1="162" x2="144" y2="162" stroke="rgba(0,196,180,0.5)" strokeWidth="0.8"/>
+            <line x1="100" y1="168" x2="136" y2="168" stroke="rgba(0,196,180,0.3)" strokeWidth="0.8"/>
+            <rect x="100" y="173" width="44" height="3" rx="1.5" fill="rgba(0,196,180,0.15)"/>
+            <rect x="100" y="173" width="24" height="3" rx="1.5" fill={TEAL} style={{animation:"pulse-glow 2.5s ease-in-out infinite"}}/>
+            <text x="122" y="195" textAnchor="middle" fill="rgba(0,196,180,0.55)"
+              style={{fontFamily:"monospace",fontSize:"5px",letterSpacing:"0.18em"}}>STUDENIUS</text>
+            {[[68,155,176,155],[68,190,176,190]].map(([x1,y1,x2,y2],i)=>(
+              <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(0,196,180,0.07)" strokeWidth="0.5" strokeDasharray="3 8"/>
             ))}
-            <text x="27" y="11" textAnchor="middle" fill="rgba(0,196,180,0.9)"
-              style={{fontFamily:"monospace",fontSize:"5px",letterSpacing:"0.12em"}}>AI</text>
-          </g>
-          <rect x="176" y="136" width="24" height="84" rx="12"
-            fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(22,188,178)" />
-          <g transform="translate(196,155)">
-            {Array.from({length:8},(_,i) => {
-              const t = i/7;
-              const y1 = t*80;
-              const x1 = Math.sin(t*Math.PI*2)*16;
-              const x2 = Math.sin(t*Math.PI*2+Math.PI)*16;
-              return (
-                <g key={i}>
-                  <circle cx={x1} cy={y1} r="2" fill="rgba(0,196,180,0.6)" />
-                  <circle cx={x2} cy={y1} r="2" fill="rgba(123,94,167,0.6)" />
-                  {i<7 && <line x1={x1} y1={y1} x2={x2} y2={y1}
-                    stroke="rgba(0,196,180,0.2)" strokeWidth="0.7" />}
-                </g>
-              );
-            })}
-          </g>
-          <rect x="78" y="228" width="34" height="76" rx="17"
-            fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-4,95,266)" />
-          <rect x="122" y="228" width="34" height="76" rx="17"
-            fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(6,139,266)" />
-          <ellipse cx="95" cy="308" rx="22" ry="6" fill="rgba(0,196,180,0.18)"
-            style={{animation:"pulse-glow 3s ease-in-out infinite"}} />
-          <ellipse cx="139" cy="308" rx="18" ry="5" fill="rgba(0,196,180,0.14)"
-            style={{animation:"pulse-glow 3s ease-in-out 0.8s infinite"}} />
-        </g>
-
-        {equations.map((eq) => (
-          <text key={eq.label} x={eq.x} y={eq.y}
-            fill={`rgba(0,196,180,${eq.o})`}
-            style={{
-              fontFamily:"monospace", fontSize:"12px", letterSpacing:"0.05em",
-              "--o":eq.o,
-              animation:`drift-eq ${eq.dur} ease-in-out ${eq.delay} infinite`,
-            } as React.CSSProperties}>
-            {eq.label}
-          </text>
-        ))}
-
-        <line x1="30"  y1="250" x2="148" y2="250" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7" />
-        <line x1="365" y1="310" x2="480" y2="310" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7" />
-
-        <g transform="translate(60,310)">
-          <circle cx="0" cy="0" r="3" fill="rgba(232,185,35,0.7)" />
-          <ellipse cx="0" cy="0" rx="18" ry="7" fill="none" stroke="rgba(0,196,180,0.25)" strokeWidth="0.7" strokeDasharray="2 2" />
-          <circle cx="18" cy="0" r="1.5" fill="rgba(0,196,180,0.6)" />
-        </g>
-
-        <g transform="translate(420,310)" opacity="0.3">
-          <line x1="0" y1="0" x2="60" y2="0" stroke="rgba(0,196,180,0.4)" strokeWidth="0.5" />
-          <line x1="0" y1="-40" x2="0" y2="10" stroke="rgba(0,196,180,0.4)" strokeWidth="0.5" />
-          <path d="M0,5 Q15,5 30,-15 Q45,-35 60,-38"
-            fill="none" stroke={TEAL} strokeWidth="1.2" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-// ── GSAP loader (CDN, no install needed) ──────────────────────────────────
-function useGSAP(cb: () => (() => void) | void) {
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const load = () => {
-      const cleanup = cb();
-      return () => { cleanup?.(); };
-    };
-    if ((window as any).gsap && (window as any).ScrollTrigger) { load(); return; }
-    const s1 = document.createElement("script");
-    s1.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js";
-    s1.onload = () => {
-      const s2 = document.createElement("script");
-      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js";
-      s2.onload = () => {
-        (window as any).gsap.registerPlugin((window as any).ScrollTrigger);
-        load();
-      };
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(s1);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-}
-
-// ── Scene definitions ──────────────────────────────────────────────────────
-const PHOTO_SCENES = [
-  {
-    // ← filename must match exactly what you put in /public/
-    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_0.jpg",
-    section:  "01 — HERO",
-    tag:      "AI-Powered Study Platform",
-    headline: "Every question you ask\nis a step toward mastery.",
-    body:     "12 AI study tools. One platform. Built for students who demand results.",
-    accent:   TEAL, accentRgb: "0,196,180", pos: "center 35%", cta: false,
-  },
-  {
-    img:      "Phoenix_10_Lone_young_male_student_early_20s_identical_dark_na_2.jpg",
-    section:  "02 — AI INTELLIGENCE",
-    tag:      "BrainBot AI Tutor",
-    headline: "Think deeper.\nLearn faster.",
-    body:     "Ask anything. Get ELI5, analogies, debate, quiz, or a Socratic breakdown — instantly.",
-    accent:   "#78B4FF", accentRgb: "120,180,255", pos: "center 40%", cta: false,
-  },
-  {
-    img:      "Phoenix_10_Lone_young_male_student_early_20s_identical_dark_na_3.jpg",
-    section:  "03 — LEARNING PATHS",
-    tag:      "Roadmap Generator",
-    headline: "Map the unknown.\nConquer it systematically.",
-    body:     "Zero-to-mastery plans for any subject — broken into phases, paced to your schedule.",
-    accent:   PURPLE, accentRgb: "123,94,167", pos: "center 45%", cta: false,
-  },
-  {
-    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_2.jpg",
-    section:  "04 — KNOWLEDGE",
-    tag:      "Source Library",
-    headline: "Upload anything.\nLearn everything.",
-    body:     "PDFs, images, voice notes, or a topic name — every tool reads from your uploads.",
-    accent:   GOLD, accentRgb: "232,185,35", pos: "center 50%", cta: false,
-  },
-  {
-    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_3.jpg",
-    section:  "05 — DISCOVERY",
-    tag:      "Feynman + Recall Mode",
-    headline: "Teach it to master it.\nRecall it to own it.",
-    body:     "The hardest study methods, made effortless by AI that pokes holes until none remain.",
-    accent:   TEAL, accentRgb: "0,196,180", pos: "center 40%", cta: false,
-  },
-  {
-    img:      "Phoenix_10_Extreme_wide_cinematic_shot_a_lone_young_male_stude_2__1_.jpg",
-    section:  "06 — BREAKTHROUGH",
-    tag:      "Start today",
-    headline: "Break through.\nBegin now.",
-    body:     "Free to start. No credit card. Your first session is one click away.",
-    accent:   GOLD, accentRgb: "232,185,35", pos: "center 40%", cta: true,
-  },
-];
-
-// ── PhotoCinematicScroll ───────────────────────────────────────────────────
-function PhotoCinematicScroll() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const scenesRef    = useRef<HTMLDivElement[]>([]);
-  const overlaysRef  = useRef<HTMLDivElement[]>([]);
-  const textsRef     = useRef<HTMLDivElement[]>([]);
-  const barRef       = useRef<HTMLDivElement>(null);
-
-  const [activeIdx,     setActiveIdx]     = useState(0);
-  const [sceneProgress, setSceneProgress] = useState(0);
-  const [globalProg,    setGlobalProg]    = useState(0);
-  const [gsapReady,     setGsapReady]     = useState(false);
-
-  // ── GSAP ─────────────────────────────────────────────────────────────────
-  useGSAP(() => {
-    const gsap = (window as any).gsap;
-    const ST   = (window as any).ScrollTrigger;
-    if (!gsap || !ST || !containerRef.current) return;
-    setGsapReady(true);
-    const kills: any[] = [];
-
-    PHOTO_SCENES.forEach((_, i) => {
-      const el      = scenesRef.current[i];
-      const overlay = overlaysRef.current[i];
-      const text    = textsRef.current[i];
-      if (!el || !overlay || !text) return;
-
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: el, start: "top top", end: "+=100%",
-          scrub: 1.4, pin: true, pinSpacing: true, anticipatePin: 1,
-          onUpdate: (self: any) => {
-            setActiveIdx(i);
-            setSceneProgress(self.progress);
-            setGlobalProg((i + self.progress) / PHOTO_SCENES.length);
-          },
-        },
-      });
-
-      tl.fromTo(el.querySelector(".sp"), { scale:1, y:0, filter:"brightness(0.35)" },
-                                          { scale:1.08, y:-30, filter:"brightness(0.46)", ease:"none" })
-        .fromTo(overlay, { opacity:0.5 }, { opacity:0.9, ease:"none" }, 0)
-        .fromTo(text, { opacity:0, y:50 }, { opacity:1, y:0, ease:"power2.out", duration:0.25 }, 0)
-        .to(text,   { opacity:0, y:-30, ease:"power2.in", duration:0.2 }, 0.76);
-
-      kills.push(tl.scrollTrigger);
-    });
-
-    ST.refresh();
-    return () => kills.forEach(k => k?.kill());
-  });
-
-  // ── CSS fallback ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (gsapReady) return;
-    const el = containerRef.current;
-    if (!el) return;
-    function onScroll() {
-      if (!el) return;
-      const rect  = el.getBoundingClientRect();
-      const total = el.offsetHeight - window.innerHeight;
-      const gp    = Math.max(0, Math.min(1, -rect.top / total));
-      setGlobalProg(gp);
-      const per = 1 / PHOTO_SCENES.length;
-      const idx = Math.min(PHOTO_SCENES.length - 1, Math.floor(gp / per));
-      setActiveIdx(idx);
-      setSceneProgress(Math.max(0, Math.min(1, (gp - idx * per) / per)));
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [gsapReady]);
-
-  const scene = PHOTO_SCENES[activeIdx];
-
-  return (
-    <div ref={containerRef} style={{ position: "relative" }}>
-      {PHOTO_SCENES.map((sc, i) => {
-        const isActive = i === activeIdx;
-        const sp = isActive ? sceneProgress : 0;
-        const textOpacity = !gsapReady
-          ? (isActive ? (sp < 0.1 ? sp / 0.1 : sp > 0.82 ? Math.max(0, (1 - sp) / 0.18) : 1) : 0)
-          : 1;
-        const textY = !gsapReady ? (isActive ? (1 - Math.min(1, sp / 0.12)) * 44 : 44) : 0;
-
-        return (
-          <div key={i}
-            ref={el => { if (el) scenesRef.current[i] = el; }}
-            style={{ position:"relative", height: gsapReady ? "200vh" : "100vh", overflow:"hidden" }}>
-
-            {/* ── Photo — note: url(/${sc.img}) — no /images/ folder needed ── */}
-            <div className="sp" style={{
-              position:"absolute", inset:0,
-              backgroundImage: `url(/${sc.img})`,   // ← images live in /public/ root
-              backgroundSize:"cover", backgroundPosition:sc.pos,
-              filter:`brightness(${!gsapReady ? (isActive ? 0.35 + sp * 0.1 : 0.35) : 0.35})`,
-              transform: !gsapReady
-                ? `scale(${1 + (isActive ? sp * 0.07 : 0)}) translateY(${isActive ? sp * -25 : 0}px)`
-                : undefined,
-              transition: gsapReady ? "none" : "transform 0.06s linear, filter 0.06s linear",
-              willChange: "transform, filter",
-            }} />
-
-            {/* Cinematic vignette */}
-            <div style={{
-              position:"absolute", inset:0, pointerEvents:"none",
-              background:`
-                radial-gradient(ellipse 55% 75% at 50% 50%, transparent 15%, rgba(2,4,10,0.65) 100%),
-                linear-gradient(to top,    rgba(2,4,10,0.95) 0%,  transparent 45%),
-                linear-gradient(to bottom, rgba(2,4,10,0.75) 0%,  transparent 28%),
-                linear-gradient(to right,  rgba(2,4,10,0.55) 0%,  transparent 22%),
-                linear-gradient(to left,   rgba(2,4,10,0.55) 0%,  transparent 22%)
-              `,
-            }} />
-
-            {/* Accent overlay */}
-            <div ref={el => { if (el) overlaysRef.current[i] = el; }} style={{
-              position:"absolute", inset:0, pointerEvents:"none",
-              background:`rgba(${sc.accentRgb},0.07)`, mixBlendMode:"screen",
-            }} />
-
-            {/* Film grain */}
-            <div style={{
-              position:"absolute", inset:0, opacity:0.045, pointerEvents:"none",
-              backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-              animation:"grain-move 0.5s steps(3) infinite",
-            }} />
-
-            {/* Scan line */}
-            <div style={{
-              position:"absolute", left:0, right:0, height:"1px",
-              background:`linear-gradient(90deg, transparent, ${sc.accent}, transparent)`,
-              opacity:0.2, animation:"scanline 5s linear infinite",
-            }} />
-
-            {/* Section label */}
-            <div style={{
-              position:"absolute", top:24, left:36,
-              ...mono, fontSize:"9px", letterSpacing:"0.18em",
-              color:"rgba(255,255,255,0.28)", textTransform:"uppercase",
-            }}>{sc.section}</div>
-
-            {/* Dot indicators */}
-            <div style={{ position:"absolute", top:24, right:36, display:"flex", gap:10, alignItems:"center" }}>
-              {PHOTO_SCENES.map((_,di) => (
-                <div key={di} style={{
-                  height:"1px", width: di===i ? 28 : 8,
-                  background: di===i ? sc.accent : "rgba(255,255,255,0.18)",
-                  boxShadow: di===i ? `0 0 8px ${sc.accent}` : "none",
-                  transition:"all 0.4s ease",
-                }} />
+            <rect x="50" y="136" width="24" height="92" rx="12" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-28,62,182)"/>
+            <g transform="translate(-14,196) rotate(12)">
+              <rect x="0" y="0" width="54" height="40" rx="3" fill={TEAL} opacity="0.85"/>
+              <rect x="4" y="4" width="46" height="32" rx="2" fill="#0a1a2e"/>
+              {[8,14,20,26].map((y,i)=>(
+                <line key={i} x1="8" y1={y} x2={38-i*2} y2={y} stroke={`rgba(0,196,180,${0.6-i*0.12})`} strokeWidth="0.8"/>
               ))}
-            </div>
+              {[12,20,28,36].map((x,i)=>(
+                <line key={i} x1={x} y1="4" x2={x+1} y2={-8-i*3} stroke="rgba(232,185,35,0.5)" strokeWidth="0.7" strokeDasharray="2 3"/>
+              ))}
+            </g>
+            <rect x="176" y="136" width="24" height="84" rx="12" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(22,188,178)"/>
+            <g transform="translate(196,155)">
+              {Array.from({length:8},(_,i)=>{
+                const t=i/7,y1=t*80;
+                const x1=Math.sin(t*Math.PI*2)*16,x2=Math.sin(t*Math.PI*2+Math.PI)*16;
+                return(<g key={i}>
+                  <circle cx={x1} cy={y1} r="2" fill="rgba(0,196,180,0.6)"/>
+                  <circle cx={x2} cy={y1} r="2" fill="rgba(123,94,167,0.6)"/>
+                  {i<7&&<line x1={x1} y1={y1} x2={x2} y2={y1} stroke="rgba(0,196,180,0.2)" strokeWidth="0.7"/>}
+                </g>);
+              })}
+            </g>
+            <rect x="78"  y="228" width="34" height="76" rx="17" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-4,95,266)"/>
+            <rect x="122" y="228" width="34" height="76" rx="17" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(6,139,266)"/>
+            <ellipse cx="95"  cy="308" rx="22" ry="6" fill="rgba(0,196,180,0.2)" style={{animation:"pulse-glow 3s ease-in-out infinite"}}/>
+            <ellipse cx="139" cy="308" rx="18" ry="5" fill="rgba(0,196,180,0.15)" style={{animation:"pulse-glow 3s ease-in-out 0.8s infinite"}}/>
+          </g>
 
-            {/* Main text */}
-            <div ref={el => { if (el) textsRef.current[i] = el; }} style={{
-              position:"absolute", bottom:"17%", left:"7%",
-              maxWidth:"min(580px,78vw)",
-              opacity: textOpacity,
-              transform: `translateY(${textY}px)`,
-              transition: gsapReady ? "none" : "opacity 0.12s, transform 0.12s",
-            }}>
-              <div style={{
-                ...mono, fontSize:"10px", letterSpacing:"0.18em",
-                textTransform:"uppercase", color:sc.accent,
-                marginBottom:14, opacity:0.85,
-                textShadow:`0 0 20px ${sc.accent}60`,
-              }}>{sc.tag}</div>
+          {eqs.map(eq=>(
+            <text key={eq.label} x={eq.x} y={eq.y} fill="rgba(0,196,180,0.28)"
+              style={{fontFamily:"monospace",fontSize:"12px",letterSpacing:"0.05em",
+                animation:`drift-eq ${eq.dur} ease-in-out ${eq.delay} infinite`}}>
+              {eq.label}
+            </text>
+          ))}
 
-              <h2 style={{
-                fontSize:"clamp(30px,4.8vw,62px)", fontWeight:300,
-                letterSpacing:"-0.03em", lineHeight:1.08,
-                color:"#F6F9FF", whiteSpace:"pre-line", marginBottom:18,
-                textShadow:`0 0 100px rgba(${sc.accentRgb},0.35), 0 2px 60px rgba(0,0,0,0.9)`,
-              }}>{sc.headline}</h2>
+          <line x1="30"  y1="250" x2="148" y2="250" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7"/>
+          <line x1="365" y1="310" x2="480" y2="310" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7"/>
 
-              <div style={{
-                width:60, height:"0.5px",
-                background:`linear-gradient(90deg,${sc.accent},transparent)`,
-                marginBottom:16, boxShadow:`0 0 12px ${sc.accent}`,
-              }} />
-
-              <p style={{
-                fontSize:14, fontWeight:300, lineHeight:1.7,
-                color:"rgba(210,220,240,0.65)", maxWidth:440,
-                marginBottom: sc.cta ? 28 : 0,
-              }}>{sc.body}</p>
-
-              {sc.cta && (
-                <Link to="/signup" style={{ textDecoration:"none" }}>
-                  <button style={{
-                    fontSize:13, fontFamily:"'Inter',system-ui,sans-serif",
-                    fontWeight:600, color:"#020408",
-                    background:sc.accent, border:"none",
-                    padding:"13px 32px", cursor:"pointer",
-                    letterSpacing:"0.04em",
-                    boxShadow:`0 0 48px rgba(${sc.accentRgb},0.5)`,
-                    transition:"opacity 0.15s,transform 0.2s,box-shadow 0.2s",
-                  }}
-                    onMouseEnter={e=>{e.currentTarget.style.opacity="0.85";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 0 64px rgba(${sc.accentRgb},0.7)`;}}
-                    onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow=`0 0 48px rgba(${sc.accentRgb},0.5)`;}}>
-                    Begin your journey →
-                  </button>
-                </Link>
-              )}
-            </div>
-
-            {/* Progress bar */}
-            <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"1.5px", background:"rgba(255,255,255,0.05)" }}>
-              <div ref={i===0 ? barRef : undefined} style={{
-                height:"100%", width:`${globalProg*100}%`,
-                background:`linear-gradient(90deg,${TEAL},${GOLD})`,
-                boxShadow:`0 0 10px ${TEAL}`,
-                transition: gsapReady ? "none" : "width 0.1s linear",
-              }} />
-            </div>
-
-            {/* Scroll hint — first scene only */}
-            {i===0 && (
-              <div style={{
-                position:"absolute", bottom:"9%", right:"7%", textAlign:"center",
-                opacity: !gsapReady ? Math.max(0,1-sp/0.25) : 0.7, transition:"opacity 0.3s",
-              }}>
-                <p style={{...mono,fontSize:"9px",letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:8}}>Scroll</p>
-                <div style={{width:"1px",height:36,background:`linear-gradient(${sc.accent},transparent)`,margin:"0 auto",boxShadow:`0 0 8px ${sc.accent}`}} />
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Cinematic Section ──────────────────────────────────────────────────────
-function CinematicSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    function onScroll() {
-      const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const total = el.offsetHeight - window.innerHeight;
-      const p = Math.max(0, Math.min(1, -rect.top / total));
-      setProgress(p);
-    }
-    window.addEventListener("scroll", onScroll, { passive:true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const bgY   = progress * 45;
-  const midY  = progress * 90;
-  const scale = 1 + progress * 0.15;
-
-  return (
-    <div ref={sectionRef} style={{ position:"relative", height:"420vh" }}>
-      <div ref={containerRef} style={{
-        position:"sticky", top:0, height:"100vh", overflow:"hidden",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        transform: `scale(${scale})`,
-        transformOrigin: "center center",
-      }}>
-        <div style={{
-          position:"absolute", inset:0, pointerEvents:"none", zIndex:50,
-          opacity: 0.035,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          animation: "grain-move 0.8s steps(4) infinite",
-        }} />
-
-        <div style={{
-          position:"absolute", inset:"-50%",
-          background: `conic-gradient(from ${progress*360}deg at 50% 50%, rgba(0,196,180,0.03) 0deg, transparent 60deg, rgba(123,94,167,0.04) 120deg, transparent 180deg, rgba(232,185,35,0.03) 240deg, transparent 300deg, rgba(0,196,180,0.03) 360deg)`,
-          animation: "vortex-spin 20s linear infinite",
-          opacity: 0.5 + progress * 0.5,
-        }} />
-
-        <div style={{
-          position:"absolute", inset:0,
-          background:`
-            radial-gradient(ellipse 90% 80% at ${28+progress*22}% ${38+bgY*0.3}%, rgba(0,196,180,0.12) 0%, transparent 70%),
-            radial-gradient(ellipse 70% 60% at ${72-progress*16}% ${60+bgY*0.2}%, rgba(232,185,35,0.08) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 50% at 50% 50%, rgba(123,94,167,0.1) 0%, transparent 60%)
-          `,
-          filter: "blur(40px)",
-          transition: "background 0.1s ease-out",
-        }} />
-
-        <div style={{
-          position:"absolute", inset:0,
-          background: `radial-gradient(ellipse 50% 50% at ${50+progress*10}% ${50-progress*5}%, rgba(0,196,180,0.06) 0%, transparent 60%)`,
-          mixBlendMode: "screen" as any,
-          transform: `translateX(${-progress*8}px)`,
-        }} />
-        <div style={{
-          position:"absolute", inset:0,
-          background: `radial-gradient(ellipse 50% 50% at ${50-progress*10}% ${50+progress*5}%, rgba(232,185,35,0.05) 0%, transparent 60%)`,
-          mixBlendMode: "screen" as any,
-          transform: `translateX(${progress*8}px)`,
-        }} />
-
-        <div style={{
-          position:"absolute", inset:0, opacity:0.06,
-          backgroundImage:`linear-gradient(rgba(0,196,180,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,196,180,1) 1px, transparent 1px)`,
-          backgroundSize:"64px 64px",
-          transform:`translateY(${midY}px) perspective(600px) rotateX(12deg)`,
-          maskImage: "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
-        }} />
-
-        {[...Array(20)].map((_, i) => {
-          const px = (i * 37) % 100;
-          const py = (i * 53) % 100;
-          const size = 2 + (i % 4);
-          return (
-            <div key={i} style={{
-              position:"absolute",
-              left:`${px}%`,
-              top:`${py}%`,
-              width:size,
-              height:size,
-              background: i%3===0 ? TEAL : i%3===1 ? GOLD : PURPLE,
-              borderRadius:"50%",
-              opacity: 0.2 + Math.sin(progress*Math.PI + i)*0.2,
-              filter: "blur(1px)",
-              transform: `translateY(${progress*(20+i%10)}px) translateX(${Math.sin(progress*2+i)*10}px)`,
-            }} />
-          );
-        })}
-
-        <div style={{
-          position:"absolute", bottom:0, left:0, right:0, height:"280px",
-          background:`linear-gradient(transparent, rgba(0,196,180,${0.05+progress*0.08}))`,
-        }} />
-
-        <AstronautScene progress={progress} />
-
-        <div style={{
-          position:"absolute", bottom:"12%", left:"50%",
-          transform:"translateX(-50%)", textAlign:"center",
-          opacity: progress < 0.15 ? progress/0.15 : progress > 0.5 ? Math.max(0,(1-progress)/0.35) : 1,
-          transition: "opacity 0.3s",
-        }}>
-          <p style={{...mono,fontSize:"10px",color:`rgba(0,196,180,0.6)`,letterSpacing:"0.2em",marginBottom:"8px"}}>
-            SCROLL TO EXPLORE
-          </p>
-          <div style={{width:"1px",height:"44px",background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto"}} />
-        </div>
-
-        <div style={{
-          position:"absolute", top:"13%", left:"50%",
-          transform:`translateX(-50%) translateY(${progress*30}px)`,
-          textAlign:"center",
-          opacity: progress < 0.12 ? 0 : progress < 0.32 ? (progress-0.12)/0.2 : progress > 0.78 ? Math.max(0,(1-progress)/0.14) : 1,
-          width:"min(640px,90vw)",
-          filter: `blur(${Math.abs(progress-0.5)*2}px)`,
-        }}>
-          {progress < 0.5 ? (
-            <h2 style={{
-              fontSize:"clamp(22px,4vw,44px)", fontWeight:300,
-              letterSpacing:"-0.03em", color:"#F2F5F8", lineHeight:1.12,
-              animation: "chromatic-shift 4s ease-in-out infinite, cinematic-zoom 8s ease-in-out infinite",
-              textShadow: "0 0 80px rgba(0,196,180,0.3)",
-            }}>
-              Knowledge travels<br/>
-              <span style={{ color:TEAL, display:"inline-block", animation:"fade-up 1.2s ease-out" }}>
-                at the speed of curiosity.
-              </span>
-            </h2>
-          ) : (
-            <h2 style={{
-              fontSize:"clamp(22px,4vw,44px)", fontWeight:300,
-              letterSpacing:"-0.03em", color:"#F2F5F8", lineHeight:1.12,
-              animation: "chromatic-shift 4s ease-in-out infinite, cinematic-zoom 8s ease-in-out infinite",
-              textShadow: "0 0 80px rgba(232,185,35,0.3)",
-            }}>
-              AI-powered tools.<br/>
-              <span style={{ color:GOLD, display:"inline-block", animation:"fade-up 1.2s ease-out" }}>
-                Built for students who demand results.
-              </span>
-            </h2>
-          )}
-          <div style={{
-            width:`${120 + progress*40}px`, height:"0.5px",
-            background:`linear-gradient(90deg, transparent, ${TEAL}, ${GOLD}, transparent)`,
-            margin:"20px auto 0",
-            boxShadow: `0 0 20px ${TEAL}`,
-          }} />
-        </div>
-
-        <div style={{
-          position:"absolute", right:"28px", top:"50%",
-          transform:"translateY(-50%)",
-          display:"flex", flexDirection:"column", alignItems:"center", gap:"6px",
-        }}>
-          <div style={{width:"1px",height:"90px",background:"#0d1220",position:"relative"}}>
-            <div style={{
-              position:"absolute", top:0, left:0, right:0,
-              height:`${progress*100}%`,
-              background:`linear-gradient(${TEAL},${GOLD})`,
-              boxShadow: `0 0 20px ${TEAL}`,
-              transition:"height 0.08s",
-            }} />
-          </div>
-          <span style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.1em",writingMode:"vertical-lr"}}>
-            {Math.round(progress*100)}%
-          </span>
-        </div>
-
-        <div style={{
-          position:"absolute", left:"24px", bottom:"10%",
-          ...mono, fontSize:"9px", color:TEAL,
-          letterSpacing:"0.12em", lineHeight:1.8,
-          opacity: progress > 0.1 ? 0.7 : 0,
-          transition:"opacity 0.4s",
-          textShadow: `0 0 10px ${TEAL}`,
-        }}>
-          <div>LAT  {(progress*90-45).toFixed(2)}°</div>
-          <div>LON  {(progress*360-180).toFixed(2)}°</div>
-          <div>ALT  {Math.round(400 + progress*1200)} km</div>
-        </div>
-
-        <svg style={{
-          position:"absolute", width:"600px", height:"600px",
-          pointerEvents:"none", opacity: 0.15 + progress * 0.3,
-        }} viewBox="0 0 600 600">
-          <circle cx="300" cy="300" r="280" fill="none" stroke={TEAL} strokeWidth="0.5" strokeDasharray={`${progress*1400} 1400`} opacity="0.4" />
-          <circle cx="300" cy="300" r="250" fill="none" stroke={GOLD} strokeWidth="0.5" strokeDasharray={`${progress*1200} 1200`} strokeDashoffset={progress*200} opacity="0.3" />
-          <circle cx="300" cy="300" r="220" fill="none" stroke={PURPLE} strokeWidth="0.5" strokeDasharray={`${progress*1000} 1000`} strokeDashoffset={-progress*150} opacity="0.2" />
+          <g transform="translate(60,310)">
+            <circle cx="0" cy="0" r="3" fill="rgba(232,185,35,0.7)"/>
+            <ellipse cx="0" cy="0" rx="18" ry="7" fill="none" stroke="rgba(0,196,180,0.25)" strokeWidth="0.7" strokeDasharray="2 2"/>
+            <circle cx="18" cy="0" r="1.5" fill="rgba(0,196,180,0.6)"/>
+          </g>
+          <g transform="translate(420,310)" opacity="0.28">
+            <line x1="0" y1="0" x2="60" y2="0" stroke="rgba(0,196,180,0.4)" strokeWidth="0.5"/>
+            <line x1="0" y1="-40" x2="0" y2="10" stroke="rgba(0,196,180,0.4)" strokeWidth="0.5"/>
+            <path d="M0,5 Q15,5 30,-15 Q45,-35 60,-38" fill="none" stroke={TEAL} strokeWidth="1.2"/>
+          </g>
         </svg>
       </div>
     </div>
   );
 }
 
-// ── Practice Demo ──────────────────────────────────────────────────────────
-function PracticeDemo() {
-  const [selected, setSelected] = useState<string|null>(null);
-  const [showAnswer, setShowAnswer] = useState(false);
-  function reset() { setSelected(null); setShowAnswer(false); }
+// ─── Cinematic scroll section — GSAP ScrollTrigger scene crossfade ────────────
+function CinematicSection(){
+  const sectionRef=useRef<HTMLDivElement>(null);
+  const sceneARef=useRef<HTMLDivElement>(null);
+  const sceneBRef=useRef<HTMLDivElement>(null);
+  const gridRef=useRef<HTMLDivElement>(null);
+  const progressFillRef=useRef<HTMLDivElement>(null);
+  const progressLblRef=useRef<HTMLSpanElement>(null);
+  const hudRef=useRef<HTMLDivElement>(null);
+  const scrollHintRef=useRef<HTMLDivElement>(null);
 
-  return (
-    <div style={{background:"#080d1a",border:"0.5px solid #0d1220",padding:"20px"}}>
-      <div style={{...mono,fontSize:"10px",color:"#444",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"14px"}}>
-        Practice Question
+  useEffect(()=>{
+    const section=sectionRef.current!;
+    const ctx=gsap.context(()=>{
+
+      // ── Scene A: GSAP text entrance on load ──
+      const aTexts=sceneARef.current!.querySelectorAll(".ct");
+      gsap.set(aTexts,{opacity:0,y:50,filter:"blur(8px)"});
+      gsap.to(aTexts,{opacity:1,y:0,filter:"blur(0px)",
+        duration:1.5,ease:"power3.out",stagger:0.2,
+        scrollTrigger:{trigger:section,start:"top 65%",toggleActions:"play none none none"},
+      });
+
+      // ── Master scrub timeline ──
+      const tl=gsap.timeline({
+        scrollTrigger:{
+          trigger:section,start:"top top",end:"bottom bottom",scrub:1.8,
+          onUpdate(self){
+            const p=Math.round(self.progress*100);
+            if(progressFillRef.current) progressFillRef.current.style.height=`${p}%`;
+            if(progressLblRef.current) progressLblRef.current.textContent=`${p}%`;
+            if(hudRef.current){
+              hudRef.current.innerHTML=
+                `<div>LAT ${((self.progress*90)-45).toFixed(2)}°</div>`+
+                `<div>LON ${((self.progress*360)-180).toFixed(2)}°</div>`+
+                `<div>ALT ${Math.round(400+self.progress*1200)} km</div>`;
+            }
+          },
+        },
+      });
+
+      // Grid drifts and zooms in
+      tl.to(gridRef.current,{y:"100px",scale:1.08,ease:"none"},0);
+
+      // Scroll hint fades fast
+      tl.to(scrollHintRef.current,{opacity:0,y:-20,ease:"none",duration:0.15},0);
+
+      // HUD fades in
+      tl.fromTo(hudRef.current,{opacity:0},{opacity:0.75,ease:"none"},0.06);
+
+      // Scene A → crossfade to Scene B at 42%
+      tl.to(sceneARef.current,{opacity:0,y:-50,filter:"blur(5px)",ease:"power2.in",duration:0.18},0.36);
+      tl.fromTo(sceneBRef.current,
+        {opacity:0,y:50,filter:"blur(8px)"},
+        {opacity:1,y:0,filter:"blur(0px)",ease:"power3.out",duration:0.22},
+        0.47
+      );
+      const bTexts=sceneBRef.current!.querySelectorAll(".ct");
+      tl.fromTo(bTexts,
+        {opacity:0,y:30,filter:"blur(4px)"},
+        {opacity:1,y:0,filter:"blur(0px)",stagger:0.08,ease:"power2.out",duration:0.2},
+        0.5
+      );
+
+    },sectionRef);
+    return ()=>ctx.revert();
+  },[]);
+
+  return(
+    <div ref={sectionRef} data-cinematic style={{position:"relative",height:"320vh"}}>
+      <div style={{position:"sticky",top:0,height:"100vh",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
+
+        {/* Nebula */}
+        <div style={{position:"absolute",inset:0,
+          background:`
+            radial-gradient(ellipse 70% 60% at 28% 38%, rgba(0,196,180,0.09) 0%, transparent 70%),
+            radial-gradient(ellipse 50% 40% at 72% 60%, rgba(232,185,35,0.06) 0%, transparent 60%),
+            radial-gradient(ellipse 40% 30% at 50% 50%, rgba(123,94,167,0.07) 0%, transparent 60%)
+          `}}/>
+
+        {/* Perspective grid — GSAP y+scale driven */}
+        <div ref={gridRef} style={{
+          position:"absolute",inset:0,opacity:0.038,
+          backgroundImage:`linear-gradient(rgba(0,196,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,196,180,1) 1px,transparent 1px)`,
+          backgroundSize:"64px 64px",
+          transform:"perspective(400px) rotateX(8deg)",
+          transformOrigin:"center 60%",
+          willChange:"transform",
+        }}/>
+
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:"220px",background:"linear-gradient(transparent,rgba(0,196,180,0.05))"}}/>
+
+        {/* Section motes */}
+        <SectionParticles count={45} color={TEAL}/>
+
+        {/* Astronaut — fully GSAP driven */}
+        <AstronautScene/>
+
+        {/* ── Scene A ── */}
+        <div ref={sceneARef} style={{
+          position:"absolute",top:"13%",left:"50%",transform:"translateX(-50%)",
+          textAlign:"center",width:"min(640px,90vw)",willChange:"transform,opacity,filter",
+        }}>
+          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
+            Knowledge travels
+          </h2>
+          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:TEAL,lineHeight:1.12}}>
+            at the speed of curiosity.
+          </h2>
+          <div className="ct" style={{width:"120px",height:"0.5px",background:"rgba(0,196,180,0.3)",margin:"20px auto 0"}}/>
+        </div>
+
+        {/* ── Scene B ── */}
+        <div ref={sceneBRef} style={{
+          position:"absolute",top:"13%",left:"50%",transform:"translateX(-50%)",
+          textAlign:"center",width:"min(640px,90vw)",
+          opacity:0,willChange:"transform,opacity,filter",
+        }}>
+          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
+            AI-powered tools.
+          </h2>
+          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:GOLD,lineHeight:1.12}}>
+            Built for students who demand results.
+          </h2>
+          <div className="ct" style={{width:"120px",height:"0.5px",background:"rgba(232,185,35,0.3)",margin:"20px auto 0"}}/>
+        </div>
+
+        {/* Scroll hint */}
+        <div ref={scrollHintRef} style={{position:"absolute",bottom:"12%",left:"50%",transform:"translateX(-50%)",textAlign:"center",willChange:"opacity,transform"}}>
+          <p style={{...mono,fontSize:"10px",color:"rgba(0,196,180,0.6)",letterSpacing:"0.2em",marginBottom:"8px"}}>SCROLL TO EXPLORE</p>
+          <div style={{width:"1px",height:"44px",background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto"}}/>
+        </div>
+
+        {/* Vertical progress bar */}
+        <div style={{position:"absolute",right:"28px",top:"50%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:"6px"}}>
+          <div style={{width:"1px",height:"90px",background:"#0d1220",position:"relative"}}>
+            <div ref={progressFillRef} style={{position:"absolute",top:0,left:0,right:0,height:"0%",background:`linear-gradient(${TEAL},${GOLD})`}}/>
+          </div>
+          <span ref={progressLblRef} style={{...mono,fontSize:"9px",color:"#333",letterSpacing:"0.1em",writingMode:"vertical-lr"}}>0%</span>
+        </div>
+
+        {/* HUD */}
+        <div ref={hudRef} style={{
+          position:"absolute",left:"24px",bottom:"10%",
+          ...mono,fontSize:"9px",color:"rgba(0,196,180,0.35)",
+          letterSpacing:"0.12em",lineHeight:1.9,opacity:0,willChange:"opacity",
+        }}/>
       </div>
-      <p style={{fontSize:"13px",color:"#C0CCD8",lineHeight:1.6,fontWeight:300,marginBottom:"16px"}}>
-        {mockQuestion.text}
+    </div>
+  );
+}
+
+// ─── Hero section — GSAP stagger on mount ─────────────────────────────────────
+function HeroSection(){
+  const ref=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    const ctx=gsap.context(()=>{
+      gsap.fromTo(
+        ref.current!.querySelectorAll(".gt"),
+        {opacity:0,y:54,filter:"blur(8px)"},
+        {opacity:1,y:0,filter:"blur(0px)",duration:1.4,ease:"power3.out",stagger:0.16,delay:0.15}
+      );
+    },ref);
+    return ()=>ctx.revert();
+  },[]);
+
+  return(
+    <section ref={ref} style={{padding:"110px 32px 88px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
+      <OrbitalRings/>
+      <p className="gt" style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"32px",animation:"pulse-glow 3s ease-in-out infinite"}}>
+        AI-Powered Study Platform
       </p>
+      <h1 className="gt" style={{fontSize:"clamp(38px,6.5vw,68px)",fontWeight:300,letterSpacing:"-0.038em",lineHeight:1.04,marginBottom:"22px",color:"#F2F5F8"}}>
+        <GlitchText text="Study smarter."/><br/>
+        <span style={{background:`linear-gradient(135deg,${TEAL},${PURPLE})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
+          Master it faster.
+        </span>
+      </h1>
+      <p className="gt" style={{fontSize:"15px",color:"#555",maxWidth:"480px",marginBottom:"36px",lineHeight:1.78,fontWeight:300}}>
+        12 AI-powered study tools in one platform — flashcards, cram mode, tutor, recall, confidence tracking and more. Built for students who demand results.
+      </p>
+      <div className="gt" style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap"}}>
+        <Link to="/signup">
+          <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s"}}
+            onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.boxShadow=`0 0 40px rgba(0,196,180,0.55)`;e.currentTarget.style.transform="translateY(-2px)";}}
+            onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)";}}>
+            Start for free →
+          </button>
+        </Link>
+        <Link to="/dashboard">
+          <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:300,color:"#444",background:"transparent",border:"none",cursor:"pointer",transition:"color 0.15s"}}
+            onMouseEnter={(e)=>(e.currentTarget.style.color="#E0E8F0")}
+            onMouseLeave={(e)=>(e.currentTarget.style.color="#444")}>
+            See Dashboard
+          </button>
+        </Link>
+      </div>
+      <p className="gt" style={{...mono,fontSize:"10px",color:"#1e2a44",marginTop:"18px",letterSpacing:"0.06em"}}>
+        No credit card required · Free plan always available
+      </p>
+    </section>
+  );
+}
+
+// ─── Practice Demo ────────────────────────────────────────────────────────────
+function PracticeDemo(){
+  const [sel,setSel]=useState<string|null>(null);
+  const [show,setShow]=useState(false);
+  const reset=()=>{setSel(null);setShow(false);};
+  return(
+    <div style={{background:"#080d1a",border:"0.5px solid #0d1220",padding:"20px"}}>
+      <div style={{...mono,fontSize:"10px",color:"#444",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"14px"}}>Practice Question</div>
+      <p style={{fontSize:"13px",color:"#C0CCD8",lineHeight:1.6,fontWeight:300,marginBottom:"16px"}}>{mockQuestion.text}</p>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"14px"}}>
-        {mockQuestion.choices.map(c => {
-          const isCorrect = showAnswer && c.id === mockQuestion.correct;
-          const isWrong   = showAnswer && c.id === selected && c.id !== mockQuestion.correct;
-          return (
-            <div key={c.id} onClick={() => !showAnswer && setSelected(c.id)} style={{
-              padding:"9px 12px",
-              border:`0.5px solid ${isCorrect?TEAL:isWrong?"#ff4444":c.id===selected?TEAL:"#0d1220"}`,
-              cursor: showAnswer?"default":"pointer",
-              display:"flex",alignItems:"center",gap:"10px",
-              background: isCorrect?"rgba(0,196,180,0.06)":isWrong?"rgba(255,68,68,0.04)":"transparent",
-              transition:"all 0.2s",
+        {mockQuestion.choices.map(c=>{
+          const ok=show&&c.id===mockQuestion.correct;
+          const no=show&&c.id===sel&&c.id!==mockQuestion.correct;
+          return(
+            <div key={c.id} onClick={()=>!show&&setSel(c.id)} style={{
+              padding:"9px 12px",border:`0.5px solid ${ok?TEAL:no?"#ff4444":c.id===sel?TEAL:"#0d1220"}`,
+              cursor:show?"default":"pointer",display:"flex",alignItems:"center",gap:"10px",
+              background:ok?"rgba(0,196,180,0.06)":no?"rgba(255,68,68,0.04)":"transparent",transition:"all 0.2s",
             }}>
-              <span style={{...mono,fontSize:"9px",color:c.id===selected||isCorrect?TEAL:"#333",minWidth:"14px"}}>{c.id}</span>
+              <span style={{...mono,fontSize:"9px",color:c.id===sel||ok?TEAL:"#333",minWidth:"14px"}}>{c.id}</span>
               <span style={{fontSize:"12px",color:"#666",fontWeight:300,lineHeight:1.5}}>{c.text}</span>
             </div>
           );
         })}
       </div>
-      {showAnswer && (
+      {show&&(
         <div style={{borderTop:"0.5px solid #0d1220",paddingTop:"12px",marginBottom:"12px"}}>
           <p style={{...mono,fontSize:"11px",color:"#444",letterSpacing:"0.06em",marginBottom:"6px",textTransform:"uppercase"}}>Explanation</p>
           <p style={{fontSize:"12px",color:"#666",lineHeight:1.65,fontWeight:300}}>{mockQuestion.explanation}</p>
         </div>
       )}
       <div style={{marginTop:"14px"}}>
-        {!showAnswer ? (
-          <button onClick={() => { if (selected) setShowAnswer(true); }} style={{
-            width:"100%",padding:"9px",fontSize:"11px",...mono,
-            letterSpacing:"0.08em",textTransform:"uppercase",
-            border:`0.5px solid ${selected?TEAL:"#0d1220"}`,
-            background:"transparent",color:selected?TEAL:"#444",
-            cursor:selected?"pointer":"not-allowed",transition:"color 0.15s,border-color 0.15s",
-          }}>Check Answer</button>
-        ) : (
-          <button onClick={reset} style={{
-            width:"100%",padding:"9px",fontSize:"11px",...mono,
-            letterSpacing:"0.08em",textTransform:"uppercase",
-            border:"0.5px solid #0d1220",background:"transparent",color:"#666",cursor:"pointer",
-          }}>Try Again</button>
-        )}
+        {!show
+          ?<button onClick={()=>{if(sel)setShow(true);}} style={{width:"100%",padding:"9px",fontSize:"11px",...mono,letterSpacing:"0.08em",textTransform:"uppercase",border:`0.5px solid ${sel?TEAL:"#0d1220"}`,background:"transparent",color:sel?TEAL:"#444",cursor:sel?"pointer":"not-allowed",transition:"color 0.15s,border-color 0.15s"}}>Check Answer</button>
+          :<button onClick={reset} style={{width:"100%",padding:"9px",fontSize:"11px",...mono,letterSpacing:"0.08em",textTransform:"uppercase",border:"0.5px solid #0d1220",background:"transparent",color:"#666",cursor:"pointer"}}>Try Again</button>
+        }
       </div>
     </div>
   );
 }
 
-// ── Chat Demo ──────────────────────────────────────────────────────────────
-function ChatDemo() {
-  return (
+function ChatDemo(){
+  return(
     <div style={{background:"#080d1a",border:"0.5px solid #0d1220"}}>
       <div style={{padding:"12px 20px",borderBottom:"0.5px solid #0d1220",display:"flex",alignItems:"center",gap:"8px"}}>
         <span style={{...mono,fontSize:"10px",color:"#444",letterSpacing:"0.08em",textTransform:"uppercase"}}>BrainBot AI Tutor</span>
@@ -1318,19 +925,15 @@ function ChatDemo() {
       </div>
       <div style={{padding:"20px"}}>
         <div style={{textAlign:"right",marginBottom:"16px"}}>
-          <span style={{fontSize:"13px",color:"#E0E8F0",fontWeight:300,borderRight:`1.5px solid rgba(0,196,180,0.3)`,paddingRight:"12px"}}>
-            How do I remember the Krebs cycle?
-          </span>
+          <span style={{fontSize:"13px",color:"#E0E8F0",fontWeight:300,borderRight:`1.5px solid rgba(0,196,180,0.3)`,paddingRight:"12px"}}>How do I remember the Krebs cycle?</span>
         </div>
         <div style={{borderLeft:`0.5px solid ${TEAL}`,paddingLeft:"14px",marginBottom:"16px"}}>
           <p style={{fontSize:"12px",color:"#666",lineHeight:1.65,fontWeight:300}}>
-            Try the acronym <strong style={{color:"#E0E8F0",fontWeight:500}}>PCISSFM</strong>: Pyruvate → Citrate → Isocitrate → Succinate → Succinyl → Fumarate → Malate. Make a silly sentence and it'll stick. Want practice questions?
+            Try the acronym <strong style={{color:"#E0E8F0",fontWeight:500}}>PCISSFM</strong>: Pyruvate → Citrate → Isocitrate → Succinate → Succinyl → Fumarate → Malate. Make a silly sentence and it'll stick.
           </p>
         </div>
         <div style={{borderTop:"0.5px solid #0d1220",paddingTop:"14px",display:"flex",gap:"8px"}}>
-          <div style={{flex:1,padding:"8px 12px",border:"0.5px solid #0d1220",fontSize:"12px",color:"#444",background:"transparent"}}>
-            Ask about any topic...
-          </div>
+          <div style={{flex:1,padding:"8px 12px",border:"0.5px solid #0d1220",fontSize:"12px",color:"#444",background:"transparent"}}>Ask about any topic...</div>
           <button style={{padding:"8px 14px",border:`0.5px solid ${TEAL}`,background:"transparent",color:TEAL,cursor:"pointer",fontSize:"14px"}}>→</button>
         </div>
       </div>
@@ -1338,67 +941,52 @@ function ChatDemo() {
   );
 }
 
-// ── Animated Stat ──────────────────────────────────────────────────────────
-function AnimatedStat({ value, label }: { value:string; label:string }) {
-  const { ref, inView } = useInView(0.5);
-  return (
-    <div ref={ref} style={{opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(16px)",transition:"all 0.6s ease"}}>
+function AnimatedStat({value,label}:{value:string;label:string}){
+  const {ref,inView}=useInView(0.5);
+  return(
+    <div ref={ref} style={{opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(16px)",transition:"all 0.7s ease"}}>
       <div style={{...mono,fontSize:"20px",fontWeight:500,color:TEAL,letterSpacing:"-0.01em"}}>{value}</div>
       <div style={{fontSize:"10px",color:"#444",textTransform:"uppercase",letterSpacing:"0.10em",marginTop:"2px"}}>{label}</div>
     </div>
   );
 }
 
-// ── Main Landing ───────────────────────────────────────────────────────────
-export default function Landing() {
-  const scrollY = useScrollY();
-  const [navScrolled, setNavScrolled] = useState(false);
+// ─── Root ─────────────────────────────────────────────────────────────────────
+export default function Landing(){
+  const scrollY=useScrollY();
+  const [navScrolled,setNavScrolled]=useState(false);
+  useEffect(()=>{setNavScrolled(scrollY>20);},[scrollY]);
 
-  useEffect(() => { setNavScrolled(scrollY > 20); }, [scrollY]);
-
-  return (
-    <div style={{
-      minHeight:"100vh", display:"flex", flexDirection:"column",
-      background:`radial-gradient(ellipse 120% 80% at 60% -10%, #0d1640 0%, #070b1e 30%, #03050f 60%, #02040b 100%)`,
-      color:"#E0E8F0",
-      fontFamily:"'Inter', system-ui, sans-serif",
-    }}>
+  return(
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",
+      background:`linear-gradient(180deg,${VOID} 0%,#060D1F 100%)`,
+      color:"#E0E8F0",fontFamily:"'Inter',system-ui,sans-serif"}}>
       <style>{CSS}</style>
 
-      <StarField scrollY={scrollY} />
-      <NebulaLayer scrollY={scrollY} />
-      <FloatingPlanets scrollY={scrollY} />
-      <BinaryRain />
-      <ParticleBokeh />
+      {/* Fixed background layers */}
+      <StarField/>
+      <NebulaLayer/>
+      <FloatingPlanets/>
+      <BinaryRain/>
+      <ParticleMotes/>
 
-      <nav style={{
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        padding:"0 32px", height:48,
-        borderBottom: navScrolled ? "0.5px solid rgba(0,196,180,0.18)" : "0.5px solid #0d1220",
-        background: navScrolled ? "rgba(3,5,15,0.96)" : "rgba(3,5,15,0.88)",
-        backdropFilter:"blur(24px)",
-        position:"sticky", top:0, zIndex:50,
-        transition:"background 0.3s, border-color 0.3s",
-        boxShadow: navScrolled ? `0 1px 40px rgba(0,196,180,0.07)` : "none",
-      }}>
-        <span style={{fontSize:13,fontWeight:700,letterSpacing:"0.22em",color:"#E0E8F0",...mono}}>
-          STUDENIUS
-        </span>
+      {/* Nav */}
+      <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",height:48,
+        borderBottom:navScrolled?"0.5px solid rgba(0,196,180,0.18)":"0.5px solid #0d1220",
+        background:navScrolled?"rgba(3,5,15,0.96)":"rgba(3,5,15,0.88)",
+        backdropFilter:"blur(24px)",position:"sticky",top:0,zIndex:50,
+        transition:"background 0.3s,border-color 0.3s",
+        boxShadow:navScrolled?"0 1px 40px rgba(0,196,180,0.07)":"none"}}>
+        <span style={{fontSize:13,fontWeight:700,letterSpacing:"0.22em",color:"#E0E8F0",...mono}}>STUDENIUS</span>
         <div style={{display:"flex",alignItems:"center",gap:24}}>
-          {[["Pricing","/pricing"],["Login","/login"]].map(([label,href]) => (
+          {[["Pricing","/pricing"],["Login","/login"]].map(([lbl,href])=>(
             <Link key={href} to={href}
               style={{fontSize:10,fontWeight:600,letterSpacing:"0.14em",textTransform:"uppercase",color:"#444",textDecoration:"none",transition:"color 0.2s"}}
               onMouseEnter={(e)=>(e.currentTarget.style.color="#E0E8F0")}
-              onMouseLeave={(e)=>(e.currentTarget.style.color="#444")}>
-              {label}
-            </Link>
+              onMouseLeave={(e)=>(e.currentTarget.style.color="#444")}>{lbl}</Link>
           ))}
           <Link to="/signup">
-            <button style={{
-              fontSize:11,fontWeight:600,color:"#05080f",background:TEAL,
-              border:"none",padding:"6px 16px",cursor:"pointer",
-              letterSpacing:"0.06em",transition:"opacity 0.15s, box-shadow 0.2s",
-            }}
+            <button style={{fontSize:11,fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"6px 16px",cursor:"pointer",letterSpacing:"0.06em",transition:"opacity 0.15s,box-shadow 0.2s"}}
               onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.8";e.currentTarget.style.boxShadow=`0 0 28px rgba(0,196,180,0.5)`;}}
               onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";}}>
               Get Started
@@ -1407,149 +995,49 @@ export default function Landing() {
         </div>
       </nav>
 
-      <section style={{
-        padding:"110px 32px 88px",
-        maxWidth:"720px", margin:"0 auto", width:"100%",
-        position:"relative", zIndex:2,
-      }}>
-        <OrbitalRings />
-        <Reveal delay={0}>
-          <p style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.16em",textTransform:"uppercase",
-            marginBottom:"32px",animation:"pulse-glow 3s ease-in-out infinite"}}>
-            AI-Powered Study Platform
-          </p>
-        </Reveal>
-        <Reveal delay={0.1}>
-          <h1 style={{
-            fontSize:"clamp(38px,6.5vw,68px)",fontWeight:300,
-            letterSpacing:"-0.038em",lineHeight:1.04,marginBottom:"22px",color:"#F2F5F8",
-          }}>
-            <GlitchText text="Study smarter." /><br/>
-            <span style={{
-              background:`linear-gradient(135deg, ${TEAL}, ${PURPLE})`,
-              WebkitBackgroundClip:"text",
-              WebkitTextFillColor:"transparent",
-              backgroundClip:"text",
-            }}>Master it faster.</span>
-          </h1>
-        </Reveal>
-        <Reveal delay={0.2}>
-          <p style={{fontSize:"15px",color:"#555",maxWidth:"480px",
-            marginBottom:"36px",lineHeight:1.78,fontWeight:300}}>
-            12 AI-powered study tools in one platform — flashcards, cram mode, tutor, recall,
-            confidence tracking and more. Built for students who demand results.
-          </p>
-        </Reveal>
-        <Reveal delay={0.3}>
-          <div style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap"}}>
-            <Link to="/signup">
-              <button style={{
-                fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",
-                fontWeight:600,color:"#05080f",background:TEAL,border:"none",
-                padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",
-                transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s",
-              }}
-                onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.boxShadow=`0 0 40px rgba(0,196,180,0.55)`;e.currentTarget.style.transform="translateY(-2px)";}}
-                onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)";}}>
-                Start for free →
-              </button>
-            </Link>
-            <Link to="/dashboard">
-              <button style={{
-                fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",
-                fontWeight:300,color:"#444",background:"transparent",
-                border:"none",cursor:"pointer",transition:"color 0.15s",
-              }}
-                onMouseEnter={(e)=>(e.currentTarget.style.color="#E0E8F0")}
-                onMouseLeave={(e)=>(e.currentTarget.style.color="#444")}>
-                See Dashboard
-              </button>
-            </Link>
-          </div>
-        </Reveal>
-        <Reveal delay={0.4}>
-          <p style={{...mono,fontSize:"10px",color:"#1e2a44",marginTop:"18px",letterSpacing:"0.06em"}}>
-            No credit card required · Free plan always available
-          </p>
-        </Reveal>
-      </section>
+      {/* Hero */}
+      <div style={{position:"relative",zIndex:2}}><HeroSection/></div>
 
-      <div style={hairline} />
+      {/* Stats */}
+      <div style={hairline}/>
       <div style={{background:"rgba(6,8,18,0.92)",borderBottom:"0.5px solid #0d1220",position:"relative",zIndex:2}}>
         <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px 32px",display:"flex",gap:"48px",flexWrap:"wrap"}}>
-          {[
-            {value:"12+",  label:"AI Study Tools"},
-            {value:"50k+", label:"Students"},
-            {value:"2M+",  label:"Questions Generated"},
-            {value:"94%",  label:"Pass Rate"},
-          ].map(s => <AnimatedStat key={s.label} value={s.value} label={s.label} />)}
+          {[{value:"12+",label:"AI Study Tools"},{value:"50k+",label:"Students"},{value:"2M+",label:"Questions Generated"},{value:"94%",label:"Pass Rate"}]
+            .map(s=><AnimatedStat key={s.label} value={s.value} label={s.label}/>)}
         </div>
       </div>
 
-      <div style={{position:"relative",zIndex:2}}>
-        <CinematicSection />
-      </div>
+      {/* Cinematic */}
+      <div style={{position:"relative",zIndex:2}}><CinematicSection/></div>
 
-      {/* ── 6 cinematic photo scenes ── */}
-      <div style={{position:"relative",zIndex:2}}>
-        <PhotoCinematicScroll />
-      </div>
-
-      {/* smooth fade into content */}
-      <div style={{height:80,background:"linear-gradient(to bottom,#02040a,#05080f)",position:"relative",zIndex:2,marginTop:-2}} />
-
+      {/* Content */}
       <div style={{position:"relative",zIndex:2,background:"#05080f"}}>
-        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
-          <Reveal>
-            <div style={sectionLabel}>
-              <span>See it in action</span>
-              <span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}} />
-            </div>
-          </Reveal>
+
+        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
+          <SectionParticles count={20} color={TEAL}/>
+          <Reveal><div style={sectionLabel}><span>See it in action</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
           <Reveal delay={0.1}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1px",background:"#0d1220"}}>
-              <PracticeDemo />
-              <ChatDemo />
+              <PracticeDemo/><ChatDemo/>
             </div>
           </Reveal>
         </div>
 
-        <div style={hairline} />
+        <div style={hairline}/>
 
-        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
-          <Reveal>
-            <div style={sectionLabel}>
-              <span>Upload anything</span>
-              <span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}} />
-            </div>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <h2 style={{fontSize:"clamp(22px,3vw,32px)",fontWeight:300,letterSpacing:"-0.02em",marginBottom:"8px"}}>
-              Upload anything, learn everything
-            </h2>
-          </Reveal>
-          <Reveal delay={0.15}>
-            <p style={{fontSize:"14px",color:"#555",marginBottom:"28px",fontWeight:300}}>
-              Every tool reads from your uploaded materials automatically — upload once, use everywhere.
-            </p>
-          </Reveal>
+        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
+          <SectionParticles count={15} color={GOLD}/>
+          <Reveal><div style={sectionLabel}><span>Upload anything</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
+          <Reveal delay={0.1}><h2 style={{fontSize:"clamp(22px,3vw,32px)",fontWeight:300,letterSpacing:"-0.02em",marginBottom:"8px"}}>Upload anything, learn everything</h2></Reveal>
+          <Reveal delay={0.15}><p style={{fontSize:"14px",color:"#555",marginBottom:"28px",fontWeight:300}}>Every tool reads from your uploaded materials automatically — upload once, use everywhere.</p></Reveal>
           <Reveal delay={0.2}>
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
-              {[
-                {icon:FileText, label:"PDF Notes"},
-                {icon:ImageIcon,label:"Images"},
-                {icon:Mic,      label:"Voice Notes"},
-                {icon:Hash,     label:"Topic Name"},
-              ].map(item => (
+              {[{icon:FileText,label:"PDF Notes"},{icon:ImageIcon,label:"Images"},{icon:Mic,label:"Voice Notes"},{icon:Hash,label:"Topic Name"}].map(item=>(
                 <TiltCard key={item.label}>
-                  <div style={{
-                    display:"flex",alignItems:"center",gap:"8px",
-                    padding:"8px 14px",border:"0.5px solid #0d1220",
-                    cursor:"default",transition:"border-color 0.15s,box-shadow 0.2s",
-                  }}
+                  <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 14px",border:"0.5px solid #0d1220",cursor:"default",transition:"border-color 0.15s,box-shadow 0.2s"}}
                     onMouseEnter={(e)=>{(e.currentTarget as HTMLElement).style.borderColor=TEAL;(e.currentTarget as HTMLElement).style.boxShadow=`0 0 20px rgba(0,196,180,0.1)`;}}
                     onMouseLeave={(e)=>{(e.currentTarget as HTMLElement).style.borderColor="#0d1220";(e.currentTarget as HTMLElement).style.boxShadow="none";}}>
-                    <item.icon style={{width:13,height:13,color:"#444"}} />
+                    <item.icon style={{width:13,height:13,color:"#444"}}/>
                     <span style={{...mono,fontSize:"11px",color:"#666",letterSpacing:"0.04em"}}>{item.label}</span>
                   </div>
                 </TiltCard>
@@ -1558,24 +1046,16 @@ export default function Landing() {
           </Reveal>
         </div>
 
-        <div style={hairline} />
+        <div style={hairline}/>
 
-        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
-          <Reveal>
-            <div style={sectionLabel}>
-              <span>Tools</span>
-              <span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}} />
-            </div>
-          </Reveal>
+        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
+          <SectionParticles count={25} color={PURPLE}/>
+          <Reveal><div style={sectionLabel}><span>Tools</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1px",background:"#0d1220"}}>
-            {features.map((f,i) => (
+            {features.map((f,i)=>(
               <Reveal key={f.n} delay={i*0.04}>
                 <TiltCard style={{height:"100%"}}>
-                  <div style={{
-                    background:"#080d1a",padding:"20px 24px",
-                    transition:"background 0.2s,box-shadow 0.2s",
-                    height:"100%",boxSizing:"border-box",
-                  }}
+                  <div style={{background:"#080d1a",padding:"20px 24px",transition:"background 0.2s,box-shadow 0.2s",height:"100%",boxSizing:"border-box"}}
                     onMouseEnter={(e)=>{(e.currentTarget as HTMLElement).style.background="#0d1525";(e.currentTarget as HTMLElement).style.boxShadow=`inset 0 0 30px rgba(0,196,180,0.04)`;}}
                     onMouseLeave={(e)=>{(e.currentTarget as HTMLElement).style.background="#080d1a";(e.currentTarget as HTMLElement).style.boxShadow="none";}}>
                     <div style={{...mono,fontSize:"10px",color:"#1e2838",marginBottom:"10px",letterSpacing:"0.06em"}}>{f.n}</div>
@@ -1588,24 +1068,18 @@ export default function Landing() {
           </div>
         </div>
 
-        <div style={hairline} />
+        <div style={hairline}/>
 
-        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
-          <Reveal>
-            <div style={sectionLabel}>
-              <span>Testimonials</span>
-              <span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}} />
-            </div>
-          </Reveal>
+        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
+          <SectionParticles count={18} color={GOLD}/>
+          <Reveal><div style={sectionLabel}><span>Testimonials</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1px",background:"#0d1220"}}>
-            {testimonials.map((t,i) => (
+            {testimonials.map((t,i)=>(
               <Reveal key={t.name} delay={i*0.08}>
                 <div style={{background:"#080d1a",padding:"20px 24px",transition:"background 0.2s"}}
                   onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.background="#0d1525")}
                   onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.background="#080d1a")}>
-                  <div style={{...mono,fontSize:"10px",color:"#444",letterSpacing:"0.06em",marginBottom:"10px"}}>
-                    {t.name} — {t.role}
-                  </div>
+                  <div style={{...mono,fontSize:"10px",color:"#444",letterSpacing:"0.06em",marginBottom:"10px"}}>{t.name} — {t.role}</div>
                   <p style={{fontSize:"13px",color:"#555",lineHeight:1.65,fontWeight:300}}>"{t.text}"</p>
                 </div>
               </Reveal>
@@ -1613,31 +1087,16 @@ export default function Landing() {
           </div>
         </div>
 
-        <div style={hairline} />
+        <div style={hairline}/>
 
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"80px 32px",position:"relative"}}>
-          <div style={{
-            position:"absolute",inset:0,pointerEvents:"none",
-            background:`radial-gradient(ellipse 60% 40% at 50% 50%, rgba(0,196,180,0.05) 0%, transparent 70%)`,
-          }} />
-          <Reveal>
-            <h2 style={{fontSize:"clamp(22px,3vw,36px)",fontWeight:300,letterSpacing:"-0.02em",marginBottom:"8px"}}>
-              Ready to study smarter?
-            </h2>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <p style={{fontSize:"14px",color:"#555",marginBottom:"28px",fontWeight:300}}>
-              Start free. No credit card required.
-            </p>
-          </Reveal>
+          <SectionParticles count={30} color={TEAL}/>
+          <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"radial-gradient(ellipse 60% 40% at 50% 50%,rgba(0,196,180,0.05) 0%,transparent 70%)"}}/>
+          <Reveal><h2 style={{fontSize:"clamp(22px,3vw,36px)",fontWeight:300,letterSpacing:"-0.02em",marginBottom:"8px"}}>Ready to study smarter?</h2></Reveal>
+          <Reveal delay={0.1}><p style={{fontSize:"14px",color:"#555",marginBottom:"28px",fontWeight:300}}>Start free. No credit card required.</p></Reveal>
           <Reveal delay={0.2}>
             <Link to="/signup">
-              <button style={{
-                fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",
-                fontWeight:600,color:"#05080f",background:TEAL,border:"none",
-                padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",
-                transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s",
-              }}
+              <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s"}}
                 onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.boxShadow=`0 0 48px rgba(0,196,180,0.55)`;e.currentTarget.style.transform="translateY(-2px)";}}
                 onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)";}}>
                 Get started free →
@@ -1648,17 +1107,13 @@ export default function Landing() {
 
         <footer style={{borderTop:"0.5px solid #0d1220"}}>
           <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{...mono,fontSize:"10px",color:"#1e2838",letterSpacing:"0.06em"}}>
-              STUDENIUS © {new Date().getFullYear()}
-            </span>
+            <span style={{...mono,fontSize:"10px",color:"#1e2838",letterSpacing:"0.06em"}}>STUDENIUS © {new Date().getFullYear()}</span>
             <div style={{display:"flex",gap:"20px"}}>
-              {[["Pricing","/pricing"],["Login","/login"],["Sign Up","/signup"]].map(([label,href]) => (
+              {[["Pricing","/pricing"],["Login","/login"],["Sign Up","/signup"]].map(([lbl,href])=>(
                 <Link key={href} to={href}
                   style={{fontSize:"11px",color:"#444",textDecoration:"none",transition:"color 0.15s"}}
                   onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.color="#666")}
-                  onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.color="#444")}>
-                  {label}
-                </Link>
+                  onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.color="#444")}>{lbl}</Link>
               ))}
             </div>
           </div>
