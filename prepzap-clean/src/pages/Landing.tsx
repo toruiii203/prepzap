@@ -58,6 +58,34 @@ const CSS = `
     0%,100% { clip-path: inset(65% 0 8% 0); transform: translate(2px,0); }
     50%     { clip-path: inset(5% 0 70% 0);  transform: translate(-1px,0); }
   }
+  @keyframes cinematic-zoom {
+    0% { transform: scale(1); filter: blur(0px); }
+    50% { transform: scale(1.08); filter: blur(0.3px); }
+    100% { transform: scale(1); filter: blur(0px); }
+  }
+  @keyframes text-reveal {
+    0% { clip-path: inset(0 100% 0 0); opacity: 0; }
+    100% { clip-path: inset(0 0 0 0); opacity: 1; }
+  }
+  @keyframes fade-up {
+    0% { opacity: 0; transform: translateY(60px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes vortex-spin {
+    0% { transform: rotate(0deg) scale(1); }
+    100% { transform: rotate(360deg) scale(1.5); }
+  }
+  @keyframes chromatic-shift {
+    0%,100% { text-shadow: -2px 0 rgba(0,196,180,0.5), 2px 0 rgba(232,185,35,0.5); }
+    50% { text-shadow: -4px 0 rgba(0,196,180,0.8), 4px 0 rgba(232,185,35,0.8); }
+  }
+  @keyframes grain-move {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-5%, -5%); }
+    50% { transform: translate(-10%, 5%); }
+    75% { transform: translate(5%, -10%); }
+    100% { transform: translate(0, 0); }
+  }
 `;
 
 // ── Data ───────────────────────────────────────────────────────────────────
@@ -147,7 +175,6 @@ function StarField({ scrollY }: { scrollY: number }) {
     const stars = starsRef.current;
     stars.length = 0;
 
-    // Layer A — 1800 micro-stars (far)
     for (let i=0;i<1800;i++) {
       const gx = (Math.random()*2-1)*0.8;
       const x = Math.random()*c.width + gx*(c.width*0.2);
@@ -160,7 +187,6 @@ function StarField({ scrollY }: { scrollY: number }) {
         warm:Math.random()<0.05, spike:false,
       });
     }
-    // Layer B — 400 mid stars
     for (let i=0;i<400;i++) {
       stars.push({
         x:Math.random()*c.width, y:Math.random()*c.height*3,
@@ -170,7 +196,6 @@ function StarField({ scrollY }: { scrollY: number }) {
         warm:Math.random()<0.05, spike:false,
       });
     }
-    // Layer C — 80 near bright stars, 3 with spikes
     for (let i=0;i<80;i++) {
       stars.push({
         x:Math.random()*c.width, y:Math.random()*c.height*3,
@@ -203,7 +228,6 @@ function StarField({ scrollY }: { scrollY: number }) {
         ctx.fillStyle = col;
         ctx.fill();
 
-        // Glow halo for near stars
         if (s.layer===2) {
           ctx.beginPath();
           ctx.arc(s.x, ry, s.r*3, 0, Math.PI*2);
@@ -214,7 +238,6 @@ function StarField({ scrollY }: { scrollY: number }) {
           ctx.fill();
         }
 
-        // 4-point diffraction spike
         if (s.spike) {
           const spikeLen = s.r * 12;
           ctx.save();
@@ -239,33 +262,28 @@ function StarField({ scrollY }: { scrollY: number }) {
   return <canvas ref={ref} style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none" }} />;
 }
 
-// ── Nebula — 4 gas cloud layers ────────────────────────────────────────────
+// ── Nebula ────────────────────────────────────────────────────────────────
 function NebulaLayer({ scrollY }: { scrollY: number }) {
   const p = scrollY * 0.001;
   return (
     <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none" }}>
-      {/* Layer 1 — magenta-violet deep */}
       <div style={{
         position:"absolute", inset:0,
         background:`radial-gradient(ellipse 80% 60% at 20% ${30 - scrollY*0.007}%, rgba(180,40,160,0.1) 0%, transparent 65%)`,
         animation:"nebula-drift 40s ease-in-out infinite",
       }} />
-      {/* Layer 2 — electric teal column */}
       <div style={{
         position:"absolute", inset:0,
         background:`radial-gradient(ellipse 50% 70% at ${15+p*5}% ${65+scrollY*0.005}%, rgba(0,196,180,0.08) 0%, transparent 60%)`,
       }} />
-      {/* Layer 3 — warm amber near planet */}
       <div style={{
         position:"absolute", inset:0,
         background:`radial-gradient(ellipse 40% 30% at 80% ${30+p*8}%, rgba(232,185,35,0.06) 0%, transparent 50%)`,
       }} />
-      {/* Layer 4 — ice blue wisps */}
       <div style={{
         position:"absolute", inset:0,
         background:`radial-gradient(ellipse 60% 20% at 60% ${50+p*4}%, rgba(120,180,255,0.05) 0%, transparent 55%)`,
       }} />
-      {/* God rays */}
       <div style={{
         position:"absolute", inset:0, pointerEvents:"none",
         background:`linear-gradient(112deg, transparent 30%, rgba(232,185,35,0.04) 45%, transparent 48%, rgba(232,185,35,0.03) 52%, transparent 58%, rgba(120,180,255,0.03) 65%, transparent 70%)`,
@@ -275,57 +293,39 @@ function NebulaLayer({ scrollY }: { scrollY: number }) {
   );
 }
 
-// ── Cobalt Giant planet ────────────────────────────────────────────────────
+// ── Planets ────────────────────────────────────────────────────────────────
 function FloatingPlanets({ scrollY }: { scrollY: number }) {
   return (
     <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", overflow:"hidden" }}>
-
-      {/* ── COBALT GIANT — upper right ── */}
       <div style={{
         position:"absolute", right:"-60px",
         top:`${-60 + scrollY*0.12}px`,
         width:"340px", height:"340px",
         borderRadius:"50%",
-        background:`radial-gradient(circle at 32% 32%,
-          #1d3a7e 0%,
-          #0d1b6e 35%,
-          #080f40 60%,
-          #04081a 100%)`,
-        boxShadow:`
-          inset -30px -30px 80px rgba(0,0,0,0.85),
-          inset 20px 20px 60px rgba(13,27,110,0.3),
-          0 0 80px rgba(123,94,167,0.18),
-          0 0 200px rgba(13,27,110,0.08)`,
+        background:`radial-gradient(circle at 32% 32%, #1d3a7e 0%, #0d1b6e 35%, #080f40 60%, #04081a 100%)`,
+        boxShadow:`inset -30px -30px 80px rgba(0,0,0,0.85), inset 20px 20px 60px rgba(13,27,110,0.3), 0 0 80px rgba(123,94,167,0.18), 0 0 200px rgba(13,27,110,0.08)`,
         border:"0.5px solid rgba(123,94,167,0.2)",
         animation:"rim-pulse 8s ease-in-out infinite",
         overflow:"hidden",
       }}>
-        {/* Atmospheric bands */}
         {[18,38,52,68,80].map((pct,i) => (
           <div key={i} style={{
             position:"absolute", left:0, right:0,
             top:`${pct}%`, height:`${[8,6,10,5,7][i]}%`,
-            background: i%2===0
-              ? "rgba(10,20,80,0.35)"
-              : "rgba(40,80,160,0.12)",
-            borderRadius:"0",
+            background: i%2===0 ? "rgba(10,20,80,0.35)" : "rgba(40,80,160,0.12)",
           }} />
         ))}
-        {/* Storm oval */}
         <div style={{
           position:"absolute", left:"30%", top:"62%",
           width:"28%", height:"14%", borderRadius:"50%",
-          background:"rgba(6,10,50,0.6)",
-          transform:"rotate(-8deg)",
+          background:"rgba(6,10,50,0.6)", transform:"rotate(-8deg)",
         }} />
-        {/* Limb glow */}
         <div style={{
           position:"absolute", inset:0, borderRadius:"50%",
           background:"radial-gradient(circle at 100% 50%, rgba(80,120,255,0.15) 0%, transparent 45%)",
         }} />
       </div>
 
-      {/* Cobalt Giant rings — 3 rings */}
       {[
         { w:480, h:480, bw:"10px", col:"rgba(200,220,255,0.18)", top:"-6px", blur:"1px" },
         { w:560, h:560, bw:"5px",  col:"rgba(232,185,35,0.10)",  top:"-50px", blur:"0px" },
@@ -344,21 +344,16 @@ function FloatingPlanets({ scrollY }: { scrollY: number }) {
         }} />
       ))}
 
-      {/* ── EMERALD ICE GIANT — left edge ── */}
       <div style={{
         position:"absolute", left:"-100px",
         top:`${320 + scrollY*0.07}px`,
         width:"220px", height:"220px",
         borderRadius:"50%",
-        background:`radial-gradient(circle at 45% 35%,
-          #1e4a30 0%, #1a3a2a 40%, #040c0c 100%)`,
-        boxShadow:`
-          inset -15px -15px 40px rgba(0,0,0,0.85),
-          0 0 40px rgba(0,196,180,0.12)`,
+        background:`radial-gradient(circle at 45% 35%, #1e4a30 0%, #1a3a2a 40%, #040c0c 100%)`,
+        boxShadow:`inset -15px -15px 40px rgba(0,0,0,0.85), 0 0 40px rgba(0,196,180,0.12)`,
         border:"0.5px solid rgba(0,196,180,0.15)",
         overflow:"hidden",
       }}>
-        {/* Magnetic field arcs — SVG overlay */}
         <svg viewBox="0 0 220 220" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity:0.5 }}>
           {[0,1,2].map(i => (
             <ellipse key={i} cx={110+i*8} cy={110} rx={130+i*20} ry={80+i*12}
@@ -368,7 +363,6 @@ function FloatingPlanets({ scrollY }: { scrollY: number }) {
         </svg>
       </div>
 
-      {/* ── Asteroid ── */}
       <div style={{
         position:"absolute", right:"7%",
         top:`${820 + scrollY*0.18}px`,
@@ -380,7 +374,6 @@ function FloatingPlanets({ scrollY }: { scrollY: number }) {
         transform:`rotate(${scrollY*0.06}deg)`,
       }} />
 
-      {/* ── Small debris ── */}
       <div style={{
         position:"absolute", right:"18%",
         top:`${1400 + scrollY*0.1}px`,
@@ -395,7 +388,7 @@ function FloatingPlanets({ scrollY }: { scrollY: number }) {
   );
 }
 
-// ── Foreground particle bokeh ──────────────────────────────────────────────
+// ── Particle Bokeh ─────────────────────────────────────────────────────────
 function ParticleBokeh() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -406,9 +399,7 @@ function ParticleBokeh() {
     c.height = window.innerHeight;
 
     const motes: { x:number; y:number; r:number; vx:number; vy:number; col:string; t:number }[] = [];
-    const cols = [
-      "rgba(120,180,255,VAL)","rgba(0,196,180,VAL)","rgba(232,185,35,VAL)"
-    ];
+    const cols = ["rgba(120,180,255,VAL)","rgba(0,196,180,VAL)","rgba(232,185,35,VAL)"];
     const weights = [0.6, 0.25, 0.15];
 
     for (let i=0;i<200;i++) {
@@ -458,7 +449,7 @@ function ParticleBokeh() {
   return <canvas ref={ref} style={{ position:"fixed", inset:0, zIndex:1, pointerEvents:"none", opacity:0.7 }} />;
 }
 
-// ── Binary rain (faint background) ────────────────────────────────────────
+// ── Binary Rain ────────────────────────────────────────────────────────────
 function BinaryRain() {
   const cols = Array.from({length:8},(_,i)=>i*12+5);
   return (
@@ -542,7 +533,7 @@ function GlitchText({ text, style }: { text: string; style?: React.CSSProperties
   );
 }
 
-// ── Orbital rings ──────────────────────────────────────────────────────────
+// ── Orbital Rings ──────────────────────────────────────────────────────────
 function OrbitalRings() {
   return (
     <div style={{
@@ -571,7 +562,7 @@ function OrbitalRings() {
   );
 }
 
-// ── IMAX Astronaut — ultra detailed ───────────────────────────────────────
+// ── Astronaut Scene ────────────────────────────────────────────────────────
 function AstronautScene({ progress }: { progress: number }) {
   const y   = -50 + progress * 140;
   const rot = -8  + progress * 22;
@@ -620,31 +611,20 @@ function AstronautScene({ progress }: { progress: number }) {
           </filter>
         </defs>
 
-        {/* Shadow ellipse */}
         <ellipse cx="280" cy="490" rx="180" ry="18" fill="rgba(0,196,180,0.05)" />
 
-        {/* ─ Mini planet orbiting upper right ─ */}
         <circle cx="420" cy="88" r="58" fill="url(#pgrad)" stroke="rgba(0,196,180,0.2)" strokeWidth="0.8" />
-        {/* Planet bands */}
         <ellipse cx="420" cy="78"  rx="52" ry="6"  fill="rgba(0,20,80,0.3)" />
         <ellipse cx="420" cy="94"  rx="48" ry="5"  fill="rgba(30,60,150,0.15)" />
-        {/* Planet ring — 3 */}
         <ellipse cx="420" cy="88"  rx="82" ry="18" fill="none" stroke="rgba(200,220,255,0.25)" strokeWidth="1.2" />
         <ellipse cx="420" cy="88"  rx="96" ry="22" fill="none" stroke="rgba(232,185,35,0.12)" strokeWidth="0.7" />
         <ellipse cx="420" cy="88"  rx="110" ry="26" fill="none" stroke="rgba(120,180,255,0.06)" strokeWidth="0.5" />
-        {/* Limb glow */}
         <circle cx="420" cy="88" r="58" fill="none" stroke="rgba(80,140,255,0.18)" strokeWidth="4" />
 
-        {/* ─ Astronaut body ─ */}
         <g transform="translate(148,108)">
-
-          {/* Helmet */}
           <ellipse cx="122" cy="72" rx="60" ry="64"
             fill="url(#suitGrad)" stroke="rgba(200,220,255,0.2)" strokeWidth="1.2" />
-
-          {/* Visor — galaxy reflection */}
           <ellipse cx="122" cy="68" rx="42" ry="44" fill="url(#visorGrad)" stroke="rgba(0,196,180,0.35)" strokeWidth="0.9" />
-          {/* Galaxy inside visor */}
           {[
             {cx:118,cy:60,rx:16,ry:8,  col:"rgba(123,94,167,0.18)"},
             {cx:125,cy:65,rx:9, ry:5,  col:"rgba(0,196,180,0.12)"},
@@ -653,55 +633,38 @@ function AstronautScene({ progress }: { progress: number }) {
             <ellipse key={i} cx={g.cx} cy={g.cy} rx={g.rx} ry={g.ry}
               fill={g.col} style={{mixBlendMode:"screen"}} />
           ))}
-          {/* Stars in visor */}
           {[{x:116,y:56,s:1.3,d:"2s"},{x:130,y:50,s:0.9,d:"3.1s"},{x:110,y:75,s:0.9,d:"2.4s"},
             {x:134,y:70,s:0.7,d:"1.8s"},{x:108,y:62,s:0.6,d:"4s"}].map((st,i) => (
             <circle key={i} cx={st.x} cy={st.y} r={st.s} fill="rgba(200,220,255,0.7)"
               style={{animation:`star-twinkle ${st.d} ease-in-out infinite`}} />
           ))}
-          {/* Visor rim light */}
           <ellipse cx="100" cy="50" rx="14" ry="8" fill="rgba(255,255,255,0.06)" transform="rotate(-20,100,50)" />
-
-          {/* Neck ring */}
           <ellipse cx="122" cy="133" rx="38" ry="8" fill="#0e1628" stroke="rgba(200,220,255,0.12)" strokeWidth="1" />
-
-          {/* Torso */}
           <rect x="68" y="133" width="108" height="100" rx="22"
             fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" />
-
-          {/* Chest panel — holographic progress bar */}
           <rect x="90" y="152" width="64" height="36" rx="5"
             fill="rgba(0,196,180,0.07)" stroke="rgba(0,196,180,0.35)" strokeWidth="0.7" />
           <line x1="100" y1="162" x2="144" y2="162" stroke="rgba(0,196,180,0.5)" strokeWidth="0.8" />
           <line x1="100" y1="168" x2="136" y2="168" stroke="rgba(0,196,180,0.3)" strokeWidth="0.8" />
-          {/* Progress bar fill */}
           <rect x="100" y="173" width="44" height="3" rx="1.5" fill="rgba(0,196,180,0.15)" />
           <rect x="100" y="173" width="24" height="3" rx="1.5" fill={TEAL}
             style={{animation:"pulse-glow 2.5s ease-in-out infinite"}} />
           <text x="122" y="195" textAnchor="middle" fill="rgba(0,196,180,0.55)"
             style={{fontFamily:"monospace",fontSize:"5px",letterSpacing:"0.18em"}}>STUDENIUS</text>
-
-          {/* Suit fiber-optic seams */}
           {[[68,140,176,140],[68,195,176,195],[68,165,176,165]].map(([x1,y1,x2,y2],i) => (
             <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
               stroke="rgba(0,196,180,0.08)" strokeWidth="0.5" strokeDasharray="3 8" />
           ))}
-
-          {/* Left shoulder & arm */}
           <path d="M68 140 Q30 158 22 198" stroke="rgba(200,220,255,0.1)" strokeWidth="0.8" fill="none" />
           <rect x="50" y="136" width="24" height="92" rx="12"
             fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-28,62,182)" />
-
-          {/* Left hand — holding light-book */}
           <g transform="translate(-14,196) rotate(12)">
             <rect x="0" y="0" width="54" height="40" rx="3" fill={TEAL} opacity="0.85" />
             <rect x="4" y="4" width="46" height="32" rx="2" fill="#0a1a2e" />
-            {/* Book pages — light rays */}
             {[8,14,20,26].map((y,i) => (
               <line key={i} x1="8" y1={y} x2={38-i*2} y2={y}
                 stroke={`rgba(0,196,180,${0.6-i*0.12})`} strokeWidth="0.8" />
             ))}
-            {/* Golden photons rising */}
             {[12,20,28,36].map((x,i) => (
               <line key={i} x1={x} y1="4" x2={x+1} y2={-8-i*3}
                 stroke="rgba(232,185,35,0.5)" strokeWidth="0.7"
@@ -710,14 +673,9 @@ function AstronautScene({ progress }: { progress: number }) {
             <text x="27" y="11" textAnchor="middle" fill="rgba(0,196,180,0.9)"
               style={{fontFamily:"monospace",fontSize:"5px",letterSpacing:"0.12em"}}>AI</text>
           </g>
-
-          {/* Right arm — touching DNA */}
           <rect x="176" y="136" width="24" height="84" rx="12"
             fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(22,188,178)" />
-
-          {/* DNA helix hologram */}
           <g transform="translate(196,155)">
-            {/* Helix strands */}
             {Array.from({length:8},(_,i) => {
               const t = i/7;
               const y1 = t*80;
@@ -733,21 +691,16 @@ function AstronautScene({ progress }: { progress: number }) {
               );
             })}
           </g>
-
-          {/* Legs */}
           <rect x="78" y="228" width="34" height="76" rx="17"
             fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-4,95,266)" />
           <rect x="122" y="228" width="34" height="76" rx="17"
             fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(6,139,266)" />
-
-          {/* Boot thruster glow */}
           <ellipse cx="95" cy="308" rx="22" ry="6" fill="rgba(0,196,180,0.18)"
             style={{animation:"pulse-glow 3s ease-in-out infinite"}} />
           <ellipse cx="139" cy="308" rx="18" ry="5" fill="rgba(0,196,180,0.14)"
             style={{animation:"pulse-glow 3s ease-in-out 0.8s infinite"}} />
         </g>
 
-        {/* ─ Floating equations ─ */}
         {equations.map((eq) => (
           <text key={eq.label} x={eq.x} y={eq.y}
             fill={`rgba(0,196,180,${eq.o})`}
@@ -760,18 +713,15 @@ function AstronautScene({ progress }: { progress: number }) {
           </text>
         ))}
 
-        {/* Scan-line grid lines */}
         <line x1="30"  y1="250" x2="148" y2="250" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7" />
         <line x1="365" y1="310" x2="480" y2="310" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7" />
 
-        {/* Atomic model */}
         <g transform="translate(60,310)">
           <circle cx="0" cy="0" r="3" fill="rgba(232,185,35,0.7)" />
           <ellipse cx="0" cy="0" rx="18" ry="7" fill="none" stroke="rgba(0,196,180,0.25)" strokeWidth="0.7" strokeDasharray="2 2" />
           <circle cx="18" cy="0" r="1.5" fill="rgba(0,196,180,0.6)" />
         </g>
 
-        {/* 3D Sigmoid curve */}
         <g transform="translate(420,310)" opacity="0.3">
           <line x1="0" y1="0" x2="60" y2="0" stroke="rgba(0,196,180,0.4)" strokeWidth="0.5" />
           <line x1="0" y1="-40" x2="0" y2="10" stroke="rgba(0,196,180,0.4)" strokeWidth="0.5" />
@@ -783,11 +733,12 @@ function AstronautScene({ progress }: { progress: number }) {
   );
 }
 
-// ── Cinematic scroll section ───────────────────────────────────────────────
+// ── Cinematic Section ──────────────────────────────────────────────────────
 function CinematicSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
-
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     function onScroll() {
       const el = sectionRef.current;
@@ -798,52 +749,100 @@ function CinematicSection() {
       setProgress(p);
     }
     window.addEventListener("scroll", onScroll, { passive:true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const bgY   = progress * 45;
   const midY  = progress * 90;
+  const scale = 1 + progress * 0.15;
 
   return (
-    <div ref={sectionRef} style={{ position:"relative", height:"320vh" }}>
-      <div style={{
+    <div ref={sectionRef} style={{ position:"relative", height:"420vh" }}>
+      <div ref={containerRef} style={{
         position:"sticky", top:0, height:"100vh", overflow:"hidden",
         display:"flex", alignItems:"center", justifyContent:"center",
+        transform: `scale(${scale})`,
+        transformOrigin: "center center",
       }}>
-        {/* Nebula backdrop */}
+        <div style={{
+          position:"absolute", inset:0, pointerEvents:"none", zIndex:50,
+          opacity: 0.035,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          animation: "grain-move 0.8s steps(4) infinite",
+        }} />
+
+        <div style={{
+          position:"absolute", inset:"-50%",
+          background: `conic-gradient(from ${progress*360}deg at 50% 50%, rgba(0,196,180,0.03) 0deg, transparent 60deg, rgba(123,94,167,0.04) 120deg, transparent 180deg, rgba(232,185,35,0.03) 240deg, transparent 300deg, rgba(0,196,180,0.03) 360deg)`,
+          animation: "vortex-spin 20s linear infinite",
+          opacity: 0.5 + progress * 0.5,
+        }} />
+
         <div style={{
           position:"absolute", inset:0,
           background:`
-            radial-gradient(ellipse 70% 60% at ${28+progress*22}% ${38+bgY*0.3}%, rgba(0,196,180,0.09) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 40% at ${72-progress*16}% ${60+bgY*0.2}%, rgba(232,185,35,0.06) 0%, transparent 60%),
-            radial-gradient(ellipse 40% 30% at 50% 50%, rgba(123,94,167,0.07) 0%, transparent 60%)
+            radial-gradient(ellipse 90% 80% at ${28+progress*22}% ${38+bgY*0.3}%, rgba(0,196,180,0.12) 0%, transparent 70%),
+            radial-gradient(ellipse 70% 60% at ${72-progress*16}% ${60+bgY*0.2}%, rgba(232,185,35,0.08) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 50% at 50% 50%, rgba(123,94,167,0.1) 0%, transparent 60%)
           `,
+          filter: "blur(40px)",
+          transition: "background 0.1s ease-out",
         }} />
 
-        {/* Perspective grid */}
         <div style={{
-          position:"absolute", inset:0, opacity:0.04,
-          backgroundImage:`
-            linear-gradient(rgba(0,196,180,1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,196,180,1) 1px, transparent 1px)`,
+          position:"absolute", inset:0,
+          background: `radial-gradient(ellipse 50% 50% at ${50+progress*10}% ${50-progress*5}%, rgba(0,196,180,0.06) 0%, transparent 60%)`,
+          mixBlendMode: "screen" as any,
+          transform: `translateX(${-progress*8}px)`,
+        }} />
+        <div style={{
+          position:"absolute", inset:0,
+          background: `radial-gradient(ellipse 50% 50% at ${50-progress*10}% ${50+progress*5}%, rgba(232,185,35,0.05) 0%, transparent 60%)`,
+          mixBlendMode: "screen" as any,
+          transform: `translateX(${progress*8}px)`,
+        }} />
+
+        <div style={{
+          position:"absolute", inset:0, opacity:0.06,
+          backgroundImage:`linear-gradient(rgba(0,196,180,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,196,180,1) 1px, transparent 1px)`,
           backgroundSize:"64px 64px",
-          transform:`translateY(${midY}px) perspective(400px) rotateX(8deg)`,
+          transform:`translateY(${midY}px) perspective(600px) rotateX(12deg)`,
+          maskImage: "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
         }} />
 
-        {/* Horizon glow */}
+        {[...Array(20)].map((_, i) => {
+          const px = (i * 37) % 100;
+          const py = (i * 53) % 100;
+          const size = 2 + (i % 4);
+          return (
+            <div key={i} style={{
+              position:"absolute",
+              left:`${px}%`,
+              top:`${py}%`,
+              width:size,
+              height:size,
+              background: i%3===0 ? TEAL : i%3===1 ? GOLD : PURPLE,
+              borderRadius:"50%",
+              opacity: 0.2 + Math.sin(progress*Math.PI + i)*0.2,
+              filter: "blur(1px)",
+              transform: `translateY(${progress*(20+i%10)}px) translateX(${Math.sin(progress*2+i)*10}px)`,
+            }} />
+          );
+        })}
+
         <div style={{
-          position:"absolute", bottom:0, left:0, right:0, height:"220px",
-          background:"linear-gradient(transparent, rgba(0,196,180,0.05))",
+          position:"absolute", bottom:0, left:0, right:0, height:"280px",
+          background:`linear-gradient(transparent, rgba(0,196,180,${0.05+progress*0.08}))`,
         }} />
 
-        {/* Astronaut */}
         <AstronautScene progress={progress} />
 
-        {/* Scroll hint */}
         <div style={{
           position:"absolute", bottom:"12%", left:"50%",
           transform:"translateX(-50%)", textAlign:"center",
           opacity: progress < 0.15 ? progress/0.15 : progress > 0.5 ? Math.max(0,(1-progress)/0.35) : 1,
+          transition: "opacity 0.3s",
         }}>
           <p style={{...mono,fontSize:"10px",color:`rgba(0,196,180,0.6)`,letterSpacing:"0.2em",marginBottom:"8px"}}>
             SCROLL TO EXPLORE
@@ -851,33 +850,47 @@ function CinematicSection() {
           <div style={{width:"1px",height:"44px",background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto"}} />
         </div>
 
-        {/* Headline reveal */}
         <div style={{
           position:"absolute", top:"13%", left:"50%",
-          transform:"translateX(-50%)", textAlign:"center",
+          transform:`translateX(-50%) translateY(${progress*30}px)`,
+          textAlign:"center",
           opacity: progress < 0.12 ? 0 : progress < 0.32 ? (progress-0.12)/0.2 : progress > 0.78 ? Math.max(0,(1-progress)/0.14) : 1,
           width:"min(640px,90vw)",
+          filter: `blur(${Math.abs(progress-0.5)*2}px)`,
         }}>
           {progress < 0.5 ? (
-            <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
+            <h2 style={{
+              fontSize:"clamp(22px,4vw,44px)", fontWeight:300,
+              letterSpacing:"-0.03em", color:"#F2F5F8", lineHeight:1.12,
+              animation: "chromatic-shift 4s ease-in-out infinite, cinematic-zoom 8s ease-in-out infinite",
+              textShadow: "0 0 80px rgba(0,196,180,0.3)",
+            }}>
               Knowledge travels<br/>
-              <span style={{color:TEAL}}>at the speed of curiosity.</span>
+              <span style={{ color:TEAL, display:"inline-block", animation:"fade-up 1.2s ease-out" }}>
+                at the speed of curiosity.
+              </span>
             </h2>
           ) : (
-            <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
+            <h2 style={{
+              fontSize:"clamp(22px,4vw,44px)", fontWeight:300,
+              letterSpacing:"-0.03em", color:"#F2F5F8", lineHeight:1.12,
+              animation: "chromatic-shift 4s ease-in-out infinite, cinematic-zoom 8s ease-in-out infinite",
+              textShadow: "0 0 80px rgba(232,185,35,0.3)",
+            }}>
               AI-powered tools.<br/>
-              <span style={{color:GOLD}}>Built for students who demand results.</span>
+              <span style={{ color:GOLD, display:"inline-block", animation:"fade-up 1.2s ease-out" }}>
+                Built for students who demand results.
+              </span>
             </h2>
           )}
-          {/* Hairline separator */}
           <div style={{
-            width:"120px",height:"0.5px",
-            background:`rgba(0,196,180,0.3)`,
+            width:`${120 + progress*40}px`, height:"0.5px",
+            background:`linear-gradient(90deg, transparent, ${TEAL}, ${GOLD}, transparent)`,
             margin:"20px auto 0",
+            boxShadow: `0 0 20px ${TEAL}`,
           }} />
         </div>
 
-        {/* Vertical scroll progress bar */}
         <div style={{
           position:"absolute", right:"28px", top:"50%",
           transform:"translateY(-50%)",
@@ -888,32 +901,42 @@ function CinematicSection() {
               position:"absolute", top:0, left:0, right:0,
               height:`${progress*100}%`,
               background:`linear-gradient(${TEAL},${GOLD})`,
+              boxShadow: `0 0 20px ${TEAL}`,
               transition:"height 0.08s",
             }} />
           </div>
-          <span style={{...mono,fontSize:"9px",color:"#333",letterSpacing:"0.1em",writingMode:"vertical-lr"}}>
+          <span style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.1em",writingMode:"vertical-lr"}}>
             {Math.round(progress*100)}%
           </span>
         </div>
 
-        {/* Coordinates HUD */}
         <div style={{
           position:"absolute", left:"24px", bottom:"10%",
-          ...mono, fontSize:"9px", color:"rgba(0,196,180,0.2)",
+          ...mono, fontSize:"9px", color:TEAL,
           letterSpacing:"0.12em", lineHeight:1.8,
           opacity: progress > 0.1 ? 0.7 : 0,
           transition:"opacity 0.4s",
+          textShadow: `0 0 10px ${TEAL}`,
         }}>
           <div>LAT  {(progress*90-45).toFixed(2)}°</div>
           <div>LON  {(progress*360-180).toFixed(2)}°</div>
           <div>ALT  {Math.round(400 + progress*1200)} km</div>
         </div>
+
+        <svg style={{
+          position:"absolute", width:"600px", height:"600px",
+          pointerEvents:"none", opacity: 0.15 + progress * 0.3,
+        }} viewBox="0 0 600 600">
+          <circle cx="300" cy="300" r="280" fill="none" stroke={TEAL} strokeWidth="0.5" strokeDasharray={`${progress*1400} 1400`} opacity="0.4" />
+          <circle cx="300" cy="300" r="250" fill="none" stroke={GOLD} strokeWidth="0.5" strokeDasharray={`${progress*1200} 1200`} strokeDashoffset={progress*200} opacity="0.3" />
+          <circle cx="300" cy="300" r="220" fill="none" stroke={PURPLE} strokeWidth="0.5" strokeDasharray={`${progress*1000} 1000`} strokeDashoffset={-progress*150} opacity="0.2" />
+        </svg>
       </div>
     </div>
   );
 }
 
-// ── Practice demo ──────────────────────────────────────────────────────────
+// ── Practice Demo ──────────────────────────────────────────────────────────
 function PracticeDemo() {
   const [selected, setSelected] = useState<string|null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -973,7 +996,7 @@ function PracticeDemo() {
   );
 }
 
-// ── Chat demo ──────────────────────────────────────────────────────────────
+// ── Chat Demo ──────────────────────────────────────────────────────────────
 function ChatDemo() {
   return (
     <div style={{background:"#080d1a",border:"0.5px solid #0d1220"}}>
@@ -1003,7 +1026,7 @@ function ChatDemo() {
   );
 }
 
-// ── Animated stat ──────────────────────────────────────────────────────────
+// ── Animated Stat ──────────────────────────────────────────────────────────
 function AnimatedStat({ value, label }: { value:string; label:string }) {
   const { ref, inView } = useInView(0.5);
   return (
@@ -1030,14 +1053,12 @@ export default function Landing() {
     }}>
       <style>{CSS}</style>
 
-      {/* ── Fixed background layers ── */}
       <StarField scrollY={scrollY} />
       <NebulaLayer scrollY={scrollY} />
       <FloatingPlanets scrollY={scrollY} />
       <BinaryRain />
       <ParticleBokeh />
 
-      {/* ── Nav ── */}
       <nav style={{
         display:"flex", alignItems:"center", justifyContent:"space-between",
         padding:"0 32px", height:48,
@@ -1074,21 +1095,18 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ── Hero ── */}
       <section style={{
         padding:"110px 32px 88px",
         maxWidth:"720px", margin:"0 auto", width:"100%",
         position:"relative", zIndex:2,
       }}>
         <OrbitalRings />
-
         <Reveal delay={0}>
           <p style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.16em",textTransform:"uppercase",
             marginBottom:"32px",animation:"pulse-glow 3s ease-in-out infinite"}}>
             AI-Powered Study Platform
           </p>
         </Reveal>
-
         <Reveal delay={0.1}>
           <h1 style={{
             fontSize:"clamp(38px,6.5vw,68px)",fontWeight:300,
@@ -1103,7 +1121,6 @@ export default function Landing() {
             }}>Master it faster.</span>
           </h1>
         </Reveal>
-
         <Reveal delay={0.2}>
           <p style={{fontSize:"15px",color:"#555",maxWidth:"480px",
             marginBottom:"36px",lineHeight:1.78,fontWeight:300}}>
@@ -1111,7 +1128,6 @@ export default function Landing() {
             confidence tracking and more. Built for students who demand results.
           </p>
         </Reveal>
-
         <Reveal delay={0.3}>
           <div style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap"}}>
             <Link to="/signup">
@@ -1139,7 +1155,6 @@ export default function Landing() {
             </Link>
           </div>
         </Reveal>
-
         <Reveal delay={0.4}>
           <p style={{...mono,fontSize:"10px",color:"#1e2a44",marginTop:"18px",letterSpacing:"0.06em"}}>
             No credit card required · Free plan always available
@@ -1147,7 +1162,6 @@ export default function Landing() {
         </Reveal>
       </section>
 
-      {/* Stats bar */}
       <div style={hairline} />
       <div style={{background:"rgba(6,8,18,0.92)",borderBottom:"0.5px solid #0d1220",position:"relative",zIndex:2}}>
         <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px 32px",display:"flex",gap:"48px",flexWrap:"wrap"}}>
@@ -1160,15 +1174,11 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* ── Cinematic parallax scroll ── */}
       <div style={{position:"relative",zIndex:2}}>
         <CinematicSection />
       </div>
 
-      {/* ── Content sections ── */}
       <div style={{position:"relative",zIndex:2,background:"#05080f"}}>
-
-        {/* Demo */}
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
           <Reveal>
             <div style={sectionLabel}>
@@ -1186,7 +1196,6 @@ export default function Landing() {
 
         <div style={hairline} />
 
-        {/* Upload */}
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
           <Reveal>
             <div style={sectionLabel}>
@@ -1231,7 +1240,6 @@ export default function Landing() {
 
         <div style={hairline} />
 
-        {/* Features */}
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
           <Reveal>
             <div style={sectionLabel}>
@@ -1262,7 +1270,6 @@ export default function Landing() {
 
         <div style={hairline} />
 
-        {/* Testimonials */}
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px"}}>
           <Reveal>
             <div style={sectionLabel}>
@@ -1288,7 +1295,6 @@ export default function Landing() {
 
         <div style={hairline} />
 
-        {/* CTA */}
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"80px 32px",position:"relative"}}>
           <div style={{
             position:"absolute",inset:0,pointerEvents:"none",
@@ -1320,7 +1326,6 @@ export default function Landing() {
           </Reveal>
         </div>
 
-        {/* Footer */}
         <footer style={{borderTop:"0.5px solid #0d1220"}}>
           <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{...mono,fontSize:"10px",color:"#1e2838",letterSpacing:"0.06em"}}>
