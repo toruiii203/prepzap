@@ -126,10 +126,10 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
     // ── Planets theme data ────────────────────────────────────────────────────
     // orbitR kept ≤ 0.32 so planets never go offscreen; only ONE ring planet (Saturn)
     const PLANET_DEFS = [
-      { color: "180,120,60",  ring: true,  r: 26, orbitR: 0.28, orbitY: 0.44, speed: 0.00018, phase: 0.0 },  // Saturn – big, one ring only
-      { color: "100,160,220", ring: false, r: 16, orbitR: 0.22, orbitY: 0.60, speed: 0.00028, phase: 1.8 },  // Ice giant
-      { color: "220,80,60",   ring: false, r: 12, orbitR: 0.18, orbitY: 0.28, speed: 0.00042, phase: 3.5 },  // Red planet
-      { color: "160,200,140", ring: false, r:  9, orbitR: 0.30, orbitY: 0.74, speed: 0.00022, phase: 2.1 },  // Green gas
+      { color: "180,120,60",  ring: true,  r: 58, orbitR: 0.38, orbitY: 0.44, speed: 0.00018, phase: 0.0 },  // Saturn – massive, rings
+      { color: "100,160,220", ring: false, r: 38, orbitR: 0.32, orbitY: 0.62, speed: 0.00028, phase: 1.8 },  // Ice giant
+      { color: "220,80,60",   ring: false, r: 26, orbitR: 0.26, orbitY: 0.26, speed: 0.00042, phase: 3.5 },  // Red planet
+      { color: "160,200,140", ring: false, r: 20, orbitR: 0.40, orbitY: 0.78, speed: 0.00022, phase: 2.1 },  // Green gas
     ]
     const planets = PLANET_DEFS.map(p => ({ ...p }))
     let planetTick = 0
@@ -238,116 +238,248 @@ function useStarfield(ref: React.RefObject<HTMLCanvasElement>, theme: BgTheme) {
       if (t === "milkyway") {
         mwAngle += 0.0003
         const cx = W / 2, cy = H / 2
-        // Galactic core glow — much brighter
-        const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.45)
-        coreGlow.addColorStop(0, "rgba(255,240,200,0.45)")
-        coreGlow.addColorStop(0.3, "rgba(220,160,80,0.22)")
-        coreGlow.addColorStop(0.7, "rgba(100,60,160,0.10)")
-        coreGlow.addColorStop(1, "rgba(0,0,0,0)")
+
+        // ── Vivid galactic core — layered warm + teal glow ────────────────────
+        const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.55)
+        coreGlow.addColorStop(0,   "rgba(255,250,220,0.92)")   // brilliant white-gold centre
+        coreGlow.addColorStop(0.08,"rgba(255,220,120,0.75)")   // gold halo
+        coreGlow.addColorStop(0.22,"rgba(255,140,60,0.45)")    // orange band
+        coreGlow.addColorStop(0.40,"rgba(160,80,220,0.28)")    // purple mid
+        coreGlow.addColorStop(0.65,"rgba(40,120,200,0.14)")    // blue outer
+        coreGlow.addColorStop(1,   "rgba(0,0,0,0)")
         ctx.fillStyle = coreGlow
         ctx.fillRect(0, 0, W, H)
-        // Rotating star field — boosted alpha
+
+        // Teal accent ring around core
+        const tealRing = ctx.createRadialGradient(cx, cy, Math.min(W,H)*0.06, cx, cy, Math.min(W,H)*0.18)
+        tealRing.addColorStop(0, "rgba(0,196,180,0)")
+        tealRing.addColorStop(0.5,"rgba(0,196,180,0.12)")
+        tealRing.addColorStop(1, "rgba(0,196,180,0)")
+        ctx.fillStyle = tealRing
+        ctx.fillRect(0, 0, W, H)
+
+        // ── Rotating star field — vivid warm+cool palette ─────────────────────
         for (const s of mwStars) {
           s.phase += s.speed
           const distFromCenter = Math.sqrt((s.x - 0.5) ** 2 + (s.y - 0.5) ** 2)
-          const warmth = Math.max(0, 1 - distFromCenter * 2.5)
-          const r = Math.round(200 + warmth * 55)
-          const g2 = Math.round(200 + warmth * 30)
-          const b2 = Math.round(220 - warmth * 80)
+          const warmth = Math.max(0, 1 - distFromCenter * 2.2)
           const dx = (s.x - 0.5) * W, dy = (s.y - 0.5) * H
           const rotX = cx + dx * Math.cos(mwAngle) - dy * Math.sin(mwAngle)
           const rotY = cy + dx * Math.sin(mwAngle) + dy * Math.cos(mwAngle)
-          const twinkle = (Math.sin(s.phase) + 1) * 0.4 + 0.25  // raised floor
-          const a = twinkle * (0.5 + s.brightness * 0.5)          // much brighter
+          const twinkle = (Math.sin(s.phase) + 1) * 0.45 + 0.3
+          const brightness = twinkle * (0.55 + s.brightness * 0.7)
           const bandDist = Math.abs((s.x - 0.5) * Math.cos(0.4) - (s.y - 0.5) * Math.sin(0.4))
-          const bandBoost = Math.max(0, 1 - bandDist * 3.5)
-          if (Math.random() < 0.001 && bandBoost < 0.1) continue
+          const bandBoost = Math.max(0, 1 - bandDist * 3.2)
+          if (Math.random() < 0.001 && bandBoost < 0.08) continue
+          // Stars near core: warm gold/orange. Mid: blue-white. Outer: cool blue
+          let sr: number, sg2: number, sb2: number
+          if (warmth > 0.6) { sr = 255; sg2 = Math.round(200 + warmth*40); sb2 = Math.round(100 + warmth*60) }
+          else if (warmth > 0.2) { sr = Math.round(180+warmth*60); sg2 = Math.round(190+warmth*30); sb2 = 255 }
+          else { sr = 160; sg2 = 190; sb2 = 255 }
           ctx.beginPath()
-          ctx.arc(rotX, rotY, s.r * (1 + bandBoost * 0.8), 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(${r},${g2},${b2},${Math.min(1, a * (0.8 + bandBoost * 0.8))})`
+          ctx.arc(rotX, rotY, s.r * (1 + bandBoost * 1.1), 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(${sr},${sg2},${sb2},${Math.min(1, brightness * (0.9 + bandBoost * 1.0))})`
           ctx.fill()
         }
-        // Arm nebulosity overlay — brighter purples/blues
-        const armColors = ["80,60,180", "120,50,160", "60,80,200"]
-        for (let i = 0; i < 3; i++) {
-          const armAngle = mwAngle * 0.5 + (i * Math.PI * 2) / 3
-          const armX = cx + Math.cos(armAngle) * W * 0.22
-          const armY = cy + Math.sin(armAngle) * H * 0.22
-          const armG = ctx.createRadialGradient(armX, armY, 0, armX, armY, W * 0.30)
-          armG.addColorStop(0, `rgba(${armColors[i]},0.14)`)
+
+        // ── Spiral arms — vivid purple/blue/teal nebulosity ───────────────────
+        const armDefs = [
+          { color: "120,60,255",   boost: 0.32 },   // vivid violet
+          { color: "0,160,255",    boost: 0.28 },   // electric blue
+          { color: "0,220,180",    boost: 0.24 },   // teal
+          { color: "220,80,180",   boost: 0.20 },   // magenta accent
+        ]
+        for (let i = 0; i < armDefs.length; i++) {
+          const armAngle = mwAngle * 0.5 + (i * Math.PI * 2) / armDefs.length
+          const armX = cx + Math.cos(armAngle) * W * 0.26
+          const armY = cy + Math.sin(armAngle) * H * 0.28
+          const armG = ctx.createRadialGradient(armX, armY, 0, armX, armY, W * 0.34)
+          armG.addColorStop(0, `rgba(${armDefs[i].color},${armDefs[i].boost})`)
+          armG.addColorStop(0.5,`rgba(${armDefs[i].color},${armDefs[i].boost * 0.4})`)
           armG.addColorStop(1, "rgba(0,0,0,0)")
           ctx.fillStyle = armG
           ctx.fillRect(0, 0, W, H)
         }
+
+        // ── Dust lane — dark band across core for realism ─────────────────────
+        const dustAngle = mwAngle * 0.2
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(dustAngle)
+        const dust = ctx.createLinearGradient(0, -H*0.04, 0, H*0.04)
+        dust.addColorStop(0, "rgba(0,0,0,0)")
+        dust.addColorStop(0.5,"rgba(0,0,0,0.18)")
+        dust.addColorStop(1, "rgba(0,0,0,0)")
+        ctx.fillStyle = dust
+        ctx.fillRect(-W, -H*0.04, W*2, H*0.08)
+        ctx.restore()
       }
 
       if (t === "constellations") {
         constellationTick++
-        // Faint background stars
+
+        // ── Deep space background — rich dark blue, not flat black ────────────
+        ctx.fillStyle = "#03050F"
+        ctx.fillRect(0, 0, W, H)
+
+        // Subtle nebula clouds behind the sky
+        const nebulaDefs = [
+          { x: 0.18, y: 0.22, color: "80,60,200",  r: 0.28, a: 0.07 },
+          { x: 0.72, y: 0.35, color: "0,160,180",  r: 0.22, a: 0.06 },
+          { x: 0.45, y: 0.72, color: "140,40,180", r: 0.32, a: 0.06 },
+          { x: 0.85, y: 0.78, color: "60,100,220", r: 0.20, a: 0.05 },
+        ]
+        for (const nb of nebulaDefs) {
+          const pulse = 0.85 + 0.15 * Math.sin(constellationTick * 0.004 + nb.x * 10)
+          const ng = ctx.createRadialGradient(nb.x*W, nb.y*H, 0, nb.x*W, nb.y*H, nb.r*W)
+          ng.addColorStop(0, `rgba(${nb.color},${nb.a * pulse})`)
+          ng.addColorStop(0.5,`rgba(${nb.color},${nb.a * 0.4 * pulse})`)
+          ng.addColorStop(1, "rgba(0,0,0,0)")
+          ctx.fillStyle = ng
+          ctx.fillRect(0, 0, W, H)
+        }
+
+        // ── Faint field stars ─────────────────────────────────────────────────
         for (const s of stars) {
           s.phase += s.speed * 0.4
-          const a = (Math.sin(s.phase) + 1) * 0.2 + 0.04
+          const a = (Math.sin(s.phase) + 1) * 0.22 + 0.05
           ctx.beginPath()
-          ctx.arc(s.x * W, s.y * H, s.r * 0.5, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(200,210,255,${a})`
+          ctx.arc(s.x * W, s.y * H, s.r * 0.55, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(180,200,255,${a})`
           ctx.fill()
         }
-        // Draw each constellation
+
+        // ── Constellation colors — each gets its own identity ─────────────────
+        const CON_COLORS = [
+          { line: "120,180,255", star: "200,230,255", nebula: "80,120,255"  },  // Orion – blue-white
+          { line: "255,200,120", star: "255,240,200", nebula: "200,120,60"  },  // Ursa – warm gold
+          { line: "140,255,200", star: "200,255,230", nebula: "0,200,140"   },  // Cassiopeia – teal
+          { line: "200,140,255", star: "230,200,255", nebula: "140,60,220"  },  // Scorpius – purple
+          { line: "255,160,160", star: "255,220,220", nebula: "200,60,80"   },  // Leo – rose
+          { line: "160,230,255", star: "200,245,255", nebula: "0,160,220"   },  // Lyra – sky blue
+          { line: "255,230,140", star: "255,250,200", nebula: "180,160,40"  },  // Cygnus – yellow
+        ]
+
+        // ── Draw each constellation ───────────────────────────────────────────
         CONSTELLATIONS.forEach((con, ci) => {
-          const drift = constellationTick * 0.00006 * (ci % 2 === 0 ? 1 : -1)
-          const floatY = Math.sin(constellationTick * 0.001 + ci * 1.3) * 0.012
-          const pts = con.pts.map(([px, py]) => [px * W + drift * W, (py + floatY) * H])
-          // Draw edges
-          for (const [a, b] of con.edges) {
-            const lineAlpha = 0.18 + Math.sin(constellationTick * 0.008 + ci) * 0.06
+          const col = CON_COLORS[ci % CON_COLORS.length]
+          const drift = constellationTick * 0.000045 * (ci % 2 === 0 ? 1 : -1)
+          const floatY = Math.sin(constellationTick * 0.0008 + ci * 1.3) * 0.010
+          const pts = con.pts.map(([px, py]) => [px * W + drift * W, (py + floatY) * H] as [number,number])
+
+          // Soft nebula haze behind each constellation
+          const [bx, by] = pts[Math.floor(pts.length / 2)]
+          const nebulaA = 0.06 + 0.02 * Math.sin(constellationTick * 0.005 + ci)
+          const ng2 = ctx.createRadialGradient(bx, by, 0, bx, by, W * 0.14)
+          ng2.addColorStop(0, `rgba(${col.nebula},${nebulaA})`)
+          ng2.addColorStop(1, "rgba(0,0,0,0)")
+          ctx.fillStyle = ng2
+          ctx.fillRect(0, 0, W, H)
+
+          // Draw connecting lines — with gradient fade
+          for (const [ai, bi2] of con.edges) {
+            const [x1, y1] = pts[ai], [x2, y2] = pts[bi2]
+            const lineAlpha = 0.22 + Math.sin(constellationTick * 0.006 + ci * 0.8) * 0.08
+            const lg = ctx.createLinearGradient(x1, y1, x2, y2)
+            lg.addColorStop(0, `rgba(${col.line},${lineAlpha * 1.2})`)
+            lg.addColorStop(0.5,`rgba(${col.line},${lineAlpha})`)
+            lg.addColorStop(1, `rgba(${col.line},${lineAlpha * 1.2})`)
             ctx.beginPath()
-            ctx.moveTo(pts[a][0], pts[a][1])
-            ctx.lineTo(pts[b][0], pts[b][1])
-            ctx.strokeStyle = `rgba(150,200,255,${lineAlpha})`
-            ctx.lineWidth = 0.7
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.strokeStyle = lg
+            ctx.lineWidth = 0.9
             ctx.stroke()
           }
-          // Draw stars at vertices
+
+          // Draw star vertices — cross-shape + glow layers
           pts.forEach(([sx, sy], si) => {
-            constStarPhases[ci][si] += 0.022
-            const ta = (Math.sin(constStarPhases[ci][si]) + 1) * 0.45 + 0.3
-            const sr = 1.8 + Math.sin(constStarPhases[ci][si] * 0.7) * 0.5
-            // Glow
-            const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 4)
-            sg.addColorStop(0, `rgba(180,220,255,${ta * 0.5})`)
-            sg.addColorStop(1, "rgba(0,0,0,0)")
-            ctx.fillStyle = sg
+            constStarPhases[ci][si] += 0.018
+            const ta  = (Math.sin(constStarPhases[ci][si]) + 1) * 0.4 + 0.35
+            const sr  = 2.2 + Math.sin(constStarPhases[ci][si] * 0.7) * 0.7
+            const isBright = si === 0  // anchor star is biggest
+
+            // Outer diffuse glow
+            const outerG = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 10)
+            outerG.addColorStop(0, `rgba(${col.star},${ta * 0.22})`)
+            outerG.addColorStop(1, "rgba(0,0,0,0)")
+            ctx.fillStyle = outerG
             ctx.beginPath()
-            ctx.arc(sx, sy, sr * 4, 0, Math.PI * 2)
+            ctx.arc(sx, sy, sr * 10, 0, Math.PI * 2)
             ctx.fill()
-            // Star dot
+
+            // Inner tight glow
+            const innerG = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 3.5)
+            innerG.addColorStop(0, `rgba(${col.star},${ta * 0.75})`)
+            innerG.addColorStop(1, "rgba(0,0,0,0)")
+            ctx.fillStyle = innerG
             ctx.beginPath()
-            ctx.arc(sx, sy, sr, 0, Math.PI * 2)
-            ctx.fillStyle = `rgba(220,240,255,${ta})`
+            ctx.arc(sx, sy, sr * 3.5, 0, Math.PI * 2)
+            ctx.fill()
+
+            // Star cross spike — 4 points like a real star
+            const spikeLen = (isBright ? sr * 8 : sr * 5)
+            const spikeAlpha = ta * 0.55
+            ctx.save()
+            ctx.globalAlpha = spikeAlpha
+            for (let angle = 0; angle < Math.PI; angle += Math.PI / 2) {
+              const sg2 = ctx.createLinearGradient(
+                sx + Math.cos(angle) * spikeLen, sy + Math.sin(angle) * spikeLen,
+                sx - Math.cos(angle) * spikeLen, sy - Math.sin(angle) * spikeLen
+              )
+              sg2.addColorStop(0, "rgba(255,255,255,0)")
+              sg2.addColorStop(0.5, `rgba(${col.star},0.9)`)
+              sg2.addColorStop(1, "rgba(255,255,255,0)")
+              ctx.strokeStyle = sg2
+              ctx.lineWidth = isBright ? 1.2 : 0.7
+              ctx.beginPath()
+              ctx.moveTo(sx + Math.cos(angle) * spikeLen, sy + Math.sin(angle) * spikeLen)
+              ctx.lineTo(sx - Math.cos(angle) * spikeLen, sy - Math.sin(angle) * spikeLen)
+              ctx.stroke()
+            }
+            ctx.restore()
+
+            // Core white dot
+            ctx.beginPath()
+            ctx.arc(sx, sy, isBright ? sr * 1.3 : sr, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(255,255,255,${ta})`
             ctx.fill()
           })
         })
-        // Shooting stars
+
+        // ── Shooting stars ────────────────────────────────────────────────────
         for (const sh of shooters) {
           sh.life++
           if (sh.life > sh.maxLife) {
-            sh.x = Math.random() * 0.6; sh.y = Math.random() * 0.4
-            sh.life = 0; sh.maxLife = 200 + Math.random() * 300
+            sh.x = Math.random() * 0.65; sh.y = Math.random() * 0.45
+            sh.vx = 0.0010 + Math.random() * 0.0010
+            sh.vy = 0.0004 + Math.random() * 0.0005
+            sh.life = 0; sh.maxLife = 180 + Math.random() * 280
           }
           const progress = sh.life / sh.maxLife
           sh.alpha = progress < 0.1 ? progress * 10 : progress > 0.85 ? (1 - progress) * 6.67 : 1
           const ex = sh.x * W, ey = sh.y * H
-          const tx2 = ex - sh.tail * W * sh.vx * 80, ty2 = ey - sh.tail * H * sh.vy * 80
+          const tx2 = ex - sh.tail * W * sh.vx * 90, ty2 = ey - sh.tail * H * sh.vy * 90
           sh.x += sh.vx; sh.y += sh.vy
+          // Tail gradient — white tip, fades to teal
           const grad = ctx.createLinearGradient(tx2, ty2, ex, ey)
-          grad.addColorStop(0, "rgba(200,230,255,0)")
-          grad.addColorStop(1, `rgba(255,255,255,${sh.alpha * 0.8})`)
+          grad.addColorStop(0, "rgba(0,196,180,0)")
+          grad.addColorStop(0.6,`rgba(180,220,255,${sh.alpha * 0.5})`)
+          grad.addColorStop(1, `rgba(255,255,255,${sh.alpha})`)
           ctx.beginPath()
           ctx.moveTo(tx2, ty2)
           ctx.lineTo(ex, ey)
           ctx.strokeStyle = grad
-          ctx.lineWidth = 1.2
+          ctx.lineWidth = 1.5
           ctx.stroke()
+          // Bright tip flash
+          const tipG = ctx.createRadialGradient(ex, ey, 0, ex, ey, 4)
+          tipG.addColorStop(0, `rgba(255,255,255,${sh.alpha * 0.9})`)
+          tipG.addColorStop(1, "rgba(255,255,255,0)")
+          ctx.fillStyle = tipG
+          ctx.beginPath()
+          ctx.arc(ex, ey, 4, 0, Math.PI * 2)
+          ctx.fill()
         }
       }
 
@@ -394,16 +526,43 @@ function ThemePanel({ id, active, onClick }: { id: BgTheme; active: boolean; onC
       }
       if (id==="milkyway"){
         pl+=0.001
-        CL.forEach(c=>{c.x+=c.dx;c.y+=c.dy;if(c.x<-5)c.x=W+5;if(c.x>W+5)c.x=-5;const dx=c.x-W/2,dy=c.y-H/2;const rx2=W/2+dx*Math.cos(pl)-dy*Math.sin(pl),ry2=H/2+dx*Math.sin(pl)+dy*Math.cos(pl);c.ph+=c.sp;const a=(Math.sin(c.ph)+1)*0.3+0.1;const wm=Math.max(0,1-Math.abs((c.x/W-0.5)*Math.cos(0.4)-(c.y/H-0.5)*Math.sin(0.4))*4);const g=ctx.createRadialGradient(rx2,ry2,0,rx2,ry2,c.r*(1+wm));g.addColorStop(0,`rgba(220,200,160,${a*(0.5+wm*0.8)})`);g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(rx2,ry2,c.r*(1+wm),0,Math.PI*2);ctx.fill()})
-        SS.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)*0.3+0.1;const dx=s.x-W/2,dy=s.y-H/2;const rx2=W/2+dx*Math.cos(pl)-dy*Math.sin(pl),ry2=H/2+dx*Math.sin(pl)+dy*Math.cos(pl);ctx.beginPath();ctx.arc(rx2,ry2,s.r*0.7,0,Math.PI*2);ctx.fillStyle=`rgba(220,210,180,${a})`;ctx.fill()})
+        // Vivid core
+        const cg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.6);cg.addColorStop(0,"rgba(255,245,200,0.9)");cg.addColorStop(0.12,"rgba(255,200,100,0.65)");cg.addColorStop(0.3,"rgba(180,80,220,0.30)");cg.addColorStop(0.6,"rgba(40,120,200,0.14)");cg.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=cg;ctx.fillRect(0,0,W,H)
+        // Teal ring
+        const tr=ctx.createRadialGradient(W/2,H/2,W*0.05,W/2,H/2,W*0.2);tr.addColorStop(0,"rgba(0,196,180,0)");tr.addColorStop(0.5,"rgba(0,196,180,0.18)");tr.addColorStop(1,"rgba(0,196,180,0)");ctx.fillStyle=tr;ctx.fillRect(0,0,W,H)
+        // Vivid arm blobs — violet, blue, teal, magenta
+        const arms=[["120,60,255","rgba(120,60,255,0.28)"],["0,160,255","rgba(0,160,255,0.22)"],["0,220,180","rgba(0,220,180,0.18)"],["200,60,180","rgba(200,60,180,0.16)"]]
+        arms.forEach(([,col],i)=>{const aa=pl*0.5+(i*Math.PI*2/4);const ax=W/2+Math.cos(aa)*W*0.28,ay=H/2+Math.sin(aa)*H*0.32;const ag=ctx.createRadialGradient(ax,ay,0,ax,ay,W*0.35);ag.addColorStop(0,col);ag.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=ag;ctx.fillRect(0,0,W,H)})
+        SS.forEach(s=>{s.ph+=s.sp;const a=(Math.sin(s.ph)+1)*0.4+0.2;const dx=s.x-W/2,dy=s.y-H/2;const rx2=W/2+dx*Math.cos(pl)-dy*Math.sin(pl),ry2=H/2+dx*Math.sin(pl)+dy*Math.cos(pl);const warm=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/(W*0.5));const sr=warm>0.5?`rgba(255,${Math.round(200+warm*40)},120,${a})`:`rgba(160,190,255,${a})`;ctx.beginPath();ctx.arc(rx2,ry2,s.r*0.8,0,Math.PI*2);ctx.fillStyle=sr;ctx.fill()})
       }
-      if (id==="cosmos"){
-        pl+=pd2*0.8
-        ctx.save();ctx.translate(W/2,H/2)
-        const rings2=[{r:8,color:"0,196,180",sp:0.02},{r:14,color:"120,60,220",sp:0.015},{r:20,color:"220,120,60",sp:0.01}]
-        rings2.forEach((rg,i)=>{const a2=pl*rg.sp+i;ctx.save();ctx.rotate(a2);ctx.scale(1,0.35);ctx.beginPath();ctx.arc(0,0,rg.r,0,Math.PI*2);ctx.strokeStyle=`rgba(${rg.color},0.5)`;ctx.lineWidth=1.5;ctx.stroke();ctx.restore()})
-        const sg=ctx.createRadialGradient(0,0,0,0,0,5);sg.addColorStop(0,"rgba(255,255,255,0.8)");sg.addColorStop(0.5,"rgba(0,196,180,0.4)");sg.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=sg;ctx.fillRect(-5,-5,10,10)
-        ctx.restore()
+      if (id==="constellations"){
+        // Deep blue bg
+        ctx.fillStyle="#03050F"; ctx.fillRect(0,0,W,H)
+        // Mini nebula glow
+        const ng=ctx.createRadialGradient(W*0.3,H*0.4,0,W*0.3,H*0.4,W*0.5);ng.addColorStop(0,"rgba(80,60,200,0.18)");ng.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=ng;ctx.fillRect(0,0,W,H)
+        // Mini Orion-ish shape
+        const mpts:[number,number][]=[
+          [W*0.22,H*0.18],[W*0.38,H*0.22],[W*0.54,H*0.18],
+          [W*0.38,H*0.50],[W*0.22,H*0.72],[W*0.54,H*0.72]
+        ]
+        const edges2=[[0,1],[1,2],[1,3],[3,4],[3,5]]
+        pl+=0.015
+        const alpha2=0.35+Math.sin(pl)*0.12
+        for(const[ai,bi2]of edges2){
+          ctx.beginPath();ctx.moveTo(mpts[ai][0],mpts[ai][1]);ctx.lineTo(mpts[bi2][0],mpts[bi2][1])
+          ctx.strokeStyle=`rgba(120,180,255,${alpha2})`;ctx.lineWidth=0.8;ctx.stroke()
+        }
+        for(const[sx,sy]of mpts){
+          const sg=ctx.createRadialGradient(sx,sy,0,sx,sy,5);sg.addColorStop(0,`rgba(200,230,255,${alpha2*1.4})`);sg.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,5,0,Math.PI*2);ctx.fill()
+          // Cross spike
+          ctx.strokeStyle=`rgba(220,240,255,${alpha2*0.7})`;ctx.lineWidth=0.5
+          for(let a=0;a<Math.PI;a+=Math.PI/2){ctx.beginPath();ctx.moveTo(sx+Math.cos(a)*4,sy+Math.sin(a)*4);ctx.lineTo(sx-Math.cos(a)*4,sy-Math.sin(a)*4);ctx.stroke()}
+          ctx.beginPath();ctx.arc(sx,sy,1.2,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${alpha2*1.8})`;ctx.fill()
+        }
+        // Tiny shooting star
+        const ssx=W*(0.1+(Math.sin(pl*0.4)*0.3+0.3))
+        const ssy=H*(0.1+(Math.cos(pl*0.3)*0.2+0.2))
+        const sg2=ctx.createLinearGradient(ssx-12,ssy-6,ssx,ssy);sg2.addColorStop(0,"rgba(200,230,255,0)");sg2.addColorStop(1,`rgba(255,255,255,${0.6+Math.sin(pl)*0.3})`);ctx.strokeStyle=sg2;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ssx-12,ssy-6);ctx.lineTo(ssx,ssy);ctx.stroke()
       }
       raf=requestAnimationFrame(draw)
     }
