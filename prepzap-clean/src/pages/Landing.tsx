@@ -1269,7 +1269,7 @@ function HeroSection(){
   return(
     <section style={{padding:"110px 32px 88px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
       {/* Parallax depth layers — each on a distinct Z plane */}
-      <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
+      <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
         {/* Deep background nebula — slowest scroll (0.05x), heavy blur = far plane */}
         <div style={layer(5,0.05,0.9,{position:"absolute",right:"-80px",top:"20px",width:"320px",height:"320px",borderRadius:"50%",
           background:"radial-gradient(ellipse,rgba(123,94,167,0.055) 0%,transparent 70%)"})}/>
@@ -1550,9 +1550,9 @@ export default function Landing(){
       </nav>
 
       {/* ── HERO SECTION with scoped space background ── */}
-      <div style={{position:"relative",overflow:"hidden",background:VOID,zIndex:2}}>
+      <div style={{position:"relative",overflow:"hidden",background:VOID,zIndex:2,isolation:"isolate"}}>
         {/* Space bg layers — contained inside this div, not fixed globally */}
-        <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none"}}>
+        <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
           <StarFieldContained/>
           <NebulaLayer/>
           <FloatingPlanets/>
@@ -1560,7 +1560,10 @@ export default function Landing(){
           <ParticleMotes/>
         </div>
         {/* D: Hero + mouse parallax */}
-        <div style={{position:"relative",zIndex:2}}><HeroSection/></div>
+        <div style={{position:"relative",zIndex:2,overflow:"hidden"}}><HeroSection/></div>
+        {/* Clean fade into video section — no bleed */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:"120px",zIndex:3,pointerEvents:"none",
+          background:`linear-gradient(to bottom, transparent, ${VOID})`}}/>
       </div>
 
       {/* ── CINEMATIC VIDEO SECTION ── */}
