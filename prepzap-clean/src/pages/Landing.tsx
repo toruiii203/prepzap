@@ -176,12 +176,26 @@ const sectionLabel: React.CSSProperties = {
   display:"flex",alignItems:"center",gap:"12px",
 };
 
+// lerp(a,b,t): moves 'a' toward 'b' by factor 't' each frame.
+// Creates exponential decay — fast approach, asymptotic settle = "momentum" feel.
+const lerp=(a:number,b:number,t:number)=>a+(b-a)*t;
+
 function useScrollY(){
+  const rawRef=useRef(0);      // live scroll target, updated on every scroll event
+  const smoothRef=useRef(0);   // lerped output — never causes layout thrashing
   const [sy,setSy]=useState(0);
+  const rafRef=useRef<number>(0);
   useEffect(()=>{
-    const h=()=>setSy(window.scrollY);
-    window.addEventListener("scroll",h,{passive:true});
-    return ()=>window.removeEventListener("scroll",h);
+    const onScroll=()=>{rawRef.current=window.scrollY;};
+    window.addEventListener("scroll",onScroll,{passive:true});
+    // t=0.085 → ~85ms effective lag; feels weighty without being sluggish
+    const tick=()=>{
+      smoothRef.current=lerp(smoothRef.current,rawRef.current,0.085);
+      setSy(smoothRef.current);
+      rafRef.current=requestAnimationFrame(tick);
+    };
+    rafRef.current=requestAnimationFrame(tick);
+    return ()=>{window.removeEventListener("scroll",onScroll);cancelAnimationFrame(rafRef.current);};
   },[]);
   return sy;
 }
@@ -211,14 +225,26 @@ function useInView(threshold=0.1){
 }
 
 function useMouseParallax(){
+  const rawRef=useRef({x:0,y:0});    // instant cursor position
+  const smoothRef=useRef({x:0,y:0}); // trailing lerped position
   const [pos,setPos]=useState({x:0,y:0});
+  const rafRef=useRef<number>(0);
   useEffect(()=>{
-    const h=(e:MouseEvent)=>setPos({
-      x:(e.clientX/window.innerWidth-0.5)*2,
-      y:(e.clientY/window.innerHeight-0.5)*2,
-    });
-    window.addEventListener("mousemove",h,{passive:true});
-    return ()=>window.removeEventListener("mousemove",h);
+    const onMove=(e:MouseEvent)=>{
+      rawRef.current={x:(e.clientX/window.innerWidth-0.5)*2,y:(e.clientY/window.innerHeight-0.5)*2};
+    };
+    window.addEventListener("mousemove",onMove,{passive:true});
+    // t=0.06 → ~100ms+ trailing lag — the "gliding to a halt" cinematic feel
+    const tick=()=>{
+      smoothRef.current={
+        x:lerp(smoothRef.current.x,rawRef.current.x,0.06),
+        y:lerp(smoothRef.current.y,rawRef.current.y,0.06),
+      };
+      setPos({...smoothRef.current});
+      rafRef.current=requestAnimationFrame(tick);
+    };
+    rafRef.current=requestAnimationFrame(tick);
+    return ()=>{window.removeEventListener("mousemove",onMove);cancelAnimationFrame(rafRef.current);};
   },[]);
   return pos;
 }
@@ -1103,31 +1129,59 @@ function _CinematicSection_UNUSED(){
   );
 }
 
-// ─── D: Hero with mouse parallax ─────────────────────────────────────────────
+// ─── D: Hero with mouse parallax (lerped + true Z-depth) ─────────────────────
 function HeroSection(){
   const mouse=useMouseParallax();
-  const layer=(f:number,extra?:React.CSSProperties):React.CSSProperties=>({
-    transform:`translate(${mouse.x*f}px,${mouse.y*f}px)`,
-    transition:"transform 0.14s cubic-bezier(0.25,0.46,0.45,0.94)",
-    willChange:"transform",...extra,
-  });
+  const scrollY=useScrollY();
+
+  // layer(): GPU-composited depth helper.
+  // 'speed'  → fraction of scrollY applied as Y offset (0.05x=bg, 0.4x=fg).
+  // 'zDepth' → 0=near/foreground, 1=far/background.
+  //   • scale:  foreground elements grow slightly as scroll pulls them toward camera.
+  //   • blur:   far elements soften on scroll, simulating depth-of-field.
+  const layer=(
+    mouseFactor:number,
+    speed=0,
+    zDepth=0,
+    extra?:React.CSSProperties
+  ):React.CSSProperties=>{
+    const scrollOffset=scrollY*speed;
+    const scale=1+scrollY*0.00006*(1-zDepth);         // near elements swell toward camera
+    const blurPx=Math.min(scrollY*0.006*zDepth,4);    // far elements soften on scroll
+    return{
+      transform:`translate3d(${mouse.x*mouseFactor}px,${mouse.y*mouseFactor+scrollOffset}px,0) scale(${scale})`,
+      filter:blurPx>0.2?`blur(${blurPx}px)`:undefined,
+      willChange:"transform,filter",
+      ...extra,
+    };
+  };
+
   return(
     <section style={{padding:"110px 32px 88px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
-      {/* Parallax depth layers */}
+      {/* Parallax depth layers — each on a distinct Z plane */}
       <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
-        <div style={layer(5,{position:"absolute",right:"-80px",top:"20px",width:"320px",height:"320px",borderRadius:"50%",
+        {/* Deep background nebula — slowest scroll (0.05x), heavy blur = far plane */}
+        <div style={layer(5,0.05,0.9,{position:"absolute",right:"-80px",top:"20px",width:"320px",height:"320px",borderRadius:"50%",
           background:"radial-gradient(ellipse,rgba(123,94,167,0.055) 0%,transparent 70%)"})}/>
-        <div style={layer(12,{position:"absolute",right:"-20px",top:"80px",width:"160px",height:"160px",borderRadius:"50%",
+        {/* Mid-ground ring — 0.18x scroll */}
+        <div style={layer(12,0.18,0.5,{position:"absolute",right:"-20px",top:"80px",width:"160px",height:"160px",borderRadius:"50%",
           border:"0.5px solid rgba(0,196,180,0.055)"})}/>
-        {[{sz:3,r:110,t:90,f:15},{sz:2,r:155,t:135,f:22},{sz:4,r:85,t:170,f:9},{sz:2,r:195,t:100,f:17}]
-          .map((d,i)=>(
-            <div key={i} style={{
-              ...layer(d.f),position:"absolute",right:`${d.r}px`,top:`${d.t}px`,
-              width:`${d.sz}px`,height:`${d.sz}px`,borderRadius:"50%",
-              background:i%2===0?TEAL:GOLD,opacity:0.3,
-            }}/>
-          ))}
-        <div style={layer(19,{position:"absolute",right:"30px",top:"40px",...mono,fontSize:"9px",
+        {/* Foreground dots — each at a distinct speed for genuine depth stagger */}
+        {[
+          {sz:3,r:110,t:90, mf:15,speed:0.38,zDepth:0.1},
+          {sz:2,r:155,t:135,mf:22,speed:0.28,zDepth:0.2},
+          {sz:4,r:85, t:170,mf:9, speed:0.42,zDepth:0.05},
+          {sz:2,r:195,t:100,mf:17,speed:0.32,zDepth:0.15},
+        ].map((d,i)=>(
+          <div key={i} style={{
+            ...layer(d.mf,d.speed,d.zDepth),
+            position:"absolute",right:`${d.r}px`,top:`${d.t}px`,
+            width:`${d.sz}px`,height:`${d.sz}px`,borderRadius:"50%",
+            background:i%2===0?TEAL:GOLD,opacity:0.3,
+          }}/>
+        ))}
+        {/* Foreground text column — fastest scroll (0.4x), closest plane, zero blur */}
+        <div style={layer(19,0.4,0,{position:"absolute",right:"30px",top:"40px",...mono,fontSize:"9px",
           color:"rgba(0,196,180,0.12)",letterSpacing:"0.14em",lineHeight:2.4,textTransform:"uppercase",whiteSpace:"nowrap"})}>
           {["recall","understand","retain","master","grow"].map((w,i)=><div key={i}>{w}</div>)}
         </div>
@@ -1233,33 +1287,64 @@ function ChatDemo(){
   );
 }
 
-// ─── FLOATING OBJECTS PARALLAX ───────────────────────────────────────────────
+// ─── FLOATING OBJECTS PARALLAX (lerped + velocity-staggered) ─────────────────
 function FloatingObjectsSection(){
   const ref=useRef<HTMLDivElement>(null);
+  const rawP=useRef(0);      // raw [0-1] scroll progress, updated instantly
+  const smoothP=useRef(0);   // lerped output — trails behind rawP
+  const rafRef=useRef<number>(0);
   const [p,setP]=useState(0);
   const {ref:inRef,inView}=useInView(0.1);
   useEffect(()=>{
-    const h=()=>{if(!ref.current)return;const rect=ref.current.getBoundingClientRect();setP(Math.max(0,Math.min(1,(window.innerHeight-rect.top)/(window.innerHeight+rect.height))));};
-    window.addEventListener("scroll",h,{passive:true});h();return ()=>window.removeEventListener("scroll",h);
+    const onScroll=()=>{
+      if(!ref.current)return;
+      const rect=ref.current.getBoundingClientRect();
+      rawP.current=Math.max(0,Math.min(1,(window.innerHeight-rect.top)/(window.innerHeight+rect.height)));
+    };
+    window.addEventListener("scroll",onScroll,{passive:true});
+    onScroll();
+    // t=0.07 → SVGs glide to a halt rather than hard-stop
+    const tick=()=>{
+      smoothP.current=lerp(smoothP.current,rawP.current,0.07);
+      setP(smoothP.current);
+      rafRef.current=requestAnimationFrame(tick);
+    };
+    rafRef.current=requestAnimationFrame(tick);
+    return ()=>{window.removeEventListener("scroll",onScroll);cancelAnimationFrame(rafRef.current);};
   },[]);
+
+  // Each SVG moves at a distinct fraction of max travel — genuine Z-depth stagger:
+  //   circle  0.12x → slowest, background plane
+  //   diamond 0.22x → mid-ground (original speed)
+  //   cross   0.30x → closer mid-ground
+  //   hex     0.18x → mid-background
+  const circleY =-p*110*0.12/0.22;
+  const diamondY=-p*55;
+  const crossY  =-p*170*0.30/0.22;
+  const hexY    =-p*85*0.18/0.22;
+
   return(
     <div ref={ref} style={{position:"relative",minHeight:"500px",overflow:"hidden",background:"linear-gradient(180deg,#03050f 0%,#060c1a 50%,#03050f 100%)"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
         <div style={{position:"absolute",top:"38%",left:"-5%",width:"160px",height:"1px",background:`linear-gradient(90deg,transparent,${TEAL},transparent)`,opacity:0.15,animation:"beam-sweep 10s ease-in-out infinite"}}/>
         <div style={{position:"absolute",top:"65%",left:"-5%",width:"100px",height:"1px",background:`linear-gradient(90deg,transparent,${GOLD},transparent)`,opacity:0.12,animation:"beam-sweep 15s ease-in-out 5s infinite"}}/>
       </div>
-      <div style={{position:"absolute",left:"7%",top:"12%",transform:`translateY(${p*-110}px)`,transition:"transform 0.05s linear",animation:"float-a 7s ease-in-out infinite"}}>
+      {/* Circle — slowest, background plane */}
+      <div style={{position:"absolute",left:"7%",top:"12%",transform:`translate3d(0,${circleY}px,0)`,willChange:"transform",animation:"float-a 7s ease-in-out infinite"}}>
         <svg width="88" height="88" viewBox="0 0 88 88" style={{opacity:0.18}}><circle cx="44" cy="44" r="40" fill="none" stroke={TEAL} strokeWidth="0.8"/><circle cx="44" cy="44" r="26" fill="none" stroke={TEAL} strokeWidth="0.5" strokeDasharray="4 6"/><circle cx="44" cy="44" r="3" fill={TEAL} opacity="0.5"/></svg>
       </div>
-      <div style={{position:"absolute",right:"10%",top:"8%",transform:`translateY(${p*-55}px)`,transition:"transform 0.05s linear",animation:"float-b 10s ease-in-out 1.5s infinite"}}>
+      {/* Diamond — mid-ground */}
+      <div style={{position:"absolute",right:"10%",top:"8%",transform:`translate3d(0,${diamondY}px,0)`,willChange:"transform",animation:"float-b 10s ease-in-out 1.5s infinite"}}>
         <svg width="58" height="58" viewBox="0 0 58 58" style={{opacity:0.14}}><polygon points="29,2 56,29 29,56 2,29" fill="none" stroke={GOLD} strokeWidth="0.8"/><circle cx="29" cy="29" r="4" fill={GOLD} opacity="0.4"/></svg>
       </div>
-      <div style={{position:"absolute",left:"20%",bottom:"18%",transform:`translateY(${p*-170}px)`,transition:"transform 0.05s linear"}}>
+      {/* Cross — foreground, fastest */}
+      <div style={{position:"absolute",left:"20%",bottom:"18%",transform:`translate3d(0,${crossY}px,0)`,willChange:"transform"}}>
         <div style={{animation:"spin-slow 22s linear infinite",opacity:0.1}}>
           <svg width="68" height="68" viewBox="0 0 68 68"><line x1="34" y1="0" x2="34" y2="68" stroke={PURPLE} strokeWidth="0.6"/><line x1="0" y1="34" x2="68" y2="34" stroke={PURPLE} strokeWidth="0.6"/><circle cx="34" cy="34" r="28" fill="none" stroke={PURPLE} strokeWidth="0.5"/></svg>
         </div>
       </div>
-      <div style={{position:"absolute",right:"22%",bottom:"12%",transform:`translateY(${p*-85}px)`,transition:"transform 0.05s linear"}}>
+      {/* Hex — mid-background */}
+      <div style={{position:"absolute",right:"22%",bottom:"12%",transform:`translate3d(0,${hexY}px,0)`,willChange:"transform"}}>
         <div style={{animation:"spin-rev 30s linear infinite",opacity:0.11}}>
           <svg width="76" height="76" viewBox="0 0 76 76"><polygon points="38,4 70,21 70,55 38,72 6,55 6,21" fill="none" stroke={TEAL} strokeWidth="0.7"/></svg>
         </div>
