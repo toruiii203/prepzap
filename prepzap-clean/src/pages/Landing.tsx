@@ -249,58 +249,79 @@ function useMouseParallax(){
   return pos;
 }
 
-// ─── CINEMATIC VIDEO SECTION — lusion.co style scroll-scrubbed video ────────
+// ─── CINEMATIC VIDEO SECTION — scroll-scrubbed, lusion.co style ──────────────
 //
-// HOW IT WORKS:
-//  1. Section is invisible above the fold — only appears when user scrolls INTO it.
-//  2. Once visible, the page LOCKS (overflow:hidden on body). The user's scroll
-//     wheel/trackpad now controls the VIDEO PLAYBACK TIME instead of page position.
-//     Scrolling down → video plays forward. Scrolling up → video rewinds.
-//  3. A thin progress bar shows how far through the video they are.
-//  4. Only when the video reaches the END does the page UNLOCK and allow normal
-//     scrolling to the next section.
-//  5. Card starts small and expands to fullscreen as the video progresses (p 0→1).
+// MECHANIC:
+//  • Page scrolls normally until this section hits the top of the viewport.
+//  • At that point body scroll is locked. Wheel/touch now scrubs video time.
+//  • Scroll DOWN = play forward. Scroll UP = rewind. Fully bidirectional.
+//  • Scrubbing is normalised so 1 "notch" of any mouse wheel ≈ 0.25s of video.
+//    Trackpad inertia sends many tiny deltas — each moves the video a tiny bit.
+//    This keeps the pace consistent regardless of input device.
+//  • Video is lerped toward target time so motion is fluid, not frame-jumping.
+//  • Only when the video finishes does scroll unlock. Re-scrolling up re-engages.
+//  • Section does NOT auto-rewind — the user controls it.
 //
 function CinematicVideoSection(){
-  const outerRef   =useRef<HTMLDivElement>(null);
-  const stickyRef  =useRef<HTMLDivElement>(null);
-  const videoRef   =useRef<HTMLVideoElement>(null);
-  const lockedRef  =useRef(false);   // true = we are intercepting scroll
-  const doneRef    =useRef(false);   // true = video finished, scroll unlocked
-  const accumRef   =useRef(0);       // accumulated fake scroll distance while locked
-  const totalFakeH =useRef(2400);    // px of scroll needed to traverse full video
-  const rafRef     =useRef<number>(0);
-  const targetTimeRef=useRef(0);     // desired video.currentTime (lerped toward)
+  const outerRef     =useRef<HTMLDivElement>(null);
+  const videoRef     =useRef<HTMLVideoElement>(null);
 
-  const [p,setP]       =useState(0);      // 0→1 video progress
-  const [visible,setVisible]=useState(false); // entered viewport at least once
-  const [done,setDone] =useState(false);   // video finished
+  // All mutable state lives in refs to avoid stale closures in event listeners
+  const lockedRef    =useRef(false);  // are we currently intercepting scroll?
+  const doneRef      =useRef(false);  // has video reached the end once?
+  const activeRef    =useRef(false);  // is section currently in viewport?
+  const targetRef    =useRef(0);      // target video.currentTime we're lerping toward
+  const rafRef       =useRef<number>(0);
+
+  const [p,setP]          =useState(0);
+  const [visible,setVisible]=useState(false);
+  const [done,setDone]    =useState(false);
 
   const videoSrc="https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
 
-  // ── Lerped video scrub loop ──────────────────────────────────────────────────
-  // We lerp video.currentTime toward targetTimeRef so scrubbing feels silky,
-  // not frame-jumping. t=0.12 gives a nice ~50ms lag — responsive but smooth.
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  const lockScroll=()=>{
+    if(lockedRef.current)return;
+    lockedRef.current=true;
+    document.body.style.overflow="hidden";
+  };
+  const unlockScroll=()=>{
+    if(!lockedRef.current)return;
+    lockedRef.current=false;
+    document.body.style.overflow="";
+  };
+
+  // ── rAF scrub loop ───────────────────────────────────────────────────────────
+  // Lerps video.currentTime → targetRef each frame so motion is silky.
+  // t=0.14 ≈ 40ms lag — tight enough to feel responsive, loose enough to feel smooth.
   useEffect(()=>{
     const tick=()=>{
       const v=videoRef.current;
-      if(v&&v.duration){
-        const current=v.currentTime;
-        const target=Math.max(0,Math.min(v.duration,targetTimeRef.current));
-        const next=current+(target-current)*0.12;
-        if(Math.abs(next-current)>0.001){v.currentTime=next;}
-        const prog=v.duration>0?v.currentTime/v.duration:0;
+      if(v&&v.readyState>=2&&v.duration){
+        const clamped=Math.max(0,Math.min(v.duration,targetRef.current));
+        const diff=clamped-v.currentTime;
+        // Only seek when the gap is worth it (avoid thrashing on tiny diffs)
+        if(Math.abs(diff)>0.008){
+          v.currentTime+=diff*0.14;
+        }
+        const prog=v.currentTime/v.duration;
         setP(prog);
-        // Unlock when within 0.15s of end
-        if(!doneRef.current&&v.duration-v.currentTime<0.15){
+
+        // ── Finished: unlock scroll, show nudge ──────────────────────────────
+        if(!doneRef.current&&prog>0.995){
           doneRef.current=true;
           setDone(true);
           unlockScroll();
         }
-        // Re-lock if user scrolls back up past 0 (rewound to start)
-        if(doneRef.current&&prog<0.98){
+        // ── User rewound back past 99% — re-engage lock if still in view ─────
+        // Note: we do NOT re-lock when they rewind mid-sequence. We only
+        // re-engage if they are still looking at this section (activeRef) AND
+        // they've scrolled the target backward past the near-done threshold.
+        // This prevents the "finished then immediately re-locked" bug.
+        if(doneRef.current&&prog<0.99&&activeRef.current){
           doneRef.current=false;
           setDone(false);
+          lockScroll();
         }
       }
       rafRef.current=requestAnimationFrame(tick);
@@ -309,93 +330,97 @@ function CinematicVideoSection(){
     return ()=>cancelAnimationFrame(rafRef.current);
   },[]);
 
-  // ── Scroll lock / unlock helpers ─────────────────────────────────────────────
-  const lockScroll=()=>{
-    if(lockedRef.current)return;
-    lockedRef.current=true;
-    document.body.style.overflow="hidden";
-  };
-  const unlockScroll=()=>{
-    lockedRef.current=false;
-    document.body.style.overflow="";
-  };
-
-  // ── Intersection observer: trigger visibility + lock when section enters view ─
+  // ── IntersectionObserver — watch the outer div ───────────────────────────────
+  // threshold:0 fires as soon as 1px enters the viewport.
+  // We use a scroll listener to detect when the section is "pinned at top"
+  // because IntersectionObserver alone can't tell us that reliably.
   useEffect(()=>{
-    const obs=new IntersectionObserver(([e])=>{
-      if(e.isIntersecting){
+    const checkPin=()=>{
+      if(!outerRef.current)return;
+      const rect=outerRef.current.getBoundingClientRect();
+      const isPinned=rect.top<=1&&rect.bottom>window.innerHeight*0.5;
+      if(isPinned){
+        activeRef.current=true;
         setVisible(true);
-        // Only lock if video isn't done yet
         if(!doneRef.current)lockScroll();
       } else {
-        // Left viewport — unlock so page stays usable
+        activeRef.current=false;
+        // If we scroll ABOVE the section (rect.top > 0), re-arm it
+        if(rect.top>1){
+          doneRef.current=false;
+          setDone(false);
+          targetRef.current=0;
+          setP(0);
+        }
         unlockScroll();
       }
-    },{threshold:0.5});
-    if(outerRef.current)obs.observe(outerRef.current);
-    return ()=>{obs.disconnect();unlockScroll();};
+    };
+    window.addEventListener("scroll",checkPin,{passive:true});
+    checkPin();
+    return ()=>{window.removeEventListener("scroll",checkPin);unlockScroll();};
   },[]);
 
-  // ── Wheel handler: intercept scroll → scrub video ────────────────────────────
+  // ── Wheel handler ─────────────────────────────────────────────────────────────
+  // KEY FIX: normalise deltaY so all devices feel the same.
+  // • deltaMode 0 = pixels (trackpad). A comfortable trackpad swipe sends ~300-600px total.
+  // • deltaMode 1 = lines (Firefox mouse wheel). Each line ≈ 3px equivalent.
+  // • deltaMode 2 = pages. Rare, treat as 300px.
+  // We convert everything to a normalised "ticks" value then map that to seconds.
+  // Target: 1 mouse wheel click (~120px raw) ≈ 0.25s of video.
+  //         A slow trackpad swipe (30px/event × ~20 events) ≈ same 0.25s per gesture.
   useEffect(()=>{
     const onWheel=(e:WheelEvent)=>{
       if(!lockedRef.current)return;
       e.preventDefault();
-
       const v=videoRef.current;
       if(!v||!v.duration)return;
 
-      // deltaY px → seconds. totalFakeH px = full video duration.
-      // Negative deltaY = scroll up = rewind.
-      const secondsPerPx=v.duration/totalFakeH.current;
-      targetTimeRef.current=Math.max(0,Math.min(v.duration,
-        targetTimeRef.current+e.deltaY*secondsPerPx*0.8
+      let delta=e.deltaY;
+      if(e.deltaMode===1)delta*=16;   // lines → pixels
+      if(e.deltaMode===2)delta*=300;  // pages → pixels
+
+      // 480px of scroll = 1 second of video. Feels like 1 notch ≈ 0.25s.
+      const secondsPerPx=1/480;
+      targetRef.current=Math.max(0,Math.min(v.duration,
+        targetRef.current+delta*secondsPerPx
       ));
     };
-
-    // Must be {passive:false} to call preventDefault()
     window.addEventListener("wheel",onWheel,{passive:false});
     return ()=>window.removeEventListener("wheel",onWheel);
   },[]);
 
-  // Touch support: same mechanic via touchmove delta
+  // ── Touch handler ─────────────────────────────────────────────────────────────
   useEffect(()=>{
     let lastY=0;
-    const onTouchStart=(e:TouchEvent)=>{lastY=e.touches[0].clientY;};
-    const onTouchMove=(e:TouchEvent)=>{
+    const onStart=(e:TouchEvent)=>{lastY=e.touches[0].clientY;};
+    const onMove=(e:TouchEvent)=>{
       if(!lockedRef.current)return;
       e.preventDefault();
       const v=videoRef.current;
       if(!v||!v.duration)return;
-      const dy=lastY-e.touches[0].clientY; // positive = scrolling down
+      const dy=lastY-e.touches[0].clientY;
       lastY=e.touches[0].clientY;
-      const secondsPerPx=v.duration/totalFakeH.current;
-      targetTimeRef.current=Math.max(0,Math.min(v.duration,
-        targetTimeRef.current+dy*secondsPerPx*1.2
+      targetRef.current=Math.max(0,Math.min(v.duration,
+        targetRef.current+dy/480
       ));
     };
-    window.addEventListener("touchstart",onTouchStart,{passive:true});
-    window.addEventListener("touchmove",onTouchMove,{passive:false});
+    window.addEventListener("touchstart",onStart,{passive:true});
+    window.addEventListener("touchmove",onMove,{passive:false});
     return ()=>{
-      window.removeEventListener("touchstart",onTouchStart);
-      window.removeEventListener("touchmove",onTouchMove);
+      window.removeEventListener("touchstart",onStart);
+      window.removeEventListener("touchmove",onMove);
     };
   },[]);
 
   // ── Derived visuals ───────────────────────────────────────────────────────────
   const ease=(t:number)=>t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
   const ep=ease(p);
-
-  // Card: starts at 54%×66%, expands to 100%×100% as p→1
-  const cardW  =54+ep*46;
-  const cardH  =66+ep*34;
-  const radius =16-ep*16;
-  const videoScale=1+ep*0.06;
-
-  const hintOpacity    =Math.max(0,1-ep*5);
-  const fullTextOpacity=Math.max(0,(ep-0.68)/0.32);
-  const doneOpacity    =done?1:0;
-
+  const cardW      =54+ep*46;
+  const cardH      =66+ep*34;
+  const radius     =16-ep*16;
+  const videoScale =1+ep*0.06;
+  const hintOpacity      =Math.max(0,1-p*8);       // fades quickly after first scroll
+  const fullTextOpacity  =Math.max(0,(ep-0.68)/0.32);
   const phase=p<0.4?0:p<0.75?1:2;
   const phases=[
     {label:"— The Journey Begins",    title:"Enter a universe\nbuilt for learning",  sub:"12 AI tools. One mission. Your academic breakthrough."},
@@ -405,61 +430,45 @@ function CinematicVideoSection(){
   const ph=phases[phase];
 
   return(
-    // outerRef is the element we observe. Height just needs to be enough to
-    // hold the sticky panel in view while the section is "active".
+    // Height is exactly 100vh — the sticky child fills the viewport.
+    // Scroll locking means the user never actually scrolls past this div
+    // until the video is done.
     <div ref={outerRef} style={{height:"100vh",position:"relative",background:"#03050f"}}>
-      <div ref={stickyRef} style={{
+      <div style={{
         position:"sticky",top:0,height:"100vh",
         display:"flex",alignItems:"center",justifyContent:"center",
         background:"#03050f",overflow:"hidden",
         opacity:visible?1:0,transition:"opacity 0.5s ease",
       }}>
-        {/* ── Expanding card ── */}
+        {/* Expanding card */}
         <div style={{
           width:`${cardW}%`,height:`${cardH}%`,
           borderRadius:`${radius}px`,overflow:"hidden",
-          position:"relative",willChange:"width,height,border-radius",
-          boxShadow:ep<0.9
-            ?`0 32px 120px rgba(0,0,0,0.85),0 0 0 0.5px rgba(255,255,255,0.05)`
-            :undefined,
-          transition:"box-shadow 0.4s ease",
+          position:"relative",
+          boxShadow:ep<0.9?`0 32px 120px rgba(0,0,0,0.85),0 0 0 0.5px rgba(255,255,255,0.05)`:undefined,
         }}>
-          {/* Video — paused, scrubbed by scroll */}
           <div style={{position:"absolute",inset:"-5%",transform:`scale(${videoScale})`,willChange:"transform"}}>
-            <video
-              ref={videoRef}
-              src={videoSrc}
-              muted
-              playsInline
-              preload="auto"
-              // Do NOT autoplay or loop — we control currentTime manually
-              style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
-            />
+            <video ref={videoRef} src={videoSrc} muted playsInline preload="auto"
+              style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
           </div>
 
           {/* Vignette */}
           <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:2,
             background:"linear-gradient(180deg,rgba(3,5,15,0.5) 0%,transparent 25%,transparent 70%,rgba(3,5,15,0.8) 100%)"}}/>
 
-          {/* Scroll hint — fades as video progresses */}
+          {/* Scroll hint */}
           <div style={{position:"absolute",bottom:"28px",left:"50%",transform:"translateX(-50%)",
-            zIndex:3,textAlign:"center",opacity:hintOpacity,pointerEvents:"none",
-            transition:"opacity 0.3s"}}>
+            zIndex:3,textAlign:"center",opacity:hintOpacity,pointerEvents:"none",transition:"opacity 0.4s"}}>
             <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.4)",
-              letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:"8px"}}>
-              scroll to play
-            </div>
-            <div style={{width:"1px",height:"28px",
-              background:`linear-gradient(${TEAL},transparent)`,
+              letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:"8px"}}>scroll to play</div>
+            <div style={{width:"1px",height:"28px",background:`linear-gradient(${TEAL},transparent)`,
               margin:"0 auto",animation:"binary-fall 1.8s ease-in-out infinite"}}/>
           </div>
 
-          {/* Overlay text — appears in final third of video */}
-          <div style={{position:"absolute",inset:0,zIndex:4,
-            display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-            textAlign:"center",padding:"0 32px",
-            opacity:fullTextOpacity,pointerEvents:"none",
-            transition:"opacity 0.4s"}}>
+          {/* Phase text overlay */}
+          <div style={{position:"absolute",inset:0,zIndex:4,display:"flex",flexDirection:"column",
+            alignItems:"center",justifyContent:"center",textAlign:"center",padding:"0 32px",
+            opacity:fullTextOpacity,pointerEvents:"none",transition:"opacity 0.4s"}}>
             <div key={phase} style={{animation:fullTextOpacity>0.05?"hero-enter 0.5s ease both":undefined}}>
               <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
                 textTransform:"uppercase",marginBottom:"16px",opacity:0.85}}>{ph.label}</div>
@@ -473,33 +482,25 @@ function CinematicVideoSection(){
 
           {/* Progress bar */}
           <div style={{position:"absolute",bottom:0,left:0,zIndex:5,height:"1.5px",
-            background:`linear-gradient(90deg,${TEAL},${PURPLE})`,
-            width:`${p*100}%`,transition:"width 0.05s linear"}}/>
+            width:`${p*100}%`,background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>
         </div>
 
         {/* Phase dots */}
-        <div style={{position:"absolute",bottom:"20px",left:"50%",
-          transform:"translateX(-50%)",zIndex:10,display:"flex",gap:"8px"}}>
+        <div style={{position:"absolute",bottom:"20px",left:"50%",transform:"translateX(-50%)",
+          zIndex:10,display:"flex",gap:"8px"}}>
           {[0,1,2].map(i=>(
-            <div key={i} style={{
-              width:i===phase?"18px":"5px",height:"5px",borderRadius:"3px",
-              background:i===phase?TEAL:"rgba(255,255,255,0.12)",
-              transition:"all 0.4s ease",
-            }}/>
+            <div key={i} style={{width:i===phase?"18px":"5px",height:"5px",borderRadius:"3px",
+              background:i===phase?TEAL:"rgba(255,255,255,0.12)",transition:"all 0.4s ease"}}/>
           ))}
         </div>
 
-        {/* "Continue scrolling" nudge — appears when video is done */}
-        <div style={{
-          position:"absolute",bottom:"48px",left:"50%",transform:"translateX(-50%)",
-          zIndex:10,textAlign:"center",
-          opacity:doneOpacity,transition:"opacity 0.6s ease",pointerEvents:"none",
-        }}>
+        {/* Done nudge */}
+        <div style={{position:"absolute",bottom:"48px",left:"50%",transform:"translateX(-50%)",
+          zIndex:10,textAlign:"center",opacity:done?1:0,transition:"opacity 0.6s ease",pointerEvents:"none"}}>
           <div style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.2em",
             textTransform:"uppercase",marginBottom:"6px"}}>continue scrolling</div>
-          <div style={{width:"1px",height:"20px",
-            background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto",
-            animation:done?"binary-fall 1.4s ease-in-out infinite":undefined}}/>
+          <div style={{width:"1px",height:"20px",background:`linear-gradient(${TEAL},transparent)`,
+            margin:"0 auto",animation:done?"binary-fall 1.4s ease-in-out infinite":undefined}}/>
         </div>
       </div>
     </div>
