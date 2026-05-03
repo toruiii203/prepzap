@@ -249,53 +249,154 @@ function useMouseParallax(){
   return pos;
 }
 
-// ─── CINEMATIC VIDEO SECTION — card → fullscreen expand ──────────────────────
+// ─── CINEMATIC VIDEO SECTION — lusion.co style scroll-scrubbed video ────────
+//
+// HOW IT WORKS:
+//  1. Section is invisible above the fold — only appears when user scrolls INTO it.
+//  2. Once visible, the page LOCKS (overflow:hidden on body). The user's scroll
+//     wheel/trackpad now controls the VIDEO PLAYBACK TIME instead of page position.
+//     Scrolling down → video plays forward. Scrolling up → video rewinds.
+//  3. A thin progress bar shows how far through the video they are.
+//  4. Only when the video reaches the END does the page UNLOCK and allow normal
+//     scrolling to the next section.
+//  5. Card starts small and expands to fullscreen as the video progresses (p 0→1).
+//
 function CinematicVideoSection(){
-  const outerRef=useRef<HTMLDivElement>(null);
-  const videoRef=useRef<HTMLVideoElement>(null);
-  const [p,setP]=useState(0);
-  const [ready,setReady]=useState(false); // only show once scrolled into view
+  const outerRef   =useRef<HTMLDivElement>(null);
+  const stickyRef  =useRef<HTMLDivElement>(null);
+  const videoRef   =useRef<HTMLVideoElement>(null);
+  const lockedRef  =useRef(false);   // true = we are intercepting scroll
+  const doneRef    =useRef(false);   // true = video finished, scroll unlocked
+  const accumRef   =useRef(0);       // accumulated fake scroll distance while locked
+  const totalFakeH =useRef(2400);    // px of scroll needed to traverse full video
+  const rafRef     =useRef<number>(0);
+  const targetTimeRef=useRef(0);     // desired video.currentTime (lerped toward)
+
+  const [p,setP]       =useState(0);      // 0→1 video progress
+  const [visible,setVisible]=useState(false); // entered viewport at least once
+  const [done,setDone] =useState(false);   // video finished
 
   const videoSrc="https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
 
+  // ── Lerped video scrub loop ──────────────────────────────────────────────────
+  // We lerp video.currentTime toward targetTimeRef so scrubbing feels silky,
+  // not frame-jumping. t=0.12 gives a nice ~50ms lag — responsive but smooth.
   useEffect(()=>{
-    const h=()=>{
-      if(!outerRef.current)return;
-      const rect=outerRef.current.getBoundingClientRect();
-      // show section only when it starts entering viewport
-      if(rect.top<window.innerHeight)setReady(true);
-      const scrolled=Math.abs(Math.min(rect.top,0));
-      const total=outerRef.current.offsetHeight-window.innerHeight;
-      setP(total>0?Math.max(0,Math.min(1,scrolled/total)):0);
+    const tick=()=>{
+      const v=videoRef.current;
+      if(v&&v.duration){
+        const current=v.currentTime;
+        const target=Math.max(0,Math.min(v.duration,targetTimeRef.current));
+        const next=current+(target-current)*0.12;
+        if(Math.abs(next-current)>0.001){v.currentTime=next;}
+        const prog=v.duration>0?v.currentTime/v.duration:0;
+        setP(prog);
+        // Unlock when within 0.15s of end
+        if(!doneRef.current&&v.duration-v.currentTime<0.15){
+          doneRef.current=true;
+          setDone(true);
+          unlockScroll();
+        }
+        // Re-lock if user scrolls back up past 0 (rewound to start)
+        if(doneRef.current&&prog<0.98){
+          doneRef.current=false;
+          setDone(false);
+        }
+      }
+      rafRef.current=requestAnimationFrame(tick);
     };
-    window.addEventListener("scroll",h,{passive:true});
-    h();
-    return ()=>window.removeEventListener("scroll",h);
+    rafRef.current=requestAnimationFrame(tick);
+    return ()=>cancelAnimationFrame(rafRef.current);
   },[]);
 
+  // ── Scroll lock / unlock helpers ─────────────────────────────────────────────
+  const lockScroll=()=>{
+    if(lockedRef.current)return;
+    lockedRef.current=true;
+    document.body.style.overflow="hidden";
+  };
+  const unlockScroll=()=>{
+    lockedRef.current=false;
+    document.body.style.overflow="";
+  };
+
+  // ── Intersection observer: trigger visibility + lock when section enters view ─
   useEffect(()=>{
-    if(!outerRef.current)return;
     const obs=new IntersectionObserver(([e])=>{
-      if(!videoRef.current)return;
-      if(e.isIntersecting)videoRef.current.play().catch(()=>{});
-      else videoRef.current.pause();
-    },{threshold:0.05});
-    obs.observe(outerRef.current);
-    return ()=>obs.disconnect();
+      if(e.isIntersecting){
+        setVisible(true);
+        // Only lock if video isn't done yet
+        if(!doneRef.current)lockScroll();
+      } else {
+        // Left viewport — unlock so page stays usable
+        unlockScroll();
+      }
+    },{threshold:0.5});
+    if(outerRef.current)obs.observe(outerRef.current);
+    return ()=>{obs.disconnect();unlockScroll();};
   },[]);
 
+  // ── Wheel handler: intercept scroll → scrub video ────────────────────────────
+  useEffect(()=>{
+    const onWheel=(e:WheelEvent)=>{
+      if(!lockedRef.current)return;
+      e.preventDefault();
+
+      const v=videoRef.current;
+      if(!v||!v.duration)return;
+
+      // deltaY px → seconds. totalFakeH px = full video duration.
+      // Negative deltaY = scroll up = rewind.
+      const secondsPerPx=v.duration/totalFakeH.current;
+      targetTimeRef.current=Math.max(0,Math.min(v.duration,
+        targetTimeRef.current+e.deltaY*secondsPerPx*0.8
+      ));
+    };
+
+    // Must be {passive:false} to call preventDefault()
+    window.addEventListener("wheel",onWheel,{passive:false});
+    return ()=>window.removeEventListener("wheel",onWheel);
+  },[]);
+
+  // Touch support: same mechanic via touchmove delta
+  useEffect(()=>{
+    let lastY=0;
+    const onTouchStart=(e:TouchEvent)=>{lastY=e.touches[0].clientY;};
+    const onTouchMove=(e:TouchEvent)=>{
+      if(!lockedRef.current)return;
+      e.preventDefault();
+      const v=videoRef.current;
+      if(!v||!v.duration)return;
+      const dy=lastY-e.touches[0].clientY; // positive = scrolling down
+      lastY=e.touches[0].clientY;
+      const secondsPerPx=v.duration/totalFakeH.current;
+      targetTimeRef.current=Math.max(0,Math.min(v.duration,
+        targetTimeRef.current+dy*secondsPerPx*1.2
+      ));
+    };
+    window.addEventListener("touchstart",onTouchStart,{passive:true});
+    window.addEventListener("touchmove",onTouchMove,{passive:false});
+    return ()=>{
+      window.removeEventListener("touchstart",onTouchStart);
+      window.removeEventListener("touchmove",onTouchMove);
+    };
+  },[]);
+
+  // ── Derived visuals ───────────────────────────────────────────────────────────
   const ease=(t:number)=>t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
   const ep=ease(p);
 
-  // card starts contained, expands to fullscreen
-  const cardW  = 54 + ep*46;
-  const cardH  = 66 + ep*34;
-  const radius = 16 - ep*16;
-  const videoScale = 1 + ep*0.08;
+  // Card: starts at 54%×66%, expands to 100%×100% as p→1
+  const cardW  =54+ep*46;
+  const cardH  =66+ep*34;
+  const radius =16-ep*16;
+  const videoScale=1+ep*0.06;
 
-  const hintOpacity   = Math.max(0,1-ep*4);
-  const fullTextOpacity = Math.max(0,(ep-0.72)/0.28);
-  const phase = p<0.4?0:p<0.75?1:2;
+  const hintOpacity    =Math.max(0,1-ep*5);
+  const fullTextOpacity=Math.max(0,(ep-0.68)/0.32);
+  const doneOpacity    =done?1:0;
+
+  const phase=p<0.4?0:p<0.75?1:2;
   const phases=[
     {label:"— The Journey Begins",    title:"Enter a universe\nbuilt for learning",  sub:"12 AI tools. One mission. Your academic breakthrough."},
     {label:"— Your AI Study Partner", title:"Intelligence that\nadapts to you",      sub:"BrainBot learns your gaps and drills your weak spots."},
@@ -304,47 +405,65 @@ function CinematicVideoSection(){
   const ph=phases[phase];
 
   return(
-    <div ref={outerRef} style={{height:"280vh",position:"relative",background:"#03050f"}}>
-      <div style={{
+    // outerRef is the element we observe. Height just needs to be enough to
+    // hold the sticky panel in view while the section is "active".
+    <div ref={outerRef} style={{height:"100vh",position:"relative",background:"#03050f"}}>
+      <div ref={stickyRef} style={{
         position:"sticky",top:0,height:"100vh",
         display:"flex",alignItems:"center",justifyContent:"center",
         background:"#03050f",overflow:"hidden",
-        // hide entirely until user scrolls to this section
-        opacity:ready?1:0,transition:"opacity 0.6s ease",
+        opacity:visible?1:0,transition:"opacity 0.5s ease",
       }}>
+        {/* ── Expanding card ── */}
         <div style={{
           width:`${cardW}%`,height:`${cardH}%`,
           borderRadius:`${radius}px`,overflow:"hidden",
-          position:"relative",
-          boxShadow:ep<0.85?`0 32px 100px rgba(0,0,0,0.75),0 0 0 0.5px rgba(255,255,255,0.05)`:undefined,
+          position:"relative",willChange:"width,height,border-radius",
+          boxShadow:ep<0.9
+            ?`0 32px 120px rgba(0,0,0,0.85),0 0 0 0.5px rgba(255,255,255,0.05)`
+            :undefined,
+          transition:"box-shadow 0.4s ease",
         }}>
-          {/* Video */}
+          {/* Video — paused, scrubbed by scroll */}
           <div style={{position:"absolute",inset:"-5%",transform:`scale(${videoScale})`,willChange:"transform"}}>
-            <video ref={videoRef} src={videoSrc} muted loop playsInline preload="metadata"
-              style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+            <video
+              ref={videoRef}
+              src={videoSrc}
+              muted
+              playsInline
+              preload="auto"
+              // Do NOT autoplay or loop — we control currentTime manually
+              style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
+            />
           </div>
 
           {/* Vignette */}
           <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:2,
-            background:"linear-gradient(180deg,rgba(3,5,15,0.45) 0%,transparent 22%,transparent 74%,rgba(3,5,15,0.75) 100%)"}}/>
+            background:"linear-gradient(180deg,rgba(3,5,15,0.5) 0%,transparent 25%,transparent 70%,rgba(3,5,15,0.8) 100%)"}}/>
 
-          {/* Scroll hint */}
-          <div style={{position:"absolute",bottom:"24px",left:"50%",transform:"translateX(-50%)",
-            zIndex:3,textAlign:"center",opacity:hintOpacity,pointerEvents:"none"}}>
-            <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.35)",
-              letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:"8px"}}>scroll to expand</div>
-            <div style={{width:"1px",height:"26px",background:`linear-gradient(${TEAL},transparent)`,
+          {/* Scroll hint — fades as video progresses */}
+          <div style={{position:"absolute",bottom:"28px",left:"50%",transform:"translateX(-50%)",
+            zIndex:3,textAlign:"center",opacity:hintOpacity,pointerEvents:"none",
+            transition:"opacity 0.3s"}}>
+            <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.4)",
+              letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:"8px"}}>
+              scroll to play
+            </div>
+            <div style={{width:"1px",height:"28px",
+              background:`linear-gradient(${TEAL},transparent)`,
               margin:"0 auto",animation:"binary-fall 1.8s ease-in-out infinite"}}/>
           </div>
 
-          {/* Fullscreen text */}
+          {/* Overlay text — appears in final third of video */}
           <div style={{position:"absolute",inset:0,zIndex:4,
             display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-            textAlign:"center",padding:"0 32px",opacity:fullTextOpacity,pointerEvents:"none"}}>
-            <div key={phase} style={{animation:fullTextOpacity>0.05?"hero-enter 0.6s ease both":undefined}}>
+            textAlign:"center",padding:"0 32px",
+            opacity:fullTextOpacity,pointerEvents:"none",
+            transition:"opacity 0.4s"}}>
+            <div key={phase} style={{animation:fullTextOpacity>0.05?"hero-enter 0.5s ease both":undefined}}>
               <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
                 textTransform:"uppercase",marginBottom:"16px",opacity:0.85}}>{ph.label}</div>
-              <h2 style={{fontSize:"clamp(28px,4vw,52px)",fontWeight:300,letterSpacing:"-0.03em",
+              <h2 style={{fontSize:"clamp(26px,4vw,50px)",fontWeight:300,letterSpacing:"-0.03em",
                 lineHeight:1.15,color:"#F2F5F8",marginBottom:"20px",maxWidth:"640px",
                 whiteSpace:"pre-line",textShadow:"0 2px 40px rgba(0,0,0,0.95)"}}>{ph.title}</h2>
               <p style={{fontSize:"14px",color:"rgba(255,255,255,0.45)",maxWidth:"380px",
@@ -354,16 +473,33 @@ function CinematicVideoSection(){
 
           {/* Progress bar */}
           <div style={{position:"absolute",bottom:0,left:0,zIndex:5,height:"1.5px",
-            width:`${p*100}%`,background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>
+            background:`linear-gradient(90deg,${TEAL},${PURPLE})`,
+            width:`${p*100}%`,transition:"width 0.05s linear"}}/>
         </div>
 
         {/* Phase dots */}
-        <div style={{position:"absolute",bottom:"20px",left:"50%",transform:"translateX(-50%)",
-          zIndex:10,display:"flex",gap:"8px"}}>
+        <div style={{position:"absolute",bottom:"20px",left:"50%",
+          transform:"translateX(-50%)",zIndex:10,display:"flex",gap:"8px"}}>
           {[0,1,2].map(i=>(
-            <div key={i} style={{width:i===phase?"18px":"5px",height:"5px",borderRadius:"3px",
-              background:i===phase?TEAL:"rgba(255,255,255,0.12)",transition:"all 0.4s ease"}}/>
+            <div key={i} style={{
+              width:i===phase?"18px":"5px",height:"5px",borderRadius:"3px",
+              background:i===phase?TEAL:"rgba(255,255,255,0.12)",
+              transition:"all 0.4s ease",
+            }}/>
           ))}
+        </div>
+
+        {/* "Continue scrolling" nudge — appears when video is done */}
+        <div style={{
+          position:"absolute",bottom:"48px",left:"50%",transform:"translateX(-50%)",
+          zIndex:10,textAlign:"center",
+          opacity:doneOpacity,transition:"opacity 0.6s ease",pointerEvents:"none",
+        }}>
+          <div style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.2em",
+            textTransform:"uppercase",marginBottom:"6px"}}>continue scrolling</div>
+          <div style={{width:"1px",height:"20px",
+            background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto",
+            animation:done?"binary-fall 1.4s ease-in-out infinite":undefined}}/>
         </div>
       </div>
     </div>
