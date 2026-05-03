@@ -310,7 +310,7 @@ function CinematicVideoSection(){
         const diff    = target - v.currentTime;
         if(Math.abs(diff) > FRAME){
           // Lerp toward target — feels natural, avoids jarring jumps
-          v.currentTime = v.currentTime + diff * 0.12;
+          v.currentTime = v.currentTime + diff * 0.06;
         }
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -341,7 +341,7 @@ function CinematicVideoSection(){
   const ph = phases[phase];
 
   return(
-    <div ref={outerRef} style={{height:"500vh", position:"relative", background:"#03050f"}}>
+    <div ref={outerRef} style={{height:"1500vh", position:"relative", background:"#03050f"}}>
       <div style={{
         position:"sticky", top:0, height:"100vh",
         display:"flex", alignItems:"center", justifyContent:"center",
