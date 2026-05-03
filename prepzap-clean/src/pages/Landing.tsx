@@ -298,7 +298,11 @@ function CinematicVideoSection(){
       const rect      = el.getBoundingClientRect();
       const scrollable= el.offsetHeight - window.innerHeight;
       const scrolled  = Math.max(0, -rect.top);
-      pRef.current    = Math.min(1, scrolled / scrollable);
+      const progress  = scrollable > 0 ? Math.min(1, scrolled / scrollable) : 0;
+      pRef.current    = progress;
+      // DEBUG — remove after confirming works
+      if(Math.floor(progress*100) % 10 === 0)
+        console.log("CinematicSection p=", progress.toFixed(3), "rect.top=", rect.top.toFixed(0), "scrollable=", scrollable.toFixed(0));
     };
     window.addEventListener("scroll", onScroll, {passive:true});
     onScroll();
@@ -309,11 +313,17 @@ function CinematicVideoSection(){
   useEffect(()=>{
     const easeOut = (t:number)=> 1 - Math.pow(1-t, 3);
     let lastPhase = -1;
+    let frame = 0;
 
     const tick = ()=>{
       const v = videoRef.current;
       const p = pRef.current;
       const ep = easeOut(p);
+
+      // DEBUG every 60 frames
+      frame++;
+      if(frame % 60 === 0)
+        console.log("RAF tick: p=", p.toFixed(3), "v.duration=", v?.duration?.toFixed(1), "v.currentTime=", v?.currentTime?.toFixed(2));
 
       // 1. Seek video — no readyRef gate, duration > 0 is sufficient
       if(v && v.duration > 0){
