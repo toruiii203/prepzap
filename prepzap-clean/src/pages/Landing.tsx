@@ -302,15 +302,14 @@ function CinematicVideoSection(){
   // We throttle seeks to only when the gap is > 1 frame (0.033s) to avoid
   // spamming the decoder when the user isn't scrolling.
   useEffect(()=>{
-    const FRAME = 1/30; // seek threshold — one frame
+    const FRAME = 1/60;
     const tick = ()=>{
       const v = videoRef.current;
       if(v && readyRef.current && v.duration > 0){
-        const target  = pRef.current * v.duration;
-        const diff    = target - v.currentTime;
+        const target = pRef.current * v.duration;
+        const diff   = target - v.currentTime;
         if(Math.abs(diff) > FRAME){
-          // Lerp toward target — feels natural, avoids jarring jumps
-          v.currentTime = v.currentTime + diff * 0.06;
+          v.currentTime = v.currentTime + diff * 0.25;
         }
       }
       rafRef.current = requestAnimationFrame(tick);
