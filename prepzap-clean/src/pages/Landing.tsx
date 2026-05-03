@@ -282,7 +282,20 @@ function CinematicVideoSection(){
   const readyRef    = useRef(false);
 
   const videoSrc = "https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
-  const markReady = ()=>{ readyRef.current = true; };
+
+  // Unlock seeking: browsers won't allow currentTime scrubbing until the video
+  // has been "played" at least once. We play then immediately pause to unlock it.
+  const markReady = ()=>{
+    if(readyRef.current) return;
+    readyRef.current = true;
+    const v = videoRef.current;
+    if(!v) return;
+    v.currentTime = 0;
+    const unlock = v.play();
+    if(unlock !== undefined){
+      unlock.then(()=>{ v.pause(); v.currentTime = 0; }).catch(()=>{});
+    }
+  };
 
   const phases = [
     {label:"— The Journey Begins",    title:"Enter a universe\nbuilt for learning",  sub:"12 AI tools. One mission. Your academic breakthrough."},
@@ -300,9 +313,6 @@ function CinematicVideoSection(){
       const scrolled  = Math.max(0, -rect.top);
       const progress  = scrollable > 0 ? Math.min(1, scrolled / scrollable) : 0;
       pRef.current    = progress;
-      // DEBUG — remove after confirming works
-      if(Math.floor(progress*100) % 10 === 0)
-        console.log("CinematicSection p=", progress.toFixed(3), "rect.top=", rect.top.toFixed(0), "scrollable=", scrollable.toFixed(0));
     };
     window.addEventListener("scroll", onScroll, {passive:true});
     onScroll();
@@ -313,24 +323,24 @@ function CinematicVideoSection(){
   useEffect(()=>{
     const easeOut = (t:number)=> 1 - Math.pow(1-t, 3);
     let lastPhase = -1;
-    let frame = 0;
 
     const tick = ()=>{
       const v = videoRef.current;
       const p = pRef.current;
       const ep = easeOut(p);
 
-      // DEBUG every 60 frames
-      frame++;
-      if(frame % 60 === 0)
-        console.log("RAF tick: p=", p.toFixed(3), "v.duration=", v?.duration?.toFixed(1), "v.currentTime=", v?.currentTime?.toFixed(2));
-
-      // 1. Seek video — no readyRef gate, duration > 0 is sufficient
-      if(v && v.duration > 0){
+      // 1. Seek video — snap if gap is big, lerp if small
+      if(v && readyRef.current && v.duration > 0){
+        if(!v.paused) v.pause();
         const target = p * v.duration;
         const diff   = target - v.currentTime;
-        if(Math.abs(diff) > 1/60){
-          v.currentTime = v.currentTime + diff * 0.25;
+        const absDiff = Math.abs(diff);
+        if(absDiff > 2){
+          // Gap too large — snap directly to avoid crawling
+          v.currentTime = target;
+        } else if(absDiff > 1/60){
+          // Small gap — smooth lerp
+          v.currentTime = v.currentTime + diff * 0.35;
         }
       }
 
@@ -398,11 +408,13 @@ function CinematicVideoSection(){
         }}>
           <video
             ref={videoRef}
-            src={videoSrc}
             muted playsInline preload="auto"
+            crossOrigin="anonymous"
             onLoadedData={markReady} onCanPlay={markReady} onCanPlayThrough={markReady}
             style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}
-          />
+          >
+            <source src={videoSrc} type="video/mp4"/>
+          </video>
           <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:2,
             background:"linear-gradient(180deg,rgba(3,5,15,0.4) 0%,transparent 20%,transparent 65%,rgba(3,5,15,0.8) 100%)"}}/>
 
