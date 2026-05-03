@@ -315,8 +315,8 @@ function CinematicVideoSection(){
       const p = pRef.current;
       const ep = easeOut(p);
 
-      // 1. Seek video
-      if(v && readyRef.current && v.duration > 0){
+      // 1. Seek video — no readyRef gate, duration > 0 is sufficient
+      if(v && v.duration > 0){
         const target = p * v.duration;
         const diff   = target - v.currentTime;
         if(Math.abs(diff) > 1/60){
