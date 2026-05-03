@@ -219,7 +219,7 @@ function CinematicVideoSection(){
   const ref=useRef<HTMLDivElement>(null);
   const videoRef=useRef<HTMLVideoElement>(null);
   const [scrollProgress,setScrollProgress]=useState(0);
-  const {ref:inViewRef,inView}=useInView(0.1);
+  const [inView,setInView]=useState(false);
 
   useEffect(()=>{
     const h=()=>{
@@ -235,12 +235,16 @@ function CinematicVideoSection(){
   },[]);
 
   useEffect(()=>{
+    if(!ref.current)return;
+    const obs=new IntersectionObserver(([e])=>setInView(e.isIntersecting),{threshold:0.1});
+    obs.observe(ref.current);
+    return ()=>obs.disconnect();
+  },[]);
+
+  useEffect(()=>{
     if(!videoRef.current)return;
-    if(inView){
-      videoRef.current.play().catch(()=>{});
-    } else {
-      videoRef.current.pause();
-    }
+    if(inView){videoRef.current.play().catch(()=>{});}
+    else{videoRef.current.pause();}
   },[inView]);
 
   const videoY=scrollProgress * -80;
@@ -250,7 +254,7 @@ function CinematicVideoSection(){
   const videoSrc=`https://drive.google.com/uc?export=download&id=${FILE_ID}`;
 
   return(
-    <div ref={(el)=>{(ref as any).current=el;(inViewRef as any).current=el;}}
+    <div ref={ref}
       style={{position:"relative",height:"100vh",overflow:"hidden",background:"#000"}}>
       <div style={{
         position:"absolute",inset:"-10% 0",
