@@ -181,20 +181,30 @@ const sectionLabel: React.CSSProperties = {
 const lerp=(a:number,b:number,t:number)=>a+(b-a)*t;
 
 function useScrollY(){
-  const rawRef=useRef(0);      // live scroll target, updated on every scroll event
-  const smoothRef=useRef(0);   // lerped output — never causes layout thrashing
+  const rawRef=useRef(0);
+  const smoothRef=useRef(0);
   const [sy,setSy]=useState(0);
   const rafRef=useRef<number>(0);
+  const runningRef=useRef(false);
   useEffect(()=>{
-    const onScroll=()=>{rawRef.current=window.scrollY;};
-    window.addEventListener("scroll",onScroll,{passive:true});
-    // t=0.085 → ~85ms effective lag; feels weighty without being sluggish
-    const tick=()=>{
-      smoothRef.current=lerp(smoothRef.current,rawRef.current,0.085);
-      setSy(smoothRef.current);
+    const startRAF=()=>{
+      if(runningRef.current)return;
+      runningRef.current=true;
+      const tick=()=>{
+        const next=lerp(smoothRef.current,rawRef.current,0.085);
+        const delta=Math.abs(next-smoothRef.current);
+        smoothRef.current=next;
+        setSy(next);
+        if(delta>0.1){
+          rafRef.current=requestAnimationFrame(tick);
+        } else {
+          runningRef.current=false; // settle — stop burning CPU
+        }
+      };
       rafRef.current=requestAnimationFrame(tick);
     };
-    rafRef.current=requestAnimationFrame(tick);
+    const onScroll=()=>{rawRef.current=window.scrollY;startRAF();};
+    window.addEventListener("scroll",onScroll,{passive:true});
     return ()=>{window.removeEventListener("scroll",onScroll);cancelAnimationFrame(rafRef.current);};
   },[]);
   return sy;
@@ -370,7 +380,7 @@ function CinematicVideoSection(){
     const checkPin=()=>{
       if(!outerRef.current)return;
       const rect=outerRef.current.getBoundingClientRect();
-      const isPinned=rect.top<=2&&rect.bottom>window.innerHeight*0.5;
+      const isPinned=rect.top<=2&&rect.bottom>window.innerHeight*1.5;
       if(isPinned){
         activeRef.current=true;
         setVisible(true);
@@ -450,7 +460,7 @@ function CinematicVideoSection(){
   const ph=phases[phase];
 
   return(
-    <div ref={outerRef} style={{height:"100vh",position:"relative",background:"#03050f"}}>
+    <div ref={outerRef} style={{height:"400vh",position:"relative",background:"#03050f"}}>
       <div style={{
         position:"sticky",top:0,height:"100vh",
         display:"flex",alignItems:"center",justifyContent:"center",
@@ -461,6 +471,7 @@ function CinematicVideoSection(){
           width:`${cardW}%`,height:`${cardH}%`,
           borderRadius:`${radius}px`,overflow:"hidden",position:"relative",
           boxShadow:ep<0.9?`0 32px 120px rgba(0,0,0,0.85),0 0 0 0.5px rgba(255,255,255,0.05)`:undefined,
+          transition:"border-radius 0.08s linear",
         }}>
           <div style={{position:"absolute",inset:"-5%",transform:`scale(${videoScale})`,willChange:"transform"}}>
             <video ref={videoRef} src={videoSrc} muted playsInline preload="auto"
