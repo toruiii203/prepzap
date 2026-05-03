@@ -1,14 +1,20 @@
 /**
  * STUDENIUS — Landing Page
- * Cinematic parallax with GSAP + ScrollTrigger
+ * All parallax effects are pure CSS + React hooks (no GSAP dependency).
  *
- *  npm install gsap
+ * NEW in this version:
+ *  H · Scroll progress line    — 1px teal bar at very top of viewport
+ *  A · Infinite marquee        — kinetic tool-name ticker between sections
+ *  D · Mouse parallax hero     — cursor-driven depth layers in hero
+ *  E · Animated counters       — numbers count up from 0 on viewport enter
+ *  C · Word-by-word reveal     — manifesto lights up word by word on scroll
+ *  B · Sticky feature showcase — pinned left panel, scrolling right features
+ *  F · Horizontal scroll       — vertical scroll drives horizontal card strip
+ *  G · Clip-path transitions   — wipe reveals between content sections
  */
 
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Hash, Mic, Image as ImageIcon } from "lucide-react";
-
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const TEAL   = "#00C4B4";
@@ -68,6 +74,42 @@ const CSS = `
     75%{transform:translate(-12px,-8px);}
     100%{transform:translate(0,0);}
   }
+  @keyframes astro-float{
+    0%,100%{transform:translateY(0px) rotate(0deg);}
+    50%{transform:translateY(-28px) rotate(5deg);}
+  }
+
+  /* H: Scroll progress line */
+  #scroll-progress-line{
+    position:fixed;top:0;left:0;width:100%;height:1.5px;z-index:9999;
+    background:linear-gradient(90deg,#00C4B4,#7B5EA7,#E8B923);
+    transform-origin:left center;
+    pointer-events:none;
+  }
+
+  /* A: Marquee */
+  @keyframes marquee-left{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+  @keyframes marquee-right{from{transform:translateX(-50%);}to{transform:translateX(0);}}
+  .mq-track-left{display:flex;width:max-content;white-space:nowrap;animation:marquee-left 30s linear infinite;}
+  .mq-track-right{display:flex;width:max-content;white-space:nowrap;animation:marquee-right 42s linear infinite;}
+  .mq-wrap{overflow:hidden;position:relative;}
+  .mq-wrap::before,.mq-wrap::after{
+    content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2;pointer-events:none;
+  }
+  .mq-wrap::before{left:0;background:linear-gradient(90deg,#03050f,transparent);}
+  .mq-wrap::after{right:0;background:linear-gradient(-90deg,#03050f,transparent);}
+
+  /* G: Clip-path reveal */
+  .clip-reveal{clip-path:inset(0 100% 0 0);transition:clip-path 1.1s cubic-bezier(0.16,1,0.3,1);}
+  .clip-reveal.in{clip-path:inset(0 0% 0 0);}
+
+  /* C: Word reveal */
+  .wd{color:rgba(255,255,255,0.1);transition:color 0.5s ease,text-shadow 0.5s ease;display:inline-block;margin-right:0.28em;}
+  .wd-lit{color:#F2F5F8 !important;text-shadow:0 0 40px rgba(0,196,180,0.4);}
+  .wd-past{color:rgba(255,255,255,0.25) !important;}
+
+  /* B: Sticky panel */
+  .sticky-left{position:sticky;top:88px;align-self:flex-start;}
 `;
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -84,18 +126,18 @@ const mockQuestion = {
 };
 
 const features = [
-  {n:"01",title:"AI Tutor (BrainBot)",    desc:"Ask anything — Explain, ELI5, Analogy, Quiz, Debate, Summary"},
-  {n:"02",title:"Practice & Flashcards",  desc:"AI-generated questions and spaced-repetition from your materials"},
-  {n:"03",title:"Cram Mode",              desc:"Emergency timed session — AI breaks subjects into prioritised topics"},
-  {n:"04",title:"High Yield Detector",    desc:"Identifies the most testable concepts and drills you instantly"},
-  {n:"05",title:"Recall Mode",            desc:"Type from memory and get scored — the hardest way to study"},
-  {n:"06",title:"Confidence Calibration", desc:"Sort every concept into Know / Shaky / No idea"},
-  {n:"07",title:"Mistake Journal",        desc:"Log errors with spaced-repetition — overdue items resurface"},
-  {n:"08",title:"Roadmap Generator",      desc:"Zero-to-mastery plan for any subject, broken into phases"},
-  {n:"09",title:"Feynman Mode",           desc:"Teach the AI — it pokes holes until you truly understand"},
-  {n:"10",title:"Source Library",         desc:"Upload PDFs, images, or notes — every tool reads them"},
-  {n:"11",title:"Study DNA",              desc:"Your living learner profile — adapts and reveals your patterns"},
-  {n:"12",title:"Focus Timer + Progress", desc:"Built-in Pomodoro with activity tracking and session analytics"},
+  {n:"01",title:"AI Tutor (BrainBot)",    desc:"Ask anything — Explain, ELI5, Analogy, Quiz, Debate, Summary",      icon:"🧠"},
+  {n:"02",title:"Practice & Flashcards",  desc:"AI-generated questions and spaced-repetition from your materials",   icon:"🃏"},
+  {n:"03",title:"Cram Mode",              desc:"Emergency timed session — AI breaks subjects into prioritised topics",icon:"⚡"},
+  {n:"04",title:"High Yield Detector",    desc:"Identifies the most testable concepts and drills you instantly",      icon:"🎯"},
+  {n:"05",title:"Recall Mode",            desc:"Type from memory and get scored — the hardest way to study",          icon:"🔁"},
+  {n:"06",title:"Confidence Calibration", desc:"Sort every concept into Know / Shaky / No idea",                     icon:"📊"},
+  {n:"07",title:"Mistake Journal",        desc:"Log errors with spaced-repetition — overdue items resurface",        icon:"📓"},
+  {n:"08",title:"Roadmap Generator",      desc:"Zero-to-mastery plan for any subject, broken into phases",           icon:"🗺️"},
+  {n:"09",title:"Feynman Mode",           desc:"Teach the AI — it pokes holes until you truly understand",           icon:"💡"},
+  {n:"10",title:"Source Library",         desc:"Upload PDFs, images, or notes — every tool reads them",              icon:"📚"},
+  {n:"11",title:"Study DNA",              desc:"Your living learner profile — adapts and reveals your patterns",     icon:"🧬"},
+  {n:"12",title:"Focus Timer + Progress", desc:"Built-in Pomodoro with activity tracking and session analytics",     icon:"⏱️"},
 ];
 
 const testimonials = [
@@ -104,6 +146,18 @@ const testimonials = [
   {name:"Sarah C.", role:"Teacher",             text:"Feynman Mode exposed every gap in my knowledge. Not just for exams — for any subject."},
   {name:"Ahmed R.", role:"Engineering Student", text:"High Yield Detector told me exactly what to study before finals. Went from C to A."},
 ];
+
+const useCaseCards = [
+  {label:"Medicine",    tool:"Cram Mode",           stat:"Night before boards",   color:TEAL},
+  {label:"Engineering", tool:"Recall Mode",          stat:"Equation mastery",      color:PURPLE},
+  {label:"Law",         tool:"Feynman Mode",         stat:"Case law deep-dives",   color:GOLD},
+  {label:"Languages",   tool:"Flashcards",           stat:"Vocab spaced reps",     color:"#4A9EFF"},
+  {label:"Finance",     tool:"High Yield Detector",  stat:"CFA exam prep",         color:"#FF6B6B"},
+  {label:"Programming", tool:"BrainBot",             stat:"Debug + explain code",  color:"#A78BFA"},
+];
+
+const MANIFESTO = "Stop highlighting. Stop re-reading. Start recalling. Build understanding that lasts past the exam and stays with you forever.";
+const MARQUEE_ITEMS = ["BrainBot","Cram Mode","Flashcards","Recall Mode","Feynman Mode","High Yield","Roadmap","Study DNA","Mistake Journal","Focus Timer","Source Library","Confidence","Practice","Spaced Rep","Pomodoro"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const hairline: React.CSSProperties = {height:"0.5px",background:"#0d1220",margin:0};
@@ -123,6 +177,19 @@ function useScrollY(){
   return sy;
 }
 
+function useScrollProgress(){
+  const [pct,setPct]=useState(0);
+  useEffect(()=>{
+    const h=()=>{
+      const max=document.documentElement.scrollHeight-window.innerHeight;
+      setPct(max>0?window.scrollY/max:0);
+    };
+    window.addEventListener("scroll",h,{passive:true});
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
+  return pct;
+}
+
 function useInView(threshold=0.1){
   const ref=useRef<HTMLDivElement>(null);
   const [inView,setInView]=useState(false);
@@ -134,79 +201,332 @@ function useInView(threshold=0.1){
   return {ref,inView};
 }
 
-// ─── Star field canvas — own RAF loop, parallax via scroll ref ────────────────
+function useMouseParallax(){
+  const [pos,setPos]=useState({x:0,y:0});
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>setPos({
+      x:(e.clientX/window.innerWidth-0.5)*2,
+      y:(e.clientY/window.innerHeight-0.5)*2,
+    });
+    window.addEventListener("mousemove",h,{passive:true});
+    return ()=>window.removeEventListener("mousemove",h);
+  },[]);
+  return pos;
+}
+
+// ─── H: Scroll progress line ──────────────────────────────────────────────────
+function ScrollProgressLine(){
+  const pct=useScrollProgress();
+  return <div id="scroll-progress-line" style={{transform:`scaleX(${pct})`}}/>;
+}
+
+// ─── A: Infinite Marquee ──────────────────────────────────────────────────────
+function MarqueeRow({dir}:{dir:"left"|"right"}){
+  const items=[...MARQUEE_ITEMS,...MARQUEE_ITEMS];
+  return(
+    <div className="mq-wrap" style={{padding:"12px 0"}}>
+      <div className={dir==="left"?"mq-track-left":"mq-track-right"}>
+        {items.map((item,i)=>(
+          <span key={i} style={{
+            ...mono,fontSize:"10px",letterSpacing:"0.18em",textTransform:"uppercase",
+            color:i%5===0?TEAL:i%7===0?GOLD:i%11===0?PURPLE:"#1a2440",
+            marginRight:"44px",display:"inline-flex",alignItems:"center",gap:"14px",
+          }}>
+            {item}
+            <span style={{width:"3px",height:"3px",borderRadius:"50%",background:"#1a2440",display:"inline-block",flexShrink:0}}/>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MarqueeDivider(){
+  return(
+    <div style={{position:"relative",zIndex:3,background:"#03050f",borderTop:"0.5px solid #0d1220",borderBottom:"0.5px solid #0d1220"}}>
+      <MarqueeRow dir="left"/>
+      <div style={{height:"0.5px",background:"#0d1220"}}/>
+      <MarqueeRow dir="right"/>
+    </div>
+  );
+}
+
+// ─── E: Animated counter ─────────────────────────────────────────────────────
+function AnimatedCounter({target,suffix="",label}:{target:number;suffix?:string;label:string}){
+  const {ref,inView}=useInView(0.5);
+  const [count,setCount]=useState(0);
+  const started=useRef(false);
+  useEffect(()=>{
+    if(!inView||started.current)return;
+    started.current=true;
+    const dur=1600;const start=performance.now();
+    const tick=(now:number)=>{
+      const t=Math.min((now-start)/dur,1);
+      const ease=1-Math.pow(1-t,3);
+      setCount(Math.round(ease*target));
+      if(t<1)requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  },[inView,target]);
+  return(
+    <div ref={ref} style={{opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(20px)",transition:"all 0.8s ease"}}>
+      <div style={{...mono,fontSize:"clamp(20px,2.5vw,28px)",fontWeight:500,color:TEAL,letterSpacing:"-0.02em"}}>{count}{suffix}</div>
+      <div style={{fontSize:"10px",color:"#444",textTransform:"uppercase",letterSpacing:"0.10em",marginTop:"4px"}}>{label}</div>
+    </div>
+  );
+}
+
+// ─── G: Clip-path reveal wrapper ─────────────────────────────────────────────
+function ClipReveal({children,delay=0}:{children:React.ReactNode;delay?:number}){
+  const {ref,inView}=useInView(0.05);
+  return(
+    <div ref={ref} className={`clip-reveal${inView?" in":""}`} style={{transitionDelay:`${delay}s`}}>
+      {children}
+    </div>
+  );
+}
+
+// ─── C: Word-by-word manifesto ────────────────────────────────────────────────
+function WordReveal(){
+  const ref=useRef<HTMLDivElement>(null);
+  const [progress,setProgress]=useState(0);
+  useEffect(()=>{
+    const h=()=>{
+      if(!ref.current)return;
+      const rect=ref.current.getBoundingClientRect();
+      const pos=window.innerHeight-rect.top;
+      setProgress(Math.max(0,Math.min(1,pos/(window.innerHeight*1.6))));
+    };
+    window.addEventListener("scroll",h,{passive:true});
+    h();
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
+  const words=MANIFESTO.split(" ");
+  return(
+    <div ref={ref} style={{position:"relative",zIndex:2,padding:"120px 32px",background:"#03050f",overflow:"hidden"}}>
+      <div style={{position:"absolute",inset:0,pointerEvents:"none",
+        background:"radial-gradient(ellipse 60% 50% at 50% 50%,rgba(0,196,180,0.04) 0%,transparent 70%)"}}/>
+      <div style={{maxWidth:"720px",margin:"0 auto",position:"relative"}}>
+        <div style={{...mono,fontSize:"10px",color:"#282e42",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:"36px"}}>
+          — The Studenius Principle
+        </div>
+        <p style={{fontSize:"clamp(24px,3.8vw,44px)",fontWeight:300,letterSpacing:"-0.025em",lineHeight:1.35}}>
+          {words.map((word,i)=>{
+            const thr=i/words.length;
+            const lit=progress>=thr;
+            const past=progress>=thr+0.12;
+            return(
+              <span key={i} className={`wd${lit?(past?" wd-past":" wd-lit"):""}`}>{word}</span>
+            );
+          })}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── B: Sticky feature showcase ───────────────────────────────────────────────
+function StickyFeatureShowcase(){
+  const [active,setActive]=useState(0);
+  const itemRefs=useRef<(HTMLDivElement|null)[]>([]);
+  const accentColors=[TEAL,PURPLE,GOLD,"#4A9EFF","#FF6B6B","#A78BFA",TEAL,PURPLE,GOLD,"#4A9EFF","#FF6B6B","#A78BFA"];
+
+  useEffect(()=>{
+    const obs=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          const idx=itemRefs.current.indexOf(e.target as HTMLDivElement);
+          if(idx>=0)setActive(idx);
+        }
+      });
+    },{rootMargin:"-40% 0px -40% 0px"});
+    itemRefs.current.forEach(r=>{if(r)obs.observe(r);});
+    return ()=>obs.disconnect();
+  },[]);
+
+  const f=features[active];
+  const ac=accentColors[active];
+
+  return(
+    <div style={{maxWidth:"1100px",margin:"0 auto",padding:"40px 32px 80px",display:"flex",gap:"72px",alignItems:"flex-start",position:"relative",zIndex:1}}>
+
+      {/* Left sticky panel */}
+      <div className="sticky-left" style={{flex:"0 0 300px"}}>
+        <div style={{marginBottom:"28px",minHeight:"160px"}}>
+          <div style={{fontSize:"44px",marginBottom:"14px",lineHeight:1,transition:"all 0.3s"}}>{f.icon}</div>
+          <div style={{...mono,fontSize:"10px",color:ac,letterSpacing:"0.1em",marginBottom:"8px",transition:"color 0.4s"}}>{f.n}</div>
+          <h3 style={{fontSize:"clamp(18px,1.8vw,24px)",fontWeight:300,letterSpacing:"-0.02em",color:"#F2F5F8",marginBottom:"10px"}}>{f.title}</h3>
+          <p style={{fontSize:"12px",color:"#555",lineHeight:1.7,fontWeight:300}}>{f.desc}</p>
+        </div>
+        {/* Dot nav */}
+        <div style={{display:"flex",gap:"5px",flexWrap:"wrap",maxWidth:"160px"}}>
+          {features.map((_,i)=>(
+            <div key={i} style={{
+              width:"5px",height:"5px",borderRadius:"50%",
+              background:i===active?ac:"#1a2240",
+              transition:"background 0.3s,transform 0.3s",
+              transform:i===active?"scale(1.5)":"scale(1)",
+            }}/>
+          ))}
+        </div>
+        {/* Accent line */}
+        <div style={{
+          position:"absolute",left:0,top:"10%",bottom:"10%",width:"1px",
+          background:`linear-gradient(transparent,${ac},transparent)`,
+          opacity:0.25,transition:"background 0.5s",
+        }}/>
+      </div>
+
+      {/* Right scrolling list */}
+      <div style={{flex:1}}>
+        {features.map((feat,i)=>(
+          <div key={feat.n} ref={el=>{itemRefs.current[i]=el;}} style={{
+            padding:"28px 0",borderBottom:"0.5px solid #0d1220",
+            opacity:i===active?1:0.28,transition:"opacity 0.45s ease",
+          }}>
+            <div style={{display:"flex",alignItems:"baseline",gap:"14px"}}>
+              <span style={{...mono,fontSize:"10px",color:i===active?accentColors[i]:"#1e2838",transition:"color 0.4s"}}>{feat.n}</span>
+              <span style={{fontSize:"15px",color:"#E0E8F0",fontWeight:300,letterSpacing:"-0.01em"}}>{feat.title}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── F: Horizontal scroll gallery ─────────────────────────────────────────────
+function HorizontalScrollGallery(){
+  const sectionRef=useRef<HTMLDivElement>(null);
+  const trackRef=useRef<HTMLDivElement>(null);
+  const [offset,setOffset]=useState(0);
+  const [pct,setPct]=useState(0);
+
+  useEffect(()=>{
+    const h=()=>{
+      if(!sectionRef.current||!trackRef.current)return;
+      const rect=sectionRef.current.getBoundingClientRect();
+      const sectionH=sectionRef.current.offsetHeight-window.innerHeight;
+      if(rect.top>window.innerHeight||rect.bottom<0)return;
+      const scrolled=Math.abs(Math.min(rect.top,0));
+      const p=Math.max(0,Math.min(1,scrolled/sectionH));
+      const maxOffset=trackRef.current.scrollWidth-window.innerWidth+64;
+      setPct(p);
+      setOffset(p*maxOffset);
+    };
+    window.addEventListener("scroll",h,{passive:true});
+    h();
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
+
+  return(
+    <div ref={sectionRef} style={{height:"260vh",position:"relative",zIndex:2}}>
+      <div style={{position:"sticky",top:"48px",height:"calc(100vh - 48px)",overflow:"hidden",
+        display:"flex",flexDirection:"column",justifyContent:"center",background:"#03050f"}}>
+
+        <div style={{maxWidth:"1100px",margin:"0 auto",width:"100%",padding:"0 32px",marginBottom:"28px"}}>
+          <div style={{...mono,fontSize:"10px",color:"#333",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"6px"}}>Who it's for</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+            <h2 style={{fontSize:"clamp(18px,2.4vw,30px)",fontWeight:300,letterSpacing:"-0.02em",color:"#F2F5F8"}}>Every student. Every subject.</h2>
+            <span style={{...mono,fontSize:"9px",color:"#222",letterSpacing:"0.12em"}}>SCROLL ←→</span>
+          </div>
+        </div>
+
+        <div style={{overflow:"hidden",paddingLeft:"32px"}}>
+          <div ref={trackRef} style={{
+            display:"flex",gap:"14px",
+            transform:`translateX(${-offset}px)`,
+            transition:"transform 0.06s linear",
+            willChange:"transform",
+          }}>
+            {useCaseCards.map((card,i)=>(
+              <div key={i} style={{
+                flex:"0 0 280px",background:"#080d1a",
+                border:"0.5px solid #0d1220",padding:"28px",
+                position:"relative",overflow:"hidden",
+                transition:"border-color 0.3s",
+              }}
+                onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.borderColor=card.color+"55")}
+                onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.borderColor="#0d1220")}
+              >
+                <div style={{position:"absolute",top:0,left:0,right:0,height:"2px",background:card.color,opacity:0.55}}/>
+                <div style={{...mono,fontSize:"10px",color:card.color,letterSpacing:"0.12em",marginBottom:"18px",textTransform:"uppercase"}}>{card.label}</div>
+                <div style={{fontSize:"20px",fontWeight:300,color:"#F2F5F8",marginBottom:"6px",letterSpacing:"-0.02em"}}>{card.tool}</div>
+                <div style={{fontSize:"11px",color:"#444",fontWeight:300}}>{card.stat}</div>
+                <div style={{position:"absolute",right:"12px",bottom:"12px",...mono,fontSize:"72px",fontWeight:700,
+                  color:"rgba(255,255,255,0.025)",lineHeight:1,userSelect:"none"}}>{String(i+1).padStart(2,"0")}</div>
+              </div>
+            ))}
+            <div style={{flex:"0 0 240px",border:"0.5px dashed #1a2240",padding:"28px",
+              display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center",gap:"12px"}}>
+              <div style={{fontSize:"12px",color:"#333",fontWeight:300}}>More use cases await.</div>
+              <Link to="/signup">
+                <button style={{...mono,fontSize:"10px",letterSpacing:"0.12em",textTransform:"uppercase",
+                  color:TEAL,border:`0.5px solid ${TEAL}`,background:"transparent",padding:"7px 14px",cursor:"pointer"}}>
+                  Start Free
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Track progress bar */}
+        <div style={{padding:"20px 32px 0",maxWidth:"1100px",margin:"0 auto",width:"100%"}}>
+          <div style={{height:"1px",background:"#0d1220",position:"relative"}}>
+            <div style={{position:"absolute",top:0,left:0,height:"100%",
+              background:`linear-gradient(90deg,${TEAL},${PURPLE})`,
+              width:`${pct*100}%`,transition:"width 0.06s linear"}}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Background layers ────────────────────────────────────────────────────────
 function StarField(){
   const canvasRef=useRef<HTMLCanvasElement>(null);
   const scrollRef=useRef(0);
-
   useEffect(()=>{
     const h=()=>{scrollRef.current=window.scrollY;};
     window.addEventListener("scroll",h,{passive:true});
     return ()=>window.removeEventListener("scroll",h);
   },[]);
-
   useEffect(()=>{
-    const c=canvasRef.current!;
-    const ctx=c.getContext("2d")!;
-    let raf:number;
-
+    const c=canvasRef.current!;const ctx=c.getContext("2d")!;let raf:number;
     function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
-    resize();
-    window.addEventListener("resize",resize);
-
+    resize();window.addEventListener("resize",resize);
     type Star={x:number;y:number;r:number;o:number;phase:number;freq:number;layer:number;warm:boolean;spike:boolean};
-    const stars:Star[]=[];
-    const PARALLAX=[0.018,0.055,0.13];
-
+    const stars:Star[]=[];const PARALLAX=[0.018,0.055,0.13];
     const addLayer=(n:number,rMin:number,rMax:number,layer:number,warmChance:number,spikes:number)=>{
-      for(let i=0;i<n;i++){
-        stars.push({
-          x:Math.random()*c.width,
-          y:Math.random()*c.height*3,
-          r:Math.random()*(rMax-rMin)+rMin,
-          o:Math.random()*0.7+0.15,
-          phase:Math.random()*Math.PI*2,
-          freq:Math.random()*0.006+0.001,
-          layer,warm:Math.random()<warmChance,spike:i<spikes,
-        });
-      }
+      for(let i=0;i<n;i++)stars.push({
+        x:Math.random()*c.width,y:Math.random()*c.height*3,
+        r:Math.random()*(rMax-rMin)+rMin,o:Math.random()*0.7+0.15,
+        phase:Math.random()*Math.PI*2,freq:Math.random()*0.006+0.001,
+        layer,warm:Math.random()<warmChance,spike:i<spikes,
+      });
     };
-    addLayer(1800,0.15,0.65,0,0.04,0);
-    addLayer(400,0.6,1.4,1,0.06,0);
-    addLayer(80,1.4,3.0,2,0.12,3);
-
+    addLayer(1800,0.15,0.65,0,0.04,0);addLayer(400,0.6,1.4,1,0.06,0);addLayer(80,1.4,3.0,2,0.12,3);
     let t=0;
     function draw(){
-      t++;
-      ctx.clearRect(0,0,c.width,c.height);
-      const sy=scrollRef.current;
+      t++;ctx.clearRect(0,0,c.width,c.height);const sy=scrollRef.current;
       for(const s of stars){
         const py=((s.y-PARALLAX[s.layer]*sy)%(c.height*3)+c.height*3)%(c.height*3);
         if(py<-4||py>c.height+4)continue;
         const pulse=s.o*(0.55+0.45*Math.sin(t*s.freq*60+s.phase));
-        const col=s.warm
-          ?`rgba(232,185,35,${pulse*0.75})`
-          :s.layer===2?`rgba(120,180,255,${pulse})`
-          :s.layer===1?`rgba(180,240,235,${pulse*0.85})`
-          :`rgba(200,220,255,${pulse})`;
-        ctx.beginPath();ctx.arc(s.x,py,s.r,0,Math.PI*2);
-        ctx.fillStyle=col;ctx.fill();
+        const col=s.warm?`rgba(232,185,35,${pulse*0.75})`:s.layer===2?`rgba(120,180,255,${pulse})`:s.layer===1?`rgba(180,240,235,${pulse*0.85})`:`rgba(200,220,255,${pulse})`;
+        ctx.beginPath();ctx.arc(s.x,py,s.r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
         if(s.layer===2){
           const g=ctx.createRadialGradient(s.x,py,0,s.x,py,s.r*3.5);
           g.addColorStop(0,s.warm?`rgba(232,185,35,${pulse*0.35})`:`rgba(120,180,255,${pulse*0.3})`);
           g.addColorStop(1,"transparent");
-          ctx.beginPath();ctx.arc(s.x,py,s.r*3.5,0,Math.PI*2);
-          ctx.fillStyle=g;ctx.fill();
+          ctx.beginPath();ctx.arc(s.x,py,s.r*3.5,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
         }
         if(s.spike){
-          const len=s.r*14;
-          ctx.save();ctx.globalAlpha=pulse*0.55;
+          const len=s.r*14;ctx.save();ctx.globalAlpha=pulse*0.55;
           ctx.strokeStyle="rgba(120,180,255,0.6)";ctx.lineWidth=0.5;
           [[1,0],[0,1]].forEach(([cx,cy])=>{
-            ctx.beginPath();
-            ctx.moveTo(s.x-cx*len,py-cy*len);
-            ctx.lineTo(s.x+cx*len,py+cy*len);
-            ctx.stroke();
+            ctx.beginPath();ctx.moveTo(s.x-cx*len,py-cy*len);ctx.lineTo(s.x+cx*len,py+cy*len);ctx.stroke();
           });
           ctx.restore();
         }
@@ -216,11 +536,9 @@ function StarField(){
     draw();
     return ()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",resize);};
   },[]);
-
   return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none"}}/>;
 }
 
-// ─── Nebula — pure CSS breathe ────────────────────────────────────────────────
 function NebulaLayer(){
   const base:React.CSSProperties={position:"absolute",inset:"-20%",zIndex:0,pointerEvents:"none",transformOrigin:"center center"};
   return(
@@ -234,22 +552,16 @@ function NebulaLayer(){
   );
 }
 
-// ─── Planets — CSS + scroll parallax (no GSAP needed) ────────────────────────
 function FloatingPlanets(){
   const sy=useScrollY();
-
   return(
     <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
-      {/* Cobalt Giant */}
       <div style={{
-        position:"absolute",right:"-60px",top:"-60px",
-        width:"340px",height:"340px",borderRadius:"50%",
+        position:"absolute",right:"-60px",top:"-60px",width:"340px",height:"340px",borderRadius:"50%",
         background:"radial-gradient(circle at 32% 32%,#1d3a7e 0%,#0d1b6e 35%,#080f40 60%,#04081a 100%)",
         boxShadow:"inset -30px -30px 80px rgba(0,0,0,0.85),0 0 80px rgba(123,94,167,0.18)",
-        border:"0.5px solid rgba(123,94,167,0.2)",
-        animation:"rim-pulse 8s ease-in-out infinite",
-        overflow:"hidden",willChange:"transform",
-        transform:`translateY(${-sy*0.10}px)`,
+        border:"0.5px solid rgba(123,94,167,0.2)",animation:"rim-pulse 8s ease-in-out infinite",
+        overflow:"hidden",willChange:"transform",transform:`translateY(${-sy*0.10}px)`,
       }}>
         {[18,38,52,68,80].map((pct,i)=>(
           <div key={i} style={{position:"absolute",left:0,right:0,top:`${pct}%`,height:`${[8,6,10,5,7][i]}%`,
@@ -258,32 +570,22 @@ function FloatingPlanets(){
         <div style={{position:"absolute",left:"30%",top:"62%",width:"28%",height:"14%",borderRadius:"50%",background:"rgba(6,10,50,0.6)",transform:"rotate(-8deg)"}}/>
         <div style={{position:"absolute",inset:0,borderRadius:"50%",background:"radial-gradient(circle at 100% 50%,rgba(80,120,255,0.15) 0%,transparent 45%)"}}/>
       </div>
-
-      {/* Rings */}
       {[
         {w:480,bw:"10px",col:"rgba(200,220,255,0.18)",speed:0.10},
-        {w:560,bw:"5px", col:"rgba(232,185,35,0.10)",  speed:0.09},
-        {w:630,bw:"2px", col:"rgba(120,180,255,0.06)", speed:0.08},
+        {w:560,bw:"5px", col:"rgba(232,185,35,0.10)", speed:0.09},
+        {w:630,bw:"2px", col:"rgba(120,180,255,0.06)",speed:0.08},
       ].map((r,i)=>(
         <div key={i} style={{
-          position:"absolute",
-          right:`${-60-(r.w-340)/2}px`,
-          top:`${-60+(340-r.w)/2+(i+1)*-40+80}px`,
-          width:`${r.w}px`,height:`${r.w}px`,borderRadius:"50%",
-          border:`${r.bw} solid ${r.col}`,
-          transform:`rotateX(72deg) translateY(${-sy*r.speed}px)`,
-          willChange:"transform",
+          position:"absolute",right:`${-60-(r.w-340)/2}px`,top:`${-60+(340-r.w)/2+(i+1)*-40+80}px`,
+          width:`${r.w}px`,height:`${r.w}px`,borderRadius:"50%",border:`${r.bw} solid ${r.col}`,
+          transform:`rotateX(72deg) translateY(${-sy*r.speed}px)`,willChange:"transform",
         }}/>
       ))}
-
-      {/* Emerald Giant */}
       <div style={{
-        position:"absolute",left:"-100px",top:"320px",
-        width:"220px",height:"220px",borderRadius:"50%",
+        position:"absolute",left:"-100px",top:"320px",width:"220px",height:"220px",borderRadius:"50%",
         background:"radial-gradient(circle at 45% 35%,#1e4a30 0%,#1a3a2a 40%,#040c0c 100%)",
         boxShadow:"inset -15px -15px 40px rgba(0,0,0,0.85),0 0 40px rgba(0,196,180,0.12)",
-        border:"0.5px solid rgba(0,196,180,0.15)",
-        overflow:"hidden",willChange:"transform",
+        border:"0.5px solid rgba(0,196,180,0.15)",overflow:"hidden",willChange:"transform",
         transform:`translateY(${-sy*0.06}px)`,
       }}>
         <svg viewBox="0 0 220 220" style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.5}}>
@@ -293,52 +595,37 @@ function FloatingPlanets(){
           ))}
         </svg>
       </div>
-
-      {/* Asteroid */}
       <div style={{
-        position:"absolute",right:"7%",top:"820px",
-        width:"48px",height:"32px",borderRadius:"40% 60% 55% 45%",
-        background:"#111828",boxShadow:"0 0 24px rgba(232,185,35,0.1)",
-        opacity:0.45,willChange:"transform",
+        position:"absolute",right:"7%",top:"820px",width:"48px",height:"32px",
+        borderRadius:"40% 60% 55% 45%",background:"#111828",
+        boxShadow:"0 0 24px rgba(232,185,35,0.1)",opacity:0.45,willChange:"transform",
         transform:`translateY(${-sy*0.16}px) rotate(${sy*0.06}deg)`,
       }}/>
     </div>
   );
 }
 
-// ─── Foreground particle motes canvas ─────────────────────────────────────────
 function ParticleMotes(){
   const canvasRef=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
-    const c=canvasRef.current!;
-    const ctx=c.getContext("2d")!;
-    let raf:number;
+    const c=canvasRef.current!;const ctx=c.getContext("2d")!;let raf:number;
     c.width=window.innerWidth;c.height=window.innerHeight;
     type Mote={x:number;y:number;r:number;vx:number;vy:number;col:string;t:number;sp:number};
     const motes:Mote[]=[];
     const palettes=["rgba(120,180,255,V)","rgba(0,196,180,V)","rgba(232,185,35,V)"];
     const wt=[0.6,0.25,0.15];
     for(let i=0;i<220;i++){
-      const pr=Math.random();
-      const ci=pr<wt[0]?0:pr<wt[0]+wt[1]?1:2;
-      motes.push({
-        x:Math.random()*c.width,y:Math.random()*c.height,
-        r:Math.random()*4+0.5,
-        vx:(Math.random()-.5)*0.07,vy:(Math.random()-.5)*0.055,
-        col:palettes[ci],t:Math.random()*1000,sp:Math.random()*0.6+0.3,
-      });
+      const pr=Math.random();const ci=pr<wt[0]?0:pr<wt[0]+wt[1]?1:2;
+      motes.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*4+0.5,
+        vx:(Math.random()-.5)*0.07,vy:(Math.random()-.5)*0.055,col:palettes[ci],t:Math.random()*1000,sp:Math.random()*0.6+0.3});
     }
     function draw(){
       ctx.clearRect(0,0,c.width,c.height);
       for(const m of motes){
-        m.t+=m.sp;
-        m.x+=m.vx+Math.sin(m.t*0.011)*0.18;
-        m.y+=m.vy+Math.cos(m.t*0.009)*0.14;
-        if(m.x<0)m.x=c.width;if(m.x>c.width)m.x=0;
-        if(m.y<0)m.y=c.height;if(m.y>c.height)m.y=0;
+        m.t+=m.sp;m.x+=m.vx+Math.sin(m.t*0.011)*0.18;m.y+=m.vy+Math.cos(m.t*0.009)*0.14;
+        if(m.x<0)m.x=c.width;if(m.x>c.width)m.x=0;if(m.y<0)m.y=c.height;if(m.y>c.height)m.y=0;
         const a=0.25+0.28*Math.sin(m.t*0.022);
-        ctx.beginPath();ctx.arc(m.x,m.y,m.r,0,Math.PI*2);
-        ctx.fillStyle=m.col.replace("V",String(a));ctx.fill();
+        ctx.beginPath();ctx.arc(m.x,m.y,m.r,0,Math.PI*2);ctx.fillStyle=m.col.replace("V",String(a));ctx.fill();
         if(m.r>3.5){
           const g=ctx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r*3);
           g.addColorStop(0,m.col.replace("V",String(a*0.5)));g.addColorStop(1,"transparent");
@@ -347,22 +634,17 @@ function ParticleMotes(){
       }
       raf=requestAnimationFrame(draw);
     }
-    draw();
-    return ()=>cancelAnimationFrame(raf);
+    draw();return ()=>cancelAnimationFrame(raf);
   },[]);
   return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:1,pointerEvents:"none",opacity:0.65}}/>;
 }
 
-// ─── Binary rain ──────────────────────────────────────────────────────────────
 function BinaryRain(){
   return(
     <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden",opacity:0.055}}>
       {Array.from({length:8},(_,i)=>(
-        <div key={i} style={{
-          position:"absolute",left:`${i*12+5}%`,top:0,
-          ...mono,fontSize:"9px",color:TEAL,whiteSpace:"nowrap",
-          animation:`binary-fall ${14+i*3}s linear ${-i*2}s infinite`,
-        }}>
+        <div key={i} style={{position:"absolute",left:`${i*12+5}%`,top:0,...mono,fontSize:"9px",color:TEAL,whiteSpace:"nowrap",
+          animation:`binary-fall ${14+i*3}s linear ${-i*2}s infinite`}}>
           {Array.from({length:34},()=>Math.round(Math.random())).join("\n")}
         </div>
       ))}
@@ -370,30 +652,23 @@ function BinaryRain(){
   );
 }
 
-// ─── Per-section particle overlay ─────────────────────────────────────────────
 function SectionParticles({count=25,color=TEAL}:{count?:number;color?:string}){
   const motes=Array.from({length:count},()=>({
     left:`${Math.random()*100}%`,top:`${Math.random()*100}%`,
-    r:Math.random()*3+1,
-    dur:`${12+Math.random()*16}s`,delay:`${-Math.random()*12}s`,
-    op:0.06+Math.random()*0.1,
+    r:Math.random()*3+1,dur:`${12+Math.random()*16}s`,delay:`${-Math.random()*12}s`,op:0.06+Math.random()*0.1,
   }));
   return(
     <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden",zIndex:0}}>
       {motes.map((m,i)=>(
-        <div key={i} style={{
-          position:"absolute",left:m.left,top:m.top,
+        <div key={i} style={{position:"absolute",left:m.left,top:m.top,
           width:`${m.r*2}px`,height:`${m.r*2}px`,borderRadius:"50%",
           background:`radial-gradient(circle,${color} 0%,transparent 80%)`,
-          opacity:m.op,
-          animation:`mote-drift ${m.dur} ease-in-out ${m.delay} infinite`,
-        }}/>
+          opacity:m.op,animation:`mote-drift ${m.dur} ease-in-out ${m.delay} infinite`}}/>
       ))}
     </div>
   );
 }
 
-// ─── TiltCard ─────────────────────────────────────────────────────────────────
 function TiltCard({children,style}:{children:React.ReactNode;style?:React.CSSProperties}){
   const ref=useRef<HTMLDivElement>(null);
   const [tilt,setTilt]=useState({x:0,y:0});
@@ -416,13 +691,11 @@ function TiltCard({children,style}:{children:React.ReactNode;style?:React.CSSPro
   );
 }
 
-// ─── CSS Reveal ───────────────────────────────────────────────────────────────
 function Reveal({children,delay=0,style}:{children:React.ReactNode;delay?:number;style?:React.CSSProperties}){
   const {ref,inView}=useInView(0.08);
   return(
     <div ref={ref} style={{...style,
-      opacity:inView?1:0,
-      transform:inView?"translateY(0)":"translateY(32px)",
+      opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(32px)",
       filter:inView?"blur(0px)":"blur(4px)",
       transition:`opacity 1s ease ${delay}s,transform 1s ease ${delay}s,filter 1s ease ${delay}s`,
     }}>
@@ -431,7 +704,6 @@ function Reveal({children,delay=0,style}:{children:React.ReactNode;delay?:number
   );
 }
 
-// ─── GlitchText ───────────────────────────────────────────────────────────────
 function GlitchText({text,style}:{text:string;style?:React.CSSProperties}){
   const [g,setG]=useState(false);
   useEffect(()=>{
@@ -449,56 +721,23 @@ function GlitchText({text,style}:{text:string;style?:React.CSSProperties}){
   );
 }
 
-// ─── Orbital rings ────────────────────────────────────────────────────────────
 function OrbitalRings(){
   return(
     <div style={{position:"absolute",right:"-120px",top:"50%",transform:"translateY(-50%)",width:"520px",height:"520px",pointerEvents:"none",opacity:0.11}}>
       {[{sz:300,dur:"13s",col:TEAL,a:"orbit1"},{sz:420,dur:"19s",col:PURPLE,a:"orbit2"},{sz:210,dur:"8s",col:GOLD,a:"orbit3"}]
         .map((r,i)=>(
-          <div key={i} style={{
-            position:"absolute",left:"50%",top:"50%",
+          <div key={i} style={{position:"absolute",left:"50%",top:"50%",
             marginLeft:`-${r.sz/2}px`,marginTop:`-${r.sz/2}px`,
-            width:r.sz,height:r.sz,borderRadius:"50%",
-            border:`0.8px solid ${r.col}`,
-            animation:`${r.a} ${r.dur} linear infinite`,
-          }}/>
-        ))
-      }
+            width:r.sz,height:r.sz,borderRadius:"50%",border:`0.8px solid ${r.col}`,
+            animation:`${r.a} ${r.dur} linear infinite`}}/>
+        ))}
     </div>
   );
 }
 
-// ─── Astronaut scene ──────────────────────────────────────────────────────────
-// The outer wrapper is controlled by GSAP ScrollTrigger (scale+opacity entrance).
-// The inner SVG has its own continuous float animation.
+// ─── Astronaut (CSS-only float, no GSAP) ──────────────────────────────────────
 function AstronautScene(){
-  const wrapRef=useRef<HTMLDivElement>(null);
-  const bodyRef=useRef<HTMLDivElement>(null);
-
-  useEffect(()=>{
-    const ctx=gsap.context(()=>{
-      // Continuous breathing float
-      gsap.to(bodyRef.current,{
-        y:"-28px",rotation:"5deg",
-        duration:7,ease:"sine.inOut",repeat:-1,yoyo:true,
-        transformOrigin:"center center",
-      });
-      // ScrollTrigger entrance + exit — the cinematic section is 320vh
-      const section=wrapRef.current?.closest("[data-cinematic]") as HTMLElement;
-      if(!section)return;
-      const tl=gsap.timeline({
-        scrollTrigger:{trigger:section,start:"top bottom",end:"bottom top",scrub:1.8},
-      });
-      tl.fromTo(wrapRef.current,
-        {scale:0.78,opacity:0,y:70},
-        {scale:1,   opacity:1,y:0,ease:"none"},0
-      ).to(wrapRef.current,
-        {scale:1.08,opacity:0,y:-70,ease:"none"},0.62
-      );
-    },wrapRef);
-    return ()=>ctx.revert();
-  },[]);
-
+  const {ref,inView}=useInView(0.1);
   const eqs=[
     {x:48, y:190,label:"E=mc²",     dur:"24s",delay:"0s"},
     {x:398,y:255,label:"∫f(x)dx",   dur:"32s",delay:"4s"},
@@ -507,48 +746,40 @@ function AstronautScene(){
     {x:80, y:440,label:"ΔG=ΔH−TΔS",dur:"36s",delay:"11s"},
     {x:340,y:130,label:"∇×B=μ₀J",  dur:"42s",delay:"6s"},
   ];
-
   return(
-    <div ref={wrapRef} style={{
-      position:"absolute",left:"50%",top:"50%",
-      transform:"translate(-50%,-50%)",
-      pointerEvents:"none",userSelect:"none",
-      width:"min(560px,85vw)",willChange:"transform,opacity",
+    <div ref={ref} style={{
+      position:"absolute",left:"50%",top:"50%",transform:"translate(-50%,-50%)",
+      pointerEvents:"none",userSelect:"none",width:"min(560px,85vw)",
+      opacity:inView?1:0,transition:"opacity 1.4s ease",
       filter:"drop-shadow(0 0 60px rgba(0,196,180,0.32)) drop-shadow(0 0 120px rgba(123,94,167,0.18))",
     }}>
-      <div ref={bodyRef} style={{willChange:"transform"}}>
+      <div style={{animation:"astro-float 7s ease-in-out infinite",willChange:"transform"}}>
         <svg viewBox="0 0 560 520" xmlns="http://www.w3.org/2000/svg" style={{width:"100%"}}>
           <defs>
             <radialGradient id="pgrad" cx="33%" cy="30%">
               <stop offset="0%" stopColor="#1e3a6e"/><stop offset="100%" stopColor="#060d20"/>
             </radialGradient>
             <radialGradient id="visorGrad" cx="30%" cy="25%">
-              <stop offset="0%" stopColor="#0a1830"/>
-              <stop offset="60%" stopColor="#040a14"/>
-              <stop offset="100%" stopColor="#020509"/>
+              <stop offset="0%" stopColor="#0a1830"/><stop offset="60%" stopColor="#040a14"/><stop offset="100%" stopColor="#020509"/>
             </radialGradient>
             <radialGradient id="suitGrad" cx="40%" cy="30%">
               <stop offset="0%" stopColor="#151f38"/><stop offset="100%" stopColor="#0e1628"/>
             </radialGradient>
           </defs>
-
           <ellipse cx="280" cy="490" rx="180" ry="18" fill="rgba(0,196,180,0.05)"/>
-
-          {/* Mini planet */}
           <circle cx="420" cy="88" r="58" fill="url(#pgrad)" stroke="rgba(0,196,180,0.2)" strokeWidth="0.8"/>
           <ellipse cx="420" cy="78" rx="52" ry="6" fill="rgba(0,20,80,0.3)"/>
           <ellipse cx="420" cy="94" rx="48" ry="5" fill="rgba(30,60,150,0.15)"/>
-          <ellipse cx="420" cy="88" rx="82"  ry="18" fill="none" stroke="rgba(200,220,255,0.25)" strokeWidth="1.2"/>
-          <ellipse cx="420" cy="88" rx="96"  ry="22" fill="none" stroke="rgba(232,185,35,0.12)"  strokeWidth="0.7"/>
+          <ellipse cx="420" cy="88" rx="82" ry="18" fill="none" stroke="rgba(200,220,255,0.25)" strokeWidth="1.2"/>
+          <ellipse cx="420" cy="88" rx="96" ry="22" fill="none" stroke="rgba(232,185,35,0.12)" strokeWidth="0.7"/>
           <ellipse cx="420" cy="88" rx="110" ry="26" fill="none" stroke="rgba(120,180,255,0.06)" strokeWidth="0.5"/>
-          <circle  cx="420" cy="88" r="58" fill="none" stroke="rgba(80,140,255,0.18)" strokeWidth="4"/>
-
+          <circle cx="420" cy="88" r="58" fill="none" stroke="rgba(80,140,255,0.18)" strokeWidth="4"/>
           <g transform="translate(148,108)">
             <ellipse cx="122" cy="72" rx="60" ry="64" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.2)" strokeWidth="1.2"/>
             <ellipse cx="122" cy="68" rx="42" ry="44" fill="url(#visorGrad)" stroke="rgba(0,196,180,0.35)" strokeWidth="0.9"/>
-            <ellipse cx="118" cy="60" rx="16" ry="8"  fill="rgba(123,94,167,0.18)"/>
-            <ellipse cx="125" cy="65" rx="9"  ry="5"  fill="rgba(0,196,180,0.12)"/>
-            <ellipse cx="112" cy="72" rx="6"  ry="3"  fill="rgba(232,185,35,0.08)"/>
+            <ellipse cx="118" cy="60" rx="16" ry="8" fill="rgba(123,94,167,0.18)"/>
+            <ellipse cx="125" cy="65" rx="9" ry="5" fill="rgba(0,196,180,0.12)"/>
+            <ellipse cx="112" cy="72" rx="6" ry="3" fill="rgba(232,185,35,0.08)"/>
             {[{x:116,y:56,s:1.3,d:"2s"},{x:130,y:50,s:0.9,d:"3.1s"},{x:110,y:75,s:0.9,d:"2.4s"},
               {x:134,y:70,s:0.7,d:"1.8s"},{x:108,y:62,s:0.6,d:"4s"}].map((st,i)=>(
               <circle key={i} cx={st.x} cy={st.y} r={st.s} fill="rgba(200,220,255,0.7)"
@@ -590,12 +821,11 @@ function AstronautScene(){
                 </g>);
               })}
             </g>
-            <rect x="78"  y="228" width="34" height="76" rx="17" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-4,95,266)"/>
+            <rect x="78" y="228" width="34" height="76" rx="17" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(-4,95,266)"/>
             <rect x="122" y="228" width="34" height="76" rx="17" fill="url(#suitGrad)" stroke="rgba(200,220,255,0.12)" strokeWidth="1" transform="rotate(6,139,266)"/>
-            <ellipse cx="95"  cy="308" rx="22" ry="6" fill="rgba(0,196,180,0.2)" style={{animation:"pulse-glow 3s ease-in-out infinite"}}/>
+            <ellipse cx="95" cy="308" rx="22" ry="6" fill="rgba(0,196,180,0.2)" style={{animation:"pulse-glow 3s ease-in-out infinite"}}/>
             <ellipse cx="139" cy="308" rx="18" ry="5" fill="rgba(0,196,180,0.15)" style={{animation:"pulse-glow 3s ease-in-out 0.8s infinite"}}/>
           </g>
-
           {eqs.map(eq=>(
             <text key={eq.label} x={eq.x} y={eq.y} fill="rgba(0,196,180,0.28)"
               style={{fontFamily:"monospace",fontSize:"12px",letterSpacing:"0.05em",
@@ -603,10 +833,8 @@ function AstronautScene(){
               {eq.label}
             </text>
           ))}
-
-          <line x1="30"  y1="250" x2="148" y2="250" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7"/>
+          <line x1="30" y1="250" x2="148" y2="250" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7"/>
           <line x1="365" y1="310" x2="480" y2="310" stroke="rgba(0,196,180,0.08)" strokeWidth="0.6" strokeDasharray="4 7"/>
-
           <g transform="translate(60,310)">
             <circle cx="0" cy="0" r="3" fill="rgba(232,185,35,0.7)"/>
             <ellipse cx="0" cy="0" rx="18" ry="7" fill="none" stroke="rgba(0,196,180,0.25)" strokeWidth="0.7" strokeDasharray="2 2"/>
@@ -623,162 +851,113 @@ function AstronautScene(){
   );
 }
 
-// ─── Cinematic scroll section — GSAP ScrollTrigger scene crossfade ────────────
+// ─── Cinematic section (CSS-only scroll, no GSAP) ────────────────────────────
 function CinematicSection(){
   const sectionRef=useRef<HTMLDivElement>(null);
-  const sceneARef=useRef<HTMLDivElement>(null);
-  const sceneBRef=useRef<HTMLDivElement>(null);
-  const gridRef=useRef<HTMLDivElement>(null);
-  const progressFillRef=useRef<HTMLDivElement>(null);
-  const progressLblRef=useRef<HTMLSpanElement>(null);
-  const hudRef=useRef<HTMLDivElement>(null);
-  const scrollHintRef=useRef<HTMLDivElement>(null);
-
+  const [p,setP]=useState(0);
   useEffect(()=>{
-    const section=sectionRef.current!;
-    const ctx=gsap.context(()=>{
-
-      // ── Scene A: GSAP text entrance on load ──
-      const aTexts=sceneARef.current!.querySelectorAll(".ct");
-      gsap.set(aTexts,{opacity:0,y:50,filter:"blur(8px)"});
-      gsap.to(aTexts,{opacity:1,y:0,filter:"blur(0px)",
-        duration:1.5,ease:"power3.out",stagger:0.2,
-        scrollTrigger:{trigger:section,start:"top 65%",toggleActions:"play none none none"},
-      });
-
-      // ── Master scrub timeline ──
-      const tl=gsap.timeline({
-        scrollTrigger:{
-          trigger:section,start:"top top",end:"bottom bottom",scrub:1.8,
-          onUpdate(self){
-            const p=Math.round(self.progress*100);
-            if(progressFillRef.current) progressFillRef.current.style.height=`${p}%`;
-            if(progressLblRef.current) progressLblRef.current.textContent=`${p}%`;
-            if(hudRef.current){
-              hudRef.current.innerHTML=
-                `<div>LAT ${((self.progress*90)-45).toFixed(2)}°</div>`+
-                `<div>LON ${((self.progress*360)-180).toFixed(2)}°</div>`+
-                `<div>ALT ${Math.round(400+self.progress*1200)} km</div>`;
-            }
-          },
-        },
-      });
-
-      // Grid drifts and zooms in
-      tl.to(gridRef.current,{y:"100px",scale:1.08,ease:"none"},0);
-
-      // Scroll hint fades fast
-      tl.to(scrollHintRef.current,{opacity:0,y:-20,ease:"none",duration:0.15},0);
-
-      // HUD fades in
-      tl.fromTo(hudRef.current,{opacity:0},{opacity:0.75,ease:"none"},0.06);
-
-      // Scene A → crossfade to Scene B at 42%
-      tl.to(sceneARef.current,{opacity:0,y:-50,filter:"blur(5px)",ease:"power2.in",duration:0.18},0.36);
-      tl.fromTo(sceneBRef.current,
-        {opacity:0,y:50,filter:"blur(8px)"},
-        {opacity:1,y:0,filter:"blur(0px)",ease:"power3.out",duration:0.22},
-        0.47
-      );
-      const bTexts=sceneBRef.current!.querySelectorAll(".ct");
-      tl.fromTo(bTexts,
-        {opacity:0,y:30,filter:"blur(4px)"},
-        {opacity:1,y:0,filter:"blur(0px)",stagger:0.08,ease:"power2.out",duration:0.2},
-        0.5
-      );
-
-    },sectionRef);
-    return ()=>ctx.revert();
+    const h=()=>{
+      if(!sectionRef.current)return;
+      const rect=sectionRef.current.getBoundingClientRect();
+      const total=sectionRef.current.offsetHeight-window.innerHeight;
+      const scrolled=Math.abs(Math.min(rect.top,0));
+      setP(Math.max(0,Math.min(1,scrolled/total)));
+    };
+    window.addEventListener("scroll",h,{passive:true});h();
+    return ()=>window.removeEventListener("scroll",h);
   },[]);
-
+  const showA=p<0.45;const showB=p>=0.4;
   return(
-    <div ref={sectionRef} data-cinematic style={{position:"relative",height:"320vh"}}>
+    <div ref={sectionRef} style={{position:"relative",height:"320vh",zIndex:2}}>
       <div style={{position:"sticky",top:0,height:"100vh",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>
-
-        {/* Nebula */}
         <div style={{position:"absolute",inset:0,
-          background:`
-            radial-gradient(ellipse 70% 60% at 28% 38%, rgba(0,196,180,0.09) 0%, transparent 70%),
+          background:`radial-gradient(ellipse 70% 60% at 28% 38%, rgba(0,196,180,0.09) 0%, transparent 70%),
             radial-gradient(ellipse 50% 40% at 72% 60%, rgba(232,185,35,0.06) 0%, transparent 60%),
-            radial-gradient(ellipse 40% 30% at 50% 50%, rgba(123,94,167,0.07) 0%, transparent 60%)
-          `}}/>
-
-        {/* Perspective grid — GSAP y+scale driven */}
-        <div ref={gridRef} style={{
+            radial-gradient(ellipse 40% 30% at 50% 50%, rgba(123,94,167,0.07) 0%, transparent 60%)`}}/>
+        <div style={{
           position:"absolute",inset:0,opacity:0.038,
           backgroundImage:`linear-gradient(rgba(0,196,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,196,180,1) 1px,transparent 1px)`,
           backgroundSize:"64px 64px",
-          transform:"perspective(400px) rotateX(8deg)",
-          transformOrigin:"center 60%",
-          willChange:"transform",
+          transform:`perspective(400px) rotateX(8deg) translateY(${p*100}px) scale(${1+p*0.08})`,
+          transformOrigin:"center 60%",willChange:"transform",
         }}/>
-
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:"220px",background:"linear-gradient(transparent,rgba(0,196,180,0.05))"}}/>
-
-        {/* Section motes */}
         <SectionParticles count={45} color={TEAL}/>
-
-        {/* Astronaut — fully GSAP driven */}
         <AstronautScene/>
-
-        {/* ── Scene A ── */}
-        <div ref={sceneARef} style={{
-          position:"absolute",top:"13%",left:"50%",transform:"translateX(-50%)",
-          textAlign:"center",width:"min(640px,90vw)",willChange:"transform,opacity,filter",
+        {/* Scene A */}
+        <div style={{position:"absolute",top:"13%",left:"50%",textAlign:"center",width:"min(640px,90vw)",
+          opacity:showA?1:0,transform:`translateX(-50%) translateY(${showA?0:-50}px)`,
+          filter:showA?"blur(0)":"blur(5px)",transition:"opacity 0.6s ease,transform 0.6s ease,filter 0.6s ease",
         }}>
-          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
-            Knowledge travels
-          </h2>
-          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:TEAL,lineHeight:1.12}}>
-            at the speed of curiosity.
-          </h2>
-          <div className="ct" style={{width:"120px",height:"0.5px",background:"rgba(0,196,180,0.3)",margin:"20px auto 0"}}/>
+          <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>Knowledge travels</h2>
+          <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:TEAL,lineHeight:1.12}}>at the speed of curiosity.</h2>
+          <div style={{width:"120px",height:"0.5px",background:"rgba(0,196,180,0.3)",margin:"20px auto 0"}}/>
         </div>
-
-        {/* ── Scene B ── */}
-        <div ref={sceneBRef} style={{
-          position:"absolute",top:"13%",left:"50%",transform:"translateX(-50%)",
-          textAlign:"center",width:"min(640px,90vw)",
-          opacity:0,willChange:"transform,opacity,filter",
+        {/* Scene B */}
+        <div style={{position:"absolute",top:"13%",left:"50%",textAlign:"center",width:"min(640px,90vw)",
+          opacity:showB?1:0,transform:`translateX(-50%) translateY(${showB?0:50}px)`,
+          filter:showB?"blur(0)":"blur(8px)",transition:"opacity 0.6s ease 0.1s,transform 0.6s ease 0.1s,filter 0.6s ease 0.1s",
         }}>
-          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>
-            AI-powered tools.
-          </h2>
-          <h2 className="ct" style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:GOLD,lineHeight:1.12}}>
-            Built for students who demand results.
-          </h2>
-          <div className="ct" style={{width:"120px",height:"0.5px",background:"rgba(232,185,35,0.3)",margin:"20px auto 0"}}/>
+          <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",lineHeight:1.12}}>AI-powered tools.</h2>
+          <h2 style={{fontSize:"clamp(22px,4vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:GOLD,lineHeight:1.12}}>Built for students who demand results.</h2>
+          <div style={{width:"120px",height:"0.5px",background:"rgba(232,185,35,0.3)",margin:"20px auto 0"}}/>
         </div>
-
         {/* Scroll hint */}
-        <div ref={scrollHintRef} style={{position:"absolute",bottom:"12%",left:"50%",transform:"translateX(-50%)",textAlign:"center",willChange:"opacity,transform"}}>
+        <div style={{position:"absolute",bottom:"12%",left:"50%",transform:"translateX(-50%)",textAlign:"center",
+          opacity:p<0.08?1:0,transition:"opacity 0.4s"}}>
           <p style={{...mono,fontSize:"10px",color:"rgba(0,196,180,0.6)",letterSpacing:"0.2em",marginBottom:"8px"}}>SCROLL TO EXPLORE</p>
           <div style={{width:"1px",height:"44px",background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto"}}/>
         </div>
-
-        {/* Vertical progress bar */}
+        {/* Progress bar */}
         <div style={{position:"absolute",right:"28px",top:"50%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:"6px"}}>
           <div style={{width:"1px",height:"90px",background:"#0d1220",position:"relative"}}>
-            <div ref={progressFillRef} style={{position:"absolute",top:0,left:0,right:0,height:"0%",background:`linear-gradient(${TEAL},${GOLD})`}}/>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:`${p*100}%`,background:`linear-gradient(${TEAL},${GOLD})`}}/>
           </div>
-          <span ref={progressLblRef} style={{...mono,fontSize:"9px",color:"#333",letterSpacing:"0.1em",writingMode:"vertical-lr"}}>0%</span>
+          <span style={{...mono,fontSize:"9px",color:"#333",letterSpacing:"0.1em",writingMode:"vertical-lr"}}>{Math.round(p*100)}%</span>
         </div>
-
         {/* HUD */}
-        <div ref={hudRef} style={{
-          position:"absolute",left:"24px",bottom:"10%",
-          ...mono,fontSize:"9px",color:"rgba(0,196,180,0.35)",
-          letterSpacing:"0.12em",lineHeight:1.9,opacity:0,willChange:"opacity",
-        }}/>
+        <div style={{position:"absolute",left:"24px",bottom:"10%",...mono,fontSize:"9px",
+          color:"rgba(0,196,180,0.35)",letterSpacing:"0.12em",lineHeight:1.9,
+          opacity:p>0.06?0.75:0,transition:"opacity 0.4s"}}>
+          <div>LAT {((p*90)-45).toFixed(2)}°</div>
+          <div>LON {((p*360)-180).toFixed(2)}°</div>
+          <div>ALT {Math.round(400+p*1200)} km</div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Hero section — CSS stagger on mount ──────────────────────────────────────
+// ─── D: Hero with mouse parallax ─────────────────────────────────────────────
 function HeroSection(){
+  const mouse=useMouseParallax();
+  const layer=(f:number,extra?:React.CSSProperties):React.CSSProperties=>({
+    transform:`translate(${mouse.x*f}px,${mouse.y*f}px)`,
+    transition:"transform 0.14s cubic-bezier(0.25,0.46,0.45,0.94)",
+    willChange:"transform",...extra,
+  });
   return(
     <section style={{padding:"110px 32px 88px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
+      {/* Parallax depth layers */}
+      <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
+        <div style={layer(5,{position:"absolute",right:"-80px",top:"20px",width:"320px",height:"320px",borderRadius:"50%",
+          background:"radial-gradient(ellipse,rgba(123,94,167,0.055) 0%,transparent 70%)"})}/>
+        <div style={layer(12,{position:"absolute",right:"-20px",top:"80px",width:"160px",height:"160px",borderRadius:"50%",
+          border:"0.5px solid rgba(0,196,180,0.055)"})}/>
+        {[{sz:3,r:110,t:90,f:15},{sz:2,r:155,t:135,f:22},{sz:4,r:85,t:170,f:9},{sz:2,r:195,t:100,f:17}]
+          .map((d,i)=>(
+            <div key={i} style={{
+              ...layer(d.f),position:"absolute",right:`${d.r}px`,top:`${d.t}px`,
+              width:`${d.sz}px`,height:`${d.sz}px`,borderRadius:"50%",
+              background:i%2===0?TEAL:GOLD,opacity:0.3,
+            }}/>
+          ))}
+        <div style={layer(19,{position:"absolute",right:"30px",top:"40px",...mono,fontSize:"9px",
+          color:"rgba(0,196,180,0.12)",letterSpacing:"0.14em",lineHeight:2.4,textTransform:"uppercase",whiteSpace:"nowrap"})}>
+          {["recall","understand","retain","master","grow"].map((w,i)=><div key={i}>{w}</div>)}
+        </div>
+      </div>
+
       <OrbitalRings/>
       <p style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"32px",animation:"pulse-glow 3s ease-in-out infinite, hero-enter 1.4s ease 0.15s both"}}>
         AI-Powered Study Platform
@@ -815,7 +994,6 @@ function HeroSection(){
   );
 }
 
-// ─── Practice Demo ────────────────────────────────────────────────────────────
 function PracticeDemo(){
   const [sel,setSel]=useState<string|null>(null);
   const [show,setShow]=useState(false);
@@ -826,8 +1004,7 @@ function PracticeDemo(){
       <p style={{fontSize:"13px",color:"#C0CCD8",lineHeight:1.6,fontWeight:300,marginBottom:"16px"}}>{mockQuestion.text}</p>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"14px"}}>
         {mockQuestion.choices.map(c=>{
-          const ok=show&&c.id===mockQuestion.correct;
-          const no=show&&c.id===sel&&c.id!==mockQuestion.correct;
+          const ok=show&&c.id===mockQuestion.correct;const no=show&&c.id===sel&&c.id!==mockQuestion.correct;
           return(
             <div key={c.id} onClick={()=>!show&&setSel(c.id)} style={{
               padding:"9px 12px",border:`0.5px solid ${ok?TEAL:no?"#ff4444":c.id===sel?TEAL:"#0d1220"}`,
@@ -881,16 +1058,6 @@ function ChatDemo(){
   );
 }
 
-function AnimatedStat({value,label}:{value:string;label:string}){
-  const {ref,inView}=useInView(0.5);
-  return(
-    <div ref={ref} style={{opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(16px)",transition:"all 0.7s ease"}}>
-      <div style={{...mono,fontSize:"20px",fontWeight:500,color:TEAL,letterSpacing:"-0.01em"}}>{value}</div>
-      <div style={{fontSize:"10px",color:"#444",textTransform:"uppercase",letterSpacing:"0.10em",marginTop:"2px"}}>{label}</div>
-    </div>
-  );
-}
-
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function Landing(){
   const scrollY=useScrollY();
@@ -903,7 +1070,10 @@ export default function Landing(){
       color:"#E0E8F0",fontFamily:"'Inter',system-ui,sans-serif"}}>
       <style>{CSS}</style>
 
-      {/* Fixed background layers */}
+      {/* H: Scroll progress */}
+      <ScrollProgressLine/>
+
+      {/* Background layers */}
       <StarField/>
       <NebulaLayer/>
       <FloatingPlanets/>
@@ -935,68 +1105,84 @@ export default function Landing(){
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* D: Hero + mouse parallax */}
       <div style={{position:"relative",zIndex:2}}><HeroSection/></div>
 
-      {/* Stats */}
+      {/* E: Animated counters */}
       <div style={hairline}/>
       <div style={{background:"rgba(6,8,18,0.92)",borderBottom:"0.5px solid #0d1220",position:"relative",zIndex:2}}>
-        <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px 32px",display:"flex",gap:"48px",flexWrap:"wrap"}}>
-          {[{value:"12+",label:"AI Study Tools"},{value:"50k+",label:"Students"},{value:"2M+",label:"Questions Generated"},{value:"94%",label:"Pass Rate"}]
-            .map(s=><AnimatedStat key={s.label} value={s.value} label={s.label}/>)}
+        <div style={{maxWidth:"720px",margin:"0 auto",padding:"28px 32px",display:"flex",gap:"48px",flexWrap:"wrap"}}>
+          <AnimatedCounter target={12}  suffix="+"  label="AI Study Tools"/>
+          <AnimatedCounter target={50}  suffix="k+" label="Students"/>
+          <AnimatedCounter target={2}   suffix="M+" label="Questions Generated"/>
+          <AnimatedCounter target={94}  suffix="%"  label="Pass Rate"/>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{position:"relative",zIndex:2,background:"#05080f"}}>
+      {/* A: Marquee #1 */}
+      <MarqueeDivider/>
 
-        <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
-          <SectionParticles count={25} color={PURPLE}/>
-          <Reveal><div style={sectionLabel}><span>Tools</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1px",background:"#0d1220"}}>
-            {features.map((f,i)=>(
-              <Reveal key={f.n} delay={i*0.04}>
-                <TiltCard style={{height:"100%"}}>
-                  <div style={{background:"#080d1a",padding:"20px 24px",transition:"background 0.2s,box-shadow 0.2s",height:"100%",boxSizing:"border-box"}}
-                    onMouseEnter={(e)=>{(e.currentTarget as HTMLElement).style.background="#0d1525";(e.currentTarget as HTMLElement).style.boxShadow=`inset 0 0 30px rgba(0,196,180,0.04)`;}}
-                    onMouseLeave={(e)=>{(e.currentTarget as HTMLElement).style.background="#080d1a";(e.currentTarget as HTMLElement).style.boxShadow="none";}}>
-                    <div style={{...mono,fontSize:"10px",color:"#1e2838",marginBottom:"10px",letterSpacing:"0.06em"}}>{f.n}</div>
-                    <div style={{fontSize:"13px",color:"#E0E8F0",fontWeight:500,marginBottom:"4px",letterSpacing:"-0.01em"}}>{f.title}</div>
-                    <div style={{fontSize:"12px",color:"#444",lineHeight:1.6,fontWeight:300}}>{f.desc}</div>
-                  </div>
-                </TiltCard>
-              </Reveal>
-            ))}
-          </div>
+      {/* Cinematic scroll scene */}
+      <CinematicSection/>
+
+      {/* Main content */}
+      <div style={{position:"relative",zIndex:2,background:"#05080f",overflow:"hidden"}}>
+
+        {/* B: Sticky features */}
+        <div style={{position:"relative"}}>
+          <SectionParticles count={18} color={PURPLE}/>
+          <ClipReveal>
+            <div style={{maxWidth:"1100px",margin:"0 auto",padding:"60px 32px 0",position:"relative",zIndex:1}}>
+              <div style={sectionLabel}><span>Tools</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div>
+            </div>
+          </ClipReveal>
+          <StickyFeatureShowcase/>
         </div>
 
         <div style={hairline}/>
 
+        {/* A: Marquee #2 */}
+        <MarqueeDivider/>
+
+        {/* C: Word-by-word manifesto */}
+        <WordReveal/>
+
+        <div style={hairline}/>
+
+        {/* F: Horizontal scroll */}
+        <HorizontalScrollGallery/>
+
+        <div style={hairline}/>
+
+        {/* G: Clip-path testimonials */}
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"64px 32px",position:"relative"}}>
           <SectionParticles count={18} color={GOLD}/>
-          <Reveal><div style={sectionLabel}><span>Testimonials</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div></Reveal>
+          <ClipReveal>
+            <div style={sectionLabel}><span>Testimonials</span><span style={{flex:1,height:"0.5px",background:"#0d1220",display:"block"}}/></div>
+          </ClipReveal>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1px",background:"#0d1220"}}>
             {testimonials.map((t,i)=>(
-              <Reveal key={t.name} delay={i*0.08}>
+              <ClipReveal key={t.name} delay={i*0.1}>
                 <div style={{background:"#080d1a",padding:"20px 24px",transition:"background 0.2s"}}
                   onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.background="#0d1525")}
                   onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.background="#080d1a")}>
                   <div style={{...mono,fontSize:"10px",color:"#444",letterSpacing:"0.06em",marginBottom:"10px"}}>{t.name} — {t.role}</div>
                   <p style={{fontSize:"13px",color:"#555",lineHeight:1.65,fontWeight:300}}>"{t.text}"</p>
                 </div>
-              </Reveal>
+              </ClipReveal>
             ))}
           </div>
         </div>
 
         <div style={hairline}/>
 
+        {/* CTA */}
         <div style={{maxWidth:"720px",margin:"0 auto",width:"100%",padding:"80px 32px",position:"relative"}}>
           <SectionParticles count={30} color={TEAL}/>
           <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"radial-gradient(ellipse 60% 40% at 50% 50%,rgba(0,196,180,0.05) 0%,transparent 70%)"}}/>
-          <Reveal><h2 style={{fontSize:"clamp(22px,3vw,36px)",fontWeight:300,letterSpacing:"-0.02em",marginBottom:"8px"}}>Ready to study smarter?</h2></Reveal>
-          <Reveal delay={0.1}><p style={{fontSize:"14px",color:"#555",marginBottom:"28px",fontWeight:300}}>Start free. No credit card required.</p></Reveal>
-          <Reveal delay={0.2}>
+          <ClipReveal><h2 style={{fontSize:"clamp(22px,3vw,36px)",fontWeight:300,letterSpacing:"-0.02em",marginBottom:"8px"}}>Ready to study smarter?</h2></ClipReveal>
+          <ClipReveal delay={0.08}><p style={{fontSize:"14px",color:"#555",marginBottom:"28px",fontWeight:300}}>Start free. No credit card required.</p></ClipReveal>
+          <ClipReveal delay={0.16}>
             <Link to="/signup">
               <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s"}}
                 onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.boxShadow=`0 0 48px rgba(0,196,180,0.55)`;e.currentTarget.style.transform="translateY(-2px)";}}
@@ -1004,7 +1190,7 @@ export default function Landing(){
                 Get started free →
               </button>
             </Link>
-          </Reveal>
+          </ClipReveal>
         </div>
 
         <footer style={{borderTop:"0.5px solid #0d1220"}}>
