@@ -268,30 +268,31 @@ function useMouseParallax(){
 //   • Fade in overlay text at the end
 // This is lag-free because it's just reading scrollY — no RAF loops, no setState spam.
 function CinematicVideoSection(){
-  const outerRef  = useRef<HTMLDivElement>(null);
-  const videoRef  = useRef<HTMLVideoElement>(null);
-  const rafRef    = useRef<number>(0);
-  const targetRef = useRef(0); // target currentTime, set from scroll
-  const readyRef  = useRef(false);
+  const outerRef      = useRef<HTMLDivElement>(null);
+  const videoRef      = useRef<HTMLVideoElement>(null);
+  const rafRef        = useRef<number>(0);
+  const rawTargetRef  = useRef(0); // set from scroll position
+  const targetRef     = useRef(0); // lerped — smoothed target fed to playback
+  const readyRef      = useRef(false);
 
-  const [p, setP]           = useState(0);   // 0→1 scroll progress through section
-  const [ready, setReady]   = useState(false);
+  const [p, setP]         = useState(0);
+  const [ready, setReady] = useState(false);
 
   const videoSrc = "https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
 
-  // ── On scroll: compute section progress, map to video time ────────────────
+  // ── On scroll: compute section progress, map to raw video target ───────────
   useEffect(()=>{
     const onScroll = ()=>{
       const el = outerRef.current;
       const v  = videoRef.current;
       if(!el) return;
       const rect      = el.getBoundingClientRect();
-      const scrollable= el.offsetHeight - window.innerHeight;   // 400vh of travel
-      const scrolled  = Math.max(0, -rect.top);                 // px scrolled into section
+      const scrollable= el.offsetHeight - window.innerHeight;
+      const scrolled  = Math.max(0, -rect.top);
       const progress  = Math.min(1, scrolled / scrollable);
       setP(progress);
       if(v && v.duration && readyRef.current){
-        targetRef.current = progress * v.duration;
+        rawTargetRef.current = progress * v.duration;
       }
     };
     window.addEventListener("scroll", onScroll, {passive:true});
@@ -299,16 +300,36 @@ function CinematicVideoSection(){
     return ()=> window.removeEventListener("scroll", onScroll);
   },[]);
 
-  // ── RAF loop: smoothly lerp currentTime toward target ─────────────────────
-  // We lerp the video time instead of snapping — this gives the "scrubbing"
-  // feel without causing buffering. Video must be preloaded for this to work.
+  // ── RAF loop: velocity-based natural playback ─────────────────────────────
+  // Instead of seeking every frame (jerky), we:
+  //  1. Lerp targetRef toward rawTargetRef (smooths out scroll bursts)
+  //  2. If video is behind → play forward, speed proportional to gap
+  //  3. If video is ahead (user scrolled back) → single seek backward
+  //  4. If on-target → pause cleanly
   useEffect(()=>{
     const tick = ()=>{
       const v = videoRef.current;
       if(v && v.duration && readyRef.current){
-        const diff = targetRef.current - v.currentTime;
-        if(Math.abs(diff) > 0.033){ // >1 frame difference → lerp
-          v.currentTime = v.currentTime + diff * 0.14;
+        // Smooth the target so rapid scroll doesn't create huge speed spikes
+        targetRef.current = targetRef.current + (rawTargetRef.current - targetRef.current) * 0.08;
+
+        const target  = targetRef.current;
+        const current = v.currentTime;
+        const diff    = target - current;
+        const absDiff = Math.abs(diff);
+
+        if(diff > 0.05){
+          // Behind target → play forward, speed proportional to gap (1x–4x max)
+          const rate = Math.min(1 + absDiff * 1.5, 4);
+          if(v.paused) v.play().catch(()=>{});
+          if(Math.abs(v.playbackRate - rate) > 0.1) v.playbackRate = rate;
+        } else if(diff < -0.12){
+          // Ahead (scrolled back) → single seek, pause
+          if(!v.paused){ v.pause(); v.playbackRate = 1; }
+          v.currentTime = Math.max(0, target);
+        } else {
+          // On target → freeze naturally
+          if(!v.paused){ v.pause(); v.playbackRate = 1; }
         }
       }
       rafRef.current = requestAnimationFrame(tick);
