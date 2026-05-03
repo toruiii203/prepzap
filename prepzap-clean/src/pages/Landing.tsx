@@ -344,9 +344,11 @@ function CinematicVideoSection(){
         }
       }
 
-      // 2. Card size — direct style write
+      // 2. Card size + visibility — hidden until user starts scrolling
       const card = cardRef.current;
       if(card){
+        const reveal = Math.min(1, p * 20); // fully visible after 5% scroll
+        card.style.opacity = String(reveal);
         card.style.width  = `${56 + ep * 44}%`;
         card.style.height = `${62 + ep * 38}%`;
         card.style.borderRadius = `${Math.round(14 * (1 - ep))}px`;
@@ -404,6 +406,7 @@ function CinematicVideoSection(){
         <div ref={cardRef} style={{
           width:"56%", height:"62%",
           borderRadius:"14px", overflow:"hidden", position:"relative",
+          opacity:0,
           boxShadow:`0 24px 100px rgba(0,0,0,0.9), 0 0 0 0.5px rgba(255,255,255,0.06)`,
         }}>
           <video
