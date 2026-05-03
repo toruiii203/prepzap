@@ -260,238 +260,138 @@ function useMouseParallax(){
 }
 
 // ─── CINEMATIC VIDEO SECTION ─────────────────────────────────────────────────
-//
-// WHY playbackRate INSTEAD OF currentTime SEEKS:
-//  Directly setting video.currentTime causes the browser to issue a new HTTP
-//  range request for every seek. If the server or CDN doesn't have that byte
-//  range cached yet, you get the buffering spinner. No amount of lerping fixes
-//  this — you're fundamentally fighting the network.
-//
-//  The solution: let the video PLAY normally (no seeking after initial load),
-//  and control speed + direction with playbackRate. Browsers handle forward
-//  playback at any rate from 0→16 natively without re-requesting data.
-//  For rewind we do a single seek backward by a small fixed amount — much
-//  less frequent than frame-by-frame seeks, and the browser re-buffers fast.
-//
-// MECHANIC:
-//  • Section appears when scrolled into view (opacity fade).
-//  • Body scroll locks once pinned. Wheel delta accumulates in a velocity bucket.
-//  • rAF loop drains that bucket: positive velocity → play fast, negative → rewind.
-//  • Velocity decays each frame (friction), so motion coasts to a stop naturally.
-//  • Video finishes → scroll unlocks → "continue scrolling" nudge appears.
-//  • Scrolling back up while still in section → re-locks and rewinds.
-//
+// Pure scroll-position approach — NO body lock, NO wheel hijacking.
+// The outer div is 500vh tall. As the user scrolls through it normally,
+// we read scrollProgress (0→1) and:
+//   • Drive video.currentTime directly (video is fully buffered via preload="auto")
+//   • Expand the card from 54%×66% → 100%×100% (Lusion-style)
+//   • Fade in overlay text at the end
+// This is lag-free because it's just reading scrollY — no RAF loops, no setState spam.
 function CinematicVideoSection(){
-  const outerRef   =useRef<HTMLDivElement>(null);
-  const videoRef   =useRef<HTMLVideoElement>(null);
+  const outerRef  = useRef<HTMLDivElement>(null);
+  const videoRef  = useRef<HTMLVideoElement>(null);
+  const rafRef    = useRef<number>(0);
+  const targetRef = useRef(0); // target currentTime, set from scroll
+  const readyRef  = useRef(false);
 
-  const lockedRef  =useRef(false);
-  const doneRef    =useRef(false);
-  const activeRef  =useRef(false);
-  const velocityRef=useRef(0);   // scroll velocity bucket (seconds/frame, signed)
-  const rafRef     =useRef<number>(0);
+  const [p, setP]           = useState(0);   // 0→1 scroll progress through section
+  const [ready, setReady]   = useState(false);
 
-  const [p,setP]           =useState(0);
-  const [visible,setVisible]=useState(false);
-  const [done,setDone]     =useState(false);
+  const videoSrc = "https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
 
-  const videoSrc="https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
-
-  const lockScroll=()=>{
-    if(lockedRef.current)return;
-    lockedRef.current=true;
-    document.body.style.overflow="hidden";
-  };
-  const unlockScroll=()=>{
-    if(!lockedRef.current)return;
-    lockedRef.current=false;
-    document.body.style.overflow="";
-  };
-
-  // ── rAF loop: drain velocity into playbackRate ────────────────────────────
-  // Instead of seeking, we adjust how fast/slow the video plays each frame.
-  // velocityRef > 0 → play forward fast
-  // velocityRef < 0 → we pause and seek backward a tiny fixed step (single seek)
-  // velocityRef ≈ 0 → pause (video frozen mid-frame, no buffering)
-  // Friction=0.82 means velocity halves roughly every 4 frames → natural coast.
+  // ── On scroll: compute section progress, map to video time ────────────────
   useEffect(()=>{
-    const FRICTION=0.82;
-    const MIN_V=0.001; // below this we just stop
-
-    const tick=()=>{
-      const v=videoRef.current;
-      if(v&&v.duration){
-        const vel=velocityRef.current;
-
-        if(Math.abs(vel)>MIN_V){
-          if(vel>0){
-            // ── Forward: set playbackRate proportional to scroll speed ───────
-            // vel is in seconds-per-frame. At 60fps, vel=0.05 means 3s/sec = 3x speed.
-            // Cap at 8x so it stays visually readable.
-            const rate=Math.min(vel*60,8);
-            if(v.paused)v.play().catch(()=>{});
-            v.playbackRate=rate;
-          } else {
-            // ── Backward: pause then nudge currentTime back ──────────────────
-            // We do ONE seek per frame but only by a small amount (-vel*0.8s max).
-            // This is far less frequent than the old per-frame seeking and the
-            // browser handles it without visible buffering at these small steps.
-            if(!v.paused)v.pause();
-            v.playbackRate=1;
-            const step=Math.min(Math.abs(vel)*0.8,0.12); // max 0.12s per frame back
-            v.currentTime=Math.max(0,v.currentTime-step);
-          }
-          // Friction: velocity decays toward 0 each frame
-          velocityRef.current=vel*FRICTION;
-        } else {
-          // Settled — freeze video cleanly
-          velocityRef.current=0;
-          if(!v.paused&&!doneRef.current){
-            v.pause();
-            v.playbackRate=1;
-          }
-        }
-
-        const prog=v.currentTime/v.duration;
-        setP(prog);
-
-        // Unlock at end
-        if(!doneRef.current&&prog>0.995){
-          doneRef.current=true;
-          setDone(true);
-          if(!v.paused)v.pause();
-          unlockScroll();
-        }
-        // Re-arm if rewound while still in section
-        if(doneRef.current&&prog<0.99&&activeRef.current){
-          doneRef.current=false;
-          setDone(false);
-          lockScroll();
-        }
-      }
-      rafRef.current=requestAnimationFrame(tick);
-    };
-    rafRef.current=requestAnimationFrame(tick);
-    return ()=>{cancelAnimationFrame(rafRef.current);};
-  },[]);
-
-  // ── Pin detection via scroll listener ────────────────────────────────────
-  useEffect(()=>{
-    const checkPin=()=>{
-      if(!outerRef.current)return;
-      const rect=outerRef.current.getBoundingClientRect();
-      const isPinned=rect.top<=2&&rect.bottom>window.innerHeight*1.5;
-      if(isPinned){
-        activeRef.current=true;
-        setVisible(true);
-        if(!doneRef.current)lockScroll();
-      } else {
-        activeRef.current=false;
-        // Scrolled above section → fully reset
-        if(rect.top>2){
-          doneRef.current=false;
-          setDone(false);
-          velocityRef.current=0;
-          const v=videoRef.current;
-          if(v){v.pause();v.currentTime=0;v.playbackRate=1;}
-          setP(0);
-        }
-        unlockScroll();
+    const onScroll = ()=>{
+      const el = outerRef.current;
+      const v  = videoRef.current;
+      if(!el) return;
+      const rect      = el.getBoundingClientRect();
+      const scrollable= el.offsetHeight - window.innerHeight;   // 400vh of travel
+      const scrolled  = Math.max(0, -rect.top);                 // px scrolled into section
+      const progress  = Math.min(1, scrolled / scrollable);
+      setP(progress);
+      if(v && v.duration && readyRef.current){
+        targetRef.current = progress * v.duration;
       }
     };
-    window.addEventListener("scroll",checkPin,{passive:true});
-    checkPin();
-    return ()=>{window.removeEventListener("scroll",checkPin);unlockScroll();};
+    window.addEventListener("scroll", onScroll, {passive:true});
+    onScroll();
+    return ()=> window.removeEventListener("scroll", onScroll);
   },[]);
 
-  // ── Wheel → velocity ──────────────────────────────────────────────────────
-  // Normalise all deltaY to pixels, then convert to seconds-per-frame.
-  // 1 mouse wheel notch ≈ 120px → adds ~0.06s/frame velocity → coast ~0.5s total.
-  // Trackpad sends many small events → same total accumulation, just smoother.
+  // ── RAF loop: smoothly lerp currentTime toward target ─────────────────────
+  // We lerp the video time instead of snapping — this gives the "scrubbing"
+  // feel without causing buffering. Video must be preloaded for this to work.
   useEffect(()=>{
-    const onWheel=(e:WheelEvent)=>{
-      if(!lockedRef.current)return;
-      e.preventDefault();
-      let delta=e.deltaY;
-      if(e.deltaMode===1)delta*=16;
-      if(e.deltaMode===2)delta*=300;
-      // 1px of scroll = 0.0005s of video velocity per frame
-      // 120px notch → 0.06s/frame → at 60fps and 0.82 friction → ~0.33s total advance
-      velocityRef.current+=delta*0.0005;
+    const tick = ()=>{
+      const v = videoRef.current;
+      if(v && v.duration && readyRef.current){
+        const diff = targetRef.current - v.currentTime;
+        if(Math.abs(diff) > 0.033){ // >1 frame difference → lerp
+          v.currentTime = v.currentTime + diff * 0.14;
+        }
+      }
+      rafRef.current = requestAnimationFrame(tick);
     };
-    window.addEventListener("wheel",onWheel,{passive:false});
-    return ()=>window.removeEventListener("wheel",onWheel);
-  },[]);
-
-  // ── Touch → velocity ──────────────────────────────────────────────────────
-  useEffect(()=>{
-    let lastY=0;
-    const onStart=(e:TouchEvent)=>{lastY=e.touches[0].clientY;};
-    const onMove=(e:TouchEvent)=>{
-      if(!lockedRef.current)return;
-      e.preventDefault();
-      const dy=lastY-e.touches[0].clientY;
-      lastY=e.touches[0].clientY;
-      velocityRef.current+=dy*0.0005;
-    };
-    window.addEventListener("touchstart",onStart,{passive:true});
-    window.addEventListener("touchmove",onMove,{passive:false});
-    return ()=>{
-      window.removeEventListener("touchstart",onStart);
-      window.removeEventListener("touchmove",onMove);
-    };
+    rafRef.current = requestAnimationFrame(tick);
+    return ()=> cancelAnimationFrame(rafRef.current);
   },[]);
 
   // ── Visuals ───────────────────────────────────────────────────────────────
-  const ease=(t:number)=>t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
-  const ep=ease(p);
-  const cardW     =54+ep*46;
-  const cardH     =66+ep*34;
-  const radius    =16-ep*16;
-  const videoScale=1+ep*0.06;
-  const hintOpacity    =Math.max(0,1-p*10);
-  const fullTextOpacity=Math.max(0,(ep-0.68)/0.32);
-  const phase=p<0.4?0:p<0.75?1:2;
-  const phases=[
+  const ease = (t:number)=> t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+  const ep   = ease(p);
+
+  // Card size: starts at 54%×66%, expands to 100%×100%
+  const cardW  = 54  + ep * 46;
+  const cardH  = 66  + ep * 34;
+  const radius = Math.round(16 - ep * 16);
+
+  const hintOpacity     = Math.max(0, 1 - p * 8);
+  const fullTextOpacity = Math.max(0, (ep - 0.72) / 0.28);
+  const phase = p < 0.4 ? 0 : p < 0.75 ? 1 : 2;
+  const phases = [
     {label:"— The Journey Begins",    title:"Enter a universe\nbuilt for learning",  sub:"12 AI tools. One mission. Your academic breakthrough."},
     {label:"— Your AI Study Partner", title:"Intelligence that\nadapts to you",      sub:"BrainBot learns your gaps and drills your weak spots."},
     {label:"— Master It Faster",      title:"Study smarter.\nNot longer.",           sub:"Cram Mode, Recall, Feynman, High Yield — all in one."},
   ];
-  const ph=phases[phase];
+  const ph = phases[phase];
 
   return(
-    <div ref={outerRef} style={{height:"400vh",position:"relative",background:"#03050f"}}>
+    <div ref={outerRef} style={{height:"500vh", position:"relative", background:"#03050f"}}>
+      {/* Sticky viewport — stays pinned while user scrolls through 500vh */}
       <div style={{
-        position:"sticky",top:0,height:"100vh",
-        display:"flex",alignItems:"center",justifyContent:"center",
-        background:"#03050f",overflow:"hidden",
-        opacity:visible?1:0,transition:"opacity 0.5s ease",
+        position:"sticky", top:0, height:"100vh",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        background:"#03050f", overflow:"hidden",
       }}>
+        {/* Expanding card */}
         <div style={{
-          width:`${cardW}%`,height:`${cardH}%`,
-          borderRadius:`${radius}px`,overflow:"hidden",position:"relative",
-          boxShadow:ep<0.9?`0 32px 120px rgba(0,0,0,0.85),0 0 0 0.5px rgba(255,255,255,0.05)`:undefined,
-          transition:"border-radius 0.08s linear",
+          width:`${cardW}%`, height:`${cardH}%`,
+          borderRadius:`${radius}px`,
+          overflow:"hidden", position:"relative",
+          boxShadow: ep < 0.95
+            ? `0 32px 120px rgba(0,0,0,0.85), 0 0 0 0.5px rgba(255,255,255,0.06)`
+            : "none",
         }}>
-          <div style={{position:"absolute",inset:"-5%",transform:`scale(${videoScale})`,willChange:"transform"}}>
-            <video ref={videoRef} src={videoSrc} muted playsInline preload="auto"
-              style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-          </div>
+          {/* Video — fills card, no extra scale wrapper needed */}
+          <video
+            ref={videoRef}
+            src={videoSrc}
+            muted playsInline preload="auto"
+            onCanPlayThrough={()=>{ readyRef.current=true; setReady(true); }}
+            style={{
+              position:"absolute", inset:0,
+              width:"100%", height:"100%",
+              objectFit:"cover", display:"block",
+            }}
+          />
 
+          {/* Gradient overlay */}
           <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:2,
-            background:"linear-gradient(180deg,rgba(3,5,15,0.5) 0%,transparent 25%,transparent 70%,rgba(3,5,15,0.8) 100%)"}}/>
+            background:"linear-gradient(180deg,rgba(3,5,15,0.45) 0%,transparent 25%,transparent 65%,rgba(3,5,15,0.85) 100%)"}}/>
 
-          <div style={{position:"absolute",bottom:"28px",left:"50%",transform:"translateX(-50%)",
-            zIndex:3,textAlign:"center",opacity:hintOpacity,pointerEvents:"none",transition:"opacity 0.4s"}}>
+          {/* "Scroll to play" hint — fades out quickly */}
+          <div style={{
+            position:"absolute", bottom:"28px", left:"50%", transform:"translateX(-50%)",
+            zIndex:3, textAlign:"center",
+            opacity: ready ? hintOpacity : 0,
+            pointerEvents:"none", transition:"opacity 0.4s",
+          }}>
             <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.4)",
               letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:"8px"}}>scroll to play</div>
-            <div style={{width:"1px",height:"28px",background:`linear-gradient(${TEAL},transparent)`,
+            <div style={{width:"1px",height:"28px",
+              background:`linear-gradient(${TEAL},transparent)`,
               margin:"0 auto",animation:"binary-fall 1.8s ease-in-out infinite"}}/>
           </div>
 
-          <div style={{position:"absolute",inset:0,zIndex:4,display:"flex",flexDirection:"column",
-            alignItems:"center",justifyContent:"center",textAlign:"center",padding:"0 32px",
-            opacity:fullTextOpacity,pointerEvents:"none",transition:"opacity 0.4s"}}>
+          {/* Overlay text — fades in when card is nearly full-screen */}
+          <div style={{
+            position:"absolute", inset:0, zIndex:4,
+            display:"flex", flexDirection:"column",
+            alignItems:"center", justifyContent:"center",
+            textAlign:"center", padding:"0 32px",
+            opacity:fullTextOpacity, pointerEvents:"none",
+          }}>
             <div key={phase} style={{animation:fullTextOpacity>0.05?"hero-enter 0.5s ease both":undefined}}>
               <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
                 textTransform:"uppercase",marginBottom:"16px",opacity:0.85}}>{ph.label}</div>
@@ -503,10 +403,12 @@ function CinematicVideoSection(){
             </div>
           </div>
 
+          {/* Progress bar along bottom of card */}
           <div style={{position:"absolute",bottom:0,left:0,zIndex:5,height:"1.5px",
             width:`${p*100}%`,background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>
         </div>
 
+        {/* Phase dots */}
         <div style={{position:"absolute",bottom:"20px",left:"50%",transform:"translateX(-50%)",
           zIndex:10,display:"flex",gap:"8px"}}>
           {[0,1,2].map(i=>(
@@ -515,12 +417,14 @@ function CinematicVideoSection(){
           ))}
         </div>
 
+        {/* "Continue scrolling" nudge at the end */}
         <div style={{position:"absolute",bottom:"48px",left:"50%",transform:"translateX(-50%)",
-          zIndex:10,textAlign:"center",opacity:done?1:0,transition:"opacity 0.6s ease",pointerEvents:"none"}}>
+          zIndex:10,textAlign:"center",
+          opacity:p>0.92?1:0,transition:"opacity 0.6s ease",pointerEvents:"none"}}>
           <div style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.2em",
             textTransform:"uppercase",marginBottom:"6px"}}>continue scrolling</div>
           <div style={{width:"1px",height:"20px",background:`linear-gradient(${TEAL},transparent)`,
-            margin:"0 auto",animation:done?"binary-fall 1.4s ease-in-out infinite":undefined}}/>
+            margin:"0 auto",animation:p>0.92?"binary-fall 1.4s ease-in-out infinite":undefined}}/>
         </div>
       </div>
     </div>
