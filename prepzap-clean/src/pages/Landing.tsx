@@ -313,6 +313,10 @@ function CinematicVideoSection(){
       const scrolled  = Math.max(0, -rect.top);
       const progress  = scrollable > 0 ? Math.min(1, scrolled / scrollable) : 0;
       pRef.current    = progress;
+      // Show card only once section has started scrolling into view
+      if(cardRef.current){
+        cardRef.current.style.visibility = scrolled > 0 ? "visible" : "hidden";
+      }
     };
     window.addEventListener("scroll", onScroll, {passive:true});
     onScroll();
@@ -344,11 +348,9 @@ function CinematicVideoSection(){
         }
       }
 
-      // 2. Card size + visibility — hidden until user starts scrolling
+      // 2. Card size — direct style write
       const card = cardRef.current;
       if(card){
-        const reveal = Math.min(1, p * 20); // fully visible after 5% scroll
-        card.style.opacity = String(reveal);
         card.style.width  = `${56 + ep * 44}%`;
         card.style.height = `${62 + ep * 38}%`;
         card.style.borderRadius = `${Math.round(14 * (1 - ep))}px`;
@@ -406,8 +408,8 @@ function CinematicVideoSection(){
         <div ref={cardRef} style={{
           width:"56%", height:"62%",
           borderRadius:"14px", overflow:"hidden", position:"relative",
-          opacity:0,
           boxShadow:`0 24px 100px rgba(0,0,0,0.9), 0 0 0 0.5px rgba(255,255,255,0.06)`,
+          visibility:"hidden",  // hidden until outerRef scrolls into view
         }}>
           <video
             ref={videoRef}
@@ -1569,8 +1571,10 @@ export default function Landing(){
           background:`linear-gradient(to bottom, transparent, ${VOID})`}}/>
       </div>
 
-      {/* ── CINEMATIC VIDEO SECTION ── */}
-      <CinematicVideoSection/>
+      {/* ── CINEMATIC VIDEO SECTION — hidden until scroll ── */}
+      <div style={{position:"relative", zIndex:1}}>
+        <CinematicVideoSection/>
+      </div>
 
       {/* E: Animated counters */}
       <div style={hairline}/>
