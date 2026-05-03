@@ -259,227 +259,430 @@ function useMouseParallax(){
   return pos;
 }
 
-// ─── CINEMATIC VIDEO SECTION ─────────────────────────────────────────────────
-// Approach: 500vh outer div, sticky 100vh panel.
-// scrollProgress (0→1) drives BOTH card size AND video.currentTime.
-// No body lock. No wheel hijack. No velocity bucket.
-// Video readiness: we mark ready on ANY of loadeddata/canplay/canplaythrough
-// so cached videos (which skip canplaythrough) still work.
-function CinematicVideoSection(){
-  const outerRef    = useRef<HTMLDivElement>(null);
-  const videoRef    = useRef<HTMLVideoElement>(null);
-  const cardRef     = useRef<HTMLDivElement>(null);
-  const hintRef     = useRef<HTMLDivElement>(null);
-  const textRef     = useRef<HTMLDivElement>(null);
-  const barRef      = useRef<HTMLDivElement>(null);
-  const dotsRef     = useRef<(HTMLDivElement|null)[]>([]);
-  const nudgeRef    = useRef<HTMLDivElement>(null);
-  const label0Ref   = useRef<HTMLDivElement>(null);
-  const label1Ref   = useRef<HTMLDivElement>(null);
-  const label2Ref   = useRef<HTMLDivElement>(null);
-  const rafRef      = useRef<number>(0);
-  const pRef        = useRef(0);
-  const readyRef    = useRef(false);
+// ─── THREE.JS SCENE LOADER ────────────────────────────────────────────────────
+// Dynamically loads Three.js from CDN once, caches on window.THREE
+function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: any, canvas: HTMLCanvasElement) => ()=>void){
+  useEffect(()=>{
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    let cleanup: (()=>void)|undefined;
+    const run = (THREE: any)=>{ cleanup = setup(THREE, canvas); };
+    if((window as any).THREE){ run((window as any).THREE); return ()=>{ cleanup?.(); }; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+    s.onload = ()=>run((window as any).THREE);
+    document.head.appendChild(s);
+    return ()=>{ cleanup?.(); };
+  },[]);
+}
 
-  const videoSrc = "https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
+// ─── SCENE 1: GALAXY EXPLOSION ────────────────────────────────────────────────
+function Scene1Galaxy({ progress }: { progress: number }){
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef  = useRef<any>({});
 
-  // Unlock seeking: browsers won't allow currentTime scrubbing until the video
-  // has been "played" at least once. We play then immediately pause to unlock it.
-  const markReady = ()=>{
-    if(readyRef.current) return;
-    readyRef.current = true;
-    const v = videoRef.current;
-    if(!v) return;
-    v.currentTime = 0;
-    const unlock = v.play();
-    if(unlock !== undefined){
-      unlock.then(()=>{ v.pause(); v.currentTime = 0; }).catch(()=>{});
+  useThree(canvasRef, (THREE, canvas)=>{
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(W,H,false);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, W/H, 0.1, 1000);
+    camera.position.z = 5;
+
+    // Galaxy particles
+    const N = 6000;
+    const positions = new Float32Array(N*3);
+    const colors    = new Float32Array(N*3);
+    const arms = 3;
+    const palette = [[0,0.77,0.71],[0.48,0.37,0.65],[0.91,0.73,0.14]];
+    for(let i=0;i<N;i++){
+      const arm    = i % arms;
+      const t      = (i/N)*Math.PI*8 + (arm/arms)*Math.PI*2;
+      const r      = 0.4 + (i/N)*3.5 + Math.random()*0.4;
+      const spread = 0.15 + (i/N)*0.35;
+      positions[i*3]   = Math.cos(t)*r + (Math.random()-0.5)*spread;
+      positions[i*3+1] = (Math.random()-0.5)*spread*0.6;
+      positions[i*3+2] = Math.sin(t)*r + (Math.random()-0.5)*spread;
+      const [cr,cg,cb] = palette[arm];
+      const bright = 0.55+Math.random()*0.45;
+      colors[i*3]   = cr*bright; colors[i*3+1] = cg*bright; colors[i*3+2] = cb*bright;
     }
-  };
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions,3));
+    geo.setAttribute("color",    new THREE.BufferAttribute(colors,3));
+    const mat = new THREE.PointsMaterial({size:0.022, vertexColors:true, transparent:true, opacity:0.88});
+    const galaxy = new THREE.Points(geo,mat);
+    scene.add(galaxy);
 
-  const phases = [
-    {label:"— The Journey Begins",    title:"Enter a universe\nbuilt for learning",  sub:"12 AI tools. One mission. Your academic breakthrough."},
-    {label:"— Your AI Study Partner", title:"Intelligence that\nadapts to you",      sub:"BrainBot learns your gaps and drills your weak spots."},
-    {label:"— Master It Faster",      title:"Study smarter.\nNot longer.",           sub:"Cram Mode, Recall, Feynman, High Yield — all in one."},
+    // Central glow orb
+    const orb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18,32,32),
+      new THREE.MeshBasicMaterial({color:0x00C4B4, transparent:true, opacity:0.8})
+    );
+    scene.add(orb);
+
+    const mouse = {x:0,y:0};
+    const onMouse = (e:MouseEvent)=>{
+      mouse.x = (e.clientX/window.innerWidth - 0.5)*2;
+      mouse.y = -(e.clientY/window.innerHeight - 0.5)*2;
+    };
+    window.addEventListener("mousemove", onMouse);
+
+    let raf:number, t=0;
+    const tick = ()=>{
+      raf = requestAnimationFrame(tick);
+      t += 0.004;
+      const p = stateRef.current.progress ?? 0;
+      galaxy.rotation.y = t + mouse.x*0.3;
+      galaxy.rotation.x = mouse.y*0.15 + p*0.4;
+      // Warp speed: compress z on scroll
+      const scaleZ = 1 + p*6;
+      galaxy.scale.set(1+p*0.3, 1+p*0.3, scaleZ);
+      mat.opacity = Math.max(0, 0.88 - p*1.5);
+      orb.material.opacity = Math.max(0, 0.8 - p*2);
+      camera.position.z = 5 - p*4.5;
+      renderer.render(scene,camera);
+    };
+    tick();
+
+    const onResize = ()=>{
+      const w=canvas.clientWidth,h=canvas.clientHeight;
+      camera.aspect=w/h; camera.updateProjectionMatrix();
+      renderer.setSize(w,h,false);
+    };
+    window.addEventListener("resize",onResize);
+
+    return ()=>{
+      cancelAnimationFrame(raf);
+      window.removeEventListener("mousemove",onMouse);
+      window.removeEventListener("resize",onResize);
+      renderer.dispose();
+    };
+  });
+
+  stateRef.current.progress = progress;
+
+  return <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>;
+}
+
+// ─── SCENE 2: NEURAL NETWORK ──────────────────────────────────────────────────
+function Scene2Neural({ progress }: { progress: number }){
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef  = useRef<any>({});
+
+  useThree(canvasRef, (THREE, canvas)=>{
+    const W=canvas.clientWidth, H=canvas.clientHeight;
+    const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(W,H,false);
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(65,W/H,0.1,500);
+    camera.position.z = 8;
+
+    const tools = ["BrainBot","Flashcards","Cram Mode","Recall","Feynman","High Yield","Roadmap","Study DNA","Focus Timer","Mistakes","Source Lib","Confidence"];
+    const nodeColors = [0x00C4B4,0x7B5EA7,0xE8B923,0x4A9EFF,0xFF6B6B,0xA78BFA,0x00C4B4,0x7B5EA7,0xE8B923,0x4A9EFF,0xFF6B6B,0xA78BFA];
+
+    const nodes: any[] = [];
+    const group = new THREE.Group();
+    scene.add(group);
+
+    // Icosphere-ish layout
+    const phi = Math.PI*(3-Math.sqrt(5));
+    tools.forEach((_, i)=>{
+      const y   = 1 - (i/(tools.length-1))*2;
+      const r   = Math.sqrt(1-y*y)*3.5;
+      const theta = phi*i;
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18,16,16),
+        new THREE.MeshStandardMaterial({color:nodeColors[i], emissive:nodeColors[i], emissiveIntensity:0.35, roughness:0.3, metalness:0.6})
+      );
+      mesh.position.set(Math.cos(theta)*r, y*2.2, Math.sin(theta)*r);
+      mesh.userData = {baseY: y*2.2, phase: i*0.52};
+      group.add(mesh);
+      nodes.push(mesh);
+    });
+
+    // Connections
+    const lineMat = new THREE.LineBasicMaterial({color:0x00C4B4, transparent:true, opacity:0.08});
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        if(Math.random()>0.45) continue;
+        const geo = new THREE.BufferGeometry().setFromPoints([nodes[i].position, nodes[j].position]);
+        group.add(new THREE.Line(geo,lineMat));
+      }
+    }
+
+    // Pulse rings
+    const rings: any[] = [];
+    nodes.forEach((n,i)=>{
+      if(i%3!==0) return;
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.32,0.012,8,32),
+        new THREE.MeshBasicMaterial({color:nodeColors[i],transparent:true,opacity:0})
+      );
+      ring.position.copy(n.position);
+      ring.userData = {phase: i*0.8};
+      group.add(ring);
+      rings.push(ring);
+    });
+
+    scene.add(new THREE.AmbientLight(0xffffff,0.5));
+    const pt = new THREE.PointLight(0x00C4B4,2,20); pt.position.set(3,3,3); scene.add(pt);
+    const pt2 = new THREE.PointLight(0x7B5EA7,1.5,20); pt2.position.set(-3,-2,2); scene.add(pt2);
+
+    const mouse={x:0,y:0};
+    const onMouse=(e:MouseEvent)=>{ mouse.x=(e.clientX/window.innerWidth-0.5)*2; mouse.y=-(e.clientY/window.innerHeight-0.5)*2; };
+    window.addEventListener("mousemove",onMouse);
+
+    let raf:number,t=0;
+    const tick=()=>{
+      raf=requestAnimationFrame(tick); t+=0.008;
+      const p = stateRef.current.progress ?? 0;
+      group.rotation.y = t*0.25 + mouse.x*0.4;
+      group.rotation.x = mouse.y*0.2;
+      nodes.forEach(n=>{ n.position.y = n.userData.baseY + Math.sin(t+n.userData.phase)*0.15; });
+      rings.forEach(r=>{
+        const s = (Math.sin(t*1.2+r.userData.phase)+1)/2;
+        r.scale.setScalar(1+s*0.8);
+        r.material.opacity = (1-s)*0.4;
+      });
+      lineMat.opacity = 0.06 + Math.sin(t*0.5)*0.04;
+      // Transition out
+      group.scale.setScalar(Math.max(0.01, 1 - Math.max(0,(p-0.85)*6)));
+      renderer.render(scene,camera);
+    };
+    tick();
+
+    const onResize=()=>{ const w=canvas.clientWidth,h=canvas.clientHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h,false); };
+    window.addEventListener("resize",onResize);
+
+    return ()=>{ cancelAnimationFrame(raf); window.removeEventListener("mousemove",onMouse); window.removeEventListener("resize",onResize); renderer.dispose(); };
+  });
+
+  stateRef.current.progress = progress;
+  return <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>;
+}
+
+// ─── SCENE 3: CRYSTAL FLASHCARD ───────────────────────────────────────────────
+function Scene3Flashcard({ progress }: { progress: number }){
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef  = useRef<any>({});
+
+  useThree(canvasRef, (THREE, canvas)=>{
+    const W=canvas.clientWidth,H=canvas.clientHeight;
+    const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(W,H,false);
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55,W/H,0.1,200);
+    camera.position.set(0,0,7);
+
+    const group = new THREE.Group();
+    scene.add(group);
+
+    // Main card — box geometry
+    const cardGeo = new THREE.BoxGeometry(4.2,2.6,0.08);
+    const cardMat = new THREE.MeshStandardMaterial({color:0x080d1a, roughness:0.1, metalness:0.9, envMapIntensity:1});
+    const card = new THREE.Mesh(cardGeo, cardMat);
+    group.add(card);
+
+    // Card edge glow
+    const edgeGeo = new THREE.EdgesGeometry(cardGeo);
+    const edgeMat = new THREE.LineBasicMaterial({color:0x00C4B4,linewidth:1});
+    group.add(new THREE.LineSegments(edgeGeo,edgeMat));
+
+    // Orbiting mini-cards
+    const miniCards: any[] = [];
+    [[0x7B5EA7,2.8,0],[0xE8B923,2.8,2.09],[0x4A9EFF,2.8,4.19]].forEach(([col,r,ang],i)=>{
+      const mini = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2,0.75,0.06),
+        new THREE.MeshStandardMaterial({color:col,roughness:0.2,metalness:0.8})
+      );
+      mini.userData = {r, ang, phase:i*1.05};
+      group.add(mini);
+      const edge2 = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(1.2,0.75,0.06)),
+        new THREE.LineBasicMaterial({color:col})
+      );
+      mini.add(edge2);
+      miniCards.push(mini);
+    });
+
+    // Particle trail
+    const trailGeo = new THREE.BufferGeometry();
+    const trailPos = new Float32Array(300*3);
+    for(let i=0;i<300;i++){
+      trailPos[i*3]   = (Math.random()-0.5)*12;
+      trailPos[i*3+1] = (Math.random()-0.5)*8;
+      trailPos[i*3+2] = (Math.random()-0.5)*4 - 2;
+    }
+    trailGeo.setAttribute("position", new THREE.BufferAttribute(trailPos,3));
+    scene.add(new THREE.Points(trailGeo, new THREE.PointsMaterial({color:0x00C4B4,size:0.03,transparent:true,opacity:0.5})));
+
+    scene.add(new THREE.AmbientLight(0xffffff,0.4));
+    const pl1 = new THREE.PointLight(0x00C4B4,3,20); pl1.position.set(4,3,3); scene.add(pl1);
+    const pl2 = new THREE.PointLight(0x7B5EA7,2,20); pl2.position.set(-4,-2,2); scene.add(pl2);
+    const pl3 = new THREE.PointLight(0xE8B923,1.5,15); pl3.position.set(0,4,-2); scene.add(pl3);
+
+    const mouse={x:0,y:0};
+    const onMouse=(e:MouseEvent)=>{ mouse.x=(e.clientX/window.innerWidth-0.5)*2; mouse.y=-(e.clientY/window.innerHeight-0.5)*2; };
+    window.addEventListener("mousemove",onMouse);
+
+    let raf:number,t=0;
+    const tick=()=>{
+      raf=requestAnimationFrame(tick); t+=0.01;
+      const p = stateRef.current.progress ?? 0;
+      group.rotation.y = mouse.x*0.35 + Math.sin(t*0.3)*0.1;
+      group.rotation.x = mouse.y*0.2 + Math.sin(t*0.2)*0.05;
+      // Card flip on scroll
+      card.rotation.y = p*Math.PI*1.5;
+      cardMat.color.setHex(p>0.5 ? 0x0a1a2e : 0x080d1a);
+      edgeMat.color.setHex(p>0.5 ? 0xE8B923 : 0x00C4B4);
+      // Orbit mini-cards
+      miniCards.forEach(m=>{
+        const a = m.userData.ang + t*0.4;
+        const r = m.userData.r;
+        m.position.set(Math.cos(a)*r, Math.sin(a*0.7)*0.8, Math.sin(a)*r*0.5);
+        m.rotation.y = a + Math.PI/4;
+        m.rotation.x = Math.sin(t+m.userData.phase)*0.3;
+      });
+      pl1.position.x = Math.sin(t*0.7)*5;
+      pl2.position.y = Math.cos(t*0.5)*4;
+      renderer.render(scene,camera);
+    };
+    tick();
+
+    const onResize=()=>{ const w=canvas.clientWidth,h=canvas.clientHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h,false); };
+    window.addEventListener("resize",onResize);
+
+    return ()=>{ cancelAnimationFrame(raf); window.removeEventListener("mousemove",onMouse); window.removeEventListener("resize",onResize); renderer.dispose(); };
+  });
+
+  stateRef.current.progress = progress;
+  return <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>;
+}
+
+// ─── 3D JOURNEY SECTION (replaces CinematicVideoSection) ─────────────────────
+function ThreeDJourneySection(){
+  const outerRef = useRef<HTMLDivElement>(null);
+  const pRef     = useRef(0);
+  const [p, setP]= useState(0);
+
+  useEffect(()=>{
+    const onScroll=()=>{
+      const el=outerRef.current; if(!el) return;
+      const rect=el.getBoundingClientRect();
+      const scrollable=el.offsetHeight-window.innerHeight;
+      const scrolled=Math.max(0,-rect.top);
+      const progress=scrollable>0?Math.min(1,scrolled/scrollable):0;
+      pRef.current=progress;
+      setP(progress);
+    };
+    window.addEventListener("scroll",onScroll,{passive:true});
+    onScroll();
+    return ()=>window.removeEventListener("scroll",onScroll);
+  },[]);
+
+  // Scene selection and within-scene progress
+  const scene     = p < 0.33 ? 0 : p < 0.66 ? 1 : 2;
+  const sceneP    = p < 0.33 ? p/0.33 : p < 0.66 ? (p-0.33)/0.33 : (p-0.66)/0.34;
+
+  const scenes = [
+    { label:"01 — The Universe",  title:"Enter a universe\nbuilt for learning",    sub:"A galaxy of 12 AI tools orbiting one mission — your breakthrough.", color:TEAL },
+    { label:"02 — The Network",   title:"Intelligence that\nadapts to you",         sub:"BrainBot learns your gaps. Neural pathways form. You level up.", color:PURPLE },
+    { label:"03 — The Method",    title:"Study smarter.\nNot longer.",              sub:"Flip between modes — Recall, Cram, Feynman, High Yield — in one flow.", color:GOLD },
   ];
 
-  // ── Scroll → pRef only (no setState, no re-render) ───────────────────────
-  useEffect(()=>{
-    const onScroll = ()=>{
-      const el = outerRef.current;
-      if(!el) return;
-      const rect      = el.getBoundingClientRect();
-      const scrollable= el.offsetHeight - window.innerHeight;
-      const scrolled  = Math.max(0, -rect.top);
-      const progress  = scrollable > 0 ? Math.min(1, scrolled / scrollable) : 0;
-      pRef.current    = progress;
-      // Show card only once section has started scrolling into view
-      if(cardRef.current){
-        cardRef.current.style.visibility = scrolled > 0 ? "visible" : "hidden";
-      }
-    };
-    window.addEventListener("scroll", onScroll, {passive:true});
-    onScroll();
-    return ()=> window.removeEventListener("scroll", onScroll);
-  },[]);
+  const cur = scenes[scene];
 
-  // ── RAF: seek video + mutate DOM styles directly — ZERO setState ──────────
-  useEffect(()=>{
-    const easeOut = (t:number)=> 1 - Math.pow(1-t, 3);
-    let lastPhase = -1;
-
-    const tick = ()=>{
-      const v = videoRef.current;
-      const p = pRef.current;
-      const ep = easeOut(p);
-
-      // 1. Seek video — snap if gap is big, lerp if small
-      if(v && readyRef.current && v.duration > 0){
-        if(!v.paused) v.pause();
-        const target = p * v.duration;
-        const diff   = target - v.currentTime;
-        const absDiff = Math.abs(diff);
-        if(absDiff > 2){
-          // Gap too large — snap directly to avoid crawling
-          v.currentTime = target;
-        } else if(absDiff > 1/60){
-          // Small gap — smooth lerp
-          v.currentTime = v.currentTime + diff * 0.35;
-        }
-      }
-
-      // 2. Card size — direct style write
-      const card = cardRef.current;
-      if(card){
-        card.style.width  = `${56 + ep * 44}%`;
-        card.style.height = `${62 + ep * 38}%`;
-        card.style.borderRadius = `${Math.round(14 * (1 - ep))}px`;
-        card.style.boxShadow = ep < 0.98
-          ? `0 24px 100px rgba(0,0,0,0.9), 0 0 0 0.5px rgba(255,255,255,0.06)`
-          : "none";
-      }
-
-      // 3. Hint opacity
-      if(hintRef.current)
-        hintRef.current.style.opacity = String(Math.max(0, 1 - p * 6));
-
-      // 4. Overlay text opacity — NO re-render, just style write
-      const textOpacity = Math.max(0, (p - 0.75) / 0.25);
-      if(textRef.current)
-        textRef.current.style.opacity = String(textOpacity);
-
-      // 5. Phase switch — only update DOM when phase changes
-      const phase = p < 0.4 ? 0 : p < 0.75 ? 1 : 2;
-      if(phase !== lastPhase){
-        lastPhase = phase;
-        const ph = phases[phase];
-        if(label0Ref.current) label0Ref.current.textContent = ph.label;
-        if(label1Ref.current) label1Ref.current.textContent = ph.title;
-        if(label2Ref.current) label2Ref.current.textContent = ph.sub;
-        dotsRef.current.forEach((dot,i)=>{
-          if(!dot) return;
-          dot.style.width      = i===phase ? "18px" : "5px";
-          dot.style.background = i===phase ? TEAL   : "rgba(255,255,255,0.12)";
-        });
-      }
-
-      // 6. Progress bar
-      if(barRef.current)
-        barRef.current.style.width = `${p*100}%`;
-
-      // 7. Nudge
-      if(nudgeRef.current)
-        nudgeRef.current.style.opacity = p > 0.9 ? "1" : "0";
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return ()=> cancelAnimationFrame(rafRef.current);
-  },[]);
+  const textEnter = Math.min(1, sceneP*3);
+  const textExit  = Math.max(0, 1 - Math.max(0,(sceneP-0.75)*4));
+  const textOp    = textEnter * textExit;
 
   return(
-    <div ref={outerRef} style={{height:"1200vh", position:"relative", background:"#03050f"}}>
-      <div style={{
-        position:"sticky", top:0, height:"100vh",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        background:"#03050f", overflow:"hidden",
-      }}>
-        {/* Card — size controlled by RAF via cardRef */}
-        <div ref={cardRef} style={{
-          width:"56%", height:"62%",
-          borderRadius:"14px", overflow:"hidden", position:"relative",
-          boxShadow:`0 24px 100px rgba(0,0,0,0.9), 0 0 0 0.5px rgba(255,255,255,0.06)`,
-          visibility:"hidden",  // hidden until outerRef scrolls into view
-        }}>
-          <video
-            ref={videoRef}
-            muted playsInline preload="auto"
-            crossOrigin="anonymous"
-            onLoadedData={markReady} onCanPlay={markReady} onCanPlayThrough={markReady}
-            style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}
-          >
-            <source src={videoSrc} type="video/mp4"/>
-          </video>
-          <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:2,
-            background:"linear-gradient(180deg,rgba(3,5,15,0.4) 0%,transparent 20%,transparent 65%,rgba(3,5,15,0.8) 100%)"}}/>
+    <div ref={outerRef} style={{height:"380vh", position:"relative", background:VOID}}>
+      <div style={{position:"sticky",top:0,height:"100vh",overflow:"hidden",background:VOID}}>
 
-          {/* Scroll hint */}
-          <div ref={hintRef} style={{
-            position:"absolute",bottom:"28px",left:"50%",transform:"translateX(-50%)",
-            zIndex:3,textAlign:"center",opacity:1,pointerEvents:"none",
-          }}>
-            <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.4)",
-              letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:"8px"}}>scroll to play</div>
-            <div style={{width:"1px",height:"28px",background:`linear-gradient(${TEAL},transparent)`,
-              margin:"0 auto",animation:"binary-fall 1.8s ease-in-out infinite"}}/>
-          </div>
-
-          {/* Overlay text — opacity driven by RAF, NOT by React state */}
-          <div ref={textRef} style={{
-            position:"absolute",inset:0,zIndex:4,
-            display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-            textAlign:"center",padding:"0 32px",opacity:0,pointerEvents:"none",
-          }}>
-            <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
-              textTransform:"uppercase",marginBottom:"16px",opacity:0.85}}
-              ref={label0Ref}>{phases[0].label}</div>
-            <h2 ref={label1Ref} style={{fontSize:"clamp(26px,4vw,50px)",fontWeight:300,
-              letterSpacing:"-0.03em",lineHeight:1.15,color:"#F2F5F8",marginBottom:"20px",
-              maxWidth:"640px",whiteSpace:"pre-line",textShadow:"0 2px 40px rgba(0,0,0,0.95)"}}>
-              {phases[0].title}
-            </h2>
-            <p ref={label2Ref} style={{fontSize:"14px",color:"rgba(255,255,255,0.45)",
-              maxWidth:"380px",lineHeight:1.7,fontWeight:300,
-              textShadow:"0 1px 20px rgba(0,0,0,0.9)"}}>
-              {phases[0].sub}
-            </p>
-          </div>
-
-          {/* Progress bar */}
-          <div ref={barRef} style={{position:"absolute",bottom:0,left:0,zIndex:5,
-            height:"1.5px",width:"0%",background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>
+        {/* Scene canvases — layered, opacity transitions between them */}
+        <div style={{position:"absolute",inset:0,opacity:scene===0?1:0,transition:"opacity 0.9s ease"}}>
+          <Scene1Galaxy progress={sceneP}/>
+        </div>
+        <div style={{position:"absolute",inset:0,opacity:scene===1?1:0,transition:"opacity 0.9s ease"}}>
+          <Scene2Neural progress={sceneP}/>
+        </div>
+        <div style={{position:"absolute",inset:0,opacity:scene===2?1:0,transition:"opacity 0.9s ease"}}>
+          <Scene3Flashcard progress={sceneP}/>
         </div>
 
-        {/* Phase dots */}
-        <div style={{position:"absolute",bottom:"20px",left:"50%",transform:"translateX(-50%)",
-          zIndex:10,display:"flex",gap:"8px"}}>
+        {/* Warp speed lines (scene 1 transition) */}
+        {scene===0 && sceneP>0.7 && (
+          <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden",opacity:(sceneP-0.7)/0.3}}>
+            {Array.from({length:24},(_,i)=>{
+              const ang = (i/24)*Math.PI*2;
+              const len = 30+Math.random()*40;
+              return(
+                <div key={i} style={{
+                  position:"absolute",left:"50%",top:"50%",
+                  width:"1px",height:`${len}%`,
+                  background:`linear-gradient(${i%3===0?TEAL:i%3===1?PURPLE:GOLD},transparent)`,
+                  transformOrigin:"top center",
+                  transform:`rotate(${ang}rad) translateX(-50%)`,
+                  opacity:0.25+Math.random()*0.3,
+                }}/>
+              );
+            })}
+          </div>
+        )}
+
+        {/* HUD overlay — scene label */}
+        <div style={{position:"absolute",top:"32px",left:"40px",zIndex:10,pointerEvents:"none"}}>
+          <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.2)",letterSpacing:"0.22em",textTransform:"uppercase"}}>{cur.label}</div>
+        </div>
+
+        {/* Scene dots */}
+        <div style={{position:"absolute",right:"32px",top:"50%",transform:"translateY(-50%)",zIndex:10,display:"flex",flexDirection:"column",gap:"10px"}}>
           {[0,1,2].map(i=>(
-            <div key={i} ref={el=>{dotsRef.current[i]=el;}}
-              style={{width:i===0?"18px":"5px",height:"5px",borderRadius:"3px",
-              background:i===0?TEAL:"rgba(255,255,255,0.12)",
-              transition:"width 0.4s ease, background 0.4s ease"}}/>
+            <div key={i} style={{
+              width:"4px",height:i===scene?"22px":"4px",borderRadius:"2px",
+              background:i===scene?scenes[i].color:"rgba(255,255,255,0.12)",
+              transition:"height 0.4s ease,background 0.4s ease",
+            }}/>
           ))}
         </div>
 
-        {/* Continue nudge */}
-        <div ref={nudgeRef} style={{position:"absolute",bottom:"48px",left:"50%",
-          transform:"translateX(-50%)",zIndex:10,textAlign:"center",
-          opacity:0,transition:"opacity 0.5s ease",pointerEvents:"none"}}>
-          <div style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.2em",
-            textTransform:"uppercase",marginBottom:"6px"}}>continue scrolling</div>
-          <div style={{width:"1px",height:"20px",background:`linear-gradient(${TEAL},transparent)`,
-            margin:"0 auto",animation:"binary-fall 1.4s ease-in-out infinite"}}/>
+        {/* Text overlay */}
+        <div style={{
+          position:"absolute",bottom:"14%",left:"50%",transform:"translateX(-50%)",
+          textAlign:"center",zIndex:10,pointerEvents:"none",width:"min(640px,90vw)",
+          opacity:textOp,
+          transition:"opacity 0.15s",
+        }}>
+          <h2 style={{fontSize:"clamp(24px,4vw,52px)",fontWeight:300,letterSpacing:"-0.03em",
+            lineHeight:1.12,color:"#F2F5F8",marginBottom:"16px",whiteSpace:"pre-line",
+            textShadow:"0 0 60px rgba(0,0,0,0.9)"}}>
+            {cur.title}
+          </h2>
+          <p style={{fontSize:"14px",color:"rgba(255,255,255,0.4)",maxWidth:"400px",
+            margin:"0 auto",lineHeight:1.75,fontWeight:300}}>
+            {cur.sub}
+          </p>
+          <div style={{width:"40px",height:"1px",background:cur.color,margin:"20px auto 0",opacity:0.6}}/>
         </div>
+
+        {/* Scroll hint */}
+        <div style={{position:"absolute",bottom:"32px",left:"50%",transform:"translateX(-50%)",
+          zIndex:10,textAlign:"center",opacity:p<0.05?1:0,transition:"opacity 0.5s",pointerEvents:"none"}}>
+          <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.3)",letterSpacing:"0.2em",marginBottom:"8px"}}>SCROLL TO EXPLORE</div>
+          <div style={{width:"1px",height:"28px",background:`linear-gradient(${TEAL},transparent)`,margin:"0 auto",animation:"binary-fall 1.8s ease-in-out infinite"}}/>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:"1.5px",zIndex:10}}>
+          <div style={{height:"100%",background:`linear-gradient(90deg,${TEAL},${PURPLE},${GOLD})`,
+            width:`${p*100}%`,transition:"width 0.05s linear"}}/>
+        </div>
+
       </div>
     </div>
   );
@@ -1244,6 +1447,85 @@ function _CinematicSection_UNUSED(){
   );
 }
 
+// ─── HERO 3D GALAXY BACKGROUND ───────────────────────────────────────────────
+function HeroGalaxy(){
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useThree(canvasRef, (THREE, canvas)=>{
+    const W=canvas.clientWidth||window.innerWidth, H=canvas.clientHeight||window.innerHeight;
+    const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(W,H,false);
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70,W/H,0.1,200);
+    camera.position.set(0,1.5,6);
+    camera.lookAt(0,0,0);
+
+    // Big star field
+    const N=4000;
+    const pos=new Float32Array(N*3), col=new Float32Array(N*3);
+    for(let i=0;i<N;i++){
+      const r=4+Math.random()*14;
+      const theta=Math.random()*Math.PI*2, phi=Math.acos(2*Math.random()-1);
+      pos[i*3]=r*Math.sin(phi)*Math.cos(theta);
+      pos[i*3+1]=r*Math.sin(phi)*Math.sin(theta);
+      pos[i*3+2]=r*Math.cos(phi);
+      const warm=Math.random()<0.12;
+      const bright=0.3+Math.random()*0.7;
+      col[i*3]=warm?bright*0.9:bright*0.75;
+      col[i*3+1]=warm?bright*0.7:bright*0.85;
+      col[i*3+2]=warm?bright*0.2:bright;
+    }
+    const starGeo=new THREE.BufferGeometry();
+    starGeo.setAttribute("position",new THREE.BufferAttribute(pos,3));
+    starGeo.setAttribute("color",new THREE.BufferAttribute(col,3));
+    scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({size:0.025,vertexColors:true,transparent:true,opacity:0.9})));
+
+    // Spiral galaxy in foreground-right
+    const GN=2800;
+    const gpos=new Float32Array(GN*3), gcol=new Float32Array(GN*3);
+    for(let i=0;i<GN;i++){
+      const arm=i%2;
+      const t=(i/GN)*Math.PI*5+(arm/2)*Math.PI;
+      const r=0.2+(i/GN)*2.8+Math.random()*0.25;
+      gpos[i*3]=Math.cos(t)*r*1.8+2.5+(Math.random()-0.5)*0.2;
+      gpos[i*3+1]=(Math.random()-0.5)*0.18;
+      gpos[i*3+2]=Math.sin(t)*r+(Math.random()-0.5)*0.2;
+      const teal=arm===0;
+      const b=0.5+Math.random()*0.5;
+      gcol[i*3]=teal?0:b*0.48; gcol[i*3+1]=teal?b*0.77:b*0.37; gcol[i*3+2]=teal?b*0.71:b*0.65;
+    }
+    const gGeo=new THREE.BufferGeometry();
+    gGeo.setAttribute("position",new THREE.BufferAttribute(gpos,3));
+    gGeo.setAttribute("color",new THREE.BufferAttribute(gcol,3));
+    scene.add(new THREE.Points(gGeo,new THREE.PointsMaterial({size:0.018,vertexColors:true,transparent:true,opacity:0.75})));
+
+    // Floating orbs
+    [[0x00C4B4,[-1.5,0.5,-1],0.12],[0x7B5EA7,[2,1,-2],0.18],[0xE8B923,[0.5,-1,-1.5],0.08]].forEach(([col,pos,r]:any)=>{
+      const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,16),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.7}));
+      m.position.set(...pos); scene.add(m);
+    });
+
+    const mouse={x:0,y:0};
+    const onMouse=(e:MouseEvent)=>{ mouse.x=(e.clientX/window.innerWidth-0.5); mouse.y=-(e.clientY/window.innerHeight-0.5); };
+    window.addEventListener("mousemove",onMouse,{passive:true});
+
+    let raf:number,t=0;
+    const tick=()=>{
+      raf=requestAnimationFrame(tick); t+=0.003;
+      scene.rotation.y=t*0.06+mouse.x*0.12;
+      scene.rotation.x=mouse.y*0.08;
+      renderer.render(scene,camera);
+    };
+    tick();
+
+    const onResize=()=>{ const w=canvas.clientWidth||window.innerWidth,h=canvas.clientHeight||window.innerHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h,false); };
+    window.addEventListener("resize",onResize);
+
+    return ()=>{ cancelAnimationFrame(raf); window.removeEventListener("mousemove",onMouse); window.removeEventListener("resize",onResize); renderer.dispose(); };
+  });
+  return <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>;
+}
+
 // ─── D: Hero with mouse parallax (lerped + true Z-depth) ─────────────────────
 function HeroSection(){
   const mouse=useMouseParallax();
@@ -1556,24 +1838,25 @@ export default function Landing(){
 
       {/* ── HERO SECTION with scoped space background ── */}
       <div style={{position:"relative",overflow:"hidden",background:VOID,zIndex:2,isolation:"isolate"}}>
-        {/* Space bg layers — contained inside this div, not fixed globally */}
-        <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
-          <StarFieldContained/>
+        {/* Three.js hero galaxy — full bleed behind everything */}
+        <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none"}}>
+          <HeroGalaxy/>
+        </div>
+        {/* Legacy space bg layers — subtle overlay */}
+        <div style={{position:"absolute",inset:0,zIndex:1,pointerEvents:"none",overflow:"hidden",opacity:0.5}}>
           <NebulaLayer/>
-          <FloatingPlanets/>
           <BinaryRain/>
-          <ParticleMotes/>
         </div>
         {/* D: Hero + mouse parallax */}
         <div style={{position:"relative",zIndex:2,overflow:"hidden"}}><HeroSection/></div>
-        {/* Clean fade into video section — no bleed */}
+        {/* Clean fade into 3D section */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:"120px",zIndex:3,pointerEvents:"none",
           background:`linear-gradient(to bottom, transparent, ${VOID})`}}/>
       </div>
 
-      {/* ── CINEMATIC VIDEO SECTION — hidden until scroll ── */}
+      {/* ── 3D JOURNEY SECTION ── */}
       <div style={{position:"relative", zIndex:1}}>
-        <CinematicVideoSection/>
+        <ThreeDJourneySection/>
       </div>
 
       {/* E: Animated counters */}
