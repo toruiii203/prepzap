@@ -217,7 +217,6 @@ function useMouseParallax(){
 // ─── CINEMATIC VIDEO SECTION ─────────────────────────────────────────────────
 function CinematicVideoSection(){
   const ref=useRef<HTMLDivElement>(null);
-  const videoRef=useRef<HTMLVideoElement>(null);
   const [scrollProgress,setScrollProgress]=useState(0);
   const [inView,setInView]=useState(false);
 
@@ -241,17 +240,15 @@ function CinematicVideoSection(){
     return ()=>obs.disconnect();
   },[]);
 
-  useEffect(()=>{
-    if(!videoRef.current)return;
-    if(inView){videoRef.current.play().catch(()=>{});}
-    else{videoRef.current.pause();}
-  },[inView]);
-
   const videoY=scrollProgress * -80;
   const scale=1+scrollProgress*0.08;
   const overlayOpacity=scrollProgress>0.85?1-(scrollProgress-0.85)/0.15:1;
+  // ✅ Google Drive embed URL — works in browsers (no CORS block)
+  // To use your own video: upload to Cloudflare R2, Bunny CDN, or any CDN
+  // and replace this entire iframe with:
+  //   <video ref={videoRef} src="YOUR_CDN_URL" muted loop playsInline style={{width:"100%",height:"110%",objectFit:"cover"}}/>
   const FILE_ID="1XwUJWsBjLeDiG-byvrTnvr3m_W9514W8";
-  const videoSrc=`https://drive.google.com/uc?export=download&id=${FILE_ID}`;
+  const embedSrc=`https://drive.google.com/file/d/${FILE_ID}/preview`;
 
   return(
     <div ref={ref}
@@ -261,9 +258,22 @@ function CinematicVideoSection(){
         transform:`translateY(${videoY}px) scale(${scale})`,
         opacity:overlayOpacity,
         transition:"transform 0.05s linear",
+        pointerEvents:"none",
       }}>
-        <video ref={videoRef} src={videoSrc} muted loop playsInline
-          style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+        {/* Google Drive iframe embed — autoplay via &rm=minimal */}
+        <iframe
+          src={`${embedSrc}&rm=minimal`}
+          allow="autoplay; fullscreen"
+          allowFullScreen
+          style={{
+            width:"100%",height:"110%",
+            border:"none",
+            objectFit:"cover",
+            // scale up to fill and hide Drive UI chrome
+            transform:"scale(1.06)",
+            transformOrigin:"center center",
+          }}
+        />
       </div>
       <div style={{
         position:"absolute",inset:0,
