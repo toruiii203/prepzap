@@ -1538,7 +1538,7 @@ export default function Landing(){
       </nav>
 
       {/* ── HERO SECTION with scoped space background ── */}
-      <div style={{position:"relative",overflow:"hidden",background:VOID}}>
+      <div style={{position:"relative",overflow:"hidden",background:VOID,zIndex:2}}>
         {/* Space bg layers — contained inside this div, not fixed globally */}
         <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none"}}>
           <StarFieldContained/>
