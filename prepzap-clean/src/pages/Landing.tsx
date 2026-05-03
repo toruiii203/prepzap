@@ -110,6 +110,15 @@ const CSS = `
 
   /* B: Sticky panel */
   .sticky-left{position:sticky;top:88px;align-self:flex-start;}
+
+  /* Floating parallax objects */
+  @keyframes float-a{0%,100%{transform:translateY(0px) rotate(0deg);}50%{transform:translateY(-22px) rotate(3deg);}}
+  @keyframes float-b{0%,100%{transform:translateY(0px) rotate(0deg);}50%{transform:translateY(-18px) rotate(-4deg);}}
+  @keyframes float-c{0%,100%{transform:translateY(0px) scale(1);}50%{transform:translateY(-14px) scale(1.04);}}
+  @keyframes spin-slow{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @keyframes spin-rev{from{transform:rotate(360deg);}to{transform:rotate(0deg);}}
+  @keyframes beam-sweep{0%,100%{opacity:0;transform:translateX(-100%);}50%{opacity:1;transform:translateX(100vw);}}
+  @keyframes particle-up{0%{transform:translateY(0);opacity:0;}10%{opacity:1;}90%{opacity:0.6;}100%{transform:translateY(-120px);opacity:0;}}
 `;
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -217,6 +226,7 @@ function useMouseParallax(){
 // ─── CINEMATIC VIDEO SECTION ─────────────────────────────────────────────────
 function CinematicVideoSection(){
   const ref=useRef<HTMLDivElement>(null);
+  const videoRef=useRef<HTMLVideoElement>(null);
   const [scrollProgress,setScrollProgress]=useState(0);
   const [inView,setInView]=useState(false);
 
@@ -240,15 +250,16 @@ function CinematicVideoSection(){
     return ()=>obs.disconnect();
   },[]);
 
+  useEffect(()=>{
+    if(!videoRef.current)return;
+    if(inView){videoRef.current.play().catch(()=>{});}
+    else{videoRef.current.pause();}
+  },[inView]);
+
   const videoY=scrollProgress * -80;
   const scale=1+scrollProgress*0.08;
   const overlayOpacity=scrollProgress>0.85?1-(scrollProgress-0.85)/0.15:1;
-  // ✅ Google Drive embed URL — works in browsers (no CORS block)
-  // To use your own video: upload to Cloudflare R2, Bunny CDN, or any CDN
-  // and replace this entire iframe with:
-  //   <video ref={videoRef} src="YOUR_CDN_URL" muted loop playsInline style={{width:"100%",height:"110%",objectFit:"cover"}}/>
-  const FILE_ID="1XwUJWsBjLeDiG-byvrTnvr3m_W9514W8";
-  const embedSrc=`https://drive.google.com/file/d/${FILE_ID}/preview`;
+  const videoSrc="https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1).mp4";
 
   return(
     <div ref={ref}
@@ -258,22 +269,9 @@ function CinematicVideoSection(){
         transform:`translateY(${videoY}px) scale(${scale})`,
         opacity:overlayOpacity,
         transition:"transform 0.05s linear",
-        pointerEvents:"none",
       }}>
-        {/* Google Drive iframe embed — autoplay via &rm=minimal */}
-        <iframe
-          src={`${embedSrc}&rm=minimal`}
-          allow="autoplay; fullscreen"
-          allowFullScreen
-          style={{
-            width:"100%",height:"110%",
-            border:"none",
-            objectFit:"cover",
-            // scale up to fill and hide Drive UI chrome
-            transform:"scale(1.06)",
-            transformOrigin:"center center",
-          }}
-        />
+        <video ref={videoRef} src={videoSrc} muted loop playsInline
+          style={{width:"100%",height:"100%",objectFit:"cover"}}/>
       </div>
       <div style={{
         position:"absolute",inset:0,
@@ -1212,6 +1210,241 @@ function ChatDemo(){
   );
 }
 
+// ─── FLOATING OBJECTS PARALLAX SECTION ───────────────────────────────────────
+function FloatingObjectsSection(){
+  const ref=useRef<HTMLDivElement>(null);
+  const [scroll,setScroll]=useState(0);
+  useEffect(()=>{
+    const h=()=>{
+      if(!ref.current)return;
+      const rect=ref.current.getBoundingClientRect();
+      const p=Math.max(0,Math.min(1,(window.innerHeight-rect.top)/(window.innerHeight+rect.height)));
+      setScroll(p);
+    };
+    window.addEventListener("scroll",h,{passive:true});h();
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
+
+  const {ref:inRef,inView}=useInView(0.1);
+
+  // different parallax speeds for each object
+  const y1=scroll*-120;
+  const y2=scroll*-60;
+  const y3=scroll*-180;
+  const y4=scroll*-90;
+  const y5=scroll*-40;
+
+  return(
+    <div ref={ref} style={{position:"relative",minHeight:"520px",overflow:"hidden",
+      background:"linear-gradient(180deg,#03050f 0%,#060c1a 50%,#03050f 100%)",
+      borderTop:"0.5px solid #0d1220",borderBottom:"0.5px solid #0d1220"}}>
+
+      {/* Beam sweep */}
+      <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"40%",left:0,width:"200px",height:"1px",
+          background:`linear-gradient(90deg,transparent,${TEAL},transparent)`,
+          opacity:0.15,animation:"beam-sweep 8s ease-in-out 0s infinite"}}/>
+        <div style={{position:"absolute",top:"60%",left:0,width:"120px",height:"1px",
+          background:`linear-gradient(90deg,transparent,${GOLD},transparent)`,
+          opacity:0.12,animation:"beam-sweep 12s ease-in-out 3s infinite"}}/>
+      </div>
+
+      {/* Floating object 1 — teal ring cluster */}
+      <div style={{position:"absolute",left:"8%",top:"15%",
+        transform:`translateY(${y1}px)`,transition:"transform 0.05s linear",
+        animation:"float-a 7s ease-in-out infinite"}}>
+        <svg width="90" height="90" viewBox="0 0 90 90" style={{opacity:0.18}}>
+          <circle cx="45" cy="45" r="40" fill="none" stroke={TEAL} strokeWidth="0.8"/>
+          <circle cx="45" cy="45" r="28" fill="none" stroke={TEAL} strokeWidth="0.5" strokeDasharray="4 6"/>
+          <circle cx="45" cy="45" r="14" fill="none" stroke={TEAL} strokeWidth="0.4"/>
+          <circle cx="45" cy="45" r="3" fill={TEAL} opacity="0.6"/>
+        </svg>
+      </div>
+
+      {/* Floating object 2 — gold diamond */}
+      <div style={{position:"absolute",right:"12%",top:"10%",
+        transform:`translateY(${y2}px)`,transition:"transform 0.05s linear",
+        animation:"float-b 9s ease-in-out 1s infinite"}}>
+        <svg width="60" height="60" viewBox="0 0 60 60" style={{opacity:0.15}}>
+          <polygon points="30,2 58,30 30,58 2,30" fill="none" stroke={GOLD} strokeWidth="0.8"/>
+          <polygon points="30,12 48,30 30,48 12,30" fill="none" stroke={GOLD} strokeWidth="0.5" strokeDasharray="3 4"/>
+          <circle cx="30" cy="30" r="4" fill={GOLD} opacity="0.5"/>
+        </svg>
+      </div>
+
+      {/* Floating object 3 — spinning grid */}
+      <div style={{position:"absolute",left:"22%",bottom:"20%",
+        transform:`translateY(${y3}px)`,transition:"transform 0.05s linear"}}>
+        <div style={{animation:"spin-slow 20s linear infinite",opacity:0.1}}>
+          <svg width="70" height="70" viewBox="0 0 70 70">
+            <line x1="35" y1="0" x2="35" y2="70" stroke={PURPLE} strokeWidth="0.6"/>
+            <line x1="0" y1="35" x2="70" y2="35" stroke={PURPLE} strokeWidth="0.6"/>
+            <line x1="0" y1="0" x2="70" y2="70" stroke={PURPLE} strokeWidth="0.4"/>
+            <line x1="70" y1="0" x2="0" y2="70" stroke={PURPLE} strokeWidth="0.4"/>
+            <circle cx="35" cy="35" r="30" fill="none" stroke={PURPLE} strokeWidth="0.5"/>
+            <circle cx="35" cy="35" r="15" fill="none" stroke={PURPLE} strokeWidth="0.4" strokeDasharray="2 3"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Floating object 4 — counter-spinning hexagon */}
+      <div style={{position:"absolute",right:"25%",bottom:"15%",
+        transform:`translateY(${y4}px)`,transition:"transform 0.05s linear"}}>
+        <div style={{animation:"spin-rev 28s linear infinite",opacity:0.12}}>
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <polygon points="40,4 72,22 72,58 40,76 8,58 8,22" fill="none" stroke={TEAL} strokeWidth="0.7"/>
+            <polygon points="40,16 62,28 62,52 40,64 18,52 18,28" fill="none" stroke={TEAL} strokeWidth="0.4" strokeDasharray="3 5"/>
+            <circle cx="40" cy="40" r="5" fill="none" stroke={TEAL} strokeWidth="0.5"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Floating object 5 — small dot cluster */}
+      <div style={{position:"absolute",left:"55%",top:"8%",
+        transform:`translateY(${y5}px)`,transition:"transform 0.05s linear",
+        animation:"float-c 11s ease-in-out 2s infinite"}}>
+        {[0,1,2,3,4,5,6,7,8].map(i=>(
+          <div key={i} style={{
+            position:"absolute",
+            left:`${Math.cos(i/9*Math.PI*2)*28+28}px`,
+            top:`${Math.sin(i/9*Math.PI*2)*28+28}px`,
+            width:"2px",height:"2px",borderRadius:"50%",
+            background:i%3===0?TEAL:i%3===1?GOLD:PURPLE,
+            opacity:0.35,
+          }}/>
+        ))}
+      </div>
+
+      {/* Rising particles */}
+      {Array.from({length:16},(_,i)=>(
+        <div key={i} style={{
+          position:"absolute",
+          left:`${5+i*6}%`,
+          bottom:`${10+Math.random()*20}%`,
+          width:"1.5px",height:"1.5px",borderRadius:"50%",
+          background:i%3===0?TEAL:i%3===1?PURPLE:GOLD,
+          opacity:0.4,
+          animation:`particle-up ${4+i*0.7}s ease-out ${-i*0.5}s infinite`,
+        }}/>
+      ))}
+
+      {/* Center text */}
+      <div ref={inRef} style={{
+        position:"relative",zIndex:2,
+        display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+        minHeight:"520px",padding:"60px 32px",textAlign:"center",
+      }}>
+        <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
+          textTransform:"uppercase",marginBottom:"20px",opacity:0.7,
+          transform:inView?"translateY(0)":"translateY(20px)",
+          transition:"all 0.8s ease",opacity:inView?0.7:0}}>
+          — Built Different
+        </div>
+        <h2 style={{fontSize:"clamp(24px,3.5vw,44px)",fontWeight:300,
+          letterSpacing:"-0.03em",color:"#F2F5F8",maxWidth:"560px",lineHeight:1.2,
+          marginBottom:"16px",
+          transform:inView?"translateY(0)":"translateY(30px)",
+          transition:"all 0.9s ease 0.1s",opacity:inView?1:0}}>
+          Every tool moves<br/>with your progress
+        </h2>
+        <p style={{fontSize:"13px",color:"#444",maxWidth:"360px",lineHeight:1.7,fontWeight:300,
+          transform:inView?"translateY(0)":"translateY(20px)",
+          transition:"all 1s ease 0.2s",opacity:inView?1:0}}>
+          Studenius adapts in real time — your study DNA updates every session.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── DEPTH PARALLAX LAYERS SECTION ───────────────────────────────────────────
+function DepthParallaxSection(){
+  const ref=useRef<HTMLDivElement>(null);
+  const [scroll,setScroll]=useState(0);
+  const {ref:inRef,inView}=useInView(0.15);
+
+  useEffect(()=>{
+    const h=()=>{
+      if(!ref.current)return;
+      const rect=ref.current.getBoundingClientRect();
+      const p=Math.max(0,Math.min(1,(window.innerHeight-rect.top)/(window.innerHeight+rect.height)));
+      setScroll(p);
+    };
+    window.addEventListener("scroll",h,{passive:true});h();
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
+
+  return(
+    <div ref={ref} style={{position:"relative",height:"500px",overflow:"hidden",background:"#03050f"}}>
+      {/* Layer 1 — slowest, furthest back */}
+      <div style={{position:"absolute",inset:0,transform:`translateY(${scroll*-30}px)`,transition:"transform 0.05s linear"}}>
+        <div style={{position:"absolute",left:"10%",top:"20%",width:"300px",height:"300px",borderRadius:"50%",
+          background:"radial-gradient(ellipse,rgba(123,94,167,0.06) 0%,transparent 70%)"}}/>
+        <div style={{position:"absolute",right:"15%",top:"10%",width:"200px",height:"200px",borderRadius:"50%",
+          background:"radial-gradient(ellipse,rgba(0,196,180,0.05) 0%,transparent 70%)"}}/>
+      </div>
+
+      {/* Layer 2 — medium speed */}
+      <div style={{position:"absolute",inset:0,transform:`translateY(${scroll*-70}px)`,transition:"transform 0.05s linear"}}>
+        {[
+          {left:"15%",top:"30%",size:1.5,col:TEAL},
+          {left:"30%",top:"60%",size:2,col:GOLD},
+          {left:"60%",top:"25%",size:1.5,col:PURPLE},
+          {left:"75%",top:"55%",size:2,col:TEAL},
+          {left:"45%",top:"70%",size:1,col:GOLD},
+          {left:"85%",top:"35%",size:1.5,col:PURPLE},
+        ].map((d,i)=>(
+          <div key={i} style={{position:"absolute",left:d.left,top:d.top,
+            width:`${d.size*2}px`,height:`${d.size*2}px`,borderRadius:"50%",
+            background:d.col,opacity:0.3,
+            animation:`float-${["a","b","c"][i%3]} ${6+i}s ease-in-out ${i*0.8}s infinite`}}/>
+        ))}
+        {/* Grid lines */}
+        <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.03}} preserveAspectRatio="none">
+          {Array.from({length:12},(_,i)=>(
+            <line key={i} x1={`${i*9}%`} y1="0" x2={`${i*9}%`} y2="100%" stroke={TEAL} strokeWidth="0.5"/>
+          ))}
+          {Array.from({length:8},(_,i)=>(
+            <line key={i} x1="0" y1={`${i*14}%`} x2="100%" y2={`${i*14}%`} stroke={TEAL} strokeWidth="0.5"/>
+          ))}
+        </svg>
+      </div>
+
+      {/* Layer 3 — fastest, closest */}
+      <div style={{position:"absolute",inset:0,transform:`translateY(${scroll*-140}px)`,transition:"transform 0.05s linear"}}>
+        <div style={{position:"absolute",left:"20%",top:"40%",opacity:0.12,animation:"float-b 8s ease-in-out infinite"}}>
+          <svg width="50" height="50" viewBox="0 0 50 50">
+            <circle cx="25" cy="25" r="22" fill="none" stroke={TEAL} strokeWidth="0.6" strokeDasharray="3 5"/>
+          </svg>
+        </div>
+        <div style={{position:"absolute",right:"20%",top:"30%",opacity:0.1,animation:"spin-slow 25s linear infinite"}}>
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <polygon points="30,2 58,30 30,58 2,30" fill="none" stroke={GOLD} strokeWidth="0.6"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div ref={inRef} style={{position:"absolute",inset:0,zIndex:3,
+        display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+        padding:"0 32px",textAlign:"center"}}>
+        <div style={{...mono,fontSize:"10px",color:GOLD,letterSpacing:"0.2em",
+          textTransform:"uppercase",marginBottom:"18px",
+          transform:inView?"translateY(0)":"translateY(24px)",
+          transition:"all 0.8s ease",opacity:inView?0.75:0}}>
+          — Your Learning Universe
+        </div>
+        <h2 style={{fontSize:"clamp(22px,3vw,40px)",fontWeight:300,
+          letterSpacing:"-0.025em",color:"#F2F5F8",maxWidth:"500px",lineHeight:1.25,
+          transform:inView?"translateY(0)":"translateY(32px)",
+          transition:"all 0.9s ease 0.12s",opacity:inView?1:0}}>
+          12 tools orbiting<br/>one goal: <span style={{color:TEAL}}>your mastery</span>
+        </h2>
+      </div>
+    </div>
+  );
+}
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function Landing(){
   const scrollY=useScrollY();
@@ -1309,6 +1542,16 @@ export default function Landing(){
 
         {/* F: Horizontal scroll */}
         <HorizontalScrollGallery/>
+
+        <div style={hairline}/>
+
+        {/* Floating objects parallax */}
+        <FloatingObjectsSection/>
+
+        <div style={hairline}/>
+
+        {/* Depth parallax layers */}
+        <DepthParallaxSection/>
 
         <div style={hairline}/>
 
