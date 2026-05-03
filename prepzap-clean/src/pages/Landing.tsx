@@ -630,6 +630,8 @@ function StarFieldContained(){
   },[]);
   return <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}/>;
 }
+
+function StarField(){
   const canvasRef=useRef<HTMLCanvasElement>(null);
   const scrollRef=useRef(0);
   useEffect(()=>{
