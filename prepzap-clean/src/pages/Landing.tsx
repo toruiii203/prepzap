@@ -214,6 +214,101 @@ function useMouseParallax(){
   return pos;
 }
 
+// ─── CINEMATIC VIDEO SECTION ─────────────────────────────────────────────────
+function CinematicVideoSection(){
+  const ref=useRef<HTMLDivElement>(null);
+  const videoRef=useRef<HTMLVideoElement>(null);
+  const [scrollProgress,setScrollProgress]=useState(0);
+  const {ref:inViewRef,inView}=useInView(0.1);
+
+  useEffect(()=>{
+    const h=()=>{
+      if(!ref.current)return;
+      const rect=ref.current.getBoundingClientRect();
+      const total=rect.height+window.innerHeight;
+      const pos=window.innerHeight-rect.top;
+      setScrollProgress(Math.max(0,Math.min(1,pos/total)));
+    };
+    window.addEventListener("scroll",h,{passive:true});
+    h();
+    return ()=>window.removeEventListener("scroll",h);
+  },[]);
+
+  useEffect(()=>{
+    if(!videoRef.current)return;
+    if(inView){
+      videoRef.current.play().catch(()=>{});
+    } else {
+      videoRef.current.pause();
+    }
+  },[inView]);
+
+  const videoY=scrollProgress * -80;
+  const scale=1+scrollProgress*0.08;
+  const overlayOpacity=scrollProgress>0.85?1-(scrollProgress-0.85)/0.15:1;
+  const FILE_ID="1XwUJWsBjLeDiG-byvrTnvr3m_W9514W8";
+  const videoSrc=`https://drive.google.com/uc?export=download&id=${FILE_ID}`;
+
+  return(
+    <div ref={(el)=>{(ref as any).current=el;(inViewRef as any).current=el;}}
+      style={{position:"relative",height:"100vh",overflow:"hidden",background:"#000"}}>
+      <div style={{
+        position:"absolute",inset:"-10% 0",
+        transform:`translateY(${videoY}px) scale(${scale})`,
+        opacity:overlayOpacity,
+        transition:"transform 0.05s linear",
+      }}>
+        <video ref={videoRef} src={videoSrc} muted loop playsInline
+          style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+      </div>
+      <div style={{
+        position:"absolute",inset:0,
+        background:"linear-gradient(180deg,#03050F 0%,transparent 18%,transparent 75%,#03050F 100%)",
+        pointerEvents:"none",zIndex:2,
+      }}/>
+      <div style={{
+        position:"absolute",inset:0,
+        background:"radial-gradient(ellipse 80% 80% at 50% 50%,transparent 60%,rgba(3,5,15,0.7) 100%)",
+        pointerEvents:"none",zIndex:2,
+      }}/>
+      <div style={{
+        position:"absolute",inset:0,zIndex:3,
+        display:"flex",flexDirection:"column",
+        alignItems:"center",justifyContent:"center",
+        textAlign:"center",padding:"0 32px",
+        opacity:inView?1:0,transition:"opacity 1.2s ease",
+      }}>
+        <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
+          textTransform:"uppercase",marginBottom:"16px",opacity:0.8}}>
+          — The Journey Begins
+        </div>
+        <h2 style={{fontSize:"clamp(28px,4vw,52px)",fontWeight:300,
+          letterSpacing:"-0.03em",lineHeight:1.15,color:"#F2F5F8",
+          marginBottom:"20px",maxWidth:"640px",
+          textShadow:"0 2px 40px rgba(0,0,0,0.8)"}}>
+          Enter a universe<br/>built for learning
+        </h2>
+        <p style={{fontSize:"14px",color:"rgba(255,255,255,0.4)",
+          maxWidth:"380px",lineHeight:1.7,fontWeight:300,
+          textShadow:"0 1px 20px rgba(0,0,0,0.9)"}}>
+          12 AI tools. One mission. Your academic breakthrough starts here.
+        </p>
+      </div>
+      <div style={{
+        position:"absolute",bottom:"32px",left:"50%",transform:"translateX(-50%)",
+        zIndex:4,display:"flex",flexDirection:"column",alignItems:"center",gap:"8px",
+        opacity:scrollProgress<0.1?1:0,transition:"opacity 0.5s ease",
+      }}>
+        <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.25)",
+          letterSpacing:"0.2em",textTransform:"uppercase"}}>scroll</div>
+        <div style={{width:"1px",height:"40px",
+          background:`linear-gradient(${TEAL},transparent)`,
+          animation:"binary-fall 2s ease-in-out infinite"}}/>
+      </div>
+    </div>
+  );
+}
+
 // ─── H: Scroll progress line ──────────────────────────────────────────────────
 function ScrollProgressLine(){
   const pct=useScrollProgress();
@@ -483,8 +578,54 @@ function HorizontalScrollGallery(){
   );
 }
 
-// ─── Background layers ────────────────────────────────────────────────────────
-function StarField(){
+// ─── Background layers (absolute — scoped to hero) ───────────────────────────
+function StarFieldContained(){
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  useEffect(()=>{
+    const c=canvasRef.current!;const ctx=c.getContext("2d")!;let raf:number;
+    function resize(){
+      const parent=c.parentElement!;
+      c.width=parent.offsetWidth;c.height=parent.offsetHeight;
+    }
+    resize();
+    const ro=new ResizeObserver(resize);
+    if(c.parentElement)ro.observe(c.parentElement);
+    type Star={x:number;y:number;r:number;o:number;phase:number;freq:number;layer:number;warm:boolean;spike:boolean};
+    const stars:Star[]=[];
+    const addLayer=(n:number,rMin:number,rMax:number,layer:number,warmChance:number,spikes:number)=>{
+      for(let i=0;i<n;i++)stars.push({
+        x:Math.random()*c.width,y:Math.random()*c.height,
+        r:Math.random()*(rMax-rMin)+rMin,o:Math.random()*0.7+0.15,
+        phase:Math.random()*Math.PI*2,freq:Math.random()*0.006+0.001,
+        layer,warm:Math.random()<warmChance,spike:i<spikes,
+      });
+    };
+    addLayer(900,0.15,0.65,0,0.04,0);
+    addLayer(200,0.6,1.4,1,0.06,0);
+    addLayer(40,1.4,3.0,2,0.12,3);
+    let t=0;
+    function draw(){
+      t++;ctx.clearRect(0,0,c.width,c.height);
+      for(const s of stars){
+        const pulse=s.o*(0.55+0.45*Math.sin(t*s.freq*60+s.phase));
+        const col=s.warm?`rgba(232,185,35,${pulse*0.75})`:s.layer===2?`rgba(120,180,255,${pulse})`:s.layer===1?`rgba(180,240,235,${pulse*0.85})`:`rgba(200,220,255,${pulse})`;
+        ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+        if(s.layer===2&&s.spike){
+          const len=s.r*12;ctx.save();ctx.globalAlpha=pulse*0.5;
+          ctx.strokeStyle="rgba(120,180,255,0.5)";ctx.lineWidth=0.5;
+          [[1,0],[0,1]].forEach(([cx,cy])=>{
+            ctx.beginPath();ctx.moveTo(s.x-cx*len,s.y-cy*len);ctx.lineTo(s.x+cx*len,s.y+cy*len);ctx.stroke();
+          });
+          ctx.restore();
+        }
+      }
+      raf=requestAnimationFrame(draw);
+    }
+    draw();
+    return ()=>{cancelAnimationFrame(raf);ro.disconnect();};
+  },[]);
+  return <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}/>;
+}
   const canvasRef=useRef<HTMLCanvasElement>(null);
   const scrollRef=useRef(0);
   useEffect(()=>{
@@ -542,7 +683,7 @@ function StarField(){
 function NebulaLayer(){
   const base:React.CSSProperties={position:"absolute",inset:"-20%",zIndex:0,pointerEvents:"none",transformOrigin:"center center"};
   return(
-    <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
+    <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
       <div style={{...base,background:"radial-gradient(ellipse 80% 60% at 22% 30%, rgba(180,40,160,0.11) 0%, transparent 65%)",animation:"float-slow 24s ease-in-out infinite"}}/>
       <div style={{...base,background:"radial-gradient(ellipse 55% 70% at 15% 65%, rgba(0,196,180,0.09) 0%, transparent 60%)",animation:"float-slow 30s ease-in-out 4s infinite"}}/>
       <div style={{...base,background:"radial-gradient(ellipse 45% 32% at 80% 30%, rgba(232,185,35,0.07) 0%, transparent 50%)",animation:"float-slow 36s ease-in-out 8s infinite"}}/>
@@ -553,15 +694,13 @@ function NebulaLayer(){
 }
 
 function FloatingPlanets(){
-  const sy=useScrollY();
   return(
-    <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
+    <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
       <div style={{
         position:"absolute",right:"-60px",top:"-60px",width:"340px",height:"340px",borderRadius:"50%",
         background:"radial-gradient(circle at 32% 32%,#1d3a7e 0%,#0d1b6e 35%,#080f40 60%,#04081a 100%)",
         boxShadow:"inset -30px -30px 80px rgba(0,0,0,0.85),0 0 80px rgba(123,94,167,0.18)",
-        border:"0.5px solid rgba(123,94,167,0.2)",animation:"rim-pulse 8s ease-in-out infinite",
-        overflow:"hidden",willChange:"transform",transform:`translateY(${-sy*0.10}px)`,
+        border:"0.5px solid rgba(123,94,167,0.2)",animation:"rim-pulse 8s ease-in-out infinite",overflow:"hidden",
       }}>
         {[18,38,52,68,80].map((pct,i)=>(
           <div key={i} style={{position:"absolute",left:0,right:0,top:`${pct}%`,height:`${[8,6,10,5,7][i]}%`,
@@ -571,22 +710,21 @@ function FloatingPlanets(){
         <div style={{position:"absolute",inset:0,borderRadius:"50%",background:"radial-gradient(circle at 100% 50%,rgba(80,120,255,0.15) 0%,transparent 45%)"}}/>
       </div>
       {[
-        {w:480,bw:"10px",col:"rgba(200,220,255,0.18)",speed:0.10},
-        {w:560,bw:"5px", col:"rgba(232,185,35,0.10)", speed:0.09},
-        {w:630,bw:"2px", col:"rgba(120,180,255,0.06)",speed:0.08},
+        {w:480,bw:"10px",col:"rgba(200,220,255,0.18)"},
+        {w:560,bw:"5px", col:"rgba(232,185,35,0.10)"},
+        {w:630,bw:"2px", col:"rgba(120,180,255,0.06)"},
       ].map((r,i)=>(
         <div key={i} style={{
           position:"absolute",right:`${-60-(r.w-340)/2}px`,top:`${-60+(340-r.w)/2+(i+1)*-40+80}px`,
           width:`${r.w}px`,height:`${r.w}px`,borderRadius:"50%",border:`${r.bw} solid ${r.col}`,
-          transform:`rotateX(72deg) translateY(${-sy*r.speed}px)`,willChange:"transform",
+          transform:"rotateX(72deg)",
         }}/>
       ))}
       <div style={{
         position:"absolute",left:"-100px",top:"320px",width:"220px",height:"220px",borderRadius:"50%",
         background:"radial-gradient(circle at 45% 35%,#1e4a30 0%,#1a3a2a 40%,#040c0c 100%)",
         boxShadow:"inset -15px -15px 40px rgba(0,0,0,0.85),0 0 40px rgba(0,196,180,0.12)",
-        border:"0.5px solid rgba(0,196,180,0.15)",overflow:"hidden",willChange:"transform",
-        transform:`translateY(${-sy*0.06}px)`,
+        border:"0.5px solid rgba(0,196,180,0.15)",overflow:"hidden",
       }}>
         <svg viewBox="0 0 220 220" style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.5}}>
           {[0,1,2].map(i=>(
@@ -596,10 +734,9 @@ function FloatingPlanets(){
         </svg>
       </div>
       <div style={{
-        position:"absolute",right:"7%",top:"820px",width:"48px",height:"32px",
+        position:"absolute",right:"7%",top:"60%",width:"48px",height:"32px",
         borderRadius:"40% 60% 55% 45%",background:"#111828",
-        boxShadow:"0 0 24px rgba(232,185,35,0.1)",opacity:0.45,willChange:"transform",
-        transform:`translateY(${-sy*0.16}px) rotate(${sy*0.06}deg)`,
+        boxShadow:"0 0 24px rgba(232,185,35,0.1)",opacity:0.45,
       }}/>
     </div>
   );
@@ -609,7 +746,8 @@ function ParticleMotes(){
   const canvasRef=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
     const c=canvasRef.current!;const ctx=c.getContext("2d")!;let raf:number;
-    c.width=window.innerWidth;c.height=window.innerHeight;
+    const parent=c.parentElement!;
+    c.width=parent.offsetWidth||window.innerWidth;c.height=parent.offsetHeight||window.innerHeight;
     type Mote={x:number;y:number;r:number;vx:number;vy:number;col:string;t:number;sp:number};
     const motes:Mote[]=[];
     const palettes=["rgba(120,180,255,V)","rgba(0,196,180,V)","rgba(232,185,35,V)"];
@@ -636,12 +774,12 @@ function ParticleMotes(){
     }
     draw();return ()=>cancelAnimationFrame(raf);
   },[]);
-  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:1,pointerEvents:"none",opacity:0.65}}/>;
+  return <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",opacity:0.65}}/>;
 }
 
 function BinaryRain(){
   return(
-    <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden",opacity:0.055}}>
+    <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden",opacity:0.055}}>
       {Array.from({length:8},(_,i)=>(
         <div key={i} style={{position:"absolute",left:`${i*12+5}%`,top:0,...mono,fontSize:"9px",color:TEAL,whiteSpace:"nowrap",
           animation:`binary-fall ${14+i*3}s linear ${-i*2}s infinite`}}>
@@ -851,8 +989,8 @@ function AstronautScene(){
   );
 }
 
-// ─── Cinematic section (CSS-only scroll, no GSAP) ────────────────────────────
-function CinematicSection(){
+// ─── CinematicSection removed per design update ──────────────────────────────
+function _CinematicSection_UNUSED(){
   const sectionRef=useRef<HTMLDivElement>(null);
   const [p,setP]=useState(0);
   useEffect(()=>{
@@ -1073,13 +1211,6 @@ export default function Landing(){
       {/* H: Scroll progress */}
       <ScrollProgressLine/>
 
-      {/* Background layers */}
-      <StarField/>
-      <NebulaLayer/>
-      <FloatingPlanets/>
-      <BinaryRain/>
-      <ParticleMotes/>
-
       {/* Nav */}
       <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",height:48,
         borderBottom:navScrolled?"0.5px solid rgba(0,196,180,0.18)":"0.5px solid #0d1220",
@@ -1105,8 +1236,22 @@ export default function Landing(){
         </div>
       </nav>
 
-      {/* D: Hero + mouse parallax */}
-      <div style={{position:"relative",zIndex:2}}><HeroSection/></div>
+      {/* ── HERO SECTION with scoped space background ── */}
+      <div style={{position:"relative",overflow:"hidden",background:VOID}}>
+        {/* Space bg layers — contained inside this div, not fixed globally */}
+        <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none"}}>
+          <StarFieldContained/>
+          <NebulaLayer/>
+          <FloatingPlanets/>
+          <BinaryRain/>
+          <ParticleMotes/>
+        </div>
+        {/* D: Hero + mouse parallax */}
+        <div style={{position:"relative",zIndex:2}}><HeroSection/></div>
+      </div>
+
+      {/* ── CINEMATIC VIDEO SECTION ── */}
+      <CinematicVideoSection/>
 
       {/* E: Animated counters */}
       <div style={hairline}/>
@@ -1121,9 +1266,6 @@ export default function Landing(){
 
       {/* A: Marquee #1 */}
       <MarqueeDivider/>
-
-      {/* Cinematic scroll scene */}
-      <CinematicSection/>
 
       {/* Main content */}
       <div style={{position:"relative",zIndex:2,background:"#05080f",overflow:"hidden"}}>
