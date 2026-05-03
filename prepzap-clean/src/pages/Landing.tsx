@@ -266,168 +266,192 @@ function useMouseParallax(){
 // Video readiness: we mark ready on ANY of loadeddata/canplay/canplaythrough
 // so cached videos (which skip canplaythrough) still work.
 function CinematicVideoSection(){
-  const outerRef  = useRef<HTMLDivElement>(null);
-  const videoRef  = useRef<HTMLVideoElement>(null);
-  const rafRef    = useRef<number>(0);
-  const pRef      = useRef(0);   // latest scroll progress (0→1), written by scroll handler
-  const readyRef  = useRef(false);
-
-  const [p, setP]   = useState(0);
+  const outerRef    = useRef<HTMLDivElement>(null);
+  const videoRef    = useRef<HTMLVideoElement>(null);
+  const cardRef     = useRef<HTMLDivElement>(null);
+  const hintRef     = useRef<HTMLDivElement>(null);
+  const textRef     = useRef<HTMLDivElement>(null);
+  const barRef      = useRef<HTMLDivElement>(null);
+  const dotsRef     = useRef<(HTMLDivElement|null)[]>([]);
+  const nudgeRef    = useRef<HTMLDivElement>(null);
+  const label0Ref   = useRef<HTMLDivElement>(null);
+  const label1Ref   = useRef<HTMLDivElement>(null);
+  const label2Ref   = useRef<HTMLDivElement>(null);
+  const rafRef      = useRef<number>(0);
+  const pRef        = useRef(0);
+  const readyRef    = useRef(false);
 
   const videoSrc = "https://pub-d4e39d5727524f80936033c452d28c71.r2.dev/202605031431%20(1)%20(2).mp4";
-
-  // ── Mark video ready on any sufficient event ──────────────────────────────
   const markReady = ()=>{ readyRef.current = true; };
 
-  // ── Scroll → progress ────────────────────────────────────────────────────
+  const phases = [
+    {label:"— The Journey Begins",    title:"Enter a universe\nbuilt for learning",  sub:"12 AI tools. One mission. Your academic breakthrough."},
+    {label:"— Your AI Study Partner", title:"Intelligence that\nadapts to you",      sub:"BrainBot learns your gaps and drills your weak spots."},
+    {label:"— Master It Faster",      title:"Study smarter.\nNot longer.",           sub:"Cram Mode, Recall, Feynman, High Yield — all in one."},
+  ];
+
+  // ── Scroll → pRef only (no setState, no re-render) ───────────────────────
   useEffect(()=>{
     const onScroll = ()=>{
       const el = outerRef.current;
       if(!el) return;
       const rect      = el.getBoundingClientRect();
-      const scrollable= el.offsetHeight - window.innerHeight; // 400vh of travel
+      const scrollable= el.offsetHeight - window.innerHeight;
       const scrolled  = Math.max(0, -rect.top);
-      const progress  = Math.min(1, scrolled / scrollable);
-      pRef.current    = progress;
-      setP(progress); // triggers re-render for visual interpolations
+      pRef.current    = Math.min(1, scrolled / scrollable);
     };
     window.addEventListener("scroll", onScroll, {passive:true});
     onScroll();
     return ()=> window.removeEventListener("scroll", onScroll);
   },[]);
 
-  // ── RAF: map pRef → video.currentTime each frame ─────────────────────────
-  // We do a SINGLE seek per frame toward the target. The browser handles
-  // seeking within buffered ranges instantly — no HTTP re-requests.
-  // We throttle seeks to only when the gap is > 1 frame (0.033s) to avoid
-  // spamming the decoder when the user isn't scrolling.
+  // ── RAF: seek video + mutate DOM styles directly — ZERO setState ──────────
   useEffect(()=>{
-    const FRAME = 1/60;
+    const easeOut = (t:number)=> 1 - Math.pow(1-t, 3);
+    let lastPhase = -1;
+
     const tick = ()=>{
       const v = videoRef.current;
+      const p = pRef.current;
+      const ep = easeOut(p);
+
+      // 1. Seek video
       if(v && readyRef.current && v.duration > 0){
-        const target = pRef.current * v.duration;
+        const target = p * v.duration;
         const diff   = target - v.currentTime;
-        if(Math.abs(diff) > FRAME){
+        if(Math.abs(diff) > 1/60){
           v.currentTime = v.currentTime + diff * 0.25;
         }
       }
+
+      // 2. Card size — direct style write
+      const card = cardRef.current;
+      if(card){
+        card.style.width  = `${56 + ep * 44}%`;
+        card.style.height = `${62 + ep * 38}%`;
+        card.style.borderRadius = `${Math.round(14 * (1 - ep))}px`;
+        card.style.boxShadow = ep < 0.98
+          ? `0 24px 100px rgba(0,0,0,0.9), 0 0 0 0.5px rgba(255,255,255,0.06)`
+          : "none";
+      }
+
+      // 3. Hint opacity
+      if(hintRef.current)
+        hintRef.current.style.opacity = String(Math.max(0, 1 - p * 6));
+
+      // 4. Overlay text opacity — NO re-render, just style write
+      const textOpacity = Math.max(0, (p - 0.75) / 0.25);
+      if(textRef.current)
+        textRef.current.style.opacity = String(textOpacity);
+
+      // 5. Phase switch — only update DOM when phase changes
+      const phase = p < 0.4 ? 0 : p < 0.75 ? 1 : 2;
+      if(phase !== lastPhase){
+        lastPhase = phase;
+        const ph = phases[phase];
+        if(label0Ref.current) label0Ref.current.textContent = ph.label;
+        if(label1Ref.current) label1Ref.current.textContent = ph.title;
+        if(label2Ref.current) label2Ref.current.textContent = ph.sub;
+        dotsRef.current.forEach((dot,i)=>{
+          if(!dot) return;
+          dot.style.width      = i===phase ? "18px" : "5px";
+          dot.style.background = i===phase ? TEAL   : "rgba(255,255,255,0.12)";
+        });
+      }
+
+      // 6. Progress bar
+      if(barRef.current)
+        barRef.current.style.width = `${p*100}%`;
+
+      // 7. Nudge
+      if(nudgeRef.current)
+        nudgeRef.current.style.opacity = p > 0.9 ? "1" : "0";
+
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return ()=> cancelAnimationFrame(rafRef.current);
   },[]);
 
-  // ── Visuals ───────────────────────────────────────────────────────────────
-  // Use a separate easing just for card size so expansion starts immediately
-  // and feels physical — fast open, decelerating finish.
-  const easeOut = (t:number)=> 1 - Math.pow(1-t, 3);
-  const ep = easeOut(p);
-
-  // Card: 56%w×62%h at p=0, 100%×100% at p=1
-  const cardW  = 56 + ep * 44;
-  const cardH  = 62 + ep * 38;
-  const radius = Math.round(14 * (1 - ep));
-
-  const hintOpacity     = Math.max(0, 1 - p * 6);
-  const fullTextOpacity = Math.max(0, (p - 0.75) / 0.25);
-  const phase = p < 0.4 ? 0 : p < 0.75 ? 1 : 2;
-  const phases = [
-    {label:"— The Journey Begins",    title:"Enter a universe\nbuilt for learning",  sub:"12 AI tools. One mission. Your academic breakthrough."},
-    {label:"— Your AI Study Partner", title:"Intelligence that\nadapts to you",      sub:"BrainBot learns your gaps and drills your weak spots."},
-    {label:"— Master It Faster",      title:"Study smarter.\nNot longer.",           sub:"Cram Mode, Recall, Feynman, High Yield — all in one."},
-  ];
-  const ph = phases[phase];
-
   return(
-    <div ref={outerRef} style={{height:"1500vh", position:"relative", background:"#03050f"}}>
+    <div ref={outerRef} style={{height:"1200vh", position:"relative", background:"#03050f"}}>
       <div style={{
         position:"sticky", top:0, height:"100vh",
         display:"flex", alignItems:"center", justifyContent:"center",
         background:"#03050f", overflow:"hidden",
       }}>
-        {/* Expanding card */}
-        <div style={{
-          width:`${cardW}%`, height:`${cardH}%`,
-          borderRadius:`${radius}px`,
-          overflow:"hidden", position:"relative",
-          boxShadow: ep < 0.98
-            ? `0 24px 100px rgba(0,0,0,0.9), 0 0 0 0.5px rgba(255,255,255,0.06)`
-            : "none",
-          // CSS transition only on border-radius for smoothness, NOT on width/height
-          // (width/height animate via JS p value already)
+        {/* Card — size controlled by RAF via cardRef */}
+        <div ref={cardRef} style={{
+          width:"56%", height:"62%",
+          borderRadius:"14px", overflow:"hidden", position:"relative",
+          boxShadow:`0 24px 100px rgba(0,0,0,0.9), 0 0 0 0.5px rgba(255,255,255,0.06)`,
         }}>
           <video
             ref={videoRef}
             src={videoSrc}
             muted playsInline preload="auto"
-            onLoadedData={markReady}
-            onCanPlay={markReady}
-            onCanPlayThrough={markReady}
-            style={{
-              position:"absolute", inset:0,
-              width:"100%", height:"100%",
-              objectFit:"cover", display:"block",
-            }}
+            onLoadedData={markReady} onCanPlay={markReady} onCanPlayThrough={markReady}
+            style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}
           />
-
           <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:2,
             background:"linear-gradient(180deg,rgba(3,5,15,0.4) 0%,transparent 20%,transparent 65%,rgba(3,5,15,0.8) 100%)"}}/>
 
           {/* Scroll hint */}
-          <div style={{
-            position:"absolute", bottom:"28px", left:"50%", transform:"translateX(-50%)",
-            zIndex:3, textAlign:"center", opacity:hintOpacity, pointerEvents:"none",
+          <div ref={hintRef} style={{
+            position:"absolute",bottom:"28px",left:"50%",transform:"translateX(-50%)",
+            zIndex:3,textAlign:"center",opacity:1,pointerEvents:"none",
           }}>
             <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.4)",
               letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:"8px"}}>scroll to play</div>
-            <div style={{width:"1px",height:"28px",
-              background:`linear-gradient(${TEAL},transparent)`,
+            <div style={{width:"1px",height:"28px",background:`linear-gradient(${TEAL},transparent)`,
               margin:"0 auto",animation:"binary-fall 1.8s ease-in-out infinite"}}/>
           </div>
 
-          {/* Overlay text */}
-          <div style={{
-            position:"absolute", inset:0, zIndex:4,
-            display:"flex", flexDirection:"column",
-            alignItems:"center", justifyContent:"center",
-            textAlign:"center", padding:"0 32px",
-            opacity:fullTextOpacity, pointerEvents:"none",
-            transition:"opacity 0.3s ease",
+          {/* Overlay text — opacity driven by RAF, NOT by React state */}
+          <div ref={textRef} style={{
+            position:"absolute",inset:0,zIndex:4,
+            display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+            textAlign:"center",padding:"0 32px",opacity:0,pointerEvents:"none",
           }}>
-            <div key={phase}>
-              <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
-                textTransform:"uppercase",marginBottom:"16px",opacity:0.85}}>{ph.label}</div>
-              <h2 style={{fontSize:"clamp(26px,4vw,50px)",fontWeight:300,letterSpacing:"-0.03em",
-                lineHeight:1.15,color:"#F2F5F8",marginBottom:"20px",maxWidth:"640px",
-                whiteSpace:"pre-line",textShadow:"0 2px 40px rgba(0,0,0,0.95)"}}>{ph.title}</h2>
-              <p style={{fontSize:"14px",color:"rgba(255,255,255,0.45)",maxWidth:"380px",
-                lineHeight:1.7,fontWeight:300,textShadow:"0 1px 20px rgba(0,0,0,0.9)"}}>{ph.sub}</p>
-            </div>
+            <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",
+              textTransform:"uppercase",marginBottom:"16px",opacity:0.85}}
+              ref={label0Ref}>{phases[0].label}</div>
+            <h2 ref={label1Ref} style={{fontSize:"clamp(26px,4vw,50px)",fontWeight:300,
+              letterSpacing:"-0.03em",lineHeight:1.15,color:"#F2F5F8",marginBottom:"20px",
+              maxWidth:"640px",whiteSpace:"pre-line",textShadow:"0 2px 40px rgba(0,0,0,0.95)"}}>
+              {phases[0].title}
+            </h2>
+            <p ref={label2Ref} style={{fontSize:"14px",color:"rgba(255,255,255,0.45)",
+              maxWidth:"380px",lineHeight:1.7,fontWeight:300,
+              textShadow:"0 1px 20px rgba(0,0,0,0.9)"}}>
+              {phases[0].sub}
+            </p>
           </div>
 
           {/* Progress bar */}
-          <div style={{position:"absolute",bottom:0,left:0,zIndex:5,height:"1.5px",
-            width:`${p*100}%`,background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>
+          <div ref={barRef} style={{position:"absolute",bottom:0,left:0,zIndex:5,
+            height:"1.5px",width:"0%",background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>
         </div>
 
         {/* Phase dots */}
         <div style={{position:"absolute",bottom:"20px",left:"50%",transform:"translateX(-50%)",
           zIndex:10,display:"flex",gap:"8px"}}>
           {[0,1,2].map(i=>(
-            <div key={i} style={{width:i===phase?"18px":"5px",height:"5px",borderRadius:"3px",
-              background:i===phase?TEAL:"rgba(255,255,255,0.12)",transition:"all 0.4s ease"}}/>
+            <div key={i} ref={el=>{dotsRef.current[i]=el;}}
+              style={{width:i===0?"18px":"5px",height:"5px",borderRadius:"3px",
+              background:i===0?TEAL:"rgba(255,255,255,0.12)",
+              transition:"width 0.4s ease, background 0.4s ease"}}/>
           ))}
         </div>
 
-        {/* Continue scrolling nudge */}
-        <div style={{position:"absolute",bottom:"48px",left:"50%",transform:"translateX(-50%)",
-          zIndex:10,textAlign:"center",
-          opacity:p>0.9?1:0,transition:"opacity 0.5s ease",pointerEvents:"none"}}>
+        {/* Continue nudge */}
+        <div ref={nudgeRef} style={{position:"absolute",bottom:"48px",left:"50%",
+          transform:"translateX(-50%)",zIndex:10,textAlign:"center",
+          opacity:0,transition:"opacity 0.5s ease",pointerEvents:"none"}}>
           <div style={{...mono,fontSize:"9px",color:TEAL,letterSpacing:"0.2em",
             textTransform:"uppercase",marginBottom:"6px"}}>continue scrolling</div>
           <div style={{width:"1px",height:"20px",background:`linear-gradient(${TEAL},transparent)`,
-            margin:"0 auto",animation:p>0.9?"binary-fall 1.4s ease-in-out infinite":undefined}}/>
+            margin:"0 auto",animation:"binary-fall 1.4s ease-in-out infinite"}}/>
         </div>
       </div>
     </div>
