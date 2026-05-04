@@ -119,6 +119,12 @@ export default function Signup() {
 
         {step === 1 ? (
           <>
+            <p style={{ fontSize: "11px", color: "var(--pz-text-muted)", fontWeight: 300, lineHeight: 1.6, margin: "0 0 12px 0" }}>
+              By signing up, you agree to our{" "}
+              <Link to="/terms" style={{ color: "var(--pz-text-2)", textDecoration: "none", borderBottom: "0.5px solid var(--pz-border)" }}>Terms of Service</Link>
+              {" "}and{" "}
+              <Link to="/privacy" style={{ color: "var(--pz-text-2)", textDecoration: "none", borderBottom: "0.5px solid var(--pz-border)" }}>Privacy Policy</Link>.
+            </p>
             <button onClick={handleGoogle} disabled={loading} style={{
               width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
               padding: "10px", border: "0.5px solid var(--pz-border)", background: "transparent",

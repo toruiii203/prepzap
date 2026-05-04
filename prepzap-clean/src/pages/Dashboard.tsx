@@ -718,7 +718,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [bgTheme, setBgTheme] = useState<BgTheme>(() => (localStorage.getItem("studenius_bg_theme") as BgTheme) || "starfield")
+  const bgTheme: BgTheme = "starfield"
   useStarfield(canvasRef, bgTheme)
 
   // State
@@ -998,15 +998,6 @@ export default function Dashboard() {
         </nav>
 
 
-
-        {/* ── THEME STRIP ─────────────────────────────────────────────────── */}
-        <div style={{display:"flex",alignItems:"center",gap:0,overflowX:"auto",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.7)",flexShrink:0,scrollbarWidth:"none",msOverflowStyle:"none"}}>
-          <div style={{padding:"0 12px",flexShrink:0,fontSize:7,letterSpacing:"0.16em",textTransform:"uppercase",color:"#333",fontWeight:700,whiteSpace:"nowrap"}}>Theme</div>
-          <div style={{width:"0.5px",height:28,background:"#1E1E1E",flexShrink:0}}/>
-          {(["pure","starfield","planets","milkyway","cosmos"] as BgTheme[]).map(id=>(
-            <ThemePanel key={id} id={id} active={bgTheme===id} onClick={()=>{ setBgTheme(id); localStorage.setItem("studenius_bg_theme",id) }}/>
-          ))}
-        </div>
 
         {/* ── BODY ─────────────────────────────────────────────────────────── */}
         <div style={{display:"flex",flex:1,overflow:"hidden",maxWidth:1400,margin:"0 auto",width:"100%"}}>

@@ -1,190 +1,497 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  ChevronRight, ChevronLeft, BookOpen, Target, Clock, Calendar,
-  Check, Sparkles, Brain, Wrench, Palette, Code, Microscope, Music
-} from "lucide-react";
-import { Logo } from "@/components/Logo";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { supabase } from "@/lib/supabase"
 
-const focusAreas = [
-  { id: "sciences", name: "Sciences", icon: Microscope, category: "Academic" },
-  { id: "ai-tools", name: "AI Tools", icon: Brain, category: "Technology" },
-  { id: "engineering", name: "Engineering & CAD", icon: Wrench, category: "Technology" },
-  { id: "creative", name: "Creative Arts", icon: Palette, category: "Creative" },
-  { id: "programming", name: "Programming", icon: Code, category: "Technology" },
-  { id: "exam-prep", name: "Exam Prep", icon: BookOpen, category: "Academic" },
-  { id: "music", name: "Music Theory", icon: Music, category: "Creative" },
-  { id: "other", name: "Something Else", icon: Target, category: "Other" },
-];
+// ─── Design tokens (matches Dashboard) ────────────────────────────────────────
+const GOLD  = "#E8B923"
+const TEAL  = "#00C4B4"
+const BG    = "#0A0A0A"
+const SURF  = "#0E0E0E"
+const SURF2 = "#141414"
+const BORD  = "#252525"
+const TEXT1 = "#F0F0F0"
+const TEXT2 = "rgba(240,240,240,0.45)"
+const TEXT3 = "rgba(240,240,240,0.22)"
 
-const studyGoals = [
-  { id: "casual", name: "Casual", description: "15 min/day", minutes: 15 },
-  { id: "regular", name: "Regular", description: "30 min/day", minutes: 30 },
-  { id: "serious", name: "Serious", description: "1 hour/day", minutes: 60 },
-  { id: "intensive", name: "Intensive", description: "2+ hours/day", minutes: 120 },
-];
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const AVATARS = ["🧠","⚡","🎯","🔬","📐","🦅","🐉","🌌","🏆","⚔️","🎲","🔭"]
 
-const steps = [
-  { id: 1, title: "Welcome" },
-  { id: 2, title: "Focus Area" },
-  { id: 3, title: "Study Goal" },
-  { id: 4, title: "Schedule" },
-  { id: 5, title: "All Set!" },
-];
+const SUBJECTS = [
+  "Mathematics","Physics","Chemistry","Biology",
+  "History","Literature","Computer Science","Economics",
+  "Psychology","Philosophy","Engineering","Medicine",
+  "Law","Accounting","Political Science","Languages",
+]
 
-export default function Onboarding() {
-  const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [userName, setUserName] = useState("");
-  const [selectedFocus, setSelectedFocus] = useState<string | null>(null);
-  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
-  const [targetDate, setTargetDate] = useState("");
+const GOALS = [
+  { id:"exams",    icon:"📝", label:"Ace my exams" },
+  { id:"habits",   icon:"📅", label:"Build study habits" },
+  { id:"concepts", icon:"💡", label:"Master tough concepts" },
+  { id:"speed",    icon:"⚡", label:"Study faster & smarter" },
+  { id:"career",   icon:"🎓", label:"Prep for a career/license" },
+  { id:"fun",      icon:"🔥", label:"Learn for fun" },
+]
 
-  const progress = (currentStep / steps.length) * 100;
+const LEVELS = [
+  { id:"hs",   label:"High School" },
+  { id:"col",  label:"College / University" },
+  { id:"grad", label:"Graduate / Post-grad" },
+  { id:"pro",  label:"Professional / Self-study" },
+]
 
-  const canContinue = () => {
-    switch (currentStep) {
-      case 1: return userName.trim().length > 0;
-      case 2: return selectedFocus !== null;
-      case 3: return selectedGoal !== null;
-      case 4: return true;
-      default: return true;
+// ─── Step indicator ────────────────────────────────────────────────────────────
+function StepDots({ total, current }: { total: number; current: number }) {
+  return (
+    <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{
+          width: i === current ? 20 : 6,
+          height: 6,
+          background: i === current ? TEAL : i < current ? TEAL+"55" : BORD,
+          transition: "all 0.3s ease",
+        }}/>
+      ))}
+    </div>
+  )
+}
+
+// ─── Particle canvas (reuses starfield idea from Dashboard) ───────────────────
+function ParticleBg() {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = ref.current; if (!canvas) return
+    const ctx = canvas.getContext("2d"); if (!ctx) return
+    let W = 0, H = 0, raf = 0
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const resize = () => {
+      W = window.innerWidth; H = window.innerHeight
+      canvas.width = W * dpr; canvas.height = H * dpr
+      canvas.style.width = W + "px"; canvas.style.height = H + "px"
+      ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr, dpr)
     }
-  };
+    resize(); window.addEventListener("resize", resize)
+    const pts = Array.from({ length: 80 }, () => ({
+      x: Math.random(), y: Math.random(),
+      r: Math.random() * 1.0 + 0.3,
+      phase: Math.random() * Math.PI * 2,
+      teal: Math.random() > 0.75,
+    }))
+    let t = 0
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H)
+      t += 0.005
+      pts.forEach(p => {
+        const a = 0.15 + 0.12 * Math.sin(p.phase + t)
+        ctx.beginPath()
+        ctx.arc(p.x * W, p.y * H, p.r, 0, Math.PI * 2)
+        ctx.fillStyle = p.teal ? `rgba(0,196,180,${a})` : `rgba(240,240,240,${a * 0.6})`
+        ctx.fill()
+      })
+      raf = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { window.removeEventListener("resize", resize); cancelAnimationFrame(raf) }
+  }, [])
+  return <canvas ref={ref} style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}/>
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
+export default function Onboarding() {
+  const navigate  = useNavigate()
+  const { user }  = useAuth()
+
+  const [step,      setStep]      = useState(0)
+  const [saving,    setSaving]    = useState(false)
+  const [checking,  setChecking]  = useState(true)
+
+  // ── Skip if already onboarded ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) { setChecking(false); return }
+    supabase
+      .from("profiles")
+      .select("onboarded")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.onboarded) navigate("/dashboard", { replace: true })
+        else setChecking(false)
+      })
+  }, [user])
+
+  // step 0 — welcome (no input)
+  // step 1 — name
+  const [name,      setName]      = useState("")
+  // step 2 — avatar
+  const [avatar,    setAvatar]    = useState("🧠")
+  // step 3 — level
+  const [level,     setLevel]     = useState("")
+  // step 4 — subjects
+  const [subjects,  setSubjects]  = useState<string[]>([])
+  // step 5 — goals
+  const [goals,     setGoals]     = useState<string[]>([])
+
+  const TOTAL = 6 // steps 0–5
+
+  const canNext = () => {
+    if (step === 1) return name.trim().length > 0
+    if (step === 3) return level !== ""
+    if (step === 4) return subjects.length > 0
+    if (step === 5) return goals.length > 0
+    return true
+  }
+
+  const toggleArr = <T,>(arr: T[], val: T, set: (v: T[]) => void) => {
+    set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
+  }
+
+  const finish = async () => {
+    setSaving(true)
+    try {
+      if (user) {
+        await supabase.from("profiles").upsert({
+          id: user.id,
+          display_name: name.trim(),
+          avatar_emoji: avatar,
+          grade_level: level,
+          subjects,
+          goals,
+          onboarded: true,
+        })
+      }
+    } catch (_) {}
+    setSaving(false)
+    navigate("/dashboard")
+  }
+
+  const next = () => {
+    if (step < TOTAL - 1) setStep(s => s + 1)
+    else finish()
+  }
+  const back = () => { if (step > 0) setStep(s => s - 1) }
+
+  // ── Slide animation state ──────────────────────────────────────────────────
+  const [visible, setVisible] = useState(true)
+  const [dir, setDir] = useState<1|-1>(1)
+  const goTo = (newStep: number) => {
+    setDir(newStep > step ? 1 : -1)
+    setVisible(false)
+    setTimeout(() => { setStep(newStep); setVisible(true) }, 180)
+  }
+  const handleNext = () => { if (!canNext()) return; if (step < TOTAL-1) goTo(step+1); else finish() }
+  const handleBack = () => { if (step > 0) goTo(step-1) }
+
+  if (checking) return null
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Logo />
-          <span className="text-sm text-muted-foreground">Step {currentStep} of {steps.length}</span>
-        </div>
-        <div className="container mx-auto px-4 pb-4">
-          <Progress value={progress} className="h-1" />
-        </div>
-      </header>
+    <div style={{ position:"fixed", inset:0, background:BG, display:"flex", flexDirection:"column",
+      alignItems:"center", justifyContent:"center", fontFamily:"'Gill Sans','Gill Sans MT','Trebuchet MS',Calibri,sans-serif",
+      color:TEXT1, overflow:"hidden" }}>
 
-      <main className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl text-center">
-          
-            {currentStep === 1 && (
-              <div>
-                <div className="w-20 h-20 bg-primary rounded-none flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <Sparkles className="w-10 h-10 text-primary-foreground" />
-                </div>
-                <h1 className="text-3xl font-bold mb-4">Welcome to PrepZap!</h1>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">Let's personalize your learning experience. First, what should we call you?</p>
-                <div className="max-w-sm mx-auto">
-                  <Input placeholder="Enter your name" value={userName} onChange={(e) => setUserName(e.target.value)} className="text-center text-lg h-12" />
-                </div>
-              </div>
-            )}
+      <ParticleBg />
 
-            {currentStep === 2 && (
-              <div>
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">What do you want to master?</h1>
-                  <p className="text-muted-foreground">Pick your main focus area (e.g., Physics, AI Tools, or Creative Arts).</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {focusAreas.map((area) => (
-                    <button key={area.id} onClick={() => setSelectedFocus(area.id)}
-                      className={cn(
-                        "p-4 rounded-none border-2 text-left transition-all",
-                        selectedFocus === area.id ? "border-primary bg-primary/5 ring-2 ring-primary" : "border-border hover:border-primary/50"
-                      )}>
-                      <div className="flex items-start gap-3">
-                        <div className={cn("w-10 h-10 rounded-none flex items-center justify-center", selectedFocus === area.id ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                          <area.icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{area.name}</span>
-                            {selectedFocus === area.id && <Check className="w-4 h-4 text-primary" />}
-                          </div>
-                          <Badge variant="secondary" className="text-xs mt-1">{area.category}</Badge>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+      {/* ── Card ── */}
+      <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:420,
+        padding:"0 20px", display:"flex", flexDirection:"column", gap:0 }}>
 
-            {currentStep === 3 && (
-              <div>
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold mb-2">Set your daily study goal</h1>
-                  <p className="text-muted-foreground">How much time can you dedicate each day?</p>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {studyGoals.map((goal) => (
-                    <button key={goal.id} onClick={() => setSelectedGoal(goal.id)}
-                      className={cn(
-                        "p-6 rounded-none border-2 text-center transition-all",
-                        selectedGoal === goal.id ? "border-primary bg-primary/5 ring-2 ring-primary" : "border-border hover:border-primary/50"
-                      )}>
-                      <div className="flex flex-col items-center gap-2">
-                        <div className={cn("w-12 h-12 rounded-none flex items-center justify-center", selectedGoal === goal.id ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                          <Clock className="w-6 h-6" />
-                        </div>
-                        <span className="font-semibold text-lg">{goal.name}</span>
-                        <span className="text-sm text-muted-foreground">{goal.description}</span>
-                        {selectedGoal === goal.id && <Check className="w-5 h-5 text-primary mt-1" />}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {currentStep === 4 && (
-              <div>
-                <div className="w-20 h-20 bg-accent/10 rounded-none flex items-center justify-center mx-auto mb-6">
-                  <Calendar className="w-10 h-10 text-accent-foreground" />
-                </div>
-                <h1 className="text-3xl font-bold mb-2">When's your target date?</h1>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">Let's build a smarter learning schedule tailored to your daily habits.</p>
-                <div className="max-w-sm mx-auto space-y-4">
-                  <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="text-center h-12" />
-                  <p className="text-xs text-muted-foreground">Optional — skip if you don't have a deadline</p>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 5 && (
-              <div>
-                <div className="w-20 h-20 bg-primary/10 rounded-none flex items-center justify-center mx-auto mb-6">
-                  <Check className="w-10 h-10 text-primary" />
-                </div>
-                <h1 className="text-3xl font-bold mb-2">You're all set, {userName}!</h1>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">Building real mastery — one concept at a time.</p>
-                <Button size="lg" className="px-8 h-12 gap-2" onClick={() => navigate("/dashboard")}>
-                  Go to Dashboard <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          
-        </div>
-      </main>
-
-      {currentStep < 5 && (
-        <footer className="border-t py-4">
-          <div className="container mx-auto px-4 flex justify-between">
-            <Button variant="ghost" onClick={() => setCurrentStep(s => s - 1)} disabled={currentStep === 1}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back
-            </Button>
-            <Button onClick={() => setCurrentStep(s => s + 1)} disabled={!canContinue()}>
-              Continue <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+        {/* Header bar */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          marginBottom:28 }}>
+          {/* Logo wordmark */}
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:8, height:8, background:TEAL }}/>
+            <span style={{ fontSize:13, fontWeight:700, letterSpacing:"0.12em",
+              textTransform:"uppercase", color:TEXT1 }}>Studenius</span>
           </div>
-        </footer>
-      )}
+          <StepDots total={TOTAL} current={step}/>
+        </div>
+
+        {/* Step content */}
+        <div style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : `translateY(${dir * 12}px)`,
+          transition: "opacity 0.18s ease, transform 0.18s ease",
+          minHeight: 340,
+          display:"flex", flexDirection:"column", gap:20,
+        }}>
+
+          {/* ── STEP 0: Welcome ── */}
+          {step === 0 && (
+            <>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  Welcome
+                </div>
+                <h1 style={{ fontSize:28, fontWeight:800, lineHeight:1.15, margin:0,
+                  letterSpacing:"-0.02em" }}>
+                  Your AI study<br/>
+                  <span style={{ color:GOLD }}>companion</span> is ready.
+                </h1>
+              </div>
+              <p style={{ fontSize:13, color:TEXT2, lineHeight:1.7, margin:0 }}>
+                Studenius adapts to how <em>you</em> learn — with AI-powered
+                quizzes, flashcards, a tutor, and tools built for students who
+                take their progress seriously.
+              </p>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {[
+                  ["⚡","Personalized AI practice sessions"],
+                  ["🧠","BrainBot tutor available 24/7"],
+                  ["📈","Track XP, streaks & weak areas"],
+                ].map(([icon, txt]) => (
+                  <div key={txt} style={{ display:"flex", alignItems:"center", gap:10,
+                    padding:"10px 12px", background:SURF, border:`0.5px solid ${BORD}` }}>
+                    <span style={{ fontSize:15 }}>{icon}</span>
+                    <span style={{ fontSize:12, color:TEXT2 }}>{txt}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── STEP 1: Name ── */}
+          {step === 1 && (
+            <>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  Step 1 of 5
+                </div>
+                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                  What should we call you?
+                </h2>
+                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
+                  This is how you'll appear in Studenius.
+                </p>
+              </div>
+              <div>
+                <div style={{ fontSize:9, fontWeight:600, letterSpacing:"0.14em",
+                  textTransform:"uppercase", color:"#555", marginBottom:6 }}>
+                  Your name
+                </div>
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleNext()}
+                  placeholder="e.g. Alex, Mika, Rey..."
+                  maxLength={32}
+                  style={{ width:"100%", background:SURF2, border:`0.5px solid ${BORD}`,
+                    color:TEXT1, fontSize:15, padding:"12px 14px", fontFamily:"inherit",
+                    outline:"none", boxSizing:"border-box", letterSpacing:"0.01em",
+                    transition:"border-color .2s" }}
+                  onFocus={e => { e.currentTarget.style.borderColor = TEAL }}
+                  onBlur={e  => { e.currentTarget.style.borderColor = BORD }}
+                />
+                {name.trim().length > 0 && (
+                  <div style={{ marginTop:10, fontSize:12, color:TEXT2 }}>
+                    Nice to meet you,{" "}
+                    <span style={{ color:TEAL, fontWeight:700 }}>{name.trim()}</span> 👋
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── STEP 2: Avatar ── */}
+          {step === 2 && (
+            <>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  Step 2 of 5
+                </div>
+                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                  Pick your avatar
+                </h2>
+                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
+                  Choose an emoji that represents your study spirit.
+                </p>
+              </div>
+              {/* Selected preview */}
+              <div style={{ display:"flex", alignItems:"center", gap:12,
+                padding:"14px 16px", background:SURF, border:`0.5px solid ${TEAL}40` }}>
+                <span style={{ fontSize:32 }}>{avatar}</span>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:700 }}>{name || "You"}</div>
+                  <div style={{ fontSize:10, color:TEXT3 }}>Your study identity</div>
+                </div>
+              </div>
+              {/* Grid */}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:8 }}>
+                {AVATARS.map(a => (
+                  <button key={a} onClick={() => setAvatar(a)} style={{
+                    fontSize:22, padding:"10px 0", cursor:"pointer", border:"none",
+                    background: avatar === a ? `${TEAL}18` : SURF,
+                    outline: avatar === a ? `1.5px solid ${TEAL}` : `0.5px solid ${BORD}`,
+                    transition:"all .15s",
+                  }}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── STEP 3: Level ── */}
+          {step === 3 && (
+            <>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  Step 3 of 5
+                </div>
+                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                  What's your level?
+                </h2>
+                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
+                  We'll calibrate content difficulty for you.
+                </p>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {LEVELS.map(l => (
+                  <button key={l.id} onClick={() => setLevel(l.id)} style={{
+                    padding:"14px 16px", textAlign:"left", cursor:"pointer",
+                    background: level === l.id ? `${TEAL}12` : SURF,
+                    border: `0.5px solid ${level === l.id ? TEAL : BORD}`,
+                    color: level === l.id ? TEXT1 : TEXT2,
+                    fontSize:13, fontWeight: level === l.id ? 700 : 400,
+                    fontFamily:"inherit", transition:"all .15s",
+                    display:"flex", alignItems:"center", justifyContent:"space-between",
+                  }}>
+                    {l.label}
+                    {level === l.id && (
+                      <span style={{ color:TEAL, fontSize:11 }}>✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── STEP 4: Subjects ── */}
+          {step === 4 && (
+            <>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  Step 4 of 5
+                </div>
+                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                  What do you study?
+                </h2>
+                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
+                  Pick all that apply — you can change this later.
+                </p>
+              </div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+                {SUBJECTS.map(s => {
+                  const on = subjects.includes(s)
+                  return (
+                    <button key={s} onClick={() => toggleArr(subjects, s, setSubjects)} style={{
+                      padding:"7px 12px", fontSize:11, cursor:"pointer",
+                      background: on ? `${TEAL}18` : SURF2,
+                      border: `0.5px solid ${on ? TEAL : BORD}`,
+                      color: on ? TEXT1 : TEXT2,
+                      fontFamily:"inherit", fontWeight: on ? 600 : 400,
+                      transition:"all .15s",
+                    }}>
+                      {s}
+                    </button>
+                  )
+                })}
+              </div>
+              {subjects.length > 0 && (
+                <div style={{ fontSize:10, color:TEXT3 }}>
+                  {subjects.length} subject{subjects.length > 1 ? "s" : ""} selected
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── STEP 5: Goals ── */}
+          {step === 5 && (
+            <>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  Step 5 of 5
+                </div>
+                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                  What's your main goal?
+                </h2>
+                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
+                  Choose everything that motivates you.
+                </p>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {GOALS.map(g => {
+                  const on = goals.includes(g.id)
+                  return (
+                    <button key={g.id} onClick={() => toggleArr(goals, g.id, setGoals)} style={{
+                      padding:"13px 16px", textAlign:"left", cursor:"pointer",
+                      background: on ? `${GOLD}0D` : SURF,
+                      border: `0.5px solid ${on ? GOLD : BORD}`,
+                      color: on ? TEXT1 : TEXT2,
+                      fontSize:13, fontWeight: on ? 600 : 400,
+                      fontFamily:"inherit", transition:"all .15s",
+                      display:"flex", alignItems:"center", gap:12,
+                    }}>
+                      <span style={{ fontSize:17 }}>{g.icon}</span>
+                      {g.label}
+                      {on && <span style={{ marginLeft:"auto", color:GOLD, fontSize:11 }}>✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+        </div>
+
+        {/* ── Nav buttons ── */}
+        <div style={{ display:"flex", gap:10, marginTop:28 }}>
+          {step > 0 && (
+            <button onClick={handleBack} style={{
+              padding:"13px 0", width:52, background:"transparent",
+              border:`0.5px solid ${BORD}`, color:"#555", fontSize:16,
+              cursor:"pointer", fontFamily:"inherit", transition:"all .2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#555" }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = BORD }}>
+              ←
+            </button>
+          )}
+          <button
+            onClick={handleNext}
+            disabled={!canNext() || saving}
+            style={{
+              flex:1, padding:"13px 0",
+              background: canNext() ? (step === TOTAL-1 ? GOLD : TEAL) : SURF2,
+              border:"none",
+              color: canNext() ? "#000" : "#333",
+              fontSize:12, fontWeight:700, letterSpacing:"0.08em",
+              textTransform:"uppercase", cursor: canNext() ? "pointer" : "default",
+              fontFamily:"inherit", transition:"all .2s",
+              opacity: saving ? 0.6 : 1,
+            }}>
+            {saving ? "Saving..." : step === TOTAL-1 ? "Let's go →" : step === 0 ? "Get Started →" : "Continue →"}
+          </button>
+        </div>
+
+        {/* Skip link */}
+        {step === 0 && (
+          <button onClick={() => navigate("/dashboard")} style={{
+            marginTop:14, background:"none", border:"none", color:TEXT3,
+            fontSize:11, cursor:"pointer", fontFamily:"inherit",
+            textDecoration:"underline", textDecorationColor:TEXT3,
+          }}>
+            Skip for now
+          </button>
+        )}
+
+      </div>
     </div>
-  );
+  )
 }
