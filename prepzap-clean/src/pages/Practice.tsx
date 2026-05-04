@@ -276,6 +276,7 @@ export default function Practice() {
   const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("practice");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<"easy" | "mixed" | "hard">("mixed");
+  const [questionCount, setQuestionCount] = useState(5);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -347,7 +348,7 @@ export default function Practice() {
       const raw = await callGroq(
         [{
           role: "user",
-          content: `Generate 5 multiple choice questions about "${quizTopic}" at ${difficulty} difficulty.${sourceContext}
+          content: `Generate ${questionCount} multiple choice questions about "${quizTopic}" at ${difficulty} difficulty.${sourceContext}
 
 IMPORTANT: If a question involves a fraction or division, write it using LaTeX fraction notation like \\frac{a}{b} — never use the slash character / for math.
 Return ONLY valid JSON:
@@ -375,7 +376,7 @@ Return ONLY valid JSON:
       setQuizHistory(prev => addHistoryEntry("practice", {
         id: Date.now().toString(),
         title: quizTopic.slice(0, 40),
-        subtitle: `${difficulty} · 5 questions`,
+        subtitle: `${difficulty} · ${questionCount} questions`,
         timestamp: new Date(),
         data: { topic: quizTopic, difficulty }
       }, prev));
@@ -512,6 +513,49 @@ Return ONLY valid JSON:
                 )}
               </div>
             )}
+
+            {/* Number of Questions */}
+            <div>
+              <label className="text-sm font-semibold mb-2 block" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Number of Questions</span>
+                <span style={{ fontFamily: "monospace", fontSize: 13, color: "#00C4B4", fontWeight: 700 }}>{questionCount}</span>
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: "#555", minWidth: 14 }}>1</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={20}
+                  value={questionCount}
+                  onChange={e => setQuestionCount(Number(e.target.value))}
+                  style={{
+                    flex: 1,
+                    accentColor: "#00C4B4",
+                    cursor: "pointer",
+                    height: 4,
+                  }}
+                />
+                <span style={{ fontSize: 11, color: "#555", minWidth: 20 }}>20</span>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                {[5, 10, 15, 20].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setQuestionCount(n)}
+                    style={{
+                      padding: "3px 12px",
+                      background: questionCount === n ? "rgba(0,196,180,0.15)" : "rgba(255,255,255,0.03)",
+                      border: `0.5px solid ${questionCount === n ? "#00C4B4" : "#303030"}`,
+                      color: questionCount === n ? "#00C4B4" : "#666",
+                      fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: questionCount === n ? 700 : 400,
+                      transition: "all .15s",
+                    }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Difficulty */}
             <div>
