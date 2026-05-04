@@ -49,7 +49,7 @@ export default function Signup() {
     setLoading(true)
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/onboarding` },
     })
     if (authError) { setError(authError.message); setLoading(false) }
   }
@@ -86,12 +86,12 @@ export default function Signup() {
 
     if (data.session) {
       // Email confirmation is OFF — session created immediately, go to dashboard
-      setTimeout(() => navigate("/dashboard"), 800)
+      setTimeout(() => navigate("/onboarding"), 800)
     } else {
       // Email confirmation is ON — try signing in anyway (some Supabase configs allow it)
       const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
       if (!signInErr && signInData.session) {
-        setTimeout(() => navigate("/dashboard"), 800)
+        setTimeout(() => navigate("/onboarding"), 800)
       }
       // else: confirmation email was sent — success state shows the message below
     }
