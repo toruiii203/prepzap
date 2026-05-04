@@ -11,65 +11,54 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { type HistoryEntry } from "@/components/ToolShell";
-import { ToolPageShell, useModel } from "@/components/ToolPageShell";
 import { useToolHistory } from "@/components/ToolHistory";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
 // ─── KaTeX renderer ───────────────────────────────────────────────────────────
-// Renders LaTeX math with KaTeX — styled to match the large, clean fraction
-// display shown in the reference image (big numerator/denominator, clear line).
-// Supports \frac{}{} and other LaTeX directly (no $...$ delimiters needed),
-// as well as $...$ inline and $$...$$ display delimiters.
+// Splits content on $...$ / $$...$$ delimiters AND bare \frac{}{} commands.
+// Each math segment is rendered by KaTeX; plain text segments render as-is.
+// This ensures fractions like \frac{1}{5} always display as proper fractions.
 function MathText({ content, className }: { content: string; className?: string }) {
-  const parts: React.ReactNode[] = [];
-  // Match $$...$$ (display) then $...$ (inline) then bare \frac / \sqrt etc.
-  const regex = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\(?:frac|sqrt|sum|int|lim|prod|infty|pi|alpha|beta|gamma|delta|theta|lambda|mu|sigma|omega)\b[^,;.!?\s]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*)/g;
+  // Split on:  $$...$$  |  $...$  |  any \cmd{...}{...} LaTeX expression
+  // The LaTeX arm captures a backslash-command followed by any brace groups.
+  const SPLIT = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\[a-zA-Z]+(?:\{(?:[^{}]|\{[^{}]*\})*\})*)/g;
+
+  const segments: { text: string; math: boolean; display: boolean }[] = [];
   let last = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > last) {
-      parts.push(<span key={key++}>{content.slice(last, match.index)}</span>);
-    }
-    const raw = match[0];
-    const isDisplayBlock = raw.startsWith("$$");
-    const latex = isDisplayBlock ? raw.slice(2, -2)
-                : raw.startsWith("$") ? raw.slice(1, -1)
-                : raw; // bare LaTeX command
-    try {
-      const html = katex.renderToString(latex, {
-        throwOnError: false,
-        displayMode: isDisplayBlock,
-        // Make fractions render large and clean like the reference image
-        output: "html",
-        trust: false,
-        strict: false,
-        macros: { "\\R": "\\mathbb{R}" },
-      });
-      parts.push(
-        <span
-          key={key++}
-          className={isDisplayBlock ? "block my-2 text-center" : "inline"}
-          style={isDisplayBlock ? { fontSize: "1.4em" } : undefined}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      );
-    } catch {
-      parts.push(<span key={key++}>{raw}</span>);
-    }
-    last = match.index + raw.length;
+  let m: RegExpExecArray | null;
+  while ((m = SPLIT.exec(content)) !== null) {
+    if (m.index > last) segments.push({ text: content.slice(last, m.index), math: false, display: false });
+    const raw = m[0];
+    const display = raw.startsWith("$$");
+    const latex = display ? raw.slice(2, -2) : raw.startsWith("$") ? raw.slice(1, -1) : raw;
+    segments.push({ text: latex, math: true, display });
+    last = m.index + raw.length;
   }
-  if (last < content.length) parts.push(<span key={key++}>{content.slice(last)}</span>);
+  if (last < content.length) segments.push({ text: content.slice(last), math: false, display: false });
+
   return (
-    <span
-      className={className}
-      style={{
-        // KaTeX fraction bar sizing — matches the bold, clean line in the image
-        "--katex-font-size": "1.1em",
-      } as React.CSSProperties}
-    >
-      {parts}
+    <span className={className}>
+      {segments.map((seg, i) => {
+        if (!seg.math) return <span key={i}>{seg.text}</span>;
+        try {
+          const html = katex.renderToString(seg.text, {
+            throwOnError: false,
+            displayMode: seg.display,
+            output: "html",
+            strict: false,
+          });
+          return (
+            <span
+              key={i}
+              className={seg.display ? "block my-2 text-center" : "inline"}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          );
+        } catch {
+          return <span key={i}>{seg.text}</span>;
+        }
+      })}
     </span>
   );
 }
@@ -369,7 +358,13 @@ Return ONLY valid JSON:
       );
       const clean = raw.replace(/```json|```/g, "").trim();
       const jsonMatch = clean.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch?.[0] ?? clean);
+      const jsonStr = jsonMatch?.[0] ?? clean;
+      // Fix unescaped LaTeX backslashes (\frac, \mu etc.) that break JSON.parse
+      const fixedJson = jsonStr.replace(
+        /"((?:[^"\\]|\\.)*)"/g,
+        (_m: string, inner: string) => `"${inner.replace(/\\(?!["\\\\/bfnrtu])/g, "\\\\")}"`,
+      );
+      const parsed = JSON.parse(fixedJson);
       setQuestions(parsed.questions);
       setCurrentQ(0);
       setSelected(null);
@@ -416,8 +411,6 @@ Return ONLY valid JSON:
   const q = questions[currentQ];
   const pct = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
 
-  const { model, setModel } = useModel();
-
   // ── Shared star background wrapper ──────────────────────────────────────────
   const StarBg = ({ children }: { children: React.ReactNode }) => (
     <div style={{ position: "relative", minHeight: "100vh", background: "#000308", overflow: "hidden" }}>
@@ -440,7 +433,7 @@ Return ONLY valid JSON:
   // ── SETUP PHASE ──────────────────────────────────────────────────────────────
   if (phase === "setup") return (
     <StarBg>
-      <ToolPageShell showModelPicker model={model} setModel={setModel} transparentBg>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <main className="flex-1 max-w-2xl mx-auto w-full p-6 space-y-6">
 
           {/* Header */}
@@ -578,14 +571,14 @@ Return ONLY valid JSON:
           onConfirm={handleConfirmSources}
           sources={allSources}
         />
-      </ToolPageShell>
+      </div>
     </StarBg>
   );
 
   // ── QUIZ PHASE ───────────────────────────────────────────────────────────────
   if (phase === "quiz" && q) return (
     <StarBg>
-      <ToolPageShell showModelPicker model={model} setModel={setModel} transparentBg>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <main className="flex-1 max-w-2xl mx-auto w-full p-4 space-y-6 pt-6">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -636,14 +629,14 @@ Return ONLY valid JSON:
             </div>
           )}
         </main>
-      </ToolPageShell>
+      </div>
     </StarBg>
   );
 
   // ── RESULTS PHASE ────────────────────────────────────────────────────────────
   if (phase === "results") return (
     <StarBg>
-      <ToolPageShell showModelPicker model={model} setModel={setModel} transparentBg>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <main className="flex-1 max-w-lg mx-auto w-full p-6 space-y-6 flex flex-col justify-center">
           <div className="text-center">
             <Trophy className={cn("h-16 w-16 mx-auto mb-4",
@@ -676,7 +669,7 @@ Return ONLY valid JSON:
             </Button>
           </div>
         </main>
-      </ToolPageShell>
+      </div>
     </StarBg>
   );
 
