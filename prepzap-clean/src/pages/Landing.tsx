@@ -3681,7 +3681,8 @@ export default function Landing(){
             <span style={{...mono,fontSize:"10px",color:"#1a2030",letterSpacing:"0.06em"}}>Built for students. Powered by AI.</span>
           </div>
         </footer>
-      </div>{/* ── end main content ── */}
+      </div>{/* ── end sections wrapper ── */}
+    </div>{/* ── end main content ── */}
     </PageFade>
   </ToastCtx.Provider>);
 }
