@@ -27,7 +27,7 @@ const mono: React.CSSProperties = { fontFamily:"'Geist Mono','Courier New',monos
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&display=swap');
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-  html{scroll-behavior:auto;}
+  html{scroll-behavior:smooth;}
   ::selection{background:rgba(0,196,180,0.25);}
 
   @keyframes float-slow{
@@ -189,7 +189,6 @@ const CSS = `
   .star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle var(--dur,3s) ease-in-out infinite;animation-delay:var(--delay,0s);}
 
   /* Smooth anchor scroll */
-  html{scroll-behavior:smooth;}
 
   /* Selection color */
   ::selection{background:rgba(0,196,180,0.25);color:#F2F5F8;}
@@ -391,57 +390,7 @@ function loadGSAP(cb: ()=>void){
   });
 }
 
-let _lenisInstance: any = null;
-let _lenisLoading = false;
-const _lenisQueue: Array<()=>void> = [];
-
-function loadLenis(cb: ()=>void){
-  if(_lenisInstance){ cb(); return; }
-  _lenisQueue.push(cb);
-  if(_lenisLoading) return;
-  _lenisLoading = true;
-  const s = document.createElement("script");
-  s.src = "https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js";
-  s.onload = ()=>{
-    const Lenis = (window as any).Lenis;
-    _lenisInstance = new Lenis({
-      duration: 0.85,
-      easing: (t: number) => 1 - Math.pow(1 - t, 3),
-      orientation: "vertical",
-      smoothWheel: true,
-      wheelMultiplier: 1.1,
-    });
-    // Single RAF loop — no GSAP ticker conflict here
-    requestAnimationFrame(function tick(t){
-      _lenisInstance.raf(t);
-      requestAnimationFrame(tick);
-    });
-    _lenisInstance.on("scroll", ()=>{ (window as any).ScrollTrigger?.update?.(); });
-    _lenisLoading = false;
-    _lenisQueue.forEach(f=>f()); _lenisQueue.length=0;
-  };
-  document.head.appendChild(s);
-}
-
-function useSmoothScroll(){
-  useEffect(()=>{
-    loadLenis(()=>{
-      loadGSAP(()=>{
-        const ST = (window as any).ScrollTrigger;
-        if(!ST) return;
-        ST.scrollerProxy(document.body, {
-          scrollTop(){ return window.scrollY; },
-          getBoundingClientRect(){ return { top:0,left:0,width:window.innerWidth,height:window.innerHeight }; }
-        });
-        _lenisInstance?.on("scroll", ST.update);
-        (window as any).gsap?.ticker?.lagSmoothing(0);
-      });
-    });
-    return ()=>{
-      if(_lenisInstance){ _lenisInstance.destroy?.(); _lenisInstance=null; _lenisLoading=false; }
-    };
-  },[]);
-}
+function useSmoothScroll(){ /* native scroll — Lenis removed */ }
 
 function useGSAPReveal(
   containerRef: React.RefObject<HTMLElement>,
@@ -520,36 +469,8 @@ function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: 
 }
 
 
-let _lenisInited = false;
-function initLenis(){
-  if(_lenisInited) return;
-  _lenisInited = true;
-  const s = document.createElement("script");
-  s.src = "https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/bundled/lenis.min.js";
-  s.onload = ()=>{
-    const lenis = new (window as any).Lenis({
-      duration: 0.85,
-      easing: (t: number)=> 1 - Math.pow(1 - t, 3),
-      orientation: "vertical",
-      smoothWheel: true,
-      wheelMultiplier: 1.1,
-      touchMultiplier: 2,
-    });
-    loadGSAP(()=>{
-      const G = (window as any).gsap;
-      const ST = (window as any).ScrollTrigger;
-      lenis.on("scroll", ST.update);
-      // Drive Lenis from GSAP ticker only — eliminates double RAF conflict
-      G.ticker.add((t: number)=>lenis.raf(t*1000));
-      G.ticker.lagSmoothing(0);
-    });
-  };
-  document.head.appendChild(s);
-}
-
 function useGSAPAnimations(){
   useEffect(()=>{
-    initLenis();
     loadGSAP(()=>{
       const G = (window as any).gsap;
       const ST = (window as any).ScrollTrigger;
