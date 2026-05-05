@@ -405,11 +405,13 @@ function loadLenis(cb: ()=>void){
   s.onload = ()=>{
     const Lenis = (window as any).Lenis;
     _lenisInstance = new Lenis({
-      duration: 1.4,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      duration: 0.85,
+      easing: (t: number) => 1 - Math.pow(1 - t, 3),
       orientation: "vertical",
       smoothWheel: true,
+      wheelMultiplier: 1.1,
     });
+    // Single RAF loop — no GSAP ticker conflict here
     requestAnimationFrame(function tick(t){
       _lenisInstance.raf(t);
       requestAnimationFrame(tick);
@@ -526,22 +528,21 @@ function initLenis(){
   s.src = "https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/bundled/lenis.min.js";
   s.onload = ()=>{
     const lenis = new (window as any).Lenis({
-      duration: 1.4,
-      easing: (t: number)=> Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      duration: 0.85,
+      easing: (t: number)=> 1 - Math.pow(1 - t, 3),
       orientation: "vertical",
       smoothWheel: true,
-      wheelMultiplier: 0.9,
+      wheelMultiplier: 1.1,
       touchMultiplier: 2,
     });
     loadGSAP(()=>{
       const G = (window as any).gsap;
       const ST = (window as any).ScrollTrigger;
       lenis.on("scroll", ST.update);
+      // Drive Lenis from GSAP ticker only — eliminates double RAF conflict
       G.ticker.add((t: number)=>lenis.raf(t*1000));
       G.ticker.lagSmoothing(0);
     });
-    const raf = (time: number)=>{ lenis.raf(time); requestAnimationFrame(raf); };
-    requestAnimationFrame(raf);
   };
   document.head.appendChild(s);
 }
