@@ -140,6 +140,12 @@ const CSS = `
     .mobile-grid-1{grid-template-columns:1fr!important;}
   }
 
+  /* Scroll indicator */
+  @keyframes scroll-bounce{
+    0%,100%{transform:translateY(0);opacity:0.45;}
+    50%{transform:translateY(9px);opacity:1;}
+  }
+
   /* Grain / film noise overlay */
   @keyframes grain{
     0%,100%{transform:translate(0,0);}
@@ -509,6 +515,32 @@ function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: 
 
     return ()=>{ obs.disconnect(); cleanup?.(); };
   },[]);
+}
+
+// ─── LENIS SMOOTH SCROLL + GSAP LOADER ───────────────────────────────────────
+let _gsapReady = false;
+let _gsapLoading = false;
+const _gsapQueue: Array<()=>void> = [];
+
+function loadGSAP(cb: ()=>void){
+  if(_gsapReady){ cb(); return; }
+  _gsapQueue.push(cb);
+  if(_gsapLoading) return;
+  _gsapLoading = true;
+  const loadScript = (src: string) => new Promise<void>(res=>{
+    const s = document.createElement("script");
+    s.src = src; s.onload = ()=>res();
+    document.head.appendChild(s);
+  });
+  Promise.all([
+    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"),
+    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"),
+  ]).then(()=>{
+    const G = (window as any).gsap;
+    G.registerPlugin((window as any).ScrollTrigger);
+    _gsapReady = true; _gsapLoading = false;
+    _gsapQueue.forEach(f=>f()); _gsapQueue.length=0;
+  });
 }
 
 let _lenisInited = false;
@@ -1981,7 +2013,7 @@ function HeroSection(){
   };
 
   return(
-    <section style={{padding:"110px 32px 88px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
+    <section style={{padding:"110px 32px 120px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
       {/* Parallax depth layers — each on a distinct Z plane */}
       <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
         {/* Deep background nebula — slowest scroll (0.05x), heavy blur = far plane */}
@@ -2044,6 +2076,25 @@ function HeroSection(){
       <p style={{...mono,fontSize:"10px",color:"#1e2a44",marginTop:"18px",letterSpacing:"0.06em",animation:"hero-enter 1.4s ease 0.79s both"}}>
         No credit card required · Free plan always available
       </p>
+
+      {/* Scroll indicator — fades out once user scrolls */}
+      <div style={{
+        position:"absolute",bottom:"-48px",left:"50%",transform:"translateX(-50%)",
+        display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",
+        opacity:Math.max(0, 1 - scrollY / 80),
+        transition:"opacity 0.2s",
+        pointerEvents:"none",
+        animation:"hero-enter 1.4s ease 1.1s both",
+      }}>
+        <span style={{...mono,fontSize:"9px",color:"#2a3a5a",letterSpacing:"0.18em",textTransform:"uppercase"}}>scroll</span>
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none" style={{animation:"scroll-bounce 1.8s ease-in-out infinite"}}>
+          <rect x="1" y="1" width="14" height="22" rx="7" stroke="rgba(0,196,180,0.25)" strokeWidth="1"/>
+          <rect x="6.5" y="4" width="3" height="5" rx="1.5" fill={TEAL} style={{animation:"scroll-bounce 1.8s ease-in-out infinite"}}/>
+        </svg>
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" style={{animation:"scroll-bounce 1.8s ease-in-out infinite",animationDelay:"0.15s"}}>
+          <path d="M1 1l5 5 5-5" stroke="rgba(0,196,180,0.4)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
     </section>
   );
 }
