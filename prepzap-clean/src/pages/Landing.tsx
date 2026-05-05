@@ -3361,10 +3361,10 @@ export default function Landing(){
     {!loaded&&<LoadingScreen onDone={()=>setLoaded(true)}/>}
 
     <PageFade>
-    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",
-      background:`linear-gradient(180deg,${VOID} 0%,#060D1F 100%)`,
-      color:"#E0E8F0",fontFamily:"'Inter',system-ui,sans-serif"}}>
-      <style>{CSS}</style>
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",
+        background:`linear-gradient(180deg,${VOID} 0%,#060D1F 100%)`,
+        color:"#E0E8F0",fontFamily:"'Inter',system-ui,sans-serif"}}>
+        <style>{CSS}</style>
 
       {/* Grain overlay */}
       <GrainOverlay/>
@@ -3684,7 +3684,7 @@ export default function Landing(){
           </div>
         </footer>
       </div>{/* ── end main content ── */}
-    </div>{/* ── end outer wrapper ── */}
+      </div>{/* ── end outer wrapper ── */}
     </PageFade>
   </ToastCtx.Provider>);
 }

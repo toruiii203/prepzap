@@ -283,7 +283,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
           {/* Topic badge */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
             <span style={{ fontSize: 11, color: MUTED }}>Teaching:</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: TEXT, padding: "3px 10px", background: "rgba(0,196,180,0.06)", border: `0.5px solid rgba(0,196,180,0.2)`, color: TEAL }}>{topic}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, padding: "3px 10px", background: "rgba(0,196,180,0.06)", border: `0.5px solid rgba(0,196,180,0.2)`, color: TEAL }}>{topic}</span>
             <button onClick={resetAll} style={{ marginLeft: "auto", fontSize: 10, color: MUTED, background: "none", border: "none", cursor: "pointer", fontFamily: FONT }}>← Change topic</button>
           </div>
 
