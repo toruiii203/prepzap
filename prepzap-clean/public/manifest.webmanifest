@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "PrepZap",
-  "short_name": "PrepZap",
+  "name": "Studenius",
+  "short_name": "Studenius",
   "description": "AI-powered study tools – practice questions, flashcards, Feynman mode, math solver, focus timer, and more.",
   "start_url": "/dashboard",
   "display": "standalone",

@@ -276,7 +276,6 @@ export default function Practice() {
   const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("practice");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<"easy" | "mixed" | "hard">("mixed");
-  const [questionCount, setQuestionCount] = useState(5);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -348,7 +347,7 @@ export default function Practice() {
       const raw = await callGroq(
         [{
           role: "user",
-          content: `Generate ${questionCount} multiple choice questions about "${quizTopic}" at ${difficulty} difficulty.${sourceContext}
+          content: `Generate 5 multiple choice questions about "${quizTopic}" at ${difficulty} difficulty.${sourceContext}
 
 IMPORTANT: If a question involves a fraction or division, write it using LaTeX fraction notation like \\frac{a}{b} — never use the slash character / for math.
 Return ONLY valid JSON:
@@ -376,7 +375,7 @@ Return ONLY valid JSON:
       setQuizHistory(prev => addHistoryEntry("practice", {
         id: Date.now().toString(),
         title: quizTopic.slice(0, 40),
-        subtitle: `${difficulty} · ${questionCount} questions`,
+        subtitle: `${difficulty} · 5 questions`,
         timestamp: new Date(),
         data: { topic: quizTopic, difficulty }
       }, prev));
@@ -413,6 +412,8 @@ Return ONLY valid JSON:
   const pct = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
 
   // ── Shared star background wrapper ──────────────────────────────────────────
+  // Canvas is rendered once at the top-level return, NOT inside StarBg,
+  // so phase transitions never unmount it and kill the animation.
   const StarBg = ({ children }: { children: React.ReactNode }) => (
     <div style={{ position: "relative", minHeight: "100vh", background: "#000308", overflow: "hidden" }}>
       <style>{`
@@ -424,23 +425,155 @@ Return ONLY valid JSON:
         .katex .mfrac .mfrac-numer { padding-bottom: 0.12em; }
         .katex .mfrac .mfrac-denom { padding-top: 0.12em; }
       `}</style>
-      <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />
       <div style={{ position: "relative", zIndex: 1 }}>
         {children}
       </div>
     </div>
   );
 
-  // ── SETUP PHASE ──────────────────────────────────────────────────────────────
-  if (phase === "setup") return (
-    <StarBg>
+  // ── UNIFIED RETURN — canvas always mounted so stars never disappear on phase change ──
+  return (
+    <>
+      {/* Persistent star canvas — lives outside phase-conditional UI */}
+      <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />
+
+      {/* ── HISTORY SIDE PANEL ── */}
+      {/* Backdrop */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}
+        />
+      )}
+      {/* Drawer */}
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
+        width: 300,
+        background: "#0A0D12",
+        borderLeft: "0.5px solid #1E2A2A",
+        display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
+      }}>
+        {/* Header */}
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Quiz History</div>
+            <div style={{ fontSize: 10, color: "#444" }}>{quizHistory.length} session{quizHistory.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {quizHistory.length > 0 && (
+              <button
+                onClick={() => { setQuizHistory([]); clearHistory?.(); }}
+                style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px", transition: "color .15s" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}
+              >
+                Clear all
+              </button>
+            )}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}
+            >
+              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Entries */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "10px 10px" }}>
+          {quizHistory.length === 0 ? (
+            <div style={{ padding: "40px 16px", textAlign: "center" }}>
+              <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Brain size={16} style={{ color: "#333" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No quizzes yet</div>
+              <div style={{ fontSize: 11, color: "#333" }}>Completed quizzes will appear here</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[...quizHistory].reverse().map((entry) => (
+                <div
+                  key={entry.id}
+                  style={{
+                    background: "rgba(255,255,255,0.02)",
+                    border: "0.5px solid #1A2626",
+                    padding: "10px 12px",
+                    cursor: "pointer",
+                    transition: "all .15s",
+                    position: "relative",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                  onClick={() => {
+                    const data = entry.data as { topic?: string; difficulty?: string };
+                    if (data?.topic) {
+                      setActiveTopic(data.topic);
+                      setDifficulty((data.difficulty as "easy" | "mixed" | "hard") ?? "mixed");
+                      setSidebarOpen(false);
+                      setPhase("setup");
+                    }
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
+                      <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span>
+                        <span>·</span>
+                        <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        const updated = quizHistory.filter(h => h.id !== entry.id);
+                        setQuizHistory(updated);
+                        removeHistory?.(entry.id);
+                      }}
+                      style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "#333", padding: "2px", marginTop: 1, transition: "color .15s" }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "#333"; }}
+                    >
+                      <svg viewBox="0 0 24 24" width={11} height={11} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                  {/* Replay hint */}
+                  <div style={{ fontSize: 9, color: "#2A5050", marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>Click to replay →</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer tip */}
+        <div style={{ padding: "10px 16px", borderTop: "0.5px solid #1A2626" }}>
+          <div style={{ fontSize: 10, color: "#333" }}>Click any entry to reload that quiz topic</div>
+        </div>
+      </div>
+
+    {/* ── SETUP PHASE ── */}
+    {phase === "setup" && <StarBg>
       <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <main className="flex-1 max-w-2xl mx-auto w-full p-6 space-y-6">
+
+          {/* Back to Dashboard */}
+          <div className="flex items-center gap-2 mb-1">
+            <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#555", textDecoration: "none", transition: "color .15s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#00C4B4"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#555"; }}>
+              <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Dashboard
+            </a>
+          </div>
 
           {/* Header */}
           <div className="flex items-center gap-3 mb-2 flex-wrap">
             <div className="w-9 h-9 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,196,180,0.12)", border: "0.5px solid #00C4B4" }}>
-              {/* Practice icon from Dashboard — document with horizontal lines */}
               <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="#00C4B4" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="1"/>
                 <path d="M9 9h6M9 12h6M9 15h4"/>
@@ -448,11 +581,16 @@ Return ONLY valid JSON:
             </div>
             <div className="flex-1">
               <h1 className="text-xl font-bold">Practice</h1>
-              <p className="text-xs text-muted-foreground">AI-generated quiz questions on any topic</p>
+              <p className="text-xs" style={{ color: "#555" }}>AI-generated quiz questions on any topic</p>
             </div>
-            <button onClick={() => setSidebarOpen(v => !v)}
-              className="relative flex items-center justify-center w-8 h-8 rounded-none border border-border bg-card/60 hover:border-primary/50 transition-colors text-muted-foreground hover:text-primary">
-              <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            <button
+              onClick={() => setSidebarOpen(v => !v)}
+              title="Quiz History"
+              style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}>
+              <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              {quizHistory.length > 0 && (
+                <span style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: "50%", background: "#00C4B4" }} />
+              )}
             </button>
           </div>
 
@@ -514,49 +652,6 @@ Return ONLY valid JSON:
               </div>
             )}
 
-            {/* Number of Questions */}
-            <div>
-              <label className="text-sm font-semibold mb-2 block" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>Number of Questions</span>
-                <span style={{ fontFamily: "monospace", fontSize: 13, color: "#00C4B4", fontWeight: 700 }}>{questionCount}</span>
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 11, color: "#555", minWidth: 14 }}>1</span>
-                <input
-                  type="range"
-                  min={1}
-                  max={20}
-                  value={questionCount}
-                  onChange={e => setQuestionCount(Number(e.target.value))}
-                  style={{
-                    flex: 1,
-                    accentColor: "#00C4B4",
-                    cursor: "pointer",
-                    height: 4,
-                  }}
-                />
-                <span style={{ fontSize: 11, color: "#555", minWidth: 20 }}>20</span>
-              </div>
-              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                {[5, 10, 15, 20].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setQuestionCount(n)}
-                    style={{
-                      padding: "3px 12px",
-                      background: questionCount === n ? "rgba(0,196,180,0.15)" : "rgba(255,255,255,0.03)",
-                      border: `0.5px solid ${questionCount === n ? "#00C4B4" : "#303030"}`,
-                      color: questionCount === n ? "#00C4B4" : "#666",
-                      fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: questionCount === n ? 700 : 400,
-                      transition: "all .15s",
-                    }}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Difficulty */}
             <div>
               <label className="text-sm font-semibold mb-2 block">Difficulty</label>
@@ -616,18 +711,24 @@ Return ONLY valid JSON:
           sources={allSources}
         />
       </div>
-    </StarBg>
-  );
+    </StarBg>}
 
-  // ── QUIZ PHASE ───────────────────────────────────────────────────────────────
-  if (phase === "quiz" && q) return (
-    <StarBg>
+  {/* ── QUIZ PHASE ── */}
+    {phase === "quiz" && q && <StarBg>
       <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <main className="flex-1 max-w-2xl mx-auto w-full p-4 space-y-6 pt-6">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><Target className="h-3.5 w-3.5" />{q.topic}</span>
-              <span>Question {currentQ + 1} / {questions.length}</span>
+              <div className="flex items-center gap-2">
+                <span>Question {currentQ + 1} / {questions.length}</span>
+                <button onClick={() => setSidebarOpen(v => !v)}
+                  style={{ width: 28, height: 28, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555", transition: "all .15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; }}>
+                  <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={2}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+              </div>
             </div>
             <Progress value={((currentQ) / questions.length) * 100} className="h-2" />
           </div>
@@ -674,14 +775,20 @@ Return ONLY valid JSON:
           )}
         </main>
       </div>
-    </StarBg>
-  );
+    </StarBg>}
 
-  // ── RESULTS PHASE ────────────────────────────────────────────────────────────
-  if (phase === "results") return (
-    <StarBg>
+  {/* ── RESULTS PHASE ── */}
+    {phase === "results" && <StarBg>
       <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <main className="flex-1 max-w-lg mx-auto w-full p-6 space-y-6 flex flex-col justify-center">
+          <div style={{ marginBottom: 4 }}>
+            <a href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#555", textDecoration: "none", transition: "color .15s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#00C4B4"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#555"; }}>
+              <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Dashboard
+            </a>
+          </div>
           <div className="text-center">
             <Trophy className={cn("h-16 w-16 mx-auto mb-4",
               pct >= 80 ? "text-amber-500" : pct >= 60 ? "text-slate-400" : "text-muted-foreground")} />
@@ -714,8 +821,8 @@ Return ONLY valid JSON:
           </div>
         </main>
       </div>
-    </StarBg>
-  );
+    </StarBg>}
 
-  return null;
+    </>
+  );
 }

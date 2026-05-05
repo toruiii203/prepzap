@@ -219,47 +219,52 @@ DATA:${dataUrl}`,
     navigate(href)
   }
 
-  const cs: React.CSSProperties = { background:"var(--pz-surface2)", border:"1px solid var(--pz-border)", borderRadius:0 }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background:"var(--pz-bg)", color:"var(--pz-text)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "#000308", color: "#F0F0F0", position: "relative" }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: "radial-gradient(ellipse at 50% 30%, #0a0f1a 0%, #000308 100%)" }} />
+
       <Navbar isLoggedIn user={{ name:"Learner", xp:2450, streak:12, plan:"free" }} />
-      <main className="flex-1 py-6 lg:py-8">
+
+      <main className="flex-1 py-6 lg:py-8" style={{ position: "relative", zIndex: 1 }}>
         <div className="container mx-auto px-4 lg:px-8 max-w-5xl">
 
           {/* Header */}
           <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <Link to="/dashboard">
-                <button className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70" style={{color:"var(--pz-text-muted)"}}>
+                <button className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70" style={{ color: "#555" }}>
                   <ChevronLeft className="h-3.5 w-3.5" /> Dashboard
                 </button>
               </Link>
-              <span style={{color:"var(--pz-border)"}}>|</span>
-              <div>
-                <h1 className="text-lg font-semibold flex items-center gap-2" style={{fontFamily:"'DM Serif Display', serif"}}>
-                  <Layers className="h-4 w-4" style={{color:"var(--pz-gold)"}} /> Source Library
-                </h1>
-                <p className="text-xs mt-0.5" style={{color:"var(--pz-text-muted)"}}>The brain — every tool reads from here</p>
+              <span style={{ color: "#252525" }}>|</span>
+              <div className="flex items-center gap-2">
+                <div style={{ width: 32, height: 32, background: "rgba(0,196,180,0.1)", border: "0.5px solid #00C4B4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Layers className="h-4 w-4" style={{ color: "#00C4B4" }} />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold" style={{ letterSpacing: "-0.01em" }}>Source Library</h1>
+                  <p className="text-xs mt-0.5" style={{ color: "#555" }}>The brain — every tool reads from here</p>
+                </div>
               </div>
             </div>
             <GlobalContextBar />
           </div>
 
-          {/* Stats */}
+          {/* Stats bar */}
           {sources.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 mb-5 px-3 py-2 text-xs" style={{background:"var(--pz-surface3)", border:"1px solid var(--pz-border)"}}>
-              <span style={{color:"var(--pz-text-muted)"}}><span style={{color:"var(--pz-text)", fontFamily:"'DM Mono',monospace"}}>{sources.length}</span> files</span>
-              <span style={{color:"var(--pz-border)"}}>·</span>
-              <span style={{color:"var(--pz-text-muted)"}}><span style={{color:"var(--pz-text)", fontFamily:"'DM Mono',monospace"}}>{sources.filter(s=>s.fullText||s.preview).length}</span> with text</span>
-              {[["green","#10b981","mastered"],["yellow","#f59e0b","learning"],["red","#ef4444","needs work"]].map(([m,c,l])=>(
-                <span key={m} style={{color:"var(--pz-text-muted)"}}>
-                  <span style={{color:c, fontFamily:"'DM Mono',monospace"}}>{sources.filter(s=>s.mastery===m).length}</span> {l}
+            <div className="flex flex-wrap items-center gap-3 mb-5 px-3 py-2 text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
+              <span style={{ color: "#555" }}><span style={{ color: "#F0F0F0", fontFamily: "monospace" }}>{sources.length}</span> files</span>
+              <span style={{ color: "#252525" }}>·</span>
+              <span style={{ color: "#555" }}><span style={{ color: "#F0F0F0", fontFamily: "monospace" }}>{sources.filter(s => s.fullText || s.preview).length}</span> with text</span>
+              {[["green","#10b981","mastered"],["yellow","#f59e0b","learning"],["red","#ef4444","needs work"]].map(([m,c,l]) => (
+                <span key={m} style={{ color: "#555" }}>
+                  <span style={{ color: c as string, fontFamily: "monospace" }}>{sources.filter(s => s.mastery === m).length}</span> {l}
                 </span>
               ))}
               <span className="ml-auto flex gap-3">
-                {selected.size > 0 && <button onClick={()=>setSelected(new Set())} className="transition-opacity hover:opacity-70" style={{color:"var(--pz-text-muted)"}}>Clear selection</button>}
-                {sources.length > 1 && selected.size === 0 && <button onClick={()=>setSelected(new Set(sources.map(s=>s.id)))} className="transition-opacity hover:opacity-70" style={{color:"var(--pz-text-muted)"}}>Select all</button>}
+                {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={{ color: "#555" }}>Clear selection</button>}
+                {sources.length > 1 && selected.size === 0 && <button onClick={() => setSelected(new Set(sources.map(s => s.id)))} style={{ color: "#555" }}>Select all</button>}
               </span>
             </div>
           )}
@@ -267,60 +272,64 @@ DATA:${dataUrl}`,
           <div className="grid lg:grid-cols-5 gap-6">
 
             {/* Upload (2 cols) */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-3">
               <div
-                onDragOver={e=>{e.preventDefault();setDragging(true)}} onDragLeave={()=>setDragging(false)} onDrop={onDrop}
-                onClick={()=>sources.length<MAX_FILES&&inputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setDragging(true) }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={onDrop}
+                onClick={() => sources.length < MAX_FILES && inputRef.current?.click()}
                 className="flex flex-col items-center justify-center gap-3 py-10 px-4 text-center transition-all"
                 style={{
-                  border:`2px dashed ${dragging?"var(--pz-gold)":"var(--pz-border)"}`,
-                  background: dragging?"rgba(212,175,90,0.05)":"var(--pz-surface2)",
-                  cursor: sources.length>=MAX_FILES?"not-allowed":"pointer",
-                  opacity: sources.length>=MAX_FILES ? 0.5 : 1,
+                  border: `1.5px dashed ${dragging ? "#00C4B4" : "#252525"}`,
+                  background: dragging ? "rgba(0,196,180,0.05)" : "rgba(255,255,255,0.02)",
+                  cursor: sources.length >= MAX_FILES ? "not-allowed" : "pointer",
+                  opacity: sources.length >= MAX_FILES ? 0.5 : 1,
                 }}
               >
-                <Upload className="h-7 w-7" style={{color:"var(--pz-text-muted)"}} />
+                <div style={{ width: 40, height: 40, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Upload className="h-5 w-5" style={{ color: "#555" }} />
+                </div>
                 <div>
-                  <p className="text-sm font-medium" style={{color:"var(--pz-text)"}}>
+                  <p className="text-sm font-semibold" style={{ color: "#C0C0C0" }}>
                     {extracting ? `Extracting "${extracting}"…` : dragging ? "Drop here" : "Drag & drop or click"}
                   </p>
-                  <p className="text-xs mt-1" style={{color:"var(--pz-text-muted)"}}>PDF, TXT, DOCX, PNG, JPG · Max {MAX_SIZE_MB} MB</p>
+                  <p className="text-xs mt-1" style={{ color: "#555" }}>PDF, TXT, DOCX, PNG, JPG · Max {MAX_SIZE_MB} MB</p>
                 </div>
-                <span className="text-xs px-2 py-0.5" style={{background:"var(--pz-surface3)", border:"1px solid var(--pz-border)", color:"var(--pz-text-muted)", fontFamily:"'DM Mono',monospace"}}>{sources.length}/{MAX_FILES}</span>
+                <span className="text-xs px-2 py-0.5" style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid #252525", color: "#555", fontFamily: "monospace" }}>{sources.length}/{MAX_FILES}</span>
               </div>
-              {/* Camera button */}
+
               <button
                 onClick={openCamera}
                 disabled={sources.length >= MAX_FILES}
                 className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{background:"var(--pz-surface3)", border:"1px solid var(--pz-border)", color:"var(--pz-text-2)"}}
+                style={{ background: "rgba(0,196,180,0.05)", border: "0.5px solid #00C4B4", color: "#00C4B4" }}
               >
-                <Camera className="h-3.5 w-3.5" style={{color:"var(--pz-teal)"}} />
-                Capture with Camera
+                <Camera className="h-3.5 w-3.5" /> Capture with Camera
               </button>
-              {cameraError && <p className="text-xs px-3 py-2" style={{background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.2)", color:"#f87171"}}>{cameraError}</p>}
 
+              {cameraError && <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.2)", color: "#f87171" }}>{cameraError}</p>}
               <input ref={inputRef} type="file" multiple accept=".pdf,.txt,.docx,.png,.jpg,.jpeg" className="hidden"
-                onChange={e=>{if(e.target.files) processFiles(Array.from(e.target.files))}} />
-              {error && <p className="text-xs px-3 py-2" style={{background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.2)", color:"#f87171"}}>{error}</p>}
+                onChange={e => { if (e.target.files) processFiles(Array.from(e.target.files)) }} />
+              {error && <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.2)", color: "#f87171" }}>{error}</p>}
 
-              {/* How it works */}
-              <div className="p-3 space-y-2 text-xs" style={{background:"var(--pz-surface3)", border:"1px solid var(--pz-border)"}}>
-                <p className="font-medium" style={{color:"var(--pz-text)"}}>Source-First architecture</p>
-                <p style={{color:"var(--pz-text-muted)"}}>Use the context bar (top-right) to choose which sources every AI tool uses.</p>
-                {[["General AI","Built-in AI only"],["All Sources","All files injected"],["Pick Sources","Specific files"]].map(([m,d])=>(
-                  <div key={m} className="flex gap-2"><span style={{color:"var(--pz-gold)"}}>›</span><span><span style={{color:"var(--pz-text-2)"}}>{m}</span> — {d}</span></div>
+              <div className="p-3 space-y-2 text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
+                <p className="font-semibold" style={{ color: "#C0C0C0" }}>Source-First architecture</p>
+                <p style={{ color: "#555" }}>Use the context bar (top-right) to choose which sources every AI tool uses.</p>
+                {[["General AI","Built-in AI only"],["All Sources","All files injected"],["Pick Sources","Specific files"]].map(([m,d]) => (
+                  <div key={m} className="flex gap-2">
+                    <span style={{ color: "#00C4B4" }}>›</span>
+                    <span><span style={{ color: "#C0C0C0" }}>{m}</span><span style={{ color: "#555" }}> — {d}</span></span>
+                  </div>
                 ))}
               </div>
 
-              {/* Mastery heatmap legend */}
-              <div className="p-3 space-y-2 text-xs" style={{background:"var(--pz-surface3)", border:"1px solid var(--pz-border)"}}>
-                <p className="font-medium" style={{color:"var(--pz-text)"}}>Confidence Heatmap</p>
-                <p style={{color:"var(--pz-text-muted)"}}>Click the dots on each source to mark your mastery level.</p>
-                {(Object.entries(MASTERY) as [string, {label:string;color:string}][]).map(([k,v])=>(
+              <div className="p-3 space-y-2 text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
+                <p className="font-semibold" style={{ color: "#C0C0C0" }}>Confidence Heatmap</p>
+                <p style={{ color: "#555" }}>Click the dots on each source to mark your mastery level.</p>
+                {(Object.entries(MASTERY) as [string, {label:string;color:string}][]).map(([k,v]) => (
                   <div key={k} className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:v.color}} />
-                    <span style={{color:"var(--pz-text-2)"}}>{v.label}</span>
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: v.color }} />
+                    <span style={{ color: "#777" }}>{v.label}</span>
                   </div>
                 ))}
               </div>
@@ -328,51 +337,60 @@ DATA:${dataUrl}`,
 
             {/* Source cards (3 cols) */}
             <div className="lg:col-span-3">
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{color:"var(--pz-text-muted)"}}>Uploaded Sources</p>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#444" }}>Uploaded Sources</p>
               {sources.length === 0 ? (
-                <div className="py-16 text-center" style={{border:"1px solid var(--pz-border)", background:"var(--pz-surface2)"}}>
-                  <File className="h-7 w-7 mx-auto mb-3" style={{color:"var(--pz-text-muted)"}} />
-                  <p className="text-sm font-medium mb-1" style={{color:"var(--pz-text-2)"}}>No sources yet</p>
-                  <p className="text-xs" style={{color:"var(--pz-text-muted)"}}>Upload PDFs or notes — every AI tool will use them</p>
+                <div className="py-16 text-center" style={{ border: "0.5px solid #252525", background: "rgba(255,255,255,0.01)" }}>
+                  <div style={{ width: 40, height: 40, border: "0.5px solid #252525", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <File className="h-5 w-5" style={{ color: "#333" }} />
+                  </div>
+                  <p className="text-sm font-medium mb-1" style={{ color: "#555" }}>No sources yet</p>
+                  <p className="text-xs" style={{ color: "#333" }}>Upload PDFs or notes — every AI tool will use them</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {sources.map(s => {
                     const isSel = selected.has(s.id)
                     const m = s.mastery ? MASTERY[s.mastery] : null
+                    const badge = typeBadge(s.type)
+                    const IconEl = badge === "PDF" ? FileText : badge === "PNG" || badge === "JPG" ? Camera : File
                     return (
-                      <div key={s.id} style={{...cs, borderColor:isSel?"var(--pz-gold)":"var(--pz-border)", background:isSel?"rgba(212,175,90,0.05)":"var(--pz-surface2)"}}>
+                      <div key={s.id} style={{
+                        background: isSel ? "rgba(0,196,180,0.05)" : "rgba(255,255,255,0.02)",
+                        border: `0.5px solid ${isSel ? "#00C4B4" : "#252525"}`,
+                        transition: "all .15s",
+                      }}>
                         <div className="flex items-start gap-3 px-3 py-2.5">
-                          <button onClick={()=>toggleSel(s.id)}
+                          <button onClick={() => toggleSel(s.id)}
                             className="mt-0.5 w-4 h-4 flex-shrink-0 flex items-center justify-center border transition-all"
-                            style={{background:isSel?"var(--pz-gold)":"transparent", borderColor:isSel?"var(--pz-gold)":"var(--pz-border)"}}>
-                            {isSel && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3L3 5L7 1" stroke="#0A0A0C" strokeWidth="1.5" strokeLinecap="round"/></svg>}
+                            style={{ background: isSel ? "#00C4B4" : "transparent", borderColor: isSel ? "#00C4B4" : "#333" }}>
+                            {isSel && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3L3 5L7 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/></svg>}
                           </button>
-                          <FileText className="h-4 w-4 flex-shrink-0 mt-0.5" style={{color:"var(--pz-text-muted)"}} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate" style={{color:"var(--pz-text)"}}>{s.name}</p>
-                            <p className="text-[10px] mt-0.5" style={{color:"var(--pz-text-muted)", fontFamily:"'DM Mono',monospace"}}>
-                              {typeBadge(s.type)} · {formatSize(s.size)} · {new Date(s.uploadedAt).toLocaleDateString()}
-                              {(s.fullText||s.preview) ? " · ✓ text" : ""}
-                            </p>
-                            {s.preview && <p className="text-[10px] mt-0.5 opacity-60 truncate" style={{color:"var(--pz-text-muted)"}}>{s.preview.slice(0,80)}…</p>}
+                          <div style={{ width: 32, height: 32, background: "rgba(0,196,180,0.06)", border: "0.5px solid #1E3C3C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <IconEl className="h-3.5 w-3.5" style={{ color: "#00C4B4" }} />
                           </div>
-                          {/* Mastery dots */}
-                          <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
-                            {(["red","yellow","green"] as const).map(mc=>(
-                              <button key={mc} onClick={()=>setMastery(s.id,mc)}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate" style={{ color: "#E0E0E0" }}>{s.name}</p>
+                            <p className="text-[10px] mt-0.5" style={{ color: "#444", fontFamily: "monospace" }}>
+                              {badge} · {formatSize(s.size)} · {new Date(s.uploadedAt).toLocaleDateString()}
+                              {(s.fullText || s.preview) ? " · ✓ text" : ""}
+                            </p>
+                            {s.preview && <p className="text-[10px] mt-0.5 opacity-50 truncate" style={{ color: "#888" }}>{s.preview.slice(0, 80)}…</p>}
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+                            {(["red","yellow","green"] as const).map(mc => (
+                              <button key={mc} onClick={() => setMastery(s.id, mc)}
                                 className="w-3 h-3 rounded-full transition-all hover:scale-125"
-                                style={{background:MASTERY[mc].color, opacity:s.mastery===mc?1:0.2}}
+                                style={{ background: MASTERY[mc].color, opacity: s.mastery === mc ? 1 : 0.18 }}
                                 title={MASTERY[mc].label} />
                             ))}
                           </div>
-                          <button onClick={()=>remove(s.id)} className="flex-shrink-0 p-1 transition-opacity hover:opacity-70" style={{color:"var(--pz-text-muted)"}}>
+                          <button onClick={() => remove(s.id)} className="flex-shrink-0 p-1 transition-opacity hover:opacity-70" style={{ color: "#444" }}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                         {m && (
                           <div className="px-3 pb-2">
-                            <span className="text-[10px] px-2 py-0.5" style={{background:m.bg, color:m.color, border:`1px solid ${m.color}30`}}>{m.label}</span>
+                            <span className="text-[10px] px-2 py-0.5" style={{ background: m.bg, color: m.color, border: `1px solid ${m.color}30` }}>{m.label}</span>
                           </div>
                         )}
                       </div>
@@ -383,25 +401,30 @@ DATA:${dataUrl}`,
             </div>
           </div>
 
-          {/* Send to Tool */}
+          {/* Open a Tool */}
           {sources.length > 0 && (
             <div className="mt-8">
               <div className="flex items-center gap-2 mb-4">
-                <ArrowRight className="h-4 w-4" style={{color:"var(--pz-text-muted)"}} />
-                <h2 className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Open a Tool</h2>
-                <span className="text-xs ml-1" style={{color:"var(--pz-text-muted)"}}>
-                  {selected.size>0 ? `— ${selected.size} source${selected.size!==1?"s":""} will be activated` : "— all sources will be used"}
+                <ArrowRight className="h-3.5 w-3.5" style={{ color: "#444" }} />
+                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#444" }}>Open a Tool</p>
+                <span className="text-xs ml-1" style={{ color: "#333" }}>
+                  {selected.size > 0 ? `— ${selected.size} source${selected.size !== 1 ? "s" : ""} will be activated` : "— all sources will be used"}
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {TOOLS.map(tool=>(
-                  <button key={tool.href} onClick={()=>sendToTool(tool.href)}
-                    className="flex items-center gap-2 px-3 py-2.5 text-left transition-all hover:opacity-80"
-                    style={{background:"var(--pz-surface2)", border:"1px solid var(--pz-border)"}}>
-                    <tool.icon className="h-3.5 w-3.5 flex-shrink-0" style={{color:"var(--pz-text-muted)"}} />
+                {TOOLS.map(tool => (
+                  <button key={tool.href} onClick={() => sendToTool(tool.href)}
+                    className="flex items-start gap-2.5 px-3 py-3 text-left transition-all"
+                    style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                  >
+                    <div style={{ width: 26, height: 26, background: "rgba(0,196,180,0.08)", border: "0.5px solid #1E3C3C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                      <tool.icon className="h-3 w-3" style={{ color: "#00C4B4" }} />
+                    </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium truncate" style={{color:"var(--pz-text)"}}>{tool.label}</p>
-                      <p className="text-[10px] truncate" style={{color:"var(--pz-text-muted)"}}>{tool.desc}</p>
+                      <p className="text-xs font-semibold truncate" style={{ color: "#C0C0C0" }}>{tool.label}</p>
+                      <p className="text-[10px] truncate mt-0.5" style={{ color: "#444" }}>{tool.desc}</p>
                     </div>
                   </button>
                 ))}
@@ -413,54 +436,42 @@ DATA:${dataUrl}`,
 
       {/* Camera Modal */}
       {cameraOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:"rgba(0,0,0,0.85)"}}>
-          <div className="relative w-full max-w-lg mx-4" style={{background:"var(--pz-surface2)", border:"1px solid var(--pz-border)"}}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3" style={{borderBottom:"1px solid var(--pz-border)"}}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
+          <div className="relative w-full max-w-lg mx-4" style={{ background: "#0E0E0E", border: "0.5px solid #252525" }}>
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "0.5px solid #252525" }}>
               <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4" style={{color:"var(--pz-teal)"}} />
-                <span className="text-sm font-medium" style={{color:"var(--pz-text)"}}>Capture Photo</span>
+                <Camera className="h-4 w-4" style={{ color: "#00C4B4" }} />
+                <span className="text-sm font-semibold" style={{ color: "#E0E0E0" }}>Capture Photo</span>
               </div>
-              <button onClick={closeCamera} className="p-1 transition-opacity hover:opacity-70" style={{color:"var(--pz-text-muted)"}}>
+              <button onClick={closeCamera} className="p-1 transition-opacity hover:opacity-70" style={{ color: "#555" }}>
                 <X className="h-4 w-4" />
               </button>
             </div>
-
-            {/* Video preview */}
-            <div className="relative bg-black" style={{aspectRatio:"4/3"}}>
-              <video
-                ref={videoRefCallback}
-                className="w-full h-full object-cover"
-                playsInline
-                muted
-              />
+            <div className="relative bg-black" style={{ aspectRatio: "4/3" }}>
+              <video ref={videoRefCallback} className="w-full h-full object-cover" playsInline muted />
               {!cameraReady && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-xs" style={{color:"var(--pz-text-muted)"}}>Starting camera…</div>
+                  <div className="text-xs" style={{ color: "#555" }}>Starting camera…</div>
                 </div>
               )}
-              {/* Viewfinder corners */}
               {cameraReady && (
                 <>
-                  <div className="absolute top-3 left-3 w-5 h-5" style={{borderTop:"2px solid var(--pz-teal)",borderLeft:"2px solid var(--pz-teal)"}} />
-                  <div className="absolute top-3 right-3 w-5 h-5" style={{borderTop:"2px solid var(--pz-teal)",borderRight:"2px solid var(--pz-teal)"}} />
-                  <div className="absolute bottom-3 left-3 w-5 h-5" style={{borderBottom:"2px solid var(--pz-teal)",borderLeft:"2px solid var(--pz-teal)"}} />
-                  <div className="absolute bottom-3 right-3 w-5 h-5" style={{borderBottom:"2px solid var(--pz-teal)",borderRight:"2px solid var(--pz-teal)"}} />
+                  <div className="absolute top-3 left-3 w-5 h-5" style={{ borderTop: "2px solid #00C4B4", borderLeft: "2px solid #00C4B4" }} />
+                  <div className="absolute top-3 right-3 w-5 h-5" style={{ borderTop: "2px solid #00C4B4", borderRight: "2px solid #00C4B4" }} />
+                  <div className="absolute bottom-3 left-3 w-5 h-5" style={{ borderBottom: "2px solid #00C4B4", borderLeft: "2px solid #00C4B4" }} />
+                  <div className="absolute bottom-3 right-3 w-5 h-5" style={{ borderBottom: "2px solid #00C4B4", borderRight: "2px solid #00C4B4" }} />
                 </>
               )}
             </div>
-
-            {/* Controls */}
             <div className="flex items-center justify-between px-4 py-3 gap-3">
-              <p className="text-xs" style={{color:"var(--pz-text-muted)"}}>Point at your notes, handwritten work, or any study material</p>
+              <p className="text-xs" style={{ color: "#555" }}>Point at your notes, handwritten work, or any study material</p>
               <button
                 onClick={capturePhoto}
                 disabled={!cameraReady}
                 className="flex-shrink-0 flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{background:"var(--pz-teal)", color:"#0A0A0C"}}
+                style={{ background: "#00C4B4", color: "#000" }}
               >
-                <Camera className="h-3.5 w-3.5" />
-                Capture
+                <Camera className="h-3.5 w-3.5" /> Capture
               </button>
             </div>
           </div>
