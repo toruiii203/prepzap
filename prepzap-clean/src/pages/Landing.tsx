@@ -3357,7 +3357,6 @@ export default function Landing(){
   },[]);
 
   return(<ToastCtx.Provider value={showToast}>
-    <>
     {/* Loading screen — outside PageFade so it renders immediately without fade delay */}
     {!loaded&&<LoadingScreen onDone={()=>setLoaded(true)}/>}
 
@@ -3684,6 +3683,5 @@ export default function Landing(){
         </footer>
       </div>
     </PageFade>
-  </>
   </ToastCtx.Provider>);
 }
