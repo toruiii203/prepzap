@@ -194,7 +194,26 @@ const CSS = `
   /* Shimmer effect */
   @keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
   .shimmer{background:linear-gradient(90deg,transparent 0%,rgba(0,196,180,0.08) 50%,transparent 100%);background-size:200% 100%;animation:shimmer 2.5s ease infinite;}
-`;
+
+  /* GSAP reveal base */
+  [data-reveal]{opacity:0;transform:translateY(52px);filter:blur(5px);}
+
+  /* Oryzo-style char split */
+  @keyframes char-in{from{opacity:0;transform:translateY(1.2em) rotate(3deg);}to{opacity:1;transform:translateY(0) rotate(0deg);}}
+  .char{display:inline-block;animation:char-in 0.65s cubic-bezier(0.16,1,0.3,1) both;overflow:hidden;}
+
+  /* Horizontal line reveal */
+  @keyframes line-x{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  .line-reveal{transform-origin:left center;animation:line-x 1.4s cubic-bezier(0.16,1,0.3,1) both;}
+
+  /* Section separator glow */
+  .section-sep{height:0.5px;background:linear-gradient(90deg,transparent,rgba(0,196,180,0.15),rgba(123,94,167,0.1),transparent);}
+
+  /* Magnetic link hover */
+  .nav-link{position:relative;}
+  .nav-link::after{content:"";position:absolute;bottom:-2px;left:0;width:0;height:0.5px;background:#00C4B4;transition:width 0.3s cubic-bezier(0.16,1,0.3,1);}
+  .nav-link:hover::after{width:100%;}
+\``;
 
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -341,6 +360,116 @@ function useMouseParallax(){
 const ToastCtx = createContext<(msg:string, color?:string)=>void>(()=>{});
 function useToast(){ return useContext(ToastCtx); }
 
+// ─── LENIS + GSAP LOADER ─────────────────────────────────────────────────────
+let _gsapReady   = false;
+let _gsapLoading = false;
+const _gsapQueue: Array<()=>void> = [];
+
+function loadGSAP(cb: ()=>void){
+  if(_gsapReady){ cb(); return; }
+  _gsapQueue.push(cb);
+  if(_gsapLoading) return;
+  _gsapLoading = true;
+  const loadScript = (src: string) => new Promise<void>(res=>{
+    const s = document.createElement("script");
+    s.src = src; s.onload = ()=>res(); document.head.appendChild(s);
+  });
+  Promise.all([
+    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"),
+    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"),
+  ]).then(()=>{
+    const G = (window as any).gsap;
+    G.registerPlugin((window as any).ScrollTrigger);
+    _gsapReady = true; _gsapLoading = false;
+    _gsapQueue.forEach(f=>f()); _gsapQueue.length = 0;
+  });
+}
+
+let _lenisInstance: any = null;
+let _lenisLoading = false;
+const _lenisQueue: Array<()=>void> = [];
+
+function loadLenis(cb: ()=>void){
+  if(_lenisInstance){ cb(); return; }
+  _lenisQueue.push(cb);
+  if(_lenisLoading) return;
+  _lenisLoading = true;
+  const s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js";
+  s.onload = ()=>{
+    const Lenis = (window as any).Lenis;
+    _lenisInstance = new Lenis({
+      duration: 1.4,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      smoothWheel: true,
+    });
+    requestAnimationFrame(function tick(t){
+      _lenisInstance.raf(t);
+      requestAnimationFrame(tick);
+    });
+    _lenisInstance.on("scroll", ()=>{ (window as any).ScrollTrigger?.update?.(); });
+    _lenisLoading = false;
+    _lenisQueue.forEach(f=>f()); _lenisQueue.length=0;
+  };
+  document.head.appendChild(s);
+}
+
+function useSmoothScroll(){
+  useEffect(()=>{
+    loadLenis(()=>{
+      loadGSAP(()=>{
+        const ST = (window as any).ScrollTrigger;
+        if(!ST) return;
+        ST.scrollerProxy(document.body, {
+          scrollTop(){ return window.scrollY; },
+          getBoundingClientRect(){ return { top:0,left:0,width:window.innerWidth,height:window.innerHeight }; }
+        });
+        _lenisInstance?.on("scroll", ST.update);
+        (window as any).gsap?.ticker?.lagSmoothing(0);
+      });
+    });
+    return ()=>{
+      if(_lenisInstance){ _lenisInstance.destroy?.(); _lenisInstance=null; _lenisLoading=false; }
+    };
+  },[]);
+}
+
+function useGSAPReveal(
+  containerRef: React.RefObject<HTMLElement>,
+  selector: string,
+  vars: Record<string,any> = {},
+  trigger?: Record<string,any>
+){
+  useEffect(()=>{
+    loadGSAP(()=>{
+      const G = (window as any).gsap;
+      const ST = (window as any).ScrollTrigger;
+      if(!G || !ST || !containerRef.current) return;
+      const els = containerRef.current.querySelectorAll(selector);
+      if(!els.length) return;
+      const ctx = G.context(()=>{
+        G.fromTo(els,
+          { opacity:0, y:48, filter:"blur(6px)", ...(vars.from||{}) },
+          {
+            opacity:1, y:0, filter:"blur(0px)", ...(vars.to||{}),
+            duration: vars.duration ?? 1.1,
+            ease: vars.ease ?? "power3.out",
+            stagger: vars.stagger ?? 0.08,
+            scrollTrigger: {
+              trigger: containerRef.current,
+              start: trigger?.start ?? "top 82%",
+              toggleActions: "play none none none",
+              ...trigger,
+            }
+          }
+        );
+      }, containerRef.current);
+      return ()=>ctx.revert();
+    });
+  },[]);
+}
+
 // ─── THREE.JS SCENE LOADER ────────────────────────────────────────────────────
 // Loads Three.js once (deduped), then calls setup only when canvas is in viewport.
 // RAF loops are automatically paused when scrolled off-screen.
@@ -379,6 +508,171 @@ function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: 
     obs.observe(canvas);
 
     return ()=>{ obs.disconnect(); cleanup?.(); };
+  },[]);
+}
+
+// ─── LENIS SMOOTH SCROLL + GSAP LOADER ───────────────────────────────────────
+let _gsapReady = false;
+let _gsapLoading = false;
+const _gsapQueue: Array<()=>void> = [];
+
+function loadGSAP(cb: ()=>void){
+  if(_gsapReady){ cb(); return; }
+  _gsapQueue.push(cb);
+  if(_gsapLoading) return;
+  _gsapLoading = true;
+  const loadScript = (src: string) => new Promise<void>(res=>{
+    const s = document.createElement("script");
+    s.src = src; s.onload = ()=>res();
+    document.head.appendChild(s);
+  });
+  Promise.all([
+    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"),
+    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"),
+  ]).then(()=>{
+    const G = (window as any).gsap;
+    G.registerPlugin((window as any).ScrollTrigger);
+    _gsapReady = true; _gsapLoading = false;
+    _gsapQueue.forEach(f=>f()); _gsapQueue.length=0;
+  });
+}
+
+let _lenisInited = false;
+function initLenis(){
+  if(_lenisInited) return;
+  _lenisInited = true;
+  const s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/bundled/lenis.min.js";
+  s.onload = ()=>{
+    const lenis = new (window as any).Lenis({
+      duration: 1.4,
+      easing: (t: number)=> Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      smoothWheel: true,
+      wheelMultiplier: 0.9,
+      touchMultiplier: 2,
+    });
+    loadGSAP(()=>{
+      const G = (window as any).gsap;
+      const ST = (window as any).ScrollTrigger;
+      lenis.on("scroll", ST.update);
+      G.ticker.add((t: number)=>lenis.raf(t*1000));
+      G.ticker.lagSmoothing(0);
+    });
+    const raf = (time: number)=>{ lenis.raf(time); requestAnimationFrame(raf); };
+    requestAnimationFrame(raf);
+  };
+  document.head.appendChild(s);
+}
+
+function useGSAPAnimations(){
+  useEffect(()=>{
+    initLenis();
+    loadGSAP(()=>{
+      const G = (window as any).gsap;
+      const ST = (window as any).ScrollTrigger;
+
+      // Hero h1
+      G.from("[data-gsap='hero-h1']",{
+        opacity:0, y:60, skewY:3, duration:1.2, ease:"expo.out", delay:0.3,
+      });
+
+      // Generic section entrances
+      document.querySelectorAll("[data-gsap='section-enter']").forEach((el)=>{
+        G.from(el,{
+          scrollTrigger:{trigger:el, start:"top 88%", toggleActions:"play none none none"},
+          opacity:0, y:56, duration:1.1, ease:"expo.out",
+        });
+      });
+
+      // Stagger children
+      document.querySelectorAll("[data-gsap='stagger-children']").forEach((el)=>{
+        G.from((el as HTMLElement).children,{
+          scrollTrigger:{trigger:el, start:"top 85%", toggleActions:"play none none none"},
+          opacity:0, y:40, stagger:0.09, duration:0.9, ease:"expo.out",
+        });
+      });
+
+      // Parallax slow
+      document.querySelectorAll("[data-gsap='parallax-slow']").forEach((el)=>{
+        G.to(el,{
+          scrollTrigger:{trigger:el, start:"top bottom", end:"bottom top", scrub:1.5},
+          y:-80, ease:"none",
+        });
+      });
+
+      // Parallax fast
+      document.querySelectorAll("[data-gsap='parallax-fast']").forEach((el)=>{
+        G.to(el,{
+          scrollTrigger:{trigger:el, start:"top bottom", end:"bottom top", scrub:2},
+          y:-140, ease:"none",
+        });
+      });
+
+      // Line grow
+      document.querySelectorAll("[data-gsap='line-grow']").forEach((el)=>{
+        G.from(el,{
+          scrollTrigger:{trigger:el, start:"top 90%", toggleActions:"play none none none"},
+          scaleX:0, transformOrigin:"left center", duration:1.4, ease:"expo.out",
+        });
+      });
+
+      // Stat strip
+      G.from("[data-gsap='stat-strip']",{
+        scrollTrigger:{trigger:"[data-gsap='stat-strip']", start:"top 80%", toggleActions:"play none none none"},
+        opacity:0, scale:0.96, y:30, duration:1, ease:"expo.out",
+      });
+
+      // Manifesto
+      const manifesto = document.querySelector("[data-gsap='manifesto']");
+      if(manifesto){
+        G.from(manifesto,{
+          scrollTrigger:{trigger:manifesto, start:"top 70%", toggleActions:"play none none none"},
+          opacity:0, y:40, duration:1.2, ease:"expo.out",
+        });
+      }
+
+      // Feature rows
+      document.querySelectorAll("[data-gsap='feature-row']").forEach((el,i)=>{
+        G.from(el,{
+          scrollTrigger:{trigger:el, start:"top 88%", toggleActions:"play none none none"},
+          opacity:0, x:-30, duration:0.8, delay:i*0.04, ease:"expo.out",
+        });
+      });
+
+      // Testimonial cards
+      G.from("[data-gsap='testimonial-card']",{
+        scrollTrigger:{trigger:"[data-gsap='testimonial-card']", start:"top 85%", toggleActions:"play none none none"},
+        opacity:0, scale:0.94, y:30, stagger:0.1, duration:0.9, ease:"expo.out",
+      });
+
+      // 3D scenes
+      G.from("[data-gsap='three-scene']",{
+        scrollTrigger:{trigger:"[data-gsap='three-scene']", start:"top 75%", toggleActions:"play none none none"},
+        opacity:0, scale:0.92, duration:1.4, ease:"expo.out",
+      });
+
+      // Pricing cards
+      G.from("[data-gsap='pricing-card']",{
+        scrollTrigger:{trigger:"[data-gsap='pricing-card']", start:"top 85%", toggleActions:"play none none none"},
+        opacity:0, y:50, stagger:0.12, duration:1, ease:"expo.out",
+      });
+
+      // FAQ items
+      G.from("[data-gsap='faq-item']",{
+        scrollTrigger:{trigger:"[data-gsap='faq-item']", start:"top 85%", toggleActions:"play none none none"},
+        opacity:0, x:-20, stagger:0.07, duration:0.7, ease:"expo.out",
+      });
+
+      // Footer
+      G.from("footer",{
+        scrollTrigger:{trigger:"footer", start:"top 90%", toggleActions:"play none none none"},
+        opacity:0, y:30, duration:1, ease:"expo.out",
+      });
+
+      ST.refresh();
+    });
+    return ()=>{ loadGSAP(()=>{ (window as any).ScrollTrigger?.getAll().forEach((t:any)=>t.kill()); }); };
   },[]);
 }
 
@@ -863,11 +1157,51 @@ function AnimatedCounter({target,suffix="",label}:{target:number;suffix?:string;
 
 // ─── G: Clip-path reveal wrapper ─────────────────────────────────────────────
 function ClipReveal({children,delay=0}:{children:React.ReactNode;delay?:number}){
-  const {ref,inView}=useInView(0.05);
+  const ref=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    loadGSAP(()=>{
+      const G=(window as any).gsap;
+      const ST=(window as any).ScrollTrigger;
+      if(!G||!ST||!ref.current)return;
+      const ctx=G.context(()=>{
+        G.fromTo(ref.current,
+          {clipPath:"inset(0 100% 0 0)",opacity:0},
+          {clipPath:"inset(0 0% 0 0)",opacity:1,duration:1.2,ease:"power4.out",delay,
+           scrollTrigger:{trigger:ref.current,start:"top 88%",toggleActions:"play none none none"}}
+        );
+      },ref.current);
+      return()=>ctx.revert();
+    });
+  },[delay]);
+  return <div ref={ref} style={{clipPath:"inset(0 100% 0 0)",opacity:0}}>{children}</div>;
+}
+
+// SplitText: animates each character in on scroll — Oryzo signature move
+function SplitTextReveal({text,style,delay=0,tag="span"}:{text:string;style?:React.CSSProperties;delay?:number;tag?:string}){
+  const ref=useRef<HTMLSpanElement>(null);
+  useEffect(()=>{
+    loadGSAP(()=>{
+      const G=(window as any).gsap;
+      const ST=(window as any).ScrollTrigger;
+      if(!G||!ST||!ref.current)return;
+      const chars=ref.current.querySelectorAll(".char");
+      const ctx=G.context(()=>{
+        G.fromTo(chars,
+          {opacity:0,yPercent:110,rotation:3},
+          {opacity:1,yPercent:0,rotation:0,
+           duration:0.7,ease:"power3.out",stagger:0.022,delay,
+           scrollTrigger:{trigger:ref.current,start:"top 88%",toggleActions:"play none none none"}}
+        );
+      },ref.current);
+      return()=>ctx.revert();
+    });
+  },[delay]);
   return(
-    <div ref={ref} className={`clip-reveal${inView?" in":""}`} style={{transitionDelay:`${delay}s`}}>
-      {children}
-    </div>
+    <span ref={ref} style={{display:"inline",overflow:"hidden",...style}}>
+      {text.split("").map((ch,i)=>(
+        <span key={i} className="char" style={{display:"inline-block",opacity:0,whiteSpace:ch===" "?"pre":"normal"}}>{ch===" "?" ":ch}</span>
+      ))}
+    </span>
   );
 }
 
@@ -888,7 +1222,7 @@ function WordReveal(){
   },[]);
   const words=MANIFESTO.split(" ");
   return(
-    <div ref={ref} style={{position:"relative",zIndex:2,padding:"120px 32px",background:"#03050f",overflow:"hidden"}}>
+    <div ref={ref} data-gsap="manifesto" style={{position:"relative",zIndex:2,padding:"120px 32px",background:"#03050f",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",
         background:"radial-gradient(ellipse 60% 50% at 50% 50%,rgba(0,196,180,0.04) 0%,transparent 70%)"}}/>
       <div style={{maxWidth:"720px",margin:"0 auto",position:"relative"}}>
@@ -965,7 +1299,7 @@ function StickyFeatureShowcase(){
       {/* Right scrolling list */}
       <div style={{flex:1}}>
         {features.map((feat,i)=>(
-          <div key={feat.n} ref={el=>{itemRefs.current[i]=el;}} style={{
+          <div key={feat.n} data-gsap="feature-row" ref={el=>{itemRefs.current[i]=el;}} style={{
             padding:"28px 0",borderBottom:"0.5px solid #0d1220",
             opacity:i===active?1:0.28,transition:"opacity 0.45s ease",
           }}>
@@ -1322,16 +1656,23 @@ function TiltCard({children,style}:{children:React.ReactNode;style?:React.CSSPro
 }
 
 function Reveal({children,delay=0,style}:{children:React.ReactNode;delay?:number;style?:React.CSSProperties}){
-  const {ref,inView}=useInView(0.08);
-  return(
-    <div ref={ref} style={{...style,
-      opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(32px)",
-      filter:inView?"blur(0px)":"blur(4px)",
-      transition:`opacity 1s ease ${delay}s,transform 1s ease ${delay}s,filter 1s ease ${delay}s`,
-    }}>
-      {children}
-    </div>
-  );
+  const ref=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    loadGSAP(()=>{
+      const G=(window as any).gsap;
+      const ST=(window as any).ScrollTrigger;
+      if(!G||!ST||!ref.current)return;
+      const ctx=G.context(()=>{
+        G.fromTo(ref.current,
+          {opacity:0,y:44,filter:"blur(6px)"},
+          {opacity:1,y:0,filter:"blur(0px)",duration:1.1,ease:"power3.out",delay,
+           scrollTrigger:{trigger:ref.current,start:"top 86%",toggleActions:"play none none none"}}
+        );
+      },ref.current);
+      return()=>ctx.revert();
+    });
+  },[delay]);
+  return <div ref={ref} style={{...style,opacity:0}}>{children}</div>;
 }
 
 function GlitchText({text,style}:{text:string;style?:React.CSSProperties}){
@@ -1700,7 +2041,7 @@ function HeroSection(){
       <p style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:"32px",animation:"pulse-glow 3s ease-in-out infinite, hero-enter 1.4s ease 0.15s both"}}>
         AI-Powered Study Platform
       </p>
-      <h1 style={{fontSize:"clamp(38px,6.5vw,68px)",fontWeight:300,letterSpacing:"-0.038em",lineHeight:1.04,marginBottom:"22px",color:"#F2F5F8",animation:"hero-enter 1.4s ease 0.31s both"}}>
+      <h1 data-gsap="hero-h1" style={{fontSize:"clamp(38px,6.5vw,68px)",fontWeight:300,letterSpacing:"-0.038em",lineHeight:1.04,marginBottom:"22px",color:"#F2F5F8",animation:"hero-enter 1.4s ease 0.31s both"}}>
         <GlitchText text="Study smarter."/><br/>
         <span style={{background:`linear-gradient(135deg,${TEAL},${PURPLE})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
           Master it faster.
@@ -2505,7 +2846,7 @@ function PricingSection(){
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:"1px",background:"#0d1220"}}>
           {plans.map((plan,i)=>(
             <ClipReveal key={i} delay={i*0.08}>
-              <div style={{background:plan.highlight?"#080d1a":"#03050f",padding:"36px 28px",position:"relative",height:"100%",display:"flex",flexDirection:"column"}}>
+              <div data-gsap="pricing-card" style={{background:plan.highlight?"#080d1a":"#03050f",padding:"36px 28px",position:"relative",height:"100%",display:"flex",flexDirection:"column"}}>
                 {plan.highlight&&<div style={{position:"absolute",top:0,left:0,right:0,height:"1.5px",background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>}
                 {plan.badge&&(
                   <div className="shimmer" style={{position:"absolute",top:"16px",right:"16px",...mono,fontSize:"9px",color:TEAL,border:`0.5px solid ${TEAL}`,padding:"2px 7px",letterSpacing:"0.1em"}}>{plan.badge}</div>
@@ -2570,7 +2911,7 @@ function FAQSection(){
         </ClipReveal>
         <div style={{display:"flex",flexDirection:"column"}}>
           {faqData.map((item,i)=>(
-            <div key={i} style={{borderTop:"0.5px solid #0d1220"}}>
+            <div data-gsap="faq-item" key={i} style={{borderTop:"0.5px solid #0d1220"}}>
               <button
                 onClick={()=>setOpen(open===i?null:i)}
                 onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setOpen(open===i?null:i);}}}
@@ -3336,6 +3677,7 @@ function PageFade({children}:{children:React.ReactNode}){
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function Landing(){
+  useSmoothScroll();
   const scrollY=useScrollY();
   const [navScrolled,setNavScrolled]=useState(false);
   const [loaded,setLoaded]=useState(false);
@@ -3439,7 +3781,7 @@ export default function Landing(){
       </div>
 
       {/* ── 3D JOURNEY SECTION ── */}
-      <div style={{position:"relative", zIndex:1}}>
+      <div data-gsap="three-scene" style={{position:"relative", zIndex:1}}>
         <ThreeDJourneySection/>
       </div>
 
@@ -3447,7 +3789,7 @@ export default function Landing(){
       <div style={hairline}/>
       <div style={{background:"rgba(4,6,14,0.96)",borderBottom:"0.5px solid #0d1220",position:"relative",zIndex:2,overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 80% 100% at 50% 50%,rgba(0,196,180,0.03) 0%,transparent 70%)",pointerEvents:"none"}}/>
-        <div style={{maxWidth:"960px",margin:"0 auto",padding:"0 32px",display:"flex",flexWrap:"wrap",justifyContent:"space-around"}}>
+        <div data-gsap="stat-strip" style={{maxWidth:"960px",margin:"0 auto",padding:"0 32px",display:"flex",flexWrap:"wrap",justifyContent:"space-around"}}>
           <AnimatedCounter target={24}  suffix="k+" label="Students Enrolled"/>
           <AnimatedCounter target={12}  suffix="+"  label="AI Study Tools"/>
           <AnimatedCounter target={98}  suffix="%"  label="Retention Rate"/>
@@ -3540,7 +3882,7 @@ export default function Landing(){
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1px",background:"#0d1220"}}>
               {testimonials.map((t,i)=>(
                 <ClipReveal key={t.name} delay={i*0.07}>
-                  <div style={{background:"#03050f",padding:"24px",height:"100%",display:"flex",flexDirection:"column",gap:14,transition:"background 0.2s"}}
+                  <div data-gsap="testimonial-card" style={{background:"#03050f",padding:"24px",height:"100%",display:"flex",flexDirection:"column",gap:14,transition:"background 0.2s"}}
                     onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.background="#080d1a")}
                     onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.background="#03050f")}>
                     {/* Stars */}
