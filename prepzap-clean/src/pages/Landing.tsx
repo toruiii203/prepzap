@@ -3646,8 +3646,6 @@ export default function Landing(){
         {/* Newsletter */}
         <NewsletterBar/>
 
-      </div>{/* ── end main content ── */}
-
         {/* Footer */}
         <footer style={{borderTop:"0.5px solid #0d1220",background:"#03050f"}}>
           <div style={{maxWidth:"1100px",margin:"0 auto",padding:"32px 32px 24px",display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:"flex-start",gap:"32px"}}>
@@ -3684,7 +3682,6 @@ export default function Landing(){
           </div>
         </footer>
       </div>{/* ── end main content ── */}
-      </div>{/* ── end outer wrapper ── */}
     </PageFade>
   </ToastCtx.Provider>);
 }
