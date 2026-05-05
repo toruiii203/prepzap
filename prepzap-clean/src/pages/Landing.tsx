@@ -511,32 +511,6 @@ function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: 
   },[]);
 }
 
-// ─── LENIS SMOOTH SCROLL + GSAP LOADER ───────────────────────────────────────
-let _gsapReady = false;
-let _gsapLoading = false;
-const _gsapQueue: Array<()=>void> = [];
-
-function loadGSAP(cb: ()=>void){
-  if(_gsapReady){ cb(); return; }
-  _gsapQueue.push(cb);
-  if(_gsapLoading) return;
-  _gsapLoading = true;
-  const loadScript = (src: string) => new Promise<void>(res=>{
-    const s = document.createElement("script");
-    s.src = src; s.onload = ()=>res();
-    document.head.appendChild(s);
-  });
-  Promise.all([
-    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"),
-    loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"),
-  ]).then(()=>{
-    const G = (window as any).gsap;
-    G.registerPlugin((window as any).ScrollTrigger);
-    _gsapReady = true; _gsapLoading = false;
-    _gsapQueue.forEach(f=>f()); _gsapQueue.length=0;
-  });
-}
-
 let _lenisInited = false;
 function initLenis(){
   if(_lenisInited) return;
