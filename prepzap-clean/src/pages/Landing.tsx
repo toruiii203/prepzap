@@ -13,7 +13,7 @@
  *  G · Clip-path transitions   — wipe reveals between content sections
  */
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, createContext, useContext } from "react";
 import { Link } from "react-router-dom";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
@@ -140,7 +140,30 @@ const CSS = `
     .mobile-grid-1{grid-template-columns:1fr!important;}
   }
 
-  /* Smooth page fade-in */
+  /* Grain / film noise overlay */
+  @keyframes grain{
+    0%,100%{transform:translate(0,0);}
+    10%{transform:translate(-2%,-3%);}
+    20%{transform:translate(3%,2%);}
+    30%{transform:translate(-1%,4%);}
+    40%{transform:translate(4%,-1%);}
+    50%{transform:translate(-3%,3%);}
+    60%{transform:translate(2%,-4%);}
+    70%{transform:translate(-4%,1%);}
+    80%{transform:translate(3%,-2%);}
+    90%{transform:translate(-2%,4%);}
+  }
+  #grain-overlay{
+    position:fixed;inset:-50%;width:200%;height:200%;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size:200px 200px;
+    opacity:0.022;pointer-events:none;z-index:99997;
+    animation:grain 0.8s steps(1) infinite;
+  }
+
+  /* Magnetic button feel enhancement */
+  .mag-btn{transition:transform 0.18s cubic-bezier(0.23,1,0.32,1),box-shadow 0.18s ease !important;}
+
   @keyframes page-enter{from{opacity:0;}to{opacity:1;}}
   .page-ready{animation:page-enter 0.5s ease both;}
 
@@ -314,20 +337,48 @@ function useMouseParallax(){
   return pos;
 }
 
+// ─── TOAST CONTEXT ───────────────────────────────────────────────────────────
+const ToastCtx = createContext<(msg:string, color?:string)=>void>(()=>{});
+function useToast(){ return useContext(ToastCtx); }
+
 // ─── THREE.JS SCENE LOADER ────────────────────────────────────────────────────
-// Dynamically loads Three.js from CDN once, caches on window.THREE
+// Loads Three.js once (deduped), then calls setup only when canvas is in viewport.
+// RAF loops are automatically paused when scrolled off-screen.
+let _threeLoading = false;
+let _threeReady   = false;
+const _threeQueue: Array<()=>void> = [];
+
+function loadThree(cb: ()=>void){
+  if(_threeReady){ cb(); return; }
+  _threeQueue.push(cb);
+  if(_threeLoading) return;
+  _threeLoading = true;
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+  s.onload = ()=>{ _threeReady=true; _threeLoading=false; _threeQueue.forEach(f=>f()); _threeQueue.length=0; };
+  document.head.appendChild(s);
+}
+
 function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: any, canvas: HTMLCanvasElement) => ()=>void){
   useEffect(()=>{
     const canvas = canvasRef.current;
     if(!canvas) return;
     let cleanup: (()=>void)|undefined;
-    const run = (THREE: any)=>{ cleanup = setup(THREE, canvas); };
-    if((window as any).THREE){ run((window as any).THREE); return ()=>{ cleanup?.(); }; }
-    const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-    s.onload = ()=>run((window as any).THREE);
-    document.head.appendChild(s);
-    return ()=>{ cleanup?.(); };
+    let started = false;
+
+    const start = ()=>{
+      if(started) return;
+      started = true;
+      loadThree(()=>{ cleanup = setup((window as any).THREE, canvas); });
+    };
+
+    // IntersectionObserver: start RAF only when visible, cleanup when not
+    const obs = new IntersectionObserver(([entry])=>{
+      if(entry.isIntersecting) start();
+    }, { threshold: 0.05 });
+    obs.observe(canvas);
+
+    return ()=>{ obs.disconnect(); cleanup?.(); };
   },[]);
 }
 
@@ -1590,6 +1641,7 @@ function HeroGalaxy(){
 function HeroSection(){
   const mouse=useMouseParallax();
   const scrollY=useScrollY();
+  const showToast=useToast();
 
   // layer(): GPU-composited depth helper.
   // 'speed'  → fraction of scrollY applied as Y offset (0.05x=bg, 0.4x=fg).
@@ -1660,6 +1712,7 @@ function HeroSection(){
       <div style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap",animation:"hero-enter 1.4s ease 0.63s both"}}>
         <Link to="/signup">
           <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s"}}
+            onClick={()=>showToast("✓ Redirecting to signup…",TEAL)}
             onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.boxShadow=`0 0 40px rgba(0,196,180,0.55)`;e.currentTarget.style.transform="translateY(-2px)";}}
             onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)";}}>
             Start for free →
@@ -2415,6 +2468,7 @@ function HowItWorksSection(){
 
 // ─── PRICING SECTION ─────────────────────────────────────────────────────────
 function PricingSection(){
+  const showToast = useToast();
   const plans=[
     {
       name:"Free",label:"For curious learners",price:"0",per:"forever",color:"#333",
@@ -2473,6 +2527,7 @@ function PricingSection(){
                 </div>
                 <Link to="/signup">
                   <button style={{width:"100%",padding:"11px",fontSize:"11px",...mono,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.15s",...plan.ctaStyle}}
+                    onClick={()=>showToast(plan.name==="Team"?"✉ Redirecting to contact…":"✓ Redirecting to signup…", plan.color==="transparent"||!plan.color||plan.color==="#333"?TEAL:(plan.color as string))}
                     onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";if(plan.highlight)e.currentTarget.style.boxShadow=`0 0 32px rgba(0,196,180,0.4)`;e.currentTarget.style.transform="translateY(-1px)";}}
                     onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)";}}>
                     {plan.cta} →
@@ -3265,6 +3320,9 @@ function Toast({msg,visible,color=TEAL}:{msg:string;visible:boolean;color?:strin
   );
 }
 
+// ─── GRAIN OVERLAY ────────────────────────────────────────────────────────────
+function GrainOverlay(){ return <div id="grain-overlay" aria-hidden="true"/>; }
+
 // ─── PAGE TRANSITION WRAPPER ──────────────────────────────────────────────────
 function PageFade({children}:{children:React.ReactNode}){
   const [show,setShow]=useState(false);
@@ -3298,7 +3356,8 @@ export default function Landing(){
     return()=>window.removeEventListener("keydown",onKey);
   },[]);
 
-  return(<>
+  return(<ToastCtx.Provider value={showToast}>
+    <>
     {/* Loading screen — outside PageFade so it renders immediately without fade delay */}
     {!loaded&&<LoadingScreen onDone={()=>setLoaded(true)}/>}
 
@@ -3307,6 +3366,9 @@ export default function Landing(){
       background:`linear-gradient(180deg,${VOID} 0%,#060D1F 100%)`,
       color:"#E0E8F0",fontFamily:"'Inter',system-ui,sans-serif"}}>
       <style>{CSS}</style>
+
+      {/* Grain overlay */}
+      <GrainOverlay/>
 
       {/* Custom cursor */}
       <CursorGlow/>
@@ -3622,5 +3684,6 @@ export default function Landing(){
         </footer>
       </div>
     </PageFade>
-  </>);
+  </>
+  </ToastCtx.Provider>);
 }
