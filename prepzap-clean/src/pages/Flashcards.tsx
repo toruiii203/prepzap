@@ -49,6 +49,7 @@ export default function Flashcards() {
   const [numCards, setNumCards] = useState(8);
 
   const hasSource = buildAIContext().length > 0;
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
 
   const generateCards = async () => {
     if (!topicInput.trim() && !hasSource) return;
@@ -205,7 +206,9 @@ export default function Flashcards() {
             ))}
           </div>
         </div>
-      </main>}>
+      </main>
+      {showSourcePicker && (
+        <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:50}}>
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}} onClick={()=>setShowSourcePicker(false)}/>
           <div style={{position:"relative",width:"100%",maxWidth:380,background:"#0E0E0E",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Inter',system-ui,sans-serif"}}>
             <div style={{fontSize:12,fontWeight:700,marginBottom:12,color:"#F0F0F0"}}>Pick a source to generate from</div>
