@@ -12,6 +12,7 @@ import { useState, useRef } from "react"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
+import { ToolHistoryPanel, HistoryButton } from "@/pages/ToolHistory"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL   = "#00C4B4"
@@ -156,7 +157,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>Math Solver</h1>
       </div>
-      < count={entries.length} onClick={() =>} />
+      <HistoryButton count={entries.length} onClick={() => setSidebarOpen(true)} />
     </div>
   )
 
@@ -385,7 +386,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
         )}
       </main>
 
-      < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
+      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </ToolPageShell>
   )
 
@@ -498,7 +499,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
           </div>
         </main>
 
-        < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
+        <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
       </ToolPageShell>
     )
   }

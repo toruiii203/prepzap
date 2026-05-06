@@ -1,3 +1,4 @@
+import { ToolHistoryPanel, HistoryButton } from "@/pages/ToolHistory";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
  * FocusState.tsx — Studenius
@@ -252,7 +253,7 @@ Study data: ${dataStr}`
           {stage === 1 ? "What's going on?" : stage === 2 ? "Quick check-in" : "Your Focus Report"}
         </h1>
       </div>
-      < count={entries.length} onClick={() =>} />
+      <HistoryButton count={entries.length} onClick={() => setSidebarOpen(true)} />
     </div>
   )
 
@@ -399,7 +400,7 @@ Study data: ${dataStr}`
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </main>
 
-      < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
+      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </ToolPageShell>
   )
 
@@ -488,7 +489,7 @@ Study data: ${dataStr}`
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </main>
 
-      < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
+      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </ToolPageShell>
   )
 
@@ -583,7 +584,7 @@ Study data: ${dataStr}`
         </div>
       </main>
 
-      < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
+      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </ToolPageShell>
   )
 
