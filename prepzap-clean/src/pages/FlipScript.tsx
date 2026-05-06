@@ -187,6 +187,12 @@ Return ONLY valid JSON:
       });
       setToolHistory(loadHistory("flip-script")); setMainArg(""); setEvidence(""); setAnticipated("")
       setResult(null); setError(null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error"
+      setError(`Error: ${msg}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // ── Shared header ──────────────────────────────────────────────────────────

@@ -139,6 +139,12 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
       });
       setToolHistory(loadHistory("feynman")); setTopic(""); setTopicInput(""); setExplanation("")
       setFeedback(null); setRound(1); setError(null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error"
+      setError(`Error: ${msg}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // ── Shared header row ──────────────────────────────────────────────────────

@@ -356,6 +356,12 @@ If source material is provided, base the scenes on its actual content, not gener
         meta: `${parsed.scenes.length}`,
       });
       setToolHistory(loadHistory("visual")); setConcept(""); setConceptInput(""); setScenes([]); setError(null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error"
+      setError(`Error: ${msg}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // ── Shared header ──────────────────────────────────────────────────────────
