@@ -151,67 +151,67 @@ export default function ToolArchitect() {
 
   return (
     <ToolPageShell>
-      {{/* ── HISTORY SIDEBAR ── */}}
-      {{sidebarOpen && (
-        <div onClick={{() => setSidebarOpen(false)}}
-          style={{{{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}}} />
-      )}}
-      <div style={{{{
+      {/* ── HISTORY SIDEBAR ── */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
+      )}
+      <div style={{
         position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
         width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
         display: "flex", flexDirection: "column",
         transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
         transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
         boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
-      }}}}>
-        <div style={{{{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}}}>
+      }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{{{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}}}>{Roadmap} History</div>
-            <div style={{{{ fontSize: 10, color: "#444" }}}}>{{toolHistory.length}} session{{toolHistory.length !== 1 ? "s" : ""}}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Roadmap History</div>
+            <div style={{ fontSize: 10, color: "#444" }}>{toolHistory.length} session{toolHistory.length !== 1 ? "s" : ""}</div>
           </div>
-          <div style={{{{ display: "flex", gap: 8, alignItems: "center" }}}}>
-            {{toolHistory.length > 0 && (
-              <button onClick={{() => {{ deleteHistoryEntry("toolarchitect", "all"); setToolHistory([]); }}}}
-                style={{{{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}}}
-                onMouseEnter={{e => {{ e.currentTarget.style.color = "#ef4444"; }}}}
-                onMouseLeave={{e => {{ e.currentTarget.style.color = "#444"; }}}}>Clear all</button>
-            )}}
-            <button onClick={{() => setSidebarOpen(false)}}
-              style={{{{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}}}
-              onMouseEnter={{e => {{ e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}}}
-              onMouseLeave={{e => {{ e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}}}>
-              <svg viewBox="0 0 24 24" width={{12}} height={{12}} fill="none" stroke="currentColor" strokeWidth={{2}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {toolHistory.length > 0 && (
+              <button onClick={() => { deleteHistoryEntry("toolarchitect", "all"); setToolHistory([]); }}
+                style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>Clear all</button>
+            )}
+            <button onClick={() => setSidebarOpen(false)}
+              style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}>
+              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
         </div>
-        <div style={{{{ flex: 1, overflowY: "auto", padding: "10px" }}}}>
-          {{toolHistory.length === 0 ? (
-            <div style={{{{ padding: "40px 16px", textAlign: "center" }}}}>
-              <div style={{{{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}}}>
-                <Brain size={{16}} style={{{{ color: "#333" }}}} />
+        <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
+          {toolHistory.length === 0 ? (
+            <div style={{ padding: "40px 16px", textAlign: "center" }}>
+              <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Brain size={16} style={{ color: "#333" }} />
               </div>
-              <div style={{{{ fontSize: 12, color: "#444", marginBottom: 4 }}}}>No {roadmap} history yet</div>
-              <div style={{{{ fontSize: 11, color: "#333" }}}}>Sessions will appear here</div>
+              <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No roadmap history yet</div>
+              <div style={{ fontSize: 11, color: "#333" }}>Sessions will appear here</div>
             </div>
           ) : (
-            <div style={{{{ display: "flex", flexDirection: "column", gap: 6 }}}}>
-              {{[...toolHistory].reverse().map((entry) => (
-                <div key={{entry.id}}
-                  style={{{{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}}}
-                  onMouseEnter={{e => {{ e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}}}
-                  onMouseLeave={{e => {{ e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}}}>
-                  <div style={{{{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}}}>{{entry.title}}</div>
-                  <div style={{{{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}}}>
-                    <span style={{{{ color: "#2A6A64" }}}}>{{entry.subtitle}}</span><span>·</span>
-                    <span>{{new Date(entry.timestamp).toLocaleDateString(undefined, {{ month: "short", day: "numeric" }})}}</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[...toolHistory].reverse().map((entry) => (
+                <div key={entry.id}
+                  style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
+                  <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
-              ))}}
+              ))}
             </div>
-          )}}
+          )}
         </div>
-        <div style={{{{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}}}>
-          <div style={{{{ fontSize: 10, color: "#333", textAlign: "center" }}}}>Click any session to replay →</div>
+        <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
