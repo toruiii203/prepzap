@@ -1,3 +1,4 @@
+import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
  * VisualLearner.tsx — Studenius
  * Breaks any concept into 4 memorable visual scenes.
@@ -11,12 +12,11 @@ import { useState, useEffect } from "react"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
-import { useToolHistory, HistoryButton, ToolHistoryPanel, type HistoryEntry } from "@/components/ToolHistory"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL   = "#00C4B4"
 const GOLD   = "#E8B923"
-const BG     = "#0A0A0A"
+const BG     = "#03050F"
 const CARD   = "#0E0E0E"
 const BORDER = "#252525"
 const MUTED  = "#555"
@@ -224,16 +224,19 @@ async function fetchScenePhoto(
 // ─────────────────────────────────────────────────────────────────────────────
 export default function VisualLearner() {
   const { model, setModel } = useModel()
-  const { entries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("visual-learner")
-  const [historyOpen, setHistoryOpen] = useState(false)
 
-  const [phase, setPhase]           = useState<"setup"|"loading"|"result">("setup")
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolHistory, setToolHistory] = useState(() => loadHistory("visual"));
+  const [phase, setPhase]           = useState<"setup"|"loading"|"result"|"gallery">("setup")
   const [concept, setConcept]       = useState("")
   const [conceptInput, setConceptInput] = useState("")
   const [scenes, setScenes]         = useState<SceneWithPhoto[]>([])
   const [error, setError]           = useState<string|null>(null)
   const [progress, setProgress]     = useState(0)
   const [sourceChips, setSourceChips] = useState<string[]>([])
+  const [savedImages, setSavedImages] = useState<{url:string;concept:string;anchor:string;savedAt:string}[]>(() => {
+    try { return JSON.parse(localStorage.getItem("pz_visual_saved") || "[]") } catch { return [] }
+  })
   const activeSource = getActiveSource()
 
   // Animate progress bar during loading
@@ -266,8 +269,7 @@ export default function VisualLearner() {
 
   // ── History restore ────────────────────────────────────────────────────────
   const handleHistorySelect = (entry: HistoryEntry) => {
-    setHistoryOpen(false)
-    try {
+        try {
       const parsed: StoryboardResult = JSON.parse(entry.output)
       setConcept(parsed.concept)
       // Restore with Pollinations URL — SceneCard onError will cascade to fallbacks if needed
@@ -346,69 +348,13 @@ If source material is provided, base the scenes on its actual content, not gener
         }
       })()
 
-      saveHistory({
+      addHistoryEntry("visual", {
         prompt: target,
         preview: parsed.scenes[0]?.anchorPhrase ?? target,
         output: JSON.stringify(parsed),
         model,
-        meta: `${parsed.scenes.length} scenes`,
-      })
-    } catch (e: any) {
-      setError(e.message ?? "Could not generate storyboard. Try again.")
-      setPhase("setup")
-    }
-  }
-
-  // ── Regenerate a single scene ─────────────────────────────────────────────
-  const handleRegenerateScene = async (index: number) => {
-    const scene = scenes[index]
-    if (!scene || scene.photoLoading) return
-
-    // Mark this scene as loading
-    setScenes(prev => prev.map((s, i) => i === index ? { ...s, photoLoading: true } : s))
-
-    try {
-      // Ask AI for a fresh scene with a different angle
-      const systemPrompt = `You are a visual memory expert. Generate ONE alternative scene for a concept.
-Return ONLY valid JSON (no markdown, no backticks):
-{
-  "id": "${scene.id}",
-  "title": "<scene title, 3-5 words>",
-  "anchorPhrase": "<1 sentence the student says when they see this image>",
-  "whyItWorks": "<1 sentence explaining the memory connection>",
-  "unsplashQuery": "<3-7 word image search phrase, specific and visual>",
-  "exactWikipediaTitle": "<Exact Wikipedia article title whose lead image best represents this scene. Must be a real article you are confident exists. Leave as empty string if unsure.>"
-}
-Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
-
-      const raw = await callGroq(
-        [{ role: "user", content: `Generate an alternative scene for the concept: "${concept}". Current scene was: "${scene.title}". Give me something visually different.` }],
-        systemPrompt,
-        model,
-        600
-      )
-      const clean = raw.replace(/```json|```/gi, "").trim()
-      const parsed: Scene = JSON.parse(clean)
-
-      // Fetch new photo for the regenerated scene
-      const photo = await fetchScenePhoto(concept, parsed)
-
-      setScenes(prev => prev.map((s, i) => i === index
-        ? { ...parsed, photoUrl: photo.url, photoAlt: photo.alt, photoLoading: false }
-        : s
-      ))
-    } catch {
-      // On error, just try a fresh image for the existing scene data
-      const photo = await fetchScenePhoto(concept, scene)
-      setScenes(prev => prev.map((s, i) => i === index
-        ? { ...s, photoUrl: photo.url, photoAlt: photo.alt, photoLoading: false }
-        : s
-      ))
-    }
-  }
-
-  const resetAll = () => {
-    setPhase("setup"); setConcept(""); setConceptInput(""); setScenes([]); setError(null)
+        meta: `${parsed.scenes.length});
+      setToolHistory(loadHistory("visual")); setConcept(""); setConceptInput(""); setScenes([]); setError(null)
   }
 
   // ── Shared header ──────────────────────────────────────────────────────────
@@ -424,9 +370,8 @@ Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
             Visual Learner
           </span>
         </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>See It. Remember It.</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>Visual Learner</h1>
       </div>
-      <HistoryButton count={entries.length} onClick={() => setHistoryOpen(true)} />
     </div>
   )
 
@@ -434,8 +379,80 @@ Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
   // SETUP PHASE
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "setup") return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+    <ToolPageShell key="shell">
+      {/* ── HISTORY SIDEBAR ── */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
+      )}
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
+        width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
+        display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
+      }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Visual Learner History</div>
+            <div style={{ fontSize: 10, color: "#444" }}>{toolHistory.length} session{toolHistory.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {toolHistory.length > 0 && (
+              <button onClick={() => { deleteHistoryEntry("visual", "all"); setToolHistory([]); }}
+                style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>Clear all</button>
+            )}
+            <button onClick={() => setSidebarOpen(false)}
+              style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}>
+              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
+          {toolHistory.length === 0 ? (
+            <div style={{ padding: "40px 16px", textAlign: "center" }}>
+              <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Brain size={16} style={{ color: "#333" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No visual learner history yet</div>
+              <div style={{ fontSize: 11, color: "#333" }}>Sessions will appear here</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[...toolHistory].reverse().map((entry) => (
+                <div key={entry.id}
+                  style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
+                  <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+        </div>
+      </div>
       <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
         <HeaderRow />
 
         <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
@@ -505,8 +522,6 @@ Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
           </button>
         </div>
       </main>
-
-      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </ToolPageShell>
   )
 
@@ -514,8 +529,18 @@ Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
   // LOADING PHASE
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "loading") return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+    <ToolPageShell key="shell">
+      
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 500, padding: "40px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
         <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth={1.5} style={{ marginBottom: 24 }}>
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
           <circle cx="12" cy="12" r="3"/>
@@ -533,8 +558,18 @@ Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
   // RESULT PHASE — Storyboard grid
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "result") return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+    <ToolPageShell key="shell">
+      
       <main style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
         <HeaderRow />
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
@@ -558,10 +593,71 @@ Make it visually DIFFERENT from: "${scene.title}". Same concept, fresh angle.`
             style={{ padding: "13px 24px", background: "transparent", border: `0.5px solid ${BORDER}`, color: "#888", fontSize: 13, cursor: "pointer", fontFamily: FONT }}>
             Back
           </button>
+          {savedImages.length > 0 && (
+            <button onClick={() => setPhase("gallery")}
+              style={{ padding: "13px 24px", background: "rgba(0,196,180,0.06)", border: `0.5px solid rgba(0,196,180,0.25)`, color: "#00C4B4", fontSize: 13, cursor: "pointer", fontFamily: FONT }}>
+              ♡ My Images ({savedImages.length})
+            </button>
+          )}
         </div>
       </main>
+    </ToolPageShell>
+  )
 
-      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
+  // Gallery phase
+  if (phase === "gallery") return (
+    <ToolPageShell key="shell">
+      <main style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>My Visual Images</h1>
+            <p style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{savedImages.length} saved memories</p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {savedImages.length > 0 && (
+              <button onClick={() => {
+                  setSavedImages([]);
+                  localStorage.removeItem("pz_visual_saved");
+                }}
+                style={{ padding: "6px 12px", fontSize: 11, background: "transparent", border: "0.5px solid #252525", color: "#555", cursor: "pointer", fontFamily: FONT }}>
+                Clear all
+              </button>
+            )}
+            <button onClick={() => setPhase("setup")}
+              style={{ padding: "6px 12px", fontSize: 11, background: "transparent", border: "0.5px solid #252525", color: "#888", cursor: "pointer", fontFamily: FONT }}>
+              ← Back
+            </button>
+          </div>
+        </div>
+        {savedImages.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>♡</div>
+            <p style={{ fontSize: 14 }}>No saved images yet. Hit ♡ Save on any scene card.</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+            {savedImages.map((img, i) => (
+              <div key={i} style={{ border: "0.5px solid #1A1A1A", background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
+                <img src={img.url} alt={img.concept} style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }} />
+                <div style={{ padding: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#00C4B4", marginBottom: 3, letterSpacing: "0.08em", textTransform: "uppercase" }}>{img.concept}</div>
+                  <p style={{ fontSize: 11, color: "#888", margin: 0, fontStyle: "italic", lineHeight: 1.4 }}>"{img.anchor}"</p>
+                  <button onClick={() => {
+                      const updated = savedImages.filter((_, j) => j !== i);
+                      setSavedImages(updated);
+                      localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
+                    }}
+                    style={{ marginTop: 8, fontSize: 9, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT }}
+                    onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
     </ToolPageShell>
   )
 
@@ -622,7 +718,7 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
           </div>
         )}
 
-        <div style={{ position: "absolute", top: 10, left: 10, background: TEAL, color: "#0A0A0A", fontSize: 10, fontWeight: 800, padding: "3px 8px", letterSpacing: "0.08em", fontFamily: FONT }}>
+        <div style={{ position: "absolute", top: 10, left: 10, background: TEAL, color: "#03050F", fontSize: 10, fontWeight: 800, padding: "3px 8px", letterSpacing: "0.08em", fontFamily: FONT }}>
           SCENE {index + 1}
         </div>
 
@@ -653,9 +749,28 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
           <p style={{ fontSize: 13, color: "#D0D0D0", margin: 0, lineHeight: 1.6, fontStyle: "italic" }}>"{scene.anchorPhrase}"</p>
         </div>
 
-        <div style={{ paddingTop: 10, borderTop: `0.5px solid #1A1A1A` }}>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 5 }}>Why This Works</div>
-          <p style={{ fontSize: 11, color: "#666", margin: 0, lineHeight: 1.55 }}>{scene.whyItWorks}</p>
+        <div style={{ paddingTop: 10, borderTop: `0.5px solid #1A1A1A`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 5 }}>Why This Works</div>
+            <p style={{ fontSize: 11, color: "#666", margin: 0, lineHeight: 1.55 }}>{scene.whyItWorks}</p>
+          </div>
+          {scene.photoUrl && (
+            <button
+              onClick={() => {
+                const entry = { url: scene.photoUrl!, concept, anchor: scene.anchorPhrase, savedAt: new Date().toISOString() };
+                setSavedImages(prev => {
+                  const updated = [entry, ...prev.filter(s => s.url !== scene.photoUrl)];
+                  localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
+                  return updated;
+                });
+              }}
+              title="Save to my images"
+              style={{ flexShrink: 0, padding: "4px 8px", fontSize: 10, background: "rgba(0,196,180,0.06)", border: "0.5px solid rgba(0,196,180,0.2)", color: "#00C4B4", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,196,180,0.12)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,196,180,0.06)"; }}>
+              ♡ Save
+            </button>
+          )}
         </div>
       </div>
 

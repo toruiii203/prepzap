@@ -1,6 +1,6 @@
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { QuestionSkeleton } from "@/components/SkeletonLoader";
-import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
+import { ToolHistorySidebar, type ToolSession } from "@/components/ToolHistorySidebar"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -11,21 +11,32 @@ import { ChevronLeft, Zap, CheckCircle2, XCircle, Trophy, RotateCcw } from "luci
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
 
 interface Question { question: string; options: string[]; correct: number; explanation: string; topic: string; }
 
-const WEAK_AREAS = ["Organic Chemistry", "Calculus", "Cell Biology", "Thermodynamics", "Electromagnetic Induction"];
+const SUBJECT_CHIPS = [
+  "Organic Chemistry","Calculus","Cell Biology","Thermodynamics","Electromagnetism",
+  "World History","Grammar","Statistics","Genetics","Macroeconomics",
+  "Trigonometry","Literature","Human Anatomy","Physics","Computer Science",
+];
+
+// 7-day heatmap helper
+function get7DayHistory(): { date: string; score: number | null }[] {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const raw = localStorage.getItem(`pz_daily5_score_${key}`);
+    days.push({ date: key, score: raw !== null ? Number(raw) : null });
+  }
+  return days;
+}
 
 export default function Daily5() {
   const toolKey = "daily5"
   const lsKey = `pz_hist_${toolKey}`
-  const { sessions: toolSessions, addSession, deleteSession } = useToolHistory(toolKey)
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  const handleNewSession = () => { setActiveSessionId(null) }
-  const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
 
 
   const todayKey = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
@@ -33,6 +44,8 @@ export default function Daily5() {
   const [alreadyDone, setAlreadyDone] = useState(completedToday);
 
   const [phase, setPhase] = useState<"intro"|"quiz"|"done">("intro");
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [quizArea, setQuizArea] = useState<string>("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number|null>(null);
@@ -60,9 +73,10 @@ export default function Daily5() {
     return () => clearInterval(t);
   }, [phase, startTime]);
 
-  const start = async () => {
+  const start = async (overrideArea?: string) => {
     setIsLoading(true); setError(null);
-    const area = WEAK_AREAS[Math.floor(Math.random()*WEAK_AREAS.length)];
+    const area = overrideArea || selectedSubject || SUBJECT_CHIPS[Math.floor(Math.random()*SUBJECT_CHIPS.length)];
+    setQuizArea(area);
     const fileContext = buildAIContext();
     try {
       const raw = await callGroq(
@@ -93,6 +107,7 @@ export default function Daily5() {
       try {
         localStorage.setItem("pz_daily5_streak", String(newStreak));
         localStorage.setItem("pz_daily5_date", todayKey);
+        localStorage.setItem(`pz_daily5_score_${todayKey}`, String(score + (current < questions.length && selected === questions[current].correct ? 1 : 0)));
       } catch {}
       setPhase("done");
     } else {
@@ -128,42 +143,74 @@ export default function Daily5() {
         </div>
 
         {phase==="intro" && (
-          <div className="text-center space-y-6 pt-8">
+          <div className="space-y-6 pt-4">
             {alreadyDone && (
-              <div className="p-4 mb-2 text-center" style={{ background: "var(--pz-teal-dim)", border: "1px solid var(--pz-teal)40" }}>
-                <p className="text-sm font-semibold" style={{ color: "var(--pz-teal)" }}>✓ You've completed today's Daily Quiz!</p>
-                <p className="text-xs mt-1" style={{ color: "var(--pz-text-muted)" }}>Come back tomorrow to keep your streak. 🔥 {streak}-day streak</p>
+              <div className="p-3 text-center" style={{ background: "rgba(0,196,180,0.06)", border: "0.5px solid rgba(0,196,180,0.25)" }}>
+                <p className="text-sm font-semibold" style={{ color: "#00C4B4" }}>✓ Completed today!</p>
+                <p className="text-xs mt-1" style={{ color: "#555" }}>Come back tomorrow. 🔥 {streak}-day streak</p>
               </div>
             )}
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
-              <Zap className="h-10 w-10 text-white"/>
+
+            {/* 7-day heatmap */}
+            {(() => {
+              const days = get7DayHistory();
+              const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+              return (
+                <div style={{ display: "flex", gap: 4, justifyContent: "center", alignItems: "flex-end" }}>
+                  {days.map(d => {
+                    const dow = new Date(d.date + "T12:00:00").getDay();
+                    const pct = d.score !== null ? d.score / 5 : null;
+                    const bg = pct === null ? "#111" : pct >= 0.8 ? "#00C4B4" : pct >= 0.5 ? "rgba(0,196,180,0.5)" : "rgba(0,196,180,0.2)";
+                    return (
+                      <div key={d.date} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                        <div title={d.score !== null ? `${d.score}/5` : "No quiz"} style={{ width: 32, height: 32, background: bg, border: "0.5px solid #1A1A1A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {d.score !== null && <span style={{ fontSize: 10, fontWeight: 700, color: pct! >= 0.5 ? "#000" : "#00C4B4", fontFamily: "monospace" }}>{d.score}/5</span>}
+                        </div>
+                        <span style={{ fontSize: 9, color: "#333", fontFamily: "monospace" }}>{DAY_LABELS[dow]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Stats row */}
+            <div style={{ display: "flex", justifyContent: "center", gap: 32 }}>
+              {[{v:"5",l:"Questions"},{v:"<3m",l:"Target"},{v:`🔥${streak}`,l:"Streak"}].map(s=>(
+                <div key={s.l} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "#E8B923", fontFamily: "monospace" }}>{s.v}</div>
+                  <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{s.l}</div>
+                </div>
+              ))}
             </div>
+
+            {/* Subject chip picker */}
             <div>
-              <h2 className="text-2xl font-bold mb-2">Your Daily Quiz</h2>
-              <p className="text-muted-foreground">5 fresh questions targeting your weak spots. Under 3 minutes. Build the habit.</p>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "#444", textTransform: "uppercase", marginBottom: 8 }}>Pick a subject — or skip to randomize</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {SUBJECT_CHIPS.map(s => (
+                  <button key={s} onClick={() => setSelectedSubject(prev => prev === s ? "" : s)}
+                    style={{ padding: "5px 10px", fontSize: 11, fontWeight: 600, border: `0.5px solid ${selectedSubject === s ? "#00C4B4" : "#252525"}`, background: selectedSubject === s ? "rgba(0,196,180,0.1)" : "rgba(255,255,255,0.02)", color: selectedSubject === s ? "#00C4B4" : "#666", cursor: "pointer", transition: "all .15s", fontFamily: "inherit" }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex justify-center gap-6 text-sm text-muted-foreground">
-              <div className="text-center"><div className="text-2xl font-bold text-amber-500">5</div><div>Questions</div></div>
-              <div className="text-center"><div className="text-2xl font-bold text-orange-500">&lt;3m</div><div>Target time</div></div>
-              <div className="text-center"><div className="text-2xl font-bold text-rose-500">🔥{streak}</div><div>Day streak</div></div>
-            </div>
-            {error && <p className="text-sm text-red-500 bg-red-500/10 rounded-none p-3">{error}</p>}
+
+            {error && <p style={{ fontSize: 12, color: "#ef4444", background: "rgba(239,68,68,0.08)", padding: "8px 12px" }}>{error}</p>}
+
             {buildAIContext().length > 0 && (
-              <button onClick={start} disabled={isLoading}
-                className="w-full max-w-sm py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
-                style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
-                ⚡ Generate Daily Quiz from Active Source
+              <button onClick={() => start()} disabled={isLoading}
+                style={{ width: "100%", padding: "10px", fontSize: 12, fontWeight: 600, background: "rgba(232,185,35,0.08)", border: "0.5px solid rgba(232,185,35,0.3)", color: "#E8B923", cursor: "pointer", fontFamily: "inherit" }}>
+                ⚡ Quiz from Active Source{selectedSubject ? ` · ${selectedSubject}` : ""}
               </button>
             )}
-            <div className="flex flex-col items-center gap-3">
-              <Button onClick={start} disabled={isLoading} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 h-12 text-base font-semibold hover:opacity-90">
-                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-none animate-spin"/> : <><Zap className="h-5 w-5 mr-2"/>Start Today's 5</>}
-              </Button>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>or</span>
-                <span>attach study material</span>
-              </div>
-            </div>
+            <button onClick={() => start()} disabled={isLoading}
+              style={{ width: "100%", padding: "12px", fontSize: 13, fontWeight: 700, background: "linear-gradient(135deg,#E8B923,#f59e0b)", color: "#0A0A0A", border: "none", cursor: isLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit", opacity: isLoading ? 0.7 : 1 }}>
+              {isLoading
+                ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#0A0A0A", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Generating...</>
+                : <>⚡ Start{selectedSubject ? ` ${selectedSubject}` : " Random"} Quiz</>}
+            </button>
           </div>
         )}
 

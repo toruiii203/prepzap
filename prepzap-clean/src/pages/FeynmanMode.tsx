@@ -1,3 +1,4 @@
+import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
  * FeynmanMode.tsx — Studenius
  * Textarea replaced with a document-editor writing surface.
@@ -8,12 +9,11 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
-import { useToolHistory, HistoryButton, ToolHistoryPanel, type HistoryEntry } from "@/components/ToolHistory"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL  = "#00C4B4"
 const GOLD  = "#E8B923"
-const BG    = "#0A0A0A"
+const BG    = "#03050F"
 const CARD  = "#0E0E0E"
 const BORDER = "#252525"
 const MUTED  = "#555"
@@ -47,10 +47,10 @@ interface FeedbackResult {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function FeynmanMode() {
   const { model, setModel } = useModel()
-  const { entries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("feynman")
-  const [historyOpen, setHistoryOpen] = useState(false)
 
   const [phase, setPhase]           = useState<"setup"|"teaching"|"feedback">("setup")
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolHistory, setToolHistory] = useState(() => loadHistory("feynman"));
   const [topic, setTopic]           = useState("")
   const [topicInput, setTopicInput] = useState("")
   const [explanation, setExplanation] = useState("")
@@ -59,7 +59,6 @@ export default function FeynmanMode() {
   const [feedback, setFeedback]     = useState<FeedbackResult|null>(null)
   const [round, setRound]           = useState(1)
   const [activeSource]              = useState(() => getActiveSource())
-  const [showSourcePicker, setShowSourcePicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-grow textarea
@@ -72,8 +71,7 @@ export default function FeynmanMode() {
 
   // ── History restore ────────────────────────────────────────────────────────
   const handleHistorySelect = (entry: HistoryEntry) => {
-    setHistoryOpen(false)
-    try {
+        try {
       const parsed = JSON.parse(entry.output)
       setTopic(entry.prompt)
       setFeedback(parsed)
@@ -132,31 +130,13 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
       setFeedback(parsed)
       setPhase("feedback")
 
-      saveHistory({
+      addHistoryEntry("feynman", {
         prompt: topic,
         preview: explanation.slice(0, 120),
         output: JSON.stringify(parsed),
         model,
-        meta: `${parsed.masteryScore}% mastery`,
-      })
-    } catch (e: any) {
-      setError(e.message ?? "Something went wrong. Try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleTryAgain = () => {
-    setRound(r => r + 1)
-    setExplanation("")
-    setFeedback(null)
-    setPhase("teaching")
-    setError(null)
-    setTimeout(() => textareaRef.current?.focus(), 100)
-  }
-
-  const resetAll = () => {
-    setPhase("setup"); setTopic(""); setTopicInput(""); setExplanation("")
+        meta: `${parsed.masteryScore});
+      setToolHistory(loadHistory("feynman")); setTopic(""); setTopicInput(""); setExplanation("")
     setFeedback(null); setRound(1); setError(null)
   }
 
@@ -177,9 +157,8 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
             </span>
           )}
         </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>Teach It to Learn It</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>Feynman</h1>
       </div>
-      <HistoryButton count={entries.length} onClick={() => setHistoryOpen(true)} />
     </div>
   )
 
@@ -187,8 +166,87 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
   // SETUP PHASE
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "setup") return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+    <ToolPageShell key="shell">
+      {/* ── HISTORY SIDEBAR ── */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
+      )}
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
+        width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
+        display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
+      }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Feynman History</div>
+            <div style={{ fontSize: 10, color: "#444" }}>{toolHistory.length} session{toolHistory.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {toolHistory.length > 0 && (
+              <button onClick={() => { deleteHistoryEntry("feynman", "all"); setToolHistory([]); }}
+                style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>Clear all</button>
+            )}
+            <button onClick={() => setSidebarOpen(false)}
+              style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}>
+              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
+          {toolHistory.length === 0 ? (
+            <div style={{ padding: "40px 16px", textAlign: "center" }}>
+              <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Brain size={16} style={{ color: "#333" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No feynman history yet</div>
+              <div style={{ fontSize: 11, color: "#333" }}>Sessions will appear here</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[...toolHistory].reverse().map((entry) => (
+                <div key={entry.id}
+                  style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
+                  <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+        </div>
+      </div>
       <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <a href="/dashboard" style={{ fontSize: 10, color: "#444", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, letterSpacing: "0.06em" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#00C4B4")} onMouseLeave={e => (e.currentTarget.style.color = "#444")}>
+            <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={2}><polyline points="15 18 9 12 15 6"/></svg>
+            DASHBOARD
+          </a>
+        </div>
         <HeaderRow />
 
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: "32px 28px" }}>
@@ -243,9 +301,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
           )}
         </div>
 
-        {/* Source picker modal */}
-        {showSourcePicker && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* Source picker modal */}}>
             <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: 24, width: 340 }}>
               <p style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>Pick a source to teach from:</p>
               {loadLibrary().map(s => (
@@ -263,8 +319,6 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
           </div>
         )}
       </main>
-
-      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </ToolPageShell>
   )
 
@@ -276,8 +330,17 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
     const canSubmit = wc >= 20
 
     return (
-      <ToolPageShell showModelPicker model={model} setModel={setModel}>
-        <main style={{ flex: 1, maxWidth: 720, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+      <ToolPageShell key="shell">
+      
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
           <HeaderRow />
 
           {/* Topic badge */}
@@ -355,8 +418,6 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
 
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </main>
-
-        <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
       </ToolPageShell>
     )
   }
@@ -372,8 +433,17 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
     const scoreColor = feedback.masteryScore >= 80 ? TEAL : feedback.masteryScore >= 60 ? GOLD : "#E84040"
 
     return (
-      <ToolPageShell showModelPicker model={model} setModel={setModel}>
-        <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+      <ToolPageShell key="shell">
+      
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
           <HeaderRow />
 
           {/* Score card */}
@@ -452,8 +522,6 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
             </button>
           </div>
         </main>
-
-        <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
       </ToolPageShell>
     )
   }

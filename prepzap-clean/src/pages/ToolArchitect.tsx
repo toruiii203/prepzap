@@ -1,14 +1,14 @@
+import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react"
-import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { Link } from "react-router-dom"
-import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import {
   ChevronLeft, ChevronDown, ChevronRight, Check,
   RotateCcw, Sparkles, BookOpen
-} from "lucide-react"
+, Brain} from "lucide-react"
 import { callGroq } from "@/lib/groq"
 import { RoadmapSkeleton } from "@/components/SkeletonLoader"
 import { ActiveSourcePill } from "@/components/ActiveSourcePill"
@@ -75,7 +75,7 @@ const TOPIC_CATEGORIES = [
 ]
 
 function lsKey(topic: string) {
-  return `pz_roadmap_${topic.toLowerCase().replace(/\s+/g, "-")}`
+  return `pz_roadmap_${topic.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}`
 }
 
 function loadLearned(topic: string): Set<string> {
@@ -90,12 +90,9 @@ function saveLearned(topic: string, ids: Set<string>) {
 export default function ToolArchitect() {
   const toolKey = "toolarchitect"
   const lsKey = `pz_hist_${toolKey}`
-  const { sessions: toolSessions, addSession, deleteSession } = useToolHistory(toolKey)
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolHistory, setToolHistory] = useState(() => loadHistory("toolarchitect"));
 
-  const handleNewSession = () => { setActiveSessionId(null) }
-  const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
 
 
   const [phase, setPhase] = useState<"select" | "loading" | "roadmap">("select")
@@ -153,17 +150,71 @@ export default function ToolArchitect() {
   const newTopic = () => { setPhase("select"); setInput(""); setRoadmap(null); setError(null) }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--pz-bg)", color: "var(--pz-text)" }}>
-      <Navbar isLoggedIn user={{ name: "Learner", xp: 2450, streak: 12, plan: "free" }} />
-      {/* History Sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        <ToolHistorySidebar
-          toolKey="toolarchitect"
-          onNew={handleNewSession}
-          onSelect={handleSelectSession}
-          activeId={activeSessionId}
-        />
-        <div className="flex-1 overflow-auto">
+    <ToolPageShell>
+      {{/* ── HISTORY SIDEBAR ── */}}
+      {{sidebarOpen && (
+        <div onClick={{() => setSidebarOpen(false)}}
+          style={{{{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}}} />
+      )}}
+      <div style={{{{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
+        width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
+        display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
+      }}}}>
+        <div style={{{{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}}}>
+          <div>
+            <div style={{{{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}}}>{Roadmap} History</div>
+            <div style={{{{ fontSize: 10, color: "#444" }}}}>{{toolHistory.length}} session{{toolHistory.length !== 1 ? "s" : ""}}</div>
+          </div>
+          <div style={{{{ display: "flex", gap: 8, alignItems: "center" }}}}>
+            {{toolHistory.length > 0 && (
+              <button onClick={{() => {{ deleteHistoryEntry("toolarchitect", "all"); setToolHistory([]); }}}}
+                style={{{{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}}}
+                onMouseEnter={{e => {{ e.currentTarget.style.color = "#ef4444"; }}}}
+                onMouseLeave={{e => {{ e.currentTarget.style.color = "#444"; }}}}>Clear all</button>
+            )}}
+            <button onClick={{() => setSidebarOpen(false)}}
+              style={{{{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}}}
+              onMouseEnter={{e => {{ e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}}}
+              onMouseLeave={{e => {{ e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}}}>
+              <svg viewBox="0 0 24 24" width={{12}} height={{12}} fill="none" stroke="currentColor" strokeWidth={{2}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style={{{{ flex: 1, overflowY: "auto", padding: "10px" }}}}>
+          {{toolHistory.length === 0 ? (
+            <div style={{{{ padding: "40px 16px", textAlign: "center" }}}}>
+              <div style={{{{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}}}>
+                <Brain size={{16}} style={{{{ color: "#333" }}}} />
+              </div>
+              <div style={{{{ fontSize: 12, color: "#444", marginBottom: 4 }}}}>No {roadmap} history yet</div>
+              <div style={{{{ fontSize: 11, color: "#333" }}}}>Sessions will appear here</div>
+            </div>
+          ) : (
+            <div style={{{{ display: "flex", flexDirection: "column", gap: 6 }}}}>
+              {{[...toolHistory].reverse().map((entry) => (
+                <div key={{entry.id}}
+                  style={{{{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}}}
+                  onMouseEnter={{e => {{ e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}}}
+                  onMouseLeave={{e => {{ e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}}}>
+                  <div style={{{{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}}}>{{entry.title}}</div>
+                  <div style={{{{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}}}>
+                    <span style={{{{ color: "#2A6A64" }}}}>{{entry.subtitle}}</span><span>·</span>
+                    <span>{{new Date(entry.timestamp).toLocaleDateString(undefined, {{ month: "short", day: "numeric" }})}}</span>
+                  </div>
+                </div>
+              ))}}
+            </div>
+          )}}
+        </div>
+        <div style={{{{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}}}>
+          <div style={{{{ fontSize: 10, color: "#333", textAlign: "center" }}}}>Click any session to replay →</div>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto" }}>
       <main className="flex-1 py-6 lg:py-8">
         <div className="container mx-auto px-4 lg:px-8 max-w-3xl">
           <div className="flex items-center gap-3 mb-6 flex-wrap">
@@ -317,8 +368,16 @@ export default function ToolArchitect() {
           )}
         </div>
       </main>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
         </div>
       </div>
-    </div>
+    </ToolPageShell>
   );
 }

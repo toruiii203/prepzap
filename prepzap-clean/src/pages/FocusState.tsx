@@ -1,3 +1,4 @@
+import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
  * FocusState.tsx — Studenius
  * 3-stage emotional intelligence coach:
@@ -13,13 +14,12 @@ import { useState, useEffect } from "react"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
-import { useToolHistory, HistoryButton, ToolHistoryPanel, type HistoryEntry } from "@/components/ToolHistory"
 import { supabase } from "@/lib/supabase"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL   = "#00C4B4"
 const GOLD   = "#E8B923"
-const BG     = "#0A0A0A"
+const BG     = "#03050F"
 const CARD   = "#0E0E0E"
 const BORDER = "#252525"
 const MUTED  = "#555"
@@ -81,9 +81,10 @@ async function fetchStudyData(): Promise<UserStudyData> {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function FocusState() {
   const { model, setModel } = useModel()
-  const { entries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("focus-state")
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const { entries, save: saveHistory, remove: removeHistory, clear: clearHistory } =("focus-state")
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolHistory, setToolHistory] = useState(() => loadHistory("focus-state"));
   const [stage, setStage]           = useState<1|2|3>(1)
   const [freeText, setFreeText]     = useState("")
   const [questions, setQuestions]   = useState<PulseQuestion[]>([])
@@ -103,9 +104,7 @@ export default function FocusState() {
   }, [])
 
   // ── History restore ────────────────────────────────────────────────────────
-  const handleHistorySelect = (entry: HistoryEntry) => {
-    setHistoryOpen(false)
-    try {
+  const handleHistorySelect = (entry: HistoryEntry) => {    try {
       const parsed: FocusReport = JSON.parse(entry.output)
       setReport(parsed)
       setStage(3)
@@ -253,7 +252,7 @@ Study data: ${dataStr}`
           {stage === 1 ? "What's going on?" : stage === 2 ? "Quick check-in" : "Your Focus Report"}
         </h1>
       </div>
-      <HistoryButton count={entries.length} onClick={() => setHistoryOpen(true)} />
+      < count={entries.length} onClick={() =>} />
     </div>
   )
 
@@ -261,8 +260,80 @@ Study data: ${dataStr}`
   // STAGE 1 — Free expression / journaling
   // ════════════════════════════════════════════════════════════════════════════
   if (stage === 1) return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+    <ToolPageShell key="shell">
+      {/* ── HISTORY SIDEBAR ── */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
+      )}
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
+        width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
+        display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
+      }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Focus State History</div>
+            <div style={{ fontSize: 10, color: "#444" }}>{toolHistory.length} session{toolHistory.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {toolHistory.length > 0 && (
+              <button onClick={() => { deleteHistoryEntry("focus-state", "all"); setToolHistory([]); }}
+                style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>Clear all</button>
+            )}
+            <button onClick={() => setSidebarOpen(false)}
+              style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}>
+              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
+          {toolHistory.length === 0 ? (
+            <div style={{ padding: "40px 16px", textAlign: "center" }}>
+              <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Brain size={16} style={{ color: "#333" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No focus state history yet</div>
+              <div style={{ fontSize: 11, color: "#333" }}>Sessions will appear here</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[...toolHistory].reverse().map((entry) => (
+                <div key={entry.id}
+                  style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
+                  <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+        </div>
+      </div>
       <main style={{ flex: 1, maxWidth: 640, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
         <HeaderRow />
 
         <div style={{ position: "relative", background: "#111", border: `0.5px solid ${BORDER}` }}>
@@ -328,7 +399,7 @@ Study data: ${dataStr}`
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </main>
 
-      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
     </ToolPageShell>
   )
 
@@ -336,8 +407,18 @@ Study data: ${dataStr}`
   // STAGE 2 — Pulse check micro-survey
   // ════════════════════════════════════════════════════════════════════════════
   if (stage === 2) return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+    <ToolPageShell key="shell">
+      
       <main style={{ flex: 1, maxWidth: 640, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
         <HeaderRow />
 
         <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
@@ -407,7 +488,7 @@ Study data: ${dataStr}`
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </main>
 
-      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
     </ToolPageShell>
   )
 
@@ -415,8 +496,18 @@ Study data: ${dataStr}`
   // STAGE 3 — Focus report (3 cards)
   // ════════════════════════════════════════════════════════════════════════════
   if (stage === 3 && report) return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
+    <ToolPageShell key="shell">
+      
       <main style={{ flex: 1, maxWidth: 640, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
         <HeaderRow />
 
         {/* Card 1 — What's Actually Happening (teal left border) */}
@@ -492,7 +583,7 @@ Study data: ${dataStr}`
         </div>
       </main>
 
-      <ToolHistoryPanel entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      < entries={entries} onSelect={handleHistorySelect} onRemove={removeHistory} onClear={clearHistory} open={historyOpen} onClose={() =>} />
     </ToolPageShell>
   )
 

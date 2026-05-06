@@ -1,11 +1,11 @@
+import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { Link } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Map, Plus, Trash2, ArrowRight, Sparkles, RotateCcw } from "lucide-react";
+import { ChevronLeft, Map, Plus, Trash2, ArrowRight, Sparkles, RotateCcw , Brain} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
@@ -19,12 +19,9 @@ const TOPICS = ["Photosynthesis","The Water Cycle","Newton's Laws","Supply and D
 export default function BlankMap() {
   const toolKey = "blankmap"
   const lsKey = `pz_hist_${toolKey}`
-  const { sessions: toolSessions, addSession, deleteSession } = useToolHistory(toolKey)
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolHistory, setToolHistory] = useState(() => loadHistory("blankmap"));
 
-  const handleNewSession = () => { setActiveSessionId(null) }
-  const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
 
 
   const [phase, setPhase] = useState<"setup"|"mapping"|"scored">("setup");
@@ -100,18 +97,85 @@ export default function BlankMap() {
     setNodes(prev=>prev.map(n=>n.id===dragging?{...n,x:e.clientX-rect.left,y:e.clientY-rect.top}:n));
   },[dragging]);
 
+  // Touch support for mobile drag
+  const onTouchStart = useCallback((id: string, e: React.TouchEvent) => {
+    e.preventDefault();
+    setDragging(id);
+  }, []);
+  const onTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (!dragging || !svgRef.current) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = svgRef.current.getBoundingClientRect();
+    setNodes(prev => prev.map(n => n.id === dragging ? { ...n, x: touch.clientX - rect.left, y: touch.clientY - rect.top } : n));
+  }, [dragging]);
+
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
-      {/* History Sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        <ToolHistorySidebar
-          toolKey="blankmap"
-          onNew={handleNewSession}
-          onSelect={handleSelectSession}
-          activeId={activeSessionId}
-        />
-        <div className="flex-1 overflow-auto">
+    <ToolPageShell>
+      {{/* ── HISTORY SIDEBAR ── */}}
+      {{sidebarOpen && (
+        <div onClick={{() => setSidebarOpen(false)}}
+          style={{{{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}}} />
+      )}}
+      <div style={{{{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
+        width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
+        display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
+      }}}}>
+        <div style={{{{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}}}>
+          <div>
+            <div style={{{{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}}}>{Mind Map} History</div>
+            <div style={{{{ fontSize: 10, color: "#444" }}}}>{{toolHistory.length}} session{{toolHistory.length !== 1 ? "s" : ""}}</div>
+          </div>
+          <div style={{{{ display: "flex", gap: 8, alignItems: "center" }}}}>
+            {{toolHistory.length > 0 && (
+              <button onClick={{() => {{ deleteHistoryEntry("blankmap", "all"); setToolHistory([]); }}}}
+                style={{{{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}}}
+                onMouseEnter={{e => {{ e.currentTarget.style.color = "#ef4444"; }}}}
+                onMouseLeave={{e => {{ e.currentTarget.style.color = "#444"; }}}}>Clear all</button>
+            )}}
+            <button onClick={{() => setSidebarOpen(false)}}
+              style={{{{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}}}
+              onMouseEnter={{e => {{ e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}}}
+              onMouseLeave={{e => {{ e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}}}>
+              <svg viewBox="0 0 24 24" width={{12}} height={{12}} fill="none" stroke="currentColor" strokeWidth={{2}}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style={{{{ flex: 1, overflowY: "auto", padding: "10px" }}}}>
+          {{toolHistory.length === 0 ? (
+            <div style={{{{ padding: "40px 16px", textAlign: "center" }}}}>
+              <div style={{{{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}}}>
+                <Brain size={{16}} style={{{{ color: "#333" }}}} />
+              </div>
+              <div style={{{{ fontSize: 12, color: "#444", marginBottom: 4 }}}}>No {mind map} history yet</div>
+              <div style={{{{ fontSize: 11, color: "#333" }}}}>Sessions will appear here</div>
+            </div>
+          ) : (
+            <div style={{{{ display: "flex", flexDirection: "column", gap: 6 }}}}>
+              {{[...toolHistory].reverse().map((entry) => (
+                <div key={{entry.id}}
+                  style={{{{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}}}
+                  onMouseEnter={{e => {{ e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}}}
+                  onMouseLeave={{e => {{ e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}}}>
+                  <div style={{{{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}}}>{{entry.title}}</div>
+                  <div style={{{{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}}}>
+                    <span style={{{{ color: "#2A6A64" }}}}>{{entry.subtitle}}</span><span>·</span>
+                    <span>{{new Date(entry.timestamp).toLocaleDateString(undefined, {{ month: "short", day: "numeric" }})}}</span>
+                  </div>
+                </div>
+              ))}}
+            </div>
+          )}}
+        </div>
+        <div style={{{{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}}}>
+          <div style={{{{ fontSize: 10, color: "#333", textAlign: "center" }}}}>Click any session to replay →</div>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto" }}>
       <main className="flex-1 w-full p-4 py-6 md:max-w-3xl md:mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link to="/dashboard"><Button variant="ghost" size="sm" className="gap-1"><ChevronLeft className="h-4 w-4"/>Dashboard</Button></Link>
@@ -150,7 +214,9 @@ export default function BlankMap() {
             </div>
             {/* Canvas */}
             <div className="bg-card border border-border rounded-none overflow-hidden" style={{height:"280px"}}>
-              <svg ref={svgRef} className="w-full h-full" onMouseMove={onMouseMove} onMouseUp={()=>setDragging(null)} onMouseLeave={()=>setDragging(null)}>
+              <svg ref={svgRef} className="w-full h-full" style={{ touchAction: "none" }}
+                onMouseMove={onMouseMove} onMouseUp={()=>setDragging(null)} onMouseLeave={()=>setDragging(null)}
+                onTouchMove={onTouchMove} onTouchEnd={()=>setDragging(null)}>
                 {edges.map((edge,i)=>{
                   const from=nodes.find(n=>n.label===edge.from||n.id===edge.from);
                   const to=nodes.find(n=>n.label===edge.to||n.id===edge.to);
@@ -163,7 +229,7 @@ export default function BlankMap() {
                 })}
                 <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="hsl(var(--muted-foreground))"/></marker></defs>
                 {nodes.map(n=>(
-                  <g key={n.id} onMouseDown={()=>onMouseDown(n.id)} style={{cursor:"grab"}}>
+                  <g key={n.id} onMouseDown={()=>onMouseDown(n.id)} onTouchStart={(e)=>onTouchStart(n.id,e)} style={{cursor:"grab"}}>
                     <circle cx={n.x} cy={n.y} r="28" fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth="2"/>
                     <text x={n.x} y={n.y+4} textAnchor="middle" fontSize="11" className="fill-foreground font-medium select-none" style={{pointerEvents:"none"}}>{n.label.slice(0,12)}</text>
                   </g>
@@ -177,6 +243,31 @@ export default function BlankMap() {
                 placeholder="Add concept node..." value={newNode} onChange={e=>setNewNode(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&addNode()}/>
               <Button onClick={addNode} disabled={!newNode.trim()} size="sm" className="bg-teal-500 text-white hover:bg-teal-600"><Plus className="h-4 w-4"/></Button>
+              {nodes.length > 0 && (
+                <button title="Export as PNG"
+                  onClick={() => {
+                    if (!svgRef.current) return;
+                    const svg = svgRef.current;
+                    const bbox = svg.getBoundingClientRect();
+                    const svgData = new XMLSerializer().serializeToString(svg);
+                    const canvas = document.createElement("canvas");
+                    canvas.width = bbox.width * 2; canvas.height = bbox.height * 2;
+                    const ctx = canvas.getContext("2d")!;
+                    ctx.fillStyle = "#03050F"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    const img = new Image();
+                    img.onload = () => {
+                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                      const a = document.createElement("a");
+                      a.download = "mind-map.png";
+                      a.href = canvas.toDataURL("image/png");
+                      a.click();
+                    };
+                    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+                  }}
+                  style={{ padding: "6px 10px", background: "rgba(0,196,180,0.08)", border: "0.5px solid rgba(0,196,180,0.3)", color: "#00C4B4", cursor: "pointer", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  ↓ PNG
+                </button>
+              )}
             </div>
             {/* Add edge */}
             {nodes.length>=2&&(
@@ -220,8 +311,16 @@ export default function BlankMap() {
           </div>
         )}
       </main>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
         </div>
       </div>
-    </div>
+    </ToolPageShell>
   );
 }

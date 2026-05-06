@@ -1,6 +1,5 @@
 import { FlashcardSkeleton } from "@/components/SkeletonLoader";
 import { buildAIContext, loadLibrary, getActiveSource } from "@/lib/sourceContext";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState } from "react";
 import {
   Sparkles, RotateCcw, ChevronRight, ChevronLeft,
@@ -12,14 +11,10 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { toast } from "sonner";
-import {
-  ToolHeader, HistorySidebar,
-  type HistoryEntry
-} from "@/components/ToolShell";
+import { type HistoryEntry } from "@/lib/historyStore";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
-import { ToolPageShell, useModel } from "@/components/ToolPageShell";
-import { useToolHistory, ToolHistoryPanel, HistoryButton } from "@/components/ToolHistory";
+import { ToolPageShell } from "@/components/ToolPageShell";
 
 interface Flashcard {
   id: string;
@@ -42,9 +37,8 @@ export default function Flashcards() {
   const [phase, setPhase] = useState<"home" | "study" | "results">("home");
   const [topic, setTopic] = useState("");
 
-  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("flashcards");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cardHistory, setCardHistory] = useState<HistoryEntry[]>(() => loadHistory(TOOL_KEY));
   const [topicInput, setTopicInput] = useState("");
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -53,8 +47,6 @@ export default function Flashcards() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState({ know: 0, unsure: 0, forgot: 0 });
   const [numCards, setNumCards] = useState(8);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [cardHistory, setCardHistory] = useState<HistoryEntry[]>(() => loadHistory(TOOL_KEY));
 
   const hasSource = buildAIContext().length > 0;
 
@@ -105,36 +97,54 @@ export default function Flashcards() {
     }
   };
 
+  const [forgotQueue, setForgotQueue] = useState<Flashcard[]>([]);
+  const [reviewingForgot, setReviewingForgot] = useState(false);
+  const [forgotIndex, setForgotIndex] = useState(0);
+
   const handleResult = (result: "know" | "unsure" | "forgot") => {
     const updated = [...cards];
     updated[currentIndex] = { ...updated[currentIndex], lastResult: result };
     setCards(updated);
     setResults(prev => ({ ...prev, [result]: prev[result] + 1 }));
-    if (currentIndex < cards.length - 1) { setCurrentIndex(i => i + 1); setFlipped(false); }
-    else setPhase("results");
+
+    // Track forgot/unsure for re-queue
+    if (result === "forgot" || result === "unsure") {
+      setForgotQueue(prev => [...prev, updated[currentIndex]]);
+    }
+
+    if (currentIndex < cards.length - 1 && !reviewingForgot) {
+      setCurrentIndex(i => i + 1); setFlipped(false);
+    } else if (reviewingForgot) {
+      if (forgotIndex < forgotQueue.length - 1) {
+        setForgotIndex(i => i + 1); setFlipped(false);
+      } else {
+        setPhase("results");
+      }
+    } else {
+      // First pass done — re-queue forgot cards if any
+      const toRequeue = updated.filter(c => c.lastResult === "forgot");
+      if (toRequeue.length > 0) {
+        setForgotQueue(toRequeue);
+        setReviewingForgot(true);
+        setForgotIndex(0);
+        setFlipped(false);
+      } else {
+        setPhase("results");
+      }
+    } else {
+      // Second pass (forgot re-queue) done
+      setPhase("results");
+    }
   };
 
-  const card = cards[currentIndex];
-  const progress = cards.length > 0 ? (currentIndex / cards.length) * 100 : 0;
+  const activeCards = reviewingForgot ? forgotQueue : cards;
+  const activeIndex = reviewingForgot ? forgotIndex : currentIndex;
+  const card = activeCards[activeIndex];
+  const progress = activeCards.length > 0 ? (activeIndex / activeCards.length) * 100 : 0;
 
-  const { model, setModel } = useModel();
   if (phase === "home") return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
-      <div className="container mx-auto px-4 pt-4 max-w-4xl"><GlobalContextBar compact /></div>
+    <ToolPageShell key="shell">
       <main className="flex-1 max-w-3xl mx-auto w-full p-6 space-y-8">
-        <HistorySidebar
-          entries={cardHistory}
-          activeId={null}
-          onSelect={(e) => {
-            const d = e.data as { cards: typeof cards; topic: string };
-            setCards(d.cards); setTopic(d.topic); setPhase("study"); setSidebarOpen(false);
-          }}
-          onNew={() => { setPhase("home"); setSidebarOpen(false); }}
-          onDelete={(id) => setCardHistory(prev => deleteHistoryEntry(TOOL_KEY, id, prev))}
-          open={sidebarOpen}
-          onToggle={() => setSidebarOpen(v => !v)}
-          newLabel="New Deck"
-        />
 
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <div className="w-9 h-9 rounded-none bg-gradient-to-br from-violet-500 to-zinc-600 flex items-center justify-center shadow-lg shadow-violet-500/20 flex-shrink-0">
@@ -197,9 +207,7 @@ export default function Flashcards() {
             ))}
           </div>
         </div>
-      </main>
-      {showSourcePicker && (
-        <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      </main>}>
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}} onClick={()=>setShowSourcePicker(false)}/>
           <div style={{position:"relative",width:"100%",maxWidth:380,background:"#0E0E0E",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Inter',system-ui,sans-serif"}}>
             <div style={{fontSize:12,fontWeight:700,marginBottom:12,color:"#F0F0F0"}}>Pick a source to generate from</div>
@@ -221,11 +229,18 @@ export default function Flashcards() {
   );
 
   if (phase === "study" && card) return (
-    <ToolPageShell showModelPicker model={model} setModel={setModel}>
-      <div className="container mx-auto px-4 pt-4 max-w-4xl"><GlobalContextBar compact /></div>
+    <ToolPageShell>
+      <div className="container mx-auto px-4 pt-4 max-w-4xl"></div>
       <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full p-4 gap-4">
         <div className="flex items-center justify-between pt-2">
-          <div><h2 className="font-bold">{topic}</h2><p className="text-xs text-muted-foreground">{currentIndex + 1} / {cards.length}</p></div>
+          <div>
+            <h2 className="font-bold">{topic}</h2>
+            <p className="text-xs text-muted-foreground">
+              {reviewingForgot
+                ? `🔁 Re-queue: ${forgotIndex + 1} / ${forgotQueue.length} (forgot cards)`
+                : `${currentIndex + 1} / ${cards.length}`}
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => { setCards([...cards].sort(() => Math.random() - 0.5)); setCurrentIndex(0); setFlipped(false); }}><Shuffle className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" onClick={() => setPhase("home")}><X className="h-4 w-4" /></Button>
@@ -278,7 +293,7 @@ export default function Flashcards() {
   if (phase === "results") {
     const pct = Math.round((results.know / cards.length) * 100);
     return (
-      <ToolPageShell showModelPicker model={model} setModel={setModel}>
+      <ToolPageShell>
         <main className="flex-1 max-w-lg mx-auto w-full p-6 space-y-6 flex flex-col justify-center">
           <div className="text-center">
             <Trophy className={cn("h-16 w-16 mx-auto mb-4", pct >= 80 ? "text-amber-500" : "text-muted-foreground")} />

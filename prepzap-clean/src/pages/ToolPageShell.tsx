@@ -14,7 +14,7 @@
  *  Fix 7 — CursorGlow mounted globally inside this shell
  */
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import {
@@ -30,27 +30,60 @@ const VOID = "#03050F"
 // Legacy type kept so pages that import it don't break at compile time
 export type BgTheme = "pure" | "starfield" | "nebula" | "aurora" | "pulse"
 
+// ─── Icon factory (matches Dashboard.tsx exactly) ─────────────────────────────
+const TEAL_ICON = "#00C4B4"
+const Ic = (d: React.ReactNode, stroke = TEAL_ICON) => (
+  <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke={stroke}
+    strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+)
+
+const TOOL_ICONS: Record<string, React.ReactNode> = {
+  "BrainBot":      Ic(<><rect x="7" y="9" width="10" height="12" rx="2"/><path d="M12 3v3M9 9V7a3 3 0 016 0v2"/><circle cx="9.5" cy="14" r="0.8" fill={TEAL_ICON}/><circle cx="14.5" cy="14" r="0.8" fill={TEAL_ICON}/></>),
+  "Practice":      Ic(<><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 9h6M9 12h6M9 15h4"/></>),
+  "Flashcards":    Ic(<><rect x="2" y="5" width="10" height="14" rx="1"/><rect x="12" y="5" width="10" height="14" rx="1"/></>),
+  "Daily Quiz":    Ic(<><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>),
+  "Cram Mode":     Ic(<><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></>),
+  "Recall Mode":   Ic(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>),
+  "Confidence":    Ic(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>),
+  "High Yield":    Ic(<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>),
+  "Feynman":       Ic(<><path d="M12 2L8 10H3l7 6-3 8 5-4 5 4-3-8 7-6h-5z"/></>),
+  "Math Solver":   Ic(<><path d="M4 20h4l10-10-4-4L4 16v4z"/><line x1="14" y1="6" x2="18" y2="10"/></>),
+  "Error Hunt":    Ic(<><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></>),
+  "Mind Map":      Ic(<><circle cx="6" cy="12" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><line x1="8" y1="11" x2="16" y2="7"/><line x1="8" y1="13" x2="16" y2="17"/></>),
+  "Concepts":      Ic(<><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 12h6M12 9v6"/></>),
+  "Roadmap":       Ic(<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>),
+  "Mistakes":      Ic(<><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill={TEAL_ICON}/></>),
+  "Visual Learner":Ic(<><rect x="3" y="3" width="18" height="14" rx="1"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="3"/></>),
+  "Flip Script":   Ic(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/></>),
+  "Focus State":   Ic(<><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></>),
+  "Boss Round":    Ic(<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>),
+  "Sources":       Ic(<><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></>),
+  "Pomodoro":      Ic(<><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></>),
+}
+
+// Routes and descriptions match Dashboard.tsx quickActions exactly
 const QUICK_TOOLS = [
-  { href: "/ai-tutor",       label: "BrainBot",    desc: "Ask anything, anytime" },
-  { href: "/practice",       label: "Practice",    desc: "AI question sets" },
-  { href: "/flashcards",     label: "Flashcards",  desc: "Spaced repetition" },
-  { href: "/feynman",        label: "Feynman",     desc: "Teach it to learn it" },
-  { href: "/math",           label: "Math Solver",     desc: "Step-by-step solutions" },
-  { href: "/daily5",         label: "Daily Quiz",  desc: "Quick daily rounds" },
-  { href: "/spot-error",     label: "Error Hunt",  desc: "Find & fix mistakes" },
-  { href: "/blank-map",      label: "Mind Map",    desc: "Map & connect ideas" },
-  { href: "/build-def",      label: "Concepts",    desc: "Build from memory" },
-  { href: "/tool-architect", label: "Roadmap",     desc: "Zero to mastery" },
-  { href: "/timer",          label: "Pomodoro",    desc: "Focus timer" },
-  { href: "/analytics",      label: "Progress",    desc: "Track performance" },
-  { href: "/sources",        label: "Sources",     desc: "Your study files" },
-  { href: "/cram",           label: "Cram Mode",   desc: "Emergency plan" },
-  { href: "/confidence",     label: "Confidence",  desc: "Know what you know" },
-  { href: "/high-yield",     label: "High Yield",  desc: "Most testable" },
-  { href: "/mistakes",       label: "Mistakes",    desc: "Track & fix errors" },
-  { href: "/recall",         label: "Recall Mode", desc: "Type from memory" },
-  { href: "/study-dna",      label: "Study DNA",   desc: "Your learner profile" },
-  { href: "/settings",       label: "Settings",    desc: "Preferences & plan" },
+  { href: "/ai-tutor",       label: "BrainBot",       desc: "Ask anything, anytime" },
+  { href: "/practice",       label: "Practice",       desc: "AI question sets" },
+  { href: "/flashcards",     label: "Flashcards",     desc: "Spaced repetition" },
+  { href: "/daily5",         label: "Daily Quiz",     desc: "Quick daily rounds" },
+  { href: "/cram",           label: "Cram Mode",      desc: "Emergency study plan" },
+  { href: "/recall",         label: "Recall Mode",    desc: "Type from memory" },
+  { href: "/confidence",     label: "Confidence",     desc: "Know what you know" },
+  { href: "/high-yield",     label: "High Yield",     desc: "Most testable concepts" },
+  { href: "/feynman",        label: "Feynman",        desc: "Teach it to learn it" },
+  { href: "/math",           label: "Math Solver",    desc: "Step-by-step solutions" },
+  { href: "/spot-error",     label: "Error Hunt",     desc: "Find & fix mistakes" },
+  { href: "/blank-map",      label: "Mind Map",       desc: "Map & connect ideas" },
+  { href: "/build-def",      label: "Concepts",       desc: "Build definitions from memory" },
+  { href: "/tool-architect", label: "Roadmap",        desc: "Zero to mastery on any topic" },
+  { href: "/mistakes",       label: "Mistakes",       desc: "Track & fix errors" },
+  { href: "/visual-learner", label: "Visual Learner", desc: "See it to remember it" },
+  { href: "/flip-script",    label: "Flip Script",    desc: "Rewrite to understand" },
+  { href: "/focus-state",    label: "Focus State",    desc: "Deep focus mode" },
+  { href: "/boss-round",     label: "Boss Round",     desc: "Ultimate challenge mode" },
+  { href: "/sources",        label: "Sources",        desc: "Your study files" },
+  { href: "/timer",          label: "Pomodoro",       desc: "Focus timer with sounds" },
 ]
 
 // ─── StarField (full Landing.tsx implementation) ─────────────────────────────
@@ -236,16 +269,22 @@ function StudyToolsDropdown() {
       {open && (
         <>
           <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setOpen(false)} />
-          <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 320, background: "#0E0E0E", border: "0.5px solid #252525", zIndex: 100, boxShadow: "0 8px 32px rgba(0,0,0,0.7)", display: "grid", gridTemplateColumns: "1fr 1fr", fontFamily: "'Inter',system-ui,sans-serif" }}>
+          <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 340, background: "rgba(3,5,15,0.97)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", border: "0.5px solid rgba(0,196,180,0.18)", borderBottom: "0.5px solid rgba(0,196,180,0.18)", zIndex: 100, boxShadow: "0 8px 32px rgba(0,0,0,0.7)", display: "grid", gridTemplateColumns: "1fr 1fr", fontFamily: "'Inter',system-ui,sans-serif" }}>
             <div style={{ padding: "8px 10px", gridColumn: "1/-1", borderBottom: "0.5px solid #1A1A1A" }}>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#333" }}>All Tools</span>
             </div>
             {QUICK_TOOLS.map(t => (
-              <Link key={t.href} to={t.href} onClick={() => setOpen(false)} style={{ textDecoration: "none", padding: "7px 10px", borderBottom: "0.5px solid #111", display: "flex", flexDirection: "column", gap: 1, transition: "background .15s" }}
+              <Link key={t.href} to={t.href} onClick={() => setOpen(false)} style={{ textDecoration: "none", padding: "8px 10px", borderBottom: "0.5px solid #111", display: "flex", alignItems: "flex-start", gap: 8, transition: "background .15s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(0,196,180,0.04)" }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: "#C0C0C0" }}>{t.label}</span>
-                <span style={{ fontSize: 9, color: "#444" }}>{t.desc}</span>
+                {/* Icon box matching dashboard tile style */}
+                <div style={{ width: 22, height: 22, flexShrink: 0, border: "0.5px solid #1A2626", background: "rgba(0,196,180,0.06)", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                  {TOOL_ICONS[t.label]}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: "#C0C0C0" }}>{t.label}</span>
+                  <span style={{ fontSize: 9, color: "#444" }}>{t.desc}</span>
+                </div>
               </Link>
             ))}
           </div>
@@ -255,85 +294,48 @@ function StudyToolsDropdown() {
   )
 }
 
-// ─── Model Selector ───────────────────────────────────────────────────────────
-export const AI_MODELS = [
-  { id: "gemini-2.0-flash",  label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Fast" },
-  { id: "gemini-2.0-flash", label: "Llama 3.3 70B",   provider: "OpenRouter", badge: "Balanced" },
-  { id: "gemini-2.0-flash",        label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart" },
-] as const
-
-export type ModelId = typeof AI_MODELS[number]["id"]
+// ─── Model stub exports (Fix 4) ───────────────────────────────────────────────
+// Model selector is REMOVED from the UI. These stubs keep existing page imports
+// from breaking at compile time. The model/setModel props on ToolPageShell are
+// accepted but silently ignored — nothing is rendered in the nav.
+export type ModelId = string
 export const MODEL_KEY = "studenius_selected_model"
+export const AI_MODELS = [{ id: "default", label: "Studenius AI", provider: "internal", badge: "" }] as const
 
 export function useModel() {
-  const [model, setModelState] = useState<ModelId>(() => {
-    const saved = localStorage.getItem(MODEL_KEY)
-    return (AI_MODELS.find(m => m.id === saved)?.id ?? "gemini-2.0-flash") as ModelId
-  })
-  const setModel = (id: ModelId) => { setModelState(id); localStorage.setItem(MODEL_KEY, id) }
+  // Returns a stable object — pages can still destructure { model, setModel }
+  // without errors, but neither value is consumed by the shell UI.
+  const [model] = useState<ModelId>("default")
+  const setModel = (_id: ModelId) => { /* intentionally empty — Fix 4 */ }
   return { model, setModel }
 }
 
-export function ModelPicker({ model, setModel }: { model: ModelId; setModel: (id: ModelId) => void }) {
-  const [open, setOpen] = useState(false)
-  const current = AI_MODELS.find(m => m.id === model) ?? AI_MODELS[0]
-
-  return (
-    <div style={{ position: "relative" }}>
-      <button onClick={() => setOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", background: "rgba(255,255,255,0.03)", border: "0.5px solid #252525", color: "#C0C0C0", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',system-ui,sans-serif", transition: "all .2s", whiteSpace: "nowrap" }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = TEAL; e.currentTarget.style.color = TEAL }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#C0C0C0" }}>
-        <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={1.7}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-        {current.label}
-        <span style={{ fontSize: 8, padding: "1px 4px", background: "rgba(0,196,180,0.12)", color: TEAL, fontWeight: 700, letterSpacing: "0.06em" }}>{current.badge}</span>
-        <ChevronDown size={9} style={{ opacity: 0.5 }} />
-      </button>
-      {open && (
-        <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setOpen(false)} />
-          <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, width: 220, background: "#0E0E0E", border: "0.5px solid #252525", zIndex: 100, boxShadow: "0 8px 24px rgba(0,0,0,0.7)", fontFamily: "'Inter',system-ui,sans-serif" }}>
-            <div style={{ padding: "7px 10px", borderBottom: "0.5px solid #1A1A1A" }}>
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333" }}>AI Model</span>
-            </div>
-            {AI_MODELS.map(m => (
-              <button key={m.id} onClick={() => { setModel(m.id); setOpen(false) }} style={{ width: "100%", padding: "8px 10px", background: model === m.id ? "rgba(0,196,180,0.06)" : "transparent", border: "none", borderBottom: "0.5px solid #141414", color: model === m.id ? TEAL : "#C0C0C0", fontSize: 10, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .15s" }}
-                onMouseEnter={e => { if (model !== m.id) e.currentTarget.style.background = "rgba(255,255,255,0.03)" }}
-                onMouseLeave={e => { if (model !== m.id) e.currentTarget.style.background = "transparent" }}>
-                <div>
-                  <div style={{ fontWeight: 600, marginBottom: 1 }}>{m.label}</div>
-
-                </div>
-                <span style={{ fontSize: 8, padding: "1px 4px", background: model === m.id ? "rgba(0,196,180,0.12)" : "rgba(255,255,255,0.05)", color: model === m.id ? TEAL : "#555", fontWeight: 700 }}>{m.badge}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
+/** @deprecated — model picker removed per Fix 4. Component renders nothing. */
+export function ModelPicker(_props: { model: ModelId; setModel: (id: ModelId) => void }) {
+  return null
 }
+
+// ─── CursorGlow CSS injected once into <head> ─────────────────────────────────
+const CURSOR_CSS = `
+  *, *::before, *::after { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
+  * { cursor: none !important; }
+  .cursor-ring.hovered { width: 48px !important; height: 48px !important; border-color: rgba(0,196,180,0.7) !important; }
+`
 
 // ─── Main ToolPageShell ───────────────────────────────────────────────────────
 interface ToolPageShellProps {
   children: React.ReactNode
-  /** Show model picker in the tool header row */
+  /** @deprecated — model picker removed per Fix 4. Prop accepted but ignored. */
   showModelPicker?: boolean
+  /** @deprecated — accepted but ignored. */
   model?: ModelId
+  /** @deprecated — accepted but ignored. */
   setModel?: (id: ModelId) => void
 }
 
-export function ToolPageShell({ children, showModelPicker, model, setModel }: ToolPageShellProps) {
+export function ToolPageShell({ children }: ToolPageShellProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  const [bgTheme, setBgTheme] = useState<BgTheme>(() => {
-    return (localStorage.getItem(THEME_KEY) as BgTheme) || "starfield"
-  })
-
-  const setTheme = (t: BgTheme) => { setBgTheme(t); localStorage.setItem(THEME_KEY, t) }
-
-  useCanvasBg(canvasRef, bgTheme)
 
   const displayName = (
     user?.user_metadata?.username ||
@@ -342,55 +344,52 @@ export function ToolPageShell({ children, showModelPicker, model, setModel }: To
     "S"
   ).toUpperCase().slice(0, 2)
 
-  // inject font smoothing once
+  // Inject global styles (font smoothing + cursor override) once per mount
   useEffect(() => {
     const id = "studenius-tool-styles"
     if (document.getElementById(id)) return
     const s = document.createElement("style")
     s.id = id
-    s.textContent = `*, *::before, *::after { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }`
+    s.textContent = CURSOR_CSS
     document.head.appendChild(s)
     return () => { document.getElementById(id)?.remove() }
   }, [])
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#F0F0F0", fontFamily: "'Inter',system-ui,sans-serif", position: "relative" }}>
-      {/* Canvas bg */}
-      <canvas ref={canvasRef} style={{ position: "fixed", top: 0, left: 0, zIndex: 0, pointerEvents: "none" }} />
+    <div style={{ minHeight: "100vh", background: VOID, color: "#F0F0F0", fontFamily: "'Inter',system-ui,sans-serif", position: "relative" }}>
+      {/* Fix 6: Full Landing.tsx StarField — parallax layers, warm/spiky stars */}
+      <StarField />
+      {/* Fix 7: Custom teal cursor — dot + trailing ring */}
+      <CursorGlow />
 
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", minHeight: "100vh", transform: "translateZ(0)" }}>
 
-        {/* ── Nav ── */}
-        <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", height: 48, borderBottom: "0.5px solid #1E1E1E", background: "rgba(8,8,8,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", flexShrink: 0, position: "sticky", top: 0, zIndex: 50 }}>
+        {/* ── Nav (Fix 3 + Fix 4: no model selector, no theme strip) ── */}
+        <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", height: 48, borderBottom: "0.5px solid #1E1E1E", background: "rgba(3,5,15,0.88)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", flexShrink: 0, position: "sticky", top: 0, zIndex: 50 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <Link to="/dashboard" style={{ textDecoration: "none" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.2em", color: "#F0F0F0" }}>STUDENIUS</span>
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.22em", color: "#E0E8F0", fontFamily: "'Geist Mono','Courier New',monospace" }}>STUDENIUS</span>
             </Link>
             <div style={{ width: 1, height: 14, background: "#222" }} />
             <StudyToolsDropdown />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {/* Source chip — Fix 5 */}
             <SourceSelectorPill />
-            {showModelPicker && model && setModel && <ModelPicker model={model} setModel={setModel} />}
+            {/* PRICING link — Fix 3 */}
             <Link to="/pricing" style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "#555", textDecoration: "none", transition: "color .2s" }}
               onMouseEnter={e => (e.currentTarget.style.color = "#F0F0F0")} onMouseLeave={e => (e.currentTarget.style.color = "#555")}>
               PRICING
             </Link>
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg,${TEAL},#0097A7)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#0A0A0A", cursor: "pointer", flexShrink: 0 }}
+            {/* User avatar — Fix 3 */}
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg,${TEAL},#0097A7)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#03050F", cursor: "pointer", flexShrink: 0 }}
               onClick={() => navigate("/settings")}>
               {displayName}
             </div>
           </div>
         </nav>
 
-        {/* ── Theme strip ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 0, overflowX: "auto", borderBottom: "0.5px solid #1A1A1A", background: "rgba(8,8,8,0.7)", flexShrink: 0, scrollbarWidth: "none" }}>
-          <div style={{ padding: "0 10px", flexShrink: 0, fontSize: 7, letterSpacing: "0.16em", textTransform: "uppercase", color: "#333", fontWeight: 700, whiteSpace: "nowrap" }}>Theme</div>
-          <div style={{ width: "0.5px", height: 24, background: "#1E1E1E", flexShrink: 0 }} />
-          {(["pure", "starfield", "nebula", "aurora", "pulse"] as BgTheme[]).map(id => (
-            <ThemeSwatch key={id} id={id} active={bgTheme === id} onClick={() => setTheme(id)} />
-          ))}
-        </div>
+        {/* Theme strip REMOVED — Fix 6 */}
 
         {/* ── Content ── */}
         {children}

@@ -11,7 +11,6 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { type HistoryEntry } from "@/components/ToolShell";
-import { useToolHistory } from "@/components/ToolHistory";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
@@ -273,8 +272,7 @@ export default function Practice() {
 
   const [phase, setPhase] = useState<"setup" | "quiz" | "results">("setup");
 
-  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } = useToolHistory("practice");
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } =("practice");
   const [difficulty, setDifficulty] = useState<"easy" | "mixed" | "hard">("mixed");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -288,9 +286,6 @@ export default function Practice() {
   const [quizHistory, setQuizHistory] = useState<HistoryEntry[]>(() => loadHistory("practice"));
 
   // Source library state
-  const [showSourcePicker, setShowSourcePicker] = useState(false);
-  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
-  const [confirmedSources, setConfirmedSources] = useState<SourceItem[]>([]);
   const [conceptMap, setConceptMap] = useState<Record<string, string[]>>({});
   const [loadingConcepts, setLoadingConcepts] = useState(false);
   const [activeTopic, setActiveTopic] = useState(""); // the topic used for quiz
@@ -407,6 +402,23 @@ Return ONLY valid JSON:
       setPhase("results");
     }
   };
+
+  // Keyboard shortcuts: 1-4 pick answer, Enter/Space advance
+  useEffect(() => {
+    if (phase !== "quiz") return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const num = parseInt(e.key);
+      if (!isNaN(num) && num >= 1 && num <= 4 && !answered) {
+        handleSelect(num - 1);
+      } else if ((e.key === "Enter" || e.key === " ") && answered) {
+        e.preventDefault();
+        next();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [phase, answered, currentQ, questions]);
 
   const q = questions[currentQ];
   const pct = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
@@ -702,14 +714,6 @@ Return ONLY valid JSON:
         </main>
 
         {/* Source Picker Modal */}
-        <SourcePickerModal
-          open={showSourcePicker}
-          onClose={() => setShowSourcePicker(false)}
-          selectedIds={selectedSourceIds}
-          onToggle={handleToggleSource}
-          onConfirm={handleConfirmSources}
-          sources={allSources}
-        />
       </div>
     </StarBg>}
 
@@ -748,8 +752,9 @@ Return ONLY valid JSON:
                       isCorrect ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" :
                         isSelected ? "border-red-500 bg-red-500/10 text-red-400" : "border-border opacity-40 bg-transparent")}>
                   <span className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-none border-2 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    <span className="w-7 h-7 rounded-none border-2 flex items-center justify-center text-xs font-bold flex-shrink-0 relative">
                       {String.fromCharCode(65 + i)}
+                      {!answered && <span style={{ position: "absolute", top: -8, right: -8, fontSize: 8, color: "#333", fontFamily: "monospace" }}>{i+1}</span>}
                     </span>
                     <MathRenderer content={opt} className="flex-1" />
                     {answered && isCorrect && <CheckCircle2 className="h-5 w-5 text-emerald-400 ml-auto flex-shrink-0" />}

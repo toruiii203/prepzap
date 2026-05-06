@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { ToolPageShell } from "@/pages/ToolPageShell";
-import { AlertCircle, Plus, Trash2, RefreshCw, Flame, Play } from "lucide-react";
+import { AlertCircle, Plus, Trash2, RefreshCw, Flame, Play, Brain, ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext } from "@/lib/sourceContext";
@@ -14,6 +15,7 @@ interface Mistake {
   createdAt: string;
   lastReviewedAt: string | null;
   reviewCount: number;
+  screenshot?: string; // base64 data URL
 }
 
 interface ReviewQuestion { question: string; answer: string; }
@@ -35,10 +37,14 @@ function daysSinceReview(m: Mistake): number {
 function isOverdue(m: Mistake) { return daysSinceReview(m) >= 3; }
 
 export default function MistakeJournal() {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolHistory, setToolHistory] = useState(() => loadHistory("mistakes"));
   const [mistakes, setMistakes] = useState<Mistake[]>(loadMistakes);
   const [adding, setAdding] = useState(false);
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [form, setForm] = useState({ subject: "", question: "", correctAnswer: "", tags: "" });
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewQuestions, setReviewQuestions] = useState<ReviewQuestion[]>([]);
   const [reviewIdx, setReviewIdx] = useState(0);
@@ -50,6 +56,22 @@ export default function MistakeJournal() {
   });
 
   useEffect(() => { saveMistakes(mistakes); }, [mistakes]);
+
+  // Paste image from clipboard when form is open
+  useEffect(() => {
+    if (!adding) return;
+    const handler = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith("image/"));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => setScreenshot(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    };
+    window.addEventListener("paste", handler);
+    return () => window.removeEventListener("paste", handler);
+  }, [adding]);
 
   const allTags = Array.from(new Set(mistakes.flatMap(m => m.tags)));
   const overdue = mistakes.filter(isOverdue);
@@ -72,9 +94,11 @@ export default function MistakeJournal() {
       createdAt: new Date().toISOString(),
       lastReviewedAt: null,
       reviewCount: 0,
+      screenshot: screenshot ?? undefined,
     };
     setMistakes(prev => [newMistake, ...prev]);
     setForm({ subject: "", question: "", correctAnswer: "", tags: "" });
+    setScreenshot(null);
     setAdding(false);
     toast.success("Mistake logged!");
   };
@@ -93,7 +117,7 @@ export default function MistakeJournal() {
       const ctx = buildAIContext();
       const mistakeList = toReview.map(m => `Q: ${m.question}\nA: ${m.correctAnswer}`).join("\n\n");
       const prompt = `Based on these mistakes a student made, create a focused review quiz:\n${mistakeList}\n${ctx ? `\nAdditional context:\n${ctx}\n` : ""}\nReturn ONLY valid JSON array, no markdown:\n[{"question":"rephrased or related question","answer":"correct answer"}]\nCreate ${Math.min(toReview.length * 2, 8)} questions. Rephrase the originals to test understanding, not just memory.`;
-      const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
+      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
       const parsed: ReviewQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setReviewQuestions(parsed);
       setReviewIdx(0);
@@ -169,7 +193,86 @@ export default function MistakeJournal() {
 
   return (
     <ToolPageShell>
+      {/* ── HISTORY SIDEBAR ── */}
+      {sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
+      )}
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
+        width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
+        display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
+      }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Mistakes History</div>
+            <div style={{ fontSize: 10, color: "#444" }}>{toolHistory.length} session{toolHistory.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {toolHistory.length > 0 && (
+              <button onClick={() => { deleteHistoryEntry("mistakes", "all"); setToolHistory([]); }}
+                style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>Clear all</button>
+            )}
+            <button onClick={() => setSidebarOpen(false)}
+              style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}>
+              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
+          {toolHistory.length === 0 ? (
+            <div style={{ padding: "40px 16px", textAlign: "center" }}>
+              <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Brain size={16} style={{ color: "#333" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No mistakes history yet</div>
+              <div style={{ fontSize: 11, color: "#333" }}>Sessions will appear here</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[...toolHistory].reverse().map((entry) => (
+                <div key={entry.id}
+                  style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
+                  <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+        </div>
+      </div>
       <main style={{ flex: 1, padding: "24px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setSidebarOpen(v => !v)}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
+            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+          </button>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <a href="/dashboard" style={{ fontSize: 10, color: "#444", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, letterSpacing: "0.06em" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#00C4B4")} onMouseLeave={e => (e.currentTarget.style.color = "#444")}>
+            <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={2}><polyline points="15 18 9 12 15 6"/></svg>
+            DASHBOARD
+          </a>
+        </div>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
 
           {/* Header */}
@@ -178,7 +281,7 @@ export default function MistakeJournal() {
               <AlertCircle style={{ width: 14, height: 14, color: "#fff" }} />
             </div>
             <div>
-              <h1 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Mistake Journal</h1>
+              <h1 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Mistakes</h1>
               <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em" }}>LOG ERRORS — AUTO-SORTED BY OVERDUE</p>
             </div>
           </div>
@@ -231,6 +334,36 @@ export default function MistakeJournal() {
                     style={{ width: "100%", padding: "8px 10px", fontSize: 12, background: "rgba(255,255,255,0.03)", border: "0.5px solid #252525", color: "#F0F0F0", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
                 </div>
               ))}
+
+              {/* Screenshot upload */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#555", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>Screenshot (optional)</label>
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => setScreenshot(ev.target?.result as string);
+                    reader.readAsDataURL(file);
+                  }} />
+                {screenshot ? (
+                  <div style={{ position: "relative", display: "inline-block" }}>
+                    <img src={screenshot} alt="screenshot" style={{ maxWidth: "100%", maxHeight: 140, border: "0.5px solid #252525", display: "block" }} />
+                    <button onClick={() => setScreenshot(null)}
+                      style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, background: "rgba(0,0,0,0.7)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#ef4444" }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => fileInputRef.current?.click()}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525", color: "#555", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = TEAL; e.currentTarget.style.color = TEAL; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; }}>
+                    <ImageIcon size={12} /> Attach screenshot / paste image
+                  </button>
+                )}
+              </div>
+
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                 <button onClick={handleAdd}
                   style={{ flex: 1, padding: "8px", background: GOLD, color: "#000", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -285,7 +418,13 @@ export default function MistakeJournal() {
                       </button>
                     </div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#F0F0F0", margin: "0 0 6px" }}>{m.question}</p>
-                    <p style={{ fontSize: 11, color: "#999", margin: "0 0 12px" }}>{m.correctAnswer}</p>
+                    <p style={{ fontSize: 11, color: "#999", margin: "0 0 8px" }}>{m.correctAnswer}</p>
+                    {m.screenshot && (
+                      <div style={{ marginBottom: 10 }}>
+                        <img src={m.screenshot} alt="screenshot" style={{ maxWidth: "100%", maxHeight: 120, border: "0.5px solid #252525", cursor: "pointer" }}
+                          onClick={() => window.open(m.screenshot, "_blank")} title="Click to view full size" />
+                      </div>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {m.tags.map(tag => (

@@ -3,8 +3,6 @@ import { useState, useRef, useEffect } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 
 
-import { ToolHeader } from "@/components/ToolShell";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { MessageSquare, Flame, Trophy, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,10 +16,30 @@ interface TopicRecord { topic: string; score: number; total: number; date: strin
 const STORAGE_KEY = "pz_recall_history";
 function loadHistory(): TopicRecord[] { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
 
+// Fuzzy match: true if typed contains keyword or close variant (edit distance ≤ 2)
+function fuzzyMatch(typed: string, keyword: string): boolean {
+  const t = typed.toLowerCase();
+  const kw = keyword.toLowerCase();
+  if (t.includes(kw)) return true;
+  // Check each word in typed against keyword with edit distance
+  const words = t.split(/\s+/);
+  return words.some(word => {
+    if (Math.abs(word.length - kw.length) > 3) return false;
+    // Levenshtein distance
+    const dp: number[][] = Array.from({ length: word.length + 1 }, (_, i) =>
+      Array.from({ length: kw.length + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0)
+    );
+    for (let i = 1; i <= word.length; i++)
+      for (let j = 1; j <= kw.length; j++)
+        dp[i][j] = word[i-1] === kw[j-1] ? dp[i-1][j-1]
+          : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[word.length][kw.length] <= 2;
+  });
+}
+
 function scoreLocally(typed: string, keywords: string[]): { score: "correct" | "partial" | "wrong"; matched: string[] } {
   if (!typed.trim()) return { score: "wrong", matched: [] };
-  const t = typed.toLowerCase();
-  const matched = keywords.filter(kw => t.includes(kw.toLowerCase()));
+  const matched = keywords.filter(kw => fuzzyMatch(typed, kw));
   const ratio = matched.length / keywords.length;
   return { score: ratio >= 0.7 ? "correct" : ratio >= 0.3 ? "partial" : "wrong", matched };
 }
@@ -56,7 +74,7 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"prompt":"Complete this / Explain / Define...","answer":"expected answer (2-3 sentences)","keywords":["key","terms","from","answer"]}]
 keywords: 4-6 essential words from the answer that a correct response would include.`;
-      const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
+      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
       const parsed: RecallPrompt[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setPrompts(parsed);
       setCurrent(0); setTyped(""); setResults([]);
@@ -112,9 +130,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
 
   return (
     <ToolPageShell>
-      <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
-        <GlobalContextBar compact />
-        <ToolHeader icon={<MessageSquare className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Recall Mode" subtitle="Type from memory — scored instantly by keyword matching" />
+      <main className="max-w-xl mx-auto px-4 pt-6 pb-24">} title="Recall Mode" subtitle="Type from memory — scored instantly by keyword matching" />
 
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
