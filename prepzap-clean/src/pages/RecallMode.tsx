@@ -130,7 +130,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
 
   return (
     <ToolPageShell>
-      <main className="max-w-xl mx-auto px-4 pt-6 pb-24">} title="Recall Mode" subtitle="Type from memory — scored instantly by keyword matching" />
+      <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
 
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
