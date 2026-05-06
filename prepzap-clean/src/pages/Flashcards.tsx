@@ -107,19 +107,20 @@ export default function Flashcards() {
     setCards(updated);
     setResults(prev => ({ ...prev, [result]: prev[result] + 1 }));
 
-    // Track forgot/unsure for re-queue
     if (result === "forgot" || result === "unsure") {
       setForgotQueue(prev => [...prev, updated[currentIndex]]);
     }
 
-    if (currentIndex < cards.length - 1 && !reviewingForgot) {
-      setCurrentIndex(i => i + 1); setFlipped(false);
-    } else if (reviewingForgot) {
+    if (reviewingForgot) {
+      // Second pass — advance through forgot queue
       if (forgotIndex < forgotQueue.length - 1) {
         setForgotIndex(i => i + 1); setFlipped(false);
       } else {
         setPhase("results");
       }
+    } else if (currentIndex < cards.length - 1) {
+      // First pass — more cards remain
+      setCurrentIndex(i => i + 1); setFlipped(false);
     } else {
       // First pass done — re-queue forgot cards if any
       const toRequeue = updated.filter(c => c.lastResult === "forgot");
@@ -131,9 +132,6 @@ export default function Flashcards() {
       } else {
         setPhase("results");
       }
-    } else {
-      // Second pass (forgot re-queue) done
-      setPhase("results");
     }
   };
 
