@@ -183,9 +183,10 @@ Return ONLY valid JSON:
         preview: parsed.counterArgument.slice(0, 120),
         output: JSON.stringify(parsed),
         model,
-        meta: `${parsed.score}`);
+        meta: `${parsed.score}`,
+      });
       setToolHistory(loadHistory("flip-script")); setMainArg(""); setEvidence(""); setAnticipated("")
-    setResult(null); setError(null)
+      setResult(null); setError(null)
   }
 
   // ── Shared header ──────────────────────────────────────────────────────────

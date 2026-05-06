@@ -135,9 +135,10 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
         preview: explanation.slice(0, 120),
         output: JSON.stringify(parsed),
         model,
-        meta: `${parsed.masteryScore}`);
+        meta: `${parsed.masteryScore}`,
+      });
       setToolHistory(loadHistory("feynman")); setTopic(""); setTopicInput(""); setExplanation("")
-    setFeedback(null); setRound(1); setError(null)
+      setFeedback(null); setRound(1); setError(null)
   }
 
   // ── Shared header row ──────────────────────────────────────────────────────
