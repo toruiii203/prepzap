@@ -301,8 +301,10 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
           )}
         </div>
 
-        {/* Source picker modal */}}>
-            <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: 24, width: 340 }}>
+        {showSourcePicker && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)" }} onClick={() => setShowSourcePicker(false)} />
+            <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: 24, width: 340, position: "relative", zIndex: 1 }}>
               <p style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>Pick a source to teach from:</p>
               {loadLibrary().map(s => (
                 <button key={s.id}
