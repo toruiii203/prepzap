@@ -430,6 +430,7 @@ Return ONLY valid JSON:
             {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
           </button>
         </div>
+        <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
           <HeaderRow />
 
           {/* Argument strength score */}
