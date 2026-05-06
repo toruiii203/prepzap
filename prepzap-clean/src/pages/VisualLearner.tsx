@@ -353,7 +353,7 @@ If source material is provided, base the scenes on its actual content, not gener
         preview: parsed.scenes[0]?.anchorPhrase ?? target,
         output: JSON.stringify(parsed),
         model,
-        meta: `${parsed.scenes.length});
+        meta: `${parsed.scenes.length}`);
       setToolHistory(loadHistory("visual")); setConcept(""); setConceptInput(""); setScenes([]); setError(null)
   }
 
