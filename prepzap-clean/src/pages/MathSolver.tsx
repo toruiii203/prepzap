@@ -13,6 +13,7 @@ import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
 import { ToolHistoryPanel, HistoryButton } from "@/pages/ToolHistory"
+import { Brain } from "lucide-react"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL   = "#00C4B4"
@@ -55,15 +56,31 @@ interface MathSolution {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function MathSolver() {
   const { model, setModel } = useModel()
-  const { entries, save: saveHistory, remove: removeHistory, clear: clearHistory } =("mathsolver")
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const [entries, setEntries] = useState(() => loadHistory("mathsolver"));
   const [toolHistory, setToolHistory] = useState(() => loadHistory("math-solver"));
   const [phase, setPhase]     = useState<"input"|"loading"|"result">("input")
   const [problem, setProblem] = useState("")
   const [result, setResult]   = useState<MathSolution|null>(null)
   const [error, setError]     = useState<string|null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const saveHistory = (entry: { prompt: string; preview: string; output: string; model: string; meta?: string }) => {
+    const newEntry = addHistoryEntry("mathsolver", entry)
+    setEntries(loadHistory("mathsolver"))
+    return newEntry
+  }
+  const removeHistory = (id: string) => {
+    deleteHistoryEntry("mathsolver", id)
+    setEntries(loadHistory("mathsolver"))
+  }
+  const clearHistory = () => {
+    deleteHistoryEntry("mathsolver", "all")
+    setEntries([])
+  }
 
   const canSubmit = problem.trim().length >= 3
 
@@ -83,7 +100,7 @@ export default function MathSolver() {
   }
 
   // ── History restore ────────────────────────────────────────────────────────
-  const handleHistorySelect = (entry: HistoryEntry) => {    try {
+  const handleHistorySelect = (entry: { prompt: string; output: string; [key: string]: any }) => {    try {
       const parsed = JSON.parse(entry.output)
       setResult(parsed)
       setProblem(entry.prompt)
@@ -157,7 +174,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>Math Solver</h1>
       </div>
-      <HistoryButton count={entries.length} onClick={() => setSidebarOpen(true)} />
+      <HistoryButton count={entries.length} onClick={() => setHistoryOpen(true)} />
     </div>
   )
 
@@ -434,6 +451,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
             {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
           </button>
         </div>
+        <main style={{ flex: 1, maxWidth: 640, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
           <HeaderRow />
 
           {/* Problem recap */}
