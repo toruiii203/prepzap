@@ -5,8 +5,8 @@
   "description": "AI-powered study tools – practice questions, flashcards, Feynman mode, math solver, focus timer, and more.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#160810",
+  "theme_color": "#160810",
   "orientation": "portrait",
   "icons": [
     {

@@ -1,4 +1,3 @@
-import { ChatBubbleSkeleton } from "@/components/SkeletonLoader";
 import { buildAIContext, buildImageMessages, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -42,13 +41,13 @@ interface ChatSession {
 }
 
 type TutorMode = "explain" | "quiz" | "analogy" | "eli5" | "debate" | "summary";
-type ModelId = "gemini-2.0-flash" | "claude-3-5-sonnet" | "gpt-4o";
+type ModelId = "fast" | "balanced" | "smart";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODELS: { id: string; label: string; provider: string; badge: string; badgeColor: string; routerModel: string }[] = [
-  { id: "gemini-2.0-flash",  label: "Llama 3.1 8B",    provider: "OpenRouter", badge: "Fast",     badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20",   routerModel: "gemini-2.0-flash" },
-  { id: "gemini-2.0-flash", label: "Llama 3.3 70B",   provider: "OpenRouter", badge: "Balanced", badgeColor: "bg-violet-500/10 text-violet-600 border-violet-500/20", routerModel: "gemini-2.0-flash" },
-  { id: "gemini-2.0-flash",        label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart",    badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", routerModel: "gemini-2.0-flash" },
+  { id: "fast", label: "Llama 3.1 8B", provider: "OpenRouter", badge: "Fast", badgeColor: "bg-amber-500/10 text-amber-500 border-amber-500/20", routerModel: "gemini-2.0-flash" },
+  { id: "balanced", label: "Llama 3.3 70B", provider: "OpenRouter", badge: "Balanced", badgeColor: "bg-amber-500/10 text-amber-500 border-amber-500/20", routerModel: "gemini-2.0-flash" },
+  { id: "smart", label: "Gemini 2.0 Flash", provider: "OpenRouter", badge: "Smart", badgeColor: "bg-amber-500/10 text-amber-500 border-amber-500/20", routerModel: "gemini-2.0-flash" },
 ];
 
 const TUTOR_MODES: {
@@ -331,7 +330,7 @@ export default function AiTutor() {
   const [showModes, setShowModes] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<string>("gemini-2.0-flash");
+  const [activeModel, setActiveModel] = useState<string>("fast");
   const [showModelMenu, setShowModelMenu] = useState(false);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -658,7 +657,7 @@ Formatting:
                 <div className="w-16 h-16 rounded-none bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/20">
                   <HelpCircle className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-xl font-bold mb-1">Ask me anything</h2>
+                <h2 className="text-xl font-bold mb-1">Ask me anything - I'm your study buddy 🦊</h2>
                 <p className="text-muted-foreground text-sm mb-1 max-w-sm">
                   Switch modes to change how I teach. Upload a file with <span className="font-semibold text-primary">+</span> for context-aware help.
                 </p>
@@ -732,10 +731,10 @@ Formatting:
                       {msg.role === "assistant" ? (
                         <MathRenderer
                           content={msg.content}
-                          className={cn("rounded-none px-4 py-3 text-sm", "bg-card border border-border rounded-tl-sm")}
+                          className={cn("rounded-none px-4 py-3 text-sm", "bg-[#2a0e18] border border-[rgba(139,26,42,0.35)] text-[#f5ede8] rounded-tl-sm")}
                         />
                       ) : (
-                        <div className={cn("rounded-none px-4 py-3 text-sm leading-relaxed", "bg-primary text-primary-foreground rounded-tr-sm")}>
+                        <div className={cn("rounded-none px-4 py-3 text-sm leading-relaxed", "bg-[#8b1a2a] text-[#f0a040] rounded-tr-sm")}>
                           {msg.content}
                         </div>
                       )}
@@ -771,7 +770,7 @@ Formatting:
                 ))}
 
                 {isLoading && (
-                  <div className="px-2 pb-2"><ChatBubbleSkeleton /></div>
+                  <div className="px-2 pb-2 text-xs text-[rgba(245,237,232,0.55)]">Thinking...</div>
                 )}
               </>
             )}

@@ -78,7 +78,7 @@ const motivationalQuotes = [
   "One question at a time. One session at a time.",
 ]
 
-const TEAL = "#00C4B4"
+const TEAL = "#f0a040"
 
 export default function FocusTimer() {
   const loadPersisted = (): Partial<PersistedTimer> => {
@@ -208,9 +208,9 @@ export default function FocusTimer() {
   const secs = String(seconds % 60).padStart(2, "0")
 
   const modeConfig = {
-    focus:      { label: "Focus",       color: "#f87171", ring: "#f87171", grad: "linear-gradient(135deg,#ef4444,#f97316)" },
-    shortBreak: { label: "Short Break", color: TEAL,      ring: TEAL,      grad: `linear-gradient(135deg,${TEAL},#0097A7)` },
-    longBreak:  { label: "Long Break",  color: "#60a5fa", ring: "#60a5fa", grad: "linear-gradient(135deg,#3b82f6,#6366f1)" },
+    focus:      { label: "Focus",       color: "#f0a040", ring: "#f0a040", grad: "linear-gradient(135deg,#f0a040,#c87030)" },
+    shortBreak: { label: "Short Break", color: TEAL,      ring: TEAL,      grad: `linear-gradient(135deg,${TEAL},#c87030)` },
+    longBreak:  { label: "Long Break",  color: "#f0a040", ring: "#f0a040", grad: "linear-gradient(135deg,#f0a040,#8b1a2a)" },
   }
   const cur = modeConfig[mode]
   const circ = 2 * Math.PI * 54
