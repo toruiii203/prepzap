@@ -14,8 +14,8 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-      <img src="/icon-512.png" alt="PrepZap" style={{ width: 120, height: 120, opacity: 0.9 }} />
+    <div style={{ position: "fixed", inset: 0, background: "var(--pz-bg, #160810)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+      <img src="/icon-512.png" alt="PrepZap" style={{ width: 120, height: 120, opacity: 0.95 }} />
     </div>
   );
 }
@@ -46,14 +46,14 @@ function PWAInstallBanner() {
   };
   const handleDismiss = () => { sessionStorage.setItem("pz_banner_dismissed", "1"); setVisible(false); };
   return (
-    <div style={{ position: "fixed", bottom: 72, left: 12, right: 12, zIndex: 9998, background: "var(--pz-surface, #111)", border: "1px solid var(--pz-gold, #C0A060)", borderRadius: 8, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+    <div style={{ position: "fixed", bottom: 72, left: 12, right: 12, zIndex: 9998, background: "var(--pz-surface2, #1f0b13)", border: "2px solid var(--pz-border, rgba(139,26,42,0.35))", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, boxShadow: "none" }}>
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pz-gold, #C0A060)", fontFamily: "'Geist', sans-serif" }}>Install PrepZap</span>
-        <span style={{ fontSize: 11, color: "var(--pz-text-2, rgba(240,232,212,0.55))", marginTop: 2, fontFamily: "'Geist', sans-serif" }}>Add to Home Screen for the full app experience</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pz-gold, #f0a040)", fontFamily: "'Fredoka One', cursive" }}>Install PrepZap</span>
+        <span style={{ fontSize: 11, color: "var(--pz-text-2, rgba(245,237,232,0.55))", marginTop: 2, fontFamily: "'Nunito', sans-serif" }}>Add to Home Screen for the full app experience</span>
       </div>
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        <button onClick={handleInstall} style={{ background: "var(--pz-gold, #C0A060)", color: "#000", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, fontFamily: "'Geist', sans-serif", cursor: "pointer" }}>Install</button>
-        <button onClick={handleDismiss} style={{ background: "transparent", color: "var(--pz-text-muted, rgba(240,232,212,0.28))", border: "none", padding: "6px 8px", fontSize: 14, cursor: "pointer" }}>✕</button>
+        <button onClick={handleInstall} style={{ background: "var(--pz-gold, #f0a040)", color: "var(--pz-bg, #160810)", border: "2px solid var(--pz-gold, #f0a040)", borderRadius: 10, padding: "6px 14px", fontSize: 12, fontWeight: 700, fontFamily: "'Nunito', sans-serif", cursor: "pointer" }}>Install</button>
+        <button onClick={handleDismiss} style={{ background: "transparent", color: "var(--pz-text-muted, rgba(245,237,232,0.28))", border: "2px solid var(--pz-border, rgba(139,26,42,0.35))", borderRadius: 10, padding: "6px 8px", fontSize: 13, cursor: "pointer" }}>✕</button>
       </div>
     </div>
   );
@@ -96,6 +96,9 @@ import RecallMode from "./pages/RecallMode";
 import StudyDNA from "./pages/StudyDNA";
 import FocusState from "./pages/FocusState";
 import VisualLearner from "./pages/VisualLearner";
+import PomodoroArea from "./pages/PomodoroArea";
+import Avatar from "./pages/Avatar";
+import Shop from "./pages/Shop";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +148,7 @@ function AppRoutes() {
         <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
         <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
         <Route path="/timer" element={<ProtectedRoute><FocusTimer /></ProtectedRoute>} />
+        <Route path="/pomodoro-area" element={<ProtectedRoute><PomodoroArea /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/planner" element={<ProtectedRoute><StudyPlanner /></ProtectedRoute>} />
         <Route path="/ai-tutor" element={<ProtectedRoute><AiTutor /></ProtectedRoute>} />
@@ -166,6 +170,8 @@ function AppRoutes() {
         <Route path="/study-dna" element={<ProtectedRoute><StudyDNA /></ProtectedRoute>} />
         <Route path="/focus-state" element={<ProtectedRoute><FocusState /></ProtectedRoute>} />
         <Route path="/visual-learner" element={<ProtectedRoute><VisualLearner /></ProtectedRoute>} />
+        <Route path="/avatar" element={<ProtectedRoute><Avatar /></ProtectedRoute>} />
+        <Route path="/shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/sources" element={<ProtectedRoute><SourceLibrary /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />

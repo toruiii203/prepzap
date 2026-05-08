@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 
-// ─── Design tokens (matches Dashboard) ────────────────────────────────────────
-const GOLD  = "#E8B923"
-const TEAL  = "#00C4B4"
-const BG    = "#0A0A0A"
-const SURF  = "#0E0E0E"
-const SURF2 = "#141414"
-const BORD  = "#252525"
-const TEXT1 = "#F0F0F0"
-const TEXT2 = "rgba(240,240,240,0.45)"
-const TEXT3 = "rgba(240,240,240,0.22)"
+// ─── Design tokens (fox warm theme) ───────────────────────────────────────────
+const GOLD  = "#f0a040"
+const TEAL  = "#8b1a2a"
+const BG    = "#160810"
+const SURF  = "#1f0b13"
+const SURF2 = "#2a0e18"
+const BORD  = "rgba(139,26,42,0.35)"
+const TEXT1 = "#f5ede8"
+const TEXT2 = "rgba(245,237,232,0.55)"
+const TEXT3 = "rgba(245,237,232,0.28)"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const AVATARS = ["🧠","⚡","🎯","🔬","📐","🦅","🐉","🌌","🏆","⚔️","🎲","🔭"]
@@ -56,46 +56,6 @@ function StepDots({ total, current }: { total: number; current: number }) {
   )
 }
 
-// ─── Particle canvas (reuses starfield idea from Dashboard) ───────────────────
-function ParticleBg() {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = ref.current; if (!canvas) return
-    const ctx = canvas.getContext("2d"); if (!ctx) return
-    let W = 0, H = 0, raf = 0
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    const resize = () => {
-      W = window.innerWidth; H = window.innerHeight
-      canvas.width = W * dpr; canvas.height = H * dpr
-      canvas.style.width = W + "px"; canvas.style.height = H + "px"
-      ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr, dpr)
-    }
-    resize(); window.addEventListener("resize", resize)
-    const pts = Array.from({ length: 80 }, () => ({
-      x: Math.random(), y: Math.random(),
-      r: Math.random() * 1.0 + 0.3,
-      phase: Math.random() * Math.PI * 2,
-      teal: Math.random() > 0.75,
-    }))
-    let t = 0
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H)
-      t += 0.005
-      pts.forEach(p => {
-        const a = 0.15 + 0.12 * Math.sin(p.phase + t)
-        ctx.beginPath()
-        ctx.arc(p.x * W, p.y * H, p.r, 0, Math.PI * 2)
-        ctx.fillStyle = p.teal ? `rgba(0,196,180,${a})` : `rgba(240,240,240,${a * 0.6})`
-        ctx.fill()
-      })
-      raf = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => { window.removeEventListener("resize", resize); cancelAnimationFrame(raf) }
-  }, [])
-  return <canvas ref={ref} style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}/>
-}
-
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function Onboarding() {
   const navigate  = useNavigate()
@@ -117,7 +77,7 @@ export default function Onboarding() {
         if (data?.onboarded) navigate("/dashboard", { replace: true })
         else setChecking(false)
       })
-  }, [user])
+  }, [navigate, user])
 
   // step 0 — welcome (no input)
   // step 1 — name
@@ -159,7 +119,9 @@ export default function Onboarding() {
           onboarded: true,
         })
       }
-    } catch (_) {}
+    } catch (_err) {
+      // Fall through to dashboard even if profile save fails.
+    }
     setSaving(false)
     navigate("/dashboard")
   }
@@ -185,10 +147,8 @@ export default function Onboarding() {
 
   return (
     <div style={{ position:"fixed", inset:0, background:BG, display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center", fontFamily:"'Gill Sans','Gill Sans MT','Trebuchet MS',Calibri,sans-serif",
+      alignItems:"center", justifyContent:"center", fontFamily:"'Nunito',sans-serif",
       color:TEXT1, overflow:"hidden" }}>
-
-      <ParticleBg />
 
       {/* ── Card ── */}
       <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:420,
@@ -199,9 +159,9 @@ export default function Onboarding() {
           marginBottom:28 }}>
           {/* Logo wordmark */}
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ width:8, height:8, background:TEAL }}/>
+            <div style={{ width:8, height:8, background:GOLD }}/>
             <span style={{ fontSize:13, fontWeight:700, letterSpacing:"0.12em",
-              textTransform:"uppercase", color:TEXT1 }}>Studenius</span>
+              textTransform:"uppercase", color:GOLD, fontFamily:"'Fredoka One',cursive" }}>Studenius</span>
           </div>
           <StepDots total={TOTAL} current={step}/>
         </div>
@@ -220,10 +180,10 @@ export default function Onboarding() {
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
                   Welcome
                 </div>
-                <h1 style={{ fontSize:28, fontWeight:800, lineHeight:1.15, margin:0,
+                <h1 style={{ fontSize:28, fontWeight:400, lineHeight:1.15, margin:0, fontFamily:"'Fredoka One',cursive",
                   letterSpacing:"-0.02em" }}>
                   Your AI study<br/>
                   <span style={{ color:GOLD }}>companion</span> is ready.
@@ -241,7 +201,7 @@ export default function Onboarding() {
                   ["📈","Track XP, streaks & weak areas"],
                 ].map(([icon, txt]) => (
                   <div key={txt} style={{ display:"flex", alignItems:"center", gap:10,
-                    padding:"10px 12px", background:SURF, border:`0.5px solid ${BORD}` }}>
+                    padding:"10px 12px", background:SURF, border:`1.5px solid ${BORD}`, borderRadius: 10 }}>
                     <span style={{ fontSize:15 }}>{icon}</span>
                     <span style={{ fontSize:12, color:TEXT2 }}>{txt}</span>
                   </div>
@@ -255,10 +215,10 @@ export default function Onboarding() {
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
                   Step 1 of 5
                 </div>
-                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   What should we call you?
                 </h2>
                 <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
@@ -299,10 +259,10 @@ export default function Onboarding() {
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
                   Step 2 of 5
                 </div>
-                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   Pick your avatar
                 </h2>
                 <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
@@ -311,7 +271,7 @@ export default function Onboarding() {
               </div>
               {/* Selected preview */}
               <div style={{ display:"flex", alignItems:"center", gap:12,
-                padding:"14px 16px", background:SURF, border:`0.5px solid ${TEAL}40` }}>
+                padding:"14px 16px", background:SURF, border:`1.5px solid ${BORD}`, borderRadius: 10 }}>
                 <span style={{ fontSize:32 }}>{avatar}</span>
                 <div>
                   <div style={{ fontSize:12, fontWeight:700 }}>{name || "You"}</div>
@@ -323,8 +283,9 @@ export default function Onboarding() {
                 {AVATARS.map(a => (
                   <button key={a} onClick={() => setAvatar(a)} style={{
                     fontSize:22, padding:"10px 0", cursor:"pointer", border:"none",
-                    background: avatar === a ? `${TEAL}18` : SURF,
-                    outline: avatar === a ? `1.5px solid ${TEAL}` : `0.5px solid ${BORD}`,
+                    background: avatar === a ? "rgba(240,160,64,0.15)" : SURF,
+                    borderRadius: 8,
+                    outline: avatar === a ? `1.5px solid ${GOLD}` : `1.5px solid ${BORD}`,
                     transition:"all .15s",
                   }}>
                     {a}
@@ -339,10 +300,10 @@ export default function Onboarding() {
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
                   Step 3 of 5
                 </div>
-                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   What's your level?
                 </h2>
                 <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
@@ -353,8 +314,9 @@ export default function Onboarding() {
                 {LEVELS.map(l => (
                   <button key={l.id} onClick={() => setLevel(l.id)} style={{
                     padding:"14px 16px", textAlign:"left", cursor:"pointer",
-                    background: level === l.id ? `${TEAL}12` : SURF,
-                    border: `0.5px solid ${level === l.id ? TEAL : BORD}`,
+                    borderRadius: 10,
+                    background: level === l.id ? "rgba(240,160,64,0.12)" : SURF,
+                    border: `1.5px solid ${level === l.id ? GOLD : BORD}`,
                     color: level === l.id ? TEXT1 : TEXT2,
                     fontSize:13, fontWeight: level === l.id ? 700 : 400,
                     fontFamily:"inherit", transition:"all .15s",
@@ -362,7 +324,7 @@ export default function Onboarding() {
                   }}>
                     {l.label}
                     {level === l.id && (
-                      <span style={{ color:TEAL, fontSize:11 }}>✓</span>
+                      <span style={{ color:GOLD, fontSize:11 }}>✓</span>
                     )}
                   </button>
                 ))}
@@ -375,10 +337,10 @@ export default function Onboarding() {
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
                   Step 4 of 5
                 </div>
-                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   What do you study?
                 </h2>
                 <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
@@ -391,8 +353,9 @@ export default function Onboarding() {
                   return (
                     <button key={s} onClick={() => toggleArr(subjects, s, setSubjects)} style={{
                       padding:"7px 12px", fontSize:11, cursor:"pointer",
-                      background: on ? `${TEAL}18` : SURF2,
-                      border: `0.5px solid ${on ? TEAL : BORD}`,
+                      borderRadius: 999,
+                      background: on ? "rgba(240,160,64,0.18)" : SURF2,
+                      border: `1.5px solid ${on ? GOLD : BORD}`,
                       color: on ? TEXT1 : TEXT2,
                       fontFamily:"inherit", fontWeight: on ? 600 : 400,
                       transition:"all .15s",
@@ -415,10 +378,10 @@ export default function Onboarding() {
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:TEAL, marginBottom:10 }}>
+                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
                   Step 5 of 5
                 </div>
-                <h2 style={{ fontSize:22, fontWeight:800, margin:0, letterSpacing:"-0.01em" }}>
+                <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   What's your main goal?
                 </h2>
                 <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
@@ -432,7 +395,7 @@ export default function Onboarding() {
                     <button key={g.id} onClick={() => toggleArr(goals, g.id, setGoals)} style={{
                       padding:"13px 16px", textAlign:"left", cursor:"pointer",
                       background: on ? `${GOLD}0D` : SURF,
-                      border: `0.5px solid ${on ? GOLD : BORD}`,
+                      border: `1.5px solid ${on ? GOLD : BORD}`, borderRadius: 10,
                       color: on ? TEXT1 : TEXT2,
                       fontSize:13, fontWeight: on ? 600 : 400,
                       fontFamily:"inherit", transition:"all .15s",

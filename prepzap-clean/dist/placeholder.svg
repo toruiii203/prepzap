@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0d0d0d"/>
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Icon -->
+  <g transform="translate(460, 180)">
+    <rect width="80" height="80" rx="18" fill="#ffffff"/>
+    <path d="M48 15 C48 15, 27 15, 25 28 C23 41, 35 45, 45 49 C55 53, 65 57, 64 67 C63 75, 53 80, 43 80 C33 80, 25 75, 25 75"
+      fill="none" stroke="#0d0d0d" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="63" cy="21" r="4.5" fill="#0d0d0d"/>
+    <line x1="63" y1="14" x2="63" y2="11" stroke="#0d0d0d" stroke-width="2" stroke-linecap="round"/>
+    <line x1="63" y1="28" x2="63" y2="31" stroke="#0d0d0d" stroke-width="2" stroke-linecap="round"/>
+    <line x1="56" y1="21" x2="53" y2="21" stroke="#0d0d0d" stroke-width="2" stroke-linecap="round"/>
+    <line x1="70" y1="21" x2="73" y2="21" stroke="#0d0d0d" stroke-width="2" stroke-linecap="round"/>
+    <line x1="58.1" y1="16.1" x2="56.2" y2="14.2" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="67.9" y1="25.9" x2="69.8" y2="27.8" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="67.9" y1="16.1" x2="69.8" y2="14.2" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="58.1" y1="25.9" x2="56.2" y2="27.8" stroke="#0d0d0d" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="600" y="330"
+    font-family="'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif"
+    font-size="52"
+    font-weight="300"
+    letter-spacing="18"
+    fill="#ffffff"
+    text-anchor="middle">STUDENIUS</text>
+  <!-- Tagline -->
+  <text x="600" y="375"
+    font-family="'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif"
+    font-size="16"
+    font-weight="300"
+    letter-spacing="8"
+    fill="rgba(255,255,255,0.35)"
+    text-anchor="middle">AI LEARNING PLATFORM</text>
+  <!-- Divider -->
+  <line x1="520" y1="396" x2="680" y2="396" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+</svg>
