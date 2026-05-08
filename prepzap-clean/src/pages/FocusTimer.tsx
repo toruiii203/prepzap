@@ -31,7 +31,7 @@ interface PersistedTimer {
 
 function useBeep() {
   const ctxRef = useRef<AudioContext | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setNunitoval> | null>(null)
 
   const getCtx = () => {
     if (!ctxRef.current || ctxRef.current.state === "closed") ctxRef.current = new AudioContext()
@@ -57,11 +57,11 @@ function useBeep() {
 
   const startLoop = useCallback(() => {
     playOnce()
-    intervalRef.current = setInterval(playOnce, 3000)
+    intervalRef.current = setNunitoval(playOnce, 3000)
   }, [playOnce])
 
   const stopLoop = useCallback(() => {
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+    if (intervalRef.current) { clearNunitoval(intervalRef.current); intervalRef.current = null }
   }, [])
 
   useEffect(() => () => stopLoop(), [stopLoop])
@@ -176,7 +176,7 @@ export default function FocusTimer() {
   useEffect(() => {
     if (!isRunning) return
     if (seconds === 0) { handleComplete(); return }
-    const t = setInterval(() => {
+    const t = setNunitoval(() => {
       setSeconds(() => {
         try {
           const raw = localStorage.getItem(LS_KEY)
@@ -188,7 +188,7 @@ export default function FocusTimer() {
         return Math.max(0, seconds - 1)
       })
     }, 1000)
-    return () => clearInterval(t)
+    return () => clearNunitoval(t)
   }, [isRunning, seconds, handleComplete])
 
   const handleStart = () => {
@@ -249,7 +249,7 @@ export default function FocusTimer() {
           <div style={{ display: "flex", border: "0.5px solid #252525", background: "rgba(255,255,255,0.02)", marginBottom: 32 }}>
             {(["focus", "shortBreak", "longBreak"] as TimerMode[]).map(m => (
               <button key={m} onClick={() => handleModeChange(m)}
-                style={{ flex: 1, padding: "8px 0", fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none", background: mode === m ? "rgba(255,255,255,0.06)" : "transparent", color: mode === m ? "#F0F0F0" : "#555", transition: "all .2s", fontFamily: "'Inter',system-ui,sans-serif" }}>
+                style={{ flex: 1, padding: "8px 0", fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none", background: mode === m ? "rgba(255,255,255,0.06)" : "transparent", color: mode === m ? "#F0F0F0" : "#555", transition: "all .2s", fontFamily: "'Nunito',system-ui,sans-serif" }}>
                 {m === "focus" ? "Focus" : m === "shortBreak" ? "Short Break" : "Long Break"}
               </button>
             ))}
@@ -278,7 +278,7 @@ export default function FocusTimer() {
                 <RotateCcw style={{ width: 16, height: 16 }} />
               </button>
               <button onClick={handleStart}
-                style={{ width: 128, height: 44, background: cur.grad, border: "none", fontWeight: 600, fontSize: 13, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "'Inter',system-ui,sans-serif", transition: "opacity .2s" }}
+                style={{ width: 128, height: 44, background: cur.grad, border: "none", fontWeight: 600, fontSize: 13, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "'Nunito',system-ui,sans-serif", transition: "opacity .2s" }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
                 {isRunning ? <><Pause style={{ width: 16, height: 16 }} />Pause</> : <><Play style={{ width: 16, height: 16 }} />Start</>}
               </button>

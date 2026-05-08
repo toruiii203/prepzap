@@ -46,17 +46,17 @@ function FoxAvatar({ size = 40 }: { size?: number }) {
 function useTimer(initialSeconds: number) {
   const [seconds, setSeconds] = useState(initialSeconds)
   const [running, setRunning] = useState(false)
-  const ref = useRef<ReturnType<typeof setInterval> | null>(null)
+  const ref = useRef<ReturnType<typeof setNunitoval> | null>(null)
   useEffect(() => {
     if (running) {
-      ref.current = setInterval(() => setSeconds(s => {
+      ref.current = setNunitoval(() => setSeconds(s => {
         if (s <= 1) { setRunning(false); return 0 }
         return s - 1
       }), 1000)
     } else {
-      if (ref.current) clearInterval(ref.current)
+      if (ref.current) clearNunitoval(ref.current)
     }
-    return () => { if (ref.current) clearInterval(ref.current) }
+    return () => { if (ref.current) clearNunitoval(ref.current) }
   }, [running])
   const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
   return { seconds, setSeconds, running, setRunning, fmt }

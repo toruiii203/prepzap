@@ -162,7 +162,7 @@ function SourcePickerModal({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} onClick={onClose} />
-      <div style={{ position: "relative", width: "100%", maxWidth: 400, background: "#0E0E0E", border: "0.5px solid #252525", padding: 20, zIndex: 10, fontFamily: "'Inter', system-ui" }}>
+      <div style={{ position: "relative", width: "100%", maxWidth: 400, background: "#1f0b13", border: "0.5px solid #252525", padding: 20, zIndex: 10, fontFamily: "'Nunito', system-ui" }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#777", marginBottom: 4 }}>Source Library</div>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#F0F0F0", marginBottom: 14 }}>Pick sources to quiz from</div>
         {sources.length === 0 ? (
@@ -178,14 +178,14 @@ function SourcePickerModal({
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
                     padding: "10px 12px", background: checked ? "rgba(0,196,180,0.06)" : "rgba(255,255,255,0.02)",
-                    border: `0.5px solid ${checked ? "#00C4B4" : "#252525"}`,
-                    color: checked ? "#00C4B4" : "#C0C0C0",
+                    border: `0.5px solid ${checked ? "#8b1a2a" : "#252525"}`,
+                    color: checked ? "#8b1a2a" : "#C0C0C0",
                     fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all .15s",
                   }}
                 >
                   <div style={{
-                    width: 16, height: 16, border: `1.5px solid ${checked ? "#00C4B4" : "#444"}`,
-                    background: checked ? "#00C4B4" : "transparent",
+                    width: 16, height: 16, border: `1.5px solid ${checked ? "#8b1a2a" : "#444"}`,
+                    background: checked ? "#8b1a2a" : "transparent",
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s",
                   }}>
                     {checked && <Check size={10} color="#000" strokeWidth={3} />}
@@ -203,7 +203,7 @@ function SourcePickerModal({
           </button>
           <button onClick={onConfirm} disabled={selectedIds.length === 0}
             style={{
-              flex: 2, padding: "8px 0", background: selectedIds.length > 0 ? "#00C4B4" : "#1A1A1A",
+              flex: 2, padding: "8px 0", background: selectedIds.length > 0 ? "#8b1a2a" : "#1A1A1A",
               border: "none", color: selectedIds.length > 0 ? "#000" : "#333",
               fontSize: 11, fontWeight: 700, cursor: selectedIds.length > 0 ? "pointer" : "default", fontFamily: "inherit",
             }}>
@@ -236,8 +236,8 @@ function SourceConceptRow({
         <button
           onClick={onCoverAll}
           style={{
-            padding: "5px 12px", background: "rgba(0,196,180,0.08)", border: "0.5px solid #00C4B4",
-            color: "#00C4B4", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+            padding: "5px 12px", background: "rgba(0,196,180,0.08)", border: "0.5px solid #8b1a2a",
+            color: "#8b1a2a", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
             transition: "all .15s",
           }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,196,180,0.18)"; }}
@@ -251,10 +251,10 @@ function SourceConceptRow({
             onClick={() => onPick(c)}
             style={{
               padding: "5px 12px", background: "rgba(0,196,180,0.04)", border: "0.5px solid #1E4040",
-              color: "#00C4B4", fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+              color: "#8b1a2a", fontSize: 11, cursor: "pointer", fontFamily: "inherit",
               transition: "all .15s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.10)"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.background = "rgba(0,196,180,0.10)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E4040"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
           >
             {c}
@@ -471,7 +471,7 @@ Return ONLY valid JSON:
         {/* Header */}
         <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Quiz History</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8b1a2a", marginBottom: 2 }}>Quiz History</div>
             <div style={{ fontSize: 10, color: "#444" }}>{quizHistory.length} session{quizHistory.length !== 1 ? "s" : ""}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -488,7 +488,7 @@ Return ONLY valid JSON:
             <button
               onClick={() => setSidebarOpen(false)}
               style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}
             >
               <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -519,7 +519,7 @@ Return ONLY valid JSON:
                     transition: "all .15s",
                     position: "relative",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
                   onClick={() => {
                     const data = entry.data as { topic?: string; difficulty?: string };
@@ -576,7 +576,7 @@ Return ONLY valid JSON:
           {/* Back to Dashboard */}
           <div className="flex items-center gap-2 mb-1">
             <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#555", textDecoration: "none", transition: "color .15s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#00C4B4"; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#8b1a2a"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#555"; }}>
               <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
               Dashboard
@@ -585,8 +585,8 @@ Return ONLY valid JSON:
 
           {/* Header */}
           <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <div className="w-9 h-9 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,196,180,0.12)", border: "0.5px solid #00C4B4" }}>
-              <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="#00C4B4" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-9 h-9 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,196,180,0.12)", border: "0.5px solid #8b1a2a" }}>
+              <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="#8b1a2a" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="1"/>
                 <path d="M9 9h6M9 12h6M9 15h4"/>
               </svg>
@@ -598,10 +598,10 @@ Return ONLY valid JSON:
             <button
               onClick={() => setSidebarOpen(v => !v)}
               title="Quiz History"
-              style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}>
+              style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#8b1a2a" : "#555", transition: "all .15s", position: "relative" }}>
               <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
               {quizHistory.length > 0 && (
-                <span style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: "50%", background: "#00C4B4" }} />
+                <span style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: "50%", background: "#8b1a2a" }} />
               )}
             </button>
           </div>
@@ -617,13 +617,13 @@ Return ONLY valid JSON:
                 style={{
                   width: "100%", padding: "11px 14px",
                   background: confirmedSources.length > 0 ? "rgba(0,196,180,0.06)" : "rgba(255,255,255,0.03)",
-                  border: `0.5px solid ${confirmedSources.length > 0 ? "#00C4B4" : "#303030"}`,
-                  color: confirmedSources.length > 0 ? "#00C4B4" : "#888",
+                  border: `0.5px solid ${confirmedSources.length > 0 ? "#8b1a2a" : "#303030"}`,
+                  color: confirmedSources.length > 0 ? "#8b1a2a" : "#888",
                   fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   display: "flex", alignItems: "center", gap: 8, transition: "all .15s",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = confirmedSources.length > 0 ? "#00C4B4" : "#303030"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = confirmedSources.length > 0 ? "#8b1a2a" : "#303030"; }}
               >
                 <BookOpen size={14} style={{ flexShrink: 0 }} />
                 {confirmedSources.length > 0
@@ -654,8 +654,8 @@ Return ONLY valid JSON:
                     onClick={() => startQuiz(confirmedSources.map(s => s.name.replace(/\.\w+$/, "")).join(" & "), confirmedSources)}
                     style={{
                       marginTop: 8, padding: "7px 16px",
-                      background: "rgba(232,185,35,0.08)", border: "0.5px solid #E8B923",
-                      color: "#E8B923", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 700,
+                      background: "rgba(232,185,35,0.08)", border: "0.5px solid #f0a040",
+                      color: "#f0a040", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 700,
                     }}
                   >
                     Quiz All {confirmedSources.length} Sources Together
@@ -689,7 +689,7 @@ Return ONLY valid JSON:
                 disabled={isLoading}
                 style={{
                   width: "100%", padding: "11px 0",
-                  background: isLoading ? "#1A1A1A" : "linear-gradient(90deg,#00C4B4,#0097A7)",
+                  background: isLoading ? "#1A1A1A" : "linear-gradient(90deg,#8b1a2a,#0097A7)",
                   border: "none", color: isLoading ? "#444" : "#000",
                   fontSize: 12, fontWeight: 700, cursor: isLoading ? "default" : "pointer", fontFamily: "inherit",
                   letterSpacing: "0.05em", transition: "all .2s",
@@ -728,7 +728,7 @@ Return ONLY valid JSON:
                 <span>Question {currentQ + 1} / {questions.length}</span>
                 <button onClick={() => setSidebarOpen(v => !v)}
                   style={{ width: 28, height: 28, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555", transition: "all .15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; }}>
                   <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={2}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
@@ -788,7 +788,7 @@ Return ONLY valid JSON:
         <main className="flex-1 max-w-lg mx-auto w-full p-6 space-y-6 flex flex-col justify-center">
           <div style={{ marginBottom: 4 }}>
             <a href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#555", textDecoration: "none", transition: "color .15s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#00C4B4"; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#8b1a2a"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#555"; }}>
               <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
               Dashboard

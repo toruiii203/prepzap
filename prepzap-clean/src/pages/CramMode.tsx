@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect, useRef } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
@@ -29,7 +30,7 @@ export default function CramMode() {
   const [completed, setCompleted] = useState<number[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalUsed, setTotalUsed] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setNunitoval> | null>(null);
 
   const ctx = buildAIContext();
   const activeSource = getActiveSource();
@@ -43,18 +44,18 @@ export default function CramMode() {
   }, []);
 
   const startTopicTimer = (minutes: number) => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) clearNunitoval(timerRef.current);
     setTimeLeft(minutes * 60);
-    timerRef.current = setInterval(() => {
+    timerRef.current = setNunitoval(() => {
       setTimeLeft(t => {
-        if (t <= 1) { clearInterval(timerRef.current!); return 0; }
+        if (t <= 1) { clearNunitoval(timerRef.current!); return 0; }
         setTotalUsed(u => u + 1);
         return t - 1;
       });
     }, 1000);
   };
 
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+  useEffect(() => () => { if (timerRef.current) clearNunitoval(timerRef.current); }, []);
 
   const handleGenerate = async () => {
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
@@ -81,7 +82,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
   };
 
   const handleGotIt = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) clearNunitoval(timerRef.current);
     const newCompleted = [...completed, currentIdx];
     setCompleted(newCompleted);
     if (currentIdx + 1 < topics.length) {
@@ -100,6 +101,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
 
   return (
     <ToolPageShell>
+      <CompanionSidebar />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Cram Mode" subtitle="Guided timed session — one topic at a time" />

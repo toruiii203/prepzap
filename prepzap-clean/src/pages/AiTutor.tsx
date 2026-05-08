@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { buildAIContext, buildImageMessages, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -100,7 +101,7 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setNunitoval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   const SHORT_BREAK = 5;
@@ -150,16 +151,16 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
   }, [playAlarm, workMins]);
 
   useEffect(() => {
-    if (!running) { if (intervalRef.current) clearInterval(intervalRef.current); return; }
+    if (!running) { if (intervalRef.current) clearNunitoval(intervalRef.current); return; }
     let localPhase = phase;
     let localSessions = sessions;
-    intervalRef.current = setInterval(() => {
+    intervalRef.current = setNunitoval(() => {
       setSecs(s => {
         if (s <= 1) { advance(localPhase, localSessions); return 0; }
         return s - 1;
       });
     }, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => { if (intervalRef.current) clearNunitoval(intervalRef.current); };
   }, [running]);
 
   const reset = () => { setRunning(false); setSecs(workMins * 60); setPhase("work"); setSessions(0); };
@@ -493,6 +494,7 @@ Formatting:
 
   return (
     <div className="min-h-screen flex flex-col bg-background transition-colors duration-300">
+      <CompanionSidebar />
       {/* Desktop Navbar */}
       <div className="hidden md:block">
         <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 16px",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.5)"}}>
@@ -687,7 +689,7 @@ Formatting:
                         {[
                           { label: "Extract key concepts", icon: "🔑" },
                           { label: "Quiz me on it", icon: "❓" },
-                          { label: "Explain the main ideas", icon: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#E8B923" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><path d="M9 21h6M12 3a6 6 0 016 6c0 2.5-1.4 4.7-3.5 5.9l-.5.3V18H10v-2.8l-.5-.3C7.4 13.7 6 11.5 6 9a6 6 0 016-6z"/></svg></> },
+                          { label: "Explain the main ideas", icon: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#f0a040" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><path d="M9 21h6M12 3a6 6 0 016 6c0 2.5-1.4 4.7-3.5 5.9l-.5.3V18H10v-2.8l-.5-.3C7.4 13.7 6 11.5 6 9a6 6 0 016-6z"/></svg></> },
                           { label: "Create flashcards", icon: "🃏" },
                         ].map(a => (
                           <button key={a.label}

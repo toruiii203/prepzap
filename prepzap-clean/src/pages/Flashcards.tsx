@@ -26,7 +26,7 @@ interface Flashcard {
 
 const SAMPLE_TOPICS = [
   { name: "Cell Biology", emoji: "🧬", color: "from-zinc-500 to-teal-500" },
-  { name: "Classical Mechanics", emoji: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#E8B923" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></>, color: "from-blue-500 to-indigo-500" },
+  { name: "Classical Mechanics", emoji: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#f0a040" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></>, color: "from-blue-500 to-indigo-500" },
   { name: "Microeconomics", emoji: "📈", color: "from-amber-500 to-orange-500" },
 ];
 
@@ -210,13 +210,13 @@ export default function Flashcards() {
       {showSourcePicker && (
         <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:50}}>
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}} onClick={()=>setShowSourcePicker(false)}/>
-          <div style={{position:"relative",width:"100%",maxWidth:380,background:"#0E0E0E",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Inter',system-ui,sans-serif"}}>
+          <div style={{position:"relative",width:"100%",maxWidth:380,background:"#1f0b13",border:"0.5px solid #252525",padding:18,zIndex:10,fontFamily:"'Nunito',system-ui,sans-serif"}}>
             <div style={{fontSize:12,fontWeight:700,marginBottom:12,color:"#F0F0F0"}}>Pick a source to generate from</div>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
               {loadLibrary().map((s:any)=>(
                 <button key={s.id} onClick={()=>{setTopicInput(s.name.replace(/\.\w+$/, "")); setShowSourcePicker(false); setTimeout(()=>generateCards(), 0);}}
                   style={{width:"100%",padding:"9px 12px",background:"rgba(0,196,180,0.04)",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:11,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all .15s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor="#00C4B4";e.currentTarget.style.color="#00C4B4"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor="#8b1a2a";e.currentTarget.style.color="#8b1a2a"}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor="#252525";e.currentTarget.style.color="#C0C0C0"}}>
                   {s.name}
                 </button>

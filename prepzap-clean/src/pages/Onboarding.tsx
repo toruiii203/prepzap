@@ -15,14 +15,6 @@ const TEXT2 = "rgba(245,237,232,0.55)"
 const TEXT3 = "rgba(245,237,232,0.28)"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const AVATARS = ["🧠","⚡","🎯","🔬","📐","🦅","🐉","🌌","🏆","⚔️","🎲","🔭"]
-
-const SUBJECTS = [
-  "Mathematics","Physics","Chemistry","Biology",
-  "History","Literature","Computer Science","Economics",
-  "Psychology","Philosophy","Engineering","Medicine",
-  "Law","Accounting","Political Science","Languages",
-]
 
 const GOALS = [
   { id:"exams",    icon:"📝", label:"Ace my exams" },
@@ -40,174 +32,201 @@ const LEVELS = [
   { id:"pro",  label:"Professional / Self-study" },
 ]
 
-// ─── Step indicator ────────────────────────────────────────────────────────────
-function StepDots({ total, current }: { total: number; current: number }) {
+// ─── SVG Mascot Helper ────────────────────────────────────────────────────────
+function Mascot({ pose }: { pose: "curious" | "waving" | "thinking" | "excited" | "celebrating" }) {
+  // A stylized, inline SVG fox mascot. 
+  // Poses change subtly based on the prop to give it personality.
+  const yOffset = pose === "excited" || pose === "celebrating" ? -5 : 0;
+  const rotation = pose === "curious" ? 10 : pose === "thinking" ? -10 : 0;
+  const eyeScale = pose === "excited" || pose === "celebrating" ? 1.2 : 1;
+  const armRot = pose === "waving" ? -30 : pose === "celebrating" ? -150 : 20;
+
   return (
-    <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} style={{
-          width: i === current ? 20 : 6,
-          height: 6,
-          background: i === current ? TEAL : i < current ? TEAL+"55" : BORD,
-          transition: "all 0.3s ease",
-        }}/>
-      ))}
+    <svg width="120" height="120" viewBox="0 0 100 100" style={{ transform: `translateY(${yOffset}px) rotate(${rotation}deg)`, transition: "all 0.3s ease-out" }}>
+      <g stroke={BORD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* Tail */}
+        <path d="M 30,70 Q 10,80 15,50 Q 25,60 35,65" fill={GOLD} />
+        <path d="M 15,50 Q 10,40 25,45" fill="#fff" />
+        {/* Body */}
+        <path d="M 35,80 C 35,50 65,50 65,80 Z" fill={GOLD} />
+        <path d="M 40,80 C 40,60 60,60 60,80 Z" fill="#fff" stroke="none" />
+        {/* Head */}
+        <polygon points="25,25 35,45 45,35" fill={GOLD} />
+        <polygon points="75,25 65,45 55,35" fill={GOLD} />
+        <path d="M 30,50 Q 50,25 70,50 Q 50,75 30,50" fill={GOLD} />
+        {/* Face details */}
+        <circle cx="42" cy="48" r={3 * eyeScale} fill="#000" />
+        <circle cx="58" cy="48" r={3 * eyeScale} fill="#000" />
+        <circle cx="50" cy="55" r="2.5" fill="#000" />
+        {/* Arms */}
+        <g transform={`translate(35, 65) rotate(${-armRot})`}>
+           <path d="M 0,0 L -10,15" stroke={GOLD} strokeWidth="6" />
+        </g>
+        <g transform={`translate(65, 65) rotate(${armRot})`}>
+           <path d="M 0,0 L 10,15" stroke={GOLD} strokeWidth="6" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+// ─── Step indicator ────────────────────────────────────────────────────────────
+function ProgressBar({ total, current }: { total: number; current: number }) {
+  const percent = total > 1 ? (current / (total - 1)) * 100 : 100;
+  return (
+    <div style={{ width: "100%", height: 6, background: BORD, borderRadius: 3, position: "relative", marginBottom: 20 }}>
+      <div style={{ width: `${percent}%`, height: "100%", background: GOLD, borderRadius: 3, transition: "width 0.4s ease-out" }} />
+      <div style={{
+        position: "absolute", top: -8, left: `calc(${percent}% - 10px)`, width: 20, height: 20, 
+        transition: "left 0.4s ease-out", display: "flex", alignItems: "center", justifyContent: "center"
+      }}>
+         <svg width="16" height="16" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill={GOLD} /><circle cx="50" cy="50" r="10" fill="#000" /></svg>
+      </div>
     </div>
   )
 }
 
-// ─── Main component ────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function Onboarding() {
-  const navigate  = useNavigate()
-  const { user }  = useAuth()
+  const navigate = useNavigate()
+  const { user, profile, refreshProfile } = useAuth()
 
-  const [step,      setStep]      = useState(0)
-  const [saving,    setSaving]    = useState(false)
-  const [checking,  setChecking]  = useState(true)
+  // Steps: 0=Welcome, 1=Name, 2=Level, 3=Goals, 4=Avatar
+  const [step, setStep] = useState(0)
+  const TOTAL = 5
 
-  // ── Skip if already onboarded ──────────────────────────────────────────────
+  const [name, setName] = useState("")
+  const [level, setLevel] = useState("")
+  const [goals, setGoals] = useState<string[]>([])
+  
+  const [saving, setSaving] = useState(false)
+
+  // Pre-fill if we have profile data
   useEffect(() => {
-    if (!user) { setChecking(false); return }
-    supabase
-      .from("profiles")
-      .select("onboarded")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.onboarded) navigate("/dashboard", { replace: true })
-        else setChecking(false)
-      })
-  }, [navigate, user])
+    if (profile?.full_name) {
+      setName(profile.full_name)
+    }
+  }, [profile])
 
-  // step 0 — welcome (no input)
-  // step 1 — name
-  const [name,      setName]      = useState("")
-  // step 2 — avatar
-  const [avatar,    setAvatar]    = useState("🧠")
-  // step 3 — level
-  const [level,     setLevel]     = useState("")
-  // step 4 — subjects
-  const [subjects,  setSubjects]  = useState<string[]>([])
-  // step 5 — goals
-  const [goals,     setGoals]     = useState<string[]>([])
-
-  const TOTAL = 6 // steps 0–5
+  const toggleArr = (arr: string[], item: string, set: (a: string[]) => void) => {
+    if (arr.includes(item)) set(arr.filter(x => x !== item))
+    else set([...arr, item])
+  }
 
   const canNext = () => {
-    if (step === 1) return name.trim().length > 0
-    if (step === 3) return level !== ""
-    if (step === 4) return subjects.length > 0
-    if (step === 5) return goals.length > 0
-    return true
+    if (step === 0) return true
+    if (step === 1) return name.trim().length > 1
+    if (step === 2) return level !== ""
+    if (step === 3) return goals.length > 0
+    if (step === 4) return true // Avatar step always can next (it saves and finishes)
+    return false
   }
 
-  const toggleArr = <T,>(arr: T[], val: T, set: (v: T[]) => void) => {
-    set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
-  }
+  const handleNext = async () => {
+    if (!canNext() || saving) return
 
-  const finish = async () => {
+    if (step < TOTAL - 1) {
+      setStep(s => s + 1)
+      return
+    }
+
+    // Step 4 (Avatar) acts as the submit step in this structure
+    // but the Avatar page itself will handle the complex layer saving.
+    // We just mark onboarding as done or save basic metadata.
     setSaving(true)
     try {
       if (user) {
         await supabase.from("profiles").upsert({
           id: user.id,
-          display_name: name.trim(),
-          avatar_emoji: avatar,
-          grade_level: level,
-          subjects,
-          goals,
-          onboarded: true,
+          full_name: name.trim(),
+          // storing level/goals loosely if you have columns or inside metadata
         })
+        
+        await supabase.auth.updateUser({
+          data: {
+            full_name: name.trim(),
+            onboarding_complete: true,
+            level,
+            goals,
+          }
+        })
+        
+        await refreshProfile()
       }
-    } catch (_err) {
-      // Fall through to dashboard even if profile save fails.
+      navigate("/avatar")
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
-    navigate("/dashboard")
   }
 
-  const next = () => {
-    if (step < TOTAL - 1) setStep(s => s + 1)
-    else finish()
+  const handleBack = () => {
+    if (step > 0) setStep(s => s - 1)
   }
-  const back = () => { if (step > 0) setStep(s => s - 1) }
 
-  // ── Slide animation state ──────────────────────────────────────────────────
-  const [visible, setVisible] = useState(true)
-  const [dir, setDir] = useState<1|-1>(1)
-  const goTo = (newStep: number) => {
-    setDir(newStep > step ? 1 : -1)
-    setVisible(false)
-    setTimeout(() => { setStep(newStep); setVisible(true) }, 180)
+  const getPose = () => {
+    switch(step) {
+      case 0: return "curious";
+      case 1: return "waving";
+      case 2: return "thinking";
+      case 3: return "excited";
+      case 4: return "celebrating";
+      default: return "curious";
+    }
   }
-  const handleNext = () => { if (!canNext()) return; if (step < TOTAL-1) goTo(step+1); else finish() }
-  const handleBack = () => { if (step > 0) goTo(step-1) }
-
-  if (checking) return null
 
   return (
-    <div style={{ position:"fixed", inset:0, background:BG, display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center", fontFamily:"'Nunito',sans-serif",
-      color:TEXT1, overflow:"hidden" }}>
+    <div style={{
+      minHeight: "100vh", background: BG, color: TEXT1,
+      fontFamily: "'Nunito', system-ui, sans-serif",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", padding: 20
+    }}>
+      
+      <div style={{
+        width: "100%", maxWidth: 440,
+        display: "flex", flexDirection: "column",
+      }}>
 
-      {/* ── Card ── */}
-      <div style={{ position:"relative", zIndex:1, width:"100%", maxWidth:420,
-        padding:"0 20px", display:"flex", flexDirection:"column", gap:0 }}>
+        {step > 0 && <ProgressBar total={TOTAL} current={step} />}
 
-        {/* Header bar */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-          marginBottom:28 }}>
-          {/* Logo wordmark */}
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ width:8, height:8, background:GOLD }}/>
-            <span style={{ fontSize:13, fontWeight:700, letterSpacing:"0.12em",
-              textTransform:"uppercase", color:GOLD, fontFamily:"'Fredoka One',cursive" }}>Studenius</span>
-          </div>
-          <StepDots total={TOTAL} current={step}/>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <Mascot pose={getPose()} />
         </div>
 
-        {/* Step content */}
         <div style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : `translateY(${dir * 12}px)`,
-          transition: "opacity 0.18s ease, transform 0.18s ease",
-          minHeight: 340,
-          display:"flex", flexDirection:"column", gap:20,
+          background: SURF, border: `1.5px solid ${BORD}`,
+          borderRadius: 16, padding: "32px 24px",
+          display: "flex", flexDirection: "column", gap: 24,
+          boxShadow: `0 8px 32px ${BG}`, position: "relative",
+          animation: "fadeIn 0.3s ease-out"
         }}>
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
 
           {/* ── STEP 0: Welcome ── */}
           {step === 0 && (
-            <>
-              <div>
-                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
-                  Welcome
-                </div>
-                <h1 style={{ fontSize:28, fontWeight:400, lineHeight:1.15, margin:0, fontFamily:"'Fredoka One',cursive",
-                  letterSpacing:"-0.02em" }}>
-                  Your AI study<br/>
-                  <span style={{ color:GOLD }}>companion</span> is ready.
-                </h1>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
+                Welcome
               </div>
-              <p style={{ fontSize:13, color:TEXT2, lineHeight:1.7, margin:0 }}>
-                Studenius adapts to how <em>you</em> learn — with AI-powered
-                quizzes, flashcards, a tutor, and tools built for students who
-                take their progress seriously.
+              <h1 style={{ fontSize: 28, fontWeight: 400, margin: 0, letterSpacing: "-0.01em", fontFamily: "'Fredoka One', cursive", color: GOLD }}>
+                Enter Studenius
+              </h1>
+              <p style={{ fontSize: 14, color: TEXT2, marginTop: 12, lineHeight: 1.5 }}>
+                A world built for learning. Let's set up your profile and craft your study companion so you can start conquering your goals.
               </p>
-              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                {[
-                  ["⚡","Personalized AI practice sessions"],
-                  ["🧠","BrainBot tutor available 24/7"],
-                  ["📈","Track XP, streaks & weak areas"],
-                ].map(([icon, txt]) => (
-                  <div key={txt} style={{ display:"flex", alignItems:"center", gap:10,
-                    padding:"10px 12px", background:SURF, border:`1.5px solid ${BORD}`, borderRadius: 10 }}>
-                    <span style={{ fontSize:15 }}>{icon}</span>
-                    <span style={{ fontSize:12, color:TEXT2 }}>{txt}</span>
-                  </div>
-                ))}
+              <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 20 }}>
+                <span style={{ background: SURF2, padding: "6px 12px", borderRadius: 20, fontSize: 11, color: GOLD, border: `1px solid ${BORD}` }}>🦊 AI Tools</span>
+                <span style={{ background: SURF2, padding: "6px 12px", borderRadius: 20, fontSize: 11, color: GOLD, border: `1px solid ${BORD}` }}>✨ Avatars</span>
               </div>
-            </>
+            </div>
           )}
 
           {/* ── STEP 1: Name ── */}
@@ -216,99 +235,42 @@ export default function Onboarding() {
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
                   textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
-                  Step 1 of 5
+                  Step 1 of 4
                 </div>
                 <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   What should we call you?
                 </h2>
-                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
-                  This is how you'll appear in Studenius.
-                </p>
               </div>
               <div>
-                <div style={{ fontSize:9, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:"#555", marginBottom:6 }}>
-                  Your name
-                </div>
                 <input
-                  autoFocus
+                  type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleNext()}
                   placeholder="e.g. Alex, Mika, Rey..."
                   maxLength={32}
-                  style={{ width:"100%", background:SURF2, border:`0.5px solid ${BORD}`,
+                  style={{ width:"100%", background:SURF2, border:`1px solid ${BORD}`,
                     color:TEXT1, fontSize:15, padding:"12px 14px", fontFamily:"inherit",
-                    outline:"none", boxSizing:"border-box", letterSpacing:"0.01em",
+                    outline:"none", boxSizing:"border-box", letterSpacing:"0.01em", borderRadius: 8,
                     transition:"border-color .2s" }}
                   onFocus={e => { e.currentTarget.style.borderColor = TEAL }}
                   onBlur={e  => { e.currentTarget.style.borderColor = BORD }}
                 />
-                {name.trim().length > 0 && (
-                  <div style={{ marginTop:10, fontSize:12, color:TEXT2 }}>
-                    Nice to meet you,{" "}
-                    <span style={{ color:TEAL, fontWeight:700 }}>{name.trim()}</span> 👋
-                  </div>
-                )}
               </div>
             </>
           )}
 
-          {/* ── STEP 2: Avatar ── */}
+          {/* ── STEP 2: Level ── */}
           {step === 2 && (
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
                   textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
-                  Step 2 of 5
-                </div>
-                <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
-                  Pick your avatar
-                </h2>
-                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
-                  Choose an emoji that represents your study spirit.
-                </p>
-              </div>
-              {/* Selected preview */}
-              <div style={{ display:"flex", alignItems:"center", gap:12,
-                padding:"14px 16px", background:SURF, border:`1.5px solid ${BORD}`, borderRadius: 10 }}>
-                <span style={{ fontSize:32 }}>{avatar}</span>
-                <div>
-                  <div style={{ fontSize:12, fontWeight:700 }}>{name || "You"}</div>
-                  <div style={{ fontSize:10, color:TEXT3 }}>Your study identity</div>
-                </div>
-              </div>
-              {/* Grid */}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:8 }}>
-                {AVATARS.map(a => (
-                  <button key={a} onClick={() => setAvatar(a)} style={{
-                    fontSize:22, padding:"10px 0", cursor:"pointer", border:"none",
-                    background: avatar === a ? "rgba(240,160,64,0.15)" : SURF,
-                    borderRadius: 8,
-                    outline: avatar === a ? `1.5px solid ${GOLD}` : `1.5px solid ${BORD}`,
-                    transition:"all .15s",
-                  }}>
-                    {a}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* ── STEP 3: Level ── */}
-          {step === 3 && (
-            <>
-              <div>
-                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
-                  Step 3 of 5
+                  Step 2 of 4
                 </div>
                 <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   What's your level?
                 </h2>
-                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
-                  We'll calibrate content difficulty for you.
-                </p>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 {LEVELS.map(l => (
@@ -332,61 +294,17 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* ── STEP 4: Subjects ── */}
-          {step === 4 && (
+          {/* ── STEP 3: Goals ── */}
+          {step === 3 && (
             <>
               <div>
                 <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
                   textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
-                  Step 4 of 5
-                </div>
-                <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
-                  What do you study?
-                </h2>
-                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
-                  Pick all that apply — you can change this later.
-                </p>
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-                {SUBJECTS.map(s => {
-                  const on = subjects.includes(s)
-                  return (
-                    <button key={s} onClick={() => toggleArr(subjects, s, setSubjects)} style={{
-                      padding:"7px 12px", fontSize:11, cursor:"pointer",
-                      borderRadius: 999,
-                      background: on ? "rgba(240,160,64,0.18)" : SURF2,
-                      border: `1.5px solid ${on ? GOLD : BORD}`,
-                      color: on ? TEXT1 : TEXT2,
-                      fontFamily:"inherit", fontWeight: on ? 600 : 400,
-                      transition:"all .15s",
-                    }}>
-                      {s}
-                    </button>
-                  )
-                })}
-              </div>
-              {subjects.length > 0 && (
-                <div style={{ fontSize:10, color:TEXT3 }}>
-                  {subjects.length} subject{subjects.length > 1 ? "s" : ""} selected
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── STEP 5: Goals ── */}
-          {step === 5 && (
-            <>
-              <div>
-                <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
-                  textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
-                  Step 5 of 5
+                  Step 3 of 4
                 </div>
                 <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive" }}>
                   What's your main goal?
                 </h2>
-                <p style={{ fontSize:12, color:TEXT2, marginTop:6, marginBottom:0 }}>
-                  Choose everything that motivates you.
-                </p>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 {GOALS.map(g => {
@@ -411,6 +329,22 @@ export default function Onboarding() {
             </>
           )}
 
+          {/* ── STEP 4: Avatar Creator Intro ── */}
+          {step === 4 && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
+                textTransform:"uppercase", color:GOLD, marginBottom:10 }}>
+                Step 4 of 4
+              </div>
+              <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive", color: GOLD }}>
+                Create Your Avatar
+              </h2>
+              <p style={{ fontSize:14, color:TEXT2, marginTop:12, marginBottom:20 }}>
+                Next, you'll design your study companion in the Avatar Studio.
+              </p>
+            </div>
+          )}
+
         </div>
 
         {/* ── Nav buttons ── */}
@@ -418,11 +352,11 @@ export default function Onboarding() {
           {step > 0 && (
             <button onClick={handleBack} style={{
               padding:"13px 0", width:52, background:"transparent",
-              border:`0.5px solid ${BORD}`, color:"#555", fontSize:16,
-              cursor:"pointer", fontFamily:"inherit", transition:"all .2s",
+              border:`1px solid ${BORD}`, color: TEXT2, fontSize:16,
+              cursor:"pointer", fontFamily:"inherit", transition:"all .2s", borderRadius: 8
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#555" }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = BORD }}>
+            onMouseEnter={e => { e.currentTarget.style.borderColor = GOLD; e.currentTarget.style.color = GOLD; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = BORD; e.currentTarget.style.color = TEXT2; }}>
               ←
             </button>
           )}
@@ -430,29 +364,18 @@ export default function Onboarding() {
             onClick={handleNext}
             disabled={!canNext() || saving}
             style={{
-              flex:1, padding:"13px 0",
-              background: canNext() ? (step === TOTAL-1 ? GOLD : TEAL) : SURF2,
+              flex:1, padding:"13px 0", borderRadius: 8,
+              background: canNext() ? GOLD : SURF2,
               border:"none",
-              color: canNext() ? "#000" : "#333",
-              fontSize:12, fontWeight:700, letterSpacing:"0.08em",
-              textTransform:"uppercase", cursor: canNext() ? "pointer" : "default",
+              color: canNext() ? "#000" : TEXT3,
+              fontSize:13, fontWeight:700, letterSpacing:"0.05em",
+              cursor: canNext() ? "pointer" : "default",
               fontFamily:"inherit", transition:"all .2s",
               opacity: saving ? 0.6 : 1,
             }}>
-            {saving ? "Saving..." : step === TOTAL-1 ? "Let's go →" : step === 0 ? "Get Started →" : "Continue →"}
+            {saving ? "Saving..." : step === TOTAL-1 ? "To Avatar Studio →" : step === 0 ? "Get Started →" : "Continue →"}
           </button>
         </div>
-
-        {/* Skip link */}
-        {step === 0 && (
-          <button onClick={() => navigate("/dashboard")} style={{
-            marginTop:14, background:"none", border:"none", color:TEXT3,
-            fontSize:11, cursor:"pointer", fontFamily:"inherit",
-            textDecoration:"underline", textDecorationColor:TEXT3,
-          }}>
-            Skip for now
-          </button>
-        )}
 
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useRef, useEffect } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
@@ -130,6 +131,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
 
   return (
     <ToolPageShell>
+      <CompanionSidebar />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
 
         {phase === "setup" && (

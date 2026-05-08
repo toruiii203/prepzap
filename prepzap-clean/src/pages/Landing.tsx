@@ -17,10 +17,10 @@ import { useState, useEffect, useRef, useMemo, createContext, useContext } from 
 import { Link } from "react-router-dom";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
-const TEAL   = "#00C4B4";
-const GOLD   = "#E8B923";
+const TEAL   = "#8b1a2a";
+const GOLD   = "#f0a040";
 const PURPLE = "#7B5EA7";
-const VOID   = "#03050F";
+const VOID   = "#160810";
 const mono: React.CSSProperties = { fontFamily:"'Geist Mono','Courier New',monospace" };
 
 // ─── Global CSS ───────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ const CSS = `
   /* H: Scroll progress line */
   #scroll-progress-line{
     position:fixed;top:0;left:0;width:100%;height:1.5px;z-index:9999;
-    background:linear-gradient(90deg,#00C4B4,#7B5EA7,#E8B923);
+    background:linear-gradient(90deg,#8b1a2a,#7B5EA7,#f0a040);
     transform-origin:left center;
     pointer-events:none;
   }
@@ -96,8 +96,8 @@ const CSS = `
   .mq-wrap::before,.mq-wrap::after{
     content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2;pointer-events:none;
   }
-  .mq-wrap::before{left:0;background:linear-gradient(90deg,#03050f,transparent);}
-  .mq-wrap::after{right:0;background:linear-gradient(-90deg,#03050f,transparent);}
+  .mq-wrap::before{left:0;background:linear-gradient(90deg,#160810,transparent);}
+  .mq-wrap::after{right:0;background:linear-gradient(-90deg,#160810,transparent);}
 
   /* G: Clip-path reveal */
   .clip-reveal{clip-path:inset(0 100% 0 0);transition:clip-path 1.1s cubic-bezier(0.16,1,0.3,1);}
@@ -122,7 +122,7 @@ const CSS = `
 
   /* Custom cursor */
   *{cursor:none!important;}
-  #cursor-dot{position:fixed;width:6px;height:6px;background:#00C4B4;border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:opacity 0.2s;}
+  #cursor-dot{position:fixed;width:6px;height:6px;background:#8b1a2a;border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:opacity 0.2s;}
   #cursor-ring{position:fixed;width:32px;height:32px;border:1px solid rgba(0,196,180,0.4);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:width 0.2s,height 0.2s,border-color 0.2s;}
   #cursor-ring.hovered{width:48px;height:48px;border-color:rgba(0,196,180,0.7);}
 
@@ -216,7 +216,7 @@ const CSS = `
 
   /* Magnetic link hover */
   .nav-link{position:relative;}
-  .nav-link::after{content:"";position:absolute;bottom:-2px;left:0;width:0;height:0.5px;background:#00C4B4;transition:width 0.3s cubic-bezier(0.16,1,0.3,1);}
+  .nav-link::after{content:"";position:absolute;bottom:-2px;left:0;width:0;height:0.5px;background:#8b1a2a;transition:width 0.3s cubic-bezier(0.16,1,0.3,1);}
   .nav-link:hover::after{width:100%;}
 \``;
 
@@ -329,7 +329,7 @@ function useInView(threshold=0.1){
   const ref=useRef<HTMLDivElement>(null);
   const [inView,setInView]=useState(false);
   useEffect(()=>{
-    const obs=new IntersectionObserver(([e])=>{if(e.isIntersecting)setInView(true);},{threshold});
+    const obs=new NunitosectionObserver(([e])=>{if(e.isNunitosecting)setInView(true);},{threshold});
     if(ref.current)obs.observe(ref.current);
     return ()=>obs.disconnect();
   },[threshold]);
@@ -458,9 +458,9 @@ function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: 
       loadThree(()=>{ cleanup = setup((window as any).THREE, canvas); });
     };
 
-    // IntersectionObserver: start RAF only when visible, cleanup when not
-    const obs = new IntersectionObserver(([entry])=>{
-      if(entry.isIntersecting) start();
+    // NunitosectionObserver: start RAF only when visible, cleanup when not
+    const obs = new NunitosectionObserver(([entry])=>{
+      if(entry.isNunitosecting) start();
     }, { threshold: 0.05 });
     obs.observe(canvas);
 
@@ -621,7 +621,7 @@ function Scene1Galaxy({ progress }: { progress: number }){
     // Central glow orb
     const orb = new THREE.Mesh(
       new THREE.SphereGeometry(0.18,32,32),
-      new THREE.MeshBasicMaterial({color:0x00C4B4, transparent:true, opacity:0.8})
+      new THREE.MeshBasicMaterial({color:0x8b1a2a, transparent:true, opacity:0.8})
     );
     scene.add(orb);
 
@@ -684,7 +684,7 @@ function Scene2Neural({ progress }: { progress: number }){
     camera.position.z = 8;
 
     const tools = ["BrainBot","Flashcards","Cram Mode","Recall","Feynman","High Yield","Roadmap","Study DNA","Focus Timer","Mistakes","Source Lib","Confidence"];
-    const nodeColors = [0x00C4B4,0x7B5EA7,0xE8B923,0x4A9EFF,0xFF6B6B,0xA78BFA,0x00C4B4,0x7B5EA7,0xE8B923,0x4A9EFF,0xFF6B6B,0xA78BFA];
+    const nodeColors = [0x8b1a2a,0x7B5EA7,0xf0a040,0x4A9EFF,0xFF6B6B,0xA78BFA,0x8b1a2a,0x7B5EA7,0xf0a040,0x4A9EFF,0xFF6B6B,0xA78BFA];
 
     const nodes: any[] = [];
     const group = new THREE.Group();
@@ -707,7 +707,7 @@ function Scene2Neural({ progress }: { progress: number }){
     });
 
     // Connections
-    const lineMat = new THREE.LineBasicMaterial({color:0x00C4B4, transparent:true, opacity:0.08});
+    const lineMat = new THREE.LineBasicMaterial({color:0x8b1a2a, transparent:true, opacity:0.08});
     for(let i=0;i<nodes.length;i++){
       for(let j=i+1;j<nodes.length;j++){
         if(Math.random()>0.45) continue;
@@ -731,7 +731,7 @@ function Scene2Neural({ progress }: { progress: number }){
     });
 
     scene.add(new THREE.AmbientLight(0xffffff,0.5));
-    const pt = new THREE.PointLight(0x00C4B4,2,20); pt.position.set(3,3,3); scene.add(pt);
+    const pt = new THREE.PointLight(0x8b1a2a,2,20); pt.position.set(3,3,3); scene.add(pt);
     const pt2 = new THREE.PointLight(0x7B5EA7,1.5,20); pt2.position.set(-3,-2,2); scene.add(pt2);
 
     const mouse={x:0,y:0};
@@ -792,12 +792,12 @@ function Scene3Flashcard({ progress }: { progress: number }){
 
     // Card edge glow
     const edgeGeo = new THREE.EdgesGeometry(cardGeo);
-    const edgeMat = new THREE.LineBasicMaterial({color:0x00C4B4,linewidth:1});
+    const edgeMat = new THREE.LineBasicMaterial({color:0x8b1a2a,linewidth:1});
     group.add(new THREE.LineSegments(edgeGeo,edgeMat));
 
     // Orbiting mini-cards
     const miniCards: any[] = [];
-    [[0x7B5EA7,2.8,0],[0xE8B923,2.8,2.09],[0x4A9EFF,2.8,4.19]].forEach(([col,r,ang],i)=>{
+    [[0x7B5EA7,2.8,0],[0xf0a040,2.8,2.09],[0x4A9EFF,2.8,4.19]].forEach(([col,r,ang],i)=>{
       const mini = new THREE.Mesh(
         new THREE.BoxGeometry(1.2,0.75,0.06),
         new THREE.MeshStandardMaterial({color:col,roughness:0.2,metalness:0.8})
@@ -821,12 +821,12 @@ function Scene3Flashcard({ progress }: { progress: number }){
       trailPos[i*3+2] = (Math.random()-0.5)*4 - 2;
     }
     trailGeo.setAttribute("position", new THREE.BufferAttribute(trailPos,3));
-    scene.add(new THREE.Points(trailGeo, new THREE.PointsMaterial({color:0x00C4B4,size:0.03,transparent:true,opacity:0.5})));
+    scene.add(new THREE.Points(trailGeo, new THREE.PointsMaterial({color:0x8b1a2a,size:0.03,transparent:true,opacity:0.5})));
 
     scene.add(new THREE.AmbientLight(0xffffff,0.4));
-    const pl1 = new THREE.PointLight(0x00C4B4,3,20); pl1.position.set(4,3,3); scene.add(pl1);
+    const pl1 = new THREE.PointLight(0x8b1a2a,3,20); pl1.position.set(4,3,3); scene.add(pl1);
     const pl2 = new THREE.PointLight(0x7B5EA7,2,20); pl2.position.set(-4,-2,2); scene.add(pl2);
-    const pl3 = new THREE.PointLight(0xE8B923,1.5,15); pl3.position.set(0,4,-2); scene.add(pl3);
+    const pl3 = new THREE.PointLight(0xf0a040,1.5,15); pl3.position.set(0,4,-2); scene.add(pl3);
 
     const mouse={x:0,y:0};
     const onMouse=(e:MouseEvent)=>{ mouse.x=(e.clientX/window.innerWidth-0.5)*2; mouse.y=-(e.clientY/window.innerHeight-0.5)*2; };
@@ -841,7 +841,7 @@ function Scene3Flashcard({ progress }: { progress: number }){
       // Card flip on scroll
       card.rotation.y = p*Math.PI*1.5;
       cardMat.color.setHex(p>0.5 ? 0x0a1a2e : 0x080d1a);
-      edgeMat.color.setHex(p>0.5 ? 0xE8B923 : 0x00C4B4);
+      edgeMat.color.setHex(p>0.5 ? 0xf0a040 : 0x8b1a2a);
       // Orbit mini-cards
       miniCards.forEach(m=>{
         const a = m.userData.ang + t*0.4;
@@ -1020,7 +1020,7 @@ function MarqueeRow({dir}:{dir:"left"|"right"}){
 
 function MarqueeDivider(){
   return(
-    <div style={{position:"relative",zIndex:3,background:"#03050f",borderTop:"0.5px solid #0d1220",borderBottom:"0.5px solid #0d1220"}}>
+    <div style={{position:"relative",zIndex:3,background:"#160810",borderTop:"0.5px solid #0d1220",borderBottom:"0.5px solid #0d1220"}}>
       <MarqueeRow dir="left"/>
       <div style={{height:"0.5px",background:"#0d1220"}}/>
       <MarqueeRow dir="right"/>
@@ -1125,7 +1125,7 @@ function WordReveal(){
   },[]);
   const words=MANIFESTO.split(" ");
   return(
-    <div ref={ref} data-gsap="manifesto" style={{position:"relative",zIndex:2,padding:"120px 32px",background:"#03050f",overflow:"hidden"}}>
+    <div ref={ref} data-gsap="manifesto" style={{position:"relative",zIndex:2,padding:"120px 32px",background:"#160810",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",
         background:"radial-gradient(ellipse 60% 50% at 50% 50%,rgba(0,196,180,0.04) 0%,transparent 70%)"}}/>
       <div style={{maxWidth:"720px",margin:"0 auto",position:"relative"}}>
@@ -1154,9 +1154,9 @@ function StickyFeatureShowcase(){
   const accentColors=[TEAL,PURPLE,GOLD,"#4A9EFF","#FF6B6B","#A78BFA",TEAL,PURPLE,GOLD,"#4A9EFF","#FF6B6B","#A78BFA"];
 
   useEffect(()=>{
-    const obs=new IntersectionObserver((entries)=>{
+    const obs=new NunitosectionObserver((entries)=>{
       entries.forEach(e=>{
-        if(e.isIntersecting){
+        if(e.isNunitosecting){
           const idx=itemRefs.current.indexOf(e.target as HTMLDivElement);
           if(idx>=0)setActive(idx);
         }
@@ -1244,7 +1244,7 @@ function HorizontalScrollGallery(){
   return(
     <div ref={sectionRef} style={{height:"260vh",position:"relative",zIndex:2}}>
       <div style={{position:"sticky",top:"48px",height:"calc(100vh - 48px)",overflow:"hidden",
-        display:"flex",flexDirection:"column",justifyContent:"center",background:"#03050f"}}>
+        display:"flex",flexDirection:"column",justifyContent:"center",background:"#160810"}}>
 
         <div style={{maxWidth:"1100px",margin:"0 auto",width:"100%",padding:"0 32px",marginBottom:"28px"}}>
           <div style={{...mono,fontSize:"10px",color:"#333",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"6px"}}>Who it's for</div>
@@ -1581,8 +1581,8 @@ function Reveal({children,delay=0,style}:{children:React.ReactNode;delay?:number
 function GlitchText({text,style}:{text:string;style?:React.CSSProperties}){
   const [g,setG]=useState(false);
   useEffect(()=>{
-    const id=setInterval(()=>{setG(true);setTimeout(()=>setG(false),160);},4200);
-    return ()=>clearInterval(id);
+    const id=setNunitoval(()=>{setG(true);setTimeout(()=>setG(false),160);},4200);
+    return ()=>clearNunitoval(id);
   },[]);
   return(
     <span style={{position:"relative",display:"inline-block",...style}}>
@@ -1855,7 +1855,7 @@ function HeroGalaxy(){
     scene.add(new THREE.Points(gGeo,new THREE.PointsMaterial({size:0.018,vertexColors:true,transparent:true,opacity:0.75})));
 
     // Floating orbs
-    [[0x00C4B4,[-1.5,0.5,-1],0.12],[0x7B5EA7,[2,1,-2],0.18],[0xE8B923,[0.5,-1,-1.5],0.08]].forEach(([col,pos,r]:any)=>{
+    [[0x8b1a2a,[-1.5,0.5,-1],0.12],[0x7B5EA7,[2,1,-2],0.18],[0xf0a040,[0.5,-1,-1.5],0.08]].forEach(([col,pos,r]:any)=>{
       const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,16),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.7}));
       m.position.set(...pos); scene.add(m);
     });
@@ -1955,7 +1955,7 @@ function HeroSection(){
       </p>
       <div style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap",animation:"hero-enter 1.4s ease 0.63s both"}}>
         <Link to="/signup">
-          <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s"}}
+          <button style={{fontSize:"12px",fontFamily:"'Nunito',system-ui,sans-serif",fontWeight:600,color:"#05080f",background:TEAL,border:"none",padding:"11px 26px",cursor:"pointer",letterSpacing:"0.03em",transition:"opacity 0.15s,box-shadow 0.2s,transform 0.2s"}}
             onClick={()=>showToast("✓ Redirecting to signup…",TEAL)}
             onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.boxShadow=`0 0 40px rgba(0,196,180,0.55)`;e.currentTarget.style.transform="translateY(-2px)";}}
             onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)";}}>
@@ -1963,7 +1963,7 @@ function HeroSection(){
           </button>
         </Link>
         <Link to="/signup">
-          <button style={{fontSize:"12px",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:300,color:"#444",background:"transparent",border:"none",cursor:"pointer",transition:"color 0.15s"}}
+          <button style={{fontSize:"12px",fontFamily:"'Nunito',system-ui,sans-serif",fontWeight:300,color:"#444",background:"transparent",border:"none",cursor:"pointer",transition:"color 0.15s"}}
             onMouseEnter={(e)=>(e.currentTarget.style.color="#E0E8F0")}
             onMouseLeave={(e)=>(e.currentTarget.style.color="#444")}>
             See Dashboard →
@@ -2097,7 +2097,7 @@ function FloatingObjectsSection(){
   const hexY    =-p*85*0.18/0.22;
 
   return(
-    <div ref={ref} style={{position:"relative",minHeight:"500px",overflow:"hidden",background:"linear-gradient(180deg,#03050f 0%,#060c1a 50%,#03050f 100%)"}}>
+    <div ref={ref} style={{position:"relative",minHeight:"500px",overflow:"hidden",background:"linear-gradient(180deg,#160810 0%,#060c1a 50%,#160810 100%)"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
         <div style={{position:"absolute",top:"38%",left:"-5%",width:"160px",height:"1px",background:`linear-gradient(90deg,transparent,${TEAL},transparent)`,opacity:0.15,animation:"beam-sweep 10s ease-in-out infinite"}}/>
         <div style={{position:"absolute",top:"65%",left:"-5%",width:"100px",height:"1px",background:`linear-gradient(90deg,transparent,${GOLD},transparent)`,opacity:0.12,animation:"beam-sweep 15s ease-in-out 5s infinite"}}/>
@@ -2144,7 +2144,7 @@ function DepthParallaxSection(){
     window.addEventListener("scroll",h,{passive:true});h();return ()=>window.removeEventListener("scroll",h);
   },[]);
   return(
-    <div ref={ref} style={{position:"relative",height:"480px",overflow:"hidden",background:"#03050f"}}>
+    <div ref={ref} style={{position:"relative",height:"480px",overflow:"hidden",background:"#160810"}}>
       <div style={{position:"absolute",inset:0,transform:`translateY(${p*-28}px)`,transition:"transform 0.05s linear",pointerEvents:"none"}}>
         <div style={{position:"absolute",left:"8%",top:"15%",width:"280px",height:"280px",borderRadius:"50%",background:"radial-gradient(ellipse,rgba(123,94,167,0.06) 0%,transparent 70%)"}}/>
       </div>
@@ -2216,13 +2216,13 @@ function LoadingScreen({onDone}:{onDone:()=>void}){
     // Orb core
     const orb=new THREE.Mesh(
       new THREE.SphereGeometry(0.7,64,64),
-      new THREE.MeshStandardMaterial({color:0x00C4B4,emissive:0x00C4B4,emissiveIntensity:0.6,roughness:0.1,metalness:0.9})
+      new THREE.MeshStandardMaterial({color:0x8b1a2a,emissive:0x8b1a2a,emissiveIntensity:0.6,roughness:0.1,metalness:0.9})
     );
     scene.add(orb);
 
     // Rings
     const rings:any[]=[];
-    [[0x00C4B4,1.4,0.01],[0x7B5EA7,1.9,0.008],[0xE8B923,2.4,0.006]].forEach(([col,r,thick]:any,i)=>{
+    [[0x8b1a2a,1.4,0.01],[0x7B5EA7,1.9,0.008],[0xf0a040,2.4,0.006]].forEach(([col,r,thick]:any,i)=>{
       const ring=new THREE.Mesh(
         new THREE.TorusGeometry(r,thick,8,80),
         new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.6})
@@ -2236,10 +2236,10 @@ function LoadingScreen({onDone}:{onDone:()=>void}){
     const N=1200;const pp=new Float32Array(N*3);
     for(let i=0;i<N;i++){const r=3+Math.random()*4,t=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1);pp[i*3]=r*Math.sin(p)*Math.cos(t);pp[i*3+1]=r*Math.sin(p)*Math.sin(t);pp[i*3+2]=r*Math.cos(p);}
     const pg=new THREE.BufferGeometry();pg.setAttribute("position",new THREE.BufferAttribute(pp,3));
-    scene.add(new THREE.Points(pg,new THREE.PointsMaterial({color:0x00C4B4,size:0.018,transparent:true,opacity:0.5})));
+    scene.add(new THREE.Points(pg,new THREE.PointsMaterial({color:0x8b1a2a,size:0.018,transparent:true,opacity:0.5})));
 
     scene.add(new THREE.AmbientLight(0xffffff,0.3));
-    const pl=new THREE.PointLight(0x00C4B4,4,20);pl.position.set(2,2,3);scene.add(pl);
+    const pl=new THREE.PointLight(0x8b1a2a,4,20);pl.position.set(2,2,3);scene.add(pl);
     const pl2=new THREE.PointLight(0x7B5EA7,3,20);pl2.position.set(-2,-1,2);scene.add(pl2);
 
     let raf:number,t=0;
@@ -2256,18 +2256,18 @@ function LoadingScreen({onDone}:{onDone:()=>void}){
 
   useEffect(()=>{
     let p=0;
-    const iv=setInterval(()=>{
+    const iv=setNunitoval(()=>{
       p+=Math.random()*4+1;
-      if(p>=100){p=100;clearInterval(iv);
+      if(p>=100){p=100;clearNunitoval(iv);
         setTimeout(()=>{setFading(true);setTimeout(onDone,700);},400);
       }
       setPct(Math.round(p));
     },60);
-    return ()=>clearInterval(iv);
+    return ()=>clearNunitoval(iv);
   },[]);
 
   return(
-    <div style={{position:"fixed",inset:0,background:"#03050f",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+    <div style={{position:"fixed",inset:0,background:"#160810",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
       opacity:fading?0:1,transition:"opacity 0.7s ease",pointerEvents:fading?"none":"all"}}>
       <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>
       <div style={{position:"relative",zIndex:2,textAlign:"center"}}>
@@ -2301,7 +2301,7 @@ function SceneBrain(){
     // Right hemisphere
     group.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(1.05,32,32),brainMat(0x006688)),{position:{x:0.3,y:0,z:0}} as any));
     // Frontal lobe bump
-    group.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.65,24,24),brainMat(0x00C4B4)),{position:{x:0,y:0.6,z:0.7}} as any));
+    group.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.65,24,24),brainMat(0x8b1a2a)),{position:{x:0,y:0.6,z:0.7}} as any));
     // Occipital lobe
     group.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(0.55,24,24),brainMat(0x005577)),{position:{x:0,y:0.1,z:-0.9}} as any));
     // Cerebellum
@@ -2315,7 +2315,7 @@ function SceneBrain(){
       const t=i/18;
       const ridge=new THREE.Mesh(
         new THREE.TorusGeometry(0.12+Math.random()*0.08,0.025,6,12),
-        new THREE.MeshBasicMaterial({color:0x00C4B4,transparent:true,opacity:0.25+Math.random()*0.15})
+        new THREE.MeshBasicMaterial({color:0x8b1a2a,transparent:true,opacity:0.25+Math.random()*0.15})
       );
       ridge.position.set((Math.random()-0.5)*1.8,(Math.random()-0.5)*1.4,(Math.random()-0.5)*1.2);
       ridge.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
@@ -2326,10 +2326,10 @@ function SceneBrain(){
     const NP=300;const np=new Float32Array(NP*3);
     for(let i=0;i<NP;i++){const r=1.3+Math.random()*0.6,t=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1);np[i*3]=r*Math.sin(p)*Math.cos(t);np[i*3+1]=r*Math.sin(p)*Math.sin(t)*0.85;np[i*3+2]=r*Math.cos(p);}
     const npg=new THREE.BufferGeometry();npg.setAttribute("position",new THREE.BufferAttribute(np,3));
-    group.add(new THREE.Points(npg,new THREE.PointsMaterial({color:0x00C4B4,size:0.025,transparent:true,opacity:0.6})));
+    group.add(new THREE.Points(npg,new THREE.PointsMaterial({color:0x8b1a2a,size:0.025,transparent:true,opacity:0.6})));
 
     scene.add(new THREE.AmbientLight(0xffffff,0.3));
-    const pl1=new THREE.PointLight(0x00C4B4,5,15);pl1.position.set(3,2,3);scene.add(pl1);
+    const pl1=new THREE.PointLight(0x8b1a2a,5,15);pl1.position.set(3,2,3);scene.add(pl1);
     const pl2=new THREE.PointLight(0x7B5EA7,3,12);pl2.position.set(-3,-1,2);scene.add(pl2);
     const pl3=new THREE.PointLight(0xffffff,1,10);pl3.position.set(0,4,1);scene.add(pl3);
 
@@ -2368,7 +2368,7 @@ function SceneDNA(){
       const t=(i/steps)*Math.PI*4;
       const y=(i/steps)*height-height/2;
       // Strand A (teal)
-      const sA=new THREE.Mesh(new THREE.SphereGeometry(0.12,12,12),new THREE.MeshStandardMaterial({color:0x00C4B4,emissive:0x00C4B4,emissiveIntensity:0.5,roughness:0.2,metalness:0.8}));
+      const sA=new THREE.Mesh(new THREE.SphereGeometry(0.12,12,12),new THREE.MeshStandardMaterial({color:0x8b1a2a,emissive:0x8b1a2a,emissiveIntensity:0.5,roughness:0.2,metalness:0.8}));
       sA.position.set(Math.cos(t)*1.1,y,Math.sin(t)*1.1);group.add(sA);
       // Strand B (purple)
       const sB=new THREE.Mesh(new THREE.SphereGeometry(0.12,12,12),new THREE.MeshStandardMaterial({color:0x7B5EA7,emissive:0x7B5EA7,emissiveIntensity:0.5,roughness:0.2,metalness:0.8}));
@@ -2376,20 +2376,20 @@ function SceneDNA(){
       // Rungs (crossbars)
       if(i%2===0){
         const rungGeo=new THREE.BufferGeometry().setFromPoints([sA.position.clone(),sB.position.clone()]);
-        group.add(new THREE.Line(rungGeo,new THREE.LineBasicMaterial({color:0xE8B923,transparent:true,opacity:0.45})));
+        group.add(new THREE.Line(rungGeo,new THREE.LineBasicMaterial({color:0xf0a040,transparent:true,opacity:0.45})));
         // Rung sphere at center
-        const mid=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8),new THREE.MeshBasicMaterial({color:0xE8B923,transparent:true,opacity:0.6}));
+        const mid=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8),new THREE.MeshBasicMaterial({color:0xf0a040,transparent:true,opacity:0.6}));
         mid.position.set(0,y,0);group.add(mid);
       }
     }
     // Backbone tubes (approximated with lines)
     const ptsA:any[]=[],ptsB:any[]=[];
     for(let i=0;i<=80;i++){const t=(i/80)*Math.PI*4,y=(i/80)*height-height/2;ptsA.push(new THREE.Vector3(Math.cos(t)*1.1,y,Math.sin(t)*1.1));ptsB.push(new THREE.Vector3(Math.cos(t+Math.PI)*1.1,y,Math.sin(t+Math.PI)*1.1));}
-    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ptsA),new THREE.LineBasicMaterial({color:0x00C4B4,transparent:true,opacity:0.3})));
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ptsA),new THREE.LineBasicMaterial({color:0x8b1a2a,transparent:true,opacity:0.3})));
     group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ptsB),new THREE.LineBasicMaterial({color:0x7B5EA7,transparent:true,opacity:0.3})));
 
     scene.add(new THREE.AmbientLight(0xffffff,0.4));
-    const pl1=new THREE.PointLight(0x00C4B4,4,15);pl1.position.set(3,2,3);scene.add(pl1);
+    const pl1=new THREE.PointLight(0x8b1a2a,4,15);pl1.position.set(3,2,3);scene.add(pl1);
     const pl2=new THREE.PointLight(0x7B5EA7,3,12);pl2.position.set(-3,-2,2);scene.add(pl2);
 
     const mouse={x:0,y:0};
@@ -2423,13 +2423,13 @@ function SceneCrystal(){
 
     // Crystal spikes: cone+octahedron combos
     const crystalDefs=[
-      {h:2.4,r:0.22,x:0,y:0.4,z:0,rx:0,col:0x00C4B4,ei:0.8},
+      {h:2.4,r:0.22,x:0,y:0.4,z:0,rx:0,col:0x8b1a2a,ei:0.8},
       {h:1.8,r:0.18,x:0.7,y:0,z:0.2,rx:0.3,col:0x4A9EFF,ei:0.6},
       {h:1.4,r:0.15,x:-0.65,y:-0.1,z:0.3,rx:-0.25,col:0x7B5EA7,ei:0.7},
-      {h:1.6,r:0.16,x:0.35,y:0.2,z:-0.4,rx:0.15,col:0x00C4B4,ei:0.5},
-      {h:1.1,r:0.13,x:-0.3,y:0.5,z:0.5,rx:-0.1,col:0xE8B923,ei:0.6},
+      {h:1.6,r:0.16,x:0.35,y:0.2,z:-0.4,rx:0.15,col:0x8b1a2a,ei:0.5},
+      {h:1.1,r:0.13,x:-0.3,y:0.5,z:0.5,rx:-0.1,col:0xf0a040,ei:0.6},
       {h:0.9,r:0.11,x:0.9,y:0.5,z:-0.2,rx:0.4,col:0x4A9EFF,ei:0.4},
-      {h:1.2,r:0.14,x:-0.9,y:0.3,z:-0.1,rx:-0.3,col:0x00C4B4,ei:0.5},
+      {h:1.2,r:0.14,x:-0.9,y:0.3,z:-0.1,rx:-0.3,col:0x8b1a2a,ei:0.5},
     ];
     crystalDefs.forEach(d=>{
       const mat=new THREE.MeshStandardMaterial({color:d.col,emissive:d.col,emissiveIntensity:d.ei,roughness:0.05,metalness:0.7,transparent:true,opacity:0.88});
@@ -2448,12 +2448,12 @@ function SceneCrystal(){
     const NP=200;const pp=new Float32Array(NP*3);
     for(let i=0;i<NP;i++){pp[i*3]=(Math.random()-0.5)*4;pp[i*3+1]=(Math.random()-0.5)*4;pp[i*3+2]=(Math.random()-0.5)*3-1;}
     const ppg=new THREE.BufferGeometry();ppg.setAttribute("position",new THREE.BufferAttribute(pp,3));
-    scene.add(new THREE.Points(ppg,new THREE.PointsMaterial({color:0x00C4B4,size:0.022,transparent:true,opacity:0.4})));
+    scene.add(new THREE.Points(ppg,new THREE.PointsMaterial({color:0x8b1a2a,size:0.022,transparent:true,opacity:0.4})));
 
     scene.add(new THREE.AmbientLight(0xffffff,0.25));
-    const pl1=new THREE.PointLight(0x00C4B4,6,15);pl1.position.set(2,3,3);scene.add(pl1);
+    const pl1=new THREE.PointLight(0x8b1a2a,6,15);pl1.position.set(2,3,3);scene.add(pl1);
     const pl2=new THREE.PointLight(0x7B5EA7,4,12);pl2.position.set(-2,-2,2);scene.add(pl2);
-    const pl3=new THREE.PointLight(0xE8B923,2,10);pl3.position.set(0,4,-2);scene.add(pl3);
+    const pl3=new THREE.PointLight(0xf0a040,2,10);pl3.position.set(0,4,-2);scene.add(pl3);
 
     const mouse={x:0,y:0};
     const onMouse=(e:MouseEvent)=>{mouse.x=(e.clientX/window.innerWidth-0.5)*2;mouse.y=-(e.clientY/window.innerHeight-0.5)*2;};
@@ -2517,7 +2517,7 @@ function SceneSatellite(){
     });
 
     // Orbit ring
-    const orbitRing=new THREE.Mesh(new THREE.TorusGeometry(3,0.008,8,80),new THREE.MeshBasicMaterial({color:0x00C4B4,transparent:true,opacity:0.15}));
+    const orbitRing=new THREE.Mesh(new THREE.TorusGeometry(3,0.008,8,80),new THREE.MeshBasicMaterial({color:0x8b1a2a,transparent:true,opacity:0.15}));
     orbitRing.rotation.x=Math.PI/4;scene.add(orbitRing);
 
     // Stars
@@ -2528,7 +2528,7 @@ function SceneSatellite(){
 
     scene.add(new THREE.AmbientLight(0xffffff,0.4));
     const sun=new THREE.DirectionalLight(0xfff8e0,2);sun.position.set(5,5,3);scene.add(sun);
-    const pl=new THREE.PointLight(0x00C4B4,1.5,20);pl.position.set(-3,2,4);scene.add(pl);
+    const pl=new THREE.PointLight(0x8b1a2a,1.5,20);pl.position.set(-3,2,4);scene.add(pl);
 
     const mouse={x:0,y:0};
     const onMouse=(e:MouseEvent)=>{mouse.x=(e.clientX/window.innerWidth-0.5)*2;mouse.y=-(e.clientY/window.innerHeight-0.5)*2;};
@@ -2613,7 +2613,7 @@ function ThreeDShowcaseSection(){
     {label:"Knowledge Crystals",desc:"Hard facts forged into long-term memory.",scene:<SceneCrystal/>,color:GOLD},
   ];
   return(
-    <div style={{background:"#03050f",padding:"80px 0",position:"relative",zIndex:2}}>
+    <div style={{background:"#160810",padding:"80px 0",position:"relative",zIndex:2}}>
       <div style={{maxWidth:"1100px",margin:"0 auto",padding:"0 32px"}}>
         <ClipReveal>
           <div style={{...mono,fontSize:"10px",color:"#333",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px"}}>— Core 3D Objects</div>
@@ -2623,7 +2623,7 @@ function ThreeDShowcaseSection(){
         </ClipReveal>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:"1px",background:"#0d1220"}}>
           {items.map((item,i)=>(
-            <div key={i} style={{background:"#03050f",position:"relative",overflow:"hidden"}}>
+            <div key={i} style={{background:"#160810",position:"relative",overflow:"hidden"}}>
               <div style={{height:"320px",position:"relative"}}>
                 {item.scene}
               </div>
@@ -2643,7 +2643,7 @@ function ThreeDShowcaseSection(){
 function SpaceObjectsSection(){
   const {ref,inView}=useInView(0.1);
   return(
-    <div ref={ref} style={{background:"#03050f",padding:"80px 0",position:"relative",zIndex:2,overflow:"hidden"}}>
+    <div ref={ref} style={{background:"#160810",padding:"80px 0",position:"relative",zIndex:2,overflow:"hidden"}}>
       <div style={{maxWidth:"1100px",margin:"0 auto",padding:"0 32px",display:"flex",gap:"64px",alignItems:"center",flexWrap:"wrap"}}>
         {/* Left text */}
         <div style={{flex:"1 1 300px"}}>
@@ -2667,11 +2667,11 @@ function SpaceObjectsSection(){
         </div>
         {/* Right: two 3D objects stacked */}
         <div style={{flex:"1 1 400px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1px",background:"#0d1220"}}>
-          <div style={{background:"#03050f",height:"260px",position:"relative"}}>
+          <div style={{background:"#160810",height:"260px",position:"relative"}}>
             <SceneSatellite/>
             <div style={{position:"absolute",bottom:"12px",left:"16px",...mono,fontSize:"9px",color:"rgba(0,196,180,0.4)",letterSpacing:"0.1em"}}>SATELLITE</div>
           </div>
-          <div style={{background:"#03050f",height:"260px",position:"relative"}}>
+          <div style={{background:"#160810",height:"260px",position:"relative"}}>
             <SceneAsteroid/>
             <div style={{position:"absolute",bottom:"12px",left:"16px",...mono,fontSize:"9px",color:"rgba(232,185,35,0.4)",letterSpacing:"0.1em"}}>ASTEROID</div>
           </div>
@@ -2742,7 +2742,7 @@ function PricingSection(){
     {
       name:"Pro",label:"For serious students",price:"12",per:"/ month",color:TEAL,
       features:["All 12 AI tools unlocked","Unlimited flashcards","Unlimited source uploads","Cram Mode + Recall Mode","Study DNA tracking","Priority AI response"],
-      cta:"Start Pro Free",ctaStyle:{background:TEAL,color:"#03050f",border:"none"},
+      cta:"Start Pro Free",ctaStyle:{background:TEAL,color:"#160810",border:"none"},
       highlight:true,
       badge:"Most Popular",
     },
@@ -2754,7 +2754,7 @@ function PricingSection(){
     },
   ];
   return(
-    <div style={{background:"#03050f",padding:"100px 0",position:"relative",zIndex:2}}>
+    <div style={{background:"#160810",padding:"100px 0",position:"relative",zIndex:2}}>
       <div style={{maxWidth:"960px",margin:"0 auto",padding:"0 32px"}}>
         <ClipReveal>
           <div style={{textAlign:"center",marginBottom:"64px"}}>
@@ -2768,7 +2768,7 @@ function PricingSection(){
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:"1px",background:"#0d1220"}}>
           {plans.map((plan,i)=>(
             <ClipReveal key={i} delay={i*0.08}>
-              <div data-gsap="pricing-card" style={{background:plan.highlight?"#080d1a":"#03050f",padding:"36px 28px",position:"relative",height:"100%",display:"flex",flexDirection:"column"}}>
+              <div data-gsap="pricing-card" style={{background:plan.highlight?"#080d1a":"#160810",padding:"36px 28px",position:"relative",height:"100%",display:"flex",flexDirection:"column"}}>
                 {plan.highlight&&<div style={{position:"absolute",top:0,left:0,right:0,height:"1.5px",background:`linear-gradient(90deg,${TEAL},${PURPLE})`}}/>}
                 {plan.badge&&(
                   <div className="shimmer" style={{position:"absolute",top:"16px",right:"16px",...mono,fontSize:"9px",color:TEAL,border:`0.5px solid ${TEAL}`,padding:"2px 7px",letterSpacing:"0.1em"}}>{plan.badge}</div>
@@ -2910,7 +2910,7 @@ function MobileMenu({open,onClose}:{open:boolean;onClose:()=>void}){
           <button style={{width:"100%",padding:13,fontSize:11,...mono,letterSpacing:"0.1em",textTransform:"uppercase",color:"#555",background:"transparent",border:"0.5px solid #1a2240",cursor:"pointer"}}>Log In</button>
         </Link>
         <Link to="/signup" onClick={onClose} style={{textDecoration:"none"}}>
-          <button style={{width:"100%",padding:13,fontSize:11,...mono,letterSpacing:"0.1em",textTransform:"uppercase",color:"#03050f",background:TEAL,border:"none",cursor:"pointer"}}>Get Started Free →</button>
+          <button style={{width:"100%",padding:13,fontSize:11,...mono,letterSpacing:"0.1em",textTransform:"uppercase",color:"#160810",background:TEAL,border:"none",cursor:"pointer"}}>Get Started Free →</button>
         </Link>
       </div>
     </div>
@@ -2921,7 +2921,7 @@ function MobileMenu({open,onClose}:{open:boolean;onClose:()=>void}){
 function PressBar(){
   const logos=["Product Hunt","TechCrunch","EdTech Review","The Study Blog","G2","Capterra"];
   return(
-    <div style={{background:"#03050f",borderTop:"0.5px solid #0d1220",borderBottom:"0.5px solid #0d1220",padding:"22px 32px"}}>
+    <div style={{background:"#160810",borderTop:"0.5px solid #0d1220",borderBottom:"0.5px solid #0d1220",padding:"22px 32px"}}>
       <div style={{maxWidth:"960px",margin:"0 auto"}}>
         <div style={{...mono,fontSize:"9px",color:"#1a2030",letterSpacing:"0.18em",textTransform:"uppercase",textAlign:"center",marginBottom:"16px"}}>As featured in</div>
         <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",alignItems:"center",gap:"20px 44px"}}>
@@ -2967,9 +2967,9 @@ function ComparisonSection(){
             ))}
           </div>
           {rows.map((row,i)=>(
-            <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 110px 110px 120px",minWidth:460,borderBottom:"0.5px solid #0d1220",background:i%2===0?"#03050f":"#040709",transition:"background 0.18s"}}
+            <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 110px 110px 120px",minWidth:460,borderBottom:"0.5px solid #0d1220",background:i%2===0?"#160810":"#040709",transition:"background 0.18s"}}
               onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.background="#080d1a")}
-              onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.background=i%2===0?"#03050f":"#040709")}>
+              onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.background=i%2===0?"#160810":"#040709")}>
               <div style={{padding:"11px 16px",fontSize:12,color:"#555",fontWeight:300}}>{row.f}</div>
               {[row.s,row.c,row.t].map((v,j)=>(
                 <div key={j} style={{padding:"11px 16px",textAlign:"center",borderLeft:"0.5px solid #0d1220",display:"flex",alignItems:"center",justifyContent:"center"}}>{cell(v)}</div>
@@ -3093,7 +3093,7 @@ function SceneTelescope(){
 // ─── ROCKET + TELESCOPE SECTION ──────────────────────────────────────────────
 function RocketTelescopeSection(){
   return(
-    <div style={{background:"#03050f",padding:"80px 0",position:"relative",zIndex:2}}>
+    <div style={{background:"#160810",padding:"80px 0",position:"relative",zIndex:2}}>
       <div style={{maxWidth:"1100px",margin:"0 auto",padding:"0 32px"}}>
         <ClipReveal>
           <div style={{...mono,fontSize:"10px",color:"#333",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"8px"}}>— Explore</div>
@@ -3102,14 +3102,14 @@ function RocketTelescopeSection(){
           </h2>
         </ClipReveal>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1px",background:"#0d1220"}}>
-          <div style={{background:"#03050f"}}>
+          <div style={{background:"#160810"}}>
             <div style={{height:"360px",position:"relative"}}><SceneRocket/></div>
             <div style={{padding:"24px",borderTop:"0.5px solid #0d1220"}}>
               <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.12em",marginBottom:"8px",textTransform:"uppercase"}}>Cram Mode</div>
               <p style={{fontSize:"13px",color:"#555",fontWeight:300,lineHeight:1.6}}>Emergency study sessions that launch you from zero to ready — fast as a rocket at liftoff.</p>
             </div>
           </div>
-          <div style={{background:"#03050f"}}>
+          <div style={{background:"#160810"}}>
             <div style={{height:"360px",position:"relative"}}><SceneTelescope/></div>
             <div style={{padding:"24px",borderTop:"0.5px solid #0d1220"}}>
               <div style={{...mono,fontSize:"10px",color:GOLD,letterSpacing:"0.12em",marginBottom:"8px",textTransform:"uppercase"}}>Roadmap Generator</div>
@@ -3216,7 +3216,7 @@ function SceneAstronaut(){
     scene.add(new THREE.AmbientLight(0x223355,0.4));
     const sun=new THREE.DirectionalLight(0xfff5e0,2.2);sun.position.set(5,4,3);scene.add(sun);
     const earthLight=new THREE.PointLight(0x2244aa,1.5,12);earthLight.position.set(0,-3.5,2);scene.add(earthLight);
-    const rimLight=new THREE.PointLight(0x00C4B4,0.8,10);rimLight.position.set(-4,2,1);scene.add(rimLight);
+    const rimLight=new THREE.PointLight(0x8b1a2a,0.8,10);rimLight.position.set(-4,2,1);scene.add(rimLight);
 
     const mouse={x:0,y:0};
     const onMouse=(e:MouseEvent)=>{mouse.x=(e.clientX/window.innerWidth-0.5)*2;mouse.y=-(e.clientY/window.innerHeight-0.5)*2;};
@@ -3338,7 +3338,7 @@ function SceneFlashcards(){
     camera.position.set(0,1.2,6);camera.lookAt(0,0,0);
     const group=new THREE.Group();scene.add(group);
 
-    const cardColors=[0x00C4B4,0x7B5EA7,0xE8B923,0x4A9EFF,0xe05050,0x44bb88];
+    const cardColors=[0x8b1a2a,0x7B5EA7,0xf0a040,0x4A9EFF,0xe05050,0x44bb88];
     const cards:THREE.Group[]=[];
 
     cardColors.forEach((col,i)=>{
@@ -3386,7 +3386,7 @@ function SceneFlashcards(){
     scene.add(new THREE.AmbientLight(0xffffff,0.5));
     const key2=new THREE.DirectionalLight(0xffffff,1.5);key2.position.set(3,4,4);scene.add(key2);
     const fill2=new THREE.PointLight(0x7B5EA7,2,10);fill2.position.set(-3,2,2);scene.add(fill2);
-    const top2=new THREE.PointLight(0x00C4B4,1.5,8);top2.position.set(0,4,2);scene.add(top2);
+    const top2=new THREE.PointLight(0x8b1a2a,1.5,8);top2.position.set(0,4,2);scene.add(top2);
 
     const mouse={x:0,y:0};
     const onMouse=(e:MouseEvent)=>{mouse.x=(e.clientX/window.innerWidth-0.5)*2;mouse.y=-(e.clientY/window.innerHeight-0.5)*2;};
@@ -3410,7 +3410,7 @@ function SceneFlashcards(){
 // ─── ASTRONAUT HERO SECTION ───────────────────────────────────────────────────
 function AstronautSection(){
   return(
-    <div style={{background:"#03050f",position:"relative",zIndex:2,overflow:"hidden"}}>
+    <div style={{background:"#160810",position:"relative",zIndex:2,overflow:"hidden"}}>
       <div style={{maxWidth:"1100px",margin:"0 auto",padding:"80px 32px",display:"flex",alignItems:"center",gap:48,flexWrap:"wrap"}}>
         <div style={{flex:"1 1 300px",position:"relative",zIndex:2}}>
           <ClipReveal>
@@ -3523,12 +3523,12 @@ function NewsletterBar(){
               type="email" value={email} onChange={(e)=>{setEmail(e.target.value);setErr(false);}}
               placeholder="your@email.com"
               onKeyDown={(e)=>e.key==="Enter"&&submit()}
-              style={{flex:"1 1 200px",padding:"11px 14px",background:"#03050f",border:`0.5px solid ${err?"#e05050":"#1a2240"}`,color:"#E0E8F0",fontSize:12,outline:"none",fontFamily:"inherit",transition:"border-color 0.2s"}}
+              style={{flex:"1 1 200px",padding:"11px 14px",background:"#160810",border:`0.5px solid ${err?"#e05050":"#1a2240"}`,color:"#E0E8F0",fontSize:12,outline:"none",fontFamily:"inherit",transition:"border-color 0.2s"}}
               onFocus={(e)=>{if(!err)e.target.style.borderColor="#333";}}
               onBlur={(e)=>{if(!err)e.target.style.borderColor="#1a2240";}}
             />
             <button onClick={submit}
-              style={{padding:"11px 22px",background:TEAL,border:"none",color:"#03050f",fontSize:11,...mono,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"opacity 0.15s,box-shadow 0.2s",whiteSpace:"nowrap"}}
+              style={{padding:"11px 22px",background:TEAL,border:"none",color:"#160810",fontSize:11,...mono,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",transition:"opacity 0.15s,box-shadow 0.2s",whiteSpace:"nowrap"}}
               onMouseEnter={(e)=>{e.currentTarget.style.opacity="0.85";e.currentTarget.style.boxShadow=`0 0 24px rgba(0,196,180,0.4)`;}}
               onMouseLeave={(e)=>{e.currentTarget.style.opacity="1";e.currentTarget.style.boxShadow="none";}}>
               Join waitlist →
@@ -3627,7 +3627,7 @@ export default function Landing(){
     <PageFade>
       <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",
         background:`linear-gradient(180deg,${VOID} 0%,#060D1F 100%)`,
-        color:"#E0E8F0",fontFamily:"'Inter',system-ui,sans-serif"}}>
+        color:"#E0E8F0",fontFamily:"'Nunito',system-ui,sans-serif"}}>
         <style>{CSS}</style>
 
       {/* Grain overlay */}
@@ -3795,7 +3795,7 @@ export default function Landing(){
         <div style={hairline}/>
 
         {/* G: Testimonials */}
-        <div style={{background:"#03050f",padding:"80px 0",position:"relative",zIndex:2}}>
+        <div style={{background:"#160810",padding:"80px 0",position:"relative",zIndex:2}}>
           <div style={{maxWidth:"1100px",margin:"0 auto",padding:"0 32px"}}>
             <SectionParticles count={18} color={GOLD}/>
             <ClipReveal>
@@ -3804,9 +3804,9 @@ export default function Landing(){
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1px",background:"#0d1220"}}>
               {testimonials.map((t,i)=>(
                 <ClipReveal key={t.name} delay={i*0.07}>
-                  <div data-gsap="testimonial-card" style={{background:"#03050f",padding:"24px",height:"100%",display:"flex",flexDirection:"column",gap:14,transition:"background 0.2s"}}
+                  <div data-gsap="testimonial-card" style={{background:"#160810",padding:"24px",height:"100%",display:"flex",flexDirection:"column",gap:14,transition:"background 0.2s"}}
                     onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.background="#080d1a")}
-                    onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.background="#03050f")}>
+                    onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.background="#160810")}>
                     {/* Stars */}
                     <div style={{display:"flex",gap:3}}>
                       {Array(t.stars).fill(0).map((_,si)=>(
@@ -3882,7 +3882,7 @@ export default function Landing(){
         </div>
 
         {/* Mobile app teaser */}
-        <div style={{background:"#03050f",borderTop:"0.5px solid #0d1220",padding:"48px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{background:"#160810",borderTop:"0.5px solid #0d1220",padding:"48px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 50% 60% at 50% 50%,rgba(123,94,167,0.04) 0%,transparent 70%)",pointerEvents:"none"}}/>
           <div style={{position:"relative",maxWidth:560,margin:"0 auto"}}>
             <div style={{...mono,fontSize:"9px",color:"#1e2838",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:12}}>— Coming Soon</div>
@@ -3911,7 +3911,7 @@ export default function Landing(){
         <NewsletterBar/>
 
         {/* Footer */}
-        <footer style={{borderTop:"0.5px solid #0d1220",background:"#03050f"}}>
+        <footer style={{borderTop:"0.5px solid #0d1220",background:"#160810"}}>
           <div style={{maxWidth:"1100px",margin:"0 auto",padding:"32px 32px 24px",display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:"flex-start",gap:"32px"}}>
             <div>
               <div style={{...mono,fontSize:"13px",fontWeight:700,letterSpacing:"0.22em",color:"#E0E8F0",marginBottom:"8px"}}>STUDENIUS</div>

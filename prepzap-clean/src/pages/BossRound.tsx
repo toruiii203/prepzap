@@ -19,8 +19,8 @@ const DIFFICULTIES = [
   { label: "Nightmare" as Difficulty, color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
 ];
 
-const TEAL = "#00C4B4";
-const GOLD = "#E8B923";
+const TEAL = "#8b1a2a";
+const GOLD = "#f0a040";
 
 export default function BossRound() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,7 +36,7 @@ export default function BossRound() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
   const [timeLeft, setTimeLeft] = useState(300);
-  const [timerRef, setTimerRef] = useState<ReturnType<typeof setInterval>|null>(null);
+  const [timerRef, setTimerRef] = useState<ReturnType<typeof setNunitoval>|null>(null);
 
   const start = async () => {
     const hasSource = buildAIContext().length > 0;
@@ -57,7 +57,7 @@ export default function BossRound() {
       setCurrent(0); setSelected(null); setAnswered(false); setResults([]); setTimeLeft(300);
       setPhase("quiz");
       toast.success(`Boss Round ready — ${difficulty} mode!`);
-      const t = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(t);return 0;}return prev-1;}),1000);
+      const t = setNunitoval(()=>setTimeLeft(prev=>{if(prev<=1){clearNunitoval(t);return 0;}return prev-1;}),1000);
       setTimerRef(t);
     } catch(e) { setError(e instanceof Error?e.message:"Error"); }
     finally { setIsLoading(false); }
@@ -68,7 +68,7 @@ export default function BossRound() {
   const next = () => {
     const newResults = [...results, {correct:selected===questions[current].correct,selected:selected??-1,correct_idx:questions[current].correct}];
     setResults(newResults);
-    if (current+1 >= questions.length) { if(timerRef) clearInterval(timerRef); setPhase("done"); }
+    if (current+1 >= questions.length) { if(timerRef) clearNunitoval(timerRef); setPhase("done"); }
     else { setCurrent(c=>c+1); setSelected(null); setAnswered(false); }
   };
 
@@ -110,7 +110,7 @@ export default function BossRound() {
       }}>
         <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#00C4B4", marginBottom: 2 }}>Boss Round History</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8b1a2a", marginBottom: 2 }}>Boss Round History</div>
             <div style={{ fontSize: 10, color: "#444" }}>{toolHistory.length} session{toolHistory.length !== 1 ? "s" : ""}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -122,7 +122,7 @@ export default function BossRound() {
             )}
             <button onClick={() => setSidebarOpen(false)}
               style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}>
               <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -142,7 +142,7 @@ export default function BossRound() {
               {[...toolHistory].reverse().map((entry) => (
                 <div key={entry.id}
                   style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
@@ -164,11 +164,11 @@ export default function BossRound() {
         {/* Sidebar toggle button */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
           <button onClick={() => setSidebarOpen(v => !v)}
-            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#00C4B4" : "#555", transition: "all .15s", position: "relative" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.color = "#00C4B4"; }}
+            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#8b1a2a" : "#555", transition: "all .15s", position: "relative" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
             onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
             <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#00C4B4" }} />}
+            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#8b1a2a" }} />}
           </button>
         </div>
 
@@ -176,7 +176,7 @@ export default function BossRound() {
           <div style={{display:"flex",flexDirection:"column",gap:28}}>
             <div style={{textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
               <div style={{width:72,height:72,background:`linear-gradient(135deg,${GOLD},#f59e0b)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 0 40px ${GOLD}30`}}>
-                <Award style={{width:36,height:36,color:"#03050F"}}/>
+                <Award style={{width:36,height:36,color:"#160810"}}/>
               </div>
               <div>
                 <h1 style={{fontSize:24,fontWeight:700,color:"#F0F0F0",margin:0}}>Boss Round</h1>
@@ -199,7 +199,7 @@ export default function BossRound() {
                 <div style={{display:"flex",gap:8}}>
                   {DIFFICULTIES.map(d=>(
                     <button key={d.label} onClick={()=>setDifficulty(d.label)}
-                      style={{flex:1,padding:"8px 0",fontSize:11,fontWeight:700,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer",transition:"all .15s",
+                      style={{flex:1,padding:"8px 0",fontSize:11,fontWeight:700,fontFamily:"'Nunito',system-ui,sans-serif",cursor:"pointer",transition:"all .15s",
                         border:`0.5px solid ${difficulty===d.label?d.color:"#252525"}`,
                         background:difficulty===d.label?d.bg:"transparent",
                         color:difficulty===d.label?d.color:"#444"}}>
@@ -210,8 +210,8 @@ export default function BossRound() {
               </div>
               {error&&<p style={{fontSize:12,color:"#ef4444",background:"rgba(239,68,68,0.08)",border:"0.5px solid rgba(239,68,68,0.2)",padding:"10px 14px"}}>{error}</p>}
               <button onClick={start} disabled={isLoading||(!topicInput.trim()&&buildAIContext().length===0)}
-                style={{padding:"12px 0",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#03050F",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",opacity:(isLoading||(!topicInput.trim()&&buildAIContext().length===0))?0.4:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                {isLoading?<div style={{width:14,height:14,border:"2px solid rgba(0,0,0,0.3)",borderTop:"2px solid #03050F",borderRadius:"50%"}}/>:<><Award style={{width:14,height:14}}/>Start Boss Round</>}
+                style={{padding:"12px 0",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#160810",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',system-ui,sans-serif",opacity:(isLoading||(!topicInput.trim()&&buildAIContext().length===0))?0.4:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {isLoading?<div style={{width:14,height:14,border:"2px solid rgba(0,0,0,0.3)",borderTop:"2px solid #160810",borderRadius:"50%"}}/>:<><Award style={{width:14,height:14}}/>Start Boss Round</>}
               </button>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function BossRound() {
               <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:20}}>
                 {q.options.map((opt,i)=>(
                   <button key={i} onClick={()=>choose(i)} disabled={answered}
-                    style={{textAlign:"left",padding:"12px 16px",fontSize:13,fontFamily:"'Inter',system-ui,sans-serif",cursor:answered?"default":"pointer",transition:"all .15s",
+                    style={{textAlign:"left",padding:"12px 16px",fontSize:13,fontFamily:"'Nunito',system-ui,sans-serif",cursor:answered?"default":"pointer",transition:"all .15s",
                       border:`0.5px solid ${answered&&i===q.correct?"#10b981":answered&&selected===i&&i!==q.correct?"#ef4444":"#252525"}`,
                       background:answered&&i===q.correct?"rgba(16,185,129,0.08)":answered&&selected===i&&i!==q.correct?"rgba(239,68,68,0.08)":"transparent",
                       color:answered&&i===q.correct?"#10b981":answered&&selected===i&&i!==q.correct?"#ef4444":"#C0C0C0",
@@ -252,7 +252,7 @@ export default function BossRound() {
                   <span style={{fontWeight:700,fontSize:13,color:selected===q.correct?"#10b981":"#ef4444"}}>{selected===q.correct?`Correct! +${Math.round(500/questions.length)} XP`:"Wrong"}</span>
                 </div>
                 <MathRenderer content={q.explanation} className="text-xs text-muted-foreground"/>
-                <button onClick={next} style={{padding:"10px 0",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#03050F",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif"}}>
+                <button onClick={next} style={{padding:"10px 0",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#160810",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',system-ui,sans-serif"}}>
                   {current+1<questions.length?"Next →":"See Final Score →"}
                 </button>
               </div>
@@ -277,11 +277,11 @@ export default function BossRound() {
             </div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={()=>{setPhase("setup");setTopicInput("");setResults([]);}}
-                style={{padding:"10px 20px",background:"transparent",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",display:"flex",alignItems:"center",gap:6}}>
+                style={{padding:"10px 20px",background:"transparent",border:"0.5px solid #252525",color:"#C0C0C0",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Nunito',system-ui,sans-serif",display:"flex",alignItems:"center",gap:6}}>
                 <RotateCcw style={{width:14,height:14}}/> Retry
               </button>
               <Link to="/dashboard">
-                <button style={{padding:"10px 20px",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#03050F",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",display:"flex",alignItems:"center",gap:6}}>
+                <button style={{padding:"10px 20px",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#160810",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',system-ui,sans-serif",display:"flex",alignItems:"center",gap:6}}>
                   <Zap style={{width:14,height:14}}/> Back to Dashboard
                 </button>
               </Link>
