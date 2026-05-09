@@ -9,7 +9,6 @@ import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyS
  */
 
 import { useState, useEffect } from "react"
-import DOMPurify from 'dompurify';
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
@@ -331,9 +330,9 @@ If source material is provided, base the scenes on its actual content, not gener
       ;(async () => {
         for (let i = 0; i < parsed.scenes.length; i++) {
           const scene = parsed.scenes[i]
-          const photo = await fetchScenePhoto(parsed.concept, scene)
+          const svgData = await fetchSceneSVG(parsed.concept, scene, model)
           setScenes(prev => prev.map((s, idx) => idx === i
-            ? { ...s, photoUrl: photo.url, photoAlt: photo.alt, photoLoading: false }
+            ? { ...s, svgContent: svgData, photoLoading: false }
             : s
           ))
           if (i < parsed.scenes.length - 1) {
@@ -640,7 +639,7 @@ If source material is provided, base the scenes on its actual content, not gener
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
             {savedImages.map((img, i) => (
               <div key={i} style={{ border: "0.5px solid #1A1A1A", background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
-                <img src={img.url} alt={img.concept} style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }} />
+                {img.url.startsWith("data:image/svg") ? <div dangerouslySetInnerHTML={{ __html: decodeURIComponent(img.url.replace("data:image/svg+xml;utf8,", "")) }} style={{ width: "100%", height: 140, display: "block" }} /> : <img src={img.url} alt={img.concept} style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }} />}
                 <div style={{ padding: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#8b1a2a", marginBottom: 3, letterSpacing: "0.08em", textTransform: "uppercase" }}>{img.concept}</div>
                   <p style={{ fontSize: 11, color: "#888", margin: 0, fontStyle: "italic", lineHeight: 1.4 }}>"{img.anchor}"</p>
@@ -677,25 +676,7 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
 
   // DOM-level fallback cascade: Wikimedia/Pexels already resolved by fetchScenePhoto.
   // This handles render-time failures: LoremFlickr → Unsplash → Picsum
-  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget
-    const src = img.src
-    const seed = Math.abs((concept + scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0))
-    const safeQ = safeQuery(scene.unsplashQuery)
 
-    if (src.includes("wikipedia") || src.includes("wikimedia") || src.includes("pexels")) {
-      // Wikimedia/Pexels image failed at render time → try LoremFlickr
-      const keyword = encodeURIComponent(safeQ.split(" ").slice(0, 2).join(","))
-      img.src = `https://loremflickr.com/800/500/${keyword}?lock=${seed}`
-    } else if (src.includes("loremflickr")) {
-      const keyword = encodeURIComponent(safeQ)
-      img.src = `https://source.unsplash.com/800x500/?${keyword}&sig=${seed}`
-    } else if (src.includes("unsplash")) {
-      img.src = `https://picsum.photos/seed/${seed}/800/500`
-    } else {
-      img.style.display = "none"
-    }
-  }
 
   return (
     <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, overflow: "hidden" }}>
@@ -704,14 +685,10 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: 24, height: 24, border: `2px solid #222`, borderTopColor: TEAL, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
           </div>
+        ) : scene.svgContent ? (
+          <div dangerouslySetInnerHTML={{ __html: scene.svgContent }} style={{ width: "100%", height: "100%", display: "block", background: "#160810" }} />
         ) : scene.photoUrl ? (
-          <img
-            src={scene.photoUrl}
-            alt={scene.photoAlt ?? scene.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            loading="lazy"
-            onError={handleImgError}
-          />
+          <img src={scene.photoUrl} alt={scene.photoAlt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,196,180,0.05)" }}>
             <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth={1} opacity={0.3}>
@@ -759,9 +736,9 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
           {scene.photoUrl && (
             <button
               onClick={() => {
-                const entry = { url: scene.photoUrl!, concept, anchor: scene.anchorPhrase, savedAt: new Date().toISOString() };
+                const entry = { url: scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl!, concept, anchor: scene.anchorPhrase, savedAt: new Date().toISOString() };
                 setSavedImages(prev => {
-                  const updated = [entry, ...prev.filter(s => s.url !== scene.photoUrl)];
+                  const updated = [entry, ...prev.filter(s => s.url !== (scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl))];
                   localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
                   return updated;
                 });

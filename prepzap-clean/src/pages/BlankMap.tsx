@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -25,7 +26,8 @@ export default function BlankMap() {
 
 
   const [phase, setPhase] = useState<"setup"|"mapping"|"scored">("setup");
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState("")
+  const [branches, setBranches] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState("");
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -321,6 +323,7 @@ export default function BlankMap() {
           </button>
         </div>
       </div>
+      <CompanionSidebar />
     </ToolPageShell>
   );
 }

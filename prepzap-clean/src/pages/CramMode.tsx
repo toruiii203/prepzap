@@ -21,7 +21,9 @@ interface CramTopic {
 type Phase = "setup" | "session" | "done";
 
 export default function CramMode() {
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState("")
+  const [timeHours, setTimeHours] = useState(2)
+  const [panicMode, setPanicMode] = useState(false);
   const [hoursAvailable, setHoursAvailable] = useState("2");
   const [loading, setLoading] = useState(false);
   const [topics, setTopics] = useState<CramTopic[]>([]);
