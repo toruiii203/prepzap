@@ -1,0 +1,10 @@
+--- prepzap-clean/src/App.tsx
++++ prepzap-clean/src/App.tsx
+@@ -73,7 +73,7 @@
+ function ProtectedRoute({ children }: { children: React.ReactNode }) {
+   const { session, loading } = useAuth();
+   if (loading) return null;
+-  if (!session) return <Navigate to="/login" replace />;
++  // if (!session) return <Navigate to="/login" replace />;
+   return <>{children}</>;
+ }

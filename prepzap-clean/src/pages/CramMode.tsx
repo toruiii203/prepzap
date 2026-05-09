@@ -63,7 +63,7 @@ export default function CramMode() {
     setLoading(true);
     try {
       const totalMins = parseFloat(hoursAvailable) * 60;
-      const prompt = `Create a cram session for: "${effectiveSubject || "the study material below"}". Total time: ${totalMins} minutes.
+      const prompt = `Create a cram session for: "${effectiveSubject || "the study material below"}". Total time: ${totalMins} minutes. Urgency level: ${urgency.toUpperCase()}. ${urgency === 'panic' ? 'FOCUS ONLY ON HIGH-YIELD MUST-KNOW FACTS.' : 'Provide a balanced overview.'}
 ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"topic":"string","keyPoints":["string","string","string"],"timeMinutes":number}]
@@ -112,21 +112,49 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--pz-rose)" }} />
               <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>Emergency mode — walks you through each topic with a live timer. Stay focused.</p>
             </div>
+            <div className="mt-4">
+              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Urgency Level</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setUrgency('normal')}
+                  className="flex-1 py-2 text-sm font-semibold transition-colors"
+                  style={{
+                    border: `1px solid ${urgency === 'normal' ? 'var(--pz-gold)' : 'var(--pz-border)'}`,
+                    background: urgency === 'normal' ? 'var(--pz-surface3)' : 'var(--pz-surface2)',
+                    color: urgency === 'normal' ? 'var(--pz-text)' : 'var(--pz-text-muted)'
+                  }}
+                >
+                  Normal
+                </button>
+                <button
+                  onClick={() => setUrgency('panic')}
+                  className="flex-1 py-2 text-sm font-semibold transition-colors"
+                  style={{
+                    border: `1px solid ${urgency === 'panic' ? 'var(--pz-rose)' : 'var(--pz-border)'}`,
+                    background: urgency === 'panic' ? 'rgba(232,64,64,0.1)' : 'var(--pz-surface2)',
+                    color: urgency === 'panic' ? 'var(--pz-rose)' : 'var(--pz-text-muted)'
+                  }}
+                >
+                  Panic Mode 🚨
+                </button>
+              </div>
+            </div>
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
               placeholder="e.g. Organic Chemistry, WW2, Calculus…"
               label="Subject / Topic"
             />
             <div>
-              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Time Available</label>
-              <div className="flex gap-2 flex-wrap">
-                {["0.5", "1", "1.5", "2", "3", "4"].map(h => (
-                  <button key={h} onClick={() => setHoursAvailable(h)} className="px-3 py-1.5 text-xs"
-                    style={{ border: `1px solid ${hoursAvailable === h ? "var(--pz-gold)" : "var(--pz-border)"}`, background: hoursAvailable === h ? "var(--pz-gold-dim)" : "var(--pz-surface2)", color: hoursAvailable === h ? "var(--pz-gold)" : "var(--pz-text-muted)", fontWeight: hoursAvailable === h ? 700 : 400 }}>
-                    {parseFloat(h) < 1 ? `${parseFloat(h) * 60}min` : `${h}hr`}
-                  </button>
-                ))}
-              </div>
+              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Time Available: {hoursAvailable} hour{parseFloat(hoursAvailable) !== 1 ? 's' : ''}</label>
+              <input
+                type="range"
+                min="1"
+                max="8"
+                step="0.5"
+                value={hoursAvailable}
+                onChange={(e) => setHoursAvailable(e.target.value)}
+                className="w-full accent-[var(--pz-gold)]"
+              />
             </div>
           </div>
         )}
