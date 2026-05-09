@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { TextSkeleton } from "@/components/SkeletonLoader";
 import { buildAIContext } from "@/lib/sourceContext";
 import { useState, useRef, useEffect } from "react";
@@ -30,9 +31,9 @@ export default function SpotError() {
     try { return JSON.parse(localStorage.getItem("pz_spoterror_scores") || '{"correct":0,"total":0,"played":0}'); } catch { return {correct:0,total:0,played:0}; }
   });
   const [timeLeft, setTimeLeft] = useState(90);
-  const timerRef = useRef<ReturnType<typeof setNunitoval>|null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval>|null>(null);
   // Cleanup on unmount
-  useEffect(() => () => { if (timerRef.current) clearNunitoval(timerRef.current); }, []);
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
   const [selectedText, setSelectedText] = useState("");
 
   const start = async () => {
@@ -58,7 +59,7 @@ export default function SpotError() {
       const parsed = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]??clean);
       setPassage(parsed.passage); setErrors(parsed.errors); setFound([]);
       setTimeLeft(timeLimit); setPhase("hunt");
-      const t = setNunitoval(()=>setTimeLeft(prev=>{if(prev<=1){clearNunitoval(t);saveScore(found.length);setPhase("revealed");return 0;}return prev-1;}),1000);
+      const t = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(t);saveScore(found.length);setPhase("revealed");return 0;}return prev-1;}),1000);
       timerRef.current = t;
     } catch(e) { setError(e instanceof Error?e.message:"Failed to generate passage"); }
     finally { setIsLoading(false); }
@@ -77,17 +78,18 @@ export default function SpotError() {
     if (isReal) {
       const newFound = [...found, sel];
       setFound(newFound);
-      if (newFound.length >= errors.length) { if(timerRef.current)clearNunitoval(timerRef.current); setPhase("revealed"); }
+      if (newFound.length >= errors.length) { if(timerRef.current)clearInterval(timerRef.current); setPhase("revealed"); }
     }
   };
 
-  const reveal = () => { if(timerRef.current)clearNunitoval(timerRef.current); saveScore(found.length); setPhase("revealed"); };
+  const reveal = () => { if(timerRef.current)clearInterval(timerRef.current); saveScore(found.length); setPhase("revealed"); };
 
   const mm = String(Math.floor(timeLeft/60)).padStart(2,"0");
   const ss = String(timeLeft%60).padStart(2,"0");
 
   return (
     <ToolPageShell>
+      <CompanionSidebar />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}

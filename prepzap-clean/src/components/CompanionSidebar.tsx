@@ -113,26 +113,23 @@ export function CompanionSidebar() {
   };
 
   useEffect(() => {
-    // Intercept fetch requests to know when AI is responding
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const url = args[0] as string;
-      if (url && typeof url === "string" && url.includes("api.groq.com")) {
-        setPose("thinking");
-        try {
-          const res = await originalFetch(...args);
-          setPose("hype");
-          setMsgIdx((prev) => (prev + 1) % MESSAGES.length);
-          setTimeout(() => setPose("idle"), 2000);
-          return res;
-        } catch (err) {
-          setPose("idle");
-          throw err;
-        }
-      }
-      return originalFetch(...args);
+    const handleStart = () => setPose("thinking");
+    const handleEnd = () => {
+      setPose("hype");
+      setMsgIdx((prev) => (prev + 1) % MESSAGES.length);
+      setTimeout(() => setPose("idle"), 2000);
     };
-    return () => { window.fetch = originalFetch; };
+    const handleError = () => setPose("idle");
+
+    window.addEventListener("ai_start", handleStart);
+    window.addEventListener("ai_end", handleEnd);
+    window.addEventListener("ai_error", handleError);
+
+    return () => {
+      window.removeEventListener("ai_start", handleStart);
+      window.removeEventListener("ai_end", handleEnd);
+      window.removeEventListener("ai_error", handleError);
+    };
   }, []);
 
   return (

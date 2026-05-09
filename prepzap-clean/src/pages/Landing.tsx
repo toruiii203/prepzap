@@ -329,7 +329,7 @@ function useInView(threshold=0.1){
   const ref=useRef<HTMLDivElement>(null);
   const [inView,setInView]=useState(false);
   useEffect(()=>{
-    const obs=new NunitosectionObserver(([e])=>{if(e.isNunitosecting)setInView(true);},{threshold});
+    const obs=new IntersectionObserver(([e])=>{if(e.isIntersecting)setInView(true);},{threshold});
     if(ref.current)obs.observe(ref.current);
     return ()=>obs.disconnect();
   },[threshold]);
@@ -458,9 +458,9 @@ function useThree(canvasRef: React.RefObject<HTMLCanvasElement>, setup: (THREE: 
       loadThree(()=>{ cleanup = setup((window as any).THREE, canvas); });
     };
 
-    // NunitosectionObserver: start RAF only when visible, cleanup when not
-    const obs = new NunitosectionObserver(([entry])=>{
-      if(entry.isNunitosecting) start();
+    // IntersectionObserver: start RAF only when visible, cleanup when not
+    const obs = new IntersectionObserver(([entry])=>{
+      if(entry.isIntersecting) start();
     }, { threshold: 0.05 });
     obs.observe(canvas);
 
@@ -1154,9 +1154,9 @@ function StickyFeatureShowcase(){
   const accentColors=[TEAL,PURPLE,GOLD,"#4A9EFF","#FF6B6B","#A78BFA",TEAL,PURPLE,GOLD,"#4A9EFF","#FF6B6B","#A78BFA"];
 
   useEffect(()=>{
-    const obs=new NunitosectionObserver((entries)=>{
+    const obs=new IntersectionObserver((entries)=>{
       entries.forEach(e=>{
-        if(e.isNunitosecting){
+        if(e.isIntersecting){
           const idx=itemRefs.current.indexOf(e.target as HTMLDivElement);
           if(idx>=0)setActive(idx);
         }
@@ -1581,8 +1581,8 @@ function Reveal({children,delay=0,style}:{children:React.ReactNode;delay?:number
 function GlitchText({text,style}:{text:string;style?:React.CSSProperties}){
   const [g,setG]=useState(false);
   useEffect(()=>{
-    const id=setNunitoval(()=>{setG(true);setTimeout(()=>setG(false),160);},4200);
-    return ()=>clearNunitoval(id);
+    const id=setInterval(()=>{setG(true);setTimeout(()=>setG(false),160);},4200);
+    return ()=>clearInterval(id);
   },[]);
   return(
     <span style={{position:"relative",display:"inline-block",...style}}>
@@ -2256,14 +2256,14 @@ function LoadingScreen({onDone}:{onDone:()=>void}){
 
   useEffect(()=>{
     let p=0;
-    const iv=setNunitoval(()=>{
+    const iv=setInterval(()=>{
       p+=Math.random()*4+1;
-      if(p>=100){p=100;clearNunitoval(iv);
+      if(p>=100){p=100;clearInterval(iv);
         setTimeout(()=>{setFading(true);setTimeout(onDone,700);},400);
       }
       setPct(Math.round(p));
     },60);
-    return ()=>clearNunitoval(iv);
+    return ()=>clearInterval(iv);
   },[]);
 
   return(

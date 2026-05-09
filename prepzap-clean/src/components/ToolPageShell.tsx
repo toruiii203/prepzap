@@ -120,6 +120,18 @@ const QUICK_TOOLS = [
   { href: "/math", label: "Math Solver" },
   { href: "/spot-error", label: "Error Hunt" },
   { href: "/timer", label: "Pomodoro" },
+  { href: "/feynman", label: "Feynman Mode" },
+  { href: "/cram", label: "Cram Mode" },
+  { href: "/recall", label: "Recall Mode" },
+  { href: "/high-yield", label: "High Yield Detector" },
+  { href: "/visual-learner", label: "Visual Learner" },
+  { href: "/flip-script", label: "Flip Script" },
+  { href: "/build-def", label: "Concept Builder" },
+  { href: "/blank-map", label: "Blank Map" },
+  { href: "/confidence", label: "Confidence Calibrator" },
+  { href: "/tool-architect", label: "Tool Architect" },
+  { href: "/mistakes", label: "Mistake Journal" },
+  { href: "/boss-round", label: "Boss Round" },
 ];
 
 function StudyToolsDropdown() {

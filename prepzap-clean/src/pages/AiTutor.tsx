@@ -101,7 +101,7 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setNunitoval> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   const SHORT_BREAK = 5;
@@ -151,16 +151,16 @@ function PomodoroWidget({ darkMode }: { darkMode: boolean }) {
   }, [playAlarm, workMins]);
 
   useEffect(() => {
-    if (!running) { if (intervalRef.current) clearNunitoval(intervalRef.current); return; }
+    if (!running) { if (intervalRef.current) clearInterval(intervalRef.current); return; }
     let localPhase = phase;
     let localSessions = sessions;
-    intervalRef.current = setNunitoval(() => {
+    intervalRef.current = setInterval(() => {
       setSecs(s => {
         if (s <= 1) { advance(localPhase, localSessions); return 0; }
         return s - 1;
       });
     }, 1000);
-    return () => { if (intervalRef.current) clearNunitoval(intervalRef.current); };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [running]);
 
   const reset = () => { setRunning(false); setSecs(workMins * 60); setPhase("work"); setSessions(0); };

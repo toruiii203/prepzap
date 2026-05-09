@@ -9,9 +9,11 @@ import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyS
  */
 
 import { useState, useEffect } from "react"
+import DOMPurify from 'dompurify';
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
+import { CompanionSidebar } from "@/components/CompanionSidebar"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL   = "#8b1a2a"
@@ -24,14 +26,6 @@ const TEXT   = "#F0F0F0"
 const FONT   = "'Nunito', system-ui, sans-serif"
 
 // ── Safety blocklist ──────────────────────────────────────────────────────────
-const BLOCKED = ["nude","naked","gore","violence","weapon","gun","knife","blood","death","war","sexy","adult","nsfw"]
-function safeQuery(q: string): string {
-  const lower = q.toLowerCase()
-  for (const word of BLOCKED) {
-    if (lower.includes(word)) return "abstract educational background texture"
-  }
-  return q
-}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Scene {
@@ -243,10 +237,10 @@ export default function VisualLearner() {
   useEffect(() => {
     if (phase !== "loading") { setProgress(0); return }
     setProgress(10)
-    const interval = setNunitoval(() => {
+    const interval = setInterval(() => {
       setProgress(p => p < 85 ? p + Math.random() * 8 : p)
     }, 600)
-    return () => clearNunitoval(interval)
+    return () => clearInterval(interval)
   }, [phase])
 
   // Extract key concept chips from active source
@@ -387,6 +381,7 @@ If source material is provided, base the scenes on its actual content, not gener
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "setup") return (
     <ToolPageShell key="shell">
+      <CompanionSidebar />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}

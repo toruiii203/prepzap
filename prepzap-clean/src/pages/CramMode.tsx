@@ -30,7 +30,7 @@ export default function CramMode() {
   const [completed, setCompleted] = useState<number[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalUsed, setTotalUsed] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setNunitoval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const ctx = buildAIContext();
   const activeSource = getActiveSource();
@@ -44,18 +44,18 @@ export default function CramMode() {
   }, []);
 
   const startTopicTimer = (minutes: number) => {
-    if (timerRef.current) clearNunitoval(timerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
     setTimeLeft(minutes * 60);
-    timerRef.current = setNunitoval(() => {
+    timerRef.current = setInterval(() => {
       setTimeLeft(t => {
-        if (t <= 1) { clearNunitoval(timerRef.current!); return 0; }
+        if (t <= 1) { clearInterval(timerRef.current!); return 0; }
         setTotalUsed(u => u + 1);
         return t - 1;
       });
     }, 1000);
   };
 
-  useEffect(() => () => { if (timerRef.current) clearNunitoval(timerRef.current); }, []);
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   const handleGenerate = async () => {
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
@@ -82,7 +82,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
   };
 
   const handleGotIt = () => {
-    if (timerRef.current) clearNunitoval(timerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
     const newCompleted = [...completed, currentIdx];
     setCompleted(newCompleted);
     if (currentIdx + 1 < topics.length) {

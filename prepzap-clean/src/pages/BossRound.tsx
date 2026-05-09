@@ -36,7 +36,7 @@ export default function BossRound() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
   const [timeLeft, setTimeLeft] = useState(300);
-  const [timerRef, setTimerRef] = useState<ReturnType<typeof setNunitoval>|null>(null);
+  const [timerRef, setTimerRef] = useState<ReturnType<typeof setInterval>|null>(null);
 
   const start = async () => {
     const hasSource = buildAIContext().length > 0;
@@ -57,7 +57,7 @@ export default function BossRound() {
       setCurrent(0); setSelected(null); setAnswered(false); setResults([]); setTimeLeft(300);
       setPhase("quiz");
       toast.success(`Boss Round ready — ${difficulty} mode!`);
-      const t = setNunitoval(()=>setTimeLeft(prev=>{if(prev<=1){clearNunitoval(t);return 0;}return prev-1;}),1000);
+      const t = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(t);return 0;}return prev-1;}),1000);
       setTimerRef(t);
     } catch(e) { setError(e instanceof Error?e.message:"Error"); }
     finally { setIsLoading(false); }
@@ -68,7 +68,7 @@ export default function BossRound() {
   const next = () => {
     const newResults = [...results, {correct:selected===questions[current].correct,selected:selected??-1,correct_idx:questions[current].correct}];
     setResults(newResults);
-    if (current+1 >= questions.length) { if(timerRef) clearNunitoval(timerRef); setPhase("done"); }
+    if (current+1 >= questions.length) { if(timerRef) clearInterval(timerRef); setPhase("done"); }
     else { setCurrent(c=>c+1); setSelected(null); setAnswered(false); }
   };
 

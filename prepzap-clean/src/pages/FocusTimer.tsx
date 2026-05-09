@@ -31,7 +31,7 @@ interface PersistedTimer {
 
 function useBeep() {
   const ctxRef = useRef<AudioContext | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setNunitoval> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const getCtx = () => {
     if (!ctxRef.current || ctxRef.current.state === "closed") ctxRef.current = new AudioContext()
@@ -57,11 +57,11 @@ function useBeep() {
 
   const startLoop = useCallback(() => {
     playOnce()
-    intervalRef.current = setNunitoval(playOnce, 3000)
+    intervalRef.current = setInterval(playOnce, 3000)
   }, [playOnce])
 
   const stopLoop = useCallback(() => {
-    if (intervalRef.current) { clearNunitoval(intervalRef.current); intervalRef.current = null }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
   }, [])
 
   useEffect(() => () => stopLoop(), [stopLoop])
@@ -176,7 +176,7 @@ export default function FocusTimer() {
   useEffect(() => {
     if (!isRunning) return
     if (seconds === 0) { handleComplete(); return }
-    const t = setNunitoval(() => {
+    const t = setInterval(() => {
       setSeconds(() => {
         try {
           const raw = localStorage.getItem(LS_KEY)
@@ -188,7 +188,7 @@ export default function FocusTimer() {
         return Math.max(0, seconds - 1)
       })
     }, 1000)
-    return () => clearNunitoval(t)
+    return () => clearInterval(t)
   }, [isRunning, seconds, handleComplete])
 
   const handleStart = () => {

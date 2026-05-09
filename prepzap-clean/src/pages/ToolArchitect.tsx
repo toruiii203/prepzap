@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react"
@@ -151,6 +152,7 @@ export default function ToolArchitect() {
 
   return (
     <ToolPageShell>
+      <CompanionSidebar />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
