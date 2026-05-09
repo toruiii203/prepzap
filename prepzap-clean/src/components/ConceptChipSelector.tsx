@@ -18,12 +18,12 @@ import { callGroq } from "@/lib/groq"
 import { getActiveSource } from "@/lib/sourceContext"
 
 // ── Design tokens (matches app-wide dark-luxe system) ────────────────────────
-const TEAL   = "#00C4B4"
+const TEAL   = "#8b1a2a"
 const BORDER = "#252525"
 const MUTED  = "#555"
 const TEXT   = "#F0F0F0"
-const CARD   = "#0E0E0E"
-const FONT   = "'Inter', system-ui, sans-serif"
+const CARD   = "#1f0b13"
+const FONT   = "'Nunito', system-ui, sans-serif"
 
 // Fallback topic bank used when no source is active
 const FALLBACK_TOPICS = [

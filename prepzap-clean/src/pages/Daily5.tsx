@@ -146,7 +146,7 @@ export default function Daily5() {
           <div className="space-y-6 pt-4">
             {alreadyDone && (
               <div className="p-3 text-center" style={{ background: "rgba(0,196,180,0.06)", border: "0.5px solid rgba(0,196,180,0.25)" }}>
-                <p className="text-sm font-semibold" style={{ color: "#00C4B4" }}>✓ Completed today!</p>
+                <p className="text-sm font-semibold" style={{ color: "#8b1a2a" }}>✓ Completed today!</p>
                 <p className="text-xs mt-1" style={{ color: "#555" }}>Come back tomorrow. 🔥 {streak}-day streak</p>
               </div>
             )}
@@ -160,11 +160,11 @@ export default function Daily5() {
                   {days.map(d => {
                     const dow = new Date(d.date + "T12:00:00").getDay();
                     const pct = d.score !== null ? d.score / 5 : null;
-                    const bg = pct === null ? "#111" : pct >= 0.8 ? "#00C4B4" : pct >= 0.5 ? "rgba(0,196,180,0.5)" : "rgba(0,196,180,0.2)";
+                    const bg = pct === null ? "#111" : pct >= 0.8 ? "#8b1a2a" : pct >= 0.5 ? "rgba(0,196,180,0.5)" : "rgba(0,196,180,0.2)";
                     return (
                       <div key={d.date} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                         <div title={d.score !== null ? `${d.score}/5` : "No quiz"} style={{ width: 32, height: 32, background: bg, border: "0.5px solid #1A1A1A", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {d.score !== null && <span style={{ fontSize: 10, fontWeight: 700, color: pct! >= 0.5 ? "#000" : "#00C4B4", fontFamily: "monospace" }}>{d.score}/5</span>}
+                          {d.score !== null && <span style={{ fontSize: 10, fontWeight: 700, color: pct! >= 0.5 ? "#000" : "#8b1a2a", fontFamily: "monospace" }}>{d.score}/5</span>}
                         </div>
                         <span style={{ fontSize: 9, color: "#333", fontFamily: "monospace" }}>{DAY_LABELS[dow]}</span>
                       </div>
@@ -178,7 +178,7 @@ export default function Daily5() {
             <div style={{ display: "flex", justifyContent: "center", gap: 32 }}>
               {[{v:"5",l:"Questions"},{v:"<3m",l:"Target"},{v:`🔥${streak}`,l:"Streak"}].map(s=>(
                 <div key={s.l} style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#E8B923", fontFamily: "monospace" }}>{s.v}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "#f0a040", fontFamily: "monospace" }}>{s.v}</div>
                   <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{s.l}</div>
                 </div>
               ))}
@@ -190,7 +190,7 @@ export default function Daily5() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {SUBJECT_CHIPS.map(s => (
                   <button key={s} onClick={() => setSelectedSubject(prev => prev === s ? "" : s)}
-                    style={{ padding: "5px 10px", fontSize: 11, fontWeight: 600, border: `0.5px solid ${selectedSubject === s ? "#00C4B4" : "#252525"}`, background: selectedSubject === s ? "rgba(0,196,180,0.1)" : "rgba(255,255,255,0.02)", color: selectedSubject === s ? "#00C4B4" : "#666", cursor: "pointer", transition: "all .15s", fontFamily: "inherit" }}>
+                    style={{ padding: "5px 10px", fontSize: 11, fontWeight: 600, border: `0.5px solid ${selectedSubject === s ? "#8b1a2a" : "#252525"}`, background: selectedSubject === s ? "rgba(0,196,180,0.1)" : "rgba(255,255,255,0.02)", color: selectedSubject === s ? "#8b1a2a" : "#666", cursor: "pointer", transition: "all .15s", fontFamily: "inherit" }}>
                     {s}
                   </button>
                 ))}
@@ -201,12 +201,12 @@ export default function Daily5() {
 
             {buildAIContext().length > 0 && (
               <button onClick={() => start()} disabled={isLoading}
-                style={{ width: "100%", padding: "10px", fontSize: 12, fontWeight: 600, background: "rgba(232,185,35,0.08)", border: "0.5px solid rgba(232,185,35,0.3)", color: "#E8B923", cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ width: "100%", padding: "10px", fontSize: 12, fontWeight: 600, background: "rgba(232,185,35,0.08)", border: "0.5px solid rgba(232,185,35,0.3)", color: "#f0a040", cursor: "pointer", fontFamily: "inherit" }}>
                 ⚡ Quiz from Active Source{selectedSubject ? ` · ${selectedSubject}` : ""}
               </button>
             )}
             <button onClick={() => start()} disabled={isLoading}
-              style={{ width: "100%", padding: "12px", fontSize: 13, fontWeight: 700, background: "linear-gradient(135deg,#E8B923,#f59e0b)", color: "#0A0A0A", border: "none", cursor: isLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit", opacity: isLoading ? 0.7 : 1 }}>
+              style={{ width: "100%", padding: "12px", fontSize: 13, fontWeight: 700, background: "linear-gradient(135deg,#f0a040,#f59e0b)", color: "#0A0A0A", border: "none", cursor: isLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit", opacity: isLoading ? 0.7 : 1 }}>
               {isLoading
                 ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#0A0A0A", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Generating...</>
                 : <>⚡ Start{selectedSubject ? ` ${selectedSubject}` : " Random"} Quiz</>}

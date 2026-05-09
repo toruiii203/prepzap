@@ -4,10 +4,10 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { BarChart3, Clock, Target, Flame, Trophy, TrendingUp, Calendar } from "lucide-react"
 
-const TEAL  = "#00C4B4"
-const GOLD  = "#E8B923"
+const TEAL  = "#8b1a2a"
+const GOLD  = "#f0a040"
 const ROSE  = "#E84040"
-const FONT  = "'Inter', system-ui, sans-serif"
+const FONT  = "'Nunito', system-ui, sans-serif"
 const MONO  = "'Geist Mono', 'Courier New', monospace"
 
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
@@ -97,7 +97,7 @@ export default function Analytics() {
   const maxTool = topTools[0]?.[1] || 1
 
   const stat = (label: string, value: string | number, sub: string, color = TEAL) => (
-    <div style={{ flex: 1, padding: "16px", background: "#0E0E0E", border: "0.5px solid #1E1E1E" }}>
+    <div style={{ flex: 1, padding: "16px", background: "#1f0b13", border: "0.5px solid #1E1E1E" }}>
       <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: MONO, letterSpacing: "-0.02em" }}>{value}</div>
       <div style={{ fontSize: 10, color: "#F0F0F0", fontWeight: 600, marginTop: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</div>
       <div style={{ fontSize: 9, color: "#555", marginTop: 2 }}>{sub}</div>
@@ -146,7 +146,7 @@ export default function Analytics() {
             </div>
 
             {/* 7-day bar chart */}
-            <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px", marginTop: 1, marginBottom: 1 }}>
+            <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px", marginTop: 1, marginBottom: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <Clock style={{ color: TEAL, width: 14, height: 14 }} />
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Questions per day (last 7 days)</span>
@@ -167,7 +167,7 @@ export default function Analytics() {
             {/* Tool breakdown + recent activity side by side */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, marginBottom: 1 }}>
               {/* Tool usage */}
-              <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
+              <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <TrendingUp style={{ color: GOLD, width: 14, height: 14 }} />
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Top Tools Used</span>
@@ -192,7 +192,7 @@ export default function Analytics() {
               </div>
 
               {/* Recent activity */}
-              <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px", overflow: "hidden" }}>
+              <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px", overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <Calendar style={{ color: TEAL, width: 14, height: 14 }} />
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Recent Sessions</span>
@@ -224,7 +224,7 @@ export default function Analytics() {
             </div>
 
             {/* Milestones based on real data */}
-            <div style={{ background: "#0E0E0E", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
+            <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                 <Trophy style={{ color: GOLD, width: 14, height: 14 }} />
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Milestones</span>

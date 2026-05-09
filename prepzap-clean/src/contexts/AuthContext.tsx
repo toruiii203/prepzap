@@ -31,6 +31,7 @@ export interface UserProfile {
   daily_goal_minutes: number
   questions_answered: number
   accuracy_percent: number
+  avatar_config?: any // Added for Avatar Studio
 }
 
 interface AuthContextValue {
@@ -71,6 +72,7 @@ function defaultProfile(user: User): UserProfile {
     daily_goal_minutes: 60,
     questions_answered: 0,
     accuracy_percent: 0,
+    avatar_config: {},
   }
 }
 
@@ -91,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, email, plan, credits_remaining, total_xp, streak_days, daily_goal_minutes, questions_answered, accuracy_percent"
+        "id, full_name, email, plan, credits_remaining, total_xp, streak_days, daily_goal_minutes, questions_answered, accuracy_percent, avatar_config"
       )
       .eq("id", u.id)
       .single()

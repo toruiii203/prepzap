@@ -15,8 +15,8 @@ import { supabase } from "@/lib/supabase"
 type Theme = "light" | "dark" | "system"
 type DailyGoal = 15 | 30 | 45 | 60 | 90 | 120
 
-const TEAL = "#00C4B4"
-const GOLD = "#E8B923"
+const TEAL = "#8b1a2a"
+const GOLD = "#f0a040"
 const SUBJECTS_LIST = ["Biology", "Chemistry", "Math", "Physics", "History", "English", "Economics"]
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
@@ -75,7 +75,7 @@ export default function Settings() {
     fontSize: 11,
     fontWeight: 600,
     cursor: "pointer",
-    fontFamily: "'Inter',system-ui,sans-serif",
+    fontFamily: "'Nunito',system-ui,sans-serif",
     display: "flex",
     alignItems: "center",
     gap: 6,

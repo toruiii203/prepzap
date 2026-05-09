@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { buildAIContext, buildImageMessages, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -493,6 +494,7 @@ Formatting:
 
   return (
     <div className="min-h-screen flex flex-col bg-background transition-colors duration-300">
+      <CompanionSidebar />
       {/* Desktop Navbar */}
       <div className="hidden md:block">
         <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 16px",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.5)"}}>
@@ -687,7 +689,7 @@ Formatting:
                         {[
                           { label: "Extract key concepts", icon: "🔑" },
                           { label: "Quiz me on it", icon: "❓" },
-                          { label: "Explain the main ideas", icon: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#E8B923" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><path d="M9 21h6M12 3a6 6 0 016 6c0 2.5-1.4 4.7-3.5 5.9l-.5.3V18H10v-2.8l-.5-.3C7.4 13.7 6 11.5 6 9a6 6 0 016-6z"/></svg></> },
+                          { label: "Explain the main ideas", icon: <><svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#f0a040" strokeWidth={1.8} strokeLinecap="round" style={{flexShrink:0}}><path d="M9 21h6M12 3a6 6 0 016 6c0 2.5-1.4 4.7-3.5 5.9l-.5.3V18H10v-2.8l-.5-.3C7.4 13.7 6 11.5 6 9a6 6 0 016-6z"/></svg></> },
                           { label: "Create flashcards", icon: "🃏" },
                         ].map(a => (
                           <button key={a.label}

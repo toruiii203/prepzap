@@ -7,7 +7,7 @@
 import { useState, useCallback } from "react"
 import { X, Clock, ChevronRight } from "lucide-react"
 
-const TEAL = "#00C4B4"
+const TEAL = "#8b1a2a"
 const MAX = 50
 
 export interface HistoryEntry {
@@ -94,7 +94,7 @@ export function ToolHistoryPanel({
         position: "fixed", top: 0, right: 0, bottom: 0, width: 300,
         background: "#0A0A0A", borderLeft: "0.5px solid #252525",
         zIndex: 81, display: "flex", flexDirection: "column",
-        fontFamily: "'Inter',system-ui,sans-serif",
+        fontFamily: "'Nunito',system-ui,sans-serif",
         boxShadow: "-8px 0 32px rgba(0,0,0,0.6)",
       }}>
         {/* Header */}
@@ -169,7 +169,7 @@ export function ToolHistoryPanel({
 // ─── History Trigger Button ───────────────────────────────────────────────────
 export function HistoryButton({ count, onClick }: { count: number; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "transparent", border: "0.5px solid #252525", color: "#555", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',system-ui,sans-serif", letterSpacing: "0.06em", transition: "all .2s", position: "relative" }}
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "transparent", border: "0.5px solid #252525", color: "#555", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'Nunito',system-ui,sans-serif", letterSpacing: "0.06em", transition: "all .2s", position: "relative" }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = TEAL; e.currentTarget.style.color = TEAL }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555" }}>
       <Clock size={10} />

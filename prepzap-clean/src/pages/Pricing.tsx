@@ -4,8 +4,8 @@ import { ToolPageShell } from "@/pages/ToolPageShell"
 import { Check, X, ChevronDown, ChevronUp, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const TEAL = "#00C4B4"
-const GOLD = "#E8B923"
+const TEAL = "#8b1a2a"
+const GOLD = "#f0a040"
 
 const plans = [
   {

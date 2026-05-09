@@ -239,8 +239,8 @@ DATA:${dataUrl}`,
               </Link>
               <span style={{ color: "#252525" }}>|</span>
               <div className="flex items-center gap-2">
-                <div style={{ width: 32, height: 32, background: "rgba(0,196,180,0.1)", border: "0.5px solid #00C4B4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Layers className="h-4 w-4" style={{ color: "#00C4B4" }} />
+                <div style={{ width: 32, height: 32, background: "rgba(0,196,180,0.1)", border: "0.5px solid #8b1a2a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Layers className="h-4 w-4" style={{ color: "#8b1a2a" }} />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold" style={{ letterSpacing: "-0.01em" }}>Source Library</h1>
@@ -280,7 +280,7 @@ DATA:${dataUrl}`,
                 onClick={() => sources.length < MAX_FILES && inputRef.current?.click()}
                 className="flex flex-col items-center justify-center gap-3 py-10 px-4 text-center transition-all"
                 style={{
-                  border: `1.5px dashed ${dragging ? "#00C4B4" : "#252525"}`,
+                  border: `1.5px dashed ${dragging ? "#8b1a2a" : "#252525"}`,
                   background: dragging ? "rgba(0,196,180,0.05)" : "rgba(255,255,255,0.02)",
                   cursor: sources.length >= MAX_FILES ? "not-allowed" : "pointer",
                   opacity: sources.length >= MAX_FILES ? 0.5 : 1,
@@ -302,7 +302,7 @@ DATA:${dataUrl}`,
                 onClick={openCamera}
                 disabled={sources.length >= MAX_FILES}
                 className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: "rgba(0,196,180,0.05)", border: "0.5px solid #00C4B4", color: "#00C4B4" }}
+                style={{ background: "rgba(0,196,180,0.05)", border: "0.5px solid #8b1a2a", color: "#8b1a2a" }}
               >
                 <Camera className="h-3.5 w-3.5" /> Capture with Camera
               </button>
@@ -317,7 +317,7 @@ DATA:${dataUrl}`,
                 <p style={{ color: "#555" }}>Use the context bar (top-right) to choose which sources every AI tool uses.</p>
                 {[["General AI","Built-in AI only"],["All Sources","All files injected"],["Pick Sources","Specific files"]].map(([m,d]) => (
                   <div key={m} className="flex gap-2">
-                    <span style={{ color: "#00C4B4" }}>›</span>
+                    <span style={{ color: "#8b1a2a" }}>›</span>
                     <span><span style={{ color: "#C0C0C0" }}>{m}</span><span style={{ color: "#555" }}> — {d}</span></span>
                   </div>
                 ))}
@@ -356,17 +356,17 @@ DATA:${dataUrl}`,
                     return (
                       <div key={s.id} style={{
                         background: isSel ? "rgba(0,196,180,0.05)" : "rgba(255,255,255,0.02)",
-                        border: `0.5px solid ${isSel ? "#00C4B4" : "#252525"}`,
+                        border: `0.5px solid ${isSel ? "#8b1a2a" : "#252525"}`,
                         transition: "all .15s",
                       }}>
                         <div className="flex items-start gap-3 px-3 py-2.5">
                           <button onClick={() => toggleSel(s.id)}
                             className="mt-0.5 w-4 h-4 flex-shrink-0 flex items-center justify-center border transition-all"
-                            style={{ background: isSel ? "#00C4B4" : "transparent", borderColor: isSel ? "#00C4B4" : "#333" }}>
+                            style={{ background: isSel ? "#8b1a2a" : "transparent", borderColor: isSel ? "#8b1a2a" : "#333" }}>
                             {isSel && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3L3 5L7 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/></svg>}
                           </button>
                           <div style={{ width: 32, height: 32, background: "rgba(0,196,180,0.06)", border: "0.5px solid #1E3C3C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <IconEl className="h-3.5 w-3.5" style={{ color: "#00C4B4" }} />
+                            <IconEl className="h-3.5 w-3.5" style={{ color: "#8b1a2a" }} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold truncate" style={{ color: "#E0E0E0" }}>{s.name}</p>
@@ -416,11 +416,11 @@ DATA:${dataUrl}`,
                   <button key={tool.href} onClick={() => sendToTool(tool.href)}
                     className="flex items-start gap-2.5 px-3 py-3 text-left transition-all"
                     style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#00C4B4"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
                   >
                     <div style={{ width: 26, height: 26, background: "rgba(0,196,180,0.08)", border: "0.5px solid #1E3C3C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                      <tool.icon className="h-3 w-3" style={{ color: "#00C4B4" }} />
+                      <tool.icon className="h-3 w-3" style={{ color: "#8b1a2a" }} />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate" style={{ color: "#C0C0C0" }}>{tool.label}</p>
@@ -437,10 +437,10 @@ DATA:${dataUrl}`,
       {/* Camera Modal */}
       {cameraOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
-          <div className="relative w-full max-w-lg mx-4" style={{ background: "#0E0E0E", border: "0.5px solid #252525" }}>
+          <div className="relative w-full max-w-lg mx-4" style={{ background: "#1f0b13", border: "0.5px solid #252525" }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "0.5px solid #252525" }}>
               <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4" style={{ color: "#00C4B4" }} />
+                <Camera className="h-4 w-4" style={{ color: "#8b1a2a" }} />
                 <span className="text-sm font-semibold" style={{ color: "#E0E0E0" }}>Capture Photo</span>
               </div>
               <button onClick={closeCamera} className="p-1 transition-opacity hover:opacity-70" style={{ color: "#555" }}>
@@ -456,10 +456,10 @@ DATA:${dataUrl}`,
               )}
               {cameraReady && (
                 <>
-                  <div className="absolute top-3 left-3 w-5 h-5" style={{ borderTop: "2px solid #00C4B4", borderLeft: "2px solid #00C4B4" }} />
-                  <div className="absolute top-3 right-3 w-5 h-5" style={{ borderTop: "2px solid #00C4B4", borderRight: "2px solid #00C4B4" }} />
-                  <div className="absolute bottom-3 left-3 w-5 h-5" style={{ borderBottom: "2px solid #00C4B4", borderLeft: "2px solid #00C4B4" }} />
-                  <div className="absolute bottom-3 right-3 w-5 h-5" style={{ borderBottom: "2px solid #00C4B4", borderRight: "2px solid #00C4B4" }} />
+                  <div className="absolute top-3 left-3 w-5 h-5" style={{ borderTop: "2px solid #8b1a2a", borderLeft: "2px solid #8b1a2a" }} />
+                  <div className="absolute top-3 right-3 w-5 h-5" style={{ borderTop: "2px solid #8b1a2a", borderRight: "2px solid #8b1a2a" }} />
+                  <div className="absolute bottom-3 left-3 w-5 h-5" style={{ borderBottom: "2px solid #8b1a2a", borderLeft: "2px solid #8b1a2a" }} />
+                  <div className="absolute bottom-3 right-3 w-5 h-5" style={{ borderBottom: "2px solid #8b1a2a", borderRight: "2px solid #8b1a2a" }} />
                 </>
               )}
             </div>
@@ -469,7 +469,7 @@ DATA:${dataUrl}`,
                 onClick={capturePhoto}
                 disabled={!cameraReady}
                 className="flex-shrink-0 flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: "#00C4B4", color: "#000" }}
+                style={{ background: "#8b1a2a", color: "#000" }}
               >
                 <Camera className="h-3.5 w-3.5" /> Capture
               </button>

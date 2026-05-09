@@ -1,3 +1,4 @@
+import { CompanionSidebar } from "@/components/CompanionSidebar";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect, useRef } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
@@ -100,6 +101,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
 
   return (
     <ToolPageShell>
+      <CompanionSidebar />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Cram Mode" subtitle="Guided timed session — one topic at a time" />
