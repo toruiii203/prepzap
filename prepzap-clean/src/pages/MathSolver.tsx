@@ -28,6 +28,18 @@ const FONT   = "'Nunito', system-ui, sans-serif"
 const MONO   = "'Geist Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace"
 
 // ── Math symbols ──────────────────────────────────────────────────────────────
+const handleHistorySelect = (entry: { prompt: string; output: string; [key: string]: any }) => {
+    try {
+      const parsed = JSON.parse(entry.output)
+      setResult(parsed)
+      setProblem(entry.prompt)
+      setPhase("result")
+    } catch {
+      setProblem(entry.prompt)
+      setPhase("input")
+    }
+  }
+
 const SYMBOLS = [
   { display: "x²", insert: "²" },
   { display: "√",  insert: "√" },

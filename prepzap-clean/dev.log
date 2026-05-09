@@ -11,3 +11,5 @@ Re-optimizing dependencies because lockfile has changed
 Browserslist: browsers data (caniuse-lite) is 11 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+3:34:44 AM [vite] hmr update /src/pages/MathSolver.tsx, /src/index.css
+3:35:50 AM [vite] hmr update /src/pages/MathSolver.tsx, /src/index.css
