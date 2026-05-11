@@ -27,17 +27,30 @@ export function AvatarDisplay({ config, pose = "idle" }: { config: any, pose?: "
     buddies.find((buddy) => buddy.imagePath === config?.imagePath);
 
   if (selectedBuddy) {
+    const shirt = config?.equipped?.Shirt;
+    const pants = config?.equipped?.Pants;
+    const hat = config?.equipped?.Hat;
+    const accessory = config?.equipped?.Accessory;
+    const bodyTint = config?.bodyColor;
+    const flipped = Boolean(config?.flipped);
     return (
       <div className={`w-full h-full ${animClass}`} style={{ transition: "all 0.3s ease-out" }}>
         <style>{`
           @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
           .animate-float { animation: float 3s ease-in-out infinite; }
         `}</style>
-        <img
-          src={selectedBuddy.imagePath}
-          alt={selectedBuddy.name}
-          style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
-        />
+        <div style={{ width: "100%", height: "100%", position: "relative", transform: flipped ? "scaleX(-1)" : "none" }}>
+          <img
+            src={selectedBuddy.imagePath}
+            alt={selectedBuddy.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
+          />
+          {bodyTint && <div style={{ position: "absolute", top: "28%", left: "28%", width: "44%", height: "42%", borderRadius: "50%", background: `${bodyTint}33` }} />}
+          {shirt && <div style={{ position: "absolute", bottom: "24%", left: "30%", width: "40%", height: "20%", borderRadius: 8, background: shirt.includes("teal") ? "#1ab9b4AA" : "#c73737AA" }} />}
+          {pants && <div style={{ position: "absolute", bottom: "10%", left: "32%", width: "36%", height: "14%", borderRadius: 8, background: pants.includes("gray") ? "#59616dAA" : "#243557AA" }} />}
+          {hat && <div style={{ position: "absolute", top: "8%", left: "32%", width: "36%", height: "12%", borderRadius: 999, background: hat.includes("crown") ? "#f5c242CC" : "#1f2430CC" }} />}
+          {accessory && <div style={{ position: "absolute", top: "36%", left: "34%", width: "32%", height: "10%", borderRadius: 999, border: "2px solid #dfe7f5", opacity: 0.9 }} />}
+        </div>
       </div>
     );
   }

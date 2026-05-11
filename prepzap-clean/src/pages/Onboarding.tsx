@@ -141,6 +141,12 @@ export default function Onboarding() {
         await supabase.from("profiles").upsert({
           id: user.id,
           full_name: name.trim(),
+          avatar_outfit: {
+            buddyId,
+            bodyColor: "#f0a040",
+            flipped: false,
+            equipped: {},
+          },
           // storing level/goals loosely if you have columns or inside metadata
         })
         
@@ -155,7 +161,6 @@ export default function Onboarding() {
         
         await refreshProfile()
       }
-      localStorage.setItem(`buddy_${user?.id || "guest"}`, buddyId)
       navigate("/avatar")
     } catch (err) {
       console.error(err)

@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/BottomNav"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import { levelFromXp, xpToNextLevel, xpProgressPercent, tierFromLevel, tierEmojiFromLevel } from "@/lib/xp"
+import { buddies } from "@/data/buddies"
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const GOLD   = "#f0a040"
@@ -181,7 +182,7 @@ const PLACES = [
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
 
   const [xp, setXp]                     = useState(0)
@@ -194,6 +195,15 @@ export default function Dashboard() {
   const [loading, setLoading]           = useState(true)
   const [showAll, setShowAll]           = useState(false)
   const [avatarLabel, setAvatarLabel]   = useState("Avatar")
+  const [buddyMessageIndex, setBuddyMessageIndex] = useState(0)
+
+  const BUDDY_IDLE_MESSAGES = [
+    "Tiny steps every day beat huge bursts.",
+    "Review mistakes first, then do new drills.",
+    "A 25-minute focus sprint starts now.",
+    "Teach one concept out loud for retention.",
+    "Hydrate + breathe, then continue.",
+  ]
 
   const [checks, setChecks] = useState<CheckItem[]>(() => {
     try { return JSON.parse(localStorage.getItem("pz_checklist") || "[]") } catch { return [] }
@@ -263,6 +273,13 @@ export default function Dashboard() {
 
   useEffect(() => { localStorage.setItem("pz_checklist", JSON.stringify(checks)) }, [checks])
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBuddyMessageIndex((prev) => (prev + 1) % BUDDY_IDLE_MESSAGES.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
+
   const addCheck    = () => { if (!cInput.trim()) return; setChecks(p => [...p, { id: Date.now().toString(), text: cInput.trim(), done: false }]); setCInput("") }
   const toggleCheck = (id: string) => setChecks(p => p.map(c => c.id === id ? { ...c, done: !c.done } : c))
   const removeCheck = (id: string) => setChecks(p => p.filter(c => c.id !== id))
@@ -315,6 +332,8 @@ export default function Dashboard() {
 
   const displayName = (user?.user_metadata?.username || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student").toUpperCase()
   const displayed   = showAll ? quickActions : quickActions.slice(0, 20)
+  const avatarOutfit = profile?.avatar_outfit as { buddyId?: string } | undefined
+  const selectedBuddy = buddies.find((b) => b.id === avatarOutfit?.buddyId) ?? buddies[0]
 
   // Heatmap
   const heatmap = useMemo(() => {
@@ -667,10 +686,15 @@ export default function Dashboard() {
               />
               <i className="ti ti-pencil" style={{ fontSize: 10, color: TEXT3 }}/>
             </div>
-            <div style={{ background: MAROON, borderRadius: 12, padding: 14, textAlign: "center", border: `2px solid #8b2030` }}>
-              <FoxAvatar size={72}/>
+            <div style={{ background: MAROON, borderRadius: 12, padding: 14, textAlign: "center", border: `2px solid #8b2030`, position: "relative" }}>
+              <div style={{ position: "absolute", top: -36, left: "50%", transform: "translateX(-50%)", maxWidth: 170, background: SURF, color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "6px 8px", fontSize: 10, lineHeight: 1.2 }}>
+                {BUDDY_IDLE_MESSAGES[buddyMessageIndex]}
+              </div>
+              <div style={{ width: 90, height: 90, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <img src={selectedBuddy.imagePath} alt={selectedBuddy.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              </div>
               <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 14, color: GOLD, marginTop: 6 }}>{displayName}</div>
-              <div style={{ fontSize: 11, color: TEXT2, marginTop: 2 }}>Bronze Fox · Lv. {level}</div>
+              <div style={{ fontSize: 11, color: TEXT2, marginTop: 2 }}>{selectedBuddy.name} Buddy · Lv. {level}</div>
             </div>
             <div style={{ marginTop: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: TEXT3, fontWeight: 700, marginBottom: 5 }}>

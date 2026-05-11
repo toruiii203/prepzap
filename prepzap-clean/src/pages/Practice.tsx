@@ -1,4 +1,4 @@
-import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
+import { loadHistory, addHistoryEntry, deleteHistoryEntry, saveHistory } from "@/lib/historyStore";
 import { QuestionSkeleton } from "@/components/SkeletonLoader";
 import { loadLibrary } from "@/lib/sourceContext";
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -272,7 +272,6 @@ export default function Practice() {
 
   const [phase, setPhase] = useState<"setup" | "quiz" | "results">("setup");
 
-  const { entries: historyEntries, save: saveHistory, remove: removeHistory, clear: clearHistory } =("practice");
   const [difficulty, setDifficulty] = useState<"easy" | "mixed" | "hard">("mixed");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -284,6 +283,9 @@ export default function Practice() {
   const [wrongAnswers, setWrongAnswers] = useState<number[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [quizHistory, setQuizHistory] = useState<HistoryEntry[]>(() => loadHistory("practice"));
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
+  const [confirmedSources, setConfirmedSources] = useState<SourceItem[]>([]);
 
   // Source library state
   const [conceptMap, setConceptMap] = useState<Record<string, string[]>>({});
@@ -477,7 +479,7 @@ Return ONLY valid JSON:
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {quizHistory.length > 0 && (
               <button
-                onClick={() => { setQuizHistory([]); clearHistory?.(); }}
+                onClick={() => { setQuizHistory([]); saveHistory("practice", []); }}
                 style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px", transition: "color .15s" }}
                 onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
                 onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}
@@ -543,9 +545,7 @@ Return ONLY valid JSON:
                     <button
                       onClick={e => {
                         e.stopPropagation();
-                        const updated = quizHistory.filter(h => h.id !== entry.id);
-                        setQuizHistory(updated);
-                        removeHistory?.(entry.id);
+                        setQuizHistory(prev => deleteHistoryEntry("practice", entry.id, prev));
                       }}
                       style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "#333", padding: "2px", marginTop: 1, transition: "color .15s" }}
                       onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
@@ -714,6 +714,14 @@ Return ONLY valid JSON:
         </main>
 
         {/* Source Picker Modal */}
+        <SourcePickerModal
+          open={showSourcePicker}
+          onClose={() => setShowSourcePicker(false)}
+          selectedIds={selectedSourceIds}
+          onToggle={handleToggleSource}
+          onConfirm={handleConfirmSources}
+          sources={allSources}
+        />
       </div>
     </StarBg>}
 

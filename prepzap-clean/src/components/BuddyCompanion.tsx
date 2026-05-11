@@ -13,7 +13,7 @@ export function BuddyCompanion() {
   const [msgIdx, setMsgIdx] = useState(0);
   
   // Actually we should use AvatarDisplay here so it loads the custom config
-  const config = profile?.avatar_config || { buddyId: "fox_scholar" };
+  const config = profile?.avatar_outfit || profile?.avatar_config || { buddyId: "fox_scholar" };
 
   useEffect(() => {
     const handleStart = () => setPose("thinking");
