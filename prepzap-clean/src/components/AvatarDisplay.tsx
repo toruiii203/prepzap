@@ -1,4 +1,5 @@
 import React from "react";
+import { buddies } from "@/data/buddies";
 
 const BORDER = "rgba(139,26,42,0.35)";
 const GOLD = "#f0a040";
@@ -15,14 +16,34 @@ const BODY_COLORS = [
 
 export function AvatarDisplay({ config, pose = "idle" }: { config: any, pose?: "idle"|"thinking"|"hype"|"celebrate" }) {
   if (!config) return null;
-  const bodyColor = BODY_COLORS.find(c => c.id === config.bodyColor)?.val || "#f0a040";
-  const eyeColor = config.eyeColor === "blue" ? "#3b82f6" : config.eyeColor === "green" ? "#22c55e" : "#000";
-
   let animClass = "";
   if (pose === "idle") animClass = "animate-float";
   if (pose === "thinking") animClass = "animate-pulse";
   if (pose === "hype") animClass = "animate-bounce";
   if (pose === "celebrate") animClass = "animate-spin";
+
+  const selectedBuddy =
+    buddies.find((buddy) => buddy.id === config?.buddyId) ??
+    buddies.find((buddy) => buddy.imagePath === config?.imagePath);
+
+  if (selectedBuddy) {
+    return (
+      <div className={`w-full h-full ${animClass}`} style={{ transition: "all 0.3s ease-out" }}>
+        <style>{`
+          @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+          .animate-float { animation: float 3s ease-in-out infinite; }
+        `}</style>
+        <img
+          src={selectedBuddy.imagePath}
+          alt={selectedBuddy.name}
+          style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 12 }}
+        />
+      </div>
+    );
+  }
+
+  const bodyColor = BODY_COLORS.find(c => c.id === config.bodyColor)?.val || "#f0a040";
+  const eyeColor = config.eyeColor === "blue" ? "#3b82f6" : config.eyeColor === "green" ? "#22c55e" : "#000";
 
   return (
     <div className={`w-full h-full ${animClass}`} style={{ transition: "all 0.3s ease-out" }}>

@@ -8,14 +8,12 @@ const MESSAGES = [
 ];
 
 export function BuddyCompanion() {
-  const { profile, session } = useAuth();
+  const { profile } = useAuth();
   const [pose, setPose] = useState<"idle"|"thinking"|"hype"|"celebrate">("idle");
   const [msgIdx, setMsgIdx] = useState(0);
   
   // Actually we should use AvatarDisplay here so it loads the custom config
-  const config = profile?.avatar_config || {
-    species: "Fox", bodyColor: "orange", eyes: "normal", eyeColor: "black", outfit: "casual", hat: "none", accessory: "none"
-  };
+  const config = profile?.avatar_config || { buddyId: "fox_scholar" };
 
   useEffect(() => {
     const handleStart = () => setPose("thinking");
