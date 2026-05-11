@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { buildAIContext, buildImageMessages, getActiveSource } from "@/lib/sourceContext";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -494,7 +494,7 @@ Formatting:
 
   return (
     <div className="min-h-screen flex flex-col bg-background transition-colors duration-300">
-      <CompanionSidebar />
+      <BuddyCompanion />
       {/* Desktop Navbar */}
       <div className="hidden md:block">
         <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 16px",borderBottom:"0.5px solid #1A1A1A",background:"rgba(8,8,8,0.5)"}}>

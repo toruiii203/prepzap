@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
  * FlipScript.tsx — Studenius
@@ -218,7 +218,7 @@ Return ONLY valid JSON:
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "input") return (
     <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
@@ -396,7 +396,7 @@ Return ONLY valid JSON:
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "loading") return (
     <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
@@ -423,7 +423,7 @@ Return ONLY valid JSON:
 
     return (
       <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
           <button onClick={() => setSidebarOpen(v => !v)}

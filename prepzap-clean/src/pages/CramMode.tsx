@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect, useRef } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
@@ -21,7 +21,9 @@ interface CramTopic {
 type Phase = "setup" | "session" | "done";
 
 export default function CramMode() {
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState("")
+  const [timeHours, setTimeHours] = useState(2)
+  const [panicMode, setPanicMode] = useState(false);
   const [hoursAvailable, setHoursAvailable] = useState("2");
   const [loading, setLoading] = useState(false);
   const [topics, setTopics] = useState<CramTopic[]>([]);
@@ -101,7 +103,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
 
   return (
     <ToolPageShell>
-      <CompanionSidebar />
+      <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Cram Mode" subtitle="Guided timed session — one topic at a time" />

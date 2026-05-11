@@ -1,4 +1,5 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BlockMath } from "react-katex"
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
  * MathSolver.tsx — Studenius
@@ -28,17 +29,7 @@ const FONT   = "'Nunito', system-ui, sans-serif"
 const MONO   = "'Geist Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace"
 
 // ── Math symbols ──────────────────────────────────────────────────────────────
-const handleHistorySelect = (entry: { prompt: string; output: string; [key: string]: any }) => {
-    try {
-      const parsed = JSON.parse(entry.output)
-      setResult(parsed)
-      setProblem(entry.prompt)
-      setPhase("result")
-    } catch {
-      setProblem(entry.prompt)
-      setPhase("input")
-    }
-  }
+
 
 const SYMBOLS = [
   { display: "x²", insert: "²" },
@@ -196,7 +187,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "input") return (
     <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
@@ -428,7 +419,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "loading") return (
     <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
@@ -456,7 +447,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
 
     return (
       <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
           <button onClick={() => setSidebarOpen(v => !v)}

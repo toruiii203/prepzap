@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
@@ -131,42 +131,47 @@ Mix question types: definition, application, comparison.`;
 
   return (
     <ToolPageShell>
-      <CompanionSidebar />
+      <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<TrendingUp className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="High Yield Detector" subtitle="Find what's most testable — then drill it instantly" />
 
+        
         <div className="space-y-3 mt-6">
-          <div>
-            <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Paste Material</label>
-            <div style={{ position: "relative" }}>
-              <textarea
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                placeholder="Paste notes or text here..."
-                rows={6}
-                className="w-full px-3 py-2.5 text-sm outline-none resize-none"
-                style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}
-              />
-              <div style={{ position: "absolute", bottom: 12, right: 12, fontSize: 10, color: "var(--pz-text-muted)", background: "var(--pz-surface)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--pz-border)" }}>
+          <div style={{ background: "var(--pz-surface)", padding: 20, borderRadius: 12, border: "0.5px solid var(--pz-border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <label className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--pz-teal)" }}>Document Zone</label>
+              <div style={{ fontSize: 10, color: "var(--pz-text-muted)", background: "var(--pz-surface2)", padding: "4px 8px", borderRadius: 12, border: "0.5px solid var(--pz-border)" }}>
                 {subject.trim().split(/\s+/).filter(Boolean).length} words
               </div>
             </div>
-            <div className="mt-2 text-xs text-right text-gray-500">
-                <button onClick={() => handleGenerate()} className="px-4 py-2 font-semibold" style={{ background: "var(--pz-gold)", color: "#000", border: "none" }}>Generate Focus Areas</button>
-            </div>
+
+            <textarea
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              placeholder="Paste your syllabus, study guide, or lecture notes here..."
+              className="w-full text-sm outline-none resize-none"
+              style={{ minHeight: 200, maxHeight: 400, background: "rgba(0,0,0,0.2)", border: "none", color: "var(--pz-text)", fontFamily: "var(--pz-font)", padding: 16, borderRadius: 8 }}
+            />
           </div>
+          
           <ConceptChipSelector
             onSelect={(concept) => { setSubject(prev => prev ? prev + "\n\n" + concept : concept); }}
             placeholder="e.g. Biochemistry, Calculus, WW2…"
-            label="Add Topic Tag (optional)"
+            label="Add Topic Tags (optional)"
           />
+          
           <div>
             <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Exam Type (optional)</label>
             <input value={examType} onChange={e => setExamType(e.target.value)} placeholder="e.g. USMLE, SAT…"
-              className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
+              className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)", borderRadius: 8 }} />
+          </div>
+          
+          <div className="mt-4 text-right">
+              <button onClick={() => handleGenerate()} className="px-6 py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000", border: "none", borderRadius: 8, cursor: "pointer" }}>Generate Focus Areas</button>
           </div>
         </div>
+
 
         {concepts.length > 0 && (
           <div className="mt-6 space-y-2">

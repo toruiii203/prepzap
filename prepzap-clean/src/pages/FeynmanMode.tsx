@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
  * FeynmanMode.tsx — Studenius
@@ -175,7 +175,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "setup") return (
     <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
@@ -342,7 +342,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
 
     return (
       <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
           <button onClick={() => setSidebarOpen(v => !v)}
@@ -447,7 +447,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
 
     return (
       <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
           <button onClick={() => setSidebarOpen(v => !v)}
