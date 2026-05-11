@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { buddies } from "@/data/buddies"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 
@@ -98,6 +99,7 @@ export default function Onboarding() {
   const [name, setName] = useState("")
   const [level, setLevel] = useState("")
   const [goals, setGoals] = useState<string[]>([])
+  const [buddyId, setBuddyId] = useState<string>("")
 
   const [saving, setSaving] = useState(false)
 
@@ -118,7 +120,8 @@ export default function Onboarding() {
     if (step === 1) return name.trim().length > 1
     if (step === 2) return level !== ""
     if (step === 3) return goals.length > 0
-    if (step === 4) return true // Avatar step always can next (it saves and finishes)
+    if (step === 4) return buddyId !== ""
+    if (step === 4) return buddyId !== "" // Avatar step always can next (it saves and finishes)
     return false
   }
 
@@ -153,6 +156,7 @@ export default function Onboarding() {
 
         await refreshProfile()
       }
+      localStorage.setItem(`buddy_${session?.user?.id || "guest"}`, buddyId)
       navigate("/avatar")
     } catch (err) {
       console.error(err)
@@ -329,7 +333,7 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* ── STEP 4: Avatar Creator Intro ── */}
+          {/* ── STEP 4: Buddy Picker ── */}
           {step === 4 && (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize:11, fontWeight:600, letterSpacing:"0.14em",
@@ -337,11 +341,29 @@ export default function Onboarding() {
                 Step 4 of 4
               </div>
               <h2 style={{ fontSize:22, fontWeight:400, margin:0, letterSpacing:"-0.01em", fontFamily:"'Fredoka One',cursive", color: GOLD }}>
-                Create Your Avatar
+                Choose Your Buddy
               </h2>
               <p style={{ fontSize:14, color:TEXT2, marginTop:12, marginBottom:20 }}>
-                Next, you'll design your study companion in the Avatar Studio.
+                Pick an animal companion to join you on your learning journey.
               </p>
+
+              <div style={{
+                display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10,
+                maxHeight: 250, overflowY: "auto", padding: "4px"
+              }}>
+                {buddies.map(b => (
+                  <button key={b.id} onClick={() => setBuddyId(b.id)} style={{
+                    background: buddyId === b.id ? `${GOLD}22` : SURF2,
+                    border: `2px solid ${buddyId === b.id ? GOLD : BORD}`,
+                    borderRadius: 12, padding: 12, cursor: "pointer",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                    transition: "all 0.2s"
+                  }}>
+                    <span style={{ fontSize: 32 }}>{b.emoji}</span>
+                    <span style={{ color: buddyId === b.id ? GOLD : TEXT2, fontSize: 12, fontWeight: buddyId === b.id ? 700 : 400 }}>{b.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

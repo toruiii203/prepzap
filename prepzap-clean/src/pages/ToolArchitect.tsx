@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react"
@@ -152,7 +152,7 @@ export default function ToolArchitect() {
 
   return (
     <ToolPageShell>
-      <CompanionSidebar />
+      <BuddyCompanion />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}

@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
@@ -131,7 +131,7 @@ Mix question types: definition, application, comparison.`;
 
   return (
     <ToolPageShell>
-      <CompanionSidebar />
+      <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<TrendingUp className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="High Yield Detector" subtitle="Find what's most testable — then drill it instantly" />

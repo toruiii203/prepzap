@@ -1,13 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import React from "react";
 
 const BORDER = "rgba(139,26,42,0.35)";
 const GOLD = "#f0a040";
-const SURF = "#1f0b13";
-const BG = "#160810";
-const TEXT2 = "rgba(245,237,232,0.55)";
 
-const SPECIES = ["Fox", "Cat", "Wolf", "Deer", "Bear", "Rabbit", "Dragon"];
 const BODY_COLORS = [
   { id: "orange", val: "#f0a040" },
   { id: "red", val: "#8b1a2a" },
@@ -18,7 +13,8 @@ const BODY_COLORS = [
   { id: "teal", val: "#008080" }
 ];
 
-export function CompanionAvatar({ config, pose = "idle" }: { config: any, pose?: "idle"|"thinking"|"hype"|"celebrate" }) {
+export function AvatarDisplay({ config, pose = "idle" }: { config: any, pose?: "idle"|"thinking"|"hype"|"celebrate" }) {
+  if (!config) return null;
   const bodyColor = BODY_COLORS.find(c => c.id === config.bodyColor)?.val || "#f0a040";
   const eyeColor = config.eyeColor === "blue" ? "#3b82f6" : config.eyeColor === "green" ? "#22c55e" : "#000";
 
@@ -94,79 +90,5 @@ export function CompanionAvatar({ config, pose = "idle" }: { config: any, pose?:
         {config.hat === "flower" && <circle cx="130" cy="50" r="10" fill="#ec4899" />}
       </svg>
     </div>
-  );
-}
-
-const MESSAGES = [
-  "Nice answer!", "You're on fire!", "Keep going!", "Big brain energy!",
-  "Almost there!", "Nailed it!", "Focus mode: on 🎯", "You got this!"
-];
-
-export function CompanionSidebar() {
-  const { profile } = useAuth();
-  const [open, setOpen] = useState(true);
-  const [pose, setPose] = useState<"idle"|"thinking"|"hype"|"celebrate">("idle");
-  const [msgIdx, setMsgIdx] = useState(0);
-
-  const config = profile?.avatar_config || {
-    species: "Fox", bodyColor: "orange", eyes: "normal", eyeColor: "black", outfit: "casual", hat: "none", accessory: "none"
-  };
-
-  useEffect(() => {
-    const handleStart = () => setPose("thinking");
-    const handleEnd = () => {
-      setPose("hype");
-      setMsgIdx((prev) => (prev + 1) % MESSAGES.length);
-      setTimeout(() => setPose("idle"), 2000);
-    };
-    const handleError = () => setPose("idle");
-
-    window.addEventListener("ai_start", handleStart);
-    window.addEventListener("ai_end", handleEnd);
-    window.addEventListener("ai_error", handleError);
-
-    return () => {
-      window.removeEventListener("ai_start", handleStart);
-      window.removeEventListener("ai_end", handleEnd);
-      window.removeEventListener("ai_error", handleError);
-    };
-  }, []);
-
-  return (
-    <>
-      <div style={{
-        position: "fixed", top: 80, right: open ? 0 : -220, width: 220, bottom: 20,
-        background: SURF, borderLeft: `2px solid ${BORDER}`, borderTopLeftRadius: 20, borderBottomLeftRadius: 20,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", paddingBottom: 40,
-        transition: "right 0.3s cubic-bezier(0.16, 1, 0.3, 1)", zIndex: 100, boxShadow: open ? "-5px 0 30px rgba(0,0,0,0.5)" : "none"
-      }}>
-        <button onClick={() => setOpen(!open)} style={{
-          position: "absolute", left: -32, top: 40, width: 32, height: 48,
-          background: SURF, border: `2px solid ${BORDER}`, borderRight: "none",
-          borderTopLeftRadius: 8, borderBottomLeftRadius: 8, color: GOLD, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center"
-        }}>
-          {open ? "▶" : "◀"}
-        </button>
-
-        {open && (
-          <div style={{ position: "relative", width: 140, height: 140 }}>
-            {/* Speech Bubble */}
-            <div style={{
-              position: "absolute", top: -50, left: -20, background: BG, border: `1px solid ${BORDER}`,
-              padding: "8px 12px", borderRadius: 12, color: "#fff", fontSize: 11, fontWeight: 700,
-              whiteSpace: "nowrap", opacity: pose === "hype" || pose === "celebrate" ? 1 : 0,
-              transform: pose === "hype" || pose === "celebrate" ? "translateY(0)" : "translateY(10px)",
-              transition: "all 0.2s ease-out"
-            }}>
-              {MESSAGES[msgIdx]}
-              <div style={{ position: "absolute", bottom: -5, left: 20, width: 10, height: 10, background: BG, borderBottom: `1px solid ${BORDER}`, borderRight: `1px solid ${BORDER}`, transform: "rotate(45deg)" }} />
-            </div>
-
-            <CompanionAvatar config={config} pose={pose} />
-          </div>
-        )}
-      </div>
-    </>
   );
 }

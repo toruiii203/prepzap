@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { TextSkeleton } from "@/components/SkeletonLoader";
 import { buildAIContext } from "@/lib/sourceContext";
 import { useState, useRef, useEffect } from "react";
@@ -89,7 +89,7 @@ export default function SpotError() {
 
   return (
     <ToolPageShell>
-      <CompanionSidebar />
+      <BuddyCompanion />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}

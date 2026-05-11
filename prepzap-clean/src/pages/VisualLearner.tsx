@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
-import { CompanionSidebar } from "@/components/CompanionSidebar"
+import { BuddyCompanion } from "@/components/BuddyCompanion"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL   = "#8b1a2a"
@@ -60,8 +60,6 @@ function makeSeed(...parts: string[]): number {
 //    Step 1: If Groq supplied an exactWikipediaTitle, do a direct article lookup (fastest, most accurate).
 //    Step 2: Fall back to keyword search, shortest/most specific first.
 async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string | null> {
-
-  // ── Helper: fetch lead image for a known Wikipedia article title ─────────
   async function fetchImageForTitle(articleTitle: string): Promise<string | null> {
     try {
       const title = encodeURIComponent(articleTitle)
@@ -71,150 +69,97 @@ async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string 
       )
       if (!res.ok) return null
       const data = await res.json()
-      const pages = Object.values(data?.query?.pages ?? {}) as any[]
-      const thumb = pages[0]?.thumbnail?.source
-      if (thumb && !thumb.includes("Flag_of") && !thumb.includes("OOjs") && !thumb.includes("commons-logo")) {
-        return thumb
-      }
-    } catch { /* fall through */ }
-    return null
+      const pages = data.query?.pages
+      if (!pages) return null
+      const pageId = Object.keys(pages)[0]
+      const thumb = pages[pageId]?.thumbnail?.source
+      return thumb || null
+    } catch { return null }
   }
 
-  // ── Step 1: Direct lookup via Groq-supplied exact Wikipedia article title ─
   if (scene.exactWikipediaTitle) {
-    const img = await fetchImageForTitle(scene.exactWikipediaTitle)
-    if (img) return img
+    const directUrl = await fetchImageForTitle(scene.exactWikipediaTitle)
+    if (directUrl) return directUrl
   }
 
-  // ── Step 2: Keyword search — shortest/most specific first ─────────────────
-  const queryWords = safeQuery(scene.unsplashQuery).split(" ").filter(w => w.length > 2)
-  const coreKeyword = queryWords.slice(0, 2).join(" ")
-  const shortPhrase = queryWords.slice(0, 3).join(" ")
-  const fullQuery   = safeQuery(scene.unsplashQuery)
-
-  const searchQueries = [
-    coreKeyword,
-    shortPhrase,
-    fullQuery,
-    concept,
-    `${coreKeyword} ${concept}`,
-  ].filter((q, i, arr) => q.trim() && arr.indexOf(q) === i) // dedupe
-
-  for (const q of searchQueries) {
-    try {
-      const search = encodeURIComponent(q)
-      const searchRes = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${search}&srlimit=5&format=json&origin=*`,
-        { signal: AbortSignal.timeout(5000) }
-      )
-      if (!searchRes.ok) continue
-      const searchData = await searchRes.json()
-      const pages: Array<{ title: string }> = searchData?.query?.search ?? []
-      if (!pages.length) continue
-
-      for (const page of pages.slice(0, 3)) {
-        const img = await fetchImageForTitle(page.title)
-        if (img) return img
-      }
-    } catch { /* try next query */ }
-  }
-  return null
-}
-
-// 2. Pexels — free API, unlimited, high quality keyword-matched photos.
-//    Get a free key at https://www.pexels.com/api/
-//    Add to .env.local: NEXT_PUBLIC_PEXELS_KEY=your_key_here
-async function pexelsImageUrl(concept: string, scene: Scene): Promise<string | null> {
-  const key = process.env.NEXT_PUBLIC_PEXELS_KEY
-  if (!key) return null
-
-  const q = encodeURIComponent(`${safeQuery(scene.unsplashQuery)} ${concept}`)
   try {
+    const q = encodeURIComponent(scene.unsplashQuery.split(" ").slice(0, 3).join(" "))
     const res = await fetch(
-      `https://api.pexels.com/v1/search?query=${q}&per_page=3&orientation=landscape`,
-      { headers: { Authorization: key }, signal: AbortSignal.timeout(6000) }
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&utf8=&format=json&origin=*`,
+      { signal: AbortSignal.timeout(5000) }
     )
     if (!res.ok) return null
     const data = await res.json()
-    // Pick a photo based on seed for variety but stability
-    const photos = data?.photos ?? []
-    if (!photos.length) return null
-    const idx = makeSeed(concept, scene.id) % photos.length
-    return photos[idx]?.src?.large ?? photos[0]?.src?.large ?? null
-  } catch {
-    return null
+    const hits = data.query?.search || []
+    if (hits.length === 0) return null
+
+    for (let i = 0; i < Math.min(3, hits.length); i++) {
+      const img = await fetchImageForTitle(hits[i].title)
+      if (img) return img
+    }
+  } catch { return null }
+
+  return null
+}
+
+function unsplashUrl(scene: Scene): string {
+  const keyword = encodeURIComponent(scene.unsplashQuery.split(" ").slice(0, 2).join(","));
+  const seed = Math.abs((scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0));
+  return `https://source.unsplash.com/800x500/?${keyword}&sig=${seed}`;
+}
+
+function pollinationsUrl(concept: string, scene: Scene): string {
+  const prompt = encodeURIComponent(`Educational illustration of ${concept}: ${scene.title}, flat vector art style`);
+  return `https://image.pollinations.ai/prompt/${prompt}?width=800&height=500&nologo=true`;
+}
+
+async function fetchFallbackImage(concept: string, scene: Scene): Promise<string | null> {
+  try {
+    const wikiUrl = await wikimediaImageUrl(concept, scene);
+    if (wikiUrl && await urlLoads(wikiUrl)) return wikiUrl;
+  } catch { /* ignore */ }
+
+  try {
+    const unsplash = unsplashUrl(scene);
+    if (await urlLoads(unsplash)) return unsplash;
+  } catch { /* ignore */ }
+
+  try {
+    const pollUrl = pollinationsUrl(concept, scene);
+    if (await urlLoads(pollUrl, 8000)) return pollUrl;
+  } catch { /* ignore */ }
+
+  return null;
+}
+
+async function fetchSceneSVG(concept: string, scene: Scene, model: string): Promise<string> {
+  const prompt = `Generate a self-contained inline SVG illustration for a scene about "${concept}".
+Scene title: ${scene.title}
+Visual style: Flat vector illustration, simple shapes, clear and educational.
+Colors: Use a palette based on maroon (#8b1a2a), gold (#f0a040), off-white (#f5ede8), and very dark backgrounds (#160810, #1f0b13).
+IMPORTANT: Return ONLY the raw <svg>...</svg> tag as a string. No markdown formatting, no code blocks, no explanations.
+The SVG must have viewBox="0 0 400 300" and width="100%" height="100%".`;
+
+  try {
+    const res = await callGroq(
+      [{ role: "user", content: prompt }],
+      "You are an expert technical illustrator capable of writing clean, semantic, scalable inline SVG code directly.",
+      model
+    );
+    const content = typeof res === "string" ? res : (res.choices?.[0]?.message?.content || "");
+    const svgMatch = content.match(/<svg[\s\S]*?<\/svg>/i);
+    if (svgMatch) return svgMatch[0];
+    throw new Error("No SVG found");
+  } catch (err) {
+    const fallbackUrl = await fetchFallbackImage(concept, scene);
+    if (fallbackUrl) {
+      // Encode as a special flag so SceneCard knows it's an image URL, not raw SVG
+      return `FALLBACK_IMG:${fallbackUrl}`;
+    }
+    return `<svg width="100%" height="100%" viewBox="0 0 400 300"><rect width="100%" height="100%" fill="#1f0b13"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ef4444">Error loading SVG</text></svg>`;
   }
 }
 
-// 3. LoremFlickr — free, no key, pulls real Flickr CC photos by keyword
-function loremFlickrUrl(scene: Scene): string {
-  const keyword = encodeURIComponent(safeQuery(scene.unsplashQuery).split(" ").slice(0, 2).join(","))
-  const seed = makeSeed(scene.id, scene.title)
-  return `https://loremflickr.com/800/500/${keyword}?lock=${seed}`
-}
-
-// 4. Source Unsplash — free, no key, keyword-matched
-function sourceUnsplashUrl(scene: Scene): string {
-  const keyword = encodeURIComponent(safeQuery(scene.unsplashQuery))
-  const seed = makeSeed(scene.id, scene.title)
-  return `https://source.unsplash.com/800x500/?${keyword}&sig=${seed}`
-}
-
-// 5. Picsum — always works, random but stable per seed (last resort)
-function picsumUrl(concept: string, scene: Scene): string {
-  const seed = makeSeed(concept, scene.id, scene.title)
-  return `https://picsum.photos/seed/${seed}/800/500`
-}
-
-// ── Test if a URL actually responds OK ───────────────────────────────────────
-async function urlLoads(url: string, timeoutMs = 6000): Promise<boolean> {
-  try {
-    const res = await fetch(url, {
-      method: "HEAD",
-      signal: AbortSignal.timeout(timeoutMs),
-    })
-    return res.ok
-  } catch {
-    return false
-  }
-}
-
-// ── Main image fetcher: Wikimedia → Pexels → LoremFlickr → Unsplash → Picsum ─
-async function fetchScenePhoto(
-  concept: string,
-  scene: Scene
-): Promise<{ url: string; alt: string }> {
-  const alt = `${concept} — ${scene.title}`
-
-  // 1. Wikimedia — free, unlimited, highly accurate for educational topics
-  try {
-    const url = await wikimediaImageUrl(concept, scene)
-    if (url) return { url, alt }
-  } catch { /* fall through */ }
-
-  // 2. Pexels — free API key, unlimited, high quality (add NEXT_PUBLIC_PEXELS_KEY)
-  try {
-    const url = await pexelsImageUrl(concept, scene)
-    if (url) return { url, alt }
-  } catch { /* fall through */ }
-
-  // 3. LoremFlickr — no key needed, keyword-matched real photos
-  try {
-    const url = loremFlickrUrl(scene)
-    if (await urlLoads(url, 5000)) return { url, alt }
-  } catch { /* fall through */ }
-
-  // 3. Source Unsplash (keyword-matched, no API key needed)
-  try {
-    const url = sourceUnsplashUrl(scene)
-    if (await urlLoads(url, 5000)) return { url, alt }
-  } catch { /* fall through */ }
-
-  // 4. Picsum — always works, random but stable per seed
-  return { url: picsumUrl(concept, scene), alt }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 export default function VisualLearner() {
   const { model, setModel } = useModel()
 
@@ -380,7 +325,7 @@ If source material is provided, base the scenes on its actual content, not gener
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "setup") return (
     <ToolPageShell key="shell">
-      <CompanionSidebar />
+      <BuddyCompanion />
       {/* ── HISTORY SIDEBAR ── */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
@@ -736,9 +681,9 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
           {scene.photoUrl && (
             <button
               onClick={() => {
-                const entry = { url: scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl!, concept, anchor: scene.anchorPhrase, savedAt: new Date().toISOString() };
+                const entry = { url: scene.svgContent?.startsWith("FALLBACK_IMG:") ? scene.svgContent.replace("FALLBACK_IMG:", "") : scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl!, concept, anchor: scene.anchorPhrase, savedAt: new Date().toISOString() };
                 setSavedImages(prev => {
-                  const updated = [entry, ...prev.filter(s => s.url !== (scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl))];
+                  const updated = [entry, ...prev.filter(s => s.url !== (scene.svgContent?.startsWith("FALLBACK_IMG:") ? scene.svgContent.replace("FALLBACK_IMG:", "") : scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl))];
                   localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
                   return updated;
                 });

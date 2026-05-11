@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -323,7 +323,7 @@ export default function BlankMap() {
           </button>
         </div>
       </div>
-      <CompanionSidebar />
+      <BuddyCompanion />
     </ToolPageShell>
   );
 }

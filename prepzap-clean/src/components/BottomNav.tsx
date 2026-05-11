@@ -1,4 +1,6 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { LayoutDashboard, BookOpen, Zap, BarChart3, Settings } from "lucide-react";
 
 const tabs = [
@@ -10,6 +12,7 @@ const tabs = [
 ];
 
 export function BottomNav() {
+  const { profile } = useAuth();
   const location = useLocation();
   return (
     <nav

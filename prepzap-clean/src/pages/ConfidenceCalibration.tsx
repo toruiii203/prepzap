@@ -1,4 +1,4 @@
-import { CompanionSidebar } from "@/components/CompanionSidebar";
+import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useEffect } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
@@ -137,7 +137,7 @@ Make concepts specific and testable — not too broad.`;
 
   return (
     <ToolPageShell>
-      <CompanionSidebar />
+      <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
         <ToolHeader icon={<Star className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Confidence Calibration" subtitle="Sort concepts into Know / Shaky / No idea — weak ones resurface automatically" />
