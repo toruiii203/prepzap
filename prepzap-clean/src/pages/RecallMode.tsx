@@ -2,6 +2,7 @@ import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useState, useRef, useEffect } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
+import { GlobalContextBar } from "@/components/GlobalContextBar";
 
 
 import { MessageSquare, Flame, Trophy, SkipForward } from "lucide-react";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { BottomNav } from "@/components/BottomNav";
 
 interface RecallPrompt { prompt: string; answer: string; keywords: string[]; }
 interface Result { prompt: string; typed: string; score: "correct" | "partial" | "wrong"; matched: string[]; }
@@ -45,6 +47,24 @@ function scoreLocally(typed: string, keywords: string[]): { score: "correct" | "
   return { score: ratio >= 0.7 ? "correct" : ratio >= 0.3 ? "partial" : "wrong", matched };
 }
 
+
+// ── Quick suggestion chips ────────────────────────────────────────────────────
+function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => void; suggestions: string[] }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+      <span style={{ fontSize: 10, color: "var(--pz-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", alignSelf: "center", marginRight: 2 }}>Try:</span>
+      {suggestions.map(s => (
+        <button key={s} onClick={() => onSelect(s)}
+          style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderRadius: 20, padding: "4px 12px", fontSize: 11, color: "var(--pz-text-2)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-gold)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-gold)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-border)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-text-2)"; }}>
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function RecallMode() {
   const [subject, setSubject] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,6 +84,19 @@ export default function RecallMode() {
   const hasSource = ctx.length > 0;
 
   useEffect(() => { if (phase === "recall") inputRef.current?.focus(); }, [phase, current]);
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setSubject(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerate = async () => {
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
@@ -136,11 +169,13 @@ keywords: 4-6 essential words from the answer that a correct response would incl
 
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
+            <GlobalContextBar compact />
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
               placeholder="e.g. Photosynthesis, The Cold War…"
               label="Subject"
             />
+            <SuggestionChips onSelect={s => { setSubject(s); setTimeout(() => handleGenerate(), 0); }} suggestions={["Photosynthesis", "French Revolution", "Newton's Laws", "DNA Replication", "Civil War", "Trigonometry"]} />
 
             {history.length > 0 && (
               <div className="mt-4">
@@ -252,6 +287,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
           </div>
         )}
       </main>
+          <BottomNav />
     </ToolPageShell>
   );
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
-import { ToolPageShell } from "@/pages/ToolPageShell";
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { AlertCircle, Plus, Trash2, RefreshCw, Flame, Play, Brain, ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext } from "@/lib/sourceContext";
+import { BottomNav } from "@/components/BottomNav";
 
 interface Mistake {
   id: string;
@@ -187,7 +188,8 @@ export default function MistakeJournal() {
             )}
           </div>
         </main>
-      </ToolPageShell>
+            <BottomNav />
+    </ToolPageShell>
     );
   }
 

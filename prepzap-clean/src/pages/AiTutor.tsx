@@ -411,6 +411,18 @@ Formatting:
 - End with a thought-provoking follow-up question when relevant`;
   };
 
+
+  // ── QuickLaunch prefill ──────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    if (prefill && prefill.trim()) {
+      setInput(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const sendMessage = async (overrideInput?: string) => {
     const text = (overrideInput ?? input).trim();
     const hasSourceCtx = buildAIContext().length > 0;

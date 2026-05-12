@@ -121,6 +121,7 @@ export default function Onboarding() {
     if (step === 2) return level !== ""
     if (step === 3) return goals.length > 0
     if (step === 4) return buddyId !== ""
+    if (step === 4) return buddyId !== "" // Avatar step always can next (it saves and finishes)
     return false
   }
 
@@ -141,12 +142,6 @@ export default function Onboarding() {
         await supabase.from("profiles").upsert({
           id: user.id,
           full_name: name.trim(),
-          avatar_outfit: {
-            buddyId,
-            bodyColor: "#f0a040",
-            flipped: false,
-            equipped: {},
-          },
           // storing level/goals loosely if you have columns or inside metadata
         })
         
@@ -161,6 +156,7 @@ export default function Onboarding() {
         
         await refreshProfile()
       }
+      localStorage.setItem(`buddy_${session?.user?.id || "guest"}`, buddyId)
       navigate("/avatar")
     } catch (err) {
       console.error(err)
@@ -351,16 +347,10 @@ export default function Onboarding() {
                 Pick an animal companion to join you on your learning journey.
               </p>
               
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  gap: 10,
-                  maxHeight: 360,
-                  overflowY: "auto",
-                  padding: "4px",
-                }}
-              >
+              <div style={{
+                display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10,
+                maxHeight: 250, overflowY: "auto", padding: "4px"
+              }}>
                 {buddies.map(b => (
                   <button key={b.id} onClick={() => setBuddyId(b.id)} style={{
                     background: buddyId === b.id ? `${GOLD}22` : SURF2,
@@ -369,13 +359,8 @@ export default function Onboarding() {
                     display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                     transition: "all 0.2s"
                   }}>
-                    <img
-                      src={b.imagePath}
-                      alt={b.name}
-                      style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 10, border: `1px solid ${BORD}` }}
-                    />
+                    <span style={{ fontSize: 32 }}>{b.emoji}</span>
                     <span style={{ color: buddyId === b.id ? GOLD : TEXT2, fontSize: 12, fontWeight: buddyId === b.id ? 700 : 400 }}>{b.name}</span>
-                    <span style={{ color: TEXT3, fontSize: 10 }}>{b.role}</span>
                   </button>
                 ))}
               </div>

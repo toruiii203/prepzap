@@ -11,6 +11,7 @@ import { ChevronLeft, Zap, CheckCircle2, XCircle, Trophy, RotateCcw } from "luci
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
+import { BottomNav } from "@/components/BottomNav";
 
 interface Question { question: string; options: string[]; correct: number; explanation: string; topic: string; }
 
@@ -278,6 +279,7 @@ export default function Daily5() {
      </main>
         </div>
       </div>
+          <BottomNav />
     </ToolPageShell>
   );
 }

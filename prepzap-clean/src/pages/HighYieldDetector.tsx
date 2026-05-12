@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { BottomNav } from "@/components/BottomNav";
 
 interface HighYieldConcept {
   concept: string;
@@ -28,6 +29,24 @@ interface DrillState {
   answers: string[];
   revealed: boolean[];
   scores: (boolean | null)[];
+}
+
+
+// ── Quick suggestion chips ────────────────────────────────────────────────────
+function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => void; suggestions: string[] }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+      <span style={{ fontSize: 10, color: "var(--pz-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", alignSelf: "center", marginRight: 2 }}>Try:</span>
+      {suggestions.map(s => (
+        <button key={s} onClick={() => onSelect(s)}
+          style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderRadius: 20, padding: "4px 12px", fontSize: 11, color: "var(--pz-text-2)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-gold)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-gold)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-border)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-text-2)"; }}>
+          {s}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function HighYieldDetector() {
@@ -51,6 +70,18 @@ export default function HighYieldDetector() {
 
   const freqColor = (f: string) => f === "very high" ? "var(--pz-rose)" : f === "high" ? "var(--pz-gold)" : "var(--pz-teal)";
   const freqLabel = (f: string) => f === "very high" ? "🔥 Very High" : f === "high" ? "⚡ High" : "📌 Medium";
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    if (prefill && prefill.trim()) {
+      setSubject(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerate = async () => {
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
@@ -149,7 +180,7 @@ Mix question types: definition, application, comparison.`;
             <textarea
               value={subject}
               onChange={e => setSubject(e.target.value)}
-              placeholder="Paste your syllabus, study guide, or lecture notes here..."
+              onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleGenerate(); }} placeholder="Paste your syllabus, study guide, or lecture notes here..."
               className="w-full text-sm outline-none resize-none"
               style={{ minHeight: 200, maxHeight: 400, background: "rgba(0,0,0,0.2)", border: "none", color: "var(--pz-text)", fontFamily: "var(--pz-font)", padding: 16, borderRadius: 8 }}
             />
@@ -163,12 +194,14 @@ Mix question types: definition, application, comparison.`;
           
           <div>
             <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Exam Type (optional)</label>
-            <input value={examType} onChange={e => setExamType(e.target.value)} placeholder="e.g. USMLE, SAT…"
+            <input value={examType} onChange={e => setExamType(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGenerate()} placeholder="e.g. USMLE, SAT…"
               className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)", borderRadius: 8 }} />
           </div>
           
           <div className="mt-4 text-right">
-              <button onClick={() => handleGenerate()} className="px-6 py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000", border: "none", borderRadius: 8, cursor: "pointer" }}>Generate Focus Areas</button>
+              <SuggestionChips onSelect={s => { setSubject(prev => prev ? prev + "\n\n" + s : s); }} suggestions={["USMLE Step 1", "AP Biology", "SAT Math", "Bar Exam Torts", "CPA Audit", "CompTIA Security+"]} />
+          
+          <button onClick={() => handleGenerate()} className="px-6 py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000", border: "none", borderRadius: 8, cursor: "pointer" }}>Generate Focus Areas</button>
           </div>
         </div>
 
@@ -283,6 +316,7 @@ Mix question types: definition, application, comparison.`;
           </div>
         )}
       </main>
+          <BottomNav />
     </ToolPageShell>
   );
 }

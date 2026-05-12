@@ -10,6 +10,7 @@ import { ChevronLeft, Map, Plus, Trash2, ArrowRight, Sparkles, RotateCcw , Brain
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { BottomNav } from "@/components/BottomNav";
 
 interface Node { id: string; label: string; x: number; y: number; }
 interface Edge { from: string; to: string; label: string; }
@@ -111,6 +112,19 @@ export default function BlankMap() {
     const rect = svgRef.current.getBoundingClientRect();
     setNodes(prev => prev.map(n => n.id === dragging ? { ...n, x: touch.clientX - rect.left, y: touch.clientY - rect.top } : n));
   }, [dragging]);
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setTopicInput(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ToolPageShell>
@@ -324,6 +338,7 @@ export default function BlankMap() {
         </div>
       </div>
       <BuddyCompanion />
+          <BottomNav />
     </ToolPageShell>
   );
 }

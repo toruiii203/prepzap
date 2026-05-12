@@ -51,6 +51,18 @@ export default function Flashcards() {
   const hasSource = buildAIContext().length > 0;
   const [showSourcePicker, setShowSourcePicker] = useState(false);
 
+
+  // ── QuickLaunch prefill ──────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    if (prefill && prefill.trim()) {
+      setTopicInput(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const generateCards = async () => {
     if (!topicInput.trim() && !hasSource) return;
     setIsLoading(true);

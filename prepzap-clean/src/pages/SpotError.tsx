@@ -4,13 +4,14 @@ import { buildAIContext } from "@/lib/sourceContext";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
-import { ToolPageShell } from "@/pages/ToolPageShell";
+import { ToolPageShell } from "@/components/ToolPageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Target, CheckCircle2, XCircle, RotateCcw, Timer , Brain} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { callGroq } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
+import { BottomNav } from "@/components/BottomNav";
 
 const TEAL = "#8b1a2a";
 const GOLD = "#f0a040";
@@ -86,6 +87,19 @@ export default function SpotError() {
 
   const mm = String(Math.floor(timeLeft/60)).padStart(2,"0");
   const ss = String(timeLeft%60).padStart(2,"0");
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setTopicInput(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ToolPageShell>
@@ -330,6 +344,7 @@ export default function SpotError() {
           )}
         </div>
       </main>
+          <BottomNav />
     </ToolPageShell>
   );
 }

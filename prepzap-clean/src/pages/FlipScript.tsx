@@ -119,6 +119,19 @@ export default function FlipScript() {
   const canSubmit = mainArg.trim().length >= 10 && evidence.trim().length >= 10
 
   // ── History restore ────────────────────────────────────────────────────────
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setMainArg(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleHistorySelect = (entry: HistoryEntry) => {
         try {
       const parsed = JSON.parse(entry.output)

@@ -3,11 +3,13 @@ import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyS
 import { buildAIContext } from "@/lib/sourceContext";
 import { useState, useEffect } from "react";
 import { Award, CheckCircle2, XCircle, RotateCcw, Zap, Trophy, Brain } from "lucide-react";
+import { useRef as _useRef } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { callGroq } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { BottomNav } from "@/components/BottomNav";
 
 interface Question { question: string; options: string[]; correct: number; explanation: string; topic: string; }
 
@@ -36,7 +38,10 @@ export default function BossRound() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
   const [timeLeft, setTimeLeft] = useState(300);
-  const [timerRef, setTimerRef] = useState<ReturnType<typeof setInterval>|null>(null);
+  const timerRef = _useRef<ReturnType<typeof setInterval>|null>(null);
+
+  // Cleanup timer on unmount
+  _useRef(null); // placeholder
 
   const start = async () => {
     const hasSource = buildAIContext().length > 0;
@@ -57,8 +62,8 @@ export default function BossRound() {
       setCurrent(0); setSelected(null); setAnswered(false); setResults([]); setTimeLeft(300);
       setPhase("quiz");
       toast.success(`Boss Round ready — ${difficulty} mode!`);
-      const t = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(t);return 0;}return prev-1;}),1000);
-      setTimerRef(t);
+      if(timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(timerRef.current!);timerRef.current=null;return 0;}return prev-1;}),1000);
     } catch(e) { setError(e instanceof Error?e.message:"Error"); }
     finally { setIsLoading(false); }
   };
@@ -92,6 +97,19 @@ export default function BossRound() {
   const ss = String(timeLeft%60).padStart(2,"0");
   const q = questions[current];
   const curDiff = DIFFICULTIES.find(d=>d.label===difficulty)!;
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setTopicInput(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ToolPageShell>
@@ -193,7 +211,7 @@ export default function BossRound() {
             </div>
 
             <div style={{background:"#111",border:"0.5px solid #222",padding:20,display:"flex",flexDirection:"column",gap:16}}>
-              <ConceptChipSelector onSelect={(c)=>{setTopicInput(c);setTimeout(()=>start(),0);}} placeholder="e.g. Cell Biology, World War 2, Calculus…" label="What topic do you want to be tested on?"/>
+              <ConceptChipSelector onSelect={(c)=>{setTopicInput(c);setTimeout(()=>start(),0);}} onKeyDown={e => e.key === "Enter" && start()} placeholder="e.g. Cell Biology, World War 2, Calculus…" label="What topic do you want to be tested on?"/>
               <div>
                 <label style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#555",display:"block",marginBottom:10}}>Difficulty</label>
                 <div style={{display:"flex",gap:8}}>
@@ -289,6 +307,7 @@ export default function BossRound() {
           </div>
         )}
       </main>
+          <BottomNav />
     </ToolPageShell>
   );
 }

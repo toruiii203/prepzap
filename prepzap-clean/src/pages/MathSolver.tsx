@@ -32,8 +32,8 @@ const MONO   = "'Geist Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', mono
 
 
 const SYMBOLS = [
-  { display: "x²", insert: "²" },
-  { display: "√",  insert: "√" },
+  { display: "x²", insert: "^2" },
+  { display: "√",  insert: "sqrt(" },
   { display: "π",  insert: "π" },
   { display: "∫",  insert: "∫" },
   { display: "±",  insert: "±" },
@@ -104,6 +104,19 @@ export default function MathSolver() {
   }
 
   // ── History restore ────────────────────────────────────────────────────────
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setProblem(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleHistorySelect = (entry: { prompt: string; output: string; [key: string]: any }) => {    try {
       const parsed = JSON.parse(entry.output)
       setResult(parsed)

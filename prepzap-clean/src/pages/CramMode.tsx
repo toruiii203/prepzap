@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { BottomNav } from "@/components/BottomNav";
 
 interface CramTopic {
   topic: string;
@@ -19,6 +20,24 @@ interface CramTopic {
 }
 
 type Phase = "setup" | "session" | "done";
+
+
+// ── Quick suggestion chips ────────────────────────────────────────────────────
+function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => void; suggestions: string[] }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+      <span style={{ fontSize: 10, color: "var(--pz-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", alignSelf: "center", marginRight: 2 }}>Try:</span>
+      {suggestions.map(s => (
+        <button key={s} onClick={() => onSelect(s)}
+          style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderRadius: 20, padding: "4px 12px", fontSize: 11, color: "var(--pz-text-2)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-gold)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-gold)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-border)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-text-2)"; }}>
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function CramMode() {
   const [subject, setSubject] = useState("")
@@ -58,6 +77,19 @@ export default function CramMode() {
   };
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setSubject(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerate = async () => {
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
@@ -119,6 +151,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
               placeholder="e.g. Organic Chemistry, WW2, Calculus…"
               label="Subject / Topic"
             />
+            <SuggestionChips onSelect={s => { setSubject(s); setTimeout(() => handleGenerate(), 0); }} suggestions={["Organic Chemistry", "World War II", "Calculus Derivatives", "Human Anatomy", "Macroeconomics", "Cell Biology"]} />
             <div>
               <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Time Available</label>
               <div className="flex gap-2 flex-wrap">
@@ -212,6 +245,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
           </div>
         )}
       </main>
+          <BottomNav />
     </ToolPageShell>
   );
 }

@@ -1,8 +1,8 @@
 import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { useState } from "react";
-import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
 import { Link } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
+import { ToolPageShell } from "@/components/ToolPageShell";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ const CONCEPTS = ["Mitosis","Entropy","Photosynthesis","Natural Selection","Osmo
 interface Feedback { correct: string[]; missing: string[]; wrong: string[]; authoritative: string; score: number; encouragement: string; }
 
 export default function BuildDef() {
+  const { user } = useAuth();
   const toolKey = "builddef"
   const lsKey = `pz_hist_${toolKey}`
   const { sessions: toolSessions, addSession, deleteSession } = useToolHistory(toolKey)
@@ -35,6 +36,18 @@ export default function BuildDef() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
   const { pendingFile, setPendingFile, FileAttachButton } = useFileAttach();
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    if (prefill && prefill.trim()) {
+      setConceptInput(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startConcept = (c?: string) => {
     const t = (c ?? conceptInput.trim()) || getActiveSource()?.name?.replace(/\.\w+$/, "");
@@ -167,6 +180,6 @@ export default function BuildDef() {
       </main>
         </div>
       </div>
-    </div>
+    </ToolPageShell>
   );
 }

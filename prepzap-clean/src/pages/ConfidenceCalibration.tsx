@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { BottomNav } from "@/components/BottomNav";
 
 interface Concept {
   concept: string;
@@ -56,6 +57,19 @@ export default function ConfidenceCalibration() {
 
   const currentConceptIdx = queue[queueIdx];
   const current = concepts[currentConceptIdx];
+
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setSubject(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerate = async () => {
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
@@ -261,6 +275,7 @@ Make concepts specific and testable — not too broad.`;
           </div>
         )}
       </main>
+          <BottomNav />
     </ToolPageShell>
   );
 }

@@ -105,7 +105,7 @@ async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string 
 function unsplashUrl(scene: Scene): string {
   const keyword = encodeURIComponent(scene.unsplashQuery.split(" ").slice(0, 2).join(","));
   const seed = Math.abs((scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0));
-  return `https://source.unsplash.com/800x500/?${keyword}&sig=${seed}`;
+  return `https://loremflickr.com/800/500/${keyword}?lock=${seed}`;
 }
 
 function pollinationsUrl(concept: string, scene: Scene): string {
@@ -206,6 +206,19 @@ export default function VisualLearner() {
   }, [activeSource?.id])
 
   // ── History restore ────────────────────────────────────────────────────────
+
+  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("quicklaunch_prompt");
+    const targetTool = sessionStorage.getItem("quicklaunch_tool");
+    if (prefill && prefill.trim()) {
+      setConceptInput(prefill);
+      sessionStorage.removeItem("quicklaunch_prompt");
+      sessionStorage.removeItem("quicklaunch_tool");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleHistorySelect = (entry: HistoryEntry) => {
         try {
       const parsed: StoryboardResult = JSON.parse(entry.output)
