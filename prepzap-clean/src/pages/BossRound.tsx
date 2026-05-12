@@ -1,9 +1,8 @@
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 import { buildAIContext } from "@/lib/sourceContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Award, CheckCircle2, XCircle, RotateCcw, Zap, Trophy, Brain } from "lucide-react";
-import { useRef as _useRef } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 import { callGroq } from "@/lib/groq";
 import { MathRenderer } from "@/components/MathRenderer";
@@ -38,11 +37,9 @@ export default function BossRound() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
   const [timeLeft, setTimeLeft] = useState(300);
-  const timerRef = _useRef<ReturnType<typeof setInterval>|null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval>|null>(null);
 
   // Cleanup timer on unmount
-  _useRef(null); // placeholder
-
   const start = async () => {
     const hasSource = buildAIContext().length > 0;
     if (!topicInput.trim() && !hasSource) return;

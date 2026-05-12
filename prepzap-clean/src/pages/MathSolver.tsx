@@ -10,7 +10,7 @@ import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyS
  *   • Feels like a calculator notepad
  */
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"

@@ -9,7 +9,7 @@ import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyS
  * All three combine into a single AI prompt on submit.
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"

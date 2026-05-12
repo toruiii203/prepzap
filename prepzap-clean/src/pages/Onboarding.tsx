@@ -121,7 +121,6 @@ export default function Onboarding() {
     if (step === 2) return level !== ""
     if (step === 3) return goals.length > 0
     if (step === 4) return buddyId !== ""
-    if (step === 4) return buddyId !== "" // Avatar step always can next (it saves and finishes)
     return false
   }
 
@@ -156,7 +155,7 @@ export default function Onboarding() {
         
         await refreshProfile()
       }
-      localStorage.setItem(`buddy_${session?.user?.id || "guest"}`, buddyId)
+      localStorage.setItem(`buddy_${user?.id || "guest"}`, buddyId)
       navigate("/avatar")
     } catch (err) {
       console.error(err)
@@ -395,7 +394,7 @@ export default function Onboarding() {
               fontFamily:"inherit", transition:"all .2s",
               opacity: saving ? 0.6 : 1,
             }}>
-            {saving ? "Saving..." : step === TOTAL-1 ? "To Avatar Studio →" : step === 0 ? "Get Started →" : "Continue →"}
+            {saving ? "Saving..." : step === 4 ? "To Avatar Studio →" : step === 0 ? "Get Started →" : "Continue →"}
           </button>
         </div>
 
