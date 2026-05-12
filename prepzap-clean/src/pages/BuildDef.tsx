@@ -75,9 +75,8 @@ export default function BuildDef() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <ToolPageShell>
       <BuddyCompanion />
-      <Navbar isLoggedIn user={{name:"Learner",xp:2450,streak:12,plan:"free"}}/>
       {/* History Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         <ToolHistorySidebar
