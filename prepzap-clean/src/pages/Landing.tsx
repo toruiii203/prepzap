@@ -3928,12 +3928,12 @@ export default function Landing(){
                   <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                     {col.links.map(([lbl,href])=>(
                       href.startsWith("#")
-                        ? <a key={lbl} href={href} style={{fontSize:"11px",color:"#444",textDecoration:"none",transition:"color 0.15s"}}
-                            onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.color="#888")}
-                            onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.color="#444")}>{lbl}</a>
-                        : <Link key={lbl} to={href} style={{fontSize:"11px",color:"#444",textDecoration:"none",transition:"color 0.15s"}}
-                            onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.color="#888")}
-                            onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.color="#444")}>{lbl}</Link>
+                        ? <a key={lbl} href={href} style={{fontSize:"11px",color:"#94a3b8",textDecoration:"none",transition:"color 0.15s"}}
+                            onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.color="#f0a040")}
+                            onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.color="#94a3b8")}>{lbl}</a>
+                        : <Link key={lbl} to={href} style={{fontSize:"11px",color:"#94a3b8",textDecoration:"none",transition:"color 0.15s"}}
+                            onMouseEnter={(e)=>((e.currentTarget as HTMLElement).style.color="#f0a040")}
+                            onMouseLeave={(e)=>((e.currentTarget as HTMLElement).style.color="#94a3b8")}>{lbl}</Link>
                     ))}
                   </div>
                 </div>
@@ -3941,10 +3941,10 @@ export default function Landing(){
             </div>
           </div>
           <div style={{borderTop:"0.5px solid #0d1220",maxWidth:"1100px",margin:"0 auto",padding:"16px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-            <span style={{...mono,fontSize:"10px",color:"#1e2838",letterSpacing:"0.06em"}}>STUDENIUS © {new Date().getFullYear()}</span>
+            <span style={{...mono,fontSize:"10px",color:"#64748b",letterSpacing:"0.06em"}}>STUDENIUS © {new Date().getFullYear()}</span>
             <div style={{display:"flex",gap:16,alignItems:"center"}}>
-              <Link to="/privacy" style={{...mono,fontSize:"10px",color:"#2a3448",letterSpacing:"0.06em",textDecoration:"none"}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#888")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#2a3448")}>Privacy Policy</Link>
-              <Link to="/terms" style={{...mono,fontSize:"10px",color:"#2a3448",letterSpacing:"0.06em",textDecoration:"none"}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#888")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#2a3448")}>Terms</Link>
+              <Link to="/privacy" style={{...mono,fontSize:"11px",color:"#a0aec0",letterSpacing:"0.06em",textDecoration:"none",fontWeight:600}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#f0a040")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#a0aec0")}>Privacy Policy</Link>
+              <Link to="/terms" style={{...mono,fontSize:"11px",color:"#a0aec0",letterSpacing:"0.06em",textDecoration:"none",fontWeight:600}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#f0a040")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#a0aec0")}>Terms</Link>
               <span style={{...mono,fontSize:"10px",color:"#1a2030",letterSpacing:"0.06em"}}>Built for students. Powered by AI.</span>
             </div>
           </div>

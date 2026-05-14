@@ -388,6 +388,55 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: "100vh", background: BG, color: TEXT, fontFamily: "'Nunito', system-ui, sans-serif", position: "relative" }}>
+      <style>{`
+        /* ── Dashboard Mobile Responsive ── */
+        @media (max-width: 768px) {
+          .sdn-sidebar { display: none !important; }
+          .sdn-right-panel { display: none !important; }
+          .sdn-body { height: auto !important; flex-direction: column !important; }
+          .sdn-main { padding: 12px 12px 90px !important; }
+          .sdn-metrics { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; margin-bottom: 16px !important; }
+          .sdn-cal-row { grid-template-columns: 1fr !important; }
+          .sdn-nav-links { display: none !important; }
+          .sdn-nav-user { gap: 6px !important; }
+          .sdn-tool-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+          .sdn-greeting { font-size: 20px !important; }
+          .sdn-video-card { min-width: 200px !important; flex: 0 0 200px !important; }
+          .sdn-video-thumb { height: 100px !important; }
+          .sdn-metric-value { font-size: 24px !important; }
+          .sdn-metric-card { padding: 14px 10px !important; }
+          .sdn-mobile-avatar { display: flex !important; }
+          .sdn-quick-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+        @media (max-width: 400px) {
+          .sdn-metrics { grid-template-columns: repeat(2, 1fr) !important; }
+          .sdn-tool-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .sdn-quick-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        /* Editable avatar label input */
+        .editable-field {
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #f0a040;
+          font-family: inherit;
+          font-size: inherit;
+          font-weight: inherit;
+          cursor: text;
+          border-bottom: 1px dashed rgba(240,160,64,0.3);
+          min-width: 40px;
+          max-width: 120px;
+        }
+        /* Mobile avatar strip */
+        .sdn-mobile-avatar {
+          display: none;
+        }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #160810; }
+        ::-webkit-scrollbar-thumb { background: rgba(139,26,42,0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f0a040; }
+      `}</style>
 
       {/* ── NAV ──────────────────────────────────────────────────────────────── */}
       <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", height: 54, borderBottom: `2px solid ${BORDER}`, background: "#1c0910", flexShrink: 0 }}>
@@ -417,7 +466,7 @@ export default function Dashboard() {
       </nav>
 
       {/* ── BODY ─────────────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", height: "calc(100vh - 54px)" }}>
+      <div className="sdn-body" style={{ display: "flex", height: "calc(100vh - 54px)" }}>
 
         {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
         <div className="sdn-sidebar" style={{ width: 160, background: "#1c0910", borderRight: `2px solid ${BORDER}`, padding: "14px 0", overflowY: "auto", flexShrink: 0 }}>
@@ -470,9 +519,24 @@ export default function Dashboard() {
         <div className="sdn-main" style={{ flex: 1, overflowY: "auto", padding: "16px 12px 80px" }}>
 
           {/* Greeting */}
-          <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: TEXT, marginBottom: 4 }}>{greeting()}, {displayName}</div>
+          <div className="sdn-greeting" style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: TEXT, marginBottom: 4 }}>{greeting()}, {displayName}</div>
           <div style={{ fontSize: 12, color: TEXT3, marginBottom: 20 }}>
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} &nbsp;·&nbsp; Level {level} — {tier} {tierEmoji}
+          </div>
+
+
+          {/* Mobile Avatar Strip — visible only on mobile */}
+          <div className="sdn-mobile-avatar" style={{ alignItems: "center", gap: 12, padding: "10px 0", marginBottom: 12, borderBottom: `1px solid rgba(139,26,42,0.3)` }}>
+            <div style={{ background: "#8b1a2a", borderRadius: "50%", padding: 6, border: `2px solid #f0a040`, flexShrink: 0 }}>
+              <FoxAvatar size={40}/>
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 14, color: GOLD }}>{displayName}</div>
+              <div style={{ fontSize: 11, color: "rgba(245,237,232,0.55)" }}>Bronze Fox · Lv. {level} &nbsp;·&nbsp; ⚡ {xp} XP</div>
+              <div style={{ height: 5, background: "#2a0e18", borderRadius: 4, overflow: "hidden", marginTop: 4, width: 120 }}>
+                <div style={{ height: "100%", width: `${Math.max(0.4, xpPct)}%`, background: `linear-gradient(90deg, #8b1a2a, #f0a040)`, borderRadius: 4 }}/>
+              </div>
+            </div>
           </div>
 
           {/* Study video carousel */}
@@ -507,9 +571,9 @@ export default function Dashboard() {
 
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollSnapType: "x mandatory" }}>
               {videoSpots.map(v => (
-                <a key={v.id} href={v.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", minWidth: 260, flex: "0 0 260px", scrollSnapAlign: "start" }}>
+                <a key={v.id} href={v.url} target="_blank" rel="noreferrer" className="sdn-video-card" style={{ textDecoration: "none", minWidth: 260, flex: "0 0 260px", scrollSnapAlign: "start" }}>
                   <div style={{ border: `2px solid ${BORDER}`, background: SURF2, borderRadius: 12, overflow: "hidden", position: "relative" }}>
-                    <img src={v.thumb} alt={v.title} style={{ width: "100%", height: 130, objectFit: "cover", display: "block", filter: "saturate(0.85)" }} />
+                    <img src={v.thumb} alt={v.title} className="sdn-video-thumb" style={{ width: "100%", height: 130, objectFit: "cover", display: "block", filter: "saturate(0.85)" }} />
                     <div style={{ position: "absolute", top: 8, left: 8, background: MAROON, color: GOLD, fontSize: 9, fontWeight: 700, borderRadius: 999, padding: "2px 7px" }}>
                       {v.source === "custom" ? "Your pick" : "Default"}
                     </div>
@@ -675,7 +739,7 @@ export default function Dashboard() {
               {showAll ? "SHOW LESS" : `+${quickActions.length - 20} MORE`}
             </button>
           </div>
-          <div className="sdn-quickstart tool-grid" style={{ marginBottom: 24 }}>
+          <div className="sdn-quickstart sdn-tool-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
             {displayed.map((a, i) => (
               <Link to={a.href} key={i} style={{ textDecoration: "none" }}>
                 <div style={{ ...card, padding: "16px 8px 14px", textAlign: "center", cursor: "pointer", transition: "all .2s" }}
@@ -737,10 +801,56 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {/* ── MOBILE ONLY: Checklist + Upcoming ─────────────────────────── */}
+          <div className="sdn-mobile-avatar" style={{ flexDirection: "column", gap: 12, marginTop: 4 }}>
+            {/* Checklist */}
+            <div style={{ ...card, padding: 14 }}>
+              <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 15, color: GOLD, marginBottom: 10 }}>Today's Checklist</div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                <input type="text" placeholder="Quick add..." onKeyDown={e => { if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) { setChecks(p => [...p, { id: Date.now().toString(), text: (e.target as HTMLInputElement).value.trim(), done: false }]); (e.target as HTMLInputElement).value = "" } }}
+                  style={{ flex: 1, background: SURF2, border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: "7px 10px", fontSize: 13, color: TEXT, fontFamily: "inherit", outline: "none" }}/>
+              </div>
+              {checks.length === 0 && <div style={{ fontSize: 12, color: TEXT3 }}>No tasks yet</div>}
+              {checks.slice(0, 6).map(c => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: `1px solid ${BORDER}`, fontSize: 13 }}>
+                  <button onClick={() => toggleCheck(c.id)} style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${c.done ? GOLD : BORDER}`, background: c.done ? GOLD : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}>
+                    {c.done && <Check size={10} color={BG} strokeWidth={3}/>}
+                  </button>
+                  <span style={{ flex: 1, color: c.done ? TEXT3 : TEXT, textDecoration: c.done ? "line-through" : "none" }}>{c.text}</span>
+                  <button onClick={() => setChecks(p => p.filter(x => x.id !== c.id))} style={{ background: "none", border: "none", color: TEXT3, cursor: "pointer", padding: 2, fontSize: 14, lineHeight: 1 }}>×</button>
+                </div>
+              ))}
+            </div>
+            {/* Upcoming Sessions */}
+            <div style={{ ...card, padding: 14 }}>
+              <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 15, color: GOLD, marginBottom: 10 }}>Upcoming Sessions</div>
+              {upcomingSessions.length === 0 ? (
+                <div style={{ fontSize: 12, color: TEXT3, marginBottom: 8 }}>No sessions yet</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                  {upcomingSessions.slice(0, 3).map(s => (
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: `1px solid ${BORDER}` }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, flexShrink: 0 }}/>
+                      <span style={{ fontSize: 12, color: TEXT, flex: 1 }}>{s.title}</span>
+                      <span style={{ fontSize: 10, color: TEXT3 }}>{new Date(s.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button onClick={() => openSessionModal()}
+                style={{ width: "100%", background: "transparent", border: `1.5px dashed ${BORDER}`, borderRadius: 8, padding: "8px 0", fontSize: 12, color: TEXT3, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, transition: "all .2s" }}
+                onMouseEnter={e => { (e.currentTarget.style.borderColor = GOLD); (e.currentTarget.style.color = GOLD) }}
+                onMouseLeave={e => { (e.currentTarget.style.borderColor = BORDER); (e.currentTarget.style.color = TEXT3) }}>
+                + Add Session
+              </button>
+            </div>
+          </div>
+
         </div>
 
         {/* ── RIGHT PANEL ──────────────────────────────────────────────────── */}
-        <div style={{ width: 200, background: "#1c0910", borderLeft: `2px solid ${BORDER}`, padding: 14, overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="sdn-right-panel" style={{ width: 200, background: "#1c0910", borderLeft: `2px solid ${BORDER}`, padding: 14, overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* Avatar card */}
           <div style={{ ...card, padding: 14 }}>
