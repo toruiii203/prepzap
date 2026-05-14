@@ -1,6 +1,6 @@
 import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { ToolPageShell } from "@/components/ToolPageShell";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConceptChipSelector } from "@/components/ConceptChipSelector";
 
 

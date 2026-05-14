@@ -3921,7 +3921,7 @@ export default function Landing(){
               {[
                 {heading:"Product",links:[["Features","#features"],["How It Works","#howitworks"],["Pricing","#pricing"]]},
                 {heading:"Account",links:[["Log In","/login"],["Sign Up","/signup"]]},
-                {heading:"Info",links:[["FAQ","#faq"],["Compare","#compare"]]},
+                {heading:"Info",links:[["FAQ","#faq"],["Compare","#compare"],["Privacy Policy","/privacy"],["Terms","/terms"]]},
               ].map((col)=>(
                 <div key={col.heading}>
                   <div style={{...mono,fontSize:"9px",color:"#2a3448",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:"12px"}}>{col.heading}</div>
@@ -3942,7 +3942,11 @@ export default function Landing(){
           </div>
           <div style={{borderTop:"0.5px solid #0d1220",maxWidth:"1100px",margin:"0 auto",padding:"16px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
             <span style={{...mono,fontSize:"10px",color:"#1e2838",letterSpacing:"0.06em"}}>STUDENIUS © {new Date().getFullYear()}</span>
-            <span style={{...mono,fontSize:"10px",color:"#1a2030",letterSpacing:"0.06em"}}>Built for students. Powered by AI.</span>
+            <div style={{display:"flex",gap:16,alignItems:"center"}}>
+              <Link to="/privacy" style={{...mono,fontSize:"10px",color:"#2a3448",letterSpacing:"0.06em",textDecoration:"none"}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#888")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#2a3448")}>Privacy Policy</Link>
+              <Link to="/terms" style={{...mono,fontSize:"10px",color:"#2a3448",letterSpacing:"0.06em",textDecoration:"none"}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#888")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#2a3448")}>Terms</Link>
+              <span style={{...mono,fontSize:"10px",color:"#1a2030",letterSpacing:"0.06em"}}>Built for students. Powered by AI.</span>
+            </div>
           </div>
         </footer>
       </div>{/* ── end sections wrapper ── */}

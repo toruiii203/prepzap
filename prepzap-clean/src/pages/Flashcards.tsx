@@ -1,6 +1,6 @@
 import { FlashcardSkeleton } from "@/components/SkeletonLoader";
 import { buildAIContext, loadLibrary, getActiveSource } from "@/lib/sourceContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sparkles, RotateCcw, ChevronRight, ChevronLeft,
   Check, X, Brain, Zap, BookOpen, Shuffle, Trophy, Layers
@@ -208,7 +208,7 @@ export default function Flashcards() {
 
         <div>
           <p className="text-sm font-medium text-muted-foreground mb-3">Try a sample topic:</p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {SAMPLE_TOPICS.map(deck => (
               <button key={deck.name} onClick={() => setTopicInput(deck.name)}
                 className={cn("text-left p-4 rounded-none border border-border bg-card hover:border-violet-500 hover:bg-violet-500/5 transition-all", topicInput === deck.name && "border-violet-500 bg-violet-500/5")}>

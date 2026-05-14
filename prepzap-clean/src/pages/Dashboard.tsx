@@ -420,7 +420,7 @@ export default function Dashboard() {
       <div style={{ display: "flex", height: "calc(100vh - 54px)" }}>
 
         {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
-        <div className="sdn-sidebar" style={{ width: 192, background: "#1c0910", borderRight: `2px solid ${BORDER}`, padding: "14px 0", overflowY: "auto", flexShrink: 0 }}>
+        <div className="sdn-sidebar" style={{ width: 160, background: "#1c0910", borderRight: `2px solid ${BORDER}`, padding: "14px 0", overflowY: "auto", flexShrink: 0 }}>
           {[
             { sec: "Study", items: [
               { href: "/dashboard",     label: "Dashboard",      icon: "ti ti-layout-dashboard" },
@@ -467,7 +467,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── MAIN ─────────────────────────────────────────────────────────── */}
-        <div className="sdn-main" style={{ flex: 1, overflowY: "auto", padding: "22px 20px 80px" }}>
+        <div className="sdn-main" style={{ flex: 1, overflowY: "auto", padding: "16px 12px 80px" }}>
 
           {/* Greeting */}
           <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: TEXT, marginBottom: 4 }}>{greeting()}, {displayName}</div>
@@ -533,7 +533,7 @@ export default function Dashboard() {
           </div>
 
           {/* Stats */}
-          <div className="sdn-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 24 }}>
+          <div className="sdn-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 24 }}>
             {metrics.map(m => (
               <div key={m.label} style={{ ...card, padding: "18px 14px", textAlign: "center" }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: SURF2, border: `1.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>{m.icon}</div>

@@ -1,5 +1,5 @@
 import { BuddyCompanion } from "@/components/BuddyCompanion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { useAuth } from "@/contexts/AuthContext";

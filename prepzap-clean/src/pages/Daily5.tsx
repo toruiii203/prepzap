@@ -262,7 +262,7 @@ export default function Daily5() {
               <h2 className="text-2xl font-bold">{score===5?"Perfect Score! 🎉":score>=3?"Nice work! 💪":"Keep practising! 📚"}</h2>
               <p className="text-muted-foreground mt-1">{score} / 5 correct · {mm}:{ss} · 🔥 {streak}-day streak</p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[{label:"Score",val:`${score}/5`,color:"text-amber-500"},{label:"Accuracy",val:`${Math.round(score/5*100)}%`,color:"text-teal-500"},{label:"Streak",val:`${streak}🔥`,color:"text-rose-500"}].map(s=>(
                 <div key={s.label} className="bg-card border border-border rounded-none p-3 text-center">
                   <div className={cn("text-2xl font-bold",s.color)}>{s.val}</div>
