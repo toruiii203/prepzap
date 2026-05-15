@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { GlobalContextBar } from "@/components/GlobalContextBar"
 import {
-  Upload, FileText, Trash2, ChevronLeft, Play, Brain,
+  Upload, FileText, Trash2, ChevronLeft, Play, BrainCircuit,
   Sparkles, Layers, HelpCircle, Calculator, ArrowRight,
   File, Target, Zap, BookOpen, PenLine, FlaskConical, Camera, X
 } from "lucide-react"
@@ -14,7 +14,7 @@ import {
 
 const TOOLS = [
   { href: "/practice",   label: "Practice",      icon: Play,        desc: "Generate questions" },
-  { href: "/flashcards", label: "Flashcards",    icon: Brain,       desc: "Key concept cards"  },
+  { href: "/flashcards", label: "Flashcards",    icon: BrainCircuit,       desc: "Key concept cards"  },
   { href: "/ai-tutor",   label: "AI Tutor",      icon: Sparkles,    desc: "Ask about material" },
   { href: "/synthesis",  label: "Synthesis Lab", icon: FlaskConical,desc: "Connect concepts"   },
   { href: "/why-engine", label: "Why Engine",    icon: HelpCircle,  desc: "First principles"   },

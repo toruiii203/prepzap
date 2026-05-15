@@ -15,7 +15,7 @@ import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
 import { ToolHistoryPanel, HistoryButton } from "@/pages/ToolHistory"
-import { Brain } from "lucide-react"
+import { BrainCircuit } from "lucide-react"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const TEAL   = "#8b1a2a"
@@ -238,7 +238,7 @@ Show ALL working. Be thorough. Simplify notation for clarity.${context}`
           {toolHistory.length === 0 ? (
             <div style={{ padding: "40px 16px", textAlign: "center" }}>
               <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Brain size={16} style={{ color: "#333" }} />
+                <BrainCircuit size={16} style={{ color: "#333" }} />
               </div>
               <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No math solver history yet</div>
               <div style={{ fontSize: 11, color: "#333" }}>Sessions will appear here</div>

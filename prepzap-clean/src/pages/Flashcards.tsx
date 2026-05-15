@@ -3,7 +3,7 @@ import { buildAIContext, loadLibrary, getActiveSource } from "@/lib/sourceContex
 import { useState, useEffect } from "react";
 import {
   Sparkles, RotateCcw, ChevronRight, ChevronLeft,
-  Check, X, Brain, Zap, BookOpen, Shuffle, Trophy, Layers
+  Check, X, BrainCircuit, Zap, BookOpen, Shuffle, Trophy, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -270,7 +270,7 @@ export default function Flashcards() {
                 <p className="text-xs text-muted-foreground mt-6">Tap to reveal</p>
               </div>
               <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-zinc-600/10 border-2 border-violet-500/30 rounded-3xl p-8 flex flex-col items-center justify-center text-center" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                <Brain className="h-6 w-6 text-violet-500 mb-4" />
+                <BrainCircuit className="h-6 w-6 text-violet-500 mb-4" />
                 <p className="text-lg leading-relaxed">{card.back}</p>
               </div>
             </div>

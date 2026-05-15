@@ -4,7 +4,7 @@ import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Send, Sparkles, BookOpen, RotateCcw, Copy, ThumbsUp, ThumbsDown,
-  ChevronDown, Bot, User, Layers, Zap, HelpCircle, FileText, Brain,
+  ChevronDown, Bot, User, Layers, Zap, HelpCircle, FileText, BrainCircuit,
   PanelLeftClose, PanelLeftOpen, Plus, Sun, Moon, X, Timer,
   Pause, Play, SkipForward, Check, ImageIcon, FileType, Hash,
   Clock, Trash2, MessageSquare
@@ -61,7 +61,7 @@ const TUTOR_MODES: {
     prompt: "Explain like the person is 5 years old. Use extremely simple words, fun analogies, and zero jargon. Make it playful." },
   { id: "analogy", label: "Analogy", icon: Layers, desc: "Learn via metaphors", color: "bg-white/500/10 text-white/500 border-purple-500/20",
     prompt: "Teach using 2-3 creative, memorable analogies. Make them vivid and relatable to everyday life." },
-  { id: "quiz", label: "Quiz Me", icon: Brain, desc: "Test your understanding", color: "bg-white/10 text-white/60 border-emerald-500/20",
+  { id: "quiz", label: "Quiz Me", icon: BrainCircuit, desc: "Test your understanding", color: "bg-white/10 text-white/60 border-emerald-500/20",
     prompt: "Generate 3 progressively harder quiz questions. Ask them one at a time. After the student answers, give feedback then move to the next." },
   { id: "debate", label: "Devil's Advocate", icon: Zap, desc: "Challenge assumptions", color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
     prompt: "Challenge the conventional wisdom. Present counterarguments, edge cases, and nuanced perspectives the student might not have considered." },

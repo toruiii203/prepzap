@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import {
   Play, Pause, RotateCcw, Settings,
-  Coffee, Brain,
+  Coffee, BrainCircuit,
   X, Bell, AlarmClock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -224,7 +224,7 @@ export default function FocusTimer() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 28, height: 28, background: cur.grad, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Brain style={{ width: 14, height: 14, color: "#fff" }} />
+                <BrainCircuit style={{ width: 14, height: 14, color: "#fff" }} />
               </div>
               <div>
                 <h1 style={{ fontSize: 14, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Focus Timer</h1>
