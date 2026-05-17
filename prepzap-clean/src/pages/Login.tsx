@@ -104,9 +104,13 @@ export default function Login() {
 
   const handleGoogle = async () => {
     setLoading(true)
+    // Use /auth/callback so we can detect new users and redirect to onboarding if needed
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+        queryParams: { prompt: "select_account" },
+      },
     })
     if (authError) { setError(authError.message); setLoading(false) }
   }

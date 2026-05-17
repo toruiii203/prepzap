@@ -191,7 +191,7 @@
   .tool-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 600px) {
-  .tool-grid { grid-template-columns: repeat(2, 1fr); }
+  .tool-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
 }
 
 /* ── Town grid ── */
@@ -210,11 +210,15 @@
 /* ── Responsive dashboard ── */
 @media (max-width: 767px) {
   .sdn-metrics    { grid-template-columns: repeat(2, 1fr) !important; }
-  .sdn-quickstart { grid-template-columns: repeat(3, 1fr) !important; }
+  .sdn-quickstart { grid-template-columns: repeat(2, 1fr) !important; }
   .sdn-cal-row    { grid-template-columns: 1fr !important; }
   .sdn-sidebar    { display: none !important; }
-  .sdn-main       { padding: 14px 14px 100px !important; }
+  .sdn-main       { padding: 14px 12px 100px !important; }
   .sdn-greeting-name { font-size: 20px !important; }
+}
+@media (max-width: 400px) {
+  .sdn-quickstart { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+  .sdn-metrics    { gap: 8px !important; }
 }
 
 /* ── Editable label ── */
@@ -250,4 +254,17 @@
 .place-card.locked {
   opacity: 0.4;
   pointer-events: none;
+}
+
+/* ── Mobile tool card text sizing ── */
+@media (max-width: 480px) {
+  .sdn-quickstart a > div {
+    padding: 12px 6px 10px !important;
+  }
+  .sdn-quickstart a > div > div:nth-child(2) {
+    font-size: 11px !important;
+  }
+  .sdn-quickstart a > div > div:nth-child(3) {
+    display: none;
+  }
 }

@@ -106,7 +106,7 @@ const queryClient = new QueryClient();
 function isMobile() { return window.innerWidth < 768; }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, needsOnboarding } = useAuth();
   if (loading) {
     return (
       <div
@@ -125,6 +125,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!session) return <Navigate to="/login" replace />;
+  // New Google OAuth users have no profile row → send to onboarding
+  if (needsOnboarding && window.location.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
   return <>{children}</>;
 }
 

@@ -2,6 +2,7 @@ import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ToolPageShell } from "@/components/ToolPageShell";
+import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

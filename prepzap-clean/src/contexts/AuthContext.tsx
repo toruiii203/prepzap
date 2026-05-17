@@ -33,6 +33,7 @@ export interface UserProfile {
   accuracy_percent: number
   avatar_config?: any // Added for Avatar Studio
   avatar_outfit?: any
+  onboarding_complete?: boolean
 }
 
 interface AuthContextValue {
@@ -40,6 +41,7 @@ interface AuthContextValue {
   user: User | null
   profile: UserProfile | null
   loading: boolean
+  needsOnboarding: boolean
   refreshProfile: () => Promise<void>
   signOut: () => Promise<void>
   /** Per-user localStorage key prefix — use this instead of raw keys */
@@ -53,6 +55,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   profile: null,
   loading: true,
+  needsOnboarding: false,
   refreshProfile: async () => {},
   signOut: async () => {},
   lsKey: (base) => `pz_anon_${base}`,
@@ -85,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]       = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   const lsKey = useCallback(
     (base: string) => `pz_${user?.id ?? "anon"}_${base}`,
@@ -103,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error || !data) {
       // Profile row doesn't exist yet — use defaults derived from auth metadata
       setProfile(defaultProfile(u))
+      setNeedsOnboarding(true)
     } else {
       setProfile({
         ...defaultProfile(u),          // fill any missing columns with defaults
@@ -153,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user, profile, loading, refreshProfile, signOut, lsKey }}
+      value={{ session, user, profile, loading, needsOnboarding, refreshProfile, signOut, lsKey }}
     >
       {children}
     </AuthContext.Provider>

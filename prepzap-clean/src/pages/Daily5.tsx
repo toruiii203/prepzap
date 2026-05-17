@@ -1,6 +1,6 @@
 import { ToolPageShell } from "@/components/ToolPageShell";
 import { QuestionSkeleton } from "@/components/SkeletonLoader";
-import { ToolHistorySidebar, type ToolSession } from "@/components/ToolHistorySidebar"
+import { ToolHistorySidebar, useToolHistory, type ToolSession } from "@/components/ToolHistorySidebar"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -36,7 +36,11 @@ function get7DayHistory(): { date: string; score: number | null }[] {
 export default function Daily5() {
   const toolKey = "daily5"
   const lsKey = `pz_hist_${toolKey}`
+  const { sessions: toolSessions, addSession, deleteSession } = useToolHistory(toolKey)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const handleNewSession = () => { setActiveSessionId(null) }
+  const handleSelectSession = (s: ToolSession) => { setActiveSessionId(s.id) }
 
 
 

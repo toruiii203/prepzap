@@ -23,7 +23,6 @@ interface CheckItem    { id: string; text: string; done: boolean }
 interface ActivityItem { id: string; label: string; score: string; created_at: string }
 interface WeakArea     { subject: string; accuracy: number }
 interface Achievement  { key: string; icon: string; label: string; earned: boolean }
-interface VideoSpot { id: string; title: string; url: string; thumb: string; source: "default" | "custom" }
 interface StudySession {
   id: string
   title: string
@@ -180,12 +179,6 @@ const PLACES = [
   { label: "Scholar's Tower", desc: "Unlock at Level 5",      icon: "ti ti-building-castle", users: 0, locked: true  },
 ]
 
-const DEFAULT_VIDEO_SPOTS: VideoSpot[] = [
-  { id: "d1", title: "Pomodoro Lofi", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", thumb: "https://img.youtube.com/vi/jfKfPfyJRdk/hqdefault.jpg", source: "default" },
-  { id: "d2", title: "Deep Focus Music", url: "https://www.youtube.com/watch?v=lTRiuFIWV54", thumb: "https://img.youtube.com/vi/lTRiuFIWV54/hqdefault.jpg", source: "default" },
-  { id: "d3", title: "Study With Me", url: "https://www.youtube.com/watch?v=5qap5aO4i9A", thumb: "https://img.youtube.com/vi/5qap5aO4i9A/hqdefault.jpg", source: "default" },
-]
-
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth()
@@ -221,18 +214,7 @@ export default function Dashboard() {
   const localDateStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` }
   const [sessionDate,     setSessionDate]     = useState(() => localDateStr())
   const [sessionDuration, setSessionDuration] = useState(30)
-  const [videoSpots, setVideoSpots] = useState<VideoSpot[]>(() => {
-    try {
-      const raw = localStorage.getItem("pz_video_spots")
-      if (!raw) return DEFAULT_VIDEO_SPOTS
-      const parsed = JSON.parse(raw) as VideoSpot[]
-      return parsed.length ? parsed : DEFAULT_VIDEO_SPOTS
-    } catch {
-      return DEFAULT_VIDEO_SPOTS
-    }
-  })
-  const [videoTitle, setVideoTitle] = useState("")
-  const [videoUrl, setVideoUrl] = useState("")
+
 
   const openSessionModal = (date?: string) => {
     setSessionTitle(""); setSessionColor(SESSION_PALETTE[0])
@@ -281,23 +263,10 @@ export default function Dashboard() {
   }, [user])
 
   useEffect(() => { localStorage.setItem("pz_checklist", JSON.stringify(checks)) }, [checks])
-  useEffect(() => { localStorage.setItem("pz_video_spots", JSON.stringify(videoSpots)) }, [videoSpots])
 
   const addCheck    = () => { if (!cInput.trim()) return; setChecks(p => [...p, { id: Date.now().toString(), text: cInput.trim(), done: false }]); setCInput("") }
   const toggleCheck = (id: string) => setChecks(p => p.map(c => c.id === id ? { ...c, done: !c.done } : c))
   const removeCheck = (id: string) => setChecks(p => p.filter(c => c.id !== id))
-  const addVideoSpot = () => {
-    const title = videoTitle.trim()
-    const url = videoUrl.trim()
-    if (!title || !url) return
-    const m = url.match(/(?:v=|youtu\.be\/)([\w-]{6,})/)
-    const thumb = m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : "https://picsum.photos/seed/studenius/400/225"
-    setVideoSpots(prev => [{ id: `c-${Date.now()}`, title, url, thumb, source: "custom" }, ...prev])
-    setVideoTitle("")
-    setVideoUrl("")
-  }
-  const resetVideoSpots = () => setVideoSpots(DEFAULT_VIDEO_SPOTS)
-  const removeVideoSpot = (id: string) => setVideoSpots(prev => prev.filter(v => v.id !== id))
 
   useEffect(() => {
     if (!user) return
@@ -473,63 +442,6 @@ export default function Dashboard() {
           <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 26, color: TEXT, marginBottom: 4 }}>{greeting()}, {displayName}</div>
           <div style={{ fontSize: 12, color: TEXT3, marginBottom: 20 }}>
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} &nbsp;·&nbsp; Level {level} — {tier} {tierEmoji}
-          </div>
-
-          {/* Study video carousel */}
-          <div style={{ ...card, padding: 14, marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-              <SecTitle>Study Video Carousel</SecTitle>
-              <button onClick={resetVideoSpots} style={{ background: "transparent", border: `1.5px solid ${BORDER}`, color: TEXT3, borderRadius: 8, padding: "4px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
-                Reset Defaults
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              <input
-                value={videoTitle}
-                onChange={e => setVideoTitle(e.target.value)}
-                placeholder="Video title"
-                style={{ flex: 1, background: SURF2, border: `1.5px solid ${BORDER}`, color: TEXT, borderRadius: 8, fontSize: 11, padding: "7px 9px", outline: "none", fontFamily: "inherit" }}
-              />
-              <input
-                value={videoUrl}
-                onChange={e => setVideoUrl(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && addVideoSpot()}
-                placeholder="YouTube link"
-                style={{ flex: 2, background: SURF2, border: `1.5px solid ${BORDER}`, color: TEXT, borderRadius: 8, fontSize: 11, padding: "7px 9px", outline: "none", fontFamily: "inherit" }}
-              />
-              <button
-                onClick={addVideoSpot}
-                style={{ background: GOLD, border: `2px solid ${GOLD}`, color: BG, borderRadius: 8, padding: "0 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                Add
-              </button>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollSnapType: "x mandatory" }}>
-              {videoSpots.map(v => (
-                <a key={v.id} href={v.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", minWidth: 260, flex: "0 0 260px", scrollSnapAlign: "start" }}>
-                  <div style={{ border: `2px solid ${BORDER}`, background: SURF2, borderRadius: 12, overflow: "hidden", position: "relative" }}>
-                    <img src={v.thumb} alt={v.title} style={{ width: "100%", height: 130, objectFit: "cover", display: "block", filter: "saturate(0.85)" }} />
-                    <div style={{ position: "absolute", top: 8, left: 8, background: MAROON, color: GOLD, fontSize: 9, fontWeight: 700, borderRadius: 999, padding: "2px 7px" }}>
-                      {v.source === "custom" ? "Your pick" : "Default"}
-                    </div>
-                    {v.source === "custom" && (
-                      <button
-                        onClick={(e) => { e.preventDefault(); removeVideoSpot(v.id) }}
-                        style={{ position: "absolute", top: 7, right: 7, background: "rgba(0,0,0,0.45)", border: "none", borderRadius: 999, color: "#fff", width: 20, height: 20, cursor: "pointer", fontSize: 11, lineHeight: "20px" }}
-                        title="Remove"
-                      >
-                        ×
-                      </button>
-                    )}
-                    <div style={{ padding: "9px 10px" }}>
-                      <div style={{ color: TEXT, fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{v.title}</div>
-                      <div style={{ color: TEXT3, fontSize: 10, marginTop: 3 }}>Click to open and study with this video</div>
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Stats */}
