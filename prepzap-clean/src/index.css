@@ -209,16 +209,50 @@
 
 /* ── Responsive dashboard ── */
 @media (max-width: 767px) {
-  .sdn-metrics    { grid-template-columns: repeat(2, 1fr) !important; }
-  .sdn-quickstart { grid-template-columns: repeat(2, 1fr) !important; }
-  .sdn-cal-row    { grid-template-columns: 1fr !important; }
-  .sdn-sidebar    { display: none !important; }
-  .sdn-main       { padding: 14px 12px 100px !important; }
+  /* Hide desktop nav on mobile — BottomNav handles navigation */
+  .sdn-desktop-nav { display: none !important; }
+
+  /* Body takes full viewport height */
+  .sdn-body { height: 100dvh !important; }
+
+  /* Hide both sidebars */
+  .sdn-sidebar     { display: none !important; }
+  .sdn-right-panel { display: none !important; }
+
+  /* Main area fills full width, padding for BottomNav */
+  .sdn-main { padding: 14px 12px 100px !important; width: 100% !important; }
+
+  /* Stats: 2-col */
+  .sdn-metrics { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+  /* Quick start: 2-col on mobile (was 3-col) */
+  .sdn-quickstart { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+  /* Calendar stacks vertically */
+  .sdn-cal-row { grid-template-columns: 1fr !important; }
+
+  /* Town grid 2-col */
+  .town-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
   .sdn-greeting-name { font-size: 20px !important; }
 }
 @media (max-width: 400px) {
   .sdn-quickstart { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
-  .sdn-metrics    { gap: 8px !important; }
+  .sdn-metrics    { gap: 6px !important; }
+}
+
+/* ── Mobile tool card text sizing ── */
+@media (max-width: 480px) {
+  .sdn-quickstart a > div {
+    padding: 12px 6px 10px !important;
+  }
+  .sdn-quickstart a > div > div:nth-child(2) {
+    font-size: 11px !important;
+  }
+  /* Hide description text on small cards */
+  .sdn-quickstart a > div > div:nth-child(3) {
+    display: none;
+  }
 }
 
 /* ── Editable label ── */
@@ -254,17 +288,4 @@
 .place-card.locked {
   opacity: 0.4;
   pointer-events: none;
-}
-
-/* ── Mobile tool card text sizing ── */
-@media (max-width: 480px) {
-  .sdn-quickstart a > div {
-    padding: 12px 6px 10px !important;
-  }
-  .sdn-quickstart a > div > div:nth-child(2) {
-    font-size: 11px !important;
-  }
-  .sdn-quickstart a > div > div:nth-child(3) {
-    display: none;
-  }
 }

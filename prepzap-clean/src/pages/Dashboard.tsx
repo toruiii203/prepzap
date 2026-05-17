@@ -359,7 +359,7 @@ export default function Dashboard() {
     <div style={{ minHeight: "100vh", background: BG, color: TEXT, fontFamily: "'Nunito', system-ui, sans-serif", position: "relative" }}>
 
       {/* ── NAV ──────────────────────────────────────────────────────────────── */}
-      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", height: 54, borderBottom: `2px solid ${BORDER}`, background: "#1c0910", flexShrink: 0 }}>
+      <nav className="sdn-desktop-nav" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", height: 54, borderBottom: `2px solid ${BORDER}`, background: "#1c0910", flexShrink: 0 }}>
         <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: GOLD, letterSpacing: 1 }}>STUDENIUS</span>
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -386,7 +386,7 @@ export default function Dashboard() {
       </nav>
 
       {/* ── BODY ─────────────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", height: "calc(100vh - 54px)" }}>
+      <div className="sdn-body" style={{ display: "flex", height: "calc(100vh - 54px)" }}>
 
         {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
         <div className="sdn-sidebar" style={{ width: 160, background: "#1c0910", borderRight: `2px solid ${BORDER}`, padding: "14px 0", overflowY: "auto", flexShrink: 0 }}>
@@ -652,7 +652,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── RIGHT PANEL ──────────────────────────────────────────────────── */}
-        <div style={{ width: 200, background: "#1c0910", borderLeft: `2px solid ${BORDER}`, padding: 14, overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="sdn-right-panel" style={{ width: 200, background: "#1c0910", borderLeft: `2px solid ${BORDER}`, padding: 14, overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* Avatar card */}
           <div style={{ ...card, padding: 14 }}>
