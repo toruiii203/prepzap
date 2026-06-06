@@ -51,7 +51,7 @@ function StepScreen({
   onToggle: (v: string) => void
 }) {
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
       {/* chip grid — floats over lower half of the mockup */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 10,
@@ -231,7 +231,7 @@ export default function OnboardingFlow() {
       // Screen 0 – Welcome
       case 0:
         return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{
               background: 'white', borderTopLeftRadius: 36, borderTopRightRadius: 36,
               padding: '28px 28px 36px', display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -254,7 +254,7 @@ export default function OnboardingFlow() {
       // Screen 1 – Tools
       case 1:
         return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{ padding: '20px 20px 32px' }}>
               <Dots current={1} />
               <p style={{ fontSize: 25, fontWeight: 900, color: '#1e2a4a', margin: '10px 0 4px' }}>Smart Tools, One Place</p>
@@ -270,7 +270,7 @@ export default function OnboardingFlow() {
       // Screen 2 – Visual Learner
       case 2:
         return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{ padding: '22px 22px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Dots current={2} />
               <p style={{ fontSize: 28, fontWeight: 900, color: '#1e2a4a', textAlign: 'center', margin: '10px 0 6px' }}>See It, Learn It, Own It</p>
@@ -286,7 +286,7 @@ export default function OnboardingFlow() {
       // Screen 3 – Focus
       case 3:
         return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
             <div style={{ padding: '18px 18px 28px' }}>
               <Dots current={3} />
               <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
@@ -333,7 +333,7 @@ export default function OnboardingFlow() {
       // Screen 7 – Sign Up
       case 7:
         return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 20, height: '100%' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 20 }}>
             <div style={{ background: 'white', borderRadius: 24, margin: '0 14px 14px', padding: 20 }}>
               <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, margin: '0 0 10px' }}>or</p>
               <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: 14, overflow: 'hidden', marginBottom: 14 }}>
@@ -367,7 +367,7 @@ export default function OnboardingFlow() {
       // Screen 8 – Name Input
       case 8:
         return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', paddingTop: '35%', height: '100%' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', paddingTop: '35%' }}>
             <div style={{ background: 'white', borderRadius: 24, padding: 24 }}>
               <p style={{ fontWeight: 800, fontSize: 15, color: '#1e2a4a', margin: '0 0 10px' }}>Enter your name</p>
               <input
@@ -402,7 +402,7 @@ export default function OnboardingFlow() {
           Skin: ['Light', 'Medium', 'Tan', 'Dark'],
         }
         return (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 16, height: '100%' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 16 }}>
             <div style={{
               background: 'rgba(0,0,0,0.25)', borderRadius: 20,
               margin: '0 12px', padding: 12, maxHeight: '52vh', overflowY: 'auto',
@@ -474,7 +474,7 @@ export default function OnboardingFlow() {
         key={screen}
         className={slideDir === 'left' ? 'screen-slide-left' : 'screen-slide-right'}
         style={{
-          width: '100%', height: '100%',
+          width: '100%', height: '100%', position: 'relative',
           backgroundImage: `url(${SCREENS[screen]})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -486,3 +486,4 @@ export default function OnboardingFlow() {
     </div>
   )
 }
+
