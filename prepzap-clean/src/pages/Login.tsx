@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Logo } from "@/components/Logo"
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
@@ -28,7 +27,7 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: "0.10em", textTransform: "uppercase", display: "block", marginBottom: "6px",
 };
 
-// ─── SVG Mascot Helper ────────────────────────────────────────────────────────
+// ─── Fox Scholar Panel ────────────────────────────────────────────────────────
 function MascotPanel() {
   return (
     <div className="mascot-panel" style={{
@@ -37,42 +36,85 @@ function MascotPanel() {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: `linear-gradient(135deg, ${SURF} 0%, ${BG} 100%)`,
+      background: `linear-gradient(160deg, #1a0a10 0%, #2d0f1c 50%, #160810 100%)`,
       borderRight: `2px solid ${BORDER}`,
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      gap: 0,
     }}>
       <style>{`
         @media (max-width: 800px) {
           .mascot-panel { display: none !important; }
         }
         @keyframes floatIdle {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(2deg); }
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-12px); }
+        }
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.18; transform: scale(1); }
+          50% { opacity: 0.28; transform: scale(1.06); }
         }
       `}</style>
-      <div style={{ animation: "floatIdle 4s ease-in-out infinite" }}>
-        <svg width="200" height="200" viewBox="0 0 100 100">
-          <g stroke={BORDHV} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {/* Tail */}
-            <path d="M 30,70 Q 10,80 15,50 Q 25,60 35,65" fill={GOLD} />
-            <path d="M 15,50 Q 10,40 25,45" fill="#fff" />
-            {/* Body */}
-            <path d="M 35,80 C 35,50 65,50 65,80 Z" fill={GOLD} />
-            <path d="M 40,80 C 40,60 60,60 60,80 Z" fill="#fff" stroke="none" />
-            {/* Head */}
-            <polygon points="25,25 35,45 45,35" fill={GOLD} />
-            <polygon points="75,25 65,45 55,35" fill={GOLD} />
-            <path d="M 30,50 Q 50,25 70,50 Q 50,75 30,50" fill={GOLD} />
-            {/* Face details */}
-            <circle cx="42" cy="48" r="3" fill="#000" />
-            <circle cx="58" cy="48" r="3" fill="#000" />
-            <circle cx="50" cy="55" r="2.5" fill="#000" />
-          </g>
-        </svg>
+
+      {/* Ambient glow behind fox */}
+      <div style={{
+        position: "absolute",
+        width: 340,
+        height: 340,
+        borderRadius: "50%",
+        background: `radial-gradient(circle, rgba(240,160,64,0.22) 0%, transparent 70%)`,
+        animation: "glowPulse 5s ease-in-out infinite",
+        pointerEvents: "none",
+      }} />
+
+      {/* Fox illustration */}
+      <div style={{ animation: "floatIdle 5s ease-in-out infinite", position: "relative", zIndex: 1 }}>
+        <img
+          src="/fox_scholar.jpg"
+          alt="Studenius fox scholar mascot"
+          style={{
+            width: 300,
+            height: 300,
+            objectFit: "cover",
+            objectPosition: "center top",
+            borderRadius: "50%",
+            border: `3px solid rgba(240,160,64,0.35)`,
+            boxShadow: `0 0 40px rgba(240,160,64,0.15)`,
+            display: "block",
+          }}
+        />
       </div>
-      <h2 style={{ fontFamily: "'Fredoka One', cursive", fontSize: 24, color: GOLD, marginTop: 20 }}>Ready to dive in?</h2>
-      <p style={{ color: TEXT2, fontSize: 13, textAlign: "center", maxWidth: 220 }}>Your study companion awaits.</p>
+
+      {/* Text */}
+      <div style={{ textAlign: "center", marginTop: 28, zIndex: 1, padding: "0 32px" }}>
+        <h2 style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: 28,
+          color: GOLD,
+          margin: "0 0 10px",
+          letterSpacing: "0.01em",
+        }}>
+          Ready to level up?
+        </h2>
+        <p style={{
+          color: TEXT2,
+          fontSize: 14,
+          lineHeight: 1.6,
+          maxWidth: 240,
+          margin: "0 auto",
+          fontFamily: "'Nunito', sans-serif",
+          fontWeight: 600,
+        }}>
+          Your AI-powered study companion is waiting. Let's get smart.
+        </p>
+      </div>
+
+      {/* Bottom decorative dots */}
+      <div style={{ display: "flex", gap: 8, marginTop: 28, zIndex: 1 }}>
+        {[GOLD, "rgba(240,160,64,0.4)", "rgba(240,160,64,0.2)"].map((c, i) => (
+          <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -124,7 +166,10 @@ export default function Login() {
       {/* Right Column */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px" }}>
         
-        <Link to="/" style={{ marginBottom: "40px" }}><Logo size="lg" /></Link>
+        <Link to="/" style={{ marginBottom: "40px", display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <img src="/fox_icon_final.png" alt="Studenius" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover" }} />
+          <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: GOLD, letterSpacing: "0.08em" }}>STUDENIUS</span>
+        </Link>
 
         <div style={{ width: "100%", maxWidth: "380px", background: SURF, border: `2px solid ${BORDER}`, borderRadius: 16, padding: 18 }}>
           <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: "32px", paddingBottom: "24px" }}>
