@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Logo } from "@/components/Logo"
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
@@ -35,84 +34,77 @@ function MascotPanel() {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: `linear-gradient(135deg, ${SURF} 0%, ${BG} 100%)`,
+      background: `linear-gradient(160deg, #1a0a10 0%, #2d0f1c 50%, #160810 100%)`,
       borderRight: `2px solid ${BORDER}`,
       position: "relative",
       overflow: "hidden",
+      gap: 0,
     }}>
       <style>{`
         @media (max-width: 800px) {
           .mascot-panel { display: none !important; }
         }
         @keyframes floatIdle {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(2deg); }
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-12px); }
+        }
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.18; transform: scale(1); }
+          50% { opacity: 0.28; transform: scale(1.06); }
         }
       `}</style>
 
-      {/* Decorative background glow */}
+      {/* Ambient glow */}
       <div style={{
         position: "absolute",
-        width: 320, height: 320,
+        width: 340, height: 340,
         borderRadius: "50%",
-        background: `radial-gradient(circle, rgba(245,166,35,0.08) 0%, transparent 70%)`,
+        background: `radial-gradient(circle, rgba(245,166,35,0.22) 0%, transparent 70%)`,
+        animation: "glowPulse 5s ease-in-out infinite",
         pointerEvents: "none",
       }} />
 
-      <div style={{ animation: "floatIdle 4s ease-in-out infinite", position: "relative", zIndex: 1 }}>
-        {/* Studenius fox mascot SVG — matches the site's fox icon */}
-        <svg width="180" height="180" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {/* Body */}
-          <ellipse cx="50" cy="68" rx="22" ry="20" fill={GOLD} />
-          {/* Belly */}
-          <ellipse cx="50" cy="72" rx="13" ry="13" fill="#fff5e0" />
-          {/* Head */}
-          <ellipse cx="50" cy="44" rx="22" ry="20" fill={GOLD} />
-          {/* Ears */}
-          <polygon points="30,28 22,10 38,24" fill={GOLD} />
-          <polygon points="70,28 78,10 62,24" fill={GOLD} />
-          {/* Inner ears */}
-          <polygon points="30,26 25,14 36,24" fill="#f7c97a" />
-          <polygon points="70,26 75,14 64,24" fill="#f7c97a" />
-          {/* Face mask */}
-          <ellipse cx="50" cy="48" rx="13" ry="11" fill="#fff5e0" />
-          {/* Eyes */}
-          <circle cx="43" cy="42" r="3.2" fill="#1a0a0a" />
-          <circle cx="57" cy="42" r="3.2" fill="#1a0a0a" />
-          {/* Eye shine */}
-          <circle cx="44.2" cy="41" r="1" fill="white" />
-          <circle cx="58.2" cy="41" r="1" fill="white" />
-          {/* Nose */}
-          <ellipse cx="50" cy="48" rx="2.5" ry="1.8" fill="#c0622a" />
-          {/* Smile */}
-          <path d="M46,51 Q50,54 54,51" stroke="#c0622a" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-          {/* Tail */}
-          <path d="M72,75 Q90,60 82,48 Q76,40 70,50" fill={GOLD} />
-          <path d="M76,72 Q88,62 81,52 Q77,46 73,53" fill="#fff5e0" />
-          {/* Arms */}
-          <ellipse cx="30" cy="68" rx="7" ry="5" fill={GOLD} transform="rotate(-20 30 68)" />
-          <ellipse cx="70" cy="68" rx="7" ry="5" fill={GOLD} transform="rotate(20 70 68)" />
-          {/* Study hat / graduation cap */}
-          <rect x="34" y="28" width="32" height="5" rx="2.5" fill="#1a0a0a" />
-          <rect x="44" y="22" width="12" height="7" rx="2" fill="#1a0a0a" />
-          <line x1="66" y1="28" x2="70" y2="35" stroke={GOLD} strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="70" cy="36" r="2" fill={GOLD} />
-        </svg>
+      {/* Fox illustration */}
+      <div style={{ animation: "floatIdle 5s ease-in-out infinite", position: "relative", zIndex: 1 }}>
+        <img
+          src="/fox_scholar.jpg"
+          alt="Studenius fox scholar mascot"
+          style={{
+            width: 300,
+            height: 300,
+            objectFit: "cover",
+            objectPosition: "center top",
+            borderRadius: "50%",
+            border: `3px solid rgba(245,166,35,0.35)`,
+            display: "block",
+          }}
+        />
       </div>
 
-      <h2 style={{
-        fontFamily: "'Fredoka One', cursive",
-        fontSize: 26, color: GOLD, marginTop: 20,
-        position: "relative", zIndex: 1,
-      }}>
-        Join the journey
-      </h2>
-      <p style={{
-        color: TEXT2, fontSize: 13, textAlign: "center",
-        maxWidth: 220, position: "relative", zIndex: 1,
-      }}>
-        Level up your learning today.
-      </p>
+      {/* Text */}
+      <div style={{ textAlign: "center", marginTop: 28, zIndex: 1, padding: "0 32px" }}>
+        <h2 style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: 28, color: GOLD,
+          margin: "0 0 10px", letterSpacing: "0.01em",
+        }}>
+          Join the journey
+        </h2>
+        <p style={{
+          color: TEXT2, fontSize: 14, lineHeight: 1.6,
+          maxWidth: 240, margin: "0 auto",
+          fontFamily: "'Nunito', sans-serif", fontWeight: 600,
+        }}>
+          Your AI-powered study companion is waiting. Let's get smart.
+        </p>
+      </div>
+
+      {/* Decorative dots */}
+      <div style={{ display: "flex", gap: 8, marginTop: 28, zIndex: 1 }}>
+        {([GOLD, "rgba(245,166,35,0.4)", "rgba(245,166,35,0.2)"] as string[]).map((c, i) => (
+          <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -151,15 +143,11 @@ export default function Signup() {
     setLoading(true)
     setError(null)
 
-    // FIX: explicitly redirect to /onboarding after OAuth
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/onboarding`,
-        queryParams: {
-          // Force account picker so returning users don't get stuck
-          prompt: "select_account",
-        },
+        queryParams: { prompt: "select_account" },
       },
     })
 
@@ -167,7 +155,6 @@ export default function Signup() {
       setError(authError.message)
       setLoading(false)
     }
-    // If no error, Supabase handles the redirect — no need to navigate()
   }
 
   return (
@@ -178,9 +165,10 @@ export default function Signup() {
         flex: 1, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center", padding: "32px",
       }}>
-        {/* Logo — links back to landing */}
-        <Link to="/" style={{ marginBottom: "40px" }}>
-          <Logo size="lg" />
+        {/* Logo */}
+        <Link to="/" style={{ marginBottom: "40px", display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <img src="/fox_icon_final.png" alt="Studenius" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover" }} />
+          <span style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: GOLD, letterSpacing: "0.08em" }}>STUDENIUS</span>
         </Link>
 
         <div style={{
