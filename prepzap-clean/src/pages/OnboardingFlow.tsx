@@ -1,489 +1,610 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
+/**
+ * STUDENIUS ONBOARDING — src/pages/OnboardingFlow.tsx
+ * =====================================================
+ * Drop this file at: src/pages/OnboardingFlow.tsx
+ *
+ * GLBs → copy to: public/models/Bunny.glb, Bear.glb, cat.glb, fox.glb
+ *
+ * Font → add inside <head> of index.html:
+ *   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+ *
+ * Supabase → search "TODO_SUPABASE" — 2 spots to swap in your client
+ */
 
-// ─── PNG mockup images (put these in src/pages/assets/) ───────────────────────
-import Screen1Img from './assets/screen1.png'   // Wolf Welcome
-import Screen2Img from './assets/screen2.png'   // Tools
-import Screen3Img from './assets/screen3.png'   // Owl Visual
-import Screen4Img from './assets/screen4.png'   // Bunny Focus
-import Screen5Img from './assets/screen5.png'   // Deer Step1 Study
-import Screen6Img from './assets/screen6.png'   // Deer Step2 Goal
-import Screen7Img from './assets/screen7.png'   // Deer Step3 Learn
-import Screen8Img from './assets/screen8.png'   // Sign Up
-import Screen9Img from './assets/screen9.png'   // Name Input
-import Screen10Img from './assets/screen10.png' // Bear Avatar
+import React, {
+  useRef, useState, useEffect, Suspense, useCallback,
+} from "react";
+import { useNavigate } from "react-router-dom";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useGLTF, useAnimations } from "@react-three/drei";
+import * as THREE from "three";
+// TODO_SUPABASE: import { supabase } from "@/lib/supabase";
+// TODO_SUPABASE: import { useAuth } from "@/contexts/AuthContext";
 
-const SCREENS = [
-  Screen1Img, Screen2Img, Screen3Img, Screen4Img,
-  Screen5Img, Screen6Img, Screen7Img, Screen8Img,
-  Screen9Img, Screen10Img,
-]
+// ─── TYPES ────────────────────────────────────────────────────────────────────
 
-// ─── Pagination dots ───────────────────────────────────────────────────────────
-function Dots({ current }: { current: number }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-      {SCREENS.map((_, i) => (
-        <div key={i} style={{
-          width: i === current ? 20 : 7,
-          height: 7,
-          borderRadius: 99,
-          background: i === current ? '#fff' : 'rgba(255,255,255,0.35)',
-          transition: 'all 0.3s ease',
-        }} />
-      ))}
-    </div>
-  )
+type StudyStyle = "grind" | "chill" | "streak" | "deep";
+type AnimalKey  = "bunny" | "bear" | "cat" | "fox";
+type DailyGoal  = 15 | 30 | 45 | 60;
+
+interface OnboardingData {
+  name:       string;
+  studyStyle: StudyStyle | null;
+  animal:     AnimalKey  | null;
+  dailyGoal:  DailyGoal  | null;
 }
 
-// ─── Step screen (screens 4/5/6) ──────────────────────────────────────────────
-function StepScreen({
-  current, onBack, onNext, onSkip, options, selected, onToggle
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+
+const C = {
+  ink:    "#1A1A2E",
+  cream:  "#FFFDF7",
+  // hero block per screen
+  h1: "#4D96FF",   // welcome   — blue
+  h2: "#FF6B6B",   // style     — coral
+  h3: "#FFD93D",   // identity  — yellow
+  h4: "#6BCB77",   // plan      — green
+  // accents
+  pink:   "#FF6FC8",
+  purple: "#A259FF",
+  yellow: "#FFD93D",
+  coral:  "#FF6B6B",
+};
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+
+const STYLES = [
+  { key: "grind"  as StudyStyle, emoji: "🔥", label: "Grind mode",    sub: "Intense sessions", bg: C.coral  },
+  { key: "chill"  as StudyStyle, emoji: "🌊", label: "Chill pace",    sub: "Easy does it",     bg: C.h1     },
+  { key: "streak" as StudyStyle, emoji: "⚡", label: "Streak hunter", sub: "Daily habit",      bg: C.h4     },
+  { key: "deep"   as StudyStyle, emoji: "🧠", label: "Deep focus",    sub: "Long sessions",    bg: C.purple },
+];
+
+const ANIMALS = [
+  { key: "bunny" as AnimalKey, label: "Bunny", src: "/models/Bunny.glb", bg: C.yellow,  tag: "Consistent & fast" },
+  { key: "bear"  as AnimalKey, label: "Bear",  src: "/models/Bear.glb",  bg: C.coral,   tag: "Strong & steady"   },
+  { key: "cat"   as AnimalKey, label: "Cat",   src: "/models/cat.glb",   bg: C.purple,  tag: "Smart & curious"   },
+  { key: "fox"   as AnimalKey, label: "Fox",   src: "/models/fox.glb",   bg: C.h1,      tag: "Clever & quick"    },
+  // { key: "deer" as AnimalKey, label: "Deer", src: "/models/deer.glb", bg: "#6BCB77", tag: "Gentle & focused" },
+  // { key: "capy" as AnimalKey, label: "Capy", src: "/models/Capycabra.glb", bg: C.pink, tag: "Chill & wise" },
+];
+
+const GOALS = [
+  { value: 15 as DailyGoal, label: "15 min", sub: "Light"    },
+  { value: 30 as DailyGoal, label: "30 min", sub: "Balanced" },
+  { value: 45 as DailyGoal, label: "45 min", sub: "Focused"  },
+  { value: 60 as DailyGoal, label: "1 hour", sub: "Beast"    },
+];
+
+const PLAN: Record<StudyStyle, [string, string][]> = {
+  grind:  [["Intense sprint","2h sessions, 6 days/week"],["Exam simulations","Full papers, timed"],["Review & dominate","AI weak-spot drill"]],
+  chill:  [["Gentle start","15 min daily, no pressure"],["Build momentum","Add topics slowly"],["Steady mastery","Review what sticks"]],
+  streak: [["Lock the habit","Quick daily check-ins"],["Grow the chain","Micro quizzes daily"],["Streak milestones","XP rewards weekly"]],
+  deep:   [["Deep dive","One topic, full depth"],["Connect the dots","Cross-topic mapping"],["Synthesize","Essays + hard problems"]],
+};
+
+const PLAN_DOTS = [C.coral, C.h1, C.h4];
+
+// ─── 3-D MODEL ────────────────────────────────────────────────────────────────
+
+function Model({ src, bounce }: { src: string; bounce: boolean }) {
+  const group  = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF(src);
+  const { actions, names }    = useAnimations(animations, group);
+
+  // play first baked clip if present
+  useEffect(() => {
+    if (!names.length) return;
+    const a = actions[names[0]];
+    if (a) { a.reset().fadeIn(0.4).play(); a.timeScale = 0.75; }
+  }, [actions, names]);
+
+  const clock    = useRef(0);
+  const bounceT  = useRef(0);
+  const bouncing = useRef(false);
+
+  useEffect(() => {
+    if (bounce) { bouncing.current = true; bounceT.current = 0; }
+  }, [bounce]);
+
+  useFrame((_, dt) => {
+    if (!group.current) return;
+    clock.current += dt;
+    const sway = Math.sin(clock.current * 1.2) * 0.03;
+    const bob  = Math.sin(clock.current * 1.8) * 0.012;
+    group.current.rotation.y = sway;
+    group.current.position.y = bob;
+
+    if (bouncing.current) {
+      bounceT.current += dt * 6;
+      const h = Math.abs(Math.sin(bounceT.current)) * 0.22;
+      const s = 1 + Math.sin(bounceT.current) * 0.1;
+      group.current.position.y = bob + h;
+      group.current.scale.setScalar(s);
+      if (bounceT.current > Math.PI * 1.6) {
+        bouncing.current = false;
+        group.current.scale.setScalar(1);
+      }
+    }
+  });
+
+  const cloned = React.useMemo(() => scene.clone(), [scene]);
+  return <group ref={group}><primitive object={cloned} /></group>;
+}
+
+// ─── ANIMAL CARD ──────────────────────────────────────────────────────────────
+
+function AnimalCard({
+  animal, selected, onSelect,
 }: {
-  current: number
-  onBack: () => void
-  onNext: () => void
-  onSkip: () => void
-  options: string[]
-  selected: string[]
-  onToggle: (v: string) => void
+  animal: typeof ANIMALS[0];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const [bounce, setBounce] = useState(false);
+  const tap = () => {
+    setBounce(true);
+    onSelect();
+    setTimeout(() => setBounce(false), 900);
+  };
+  return (
+    <button onClick={tap} style={{
+      background:    selected ? animal.bg : "#fff",
+      border:        `2.5px solid ${C.ink}`,
+      borderRadius:  18,
+      padding:       "10px 6px 12px",
+      cursor:        "pointer",
+      display:       "flex",
+      flexDirection: "column",
+      alignItems:    "center",
+      gap:           4,
+      transform:     selected ? "scale(1.05)" : "scale(1)",
+      transition:    "transform 0.15s, background 0.15s",
+      fontFamily:    "'Quicksand',sans-serif",
+    }}>
+      <div style={{ width: "100%", height: 110, borderRadius: 12, overflow: "hidden" }}>
+        <Canvas camera={{ position: [0, 0.35, 1.85], fov: 44 }}
+          gl={{ antialias: true, alpha: true }}
+          style={{ background: "transparent" }}>
+          <ambientLight intensity={1.3} />
+          <directionalLight position={[2, 4, 2]} intensity={1.5} />
+          <directionalLight position={[-2, 1, -1]} intensity={0.5} />
+          <Suspense fallback={null}>
+            <Model src={animal.src} bounce={bounce} />
+          </Suspense>
+        </Canvas>
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{animal.label}</span>
+      <span style={{ fontSize: 10, fontWeight: 500, color: C.ink, opacity: 0.5 }}>{animal.tag}</span>
+    </button>
+  );
+}
+
+// ─── SHARED PRIMITIVES ────────────────────────────────────────────────────────
+
+function Blob({ color, size = 120, style: s }: { color: string; size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 200 200"
+      style={{ position: "absolute", pointerEvents: "none", ...s }}>
+      <path d="M47.1,-57.1C60.3,-46.6,69.9,-31.6,72.4,-15.2C74.9,1.2,70.3,19,60.5,32.8C50.7,46.5,35.7,56.2,18.9,62.3C2.1,68.3,-16.5,70.8,-31.6,64.6C-46.7,58.5,-58.2,43.7,-65.4,26.5C-72.6,9.3,-75.5,-10.3,-68.9,-26.1C-62.3,-41.9,-46.2,-53.9,-30.3,-63.4C-14.4,-72.9,1.3,-79.8,16.2,-76.3C31,-72.8,33.9,-67.5,47.1,-57.1Z"
+        fill={color} transform="translate(100 100)" />
+    </svg>
+  );
+}
+
+function Hero({ bg, step, title, accent, children }: {
+  bg: string; step?: string; title: React.ReactNode; accent?: string; children?: React.ReactNode;
 }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-      {/* chip grid — floats over lower half of the mockup */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: 10,
-        justifyContent: 'space-between',
-        padding: '0 16px', marginBottom: 8,
-      }}>
-        {options.map((opt) => {
-          const active = selected.includes(opt)
-          return (
-            <button
-              key={opt}
-              onClick={() => onToggle(opt)}
-              style={{
-                width: '47%',
-                background: active ? 'white' : 'rgba(255,255,255,0.92)',
-                borderRadius: 99,
-                padding: '11px 10px',
-                display: 'flex', alignItems: 'center', gap: 8,
-                border: active ? '2px solid #1e2a4a' : '2px solid transparent',
-                boxShadow: active ? '0 4px 12px rgba(30,42,74,0.15)' : 'none',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontWeight: 700,
-                color: '#1e2a4a',
-                fontSize: 13,
-                transition: 'all 0.15s ease',
-                transform: active ? 'scale(1.02)' : 'scale(1)',
-              }}
-            >
-              <div style={{
-                width: 22, height: 22, borderRadius: 11,
-                background: active ? '#3b5bdb' : '#e5e7eb',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                {active && <span style={{ color: 'white', fontSize: 11, fontWeight: 900 }}>✓</span>}
-              </div>
-              {opt}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* bottom bar */}
-      <div style={{ padding: '16px 16px 26px' }}>
-        <Dots current={current} />
-        <div style={{ display: 'flex', flexDirection: 'row', gap: 10, marginTop: 12 }}>
-          <button onClick={onNext} style={{
-            flex: 1, background: '#1e2a4a', borderRadius: 99,
-            padding: 14, border: 'none', color: 'white',
-            fontWeight: 800, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit',
-          }}>Next</button>
-          <button onClick={onSkip} style={{
-            flex: 1,
-            background: 'rgba(255,255,255,0.2)',
-            border: '2px solid rgba(255,255,255,0.4)',
-            borderRadius: 99, padding: 14,
-            color: 'white', fontWeight: 700, fontSize: 14,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>Skip for now</button>
-        </div>
-      </div>
+    <div style={{
+      background:    bg,
+      padding:       "38px 28px 32px",
+      position:      "relative",
+      overflow:      "hidden",
+      borderBottom:  `3px solid ${C.ink}`,
+      flexShrink:    0,
+    }}>
+      <Blob color={accent ?? C.yellow} size={160} style={{ right: -45, top: -45, opacity: 0.65 }} />
+      <Blob color={C.ink}              size={80}  style={{ left: -15, bottom: -15, opacity: 0.1 }} />
+      {step && (
+        <div style={{
+          display: "inline-block", background: C.ink, color: "#fff",
+          fontSize: 10, fontWeight: 700, padding: "4px 11px",
+          borderRadius: 20, letterSpacing: "0.08em", marginBottom: 14,
+          opacity: 0.6, position: "relative", zIndex: 1,
+        }}>{step}</div>
+      )}
+      <h1 style={{
+        fontSize: 34, fontWeight: 700, color: C.ink,
+        lineHeight: 1.1, margin: "0 0 10px",
+        position: "relative", zIndex: 1,
+      }}>{title}</h1>
+      {children}
     </div>
-  )
+  );
 }
 
-// ─── Main component ────────────────────────────────────────────────────────────
-export default function OnboardingFlow() {
-  const navigate = useNavigate()
-  const { user, refreshProfile } = useAuth()
+function BigBtn({ label, onClick, disabled = false }: {
+  label: string; onClick: () => void; disabled?: boolean;
+}) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      width:       "100%",
+      background:  disabled ? "#ddd" : C.ink,
+      color:       disabled ? "#aaa" : C.cream,
+      border:      `2.5px solid ${disabled ? "#ddd" : C.ink}`,
+      borderRadius: 18,
+      padding:     "15px",
+      fontSize:    16,
+      fontWeight:  700,
+      fontFamily:  "'Quicksand',sans-serif",
+      cursor:      disabled ? "not-allowed" : "pointer",
+      marginTop:   "auto",
+      flexShrink:  0,
+      letterSpacing: "0.02em",
+    }}>{label}</button>
+  );
+}
 
-  const [screen, setScreen] = useState(0)
-  const [subjects, setSubjects] = useState<string[]>([])
-  const [goals, setGoals] = useState<string[]>([])
-  const [learnStyles, setLearnStyles] = useState<string[]>([])
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [authLoading, setAuthLoading] = useState(false)
-  const [authError, setAuthError] = useState('')
-  const [savingProfile, setSavingProfile] = useState(false)
-  const [avatarOpts, setAvatarOpts] = useState<Record<string, string>>({
-    Outfit: 'Default', Color: 'Purple', Eyes: 'Default',
-    'Eye Color': 'Brown', 'Hair Style': 'Short',
-    'Hair Color': 'Black', Skin: 'Medium',
-  })
+function BackBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onClick} style={{
+      background: "none", border: "none",
+      fontFamily: "'Quicksand',sans-serif",
+      fontSize: 13, fontWeight: 600,
+      color: C.ink, opacity: 0.4, cursor: "pointer",
+      padding: 0, marginBottom: 12, alignSelf: "flex-start",
+    }}>← back</button>
+  );
+}
 
-  // slide transition
-  const [slideDir, setSlideDir] = useState<'left' | 'right'>('left')
-  const [animating, setAnimating] = useState(false)
-  const [displayScreen, setDisplayScreen] = useState(0)
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 700, color: C.ink,
+      opacity: 0.45, letterSpacing: "0.07em",
+      marginBottom: 8, marginTop: 18,
+    }}>{children}</div>
+  );
+}
 
-  const goTo = (next: number) => {
-    if (animating) return
-    setSlideDir(next > screen ? 'left' : 'right')
-    setAnimating(true)
-    setTimeout(() => {
-      setScreen(next)
-      setDisplayScreen(next)
-      setAnimating(false)
-    }, 280)
-  }
-
-  const goNext = () => { if (screen < 9) goTo(screen + 1) }
-  const goBack = () => { if (screen > 0) goTo(screen - 1) }
-  const skip = () => goTo(7)
-
-  const toggleChip = (arr: string[], setArr: React.Dispatch<React.SetStateAction<string[]>>, val: string) => {
-    setArr(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val])
-  }
-
-  // Auth
-  const handleSignUp = async () => {
-    if (!email || !password) { setAuthError('Please enter email and password.'); return }
-    setAuthLoading(true); setAuthError('')
-    try {
-      const { data, error } = await supabase.auth.signUp({ email, password })
-      if (error) throw error
-      goTo(8)
-    } catch (e: any) {
-      setAuthError(e.message || 'Sign up failed.')
-    } finally {
-      setAuthLoading(false)
-    }
-  }
-
-  const handleLogin = async () => {
-    if (!email || !password) { setAuthError('Please enter email and password.'); return }
-    setAuthLoading(true); setAuthError('')
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-      goTo(8)
-    } catch (e: any) {
-      setAuthError(e.message || 'Login failed.')
-    } finally {
-      setAuthLoading(false)
-    }
-  }
-
-  const handleGoogleOAuth = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/onboarding` }
-    })
-  }
-
-  const handleSaveProfile = async () => {
-    setSavingProfile(true)
-    try {
-      const uid = user?.id
-      if (uid) {
-        await supabase.from('profiles').upsert({
-          id: uid,
-          full_name: name.trim(),
-          subjects,
-          goals,
-          learning_styles: learnStyles,
-          avatar_options: avatarOpts,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        await refreshProfile()
-      }
-      navigate('/dashboard')
-    } catch {
-      alert('Could not save profile.')
-    } finally {
-      setSavingProfile(false)
-    }
-  }
-
-  // ─── Overlays ──────────────────────────────────────────────────────────────
-  const renderOverlay = () => {
-    switch (screen) {
-
-      // Screen 0 – Welcome
-      case 0:
+function Dots({ current, total }: { current: number; total: number }) {
+  return (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", padding: "14px 0 6px", background: C.cream }}>
+      {Array.from({ length: total }).map((_, i) => {
+        const on = i + 1 === current;
         return (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <div style={{
-              background: 'white', borderTopLeftRadius: 36, borderTopRightRadius: 36,
-              padding: '28px 28px 36px', display: 'flex', flexDirection: 'column', alignItems: 'center',
-            }}>
-              <p style={{ fontSize: 24, fontWeight: 900, color: '#1e2a4a', textAlign: 'center', lineHeight: '30px', marginBottom: 8, margin: '0 0 8px' }}>
-                Your Learning Journey{'\n'}Starts Here
-              </p>
-              <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 22, margin: '0 0 22px' }}>Tools that think with you</p>
-              <button onClick={() => goTo(1)} style={{
-                background: '#1e2a4a', borderRadius: 99,
-                padding: '14px 44px', border: 'none',
-                color: 'white', fontWeight: 800, fontSize: 16,
-                cursor: 'pointer', fontFamily: 'inherit', marginBottom: 18,
-              }}>Get Started</button>
-              <Dots current={0} />
-            </div>
+          <div key={i} style={{
+            width:        on ? 22 : 7,
+            height:       7,
+            borderRadius: on ? 4 : "50%",
+            background:   on ? C.ink : "#ccc",
+            transition:   "all 0.3s ease",
+          }} />
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── SCREEN 1 — WELCOME ───────────────────────────────────────────────────────
+
+function S1({ onNext }: { onNext: () => void }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", flex:1 }}>
+      <Hero bg={C.h1} title={<>study smarter.<br /><span style={{ color: C.cream }}>not harder.</span></>} accent={C.pink}>
+        <p style={{ fontSize:14, color:C.ink, opacity:0.65, lineHeight:1.6, fontWeight:500, margin:0, position:"relative", zIndex:1 }}>
+          Your AI-powered study companion. Build your perfect plan in 60 seconds.
+        </p>
+      </Hero>
+      <div style={{ flex:1, padding:"24px 24px 32px", display:"flex", flexDirection:"column" }}>
+        {[
+          { icon:"🧠", text:"AI that adapts to your pace" },
+          { icon:"⚡", text:"XP streaks that keep you going" },
+          { icon:"🎯", text:"Personalized roadmap from day one" },
+        ].map(f => (
+          <div key={f.text} style={{
+            display:"flex", alignItems:"center", gap:14,
+            background:"#fff", border:`2.5px solid ${C.ink}`,
+            borderRadius:16, padding:"14px 16px", marginBottom:12,
+          }}>
+            <span style={{ fontSize:22, width:36, textAlign:"center" }}>{f.icon}</span>
+            <span style={{ fontSize:15, fontWeight:600, color:C.ink }}>{f.text}</span>
           </div>
-        )
+        ))}
+        <div style={{ flex:1 }} />
+        <BigBtn label="Let's go →" onClick={onNext} />
+      </div>
+    </div>
+  );
+}
 
-      // Screen 1 – Tools
-      case 1:
-        return (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <div style={{ padding: '20px 20px 32px' }}>
-              <Dots current={1} />
-              <p style={{ fontSize: 25, fontWeight: 900, color: '#1e2a4a', margin: '10px 0 4px' }}>Smart Tools, One Place</p>
-              <p style={{ fontSize: 14, color: '#1e2a4a', opacity: 0.7, margin: '0 0 16px' }}>Built for every type of learner</p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={goNext} style={{ flex: 1, background: '#1e2a4a', borderRadius: 99, padding: 14, border: 'none', color: 'white', fontWeight: 800, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>Next</button>
-                <button onClick={skip} style={{ flex: 1, background: 'white', borderRadius: 99, padding: 14, border: 'none', color: '#1e2a4a', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Skip for now</button>
-              </div>
-            </div>
-          </div>
-        )
+// ─── SCREEN 2 — STUDY STYLE ───────────────────────────────────────────────────
 
-      // Screen 2 – Visual Learner
-      case 2:
-        return (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <div style={{ padding: '22px 22px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Dots current={2} />
-              <p style={{ fontSize: 28, fontWeight: 900, color: '#1e2a4a', textAlign: 'center', margin: '10px 0 6px' }}>See It, Learn It, Own It</p>
-              <p style={{ fontSize: 14, color: '#1e2a4a', opacity: 0.65, margin: '0 0 18px', textAlign: 'center' }}>Visual tools that make ideas click</p>
-              <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-                <button onClick={goNext} style={{ flex: 2, background: '#1e2a4a', borderRadius: 99, padding: 14, border: 'none', color: 'white', fontWeight: 800, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>Next</button>
-                <button onClick={skip} style={{ flex: 1, border: '2px solid #1e2a4a', borderRadius: 99, padding: 14, background: 'transparent', color: '#1e2a4a', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Skip</button>
-              </div>
-            </div>
-          </div>
-        )
-
-      // Screen 3 – Focus
-      case 3:
-        return (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-            <div style={{ padding: '18px 18px 28px' }}>
-              <Dots current={3} />
-              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-                <button onClick={goNext} style={{ flex: 1, background: '#1e2a4a', borderRadius: 99, padding: 14, border: 'none', color: 'white', fontWeight: 800, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>Next</button>
-                <button onClick={skip} style={{ flex: 1, border: '2px solid #1e2a4a', borderRadius: 99, padding: 14, background: 'transparent', color: '#1e2a4a', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Skip for now</button>
-              </div>
-            </div>
-          </div>
-        )
-
-      // Screen 4 – Subjects
-      case 4:
-        return (
-          <StepScreen
-            current={4} onBack={goBack} onNext={goNext} onSkip={skip}
-            options={['Mathematics', 'Science', 'English', 'History', 'Programming', 'Arts']}
-            selected={subjects}
-            onToggle={(v) => toggleChip(subjects, setSubjects, v)}
-          />
-        )
-
-      // Screen 5 – Goals
-      case 5:
-        return (
-          <StepScreen
-            current={5} onBack={goBack} onNext={goNext} onSkip={skip}
-            options={['Pass Exams', 'Improve Grades', 'Study Faster', 'Build Habits', 'Prepare for College', 'Learn a Skill']}
-            selected={goals}
-            onToggle={(v) => toggleChip(goals, setGoals, v)}
-          />
-        )
-
-      // Screen 6 – Learning Style
-      case 6:
-        return (
-          <StepScreen
-            current={6} onBack={goBack} onNext={() => goTo(7)} onSkip={skip}
-            options={['Visual Scenes', 'Practice Tests', 'Flashcards', 'Reading', 'Listening', 'Mixed']}
-            selected={learnStyles}
-            onToggle={(v) => toggleChip(learnStyles, setLearnStyles, v)}
-          />
-        )
-
-      // Screen 7 – Sign Up
-      case 7:
-        return (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 20 }}>
-            <div style={{ background: 'white', borderRadius: 24, margin: '0 14px 14px', padding: 20 }}>
-              <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, margin: '0 0 10px' }}>or</p>
-              <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: 14, overflow: 'hidden', marginBottom: 14 }}>
-                <button onClick={handleGoogleOAuth} style={{ flex: 1, padding: 12, background: 'transparent', border: 'none', fontWeight: 800, fontSize: 13, color: '#1e2a4a', cursor: 'pointer', fontFamily: 'inherit' }}>G  Google</button>
-                <div style={{ width: 1, background: '#e5e7eb' }} />
-                <button style={{ flex: 1, padding: 12, background: 'transparent', border: 'none', fontWeight: 800, fontSize: 13, color: '#1877f2', cursor: 'pointer', fontFamily: 'inherit' }}>f  Facebook</button>
-              </div>
-              <div style={{ borderBottom: '1px solid #e5e7eb', marginBottom: 2 }}>
-                <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
-                  style={{ width: '100%', padding: '12px 4px', fontSize: 15, color: '#1e2a4a', border: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ borderBottom: '1px solid #e5e7eb', marginBottom: 2 }}>
-                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
-                  style={{ width: '100%', padding: '12px 4px', fontSize: 15, color: '#1e2a4a', border: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-              </div>
-              {authError && <p style={{ color: '#ef4444', fontSize: 12, margin: '6px 0' }}>{authError}</p>}
-              <button onClick={handleSignUp} disabled={authLoading} style={{
-                width: '100%', background: '#1e2a4a', borderRadius: 99, padding: 15,
-                border: 'none', color: 'white', fontWeight: 800, fontSize: 16,
-                cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.6 : 1,
-                margin: '12px 0 10px', fontFamily: 'inherit',
-              }}>{authLoading ? 'Creating account...' : 'Create Free Account'}</button>
-              <button onClick={handleLogin} style={{ width: '100%', background: 'transparent', border: 'none', textAlign: 'center', color: '#6b7280', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Already have an account? <strong>Login</strong>
+function S2({ data, setData, onNext, onBack }: {
+  data: OnboardingData;
+  setData: React.Dispatch<React.SetStateAction<OnboardingData>>;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", flex:1 }}>
+      <Hero bg={C.h2} step="STEP 1 OF 3" accent={C.yellow}
+        title={<>how do you<br /><span style={{ color:C.cream }}>like to learn?</span></>} />
+      <div style={{ flex:1, padding:"20px 24px 28px", display:"flex", flexDirection:"column" }}>
+        <BackBtn onClick={onBack} />
+        <p style={{ fontSize:14, color:C.ink, opacity:0.6, fontWeight:500, marginBottom:18, lineHeight:1.5 }}>
+          Pick your study vibe — AI shapes everything around it.
+        </p>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:20 }}>
+          {STYLES.map(s => {
+            const sel = data.studyStyle === s.key;
+            return (
+              <button key={s.key} onClick={() => setData(d => ({ ...d, studyStyle: s.key }))} style={{
+                background:    sel ? s.bg : "#fff",
+                border:        `2.5px solid ${C.ink}`,
+                borderRadius:  18,
+                padding:       "16px 14px",
+                cursor:        "pointer",
+                display:       "flex",
+                flexDirection: "column",
+                alignItems:    "flex-start",
+                gap:           4,
+                transform:     sel ? "scale(1.03)" : "scale(1)",
+                transition:    "transform 0.12s, background 0.15s",
+                fontFamily:    "'Quicksand',sans-serif",
+              }}>
+                <span style={{ fontSize:28, marginBottom:4 }}>{s.emoji}</span>
+                <span style={{ fontSize:14, fontWeight:700, color:C.ink }}>{s.label}</span>
+                <span style={{ fontSize:11, fontWeight:500, color:C.ink, opacity:0.55 }}>{s.sub}</span>
               </button>
-            </div>
-            <Dots current={7} />
-          </div>
-        )
+            );
+          })}
+        </div>
+        <BigBtn label="Next →" onClick={onNext} disabled={!data.studyStyle} />
+      </div>
+    </div>
+  );
+}
 
-      // Screen 8 – Name Input
-      case 8:
-        return (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 14px', paddingTop: '35%' }}>
-            <div style={{ background: 'white', borderRadius: 24, padding: 24 }}>
-              <p style={{ fontWeight: 800, fontSize: 15, color: '#1e2a4a', margin: '0 0 10px' }}>Enter your name</p>
-              <input
-                type="text" placeholder="Enter your name" value={name} onChange={e => setName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && goNext()}
-                autoFocus
-                style={{
-                  width: '100%', border: '2px solid #e5e7eb', borderRadius: 99,
-                  padding: '12px 18px', fontSize: 15, color: '#1e2a4a',
-                  outline: 'none', marginBottom: 14, fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
-              />
-              <button onClick={goNext} style={{
-                width: '100%', background: '#1e2a4a', borderRadius: 99, padding: 15,
-                border: 'none', color: 'white', fontWeight: 800, fontSize: 16,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>Let's Go</button>
-            </div>
-            <div style={{ marginTop: 12 }}><Dots current={8} /></div>
-          </div>
-        )
+// ─── SCREEN 3 — IDENTITY ──────────────────────────────────────────────────────
 
-      // Screen 9 – Avatar
-      case 9: {
-        const avatarCategories: Record<string, string[]> = {
-          Outfit: ['Default', 'Casual', 'Formal', 'Sport', 'Hoodie'],
-          Color: ['Purple', 'Red', 'Yellow', 'Teal', 'Blue'],
-          Eyes: ['Default', 'Round', 'Sleepy', 'Star'],
-          'Eye Color': ['Brown', 'Blue', 'Green', 'Hazel'],
-          'Hair Style': ['Short', 'Long', 'Curly', 'Bun'],
-          'Hair Color': ['Black', 'Brown', 'Blonde', 'Red'],
-          Skin: ['Light', 'Medium', 'Tan', 'Dark'],
-        }
-        return (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 16 }}>
-            <div style={{
-              background: 'rgba(0,0,0,0.25)', borderRadius: 20,
-              margin: '0 12px', padding: 12, maxHeight: '52vh', overflowY: 'auto',
-            }}>
-              {Object.entries(avatarCategories).map(([cat, opts]) => (
-                <div key={cat} style={{
-                  display: 'flex', alignItems: 'center',
-                  background: 'rgba(255,255,255,0.1)', borderRadius: 14,
-                  padding: 10, marginBottom: 7,
-                }}>
-                  <span style={{ color: 'white', fontWeight: 800, fontSize: 12, width: 72, flexShrink: 0 }}>{cat}</span>
-                  <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexGrow: 1 }}>
-                    {opts.map(o => (
-                      <button key={o}
-                        onClick={() => setAvatarOpts(prev => ({ ...prev, [cat]: o }))}
-                        style={{
-                          padding: '5px 10px', borderRadius: 99, border: 'none',
-                          background: avatarOpts[cat] === o ? 'white' : 'rgba(255,255,255,0.2)',
-                          color: avatarOpts[cat] === o ? '#7c3aed' : 'white',
-                          fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                          fontFamily: 'inherit', flexShrink: 0,
-                          transition: 'all 0.15s',
-                        }}
-                      >{o}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <button
-                onClick={handleSaveProfile}
-                disabled={savingProfile}
-                style={{
-                  width: '100%', background: 'white', borderRadius: 99, padding: 15,
-                  border: 'none', color: '#7c3aed', fontWeight: 900, fontSize: 16,
-                  cursor: savingProfile ? 'not-allowed' : 'pointer',
-                  opacity: savingProfile ? 0.6 : 1,
-                  marginTop: 10, fontFamily: 'inherit',
-                }}
-              >{savingProfile ? 'Saving...' : 'Save and Continue'}</button>
-            </div>
-            <div style={{ marginTop: 8 }}><Dots current={9} /></div>
-          </div>
-        )
-      }
+function S3({ data, setData, onNext, onBack }: {
+  data: OnboardingData;
+  setData: React.Dispatch<React.SetStateAction<OnboardingData>>;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const ok = !!data.name.trim() && !!data.animal && !!data.dailyGoal;
+  return (
+    <div style={{ display:"flex", flexDirection:"column", flex:1 }}>
+      <Hero bg={C.h3} step="STEP 2 OF 3" accent={C.pink}
+        title={<>make it<br /><span style={{ color:C.ink, opacity:0.55 }}>yours.</span></>} />
+      <div style={{ flex:1, padding:"20px 24px 28px", display:"flex", flexDirection:"column", overflowY:"auto" }}>
+        <BackBtn onClick={onBack} />
 
-      default: return null
-    }
-  }
+        <FieldLabel>YOUR NAME</FieldLabel>
+        <input
+          value={data.name}
+          onChange={e => setData(d => ({ ...d, name: e.target.value }))}
+          placeholder="e.g. Adrian"
+          maxLength={24}
+          style={{
+            width:"100%", border:`2.5px solid ${C.ink}`, borderRadius:14,
+            padding:"13px 16px", fontFamily:"'Quicksand',sans-serif",
+            fontSize:18, fontWeight:600, color:C.ink,
+            background:"#fff", outline:"none", boxSizing:"border-box",
+          }}
+        />
+
+        <FieldLabel>PICK YOUR AVATAR</FieldLabel>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          {ANIMALS.map(a => (
+            <AnimalCard key={a.key} animal={a}
+              selected={data.animal === a.key}
+              onSelect={() => setData(d => ({ ...d, animal: a.key }))} />
+          ))}
+        </div>
+
+        <FieldLabel>DAILY GOAL</FieldLabel>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:20 }}>
+          {GOALS.map(g => {
+            const sel = data.dailyGoal === g.value;
+            return (
+              <button key={g.value} onClick={() => setData(d => ({ ...d, dailyGoal: g.value }))} style={{
+                border:`2.5px solid ${C.ink}`, borderRadius:14,
+                padding:"10px 4px", background: sel ? C.yellow : "#fff",
+                cursor:"pointer", display:"flex", flexDirection:"column",
+                alignItems:"center", gap:2,
+                transform: sel ? "scale(1.05)" : "scale(1)",
+                transition:"background 0.12s, transform 0.1s",
+                fontFamily:"'Quicksand',sans-serif",
+              }}>
+                <span style={{ fontSize:13, fontWeight:700, color:C.ink }}>{g.label}</span>
+                <span style={{ fontSize:9, fontWeight:600, color:C.ink, opacity:0.5 }}>{g.sub}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <BigBtn label="Build my plan →" onClick={onNext} disabled={!ok} />
+      </div>
+    </div>
+  );
+}
+
+// ─── SCREEN 4 — PLAN REVEAL ───────────────────────────────────────────────────
+
+function S4({ data, onFinish, saving }: {
+  data: OnboardingData;
+  onFinish: () => void;
+  saving: boolean;
+}) {
+  const plan   = PLAN[data.studyStyle ?? "streak"];
+  const animal = ANIMALS.find(a => a.key === data.animal) ?? ANIMALS[0];
+  const style  = STYLES.find(s => s.key === data.studyStyle);
+  const [xp, setXp]         = useState(0);
+  const [bounce, setBounce] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setXp(40), 700);
+    const t2 = setTimeout(() => setBounce(true), 500);
+    const t3 = setTimeout(() => setBounce(false), 1400);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden' }}>
+    <div style={{ display:"flex", flexDirection:"column", flex:1 }}>
+      <Hero bg={C.h4} step="YOUR PLAN" accent={C.coral}
+        title={<>ready,<br /><span style={{ color:C.cream }}>{(data.name || "let's go").toLowerCase()}.</span></>} />
+
+      <div style={{ flex:1, padding:"20px 24px 28px", display:"flex", flexDirection:"column", overflowY:"auto" }}>
+
+        {/* avatar preview strip */}
+        <div style={{
+          display:"flex", alignItems:"center", gap:14,
+          background: animal.bg, border:`2.5px solid ${C.ink}`,
+          borderRadius:18, padding:"12px 16px", marginBottom:4,
+        }}>
+          <div style={{ width:80, height:80, flexShrink:0 }}>
+            <Canvas camera={{ position:[0,0.35,1.85], fov:44 }}
+              gl={{ antialias:true, alpha:true }}
+              style={{ background:"transparent" }}>
+              <ambientLight intensity={1.3} />
+              <directionalLight position={[2,4,2]} intensity={1.5} />
+              <Suspense fallback={null}>
+                <Model src={animal.src} bounce={bounce} />
+              </Suspense>
+            </Canvas>
+          </div>
+          <div>
+            <div style={{ fontSize:16, fontWeight:700, color:C.ink }}>
+              {data.name || "You"} × {animal.label}
+            </div>
+            <div style={{ fontSize:12, color:C.ink, opacity:0.55, fontWeight:500 }}>
+              {data.dailyGoal} min/day · {style?.label}
+            </div>
+          </div>
+        </div>
+
+        {/* XP bar */}
+        <FieldLabel>STARTER XP</FieldLabel>
+        <div style={{
+          background:"#eee", borderRadius:10, height:10,
+          overflow:"hidden", border:`1.5px solid ${C.ink}`,
+        }}>
+          <div style={{
+            height:"100%", width:`${xp}%`,
+            background: C.h1, borderRadius:10,
+            transition:"width 1.1s cubic-bezier(0.34,1.56,0.64,1)",
+          }} />
+        </div>
+        <div style={{ fontSize:11, fontWeight:600, color:C.ink, opacity:0.4, marginTop:4 }}>
+          {xp} / 100 XP · Level 1
+        </div>
+
+        {/* roadmap */}
+        <FieldLabel>YOUR ROADMAP</FieldLabel>
+        {plan.map(([title, sub], i) => (
+          <div key={i} style={{
+            display:"flex", gap:12, alignItems:"flex-start",
+            border:`2px solid ${C.ink}`, borderRadius:16,
+            padding:"12px 14px", background:"#fff", marginBottom:10,
+          }}>
+            <div style={{
+              width:12, height:12, borderRadius:"50%",
+              background: PLAN_DOTS[i], border:`2px solid ${C.ink}`,
+              flexShrink:0, marginTop:4,
+            }} />
+            <div>
+              <div style={{ fontSize:10, fontWeight:700, color:C.ink, opacity:0.4, letterSpacing:"0.07em" }}>
+                WEEK {i === 0 ? "1–2" : i === 1 ? "3–4" : "5+"}
+              </div>
+              <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>{title}</div>
+              <div style={{ fontSize:12, fontWeight:500, color:C.ink, opacity:0.55 }}>{sub}</div>
+            </div>
+          </div>
+        ))}
+
+        <BigBtn
+          label={saving ? "Setting up…" : "Start studying →"}
+          onClick={onFinish}
+          disabled={saving}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
+
+export default function OnboardingFlow() {
+  const navigate = useNavigate();
+  // TODO_SUPABASE: const { user } = useAuth();
+  const [step,   setStep]  = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [data,   setData]  = useState<OnboardingData>({
+    name: "", studyStyle: null, animal: null, dailyGoal: null,
+  });
+
+  const handleFinish = useCallback(async () => {
+    setSaving(true);
+    try {
+      // ── Supabase upsert ─────────────────────────────────────────────────
+      // TODO_SUPABASE: const { data: { user } } = await supabase.auth.getUser();
+      // TODO_SUPABASE: await supabase.from("profiles").upsert({
+      // TODO_SUPABASE:   id:                    user?.id,
+      // TODO_SUPABASE:   display_name:          data.name,
+      // TODO_SUPABASE:   study_style:           data.studyStyle,
+      // TODO_SUPABASE:   avatar_animal:         data.animal,
+      // TODO_SUPABASE:   daily_goal_minutes:    data.dailyGoal,
+      // TODO_SUPABASE:   onboarding_complete:   true,
+      // TODO_SUPABASE: });
+      // ── fallback (remove once Supabase is wired) ────────────────────────
+      localStorage.setItem("studenius_onboarding", JSON.stringify(data));
+      // ────────────────────────────────────────────────────────────────────
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Onboarding save failed:", err);
+    } finally {
+      setSaving(false);
+    }
+  }, [data, navigate]);
+
+  return (
+    <div style={{
+      fontFamily:   "'Quicksand', sans-serif",
+      background:   C.cream,
+      minHeight:    "100dvh",
+      display:      "flex",
+      flexDirection:"column",
+      maxWidth:     480,
+      margin:       "0 auto",
+      overflowX:    "hidden",
+    }}>
       <style>{`
+        @keyframes fadeSlide {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
         * { box-sizing: border-box; }
-        @keyframes slideInLeft {
-          from { opacity: 0; transform: translateX(40px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(-40px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        .screen-slide-left  { animation: slideInLeft  0.28s ease forwards; }
-        .screen-slide-right { animation: slideInRight 0.28s ease forwards; }
-        input, button { -webkit-tap-highlight-color: transparent; }
+        button:active { transform: scale(0.97) !important; }
+        input:focus { border-color: ${C.h1} !important; }
         ::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <div
-        key={screen}
-        className={slideDir === 'left' ? 'screen-slide-left' : 'screen-slide-right'}
-        style={{
-          width: '100%', height: '100%', position: 'relative',
-          backgroundImage: `url(${SCREENS[screen]})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          display: 'flex', flexDirection: 'column',
-        }}
-      >
-        {renderOverlay()}
+      <Dots current={step} total={4} />
+
+      <div style={{ flex:1, display:"flex", flexDirection:"column",
+        animation:"fadeSlide 0.3s ease" }} key={step}>
+        {step === 1 && <S1 onNext={() => setStep(2)} />}
+        {step === 2 && <S2 data={data} setData={setData} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+        {step === 3 && <S3 data={data} setData={setData} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
+        {step === 4 && <S4 data={data} onFinish={handleFinish} saving={saving} />}
       </div>
     </div>
-  )
+  );
 }
 
+// preload all models on import
+ANIMALS.forEach(a => useGLTF.preload(a.src));
