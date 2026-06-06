@@ -64,7 +64,7 @@ import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
-import Onboarding from "./pages/Onboarding";
+import Onboarding from "./pages/OnboardingFlow";
 import Admin from "./pages/Admin";
 import SourceLibrary from "./pages/SourceLibrary";
 import { SourceBreadcrumb } from "./components/SourceBreadcrumb";
