@@ -80,7 +80,6 @@ import ToolArchitect from "./pages/ToolArchitect";
 import Pricing from "./pages/Pricing";
 import MathSolver from "./pages/MathSolver";
 import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Daily5 from "./pages/Daily5";
@@ -184,7 +183,7 @@ function AppRoutes() {
         <Route path="/" element={safe(<MobileRootRedirect />)} />
         <Route path="/landing" element={safe(<Landing />)} />
         <Route path="/login" element={safe(<Login />)} />
-        <Route path="/signup" element={safe(<Signup />)} />
+        <Route path="/signup" element={<Navigate to="/onboarding" replace />} />
         <Route path="/pricing" element={safe(<Pricing />)} />
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
