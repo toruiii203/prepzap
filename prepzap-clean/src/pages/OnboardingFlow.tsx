@@ -687,40 +687,78 @@ function SubjectSelection({ onNext, onBack }: { onNext: (selected: string[]) => 
 
 // ─── SCREEN 6: Subject Reaction ───────────────────────────────────────────────
 function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () => void }) {
-  const [foxSrc, setFoxSrc]           = useState(FOX.peeking)
-  const [foxY, setFoxY]               = useState(100)
-  const [textOpacity, setTextOpacity] = useState(0)
-  const [chipsVisible, setChipsVisible] = useState(false)
+  const [foxSrc, setFoxSrc]             = useState(FOX.peeking)
+  const [foxY, setFoxY]                 = useState(110)
+  const [foxScale, setFoxScale]         = useState(0.85)
+  const [textPhase, setTextPhase]       = useState<"hidden"|"in"|"visible"|"out">("hidden")
+  const [chipPhase, setChipPhase]       = useState<"hidden"|"in"|"visible">("hidden")
+  const [visibleChips, setVisibleChips] = useState<number>(0)
+  const [bgFlash, setBgFlash]           = useState(false)
 
   useEffect(() => {
-    const t1 = setTimeout(() => setFoxY(0), 100)
-    const t2 = setTimeout(() => setTextOpacity(1), 800)
-    const t3 = setTimeout(() => { setFoxSrc(FOX.surprised); setChipsVisible(true) }, 1500)
-    const t4 = setTimeout(() => setFoxSrc(FOX.neutral), 3000)
-    const t5 = setTimeout(() => setFoxSrc(FOX.excited), 4500)
-    const t6 = setTimeout(() => { setFoxSrc(FOX.happy); onNext() }, 6000)
-    return () => [t1, t2, t3, t4, t5, t6].forEach(clearTimeout)
+    // Fox slides up with spring overshoot
+    const t1 = setTimeout(() => { setFoxY(0); setFoxScale(1) }, 80)
+    // Headline fades+slides in
+    const t2 = setTimeout(() => setTextPhase("in"), 700)
+    const t3 = setTimeout(() => setTextPhase("visible"), 1100)
+    // Fox reacts
+    const t4 = setTimeout(() => { setFoxSrc(FOX.surprised); setBgFlash(true) }, 1400)
+    const t5 = setTimeout(() => setBgFlash(false), 1700)
+    // Chips stagger in one by one
+    const t6 = setTimeout(() => setChipPhase("in"), 1600)
+    const t7 = setTimeout(() => setVisibleChips(1), 1700)
+    const t8 = setTimeout(() => setVisibleChips(2), 2000)
+    const t9 = setTimeout(() => setVisibleChips(3), 2300)
+    // Fox settles
+    const t10 = setTimeout(() => setFoxSrc(FOX.excited), 3200)
+    // Text fades out
+    const t11 = setTimeout(() => setTextPhase("out"), 4200)
+    const t12 = setTimeout(() => { setFoxSrc(FOX.happy); onNext() }, 5200)
+    return () => [t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12].forEach(clearTimeout)
   }, [])
 
+  const textStyle: React.CSSProperties = {
+    fontSize: 36, fontWeight: 800, color: BLACK, margin: 0,
+    fontFamily: "'Quicksand', sans-serif",
+    transition: "opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+    opacity: textPhase === "visible" ? 1 : 0,
+    transform: textPhase === "in" || textPhase === "visible" ? "translateY(0px)" : textPhase === "out" ? "translateY(-16px)" : "translateY(24px)",
+  }
+
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh" }}>
-      <div style={{ position: "absolute", top: "25%", left: 0, width: "100%", textAlign: "center", zIndex: 10, transition: "opacity 0.5s", opacity: textOpacity }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: BLACK, margin: 0 }}>Good combo.</h1>
-      </div>
-      {chipsVisible && (
-        <div style={{ position: "absolute", top: "38%", left: "50%", transform: "translateX(-50%)", display: "flex", gap: 8, zIndex: 10, flexWrap: "wrap", justifyContent: "center" }}>
-          {selected.slice(0, 3).map(id => {
-            const s = subjects.find(s => s.id === id)
-            return s ? (
-              <span key={id} style={{ background: WHITE, border: `2px solid #EAEAEA`, borderBottom: `4px solid #EAEAEA`, borderRadius: 99, padding: "8px 16px", fontWeight: 700, fontSize: 14, color: BLACK }}>
-                {s.name}
+    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.2s", background: bgFlash ? YELLOW : BG }}>
+      <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, zIndex: 10 }}>
+        <h1 style={textStyle}>Good combo.</h1>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          {selected.slice(0, 3).map((id, i) => {
+            const subj = subjects.find(s => s.id === id)
+            const visible = i < visibleChips
+            return subj ? (
+              <span key={id} style={{
+                background: i === 0 ? YELLOW : i === 1 ? "#FFE0D6" : "#D6F0FF",
+                border: `2.5px solid ${BLACK}`,
+                borderBottom: `4px solid ${BLACK}`,
+                borderRadius: 99, padding: "10px 20px",
+                fontWeight: 800, fontSize: 15, color: BLACK,
+                fontFamily: "'Quicksand', sans-serif",
+                transition: "opacity 0.35s ease, transform 0.45s cubic-bezier(0.34,1.56,0.64,1)",
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.85)",
+                display: "inline-block",
+              }}>
+                {subj.name}
               </span>
             ) : null
           })}
         </div>
-      )}
-      <div style={{ position: "absolute", bottom: -50, left: "50%", transform: `translateX(-50%) translateY(${foxY}%)`, transition: "transform 1.2s cubic-bezier(0.34,1.56,0.64,1)", width: 300, height: 300, zIndex: 5 }}>
-        <img src={foxSrc} alt="Rex" style={{ width: "100%", height: "auto", objectFit: "contain", transition: "opacity 0.3s" }} />
+      </div>
+      <div style={{
+        position: "absolute", bottom: -60, left: "50%",
+        transform: `translateX(-50%) translateY(${foxY}%) scale(${foxScale})`,
+        transition: "transform 1.4s cubic-bezier(0.34,1.56,0.64,1)",
+        width: 300, height: 300, zIndex: 5,
+      }}>
+        <img src={foxSrc} alt="Rex" style={{ width: "100%", height: "auto", objectFit: "contain", transition: "opacity 0.25s" }} />
       </div>
     </div>
   )
@@ -779,38 +817,69 @@ function GoalSelection({ onNext, onBack }: { onNext: (goal: string) => void; onB
 
 // ─── SCREEN 8: Goal Reaction ──────────────────────────────────────────────────
 function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
-  const [foxSrc, setFoxSrc]           = useState(FOX.peeking)
-  const [foxY, setFoxY]               = useState(100)
-  const [text, setText]               = useState("")
-  const [textOpacity, setTextOpacity] = useState(0)
+  const [foxSrc, setFoxSrc]         = useState(FOX.peeking)
+  const [foxY, setFoxY]             = useState(110)
+  const [foxScale, setFoxScale]     = useState(0.85)
+  const [line1Phase, setLine1Phase] = useState<"hidden"|"in"|"out">("hidden")
+  const [line2Phase, setLine2Phase] = useState<"hidden"|"in"|"out">("hidden")
+  const [line3Phase, setLine3Phase] = useState<"hidden"|"in"|"out">("hidden")
   const [chipVisible, setChipVisible] = useState(false)
+  const [bgFlash, setBgFlash]       = useState(false)
 
   const goalName = goals.find(g => g.id === goal)?.name ?? "Your Goal"
 
+  const phaseStyle = (phase: "hidden"|"in"|"out"): React.CSSProperties => ({
+    transition: "opacity 0.45s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+    opacity: phase === "in" ? 1 : 0,
+    transform: phase === "hidden" ? "translateY(20px) scale(0.95)" : phase === "out" ? "translateY(-20px) scale(0.95)" : "translateY(0) scale(1)",
+  })
+
   useEffect(() => {
-    const t1 = setTimeout(() => setFoxY(0), 100)
-    const t2 = setTimeout(() => { setText("Noted."); setTextOpacity(1); setChipVisible(true) }, 800)
-    const t3 = setTimeout(() => { setFoxSrc(FOX.thinking) }, 1500)
-    const t4 = setTimeout(() => { setTextOpacity(0) }, 2200)
-    const t5 = setTimeout(() => { setText("We'll make it work."); setTextOpacity(1); setFoxSrc(FOX.surprised) }, 2800)
-    const t6 = setTimeout(() => { setTextOpacity(0) }, 3800)
-    const t7 = setTimeout(() => { setText("Let's keep going."); setTextOpacity(1); setFoxSrc(FOX.excited); setChipVisible(false) }, 4400)
-    const t8 = setTimeout(() => { setFoxSrc(FOX.happy); onNext() }, 6000)
-    return () => [t1, t2, t3, t4, t5, t6, t7, t8].forEach(clearTimeout)
+    const t1  = setTimeout(() => { setFoxY(0); setFoxScale(1) }, 80)
+    const t2  = setTimeout(() => setLine1Phase("in"), 700)
+    const t3  = setTimeout(() => setChipVisible(true), 1000)
+    const t4  = setTimeout(() => { setFoxSrc(FOX.thinking); setBgFlash(true) }, 1200)
+    const t5  = setTimeout(() => setBgFlash(false), 1500)
+    const t6  = setTimeout(() => setLine1Phase("out"), 2000)
+    const t7  = setTimeout(() => setLine2Phase("in"), 2400)
+    const t8  = setTimeout(() => { setFoxSrc(FOX.surprised) }, 2600)
+    const t9  = setTimeout(() => setLine2Phase("out"), 3600)
+    const t10 = setTimeout(() => { setChipVisible(false); setLine3Phase("in") }, 4000)
+    const t11 = setTimeout(() => setFoxSrc(FOX.excited), 4100)
+    const t12 = setTimeout(() => { setFoxSrc(FOX.happy); onNext() }, 5600)
+    return () => [t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12].forEach(clearTimeout)
   }, [])
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh" }}>
-      <div style={{ position: "absolute", top: "25%", left: 0, width: "100%", textAlign: "center", zIndex: 10, transition: "opacity 0.5s", opacity: textOpacity, padding: "0 24px", boxSizing: "border-box" }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: BLACK, margin: "0 0 20px" }}>{text}</h1>
-        {chipVisible && goalName && (
-          <span style={{ display: "inline-block", background: BG, border: `2px solid ${BLACK}`, borderRadius: 9999, padding: "8px 20px", fontWeight: 700, fontSize: 15, color: BLACK }}>
+    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.25s", background: bgFlash ? "#FFF0D6" : BG }}>
+      <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, zIndex: 10, minHeight: 160, justifyContent: "center" }}>
+
+        <div style={{ textAlign: "center", position: "relative", minHeight: 52 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, color: BLACK, margin: 0, fontFamily: "'Quicksand', sans-serif", position: "absolute", left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", ...phaseStyle(line1Phase) }}>Noted.</h1>
+          <h1 style={{ fontSize: 34, fontWeight: 800, color: BLACK, margin: 0, fontFamily: "'Quicksand', sans-serif", position: "absolute", left: "50%", transform: `translateX(-50%) ${line2Phase === "hidden" ? "translateY(20px) scale(0.95)" : line2Phase === "out" ? "translateY(-20px) scale(0.95)" : "translateY(0) scale(1)"}`, opacity: line2Phase === "in" ? 1 : 0, transition: "opacity 0.45s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)", whiteSpace: "nowrap" }}>We'll make it work.</h1>
+          <h1 style={{ fontSize: 34, fontWeight: 800, color: BLACK, margin: 0, fontFamily: "'Quicksand', sans-serif", position: "absolute", left: "50%", transform: `translateX(-50%) ${line3Phase === "hidden" ? "translateY(20px) scale(0.95)" : "translateY(0) scale(1)"}`, opacity: line3Phase === "in" ? 1 : 0, transition: "opacity 0.45s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)", whiteSpace: "nowrap" }}>Let's keep going.</h1>
+          {/* spacer so container doesn't collapse */}
+          <h1 style={{ fontSize: 36, fontWeight: 800, margin: 0, visibility: "hidden", whiteSpace: "nowrap" }}>We'll make it work.</h1>
+        </div>
+
+        <div style={{
+          transition: "opacity 0.4s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+          opacity: chipVisible ? 1 : 0,
+          transform: chipVisible ? "translateY(0) scale(1)" : "translateY(16px) scale(0.9)",
+        }}>
+          <span style={{ display: "inline-block", background: YELLOW, border: `2.5px solid ${BLACK}`, borderBottom: `4px solid ${BLACK}`, borderRadius: 9999, padding: "10px 24px", fontWeight: 800, fontSize: 15, color: BLACK, fontFamily: "'Quicksand', sans-serif" }}>
             {goalName}
           </span>
-        )}
+        </div>
       </div>
-      <div style={{ position: "absolute", bottom: -50, left: "50%", transform: `translateX(-50%) translateY(${foxY}%)`, transition: "transform 1.2s cubic-bezier(0.34,1.56,0.64,1)", width: 300, height: 300, zIndex: 5 }}>
-        <img src={foxSrc} alt="Rex" style={{ width: "100%", height: "auto", objectFit: "contain", transition: "opacity 0.4s" }} />
+
+      <div style={{
+        position: "absolute", bottom: -60, left: "50%",
+        transform: `translateX(-50%) translateY(${foxY}%) scale(${foxScale})`,
+        transition: "transform 1.4s cubic-bezier(0.34,1.56,0.64,1)",
+        width: 300, height: 300, zIndex: 5,
+      }}>
+        <img src={foxSrc} alt="Rex" style={{ width: "100%", height: "auto", objectFit: "contain", transition: "opacity 0.25s" }} />
       </div>
     </div>
   )
@@ -870,68 +939,129 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
 
 // ─── SCREEN 10: Final Transition ──────────────────────────────────────────────
 function FinalTransition({ onDone }: { onDone: () => void }) {
-  const [foxSrc, setFoxSrc]                 = useState(FOX.peeking)
-  const [foxY, setFoxY]                     = useState(100)
-  const [text, setText]                     = useState("")
-  const [textOpacity, setTextOpacity]       = useState(0)
-  const [subVisible, setSubVisible]         = useState(false)
+  const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
+  const [foxY, setFoxY]                   = useState(110)
+  const [foxScale, setFoxScale]           = useState(0.85)
+  const [headlineKey, setHeadlineKey]     = useState(0)
+  const [headline, setHeadline]           = useState("")
+  const [headlinePhase, setHeadlinePhase] = useState<"hidden"|"in"|"out">("hidden")
+  const [subVisible, setSubVisible]       = useState(false)
   const [checklistVisible, setChecklistVisible] = useState(false)
-  const [checks, setChecks]                 = useState([false, false, false, false])
-  const [progressWidth, setProgressWidth]   = useState(0)
+  const [checks, setChecks]               = useState([false,false,false,false])
+  const [progressWidth, setProgressWidth] = useState(0)
   const [progressVisible, setProgressVisible] = useState(false)
+  const [bgColor, setBgColor]             = useState(BG)
+
+  const showLine = (text: string, delay: number, outDelay: number) => {
+    setTimeout(() => {
+      setHeadline(text)
+      setHeadlineKey(k => k + 1)
+      setHeadlinePhase("hidden")
+      setTimeout(() => setHeadlinePhase("in"), 40)
+    }, delay)
+    if (outDelay > 0) setTimeout(() => setHeadlinePhase("out"), outDelay)
+  }
 
   useEffect(() => {
-    const show = (t: string) => { setTextOpacity(0); setTimeout(() => { setText(t); setTextOpacity(1) }, 600) }
-
-    const t1  = setTimeout(() => setFoxY(0), 100)
-    const t2  = setTimeout(() => show("Got your style."), 1000)
-    const t3  = setTimeout(() => setFoxSrc(FOX.thinking), 3000)
-    const t4  = setTimeout(() => show("We'll teach your way."), 4000)
-    const t5  = setTimeout(() => setFoxSrc(FOX.surprised), 5500)
-    const t6  = setTimeout(() => { show("Building your setup..."); setFoxSrc(FOX.neutral) }, 7000)
-    const t7  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true); setProgressWidth(90) }, 8500)
-    const t8  = setTimeout(() => setChecks(c => [true, ...c.slice(1)]), 9000)
-    const t9  = setTimeout(() => setChecks(c => [c[0], true, ...c.slice(2)]), 9800)
-    const t10 = setTimeout(() => { setChecks(c => [...c.slice(0,2), true, c[3]]); setFoxSrc(FOX.excited) }, 10600)
-    const t11 = setTimeout(() => setChecks(c => [...c.slice(0,3), true]), 11400)
-    const t12 = setTimeout(() => setChecklistVisible(false), 12800)
-    const t13 = setTimeout(() => { setProgressWidth(100); show("You're all set."); setFoxSrc(FOX.excited) }, 13500)
-    const t14 = setTimeout(() => setSubVisible(true), 14600)
-    const t15 = setTimeout(() => setProgressVisible(false), 14500)
-    const t16 = setTimeout(() => setFoxSrc(FOX.happy), 15000)
-    const t17 = setTimeout(() => onDone(), 17000)
-
-    return () => [t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17].forEach(clearTimeout)
+    const t1  = setTimeout(() => { setFoxY(0); setFoxScale(1) }, 80)
+    showLine("Got your style.", 700, 2600)
+    const t3  = setTimeout(() => setFoxSrc(FOX.thinking), 2200)
+    showLine("We'll teach your way.", 3200, 4800)
+    const t5  = setTimeout(() => { setFoxSrc(FOX.surprised); setBgColor(YELLOW) }, 3400)
+    const t6  = setTimeout(() => setBgColor(BG), 3900)
+    showLine("Building your setup...", 5400, 0)
+    const t7  = setTimeout(() => setFoxSrc(FOX.neutral), 5400)
+    const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true); setProgressWidth(85) }, 6800)
+    const t9  = setTimeout(() => setChecks(c => [true,...c.slice(1)]), 7300)
+    const t10 = setTimeout(() => setChecks(c => [c[0],true,...c.slice(2)]), 8200)
+    const t11 = setTimeout(() => { setChecks(c => [...c.slice(0,2),true,c[3]]); setFoxSrc(FOX.excited) }, 9100)
+    const t12 = setTimeout(() => setChecks(c => [...c.slice(0,3),true]), 10000)
+    const t13 = setTimeout(() => { setHeadlinePhase("out"); }, 10800)
+    const t14 = setTimeout(() => setChecklistVisible(false), 11200)
+    const t15 = setTimeout(() => { setProgressWidth(100); setBgColor(YELLOW) }, 11600)
+    const t16 = setTimeout(() => setBgColor(BG), 12200)
+    showLine("You're all set. 🎉", 11800, 0)
+    const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
+    const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
+    const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
+    const t20 = setTimeout(() => onDone(), 15500)
+    return () => [t1,t3,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
   }, [])
 
   const checkItems = ["Preparing AI Tutor", "Creating Practice Tests", "Building Study Roadmap", "Personalizing Recommendations"]
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh" }}>
-      <div style={{ position: "absolute", top: "20%", left: 0, width: "100%", textAlign: "center", zIndex: 10, padding: "0 24px", boxSizing: "border-box" }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: BLACK, margin: "0 0 8px", transition: "opacity 0.7s", opacity: textOpacity }}>{text}</h1>
-        {subVisible && <p style={{ fontSize: 16, color: BLACK, opacity: 0.6, margin: 0 }}>Your journey starts now.</p>}
-      </div>
+    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>
+      <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 10, gap: 32 }}>
 
-      {checklistVisible && (
-        <div style={{ position: "absolute", top: "38%", left: "50%", transform: "translateX(-50%)", zIndex: 10, width: "80%" }}>
-          {checkItems.map((item, i) => (
-            <div key={item} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, opacity: checks[i] ? 1 : 0, transition: "opacity 0.8s" }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 20, color: BLACK }}>check</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: BLACK }}>{item}</span>
+        {/* Animated headline */}
+        <div style={{ textAlign: "center", minHeight: 56, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <h1 key={headlineKey} style={{
+            fontSize: 36, fontWeight: 800, color: BLACK, margin: "0 0 6px",
+            fontFamily: "'Quicksand', sans-serif",
+            transition: "opacity 0.45s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+            opacity: headlinePhase === "in" ? 1 : 0,
+            transform: headlinePhase === "hidden" ? "translateY(22px) scale(0.94)" : headlinePhase === "out" ? "translateY(-18px) scale(0.94)" : "translateY(0) scale(1)",
+          }}>{headline}</h1>
+          <p style={{
+            fontSize: 16, color: BLACK, margin: 0, fontFamily: "'Quicksand', sans-serif",
+            transition: "opacity 0.6s ease, transform 0.6s ease",
+            opacity: subVisible ? 0.6 : 0,
+            transform: subVisible ? "translateY(0)" : "translateY(10px)",
+          }}>Your journey starts now.</p>
+        </div>
+
+        {/* Checklist with stagger */}
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 0 }}>
+          {checklistVisible && checkItems.map((item, i) => (
+            <div key={item} style={{
+              display: "flex", alignItems: "center", gap: 14, marginBottom: 16,
+              transition: "opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+              opacity: checks[i] ? 1 : 0,
+              transform: checks[i] ? "translateX(0) scale(1)" : "translateX(-16px) scale(0.97)",
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                background: checks[i] ? BLACK : "transparent",
+                border: `2.5px solid ${BLACK}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "background 0.3s ease",
+                boxShadow: checks[i] ? `2px 2px 0 ${BLACK}` : "none",
+              }}>
+                <svg fill="none" height="12" viewBox="0 0 12 12" width="12"><path d="M2 6l3 3 5-5" stroke={WHITE} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2"/></svg>
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 700, color: BLACK, fontFamily: "'Quicksand', sans-serif" }}>{item}</span>
             </div>
           ))}
         </div>
-      )}
 
-      {progressVisible && (
-        <div style={{ position: "absolute", top: "68%", left: "50%", transform: "translateX(-50%)", width: "70%", height: 4, background: SURFACE, borderRadius: 9999, zIndex: 10 }}>
-          <div style={{ height: "100%", background: BLACK, borderRadius: 9999, width: `${progressWidth}%`, transition: "width 3s ease-out" }} />
-        </div>
-      )}
+        {/* Progress bar */}
+        {progressVisible && (
+          <div style={{ width: "100%", position: "relative" }}>
+            <div style={{ width: "100%", height: 8, background: SURFACE, border: `2px solid ${BLACK}`, borderRadius: 9999, overflow: "hidden" }}>
+              <div style={{
+                height: "100%", background: BLACK, borderRadius: 9999,
+                width: `${progressWidth}%`, transition: "width 2.5s cubic-bezier(0.4,0,0.2,1)",
+              }} />
+            </div>
+            <div style={{
+              position: "absolute", right: 0, top: 14,
+              fontSize: 12, fontWeight: 700, color: BLACK, opacity: 0.4,
+              fontFamily: "'Quicksand', sans-serif",
+              transition: "opacity 0.3s",
+            }}>{progressWidth}%</div>
+          </div>
+        )}
+      </div>
 
-      <div style={{ position: "absolute", bottom: -50, left: "50%", transform: `translateX(-50%) translateY(${foxY}%)`, transition: "transform 2s cubic-bezier(0.22,1,0.36,1)", width: 320, height: 320, zIndex: 5 }}>
-        <img src={foxSrc} alt="Rex" style={{ width: "100%", height: "auto", objectFit: "contain", transition: "opacity 0.6s" }} />
+      {/* Fox */}
+      <div style={{
+        position: "absolute", bottom: -60, left: "50%",
+        transform: `translateX(-50%) translateY(${foxY}%) scale(${foxScale})`,
+        transition: "transform 1.6s cubic-bezier(0.34,1.56,0.64,1)",
+        width: 280, height: 280, zIndex: 5, pointerEvents: "none",
+      }}>
+        <img src={foxSrc} alt="Rex" style={{ width: "100%", height: "auto", objectFit: "contain", transition: "opacity 0.3s" }} />
       </div>
     </div>
   )
