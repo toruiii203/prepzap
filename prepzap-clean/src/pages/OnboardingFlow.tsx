@@ -191,11 +191,15 @@ const s = {
     overflow: "hidden",
     flexShrink: 0,
     background: "#FF9F1C",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   mascotImg: {
     width: "100%",
     height: "100%",
     objectFit: "cover" as const,
+    objectPosition: "top center",
   },
   speechBubble: {
     background: WHITE,
@@ -247,7 +251,12 @@ function MascotRow({ src, dialogue, subtitle }: { src: string; dialogue: string;
   return (
     <div style={s.mascotBubble}>
       <div style={s.mascotCircle}>
-        <img src={src} alt="Rex the Fox" style={s.mascotImg} />
+        <img
+          src={src}
+          alt="Rex the Fox"
+          style={s.mascotImg}
+          onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+        />
       </div>
       <div style={s.speechBubble}>
         <p style={{ fontSize: 15, fontWeight: 700, color: BLACK, lineHeight: 1.3, margin: 0 }}>{dialogue}</p>
@@ -308,7 +317,7 @@ function IntroHook({ onNext }: { onNext: () => void }) {
         </div>
 
         {/* Slider */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "45vh" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: 24 }}>
           <div ref={sliderRef} style={{ width: "100%", maxWidth: 340, display: "flex", overflowX: "hidden", scrollSnapType: "x mandatory", scrollBehavior: "smooth" }}>
             {/* Slide 1 */}
             <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center" }}>
@@ -322,7 +331,7 @@ function IntroHook({ onNext }: { onNext: () => void }) {
                 </div>
                 <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                   {["Math", "Science", "English"].map(t => (
-                    <span key={t} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 9999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{t}</span>
+                    <span key={t} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 9999, padding: "3px 10px", fontSize: 12, fontWeight: 600, color: BLACK }}>{t}</span>
                   ))}
                 </div>
               </div>
@@ -358,8 +367,8 @@ function IntroHook({ onNext }: { onNext: () => void }) {
                   ].map((r, i) => (
                     <div key={i} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 14, padding: 12 }}>
                       <div style={{ color: CTA, fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>{r.stars}</div>
-                      <p style={{ fontSize: 14, fontStyle: "italic", opacity: 0.8, margin: "0 0 8px" }}>{r.quote}</p>
-                      <span style={{ fontSize: 12, opacity: 0.8 }}>{r.name}</span>
+                      <p style={{ fontSize: 14, fontStyle: "italic", color: BLACK, opacity: 0.75, margin: "0 0 8px" }}>{r.quote}</p>
+                      <span style={{ fontSize: 12, color: BLACK, opacity: 0.65, fontWeight: 600 }}>{r.name}</span>
                     </div>
                   ))}
                 </div>
@@ -805,7 +814,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
                   <div style={{ position: "absolute", top: 12, right: 12, width: 22, height: 22, border: `2px solid ${BLACK}`, borderRadius: "50%", background: isSel ? BLACK : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {isSel && <svg fill="none" height="11" viewBox="0 0 11 11" width="11"><path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>}
                   </div>
-                  <span className="material-symbols-outlined" style={{ fontSize: 28, marginBottom: 8 }}>{style.icon}</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 28, marginBottom: 8, color: BLACK }}>{style.icon}</span>
                   <span style={{ fontSize: 15, fontWeight: 700, color: BLACK }}>{style.label}</span>
                 </label>
               )
