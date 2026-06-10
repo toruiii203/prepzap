@@ -328,14 +328,14 @@ function IntroHook({ onNext }: { onNext: () => void }) {
                 <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 14 }}>Students Love It</span>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {[
-                    { stars: "★★★★★", quote: '"Finally an app that actually helps me study."', name: "Mia R." },
-                    { stars: "★★★★★", quote: '"Grades ko tumaas in just 2 weeks!"', name: "Carlo T." },
+                    { stars: "★★★★★", quote: '"Finally an app that actually helps me study."', name: "Mia R.", avatar: "/reviewers/mia.jpg" },
+                    { stars: "★★★★★", quote: '"Grades ko tumaas in just 2 weeks!"', name: "Carlo T.", avatar: "/reviewers/carlo.jpg" },
                   ].map((r, i) => (
                     <div key={i} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 14, padding: 12 }}>
                       <div style={{ color: CTA, fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>{r.stars}</div>
                       <p style={{ fontSize: 14, fontStyle: "italic", opacity: 0.8, margin: "0 0 8px" }}>{r.quote}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: YELLOW, border: `1.5px solid ${BLACK}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{r.name.split(" ").map(w => w[0]).join("")}</div>
+                        <img src={r.avatar} alt={r.name} style={{ width: 32, height: 32, borderRadius: "50%", border: `1.5px solid ${BLACK}`, objectFit: "cover", flexShrink: 0 }} />
                         <span style={{ fontSize: 12, opacity: 0.8 }}>{r.name}</span>
                       </div>
                     </div>
