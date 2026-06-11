@@ -15,7 +15,7 @@ interface FeynmanFeedback {
   xpAwarded: number;
 }
 
-export default function TeachIt(()) {
+export default function TeachIt() {
   const { user, profile, refreshProfile } = useAuth();
   const [topic, setTopic] = useState("");
   const [explanation, setExplanation] = useState("");

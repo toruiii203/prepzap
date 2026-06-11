@@ -20,7 +20,7 @@ interface MistakeItem {
   };
 }
 
-export default function MistakeJournal(()) {
+export default function MistakeJournal() {
   const [activeSubject, setActiveSubject] = useState("All");
   const [activeQuizId, setActiveQuizId] = useState<number | string | null>(null);
   const [selectedQuizOption, setSelectedOption] = useState<number | null>(null);

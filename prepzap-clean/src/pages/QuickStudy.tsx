@@ -17,7 +17,7 @@ interface StudySheet {
   points: StudyPoint[];
 }
 
-export default function QuickStudy(()) {
+export default function QuickStudy() {
   const [activeTab, setActiveTab] = useState<"Cram" | "HighYield">("Cram");
   const [topic, setTopic] = useState("");
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);

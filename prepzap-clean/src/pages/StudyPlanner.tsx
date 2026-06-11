@@ -15,7 +15,7 @@ interface PlannerSession {
   completed: boolean;
 }
 
-export default function StudyPlanner(()) {
+export default function StudyPlanner() {
   const [sessions, setSessions] = useState<PlannerSession[]>([]);
   const [activeMonth] = useState("June 2026");
   const [showAddForm, setShowAddForm] = useState(false);

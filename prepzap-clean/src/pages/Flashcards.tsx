@@ -14,7 +14,7 @@ interface Flashcard {
 interface FlashcardsProps {
 }
 
-export default function Flashcards(()) {
+export default function Flashcards() {
   const { user, profile, refreshProfile } = useAuth() as any;
   const [view, setView] = useState<"setup" | "study" | "results">("setup");
   const [topic, setTopic] = useState("");

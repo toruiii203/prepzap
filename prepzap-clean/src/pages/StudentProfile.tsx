@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface ProfileProps {
 }
 
-export default function StudentProfile(()) {
+export default function StudentProfile() {
   const { user, profile } = useAuth() as any;
 
   const displayName = profile?.full_name || profile?.name || user?.name || user?.email?.split('@')[0] || "Master (You)";

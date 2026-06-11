@@ -6,7 +6,7 @@ import { buildAIContext, loadContext, loadLibrary } from "@/lib/sourceContext";
 interface AITutorProps {
 }
 
-export default function AITutor(()) {
+export default function AITutor() {
   const [activeMode, setActiveMode] = useState("Explain");
   const modes = ["Explain", "ELI5", "Analogy", "Quiz Me", "Devil's Advocate", "Summarize"];
 

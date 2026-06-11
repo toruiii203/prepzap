@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface DashboardProps {
 }
 
-export default function Dashboard(()) {
+export default function Dashboard() {
   const { user, profile, refreshProfile } = useAuth();
 
   // Name Greeting logic

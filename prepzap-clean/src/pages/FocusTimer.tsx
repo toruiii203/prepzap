@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface FocusTimerProps {
 }
 
-export default function FocusTimer(()) {
+export default function FocusTimer() {
   const { user, profile, refreshProfile } = useAuth();
   const [duration, setDuration] = useState<25 | 50>(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);

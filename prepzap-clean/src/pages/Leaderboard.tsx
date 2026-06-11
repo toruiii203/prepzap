@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface LeaderboardProps {
 }
 
-export default function Leaderboard(()) {
+export default function Leaderboard() {
   const { user, profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<"All" | "Friends">("All");
   const [playedQuiz, setPlayedQuiz] = useState(false);

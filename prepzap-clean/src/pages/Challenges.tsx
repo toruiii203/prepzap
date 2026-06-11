@@ -16,7 +16,7 @@ interface QuestCard {
   completed?: boolean;
 }
 
-export default function Challenges(()) {
+export default function Challenges() {
   const { user, profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<"Daily5" | "BossRound">("Daily5");
   const [activeFocus, setActiveFocus] = useState("Anatomy");

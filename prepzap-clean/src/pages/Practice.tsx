@@ -16,7 +16,7 @@ interface Question {
 interface PracticeProps {
 }
 
-export default function Practice(()) {
+export default function Practice() {
   const { user, profile, refreshProfile } = useAuth();
   
   const [view, setView] = useState<"quiz" | "results">("quiz");

@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface GoProPricingProps {
 }
 
-export default function GoProPricing(()) {
+export default function GoProPricing() {
   const { user, profile, refreshProfile } = useAuth() as any;
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Yearly">("Monthly");
 

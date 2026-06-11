@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 interface AnalyticsProps {
 }
 
-export default function Analytics(()) {
+export default function Analytics() {
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [tasksCompletedPct, setTasksCompletedPct] = useState(88);

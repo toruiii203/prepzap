@@ -11,7 +11,7 @@ interface SolutionStep {
   mathBlock?: string;
 }
 
-export default function MathSolver(()) {
+export default function MathSolver() {
   const [problem, setProblem] = useState("");
   const [steps, setSteps] = useState<SolutionStep[]>([]);
   const [solved, setSolved] = useState(false);
