@@ -6,6 +6,7 @@ interface AnalyticsProps {
 }
 
 export default function Analytics() {
+  const navigate = useNavigate();
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [tasksCompletedPct, setTasksCompletedPct] = useState(88);
@@ -91,7 +92,7 @@ export default function Analytics() {
   };
 
   return (
-    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-screen flex flex-col font-body-md antialiased overflow-y-auto w-full max-w-[390px] mx-auto shadow-xl border-x border-[#1a1a1a]/10 pb-20 flex-1">
+    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-full flex flex-col font-body-md antialiased overflow-y-auto w-full flex-1 pb-20">
       
       {/* TopAppBar */}
       <header className="bg-background w-full top-0 sticky border-b-2 border-on-background z-40 navbar-custom">

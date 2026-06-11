@@ -1,13 +1,48 @@
 import { useNavigate } from "react-router-dom";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
-interface DashboardProps {
-}
-
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const [toolsPage, setToolsPage] = useState(0);
+  const toolsScrollRef = useRef<HTMLDivElement>(null);
+
+  const TOOL_SLIDES = [
+    [
+      { route: "/ai-tutor", icon: "smart_toy", title: "AI Tutor", desc: "Interactive help" },
+      { route: "/practice", icon: "assignment", title: "Practice", desc: "Mock exams" },
+      { route: "/flashcards", icon: "style", title: "Flashcards", desc: "Spaced rep" },
+      { route: "/quick-study", icon: "bolt", title: "Cram Mode", desc: "Quick review" },
+    ],
+    [
+      { route: "/planner", icon: "calendar_month", title: "Study Planner", desc: "Today's schedule" },
+      { route: "/math", icon: "calculate", title: "Math Solver", desc: "Step-by-step" },
+      { route: "/teach-it", icon: "psychology", title: "Teach It", desc: "Explain concepts" },
+      { route: "/quick-study", icon: "menu_book", title: "Quick Study", desc: "High yield" },
+    ],
+    [
+      { route: "/sources", icon: "attach_file", title: "Source Library", desc: "My files" },
+      { route: "/mistakes", icon: "playlist_remove", title: "Mistake Journal", desc: "Review errors" },
+      { route: "/analytics", icon: "bar_chart", title: "Analytics", desc: "Weekly activity" },
+      { route: "/challenges", icon: "emoji_events", title: "Challenges", desc: "Daily streaks" },
+    ],
+  ] as const;
+
+  const handleToolsScroll = () => {
+    const el = toolsScrollRef.current;
+    if (!el) return;
+    const page = Math.round(el.scrollLeft / el.clientWidth);
+    setToolsPage(Math.min(TOOL_SLIDES.length - 1, Math.max(0, page)));
+  };
+
+  const scrollToolsToPage = (page: number) => {
+    const el = toolsScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: page * el.clientWidth, behavior: "smooth" });
+    setToolsPage(page);
+  };
 
   // Name Greeting logic
   const displayName = user?.avatarConfig?.full_name || (user as any)?.user_metadata?.full_name || user?.name || user?.email?.split('@')[0] || "Master";
@@ -206,27 +241,27 @@ export default function Dashboard() {
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
-    <div className="w-full bg-[#FAF7F2] min-h-screen flex flex-col md:max-w-3xl md:mx-auto font-body-md text-on-background mx-auto">
+    <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
       {/* TopAppBar */}
       <header className="h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
         <div className="text-[18px] font-black font-headline tracking-wider uppercase">Studenius</div>
         <div className="flex items-center gap-3">
           <span 
             className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75 font-bold"
-            onClick={() => navigate("sources")}
+            onClick={() => navigate("/sources")}
           >
             attach_file
           </span>
           <div 
             className="px-2.5 py-0.5 border-[1.5px] border-[#FAF7F2] rounded-full cursor-pointer hover:opacity-80 bg-[#fca623]/20"
-            onClick={() => navigate("pricing")}
+            onClick={() => navigate("/go-pro")}
           >
             <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO</span>
           </div>
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75">notifications</span>
           <div 
             className="w-8 h-8 rounded-full bg-[#ae2925] text-white ink-border flex items-center justify-center font-black text-[13px] cursor-pointer"
-            onClick={() => navigate("settings")}
+            onClick={() => navigate("/profile")}
           >
             {displayName.slice(0, 1).toUpperCase()}
           </div>
@@ -244,8 +279,10 @@ export default function Dashboard() {
                 <span className="material-symbols-outlined text-[20px] text-black">school</span>
               </div>
               <div className="flex flex-col">
-                <h1 className="text-[26px] font-black leading-tight font-headline tracking-tight">Hi, {displayName}! ////</h1>
-                <p className="text-[14px] opacity-65 font-bold mt-0.5">Let's compile excellent study results today!</p>
+                <h1 className="text-[26px] font-black leading-tight font-headline tracking-tight text-black">Good morning, {displayName}.</h1>
+                <p className="text-[14px] text-black/65 font-bold mt-0.5">
+                  {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                </p>
               </div>
             </div>
           </div>
@@ -320,68 +357,54 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Tools Selector Row */}
+        {/* Tools Selector Row — 3 swipe pages matching stitch mockup */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
-            <div className="text-[11px] font-black uppercase tracking-wider opacity-50">CURRICULUM TOOLS</div>
+            <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Tools</div>
+            <button
+              type="button"
+              onClick={() => navigate("/tools")}
+              className="text-[11px] font-bold text-black/50 underline"
+            >
+              See all
+            </button>
           </div>
           <div className="relative">
-            <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar scroll-smooth">
-              
-              <div 
-                onClick={() => navigate("ai-tutor")}
-                className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
-                style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
-              >
-                <div>
-                  <span className="material-symbols-outlined text-[22px] mb-1.5 block">smart_toy</span>
-                  <div className="text-[14px] font-extrabold text-black">AI Tutor</div>
+            <div
+              ref={toolsScrollRef}
+              onScroll={handleToolsScroll}
+              className="flex overflow-x-auto snap-x snap-mandatory gap-0 pb-2 no-scrollbar scroll-smooth"
+            >
+              {TOOL_SLIDES.map((slide, slideIdx) => (
+                <div key={slideIdx} className="min-w-full snap-start flex gap-3 px-0.5">
+                  {slide.map((tool) => (
+                    <button
+                      key={tool.route}
+                      type="button"
+                      onClick={() => navigate(tool.route)}
+                      className="w-[130px] h-[110px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
+                    >
+                      <span className="material-symbols-outlined text-[20px] mb-2 block">{tool.icon}</span>
+                      <div>
+                        <div className="text-[13px] font-bold text-black">{tool.title}</div>
+                        <div className="text-[11px] text-black/40 font-semibold">{tool.desc}</div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <div className="text-[11px] text-black opacity-45 font-bold">Interactive help</div>
-              </div>
- 
-              <div 
-                onClick={() => navigate("practice")}
-                className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
-                style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
-              >
-                <div>
-                  <span className="material-symbols-outlined text-[22px] mb-1.5 block font-bold">assignment</span>
-                  <div className="text-[14px] font-extrabold text-black">Practice</div>
-                </div>
-                <div className="text-[11px] text-black opacity-45 font-bold">Mock exams</div>
-              </div>
-
-              <div 
-                onClick={() => navigate("flashcards")}
-                className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
-                style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
-              >
-                <div>
-                  <span className="material-symbols-outlined text-[22px] mb-1.5 block">style</span>
-                  <div className="text-[14px] font-extrabold text-black">Flashcards</div>
-                </div>
-                <div className="text-[11px] text-black opacity-45 font-bold">Spaced rep</div>
-              </div>
-
-              <div 
-                onClick={() => navigate("cram")}
-                className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
-                style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
-              >
-                <div>
-                  <span className="material-symbols-outlined text-[22px] mb-1.5 block">bolt</span>
-                  <div className="text-[14px] font-extrabold text-black">Cram Mode</div>
-                </div>
-                <div className="text-[11px] text-black opacity-45 font-bold">Quick review</div>
-              </div>
-              
+              ))}
             </div>
-            
+            <div className="absolute right-0 top-0 bottom-2 w-12 pointer-events-none bg-gradient-to-l from-[#FAF7F2] to-transparent" />
             <div className="flex justify-center gap-1.5 mt-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-black opacity-20"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-black opacity-20"></div>
+              {TOOL_SLIDES.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  aria-label={`Tools page ${idx + 1}`}
+                  onClick={() => scrollToolsToPage(idx)}
+                  className={`w-1.5 h-1.5 rounded-full transition-opacity ${toolsPage === idx ? "bg-black" : "bg-black/20"}`}
+                />
+              ))}
             </div>
           </div>
         </section>
@@ -453,7 +476,7 @@ export default function Dashboard() {
               Specific Performance Targets <span className="opacity-30 text-[12px] font-normal normal-case">////</span>
               <div 
                 className="ml-auto w-6 h-6 rounded-full ink-border bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FAF7F2] transition-colors"
-                onClick={() => navigate("daily5")}
+                onClick={() => navigate("/daily5")}
               >
                 <span className="material-symbols-outlined text-[14px]">add</span>
               </div>
@@ -462,21 +485,21 @@ export default function Dashboard() {
           </div>
           <div className="flex flex-wrap gap-2.5">
             <div 
-              onClick={() => navigate("math")}
+              onClick={() => navigate("/math")}
               className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
               style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
             >
               Mathematics
             </div>
             <div 
-              onClick={() => navigate("feynman")}
+              onClick={() => navigate("/teach-it")}
               className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
               style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
             >
               Physics
             </div>
             <div 
-              onClick={() => navigate("cram")}
+              onClick={() => navigate("/quick-study")}
               className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
               style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
             >

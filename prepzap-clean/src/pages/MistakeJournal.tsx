@@ -21,6 +21,7 @@ interface MistakeItem {
 }
 
 export default function MistakeJournal() {
+  const navigate = useNavigate();
   const [activeSubject, setActiveSubject] = useState("All");
   const [activeQuizId, setActiveQuizId] = useState<number | string | null>(null);
   const [selectedQuizOption, setSelectedOption] = useState<number | null>(null);
@@ -185,7 +186,7 @@ JSON object structure:
   };
 
   return (
-    <div className="mx-auto border-x border-[#1A1A1A]/10 bg-[#FAF7F2] min-h-screen relative overflow-y-auto w-full max-w-[390px] shadow-xl flex flex-col font-body-md text-on-background pb-24 flex-1">
+    <div className="bg-[#FAF7F2] min-h-full relative overflow-y-auto w-full flex-1 flex flex-col font-body-md text-on-background pb-24">
       
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-5 h-16 w-full bg-[#FAF7F2] sticky top-0 border-b-2 border-on-background z-50">

@@ -17,6 +17,7 @@ interface QuestCard {
 }
 
 export default function Challenges() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<"Daily5" | "BossRound">("Daily5");
   const [activeFocus, setActiveFocus] = useState("Anatomy");
@@ -160,7 +161,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
   };
 
   return (
-    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-screen flex flex-col font-body-md overflow-y-auto shadow-xl w-full max-w-[390px] mx-auto border-x border-[#1c1c19]/10 pb-20 flex-1">
+    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-full flex flex-col font-body-md overflow-y-auto w-full flex-1 pb-20">
       
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-[#1c1c19] z-50 shadow-xs navbar-custom">

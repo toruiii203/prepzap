@@ -18,6 +18,7 @@ interface StudySheet {
 }
 
 export default function QuickStudy() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"Cram" | "HighYield">("Cram");
   const [topic, setTopic] = useState("");
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
@@ -115,7 +116,7 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
   };
 
   return (
-    <div className="bg-[#fcf9f4] text-on-background min-h-screen flex flex-col font-body-md antialiased w-full max-w-[390px] mx-auto overflow-y-auto border-x border-on-background/10 shadow-xl pb-24 flex-1">
+    <div className="bg-[#fcf9f4] text-on-background min-h-full flex flex-col font-body-md antialiased w-full flex-1 overflow-y-auto pb-24">
       {/* TopAppBar */}
       <header className="w-full top-0 sticky flex items-center justify-between px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-background z-40 navbar-custom">
         <button 

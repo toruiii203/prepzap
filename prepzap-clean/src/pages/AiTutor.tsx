@@ -7,6 +7,7 @@ interface AITutorProps {
 }
 
 export default function AITutor() {
+  const navigate = useNavigate();
   const [activeMode, setActiveMode] = useState("Explain");
   const modes = ["Explain", "ELI5", "Analogy", "Quiz Me", "Devil's Advocate", "Summarize"];
 
@@ -107,7 +108,7 @@ export default function AITutor() {
   }, [messages]);
 
   return (
-    <div className="w-full min-h-screen md:max-w-3xl md:mx-auto bg-[#fcf9f4] border-black flex flex-col mx-auto overflow-hidden">
+    <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-edge-margin h-16 w-full bg-background z-10 sticky top-0 border-b-2 border-[#1A1A1A]">
         <button 

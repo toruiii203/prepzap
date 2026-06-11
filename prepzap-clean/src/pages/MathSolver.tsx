@@ -12,6 +12,7 @@ interface SolutionStep {
 }
 
 export default function MathSolver() {
+  const navigate = useNavigate();
   const [problem, setProblem] = useState("");
   const [steps, setSteps] = useState<SolutionStep[]>([]);
   const [solved, setSolved] = useState(false);
@@ -109,7 +110,7 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
   };
 
   return (
-    <div className="bg-[#fcf9f4] text-on-background font-body-md min-h-screen flex flex-col w-full max-w-[390px] mx-auto overflow-y-auto border-x border-[#1c1c19]/10 shadow-xl flex-1 pb-24">
+    <div className="bg-[#fcf9f4] text-on-background font-body-md min-h-full flex flex-col w-full flex-1 overflow-y-auto pb-24">
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-5 h-16 w-full top-0 sticky z-50 bg-[#FAF7F2] border-b-2 border-on-background shadow-xs">
         <button 

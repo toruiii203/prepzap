@@ -1,63 +1,64 @@
-import { Link, useLocation } from "react-router-dom"
-import { useAuth } from "@/contexts/AuthContext"
-import { AvatarDisplay } from "@/components/AvatarDisplay";
-import { LayoutDashboard, BookOpen, Zap, BarChart3, Settings } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 const tabs = [
-  { href: "/dashboard", label: "Home",     icon: LayoutDashboard },
-  { href: "/practice",  label: "Practice", icon: BookOpen },
-  { href: "/daily5",    label: "Daily",    icon: Zap },
-  { href: "/analytics", label: "Progress", icon: BarChart3 },
-  { href: "/settings",  label: "Settings", icon: Settings },
-];
+  { href: "/tools", label: "Tools", icon: "grid_view" },
+  { href: "/leaderboard", label: "Leaderboard", icon: "emoji_events", dot: true },
+  { href: "/dashboard", label: "Home", icon: "home", activeFill: true },
+  { href: "/timer", label: "Timer", icon: "timer" },
+  { href: "/profile", label: "Profile", icon: "person" },
+] as const;
+
+function isTabActive(href: string, pathname: string): boolean {
+  switch (href) {
+    case "/tools":
+      return pathname === "/tools";
+    case "/leaderboard":
+      return pathname === "/leaderboard" || pathname === "/challenges";
+    case "/dashboard":
+      return pathname === "/dashboard" || pathname === "/";
+    case "/timer":
+      return pathname === "/timer" || pathname === "/pomodoro-area";
+    case "/profile":
+      return pathname === "/profile" || pathname === "/avatar" || pathname === "/go-pro";
+    default:
+      return pathname === href;
+  }
+}
 
 export function BottomNav() {
-  const { profile } = useAuth();
   const location = useLocation();
+
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50"
-      style={{
-        background: "rgba(0,0,0,0.95)",
-        borderTop: "0.5px solid var(--pz-border)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] h-14 bg-[#FAF7F2] border-t-[1.5px] border-black flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"
+      aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around h-14">
-        {tabs.map(({ href, label, icon: Icon }) => {
-          const active = location.pathname === href;
-          return (
-            <Link
-              key={href}
-              to={href}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
-              style={{ textDecoration: "none" }}
+      {tabs.map(({ href, icon, dot, activeFill }) => {
+        const active = isTabActive(href, location.pathname);
+
+        return (
+          <Link
+            key={href}
+            to={href}
+            className={`relative flex flex-col items-center justify-center p-2 w-12 h-12 transition-colors ${
+              active ? "text-black" : "text-black/40 hover:text-black/70"
+            }`}
+          >
+            <span
+              className="material-symbols-outlined text-[24px]"
+              style={active && activeFill ? { fontVariationSettings: "'FILL' 1" } : undefined}
             >
-              <Icon
-                style={{
-                  width: 20,
-                  height: 20,
-                  color: active ? "var(--pz-gold)" : "var(--pz-text-muted)",
-                  transition: "color 0.15s",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "9px",
-                  letterSpacing: "0.05em",
-                  color: active ? "var(--pz-gold)" : "var(--pz-text-muted)",
-                  fontFamily: "'Geist', sans-serif",
-                  transition: "color 0.15s",
-                }}
-              >
-                {label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+              {icon}
+            </span>
+            {active && (
+              <div className="w-1.5 h-1.5 bg-black rounded-full absolute bottom-1" />
+            )}
+            {dot && !active && (
+              <div className="absolute top-2 right-2 w-2 h-2 bg-[#E8534A] rounded-full border border-[#FAF7F2]" />
+            )}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

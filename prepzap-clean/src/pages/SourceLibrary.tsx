@@ -79,11 +79,11 @@ export default function SourceLibrary() {
     if (tool === "AI Tutor") navigate("/ai-tutor");
     else if (tool === "Flashcards") navigate("/flashcards");
     else if (tool === "Practice") navigate("/practice");
-    else if (tool === "Quick Study") navigate("/cram");
+    else if (tool === "Quick Study") navigate("/quick-study");
   };
 
   return (
-    <div className="bg-[#FAF7F2] text-[#1A1A1A] antialiased min-h-screen flex flex-col w-full max-w-[390px] mx-auto relative shadow-xl overflow-x-hidden border-x border-[#ebe8e3]">
+    <div className="bg-[#FAF7F2] text-[#1A1A1A] antialiased min-h-full flex flex-col w-full flex-1">
       
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] flex items-center justify-between px-5 h-16 w-full z-40 border-b-2 border-black">

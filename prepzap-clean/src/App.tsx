@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { setSourceContextUser } from "@/lib/sourceContext";
 import { setHistoryUser } from "@/lib/historyStore";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { StudeniusLayout } from "@/components/StudeniusLayout";
 
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
@@ -74,7 +75,14 @@ import Flashcards from "./pages/Flashcards";
 import FocusTimer from "./pages/FocusTimer";
 import Analytics from "./pages/Analytics";
 import StudyPlanner from "./pages/StudyPlanner";
-import AiTutor from "./pages/AiTutor";
+import AITutor from "./pages/AITutor";
+import ToolsHub from "./pages/ToolsHub";
+import StudentProfile from "./pages/StudentProfile";
+import Leaderboard from "./pages/Leaderboard";
+import Challenges from "./pages/Challenges";
+import TeachIt from "./pages/TeachIt";
+import QuickStudy from "./pages/QuickStudy";
+import GoProPricing from "./pages/GoProPricing";
 import FeynmanMode from "./pages/FeynmanMode";
 import ToolArchitect from "./pages/ToolArchitect";
 import Pricing from "./pages/Pricing";
@@ -103,6 +111,14 @@ import Shop from "./pages/Shop";
 const queryClient = new QueryClient();
 
 function isMobile() { return window.innerWidth < 768; }
+
+function ProtectedStudeniusLayout() {
+  return (
+    <ProtectedRoute>
+      <StudeniusLayout />
+    </ProtectedRoute>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, needsOnboarding } = useAuth();
@@ -188,17 +204,29 @@ function AppRoutes() {
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
         <Route path="/onboarding" element={safe(<Onboarding />)} />
-        <Route path="/dashboard" element={safe(<ProtectedRoute><Dashboard /></ProtectedRoute>)} />
-        <Route path="/practice" element={safe(<ProtectedRoute><Practice /></ProtectedRoute>)} />
-        <Route path="/flashcards" element={safe(<ProtectedRoute><Flashcards /></ProtectedRoute>)} />
-        <Route path="/timer" element={safe(<ProtectedRoute><FocusTimer /></ProtectedRoute>)} />
+        <Route element={safe(<ProtectedStudeniusLayout />)}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/practice" element={<Practice />} />
+          <Route path="/flashcards" element={<Flashcards />} />
+          <Route path="/timer" element={<FocusTimer />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/planner" element={<StudyPlanner />} />
+          <Route path="/ai-tutor" element={<AITutor />} />
+          <Route path="/tools" element={<ToolsHub />} />
+          <Route path="/profile" element={<StudentProfile />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/challenges" element={<Challenges />} />
+          <Route path="/teach-it" element={<TeachIt />} />
+          <Route path="/quick-study" element={<QuickStudy />} />
+          <Route path="/go-pro" element={<GoProPricing />} />
+          <Route path="/math" element={<MathSolver />} />
+          <Route path="/mistakes" element={<MistakeJournal />} />
+          <Route path="/sources" element={<SourceLibrary />} />
+        </Route>
+        <Route path="/cram" element={safe(<ProtectedRoute><CramMode /></ProtectedRoute>)} />
         <Route path="/pomodoro-area" element={safe(<ProtectedRoute><PomodoroArea /></ProtectedRoute>)} />
-        <Route path="/analytics" element={safe(<ProtectedRoute><Analytics /></ProtectedRoute>)} />
-        <Route path="/planner" element={safe(<ProtectedRoute><StudyPlanner /></ProtectedRoute>)} />
-        <Route path="/ai-tutor" element={safe(<ProtectedRoute><AiTutor /></ProtectedRoute>)} />
         <Route path="/feynman" element={safe(<ProtectedRoute><FeynmanMode /></ProtectedRoute>)} />
         <Route path="/tool-architect" element={safe(<ProtectedRoute><ToolArchitect /></ProtectedRoute>)} />
-        <Route path="/math" element={safe(<ProtectedRoute><MathSolver /></ProtectedRoute>)} />
         <Route path="/settings" element={safe(<ProtectedRoute><Settings /></ProtectedRoute>)} />
         <Route path="/daily5" element={safe(<ProtectedRoute><Daily5 /></ProtectedRoute>)} />
         <Route path="/flip-script" element={safe(<ProtectedRoute><FlipScript /></ProtectedRoute>)} />
@@ -206,10 +234,8 @@ function AppRoutes() {
         <Route path="/build-def" element={safe(<ProtectedRoute><BuildDef /></ProtectedRoute>)} />
         <Route path="/blank-map" element={safe(<ProtectedRoute><BlankMap /></ProtectedRoute>)} />
         <Route path="/boss-round" element={safe(<ProtectedRoute><BossRound /></ProtectedRoute>)} />
-        <Route path="/cram" element={safe(<ProtectedRoute><CramMode /></ProtectedRoute>)} />
         <Route path="/confidence" element={safe(<ProtectedRoute><ConfidenceCalibration /></ProtectedRoute>)} />
         <Route path="/high-yield" element={safe(<ProtectedRoute><HighYieldDetector /></ProtectedRoute>)} />
-        <Route path="/mistakes" element={safe(<ProtectedRoute><MistakeJournal /></ProtectedRoute>)} />
         <Route path="/recall" element={safe(<ProtectedRoute><RecallMode /></ProtectedRoute>)} />
         <Route path="/study-dna" element={safe(<ProtectedRoute><StudyDNA /></ProtectedRoute>)} />
         <Route path="/focus-state" element={safe(<ProtectedRoute><FocusState /></ProtectedRoute>)} />
@@ -217,7 +243,6 @@ function AppRoutes() {
         <Route path="/avatar" element={safe(<ProtectedRoute><Avatar /></ProtectedRoute>)} />
         <Route path="/shop" element={safe(<ProtectedRoute><Shop /></ProtectedRoute>)} />
         <Route path="/admin" element={safe(<ProtectedRoute><Admin /></ProtectedRoute>)} />
-        <Route path="/sources" element={safe(<ProtectedRoute><SourceLibrary /></ProtectedRoute>)} />
         <Route path="*" element={safe(<NotFound />)} />
       </Routes>
     </>

@@ -2,11 +2,9 @@ import { useNavigate } from "react-router-dom";
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface ProfileProps {
-}
-
 export default function StudentProfile() {
-  const { user, profile } = useAuth() as any;
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth() as any;
 
   const displayName = profile?.full_name || profile?.name || user?.name || user?.email?.split('@')[0] || "Master (You)";
   const levelVal = profile?.level || user?.level || 1;
@@ -14,22 +12,21 @@ export default function StudentProfile() {
   const coinVal = profile?.coins || user?.coins || 0;
 
   return (
-    <div className="bg-[#FAF7F2] text-[#1A1A1A] font-body-md min-h-screen px-5 pt-4 pb-28 select-none w-full max-w-[390px] mx-auto relative overflow-y-auto w-full flex-1">
-      {/* Top App Bar */}
-      <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-5 h-16 bg-[#FAF7F2] border-b-2 border-[#1A1A1A]">
+    <div className="bg-[#FAF7F2] text-[#1A1A1A] font-body-md min-h-full px-5 pt-4 pb-28 select-none w-full flex-1">
+      <header className="sticky top-0 z-40 flex justify-between items-center h-16 bg-[#FAF7F2] border-b-2 border-[#1A1A1A] -mx-5 px-5 mb-2">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
           <h1 className="text-headline-lg font-headline font-bold text-[#1A1A1A] text-[21.5px]">Studenius</h1>
         </div>
         <button 
-          onClick={() => navigate("/pricing")}
+          onClick={() => navigate("/go-pro")}
           className="bg-[#e9f2ff] border-2 border-[#1A1A1A] text-[11px] font-bold text-black px-4 py-1.5 rounded-full uppercase tracking-wide shrink-0 shadow-[2px_2px_0px_#1A1A1A]"
         >
           PRO
         </button>
       </header>
 
-      <main className="max-w-md mx-auto mt-16 pb-4">
+      <main className="pb-4">
         {/* Profile Header Section */}
         <section className="flex flex-col items-center justify-center pt-8">
           <div className="relative w-32 h-32 rounded-full border-2 border-[#1A1A1A] overflow-hidden bg-white flex items-center justify-center p-1 shadow-[4px_4px_0px_#1A1A1A]">
@@ -65,10 +62,8 @@ export default function StudentProfile() {
           </div>
         </section>
 
-        {/* Row Link Entries list */}
         <section className="flex flex-col gap-4 mt-8">
-          
-          <button 
+          <button
             onClick={() => navigate("/sources")}
             className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
           >
@@ -79,55 +74,87 @@ export default function StudentProfile() {
             <span className="material-symbols-outlined text-slate-500 text-[18px]">arrow_forward</span>
           </button>
 
-          <button 
+          <button
+            onClick={() => navigate("/avatar")}
+            className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
+          >
+            <div className="flex items-center gap-3.5">
+              <span className="material-symbols-outlined text-[#feae2c] text-xl group-hover:scale-110 transition-transform" style={{ fontVariationSettings: "'FILL' 1" }}>checkroom</span>
+              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Avatar & Cosmetics</span>
+            </div>
+            <span className="material-symbols-outlined text-slate-500 text-[18px]">arrow_forward</span>
+          </button>
+
+          <button
             onClick={() => navigate("/analytics")}
             className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
           >
             <div className="flex items-center gap-3.5">
               <span className="material-symbols-outlined text-primary text-xl group-hover:scale-110 transition-transform">bar_chart</span>
-              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Analytics Dashboard</span>
+              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Analytics</span>
             </div>
             <span className="material-symbols-outlined text-slate-500 text-[18px]">arrow_forward</span>
           </button>
 
-          <button 
-            onClick={() => navigate("/mistakes")}
+          <button
+            onClick={() => navigate("/settings")}
             className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
           >
             <div className="flex items-center gap-3.5">
-              <span className="material-symbols-outlined text-primary text-xl group-hover:scale-110 transition-transform">playlist_remove</span>
-              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Mistake Journal</span>
+              <span className="material-symbols-outlined text-[#1A1A1A] text-xl group-hover:scale-110 transition-transform">settings</span>
+              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Settings</span>
             </div>
             <span className="material-symbols-outlined text-slate-500 text-[18px]">arrow_forward</span>
           </button>
 
-          {/* Go Pro CTA */}
-          <button 
-            onClick={() => navigate("/pricing")}
+          <button
+            onClick={() => navigate("/go-pro")}
             className="w-full flex items-center justify-between border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group bg-[#ffdad6]"
           >
             <div className="flex items-center gap-3.5">
               <span className="material-symbols-outlined text-primary text-xl group-hover:scale-110 transition-transform" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
-              <span className="text-[12.5px] font-bold tracking-widest text-[#ae2925] uppercase">Go Pro Subscription</span>
+              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Go Pro</span>
             </div>
             <span className="material-symbols-outlined text-[#ae2925] text-[18px]">arrow_forward</span>
           </button>
 
-          {/* Log Out */}
-          <button 
-            onClick={() => {
-              if (window.confirm("Are you sure you want to revert your study session data?")) {
-                
+          <button
+            type="button"
+            onClick={() => alert("Use your browser menu → Install app / Add to Home Screen to download Studenius.")}
+            className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
+          >
+            <div className="flex items-center gap-3.5">
+              <span className="material-symbols-outlined text-[#1A1A1A] text-xl group-hover:scale-110 transition-transform">install_mobile</span>
+              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Download App</span>
+            </div>
+            <span className="material-symbols-outlined text-slate-500 text-[18px]">arrow_forward</span>
+          </button>
+
+          <button
+            onClick={() => navigate("/privacy")}
+            className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
+          >
+            <div className="flex items-center gap-3.5">
+              <span className="material-symbols-outlined text-[#1A1A1A] text-xl group-hover:scale-110 transition-transform">policy</span>
+              <span className="text-[15.5px] text-[#1A1A1A] font-extrabold font-headline">Privacy & Terms</span>
+            </div>
+            <span className="material-symbols-outlined text-slate-500 text-[18px]">arrow_forward</span>
+          </button>
+
+          <button
+            onClick={async () => {
+              if (window.confirm("Log out of Studenius?")) {
+                await signOut();
+                navigate("/login");
               }
             }}
-            className="w-full flex items-center justify-center bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:bg-red-50 hover:border-red-900 active:translate-y-0 active:border-b-2 transition-all text-left"
+            className="w-full flex items-center justify-center bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:bg-red-50 hover:border-red-900 active:translate-y-0 active:border-b-2 transition-all"
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-error text-xl shrink-0">logout</span>
-              <span className="text-[15.5px] text-error font-extrabold font-headline">Reset Study States</span>
+              <span className="text-[15.5px] text-error font-extrabold font-headline">Log Out</span>
             </div>
           </button>
-
         </section>
       </main>
     </div>

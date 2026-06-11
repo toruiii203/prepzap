@@ -16,6 +16,7 @@ interface PlannerSession {
 }
 
 export default function StudyPlanner() {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<PlannerSession[]>([]);
   const [activeMonth] = useState("June 2026");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -112,7 +113,7 @@ export default function StudyPlanner() {
   };
 
   return (
-    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-screen flex flex-col items-center justify-start pb-28 font-body-md w-full max-w-[390px] mx-auto border-x border-black/10 shadow-xl relative overflow-y-auto flex-1">
+    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-full flex flex-col items-center justify-start pb-28 font-body-md w-full flex-1 relative overflow-y-auto">
       
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] z-50 flex items-center justify-between px-5 h-16 border-b-2 border-on-background shadow-xs navbar-custom">

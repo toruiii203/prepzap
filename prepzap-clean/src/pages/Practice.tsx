@@ -17,6 +17,7 @@ interface PracticeProps {
 }
 
 export default function Practice() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   
   const [view, setView] = useState<"quiz" | "results">("quiz");
@@ -212,7 +213,7 @@ Each object in the JSON array MUST match this exact schema:
   const progressPercent = Math.round(((currentQIndex + 1) / questions.length) * 100);
 
   return (
-    <div className="w-full min-h-screen bg-[#FAF7F2] md:max-w-3xl md:mx-auto border-black flex flex-col mx-auto overflow-hidden">
+    <div className="w-full min-h-full bg-[#FAF7F2] flex flex-col flex-1 overflow-hidden">
       {/* TopAppBar */}
       <header className="w-full top-0 sticky z-45 bg-[#FAF7F2] border-b-2 border-[#1A1A1A] flex items-center justify-between px-5 h-16">
         <button 

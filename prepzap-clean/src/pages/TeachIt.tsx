@@ -16,6 +16,7 @@ interface FeynmanFeedback {
 }
 
 export default function TeachIt() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [topic, setTopic] = useState("");
   const [explanation, setExplanation] = useState("");
@@ -123,7 +124,7 @@ Required feedback JSON object structure:
   const wordCount = explanation.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <div className="bg-[#fcf9f4] text-on-background min-h-screen flex flex-col font-body-md w-full max-w-[390px] mx-auto relative border-x border-[#1c1c19]/10 shadow-xl overflow-y-auto pb-24 flex-1">
+    <div className="bg-[#fcf9f4] text-on-background min-h-full flex flex-col font-body-md w-full flex-1 relative overflow-y-auto pb-24">
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-on-background flex items-center justify-between px-5 h-16 w-full z-10 navbar-custom">
         <button 

@@ -7,6 +7,7 @@ interface LeaderboardProps {
 }
 
 export default function Leaderboard() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<"All" | "Friends">("All");
   const [playedQuiz, setPlayedQuiz] = useState(false);
@@ -83,7 +84,7 @@ export default function Leaderboard() {
   const userStreak = profile?.streak || user?.streak || 4;
 
   return (
-    <div className="bg-[#fcf9f4] text-on-surface flex flex-col min-h-screen relative pb-32 w-full max-w-[390px] mx-auto border-x border-black/15 shadow-xl flex-1 overflow-y-auto">
+    <div className="bg-[#fcf9f4] text-on-surface flex flex-col min-h-full relative pb-32 w-full flex-1 overflow-y-auto">
       {/* Top Navigation Bar */}
       <header className="flex w-full sticky top-0 left-0 z-50 justify-between items-center px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-surface navbar-custom">
         <div className="flex items-center gap-3">
@@ -96,7 +97,7 @@ export default function Leaderboard() {
           <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold">Studenius Ranks</span>
         </div>
         <button 
-          onClick={() => navigate("/pricing")}
+          onClick={() => navigate("/go-pro")}
           className="text-label-sm font-label-lg text-on-surface px-4 py-1.5 bg-[#ffb4ab] border-2 border-on-surface rounded-full shadow-[2px_2px_rgba(0,0,0,1)] flex items-center gap-1 active:translate-y-0.5 font-bold cursor-pointer"
         >
           <span className="material-symbols-outlined text-black" style={{ fontSize: "14px", fontVariationSettings: "'FILL' 1" }}>star</span>
@@ -152,7 +153,7 @@ export default function Leaderboard() {
               Which mathematical base constant represents standard organic exponential growth in physical curves?
             </p>
             <div className="grid grid-cols-1 gap-2.5 mt-2">
-              {["Pi (Ï/)", "Golden Ratio (Ï/)", "Euler's Number (e)", "Square Root of 2"].map((ansOption, sIdx) => (
+              {["Pi (?/)", "Golden Ratio (?/)", "Euler's Number (e)", "Square Root of 2"].map((ansOption, sIdx) => (
                 <button
                   key={sIdx}
                   onClick={() => handleQuizAnswer(sIdx)}

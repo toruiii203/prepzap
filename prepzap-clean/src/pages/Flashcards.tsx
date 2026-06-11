@@ -15,6 +15,7 @@ interface FlashcardsProps {
 }
 
 export default function Flashcards() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth() as any;
   const [view, setView] = useState<"setup" | "study" | "results">("setup");
   const [topic, setTopic] = useState("");
@@ -181,7 +182,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
   const currentCard = cards[currentCardIndex % cards.length] || mockCards[currentCardIndex % mockCards.length];
 
   return (
-    <div className="w-full min-h-screen md:max-w-3xl md:mx-auto bg-[#fcf9f4] border-black flex flex-col mx-auto overflow-hidden">
+    <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-background border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
         <button 

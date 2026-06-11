@@ -7,6 +7,7 @@ interface GoProPricingProps {
 }
 
 export default function GoProPricing() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth() as any;
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Yearly">("Monthly");
 
@@ -31,7 +32,7 @@ export default function GoProPricing() {
   const isAlreadyPro = profile?.is_pro === true;
 
   return (
-    <div className="bg-[#fcf9f4] text-on-surface font-body-md min-h-screen pb-24 pt-4 w-full max-w-[390px] mx-auto border-x border-black/10 shadow-xl relative overflow-y-auto flex-1">
+    <div className="bg-[#fcf9f4] text-on-surface font-body-md min-h-full pb-24 pt-4 w-full flex-1 relative overflow-y-auto">
       {/* Top App Bar */}
       <header className="sticky top-0 left-0 w-full z-50 flex justify-between items-center px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-surface navbar-custom">
         <button 

@@ -7,6 +7,7 @@ interface FocusTimerProps {
 }
 
 export default function FocusTimer() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [duration, setDuration] = useState<25 | 50>(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -94,7 +95,7 @@ export default function FocusTimer() {
   const dashoffset = 283 - progressRatio * 283;
 
   return (
-    <div className="bg-[#fcf9f4] text-on-background min-h-screen flex flex-col font-body-md antialiased w-full max-w-[390px] mx-auto relative overflow-x-hidden border-x border-[#8d706d]/20 shadow-xl">
+    <div className="bg-[#fcf9f4] text-on-background min-h-full flex flex-col font-body-md antialiased w-full flex-1 relative overflow-x-hidden">
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-5 h-16 w-full top-0 sticky bg-background border-b-2 border-on-background z-50">
         <button 

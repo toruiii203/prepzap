@@ -207,6 +207,22 @@
 /* ── Stat mono (kept for legacy) ── */
 .stat-mono { font-family: 'Nunito', sans-serif; font-weight: 700; }
 
+/* ── Studenius stitch UI utilities ── */
+.studenius-app {
+  --primary: 3 65% 42%;
+  --primary-foreground: 0 0% 100%;
+  --background: 40 33% 97%;
+  --foreground: 30 6% 11%;
+  color: #1c1c17;
+}
+.studenius-app .bg-background { background-color: #fcf9f4; }
+.studenius-app .text-on-background { color: #1c1c19; }
+.ink-border { border: 1.5px solid #000000; }
+.font-headline { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+.font-body-md { font-family: 'Quicksand', system-ui, sans-serif; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ── Responsive dashboard ── */
 @media (max-width: 767px) {
   /* Hide desktop nav on mobile — BottomNav handles navigation */
