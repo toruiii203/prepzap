@@ -398,7 +398,7 @@ export default function Dashboard() {
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 placeholder="Add a study checklist target..." 
-                className="text-[13.5px] text-black bg-transparent border-none outline-none focus:ring-0 p-0 w-full placeholder:text-black placeholder:opacity-40 font-bold">
+                className="text-[13.5px] text-black bg-transparent border-none outline-none focus:ring-0 p-0 w-full placeholder:text-black placeholder:opacity-40 font-bold" />
               <button type="submit" className="material-symbols-outlined text-[24px] text-black opacity-55 hover:opacity-100 cursor-pointer">
                 add
               </button>
@@ -546,7 +546,7 @@ export default function Dashboard() {
                   placeholder="e.g. Cellular Biology, Trigonometry"
                   value={sessionSubject}
                   onChange={(e) => setSessionSubject(e.target.value)}
-                  className="w-full border-2 border-black bg-white px-3 py-2 rounded-lg text-[13.5px] font-bold outline-none">
+                  className="w-full border-2 border-black bg-white px-3 py-2 rounded-lg text-[13.5px] font-bold outline-none" />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -558,7 +558,7 @@ export default function Dashboard() {
                   step="15"
                   value={sessionDuration}
                   onChange={(e) => setSessionDuration(Number(e.target.value))}
-                  className="w-full accent-primary border border-black/10 rounded-lg">
+                  className="w-full accent-primary border border-black/10 rounded-lg" />
                 <div className="flex justify-between text-[10px] font-black text-slate-400">
                   <span>15m</span>
                   <span>45m</span>
