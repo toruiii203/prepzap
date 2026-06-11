@@ -6,7 +6,8 @@ import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/source
 interface SourceLibraryProps {
 }
 
-export default function SourceLibrary(()) {
+export default function SourceLibrary() {
+  const navigate = useNavigate();
   const [activeQuickTool, setActiveTab] = useState("AI Tutor");
   const [files, setFiles] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
