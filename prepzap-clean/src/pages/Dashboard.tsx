@@ -376,13 +376,13 @@ export default function Dashboard() {
               className="flex overflow-x-auto snap-x snap-mandatory gap-0 pb-2 no-scrollbar scroll-smooth"
             >
               {TOOL_SLIDES.map((slide, slideIdx) => (
-                <div key={slideIdx} className="min-w-full snap-start flex gap-3 px-0.5">
+                <div key={slideIdx} className="min-w-full snap-start grid grid-cols-2 gap-3 px-0.5">
                   {slide.map((tool) => (
                     <button
                       key={tool.route}
                       type="button"
                       onClick={() => navigate(tool.route)}
-                      className="w-[130px] h-[110px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
+                      className="h-[110px] ink-border rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
                     >
                       <span className="material-symbols-outlined text-[20px] mb-2 block">{tool.icon}</span>
                       <div>
@@ -476,7 +476,7 @@ export default function Dashboard() {
               Specific Performance Targets <span className="opacity-30 text-[12px] font-normal normal-case">////</span>
               <div 
                 className="ml-auto w-6 h-6 rounded-full ink-border bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FAF7F2] transition-colors"
-                onClick={() => navigate("/daily5")}
+                onClick={handleOpenModal}
               >
                 <span className="material-symbols-outlined text-[14px]">add</span>
               </div>
