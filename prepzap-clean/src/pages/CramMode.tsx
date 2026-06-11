@@ -22,7 +22,7 @@ interface CramTopic {
 type Phase = "setup" | "session" | "done";
 
 
-// ── Quick suggestion chips ────────────────────────────────────────────────────
+// ////// Quick suggestion chips ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => void; suggestions: string[] }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -79,7 +79,7 @@ export default function CramMode() {
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -138,17 +138,17 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
       <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
-        <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Cram Mode" subtitle="Guided timed session — one topic at a time" />
+        <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Cram Mode" subtitle="Guided timed session /// one topic at a time" />
 
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
             <div className="p-3 flex items-start gap-2" style={{ background: "rgba(232,64,64,0.06)", border: "1px solid rgba(232,64,64,0.2)" }}>
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--pz-rose)" }} />
-              <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>Emergency mode — walks you through each topic with a live timer. Stay focused.</p>
+              <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>Emergency mode /// walks you through each topic with a live timer. Stay focused.</p>
             </div>
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
-              placeholder="e.g. Organic Chemistry, WW2, Calculus…"
+              placeholder="e.g. Organic Chemistry, WW2, Calculus///"
               label="Subject / Topic"
             />
             <SuggestionChips onSelect={s => { setSubject(s); setTimeout(() => handleGenerate(), 0); }} suggestions={["Organic Chemistry", "World War II", "Calculus Derivatives", "Human Anatomy", "Macroeconomics", "Cell Biology"]} />
@@ -201,7 +201,7 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleGotIt} className="flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2" style={{ background: "var(--pz-teal)", color: "#000" }}>
-                  <CheckCircle className="h-4 w-4" /> Got it ✓
+                  <CheckCircle className="h-4 w-4" /> Got it ///
                 </Button>
                 <Button onClick={handleMoreTime} className="px-4 py-2.5 text-sm flex items-center gap-1.5" style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
                   <RotateCcw className="h-3.5 w-3.5" /> More time

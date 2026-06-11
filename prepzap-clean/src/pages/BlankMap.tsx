@@ -71,14 +71,14 @@ export default function BlankMap() {
 
   const addEdge = () => {
     if (!edgeFrom||!edgeTo||edgeFrom===edgeTo) return;
-    setEdges(prev=>[...prev,{from:edgeFrom,to:edgeTo,label:edgeLabel||"→"}]);
+    setEdges(prev=>[...prev,{from:edgeFrom,to:edgeTo,label:edgeLabel||"///"}]);
     setEdgeFrom(""); setEdgeTo(""); setEdgeLabel("");
   };
 
   const submit = async () => {
     if (nodes.length < 2 || isLoading) return;
     setIsLoading(true); setError(null);
-    const studentMap = `Nodes: ${nodes.map(n=>n.label).join(", ")}\nConnections: ${edges.map(e=>`${e.from}→${e.to} (${e.label})`).join(", ")}`;
+    const studentMap = `Nodes: ${nodes.map(n=>n.label).join(", ")}\nConnections: ${edges.map(e=>`${e.from}///${e.to} (${e.label})`).join(", ")}`;
     try {
       const sourceCtx = buildAIContext(2000, 1);
       const raw = await callGroq(
@@ -114,7 +114,7 @@ export default function BlankMap() {
   }, [dragging]);
 
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -128,7 +128,7 @@ export default function BlankMap() {
 
   return (
     <ToolPageShell>
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -179,7 +179,7 @@ export default function BlankMap() {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -188,7 +188,7 @@ export default function BlankMap() {
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
@@ -200,7 +200,7 @@ export default function BlankMap() {
               <div className="w-7 h-7 rounded-none bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center"><Map className="h-4 w-4 text-white"/></div>
               Blank Map
             </h1>
-            <p className="text-xs text-muted-foreground">Draw concept connections yourself — AI reveals the ideal map and scores yours</p>
+            <p className="text-xs text-muted-foreground">Draw concept connections yourself /// AI reveals the ideal map and scores yours</p>
           </div>
         </div>
 
@@ -209,12 +209,12 @@ export default function BlankMap() {
             <div className="text-center space-y-3">
               <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center mx-auto shadow-lg"><Map className="h-8 w-8 text-white"/></div>
               <h2 className="text-xl font-bold">Blank Map</h2>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">Pick a topic, add concepts as nodes, draw the connections between them. Then submit — AI reveals the ideal map and scores your understanding.</p>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">Pick a topic, add concepts as nodes, draw the connections between them. Then submit /// AI reveals the ideal map and scores your understanding.</p>
             </div>
             <div className="bg-card border border-border rounded-none p-5">
               <ConceptChipSelector
                 onSelect={(t) => start(t)}
-                placeholder="e.g. Photosynthesis, Newton's Laws…"
+                placeholder="e.g. Photosynthesis, Newton's Laws///"
                 label="Topic to map"
                 staticChips={TOPICS}
               />
@@ -226,7 +226,7 @@ export default function BlankMap() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Badge variant="secondary">Topic: {topic}</Badge>
-              <span className="text-xs text-muted-foreground">{nodes.length} nodes · {edges.length} connections</span>
+              <span className="text-xs text-muted-foreground">{nodes.length} nodes �/ {edges.length} connections</span>
             </div>
             {/* Canvas */}
             <div className="bg-card border border-border rounded-none overflow-hidden" style={{height:"280px"}}>
@@ -281,7 +281,7 @@ export default function BlankMap() {
                     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
                   }}
                   style={{ padding: "6px 10px", background: "rgba(0,196,180,0.08)", border: "0.5px solid rgba(0,196,180,0.3)", color: "#00C4B4", cursor: "pointer", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                  ↓ PNG
+                  /// PNG
                 </button>
               )}
             </div>
@@ -319,7 +319,7 @@ export default function BlankMap() {
               <div className="flex flex-wrap gap-2 mb-3">{ideal.nodes.map((n,i)=><span key={i} className="px-3 py-1.5 rounded-none bg-teal-500/10 border border-teal-500/20 text-xs text-teal-600 dark:text-teal-400">{n.label}</span>)}</div>
               <div className="space-y-1">{ideal.edges.map((e,i)=><div key={i} className="text-xs text-muted-foreground flex items-center gap-1"><span className="font-medium">{e.from}</span><ArrowRight className="h-3 w-3"/><span className="text-[10px] italic">{e.label}</span><ArrowRight className="h-3 w-3"/><span className="font-medium">{e.to}</span></div>)}</div>
             </div>
-            {ideal.missing.length>0&&<div className="bg-amber-500/5 border border-amber-500/20 rounded-none p-4"><p className="text-xs font-bold text-amber-500 mb-2">You Missed</p>{ideal.missing.map((m,i)=><p key={i} className="text-xs text-muted-foreground mb-1">• {m}</p>)}</div>}
+            {ideal.missing.length>0&&<div className="bg-amber-500/5 border border-amber-500/20 rounded-none p-4"><p className="text-xs font-bold text-amber-500 mb-2">You Missed</p>{ideal.missing.map((m,i)=><p key={i} className="text-xs text-muted-foreground mb-1">/// {m}</p>)}</div>}
             <div className="flex gap-3">
               <Button onClick={()=>{setPhase("mapping");setNodes([]);setEdges([]);setIdeal(null);}} variant="outline" className="flex-1 gap-2"><RotateCcw className="h-4 w-4"/>Redo Map</Button>
               <Link to="/dashboard" className="flex-1"><Button className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:opacity-90">Dashboard</Button></Link>

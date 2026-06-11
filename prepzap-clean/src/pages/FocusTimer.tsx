@@ -1,12 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 interface FocusTimerProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function FocusTimer({ onNavigate }: FocusTimerProps) {
+export default function FocusTimer(()) {
   const { user, profile, refreshProfile } = useAuth();
   const [duration, setDuration] = useState<25 | 50>(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -54,7 +54,7 @@ export default function FocusTimer({ onNavigate }: FocusTimerProps) {
       setIsActive(false);
       setSessionCount(prev => Math.min(4, prev + 1));
       awardStudyRewards(duration);
-      alert(`🎉 Focus session completed! You earned +${duration * 2} XP and +${Math.round(duration * 0.6)} Study Coins.`);
+      
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft, duration]);
@@ -79,7 +79,7 @@ export default function FocusTimer({ onNavigate }: FocusTimerProps) {
     setTimeLeft(0);
     setSessionCount(prev => Math.min(4, prev + 1));
     awardStudyRewards(duration);
-    alert(`🎉 Focus session skipped! You still earned half portion of credits: +${duration} XP.`);
+    
   };
 
   const formatTime = (seconds: number) => {
@@ -98,14 +98,14 @@ export default function FocusTimer({ onNavigate }: FocusTimerProps) {
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-5 h-16 w-full top-0 sticky bg-background border-b-2 border-on-background z-50">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="w-10 h-10 flex items-center justify-center border-2 border-[#1A1A1A] rounded-lg bg-surface hover:bg-surface-container-high transition-colors text-primary active:translate-y-0.5 shadow-[2px_2px_0px_#1A1A1A]"
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="font-headline text-headline-md text-on-background font-bold text-[21.5px]">Focus Timer</h1>
         <button 
-          onClick={() => onNavigate("StudyPlanner")}
+          onClick={() => navigate("/planner")}
           className="w-10 h-10 flex items-center justify-center text-secondary hover:bg-surface-container-high transition-colors rounded-full"
         >
           <span className="material-symbols-outlined">calendar_month</span>
@@ -167,7 +167,7 @@ export default function FocusTimer({ onNavigate }: FocusTimerProps) {
                     tomatoId <= sessionCount ? "filter-none opacity-100" : "grayscale opacity-30"
                   }`}
                 >
-                  🍅
+                  ////
                 </span>
               ))}
             </div>

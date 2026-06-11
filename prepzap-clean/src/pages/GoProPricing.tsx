@@ -1,12 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 interface GoProPricingProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function GoProPricing({ onNavigate }: GoProPricingProps) {
+export default function GoProPricing(()) {
   const { user, profile, refreshProfile } = useAuth() as any;
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Yearly">("Monthly");
 
@@ -24,8 +24,8 @@ export default function GoProPricing({ onNavigate }: GoProPricingProps) {
         console.error("Error setting pro status:", err);
       }
     }
-    alert("🎉 Welcoming you to Studenius PRO! All premium tool pipelines are unlocked successfully.");
-    onNavigate("Dashboard");
+    
+    navigate("/dashboard");
   };
 
   const isAlreadyPro = profile?.is_pro === true;
@@ -35,7 +35,7 @@ export default function GoProPricing({ onNavigate }: GoProPricingProps) {
       {/* Top App Bar */}
       <header className="sticky top-0 left-0 w-full z-50 flex justify-between items-center px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-surface navbar-custom">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           aria-label="Go Back" 
           className="text-primary hover:opacity-80 transition-transform active:translate-y-0.5 border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 flex items-center justify-center rounded-full cursor-pointer"
         >
@@ -120,7 +120,7 @@ export default function GoProPricing({ onNavigate }: GoProPricingProps) {
               <h3 className="text-headline-lg font-headline font-extrabold mb-1.5 text-[21px]">Studenius VIP</h3>
               <div className="flex items-baseline gap-1">
                 <span className="text-[32px] font-extrabold">
-                  {billingCycle === "Monthly" ? "₱199" : "₱1,499"}
+                  {billingCycle === "Monthly" ? "///199" : "///1,499"}
                 </span>
                 <span className="text-[14px] opacity-85 font-semibold">
                   {billingCycle === "Monthly" ? "/month" : "/year"}
@@ -153,7 +153,7 @@ export default function GoProPricing({ onNavigate }: GoProPricingProps) {
             <div className="mb-3">
               <h3 className="text-headline-md font-bold text-neutral-500 mb-1 text-[17px]">Standard Plan</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-[23px] font-extrabold">₱0</span>
+                <span className="text-[23px] font-extrabold">///0</span>
                 <span className="text-[13px] text-zinc-500 font-bold">/month</span>
               </div>
             </div>

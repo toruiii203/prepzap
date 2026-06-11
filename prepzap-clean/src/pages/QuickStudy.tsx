@@ -1,9 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext } from "@/lib/sourceContext";
 
 interface QuickStudyProps {
-  onNavigate: (screen: string) => void;
 }
 
 interface StudyPoint {
@@ -17,7 +17,7 @@ interface StudySheet {
   points: StudyPoint[];
 }
 
-export default function QuickStudy({ onNavigate }: QuickStudyProps) {
+export default function QuickStudy(()) {
   const [activeTab, setActiveTab] = useState<"Cram" | "HighYield">("Cram");
   const [topic, setTopic] = useState("");
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
@@ -119,7 +119,7 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
       {/* TopAppBar */}
       <header className="w-full top-0 sticky flex items-center justify-between px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-background z-40 navbar-custom">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           aria-label="Back" 
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
         >
@@ -127,7 +127,7 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
         </button>
         <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold pr-4 flex-1 text-center">AI Quick Cram</span>
         <button 
-          onClick={() => onNavigate("FocusTimer")}
+          onClick={() => navigate("/timer")}
           aria-label="Timer" 
           className="text-secondary hover:bg-surface-container-high transition-colors p-1 rounded-full flex items-center justify-center cursor-pointer"
         >
@@ -193,7 +193,7 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
           </div>
 
           <button 
-            onClick={() => onNavigate("SourceLibrary")}
+            onClick={() => navigate("/sources")}
             className="w-full bg-[#FAF7F2] border-2 border-[#1A1A1A] border-dashed rounded-xl py-3 font-label-md text-black flex items-center justify-center gap-1.5 hover:bg-neutral-200 transition-colors font-extrabold cursor-pointer text-[13.5px]"
           >
             <span className="material-symbols-outlined text-[18px]">attach_file</span>

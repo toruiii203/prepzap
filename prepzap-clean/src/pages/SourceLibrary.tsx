@@ -1,12 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Plus, Check } from "lucide-react";
 import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";
 
 interface SourceLibraryProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function SourceLibrary({ onNavigate }: SourceLibraryProps) {
+export default function SourceLibrary(()) {
   const [activeQuickTool, setActiveTab] = useState("AI Tutor");
   const [files, setFiles] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -70,15 +70,15 @@ export default function SourceLibrary({ onNavigate }: SourceLibraryProps) {
     setSelectedIds(nextCtx);
     saveContext(nextCtx);
 
-    alert(`Successfully synced and saved "${fileName}" to local library! Selected as core AI search reference.`);
+    
   };
 
   const handleQuickToolClick = (tool: string) => {
     setActiveTab(tool);
-    if (tool === "AI Tutor") onNavigate("AITutor");
-    else if (tool === "Flashcards") onNavigate("Flashcards");
-    else if (tool === "Practice") onNavigate("Practice");
-    else if (tool === "Quick Study") onNavigate("QuickStudy");
+    if (tool === "AI Tutor") navigate("/ai-tutor");
+    else if (tool === "Flashcards") navigate("/flashcards");
+    else if (tool === "Practice") navigate("/practice");
+    else if (tool === "Quick Study") navigate("/cram");
   };
 
   return (
@@ -87,7 +87,7 @@ export default function SourceLibrary({ onNavigate }: SourceLibraryProps) {
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] flex items-center justify-between px-5 h-16 w-full z-40 border-b-2 border-black">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer active:translate-y-0.5"
         >
           <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
@@ -195,7 +195,7 @@ export default function SourceLibrary({ onNavigate }: SourceLibraryProps) {
                       {file.name}
                     </h3>
                     <p className="font-label-sm text-label-sm text-secondary text-[12.5px] font-semibold mt-0.5">
-                      {file.size} • {isSelected ? "Active Search context" : "Idle reference"}
+                      {file.size} /// {isSelected ? "Active Search context" : "Idle reference"}
                     </p>
                   </div>
                   

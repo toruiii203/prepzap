@@ -39,7 +39,7 @@ export default function BuildDef() {
   const { pendingFile, setPendingFile, FileAttachButton } = useFileAttach();
 
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     if (prefill && prefill.trim()) {
@@ -95,7 +95,7 @@ export default function BuildDef() {
               <div className="w-7 h-7 rounded-none bg-gradient-to-br from-violet-500 to-zinc-600 flex items-center justify-center"><PenLine className="h-4 w-4 text-white"/></div>
               Build the Definition
             </h1>
-            <p className="text-xs text-muted-foreground">Write a concept definition from memory — AI compares it to the real one</p>
+            <p className="text-xs text-muted-foreground">Write a concept definition from memory /// AI compares it to the real one</p>
           </div>
         </div>
 
@@ -104,7 +104,7 @@ export default function BuildDef() {
             <div className="text-center space-y-3">
               <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-violet-500 to-zinc-600 flex items-center justify-center mx-auto shadow-lg"><PenLine className="h-8 w-8 text-white"/></div>
               <h2 className="text-xl font-bold">Build the Definition</h2>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">You see a concept name. You write the definition from memory — no peeking. The AI then shows what was correct, what was missing, and what was wrong. Better than flashcards.</p>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">You see a concept name. You write the definition from memory /// no peeking. The AI then shows what was correct, what was missing, and what was wrong. Better than flashcards.</p>
             </div>
             <div className="bg-card border border-border rounded-none p-5 space-y-4">
               <label className="font-semibold text-sm">Pick a concept or type your own</label>
@@ -121,7 +121,7 @@ export default function BuildDef() {
                 <button onClick={() => startConcept()} disabled={false}
                   className="w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80"
                   style={{ background: "rgba(212,175,90,0.1)", border: "1px solid rgba(212,175,90,0.35)", color: "var(--pz-gold, #d4af5a)" }}>
-                  ⚡ Define from Active Source: "{getActiveSource()?.name?.replace(/\.\w+$/, "") ?? "Source"}"
+                  /// Define from Active Source: "{getActiveSource()?.name?.replace(/\.\w+$/, "") ?? "Source"}"
                 </button>
               )}
               <div>
@@ -167,9 +167,9 @@ export default function BuildDef() {
               <p className="text-sm leading-relaxed">{feedback.authoritative}</p>
             </div>
             <div className="grid gap-3">
-              {feedback.correct.length>0&&<div className="bg-white/5 border border-emerald-500/20 rounded-none p-4"><div className="flex items-center gap-2 mb-2"><CheckCircle2 className="h-4 w-4 text-white/60"/><span className="text-xs font-bold text-white/60">You Got Right</span></div>{feedback.correct.map((s,i)=><p key={i} className="text-xs text-muted-foreground mb-1">• {s}</p>)}</div>}
-              {feedback.missing.length>0&&<div className="bg-amber-500/5 border border-amber-500/20 rounded-none p-4"><div className="flex items-center gap-2 mb-2"><AlertCircle className="h-4 w-4 text-amber-500"/><span className="text-xs font-bold text-amber-500">Missing</span></div>{feedback.missing.map((s,i)=><p key={i} className="text-xs text-muted-foreground mb-1">• {s}</p>)}</div>}
-              {feedback.wrong.length>0&&<div className="bg-red-500/5 border border-red-500/20 rounded-none p-4"><div className="flex items-center gap-2 mb-2"><XCircle className="h-4 w-4 text-red-500"/><span className="text-xs font-bold text-red-500">Incorrect</span></div>{feedback.wrong.map((s,i)=><p key={i} className="text-xs text-muted-foreground mb-1">• {s}</p>)}</div>}
+              {feedback.correct.length>0&&<div className="bg-white/5 border border-emerald-500/20 rounded-none p-4"><div className="flex items-center gap-2 mb-2"><CheckCircle2 className="h-4 w-4 text-white/60"/><span className="text-xs font-bold text-white/60">You Got Right</span></div>{feedback.correct.map((s,i)=><p key={i} className="text-xs text-muted-foreground mb-1">/// {s}</p>)}</div>}
+              {feedback.missing.length>0&&<div className="bg-amber-500/5 border border-amber-500/20 rounded-none p-4"><div className="flex items-center gap-2 mb-2"><AlertCircle className="h-4 w-4 text-amber-500"/><span className="text-xs font-bold text-amber-500">Missing</span></div>{feedback.missing.map((s,i)=><p key={i} className="text-xs text-muted-foreground mb-1">/// {s}</p>)}</div>}
+              {feedback.wrong.length>0&&<div className="bg-red-500/5 border border-red-500/20 rounded-none p-4"><div className="flex items-center gap-2 mb-2"><XCircle className="h-4 w-4 text-red-500"/><span className="text-xs font-bold text-red-500">Incorrect</span></div>{feedback.wrong.map((s,i)=><p key={i} className="text-xs text-muted-foreground mb-1">/// {s}</p>)}</div>}
             </div>
             <div className="flex gap-3">
               <Button onClick={()=>{setPhase("writing");setUserDef("");setFeedback(null);}} variant="outline" className="flex-1 gap-2"><RotateCcw className="h-4 w-4"/>Try Again</Button>

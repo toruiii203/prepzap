@@ -27,7 +27,7 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: "0.10em", textTransform: "uppercase", display: "block", marginBottom: "6px",
 };
 
-// ─── Fox Scholar Panel ────────────────────────────────────────────────────────
+// ///////// Fox Scholar Panel ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function MascotPanel() {
   return (
     <div className="mascot-panel" style={{
@@ -220,7 +220,7 @@ export default function Login() {
                 }} style={{ ...mono, fontSize: "10px", color: TEXT3, background: "transparent", border: "none", cursor: "pointer", letterSpacing: "0.06em", fontWeight: 700 }}>Forgot?</button>
               </div>
               <div style={{ position: "relative" }}>
-                <input type={showPw ? "text" : "password"} placeholder="••••••••" value={password}
+                <input type={showPw ? "text" : "password"} placeholder="////////////////////////" value={password}
                   onChange={e => setPassword(e.target.value)}
                   style={{ ...inputStyle, paddingRight: "40px" }}
                   onFocus={e => (e.target.style.borderColor = BORDHV)}

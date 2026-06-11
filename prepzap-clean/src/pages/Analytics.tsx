@@ -1,11 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 interface AnalyticsProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function Analytics({ onNavigate }: AnalyticsProps) {
+export default function Analytics(()) {
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [tasksCompletedPct, setTasksCompletedPct] = useState(88);
@@ -97,7 +97,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps) {
       <header className="bg-background w-full top-0 sticky border-b-2 border-on-background z-40 navbar-custom">
         <div className="flex items-center justify-between px-5 h-16 w-full bg-[#FAF7F2]">
           <button 
-            onClick={() => onNavigate("Dashboard")}
+            onClick={() => navigate("/dashboard")}
             aria-label="Go back" 
             className="w-10 h-10 flex items-center justify-center border-2 border-[#1c1c19] rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 shadow-[2px_2px_0px_#1a1a1a] bg-white cursor-pointer"
           >
@@ -109,7 +109,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps) {
           <button 
             onClick={() => {
               navigator.clipboard?.writeText(window.location.origin);
-              alert("🔗 Shareable application link copied to clipboard!");
+              
             }}
             aria-label="Share" 
             className="w-10 h-10 flex items-center justify-center border-2 border-[#1c1c19] rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 shadow-[2px_2px_0px_#1a1a1a] bg-white cursor-pointer"
@@ -205,7 +205,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps) {
           <div className="flex items-center justify-between">
             <h2 className="font-headline text-headline-md font-extrabold text-[#1c1c19] text-[16px]">Recent Sessions</h2>
             <span 
-              onClick={() => onNavigate("MistakeJournal")}
+              onClick={() => navigate("/mistakes")}
               className="text-[14.5px] font-bold text-primary cursor-pointer hover:underline"
             >
               View Journal
@@ -220,7 +220,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps) {
                 <span className="material-symbols-outlined text-3xl opacity-30 text-primary">history</span>
                 <p className="text-sm font-bold opacity-60 mt-1">No sessions recorded yet</p>
                 <button 
-                  onClick={() => onNavigate("Dashboard")}
+                  onClick={() => navigate("/dashboard")}
                   className="mt-3 text-xs bg-primary text-white border-2 border-black rounded-full px-3.5 py-1.5"
                 >
                   Start Studying
@@ -241,7 +241,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps) {
                       <span className="text-[12px] font-bold text-[#faf7f2] bg-primary px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_rgba(0,0,0,1)]">
                         {ses.duration} mins
                       </span>
-                      <span className="text-[12px] text-on-surface-variant font-bold opacity-60">• {formatDateHelper(ses.created_at)}</span>
+                      <span className="text-[12px] text-on-surface-variant font-bold opacity-60">/// {formatDateHelper(ses.created_at)}</span>
                     </div>
                   </div>
                 </div>
@@ -252,7 +252,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps) {
 
         {/* Call To Action */}
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="bg-primary text-white font-headline text-headline-md w-full py-4.5 rounded-xl border-2 border-black shadow-[4px_4px_0px_#1A1A1A] hover:bg-opacity-95 transition-all active:translate-y-1 active:shadow-none cursor-pointer mt-4 text-[16px] font-extrabold h-14 flex items-center justify-center"
         >
           Back to Dashboard

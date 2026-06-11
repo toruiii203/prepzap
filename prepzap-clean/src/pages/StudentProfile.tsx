@@ -1,11 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProfileProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function StudentProfile({ onNavigate }: ProfileProps) {
+export default function StudentProfile(()) {
   const { user, profile } = useAuth() as any;
 
   const displayName = profile?.full_name || profile?.name || user?.name || user?.email?.split('@')[0] || "Master (You)";
@@ -22,7 +22,7 @@ export default function StudentProfile({ onNavigate }: ProfileProps) {
           <h1 className="text-headline-lg font-headline font-bold text-[#1A1A1A] text-[21.5px]">Studenius</h1>
         </div>
         <button 
-          onClick={() => onNavigate("GoProPricing")}
+          onClick={() => navigate("/pricing")}
           className="bg-[#e9f2ff] border-2 border-[#1A1A1A] text-[11px] font-bold text-black px-4 py-1.5 rounded-full uppercase tracking-wide shrink-0 shadow-[2px_2px_0px_#1A1A1A]"
         >
           PRO
@@ -43,7 +43,7 @@ export default function StudentProfile({ onNavigate }: ProfileProps) {
             {displayName}
           </h2>
           <p className="text-body-md font-body-md text-slate-500 text-[14.5px] mt-1 text-center font-bold opacity-60">
-            Level {levelVal} • {xpVal} XP ({coinVal} Coins)
+            Level {levelVal} /// {xpVal} XP ({coinVal} Coins)
           </p>
         </section>
 
@@ -69,7 +69,7 @@ export default function StudentProfile({ onNavigate }: ProfileProps) {
         <section className="flex flex-col gap-4 mt-8">
           
           <button 
-            onClick={() => onNavigate("SourceLibrary")}
+            onClick={() => navigate("/sources")}
             className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
           >
             <div className="flex items-center gap-3.5">
@@ -80,7 +80,7 @@ export default function StudentProfile({ onNavigate }: ProfileProps) {
           </button>
 
           <button 
-            onClick={() => onNavigate("Analytics")}
+            onClick={() => navigate("/analytics")}
             className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
           >
             <div className="flex items-center gap-3.5">
@@ -91,7 +91,7 @@ export default function StudentProfile({ onNavigate }: ProfileProps) {
           </button>
 
           <button 
-            onClick={() => onNavigate("MistakeJournal")}
+            onClick={() => navigate("/mistakes")}
             className="w-full flex items-center justify-between bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group"
           >
             <div className="flex items-center gap-3.5">
@@ -103,7 +103,7 @@ export default function StudentProfile({ onNavigate }: ProfileProps) {
 
           {/* Go Pro CTA */}
           <button 
-            onClick={() => onNavigate("GoProPricing")}
+            onClick={() => navigate("/pricing")}
             className="w-full flex items-center justify-between border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:-translate-y-0.5 active:translate-y-0 active:border-b-2 transition-all text-left group bg-[#ffdad6]"
           >
             <div className="flex items-center gap-3.5">
@@ -117,7 +117,7 @@ export default function StudentProfile({ onNavigate }: ProfileProps) {
           <button 
             onClick={() => {
               if (window.confirm("Are you sure you want to revert your study session data?")) {
-                alert("Reset profile states to default!");
+                
               }
             }}
             className="w-full flex items-center justify-center bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:bg-red-50 hover:border-red-900 active:translate-y-0 active:border-b-2 transition-all text-left"

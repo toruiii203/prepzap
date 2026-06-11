@@ -1,12 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 interface LeaderboardProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function Leaderboard({ onNavigate }: LeaderboardProps) {
+export default function Leaderboard(()) {
   const { user, profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<"All" | "Friends">("All");
   const [playedQuiz, setPlayedQuiz] = useState(false);
@@ -49,7 +49,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
   const handleQuizAnswer = async (optionIdx: number) => {
     if (optionIdx === 2) { // Math question correct answer
       const xpAwarded = 100;
-      alert("🎉 Brilliant! Correct Answer. Received +100 XP.");
+      
 
       if (user && profile) {
         try {
@@ -71,7 +71,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
         await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpAwarded }).eq("id", user?.id ?? ""); await refreshProfile();
       }
     } else {
-      alert("❌ Oh, so close! The correct answer involves logarithmic scaling (Euler's Number).");
+      
     }
     setPlayedQuiz(true);
     setActiveQuizModal(false);
@@ -88,7 +88,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
       <header className="flex w-full sticky top-0 left-0 z-50 justify-between items-center px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-surface navbar-custom">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => onNavigate("Dashboard")}
+            onClick={() => navigate("/dashboard")}
             className="text-on-surface hover:opacity-85 transition-transform active:translate-y-0.5 border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 flex items-center justify-center rounded-full cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -96,7 +96,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
           <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold">Studenius Ranks</span>
         </div>
         <button 
-          onClick={() => onNavigate("GoProPricing")}
+          onClick={() => navigate("/pricing")}
           className="text-label-sm font-label-lg text-on-surface px-4 py-1.5 bg-[#ffb4ab] border-2 border-on-surface rounded-full shadow-[2px_2px_rgba(0,0,0,1)] flex items-center gap-1 active:translate-y-0.5 font-bold cursor-pointer"
         >
           <span className="material-symbols-outlined text-black" style={{ fontSize: "14px", fontVariationSettings: "'FILL' 1" }}>star</span>
@@ -152,7 +152,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
               Which mathematical base constant represents standard organic exponential growth in physical curves?
             </p>
             <div className="grid grid-cols-1 gap-2.5 mt-2">
-              {["Pi (π)", "Golden Ratio (φ)", "Euler's Number (e)", "Square Root of 2"].map((ansOption, sIdx) => (
+              {["Pi (�/)", "Golden Ratio (�/)", "Euler's Number (e)", "Square Root of 2"].map((ansOption, sIdx) => (
                 <button
                   key={sIdx}
                   onClick={() => handleQuizAnswer(sIdx)}
@@ -185,7 +185,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
           <button 
             onClick={() => {
               setActiveTab("Friends");
-              alert("Add fellow students or share your Study Link via the profile page!");
+              
             }}
             className={`text-headline text-headline-md pb-1 -mb-[10px] z-10 font-extrabold cursor-pointer ${
               activeTab === "Friends" ? "border-b-4 border-primary text-black" : "text-neutral-400 hover:text-black"
@@ -225,7 +225,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
                   {plyr.name}
                 </h3>
                 <p className="text-label-md text-[#E8534A] flex items-center gap-1 font-bold text-[12px] mt-0.5">
-                  🔥 {plyr.streak}
+                  //// {plyr.streak}
                 </p>
               </div>
 
@@ -253,7 +253,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
           
           <div className="relative mx-3.5 shrink-0">
             <div className="w-12 h-12 rounded-full border-2 border-on-surface overflow-hidden bg-primary text-white flex items-center justify-center font-bold">
-              👤
+              ////
             </div>
             <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[9px] font-bold px-1 rounded-full border border-on-surface">
               Lv.{userLevel}
@@ -267,7 +267,7 @@ export default function Leaderboard({ onNavigate }: LeaderboardProps) {
             <h3 className="font-headline text-[15.5px] font-extrabold text-on-surface truncate">
               {profile?.full_name || profile?.username || user?.email || "You (Master)"}
             </h3>
-            <p className="text-[12px] font-bold text-orange-600">🔥 {userStreak} Day Streak</p>
+            <p className="text-[12px] font-bold text-orange-600">//// {userStreak} Day Streak</p>
           </div>
 
           <div className="text-right shrink-0">

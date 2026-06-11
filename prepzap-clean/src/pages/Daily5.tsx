@@ -86,7 +86,7 @@ export default function Daily5() {
     try {
       const raw = await callGroq(
         [{ role:"user", content:`Generate exactly 5 multiple-choice questions targeting weak spots in "${area}".${fileContext} Make them challenging. Return ONLY valid JSON:\n{"questions":[{"question":"...","options":["A","B","C","D"],"correct":0,"explanation":"...","topic":"${area}"}]}` }],
-        "You are a rigorous exam question writer. Create questions that expose genuine knowledge gaps. Avoid trivial recall — test application and reasoning.",
+        "You are a rigorous exam question writer. Create questions that expose genuine knowledge gaps. Avoid trivial recall /// test application and reasoning.",
         "llama-3.3-70b-versatile", 1500
       );
       const clean = raw.replace(/```json|```/g,"").trim();
@@ -143,7 +143,7 @@ export default function Daily5() {
               <div className="w-7 h-7 rounded-none bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center"><Zap className="h-4 w-4 text-white"/></div>
               Daily Quiz
             </h1>
-            <p className="text-xs text-muted-foreground">5 targeted questions · under 3 minutes · 🔥 {streak}-day streak</p>
+            <p className="text-xs text-muted-foreground">5 targeted questions �/ under 3 minutes �/ //// {streak}-day streak</p>
           </div>
         </div>
 
@@ -151,8 +151,8 @@ export default function Daily5() {
           <div className="space-y-6 pt-4">
             {alreadyDone && (
               <div className="p-3 text-center" style={{ background: "rgba(0,196,180,0.06)", border: "0.5px solid rgba(0,196,180,0.25)" }}>
-                <p className="text-sm font-semibold" style={{ color: "#8b1a2a" }}>✓ Completed today!</p>
-                <p className="text-xs mt-1" style={{ color: "#555" }}>Come back tomorrow. 🔥 {streak}-day streak</p>
+                <p className="text-sm font-semibold" style={{ color: "#8b1a2a" }}>/// Completed today!</p>
+                <p className="text-xs mt-1" style={{ color: "#555" }}>Come back tomorrow. //// {streak}-day streak</p>
               </div>
             )}
 
@@ -181,7 +181,7 @@ export default function Daily5() {
 
             {/* Stats row */}
             <div style={{ display: "flex", justifyContent: "center", gap: 32 }}>
-              {[{v:"5",l:"Questions"},{v:"<3m",l:"Target"},{v:`🔥${streak}`,l:"Streak"}].map(s=>(
+              {[{v:"5",l:"Questions"},{v:"<3m",l:"Target"},{v:`////${streak}`,l:"Streak"}].map(s=>(
                 <div key={s.l} style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 22, fontWeight: 700, color: "#f0a040", fontFamily: "monospace" }}>{s.v}</div>
                   <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{s.l}</div>
@@ -191,7 +191,7 @@ export default function Daily5() {
 
             {/* Subject chip picker */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "#444", textTransform: "uppercase", marginBottom: 8 }}>Pick a subject — or skip to randomize</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "#444", textTransform: "uppercase", marginBottom: 8 }}>Pick a subject /// or skip to randomize</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {SUBJECT_CHIPS.map(s => (
                   <button key={s} onClick={() => setSelectedSubject(prev => prev === s ? "" : s)}
@@ -207,14 +207,14 @@ export default function Daily5() {
             {buildAIContext().length > 0 && (
               <button onClick={() => start()} disabled={isLoading}
                 style={{ width: "100%", padding: "10px", fontSize: 12, fontWeight: 600, background: "rgba(232,185,35,0.08)", border: "0.5px solid rgba(232,185,35,0.3)", color: "#f0a040", cursor: "pointer", fontFamily: "inherit" }}>
-                ⚡ Quiz from Active Source{selectedSubject ? ` · ${selectedSubject}` : ""}
+                /// Quiz from Active Source{selectedSubject ? ` �/ ${selectedSubject}` : ""}
               </button>
             )}
             <button onClick={() => start()} disabled={isLoading}
               style={{ width: "100%", padding: "12px", fontSize: 13, fontWeight: 700, background: "linear-gradient(135deg,#f0a040,#f59e0b)", color: "#0A0A0A", border: "none", cursor: isLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit", opacity: isLoading ? 0.7 : 1 }}>
               {isLoading
                 ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#0A0A0A", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Generating...</>
-                : <>⚡ Start{selectedSubject ? ` ${selectedSubject}` : " Random"} Quiz</>}
+                : <>/// Start{selectedSubject ? ` ${selectedSubject}` : " Random"} Quiz</>}
             </button>
           </div>
         )}
@@ -252,7 +252,7 @@ export default function Daily5() {
                 </div>
                 <MathRenderer content={q.explanation} className="text-sm text-muted-foreground"/>
                 <Button onClick={next} className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90">
-                  {current+1<questions.length ? "Next Question →" : "See Results →"}
+                  {current+1<questions.length ? "Next Question ///" : "See Results ///"}
                 </Button>
               </div>
             )}
@@ -263,11 +263,11 @@ export default function Daily5() {
           <div className="text-center space-y-6 pt-8">
             <Trophy className="h-16 w-16 text-amber-500 mx-auto"/>
             <div>
-              <h2 className="text-2xl font-bold">{score===5?"Perfect Score! 🎉":score>=3?"Nice work! 💪":"Keep practising! 📚"}</h2>
-              <p className="text-muted-foreground mt-1">{score} / 5 correct · {mm}:{ss} · 🔥 {streak}-day streak</p>
+              <h2 className="text-2xl font-bold">{score===5?"Perfect Score! ////":score>=3?"Nice work! ////":"Keep practising! ////"}</h2>
+              <p className="text-muted-foreground mt-1">{score} / 5 correct �/ {mm}:{ss} �/ //// {streak}-day streak</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[{label:"Score",val:`${score}/5`,color:"text-amber-500"},{label:"Accuracy",val:`${Math.round(score/5*100)}%`,color:"text-teal-500"},{label:"Streak",val:`${streak}🔥`,color:"text-rose-500"}].map(s=>(
+              {[{label:"Score",val:`${score}/5`,color:"text-amber-500"},{label:"Accuracy",val:`${Math.round(score/5*100)}%`,color:"text-teal-500"},{label:"Streak",val:`${streak}////`,color:"text-rose-500"}].map(s=>(
                 <div key={s.label} className="bg-card border border-border rounded-none p-3 text-center">
                   <div className={cn("text-2xl font-bold",s.color)}>{s.val}</div>
                   <div className="text-xs text-muted-foreground mt-1">{s.label}</div>

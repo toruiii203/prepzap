@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -11,10 +12,9 @@ interface Flashcard {
 }
 
 interface FlashcardsProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function Flashcards({ onNavigate }: FlashcardsProps) {
+export default function Flashcards(()) {
   const { user, profile, refreshProfile } = useAuth() as any;
   const [view, setView] = useState<"setup" | "study" | "results">("setup");
   const [topic, setTopic] = useState("");
@@ -181,11 +181,11 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
   const currentCard = cards[currentCardIndex % cards.length] || mockCards[currentCardIndex % mockCards.length];
 
   return (
-    <div className="relative w-full max-w-[390px] h-[844px] bg-[#fcf9f4] border-black flex flex-col mx-auto overflow-hidden">
+    <div className="w-full min-h-screen md:max-w-3xl md:mx-auto bg-[#fcf9f4] border-black flex flex-col mx-auto overflow-hidden">
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-background border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
         <button 
-          onClick={() => view === "study" ? setView("setup") : onNavigate("Dashboard")}
+          onClick={() => view === "study" ? setView("setup") : navigate("/dashboard")}
           aria-label="Go Back" 
           className="material-symbols-outlined text-primary hover:bg-surface-container-high transition-colors w-10 h-10 flex items-center justify-center rounded-full"
         >
@@ -419,7 +419,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               Restart
             </button>
             <button 
-              onClick={() => onNavigate("Dashboard")}
+              onClick={() => navigate("/dashboard")}
               className="flex-1 border-2 border-[#1c1c19] bg-primary text-white py-3.5 rounded-xl font-label-md hover:opacity-90 transition-all flex items-center justify-center gap-1 active:translate-y-0.5 text-[14px] font-bold"
             >
               Dashboard

@@ -1,11 +1,11 @@
 import { ToolHistoryPanel, HistoryButton } from "@/pages/ToolHistory";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
- * FocusState.tsx — Studenius
+ * FocusState.tsx /// Studenius
  * 3-stage emotional intelligence coach:
- *   Stage 1 — Talk (journaling surface)
- *   Stage 2 — Pulse Check (AI-generated micro-survey, tap-to-select)
- *   Stage 3 — Focus Report (3 cards: state, data, actions)
+ *   Stage 1 /// Talk (journaling surface)
+ *   Stage 2 /// Pulse Check (AI-generated micro-survey, tap-to-select)
+ *   Stage 3 /// Focus Report (3 cards: state, data, actions)
  *
  * Dashboard: label "Focus State", description "Process stress, get clarity"
  * Route: /focus-state
@@ -17,7 +17,7 @@ import { buildAIContext } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
 import { supabase } from "@/lib/supabase"
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ////// Constants ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const TEAL   = "#8b1a2a"
 const GOLD   = "#f0a040"
 const BG     = "#160810"
@@ -28,7 +28,7 @@ const TEXT   = "#F0F0F0"
 const FONT   = "'Nunito', system-ui, sans-serif"
 const JOURNAL_KEY = "studenius_focus_journal"
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ////// Types ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 interface PulseQuestion {
   id: string
   question: string
@@ -48,12 +48,12 @@ interface UserStudyData {
   studyDna?: string
 }
 
-// ── Word count ────────────────────────────────────────────────────────────────
+// ////// Word count ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function wordCount(s: string) {
   return s.trim() === "" ? 0 : s.trim().split(/\s+/).length
 }
 
-// ── Supabase data fetch ───────────────────────────────────────────────────────
+// ////// Supabase data fetch /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 async function fetchStudyData(): Promise<UserStudyData> {
   const defaults: UserStudyData = { sessionsThisWeek: 0, streak: 0, xpThisWeek: 0 }
   try {
@@ -79,7 +79,7 @@ async function fetchStudyData(): Promise<UserStudyData> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export default function FocusState() {
   const { model, setModel } = useModel()
   const { entries, save: saveHistory, remove: removeHistory, clear: clearHistory } =("focus-state")
@@ -104,7 +104,7 @@ export default function FocusState() {
     fetchStudyData().then(setStudyData)
   }, [])
 
-  // ── History restore ────────────────────────────────────────────────────────
+  // ////// History restore ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleHistorySelect = (entry: HistoryEntry) => {    try {
       const parsed: FocusReport = JSON.parse(entry.output)
       setReport(parsed)
@@ -112,7 +112,7 @@ export default function FocusState() {
     } catch { /* ignore */ }
   }
 
-  // ── Stage 1 → 2: Generate pulse questions ─────────────────────────────────
+  // ////// Stage 1 /// 2: Generate pulse questions ///////////////////////////////////////////////////////////////////////////////////////////////////
   const handleGenerateQuestions = async () => {
     if (!canProceed) return
     setIsLoading(true)
@@ -123,9 +123,9 @@ export default function FocusState() {
         [{ role: "user", content: `Student wrote:\n"${freeText}"\n\nGenerate 4 targeted follow-up questions.` }],
         `You are an empathetic emotional intelligence coach for students.
 Read their message and generate 4-5 specific questions to understand their situation better.
-Questions should be SPECIFIC to what they wrote — not generic.
-If they mention exam panic → ask about sleep quality, prep confidence, time until exam.
-If they mention burnout → ask about last break, session frequency, enjoyment.
+Questions should be SPECIFIC to what they wrote /// not generic.
+If they mention exam panic /// ask about sleep quality, prep confidence, time until exam.
+If they mention burnout /// ask about last break, session frequency, enjoyment.
 
 Return ONLY valid JSON (no markdown):
 [
@@ -151,7 +151,7 @@ Give 3-4 options per question. Options should be concrete, not vague.`,
     }
   }
 
-  // ── Stage 2 → 3: Generate focus report ────────────────────────────────────
+  // ////// Stage 2 /// 3: Generate focus report ////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleGenerateReport = async () => {
     if (!allAnswered) return
     setIsLoading(true)
@@ -196,7 +196,7 @@ Study data: ${dataStr}`
       setStage(3)
 
       saveHistory({
-        prompt: freeText.slice(0, 60) + (freeText.length > 60 ? "…" : ""),
+        prompt: freeText.slice(0, 60) + (freeText.length > 60 ? "///" : ""),
         preview: parsed.whatIsHappening.slice(0, 120),
         output: JSON.stringify(parsed),
         model,
@@ -209,7 +209,7 @@ Study data: ${dataStr}`
     }
   }
 
-  // ── Save to journal ────────────────────────────────────────────────────────
+  // ////// Save to journal ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleSaveJournal = () => {
     if (!report) return
     const entry = {
@@ -230,7 +230,7 @@ Study data: ${dataStr}`
     setStage(1); setFreeText(""); setQuestions([]); setAnswers({}); setReport(null); setError(null)
   }
 
-  // ── Shared header ──────────────────────────────────────────────────────────
+  // ////// Shared header //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const HeaderRow = () => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
       <div>
@@ -257,12 +257,12 @@ Study data: ${dataStr}`
     </div>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // STAGE 1 — Free expression / journaling
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // STAGE 1 /// Free expression / journaling
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (stage === 1) return (
     <ToolPageShell key="shell">
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -313,7 +313,7 @@ Study data: ${dataStr}`
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -322,7 +322,7 @@ Study data: ${dataStr}`
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
       <main style={{ flex: 1, maxWidth: 640, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
@@ -341,7 +341,7 @@ Study data: ${dataStr}`
           <textarea
             value={freeText}
             onChange={e => setFreeText(e.target.value)}
-            placeholder={"What's going on right now? Exam stress, burnout, can't focus — just say it."}
+            placeholder={"What's going on right now? Exam stress, burnout, can't focus /// just say it."}
             style={{
               width: "100%",
               minHeight: 280,
@@ -360,7 +360,7 @@ Study data: ${dataStr}`
             }}
           />
           <div style={{ position: "absolute", bottom: 12, right: 16, fontSize: 10, color: wc >= 10 ? "#444" : "#2A2A2A", fontFamily: FONT, userSelect: "none" }}>
-            {wc} {wc === 1 ? "word" : "words"}{!canProceed && wc > 0 ? " — keep going" : ""}
+            {wc} {wc === 1 ? "word" : "words"}{!canProceed && wc > 0 ? " /// keep going" : ""}
           </div>
         </div>
 
@@ -386,7 +386,7 @@ Study data: ${dataStr}`
           {isLoading ? (
             <>
               <span style={{ width: 14, height: 14, border: `2px solid rgba(10,10,10,0.3)`, borderTopColor: BG, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
-              Reading your situation…
+              Reading your situation///
             </>
           ) : "I'm done, help me"}
         </button>
@@ -404,9 +404,9 @@ Study data: ${dataStr}`
     </ToolPageShell>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // STAGE 2 — Pulse check micro-survey
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // STAGE 2 /// Pulse check micro-survey
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (stage === 2) return (
     <ToolPageShell key="shell">
       
@@ -423,7 +423,7 @@ Study data: ${dataStr}`
         <HeaderRow />
 
         <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
-          A few quick questions based on what you wrote. Tap to answer — this helps me personalize your report.
+          A few quick questions based on what you wrote. Tap to answer /// this helps me personalize your report.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24, marginBottom: 32 }}>
@@ -481,7 +481,7 @@ Study data: ${dataStr}`
           {isLoading ? (
             <>
               <span style={{ width: 14, height: 14, border: `2px solid rgba(10,10,10,0.3)`, borderTopColor: BG, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
-              Building your report…
+              Building your report///
             </>
           ) : "Generate My Focus Report"}
         </button>
@@ -493,9 +493,9 @@ Study data: ${dataStr}`
     </ToolPageShell>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // STAGE 3 — Focus report (3 cards)
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // STAGE 3 /// Focus report (3 cards)
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (stage === 3 && report) return (
     <ToolPageShell key="shell">
       
@@ -511,7 +511,7 @@ Study data: ${dataStr}`
         </div>
         <HeaderRow />
 
-        {/* Card 1 — What's Actually Happening (teal left border) */}
+        {/* Card 1 /// What's Actually Happening (teal left border) */}
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, borderLeft: `3px solid ${TEAL}`, padding: "22px 24px", marginBottom: 14 }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: TEAL, marginBottom: 12 }}>
             What's Actually Happening
@@ -519,7 +519,7 @@ Study data: ${dataStr}`
           <p style={{ fontSize: 14, color: "#C8C8C8", margin: 0, lineHeight: 1.75 }}>{report.whatIsHappening}</p>
         </div>
 
-        {/* Card 2 — What Your Data Says (gold left border) */}
+        {/* Card 2 /// What Your Data Says (gold left border) */}
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, borderLeft: `3px solid ${GOLD}`, padding: "22px 24px", marginBottom: 14 }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: GOLD, marginBottom: 12 }}>
             What Your Data Says
@@ -542,7 +542,7 @@ Study data: ${dataStr}`
           <p style={{ fontSize: 13, color: "#B0B0B0", margin: 0, lineHeight: 1.7 }}>{report.whatDataSays}</p>
         </div>
 
-        {/* Card 3 — Your Next 3 Actions (white left border) */}
+        {/* Card 3 /// Your Next 3 Actions (white left border) */}
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, borderLeft: `3px solid #F0F0F0`, padding: "22px 24px", marginBottom: 28 }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: TEXT, marginBottom: 16 }}>
             Your Next 3 Actions
@@ -562,7 +562,7 @@ Study data: ${dataStr}`
                   {action.link && (
                     <a href={action.link}
                       style={{ fontSize: 10, color: TEAL, textDecoration: "none", letterSpacing: "0.06em" }}>
-                      Open →
+                      Open ///
                     </a>
                   )}
                 </div>

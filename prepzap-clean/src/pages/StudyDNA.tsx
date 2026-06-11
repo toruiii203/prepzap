@@ -31,8 +31,8 @@ const QUESTIONS = [
   { id: "q1", text: "When you learn something new, you prefer to:", options: ["Read detailed notes or textbooks", "Watch videos or visual diagrams", "Do practice problems immediately", "Discuss it or teach it to someone"] },
   { id: "q2", text: "You remember things best when:", options: ["You write them down yourself", "You see a clear diagram or chart", "You repeat or explain them out loud", "You connect them to something you know"] },
   { id: "q3", text: "When you hit a difficult concept, you:", options: ["Re-read it until it clicks", "Look for a simpler analogy", "Try practice questions to figure it out", "Ask someone or find a video"] },
-  { id: "q4", text: "Your most productive study sessions happen:", options: ["Early morning (6–10am)", "Late morning (10am–2pm)", "Afternoon (2–6pm)", "Evening or night (6pm+)"] },
-  { id: "q5", text: "How long can you focus before needing a break?", options: ["Under 20 minutes", "20–40 minutes", "40–60 minutes", "Over 60 minutes"] },
+  { id: "q4", text: "Your most productive study sessions happen:", options: ["Early morning (6///10am)", "Late morning (10am///2pm)", "Afternoon (2///6pm)", "Evening or night (6pm+)"] },
+  { id: "q5", text: "How long can you focus before needing a break?", options: ["Under 20 minutes", "20///40 minutes", "40///60 minutes", "Over 60 minutes"] },
   { id: "q6", text: "Your biggest study challenge is:", options: ["Staying motivated over time", "Understanding difficult concepts", "Remembering what you've studied", "Managing time and staying organised"] },
   { id: "q7", text: "You feel most confident when:", options: ["You've reviewed your notes thoroughly", "You can visualise how things connect", "You've practised enough questions", "You can explain it to someone else"] },
 ];
@@ -71,7 +71,7 @@ export default function StudyDNA() {
     if (!allAnswered) { toast.error("Please answer all questions"); return; }
     setLoading(true);
     try {
-      const answerSummary = QUESTIONS.map(q => `${q.text} → ${answers[q.id]}`).join("\n");
+      const answerSummary = QUESTIONS.map(q => `${q.text} /// ${answers[q.id]}`).join("\n");
       const topTools = Object.entries(usage).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t]) => t).join(", ");
       const prompt = `Create a Study DNA profile for a student based on their quiz answers and app usage.
 
@@ -125,7 +125,7 @@ Return ONLY valid JSON, no markdown:
         <ToolHeader
           icon={<Dna className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />}
           title="Study DNA"
-          subtitle="Your living learner profile — updates as you use the app"
+          subtitle="Your living learner profile /// updates as you use the app"
         />
 
         {/* QUIZ */}
@@ -168,7 +168,7 @@ Return ONLY valid JSON, no markdown:
             <Button onClick={handleGenerate} disabled={loading || !allAnswered}
               className="w-full py-3 font-semibold text-sm mt-6"
               style={{ background: allAnswered ? "var(--pz-gold)" : "var(--pz-surface3)", color: allAnswered ? "#000" : "var(--pz-text-muted)" }}>
-              {loading ? "Analysing your DNA..." : "Generate My Study DNA →"}
+              {loading ? "Analysing your DNA..." : "Generate My Study DNA ///"}
             </Button>
           </div>
         )}
@@ -179,15 +179,15 @@ Return ONLY valid JSON, no markdown:
             {/* Header */}
             <div className="p-5 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-gold)40", borderTop: "2px solid var(--pz-gold)" }}>
               <div className="w-14 h-14 flex items-center justify-center text-2xl mx-auto mb-3"
-                style={{ background: "var(--pz-gold-dim)", border: "1px solid var(--pz-gold)30" }}>🧬</div>
+                style={{ background: "var(--pz-gold-dim)", border: "1px solid var(--pz-gold)30" }}>////</div>
               <h2 className="text-xl font-bold mb-1" style={{ color: "var(--pz-text)" }}>{profile.learningStyle}</h2>
               <p className="text-xs" style={{ color: "var(--pz-text-muted)" }}>
                 Generated {profileAge === 0 ? "today" : `${profileAge}d ago`}
-                {profileAge >= 7 && " · Consider retaking"}
+                {profileAge >= 7 && " �/ Consider retaking"}
               </p>
               {profileAge >= 7 && (
                 <p className="text-xs mt-1 px-3 py-1 inline-block" style={{ background: "var(--pz-gold-dim)", color: "var(--pz-gold)", border: "1px solid var(--pz-gold)30" }}>
-                  ⚡ Profile is over a week old — retake for fresh insights
+                  /// Profile is over a week old /// retake for fresh insights
                 </p>
               )}
             </div>
@@ -205,7 +205,7 @@ Return ONLY valid JSON, no markdown:
                 <ul className="space-y-1.5">
                   {profile.strengths.map((s, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "var(--pz-text-2)" }}>
-                      <span style={{ color: "var(--pz-teal)" }}>✓</span> {s}
+                      <span style={{ color: "var(--pz-teal)" }}>///</span> {s}
                     </li>
                   ))}
                 </ul>
@@ -215,7 +215,7 @@ Return ONLY valid JSON, no markdown:
                 <ul className="space-y-1.5">
                   {profile.weaknesses.map((w, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "var(--pz-text-2)" }}>
-                      <span style={{ color: "var(--pz-rose)" }}>→</span> {w}
+                      <span style={{ color: "var(--pz-rose)" }}>///</span> {w}
                     </li>
                   ))}
                 </ul>
@@ -225,7 +225,7 @@ Return ONLY valid JSON, no markdown:
             {/* Best study time */}
             <div className="p-4" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
               <p className="text-xs font-semibold mb-1 uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Best Study Time</p>
-              <p className="text-sm" style={{ color: "var(--pz-text-2)" }}>⏰ {profile.bestStudyTime}</p>
+              <p className="text-sm" style={{ color: "var(--pz-text-2)" }}>/// {profile.bestStudyTime}</p>
             </div>
 
             {/* Recommended tools */}

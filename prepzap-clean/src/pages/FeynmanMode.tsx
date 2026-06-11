@@ -1,7 +1,7 @@
 import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
- * FeynmanMode.tsx — Studenius
+ * FeynmanMode.tsx /// Studenius
  * Textarea replaced with a document-editor writing surface.
  * Full-width clean surface, monospace-weight Nunito, word count, fading placeholder.
  */
@@ -11,7 +11,7 @@ import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ////// Constants ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const TEAL  = "#8b1a2a"
 const GOLD  = "#f0a040"
 const BG    = "#160810"
@@ -28,12 +28,12 @@ const SUGGESTED = [
   "Electromagnetic Induction","Natural Selection","Thermodynamics",
 ]
 
-// ── Word count helper ─────────────────────────────────────────────────────────
+// ////// Word count helper ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function wordCount(s: string) {
   return s.trim() === "" ? 0 : s.trim().split(/\s+/).length
 }
 
-// ── Feedback types ────────────────────────────────────────────────────────────
+// ////// Feedback types ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 interface FeedbackItem { type: "strength" | "gap" | "hint"; text: string }
 interface FeedbackResult {
   masteryScore: number
@@ -45,7 +45,7 @@ interface FeedbackResult {
   encouragement: string
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export default function FeynmanMode() {
   const { model, setModel } = useModel()
 
@@ -70,9 +70,9 @@ export default function FeynmanMode() {
     el.style.height = Math.max(320, el.scrollHeight) + "px"
   }, [explanation])
 
-  // ── History restore ────────────────────────────────────────────────────────
+  // ////// History restore ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -91,14 +91,14 @@ export default function FeynmanMode() {
       setFeedback(parsed)
       setPhase("feedback")
     } catch {
-      // output wasn't JSON — restore as explanation
+      // output wasn't JSON /// restore as explanation
       setTopic(entry.prompt)
       setExplanation(entry.output)
       setPhase("teaching")
     }
   }
 
-  // ── Start session ──────────────────────────────────────────────────────────
+  // ////// Start session //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleStart = () => {
     const libs = loadLibrary()
     if (!topicInput.trim() && libs.length > 1) { setShowSourcePicker(true); return }
@@ -110,7 +110,7 @@ export default function FeynmanMode() {
     textareaRef.current?.focus()
   }
 
-  // ── Analyze ────────────────────────────────────────────────────────────────
+  // ////// Analyze ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleAnalyze = async () => {
     if (!explanation.trim() || isLoading) return
     setIsLoading(true)
@@ -161,7 +161,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
     }
   }
 
-  // ── Shared header row ──────────────────────────────────────────────────────
+  // ////// Shared header row //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const HeaderRow = () => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
       <div>
@@ -183,13 +183,13 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
     </div>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // SETUP PHASE
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "setup") return (
     <ToolPageShell key="shell">
       <BuddyCompanion />
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -240,7 +240,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -249,7 +249,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
       <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
@@ -346,9 +346,9 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
     </ToolPageShell>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // TEACHING PHASE — Document editor surface
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // TEACHING PHASE /// Document editor surface
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "teaching") {
     const wc = wordCount(explanation)
     const canSubmit = wc >= 20
@@ -373,23 +373,23 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
             <span style={{ fontSize: 11, color: MUTED }}>Teaching:</span>
             <span style={{ fontSize: 13, fontWeight: 600, padding: "3px 10px", background: "rgba(0,196,180,0.06)", border: `0.5px solid rgba(0,196,180,0.2)`, color: TEAL }}>{topic}</span>
-            <button onClick={resetAll} style={{ marginLeft: "auto", fontSize: 10, color: MUTED, background: "none", border: "none", cursor: "pointer", fontFamily: FONT }}>← Change topic</button>
+            <button onClick={resetAll} style={{ marginLeft: "auto", fontSize: 10, color: MUTED, background: "none", border: "none", cursor: "pointer", fontFamily: FONT }}>/// Change topic</button>
           </div>
 
           {/* Prompt card */}
           <div style={{ padding: "14px 18px", background: "rgba(0,196,180,0.04)", border: `0.5px solid rgba(0,196,180,0.15)`, marginBottom: 24 }}>
             <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0, lineHeight: 1.7 }}>
-              Pretend I'm a curious 12-year-old who's never heard of <strong style={{ color: TEXT }}>{topic}</strong>. Explain it in simple terms — no jargon. Just write freely below.
+              Pretend I'm a curious 12-year-old who's never heard of <strong style={{ color: TEXT }}>{topic}</strong>. Explain it in simple terms /// no jargon. Just write freely below.
             </p>
           </div>
 
-          {/* ── Document editor surface ─────────────────────────────────── */}
+          {/* ////// Document editor surface ///////////////////////////////////////////////////////////////////////////////////////////////////////// */}
           <div style={{ position: "relative", background: "#0D0D0D", border: `0.5px solid ${BORDER}` }}>
             <textarea
               ref={textareaRef}
               value={explanation}
               onChange={e => setExplanation(e.target.value)}
-              placeholder="Start writing your explanation here…"
+              placeholder="Start writing your explanation here///"
               style={{
                 width: "100%",
                 minHeight: 320,
@@ -410,7 +410,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
             />
             {/* Word count */}
             <div style={{ position: "absolute", bottom: 12, right: 16, fontSize: 10, color: canSubmit ? "#444" : "#333", fontFamily: FONT, userSelect: "none" }}>
-              {wc} {wc === 1 ? "word" : "words"}{!canSubmit && wc > 0 ? ` — write a bit more` : ""}
+              {wc} {wc === 1 ? "word" : "words"}{!canSubmit && wc > 0 ? ` /// write a bit more` : ""}
             </div>
           </div>
 
@@ -437,7 +437,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
             {isLoading ? (
               <>
                 <span style={{ width: 14, height: 14, border: `2px solid rgba(10,10,10,0.3)`, borderTopColor: BG, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
-                Analyzing Your Understanding…
+                Analyzing Your Understanding///
               </>
             ) : "Analyze My Understanding"}
           </button>
@@ -448,9 +448,9 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
     )
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // FEEDBACK PHASE
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "feedback" && feedback) {
     const strengths = feedback.feedback.filter(f => f.type === "strength")
     const gaps      = feedback.feedback.filter(f => f.type === "gap")
@@ -520,7 +520,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
               </div>
               {section.items.map((item, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <span style={{ color: section.color, fontSize: 12, flexShrink: 0, marginTop: 1 }}>—</span>
+                  <span style={{ color: section.color, fontSize: 12, flexShrink: 0, marginTop: 1 }}>///</span>
                   <span style={{ fontSize: 13, color: "#C0C0C0", lineHeight: 1.6 }}>{item.text}</span>
                 </div>
               ))}
@@ -542,7 +542,7 @@ Be strict but fair. Penalize jargon and vague handwaving.${context}`
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={handleTryAgain}
               style={{ flex: 1, padding: "13px 0", background: TEAL, color: BG, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: FONT, letterSpacing: "0.06em" }}>
-              Try Again — Round {round + 1}
+              Try Again /// Round {round + 1}
             </button>
             <button onClick={resetAll}
               style={{ padding: "13px 24px", background: "transparent", border: `0.5px solid ${BORDER}`, color: "#888", fontSize: 13, cursor: "pointer", fontFamily: FONT }}>

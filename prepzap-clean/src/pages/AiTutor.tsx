@@ -1,12 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useRef, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, loadContext, loadLibrary } from "@/lib/sourceContext";
 
 interface AITutorProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function AITutor({ onNavigate }: AITutorProps) {
+export default function AITutor(()) {
   const [activeMode, setActiveMode] = useState("Explain");
   const modes = ["Explain", "ELI5", "Analogy", "Quiz Me", "Devil's Advocate", "Summarize"];
 
@@ -90,7 +90,7 @@ export default function AITutor({ onNavigate }: AITutorProps) {
       console.error(err);
       setMessages((prev) => [
         ...prev,
-        { sender: "bot" as const, text: "⚠️ Oh, I couldn't reach the backend brains! Please make sure your server is running and try again." }
+        { sender: "bot" as const, text: "////// Oh, I couldn't reach the backend brains! Please make sure your server is running and try again." }
       ]);
     } finally {
       setIsLoading(false);
@@ -107,12 +107,12 @@ export default function AITutor({ onNavigate }: AITutorProps) {
   }, [messages]);
 
   return (
-    <div className="relative w-full max-w-[390px] h-[844px] bg-[#fcf9f4] border-black flex flex-col mx-auto overflow-hidden">
+    <div className="w-full min-h-screen md:max-w-3xl md:mx-auto bg-[#fcf9f4] border-black flex flex-col mx-auto overflow-hidden">
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-edge-margin h-16 w-full bg-background z-10 sticky top-0 border-b-2 border-[#1A1A1A]">
         <button 
           aria-label="Go back" 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="flex items-center justify-center p-2 rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 active:translate-x-0.5"
         >
           <span className="material-symbols-outlined text-on-background">arrow_back</span>
@@ -120,7 +120,7 @@ export default function AITutor({ onNavigate }: AITutorProps) {
         <h1 className="font-headline text-headline-md text-on-background font-extrabold tracking-tight">AI Tutor</h1>
         <button 
           aria-label="Settings" 
-          onClick={() => onNavigate("Challenges")}
+          onClick={() => navigate("/daily5")}
           className="flex items-center justify-center p-2 rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 active:translate-x-0.5"
         >
           <span className="material-symbols-outlined text-on-background">emoji_events</span>
@@ -188,7 +188,7 @@ export default function AITutor({ onNavigate }: AITutorProps) {
               </button>
 
               <button 
-                onClick={() => onNavigate("Flashcards")}
+                onClick={() => navigate("/flashcards")}
                 className="bg-white border-2 border-[#1A1A1A] rounded-2xl p-4 flex flex-col items-start text-left ink-shadow-sm hover:bg-surface-container-high transition-colors"
               >
                 <span className="material-symbols-outlined text-primary mb-2">history_edu</span>
@@ -263,7 +263,7 @@ export default function AITutor({ onNavigate }: AITutorProps) {
         <div className="flex items-end gap-2 w-full">
           {/* Attach Button */}
           <button 
-            onClick={() => onNavigate("SourceLibrary")}
+            onClick={() => navigate("/sources")}
             aria-label="Attach file" 
             className="w-12 h-12 shrink-0 bg-white border-2 border-[#1A1A1A] rounded-2xl flex items-center justify-center ink-shadow-sm active:translate-y-0.5 active:translate-x-0.5 active:shadow-[1px_1px_0px_0px_#1A1A1A] text-[#1A1A1A]"
           >

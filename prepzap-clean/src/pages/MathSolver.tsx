@@ -1,8 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { callGroq } from "@/lib/groq";
 
 interface MathSolverProps {
-  onNavigate: (screen: string) => void;
 }
 
 interface SolutionStep {
@@ -11,18 +11,18 @@ interface SolutionStep {
   mathBlock?: string;
 }
 
-export default function MathSolver({ onNavigate }: MathSolverProps) {
+export default function MathSolver(()) {
   const [problem, setProblem] = useState("");
   const [steps, setSteps] = useState<SolutionStep[]>([]);
   const [solved, setSolved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
 
-  const symbols = ["+", "âˆ’", "Ã—", "Ã·", "âˆš", "Ï€", "âˆ«", "xÂ²", "sin(x)", "cos(x)", "tan(x)", "log(x)", "=", "(", ")", "x", "y"];
+  const symbols = ["+", "///", "Ã/", "Ã/", "///", "Ï/", "///", "xÂ/", "sin(x)", "cos(x)", "tan(x)", "log(x)", "=", "(", ")", "x", "y"];
 
   const appendSymbol = (sym: string) => {
     let cleanSym = sym;
-    if (sym === "xÂ²") cleanSym = "Â²";
+    if (sym === "xÂ/") cleanSym = "Â/";
     setProblem(prev => prev + cleanSym);
   };
 
@@ -32,7 +32,7 @@ export default function MathSolver({ onNavigate }: MathSolverProps) {
     } else if (type === "physics") {
       setProblem("F = ma. If mass is 12kg and acceleration is 3m/s^2, what is Force?");
     } else {
-      setProblem("2xÂ² + 5x âˆ’ 3 = 0");
+      setProblem("2xÂ/ + 5x /// 3 = 0");
     }
     setSolved(false);
     setSteps([]);
@@ -113,14 +113,14 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-5 h-16 w-full top-0 sticky z-50 bg-[#FAF7F2] border-b-2 border-on-background shadow-xs">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full cursor-pointer flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
         </button>
         <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold">Studenius AI Solver</span>
         <button 
-          onClick={() => onNavigate("SourceLibrary")}
+          onClick={() => navigate("/sources")}
           className="text-secondary hover:bg-surface-container-high transition-colors p-1 rounded-full cursor-pointer"
         >
           <span className="material-symbols-outlined">library_books</span>
@@ -188,7 +188,7 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
         >
           <div className="w-full py-4 bg-[#E8534A] text-white border-2 border-on-background rounded-lg flex items-center justify-center z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
             <span className="font-headline text-[15px] font-extrabold">
-              {loading ? "AI Computing Solution Steps..." : "âš¡ Ask AI Solve Problem"}
+              {loading ? "AI Computing Solution Steps..." : "/// Ask AI Solve Problem"}
             </span>
           </div>
           <div className="absolute inset-0 bg-on-background rounded-lg translate-y-1 translate-x-1 group-active:translate-y-0 group-active:translate-x-0 transition-transform"></div>

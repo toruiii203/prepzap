@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
@@ -13,10 +14,9 @@ interface Question {
 }
 
 interface PracticeProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function Practice({ onNavigate }: PracticeProps) {
+export default function Practice(()) {
   const { user, profile, refreshProfile } = useAuth();
   
   const [view, setView] = useState<"quiz" | "results">("quiz");
@@ -136,12 +136,12 @@ Each object in the JSON array MUST match this exact schema:
         setAnswers([]);
         setScore(0);
         setTimeLeft(450); // reset clock to 7.5 mins
-        alert("🎉 Successfully compiled 3 custom study questions using Rex AI Reasoning!");
+        
       } else {
         throw new Error("Invalid structure returned by AI model");
       }
     } catch (err: any) {
-      alert("Failed to compile quiz: " + err.message + ". Falling back to core standard review list.");
+      
     } finally {
       setIsGenerating(false);
     }
@@ -212,18 +212,18 @@ Each object in the JSON array MUST match this exact schema:
   const progressPercent = Math.round(((currentQIndex + 1) / questions.length) * 100);
 
   return (
-    <div className="relative w-full max-w-[390px] min-h-screen bg-[#FAF7F2] border-black flex flex-col mx-auto overflow-hidden">
+    <div className="w-full min-h-screen bg-[#FAF7F2] md:max-w-3xl md:mx-auto border-black flex flex-col mx-auto overflow-hidden">
       {/* TopAppBar */}
       <header className="w-full top-0 sticky z-45 bg-[#FAF7F2] border-b-2 border-[#1A1A1A] flex items-center justify-between px-5 h-16">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 -ml-2 rounded-full flex items-center justify-center border-2 border-[#1A1A1A] bg-white h-10 w-10 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="font-headline text-headline-md text-[#1A1A1A] flex-1 text-center font-extrabold tracking-tight text-[21px]">Practice Exam</h1>
         <button 
-          onClick={() => onNavigate("Analytics")}
+          onClick={() => navigate("/analytics")}
           className="text-[#1A1A1A] hover:bg-neutral-50 transition-colors p-2 -mr-2 rounded-full flex items-center justify-center"
         >
           <span className="material-symbols-outlined">history</span>
@@ -238,7 +238,7 @@ Each object in the JSON array MUST match this exact schema:
             {/* AI Generator Banner */}
             <div className="bg-[#e9f2ff] rounded-2xl border-2 border-[#1A1A1A] p-4.5 shadow-[3px_3px_0px_rgba(0,0,0,1)] flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-xl">🦊</span>
+                <span className="text-xl">////</span>
                 <span className="text-xs font-black text-primary uppercase tracking-wider">Rex AI Quiz Builder</span>
               </div>
               <p className="text-[12.5px] leading-snug font-bold text-black/80">
@@ -255,11 +255,11 @@ Each object in the JSON array MUST match this exact schema:
               >
                 {isGenerating ? (
                   <>
-                    <span className="animate-spin text-sm">⌛</span> Reading materials...
+                    <span className="animate-spin text-sm">///</span> Reading materials...
                   </>
                 ) : (
                   <>
-                    <span className="text-sm">✨</span> Generate Quiz via AI
+                    <span className="text-sm">///</span> Generate Quiz via AI
                   </>
                 )}
               </button>
@@ -339,7 +339,7 @@ Each object in the JSON array MUST match this exact schema:
           </main>
 
           {/* Bottom Action Area (Fixed) */}
-          <div className="absolute bottom-0 w-full max-w-[390px] bg-[#FAF7F2] border-t-2 border-[#1A1A1A] px-5 py-4 pb-6 z-30">
+          <div className="sticky bottom-0 w-full bg-[#FAF7F2] border-t-2 border-[#1A1A1A] px-5 py-4 pb-6 z-30">
             <button 
               disabled={selectedOption === null}
               onClick={handleNext}
@@ -378,7 +378,7 @@ Each object in the JSON array MUST match this exact schema:
             </div>
             <div className="flex justify-between items-center">
               <span className="font-extrabold text-slate-500 text-[13.5px]">REWARDS UNLOCKED</span>
-              <span className="text-[#F5A623] font-bold text-[14.5px]">+{score * 30 + 10} XP · +{score * 15 + 5} Coins</span>
+              <span className="text-[#F5A623] font-bold text-[14.5px]">+{score * 30 + 10} XP �/ +{score * 15 + 5} Coins</span>
             </div>
           </div>
 
@@ -397,7 +397,7 @@ Each object in the JSON array MUST match this exact schema:
               Retry Exam
             </button>
             <button 
-              onClick={() => onNavigate("Dashboard")}
+              onClick={() => navigate("/dashboard")}
               className="flex-1 bg-primary border-2 border-[#1A1A1A] text-white py-3.5 rounded-xl font-bold hover:opacity-95 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)] text-[13.5px] cursor-pointer"
             >
               Dashboard

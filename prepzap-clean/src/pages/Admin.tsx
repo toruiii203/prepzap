@@ -60,7 +60,7 @@ export default function Admin() {
 
   const applyCredits = () => {
     if (!creditEmail.trim() || !creditAmount) return
-    toast({ title: "Credits Applied", description: `+${creditAmount} credits added to ${creditEmail}. Reason: ${creditReason || "—"}` })
+    toast({ title: "Credits Applied", description: `+${creditAmount} credits added to ${creditEmail}. Reason: ${creditReason || "///"}` })
     setCreditEmail(""); setCreditAmount(""); setCreditReason("")
   }
 
@@ -129,7 +129,7 @@ export default function Admin() {
           </button>
           <div className="mt-4">
             <Link to="/dashboard" className="text-xs" style={{ color: "var(--pz-text-muted)" }}>
-              ← Back to Dashboard
+              /// Back to Dashboard
             </Link>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function Admin() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Left — User Table */}
+            {/* Left /// User Table */}
             <div className="lg:col-span-2 space-y-6">
               {/* User Management */}
               <div style={cardStyle}>
@@ -261,7 +261,7 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Right — Controls */}
+            {/* Right /// Controls */}
             <div className="space-y-5">
               {/* Credit Adjustment */}
               <div style={cardStyle}>
@@ -335,7 +335,7 @@ export default function Admin() {
 
               {/* Stats note */}
               <div className="text-xs p-3" style={{ background: "rgba(212,175,90,0.06)", border: "1px solid rgba(212,175,90,0.15)", color: "var(--pz-text-muted)" }}>
-                ⚠️ All actions here are logged. Use responsibly.
+                ////// All actions here are logged. Use responsibly.
               </div>
             </div>
           </div>

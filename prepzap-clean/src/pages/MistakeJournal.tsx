@@ -1,8 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { callGroq } from "@/lib/groq";
 
 interface MistakeProps {
-  onNavigate: (screen: string) => void;
 }
 
 interface MistakeItem {
@@ -20,7 +20,7 @@ interface MistakeItem {
   };
 }
 
-export default function MistakeJournal({ onNavigate }: MistakeProps) {
+export default function MistakeJournal(()) {
   const [activeSubject, setActiveSubject] = useState("All");
   const [activeQuizId, setActiveQuizId] = useState<number | string | null>(null);
   const [selectedQuizOption, setSelectedOption] = useState<number | null>(null);
@@ -48,12 +48,12 @@ export default function MistakeJournal({ onNavigate }: MistakeProps) {
       date: "Yesterday",
       overdue: false,
       title: "Forgot the square in Kinetic Energy formula",
-      desc: "Used KE = 1/2 mv instead of 1/2 mv². Need to double check equations before final calculations.",
+      desc: "Used KE = 1/2 mv instead of 1/2 mv�/. Need to double check equations before final calculations.",
       quiz: {
         q: "What is the correct kinetic energy formula?",
-        options: ["KE = mv", "KE = 1/2 mv", "KE = 1/2 mv²", "KE = mgh"],
+        options: ["KE = mv", "KE = 1/2 mv", "KE = 1/2 mv�/", "KE = mgh"],
         correct: 2,
-        explanation: "Kinetic Energy matches 1/2 mv², while mgh represents gravitational potential energy."
+        explanation: "Kinetic Energy matches 1/2 mv�/, while mgh represents gravitational potential energy."
       }
     },
     {
@@ -62,10 +62,10 @@ export default function MistakeJournal({ onNavigate }: MistakeProps) {
       date: "Today",
       overdue: false,
       title: "Sign error in quadratic formula",
-      desc: "Dropped the negative sign on the 'b' term when plugging into x = (-b ± √(b² - 4ac)) / 2a.",
+      desc: "Dropped the negative sign on the 'b' term when plugging into x = (-b �/ ///(b�/ - 4ac)) / 2a.",
       quiz: {
         q: "If the equation has b = 5, what is the starting term of (-b) in the quadratic formula?",
-        options: ["5", "-5", "±5", "1/5"],
+        options: ["5", "-5", "�/5", "1/5"],
         correct: 1,
         explanation: "Since b is positive 5, the term (-b) becomes negative 5."
       }
@@ -143,7 +143,7 @@ JSON object structure:
   const handleSubmitQuiz = (item: any) => {
     if (selectedQuizOption === null || !item.quiz) return;
     if (selectedQuizOption === item.quiz.correct) {
-      setQuizFeedback("🎉 Correct! You've mastered this item and corrected your slip.");
+      setQuizFeedback("//// Correct! You've mastered this item and corrected your slip.");
       setTimeout(() => {
         setMistakes(prev => prev.filter(m => m.id !== item.id));
         setActiveQuizId(null);
@@ -151,7 +151,7 @@ JSON object structure:
         setQuizFeedback(null);
       }, 2000);
     } else {
-      setQuizFeedback("❌ Correct. Hint: " + item.quiz.explanation);
+      setQuizFeedback("/// Correct. Hint: " + item.quiz.explanation);
     }
   };
 
@@ -190,7 +190,7 @@ JSON object structure:
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-5 h-16 w-full bg-[#FAF7F2] sticky top-0 border-b-2 border-on-background z-50">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full cursor-pointer border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 flex items-center justify-center"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -267,7 +267,7 @@ JSON object structure:
                 
                 {item.overdue && (
                   <span className="bg-[#E8534A] text-white border border-[#1A1A1A] px-2 rounded font-label-sm flex items-center gap-1 font-bold text-[11px]">
-                    ⚠️ Overdue
+                    ////// Overdue
                   </span>
                 )}
               </div>
@@ -326,7 +326,7 @@ JSON object structure:
 
                   {quizFeedback && (
                     <p className={`p-3 rounded text-[12.5px] font-bold ${
-                      quizFeedback.startsWith("🎉") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      quizFeedback.startsWith("////") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                     }`}>
                       {quizFeedback}
                     </p>

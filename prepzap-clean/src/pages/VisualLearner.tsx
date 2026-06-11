@@ -1,8 +1,8 @@
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
- * VisualLearner.tsx — Studenius
+ * VisualLearner.tsx /// Studenius
  * Breaks any concept into 4 memorable visual scenes.
- * Images: Google Custom Search → LoremFlickr → Source Unsplash → Picsum (fallback chain)
+ * Images: Google Custom Search /// LoremFlickr /// Source Unsplash /// Picsum (fallback chain)
  *
  * Dashboard card: label "Visual Learner", description "See concepts, remember them"
  * Route: /visual-learner
@@ -14,7 +14,7 @@ import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
 import { BuddyCompanion } from "@/components/BuddyCompanion"
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ////// Constants ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const TEAL   = "#8b1a2a"
 const GOLD   = "#f0a040"
 const BG     = "#160810"
@@ -24,9 +24,9 @@ const MUTED  = "#555"
 const TEXT   = "#F0F0F0"
 const FONT   = "'Nunito', system-ui, sans-serif"
 
-// ── Safety blocklist ──────────────────────────────────────────────────────────
+// ////// Safety blocklist //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ////// Types ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 interface Scene {
   id: string
   title: string
@@ -47,16 +47,16 @@ interface SceneWithPhoto extends Scene {
   photoLoading: boolean
 }
 
-// ── Stable numeric seed from strings ─────────────────────────────────────────
+// ////// Stable numeric seed from strings ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function makeSeed(...parts: string[]): number {
   return Math.abs(
     parts.join("").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
   )
 }
 
-// ── Image provider URL builders ───────────────────────────────────────────────
+// ////// Image provider URL builders /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// 1. Wikimedia/Wikipedia — free, unlimited, no key needed.
+// 1. Wikimedia/Wikipedia /// free, unlimited, no key needed.
 //    Step 1: If Groq supplied an exactWikipediaTitle, do a direct article lookup (fastest, most accurate).
 //    Step 2: Fall back to keyword search, shortest/most specific first.
 async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string | null> {
@@ -205,9 +205,9 @@ export default function VisualLearner() {
     extractChips()
   }, [activeSource?.id])
 
-  // ── History restore ────────────────────────────────────────────────────────
+  // ////// History restore ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -223,11 +223,11 @@ export default function VisualLearner() {
         try {
       const parsed: StoryboardResult = JSON.parse(entry.output)
       setConcept(parsed.concept)
-      // Restore with Pollinations URL — SceneCard onError will cascade to fallbacks if needed
+      // Restore with Pollinations URL /// SceneCard onError will cascade to fallbacks if needed
       const restored: SceneWithPhoto[] = parsed.scenes.map(s => ({
         ...s,
         photoUrl: loremFlickrUrl(s),
-        photoAlt: `${parsed.concept} — ${s.title}`,
+        photoAlt: `${parsed.concept} /// ${s.title}`,
         photoLoading: false,
       }))
       setScenes(restored)
@@ -235,7 +235,7 @@ export default function VisualLearner() {
     } catch { /* ignore */ }
   }
 
-  // ── Generate storyboard ────────────────────────────────────────────────────
+  // ////// Generate storyboard ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleGenerate = async (conceptToUse?: string) => {
     const target = (conceptToUse ?? conceptInput).trim()
     if (!target) return
@@ -247,7 +247,7 @@ export default function VisualLearner() {
     const context = buildAIContext()
     const systemPrompt = `You are a visual memory expert trained in dual-coding theory.
 You create vivid, concrete scene associations that make abstract concepts memorable.
-Every scene must be grounded in a real, visual, photographable moment — no abstract metaphors.
+Every scene must be grounded in a real, visual, photographable moment /// no abstract metaphors.
 The scenes must be directly and accurately related to the concept and any source material provided.
 
 Return ONLY valid JSON (no markdown, no backticks):
@@ -265,7 +265,7 @@ Return ONLY valid JSON (no markdown, no backticks):
   ]
 }
 Generate 4 scenes. Make each scene visually distinct and directly tied to the concept.
-The exactWikipediaTitle is the most important field — it should be the precise Wikipedia article title whose lead image best represents this scene. Think: what would you search on Wikipedia to find the perfect image?
+The exactWikipediaTitle is the most important field /// it should be the precise Wikipedia article title whose lead image best represents this scene. Think: what would you search on Wikipedia to find the perfect image?
 If source material is provided, base the scenes on its actual content, not general knowledge.\${context}`
 
     try {
@@ -315,7 +315,7 @@ If source material is provided, base the scenes on its actual content, not gener
     }
   }
 
-  // ── Shared header ──────────────────────────────────────────────────────────
+  // ////// Shared header //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const HeaderRow = () => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
       <div>
@@ -333,13 +333,13 @@ If source material is provided, base the scenes on its actual content, not gener
     </div>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // SETUP PHASE
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "setup") return (
     <ToolPageShell key="shell">
       <BuddyCompanion />
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -390,7 +390,7 @@ If source material is provided, base the scenes on its actual content, not gener
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -399,7 +399,7 @@ If source material is provided, base the scenes on its actual content, not gener
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
       <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
@@ -415,14 +415,14 @@ If source material is provided, base the scenes on its actual content, not gener
         <HeaderRow />
 
         <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
-          Type any concept and get a 4-scene visual storyboard — each scene is an AI-generated image paired with a memory anchor phrase you'll actually remember.
+          Type any concept and get a 4-scene visual storyboard /// each scene is an AI-generated image paired with a memory anchor phrase you'll actually remember.
         </p>
 
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: "28px 24px" }}>
           {sourceChips.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
-                From "{activeSource?.name}" — pick a concept:
+                From "{activeSource?.name}" /// pick a concept:
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {sourceChips.map(chip => (
@@ -445,7 +445,7 @@ If source material is provided, base the scenes on its actual content, not gener
             value={conceptInput}
             onChange={e => setConceptInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleGenerate()}
-            placeholder="e.g. Mitosis, The French Revolution, Supply & Demand…"
+            placeholder="e.g. Mitosis, The French Revolution, Supply & Demand///"
             style={{ width: "100%", padding: "12px 14px", background: "#141414", border: `0.5px solid ${BORDER}`, color: TEXT, fontSize: 14, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 20 }}
           />
 
@@ -484,9 +484,9 @@ If source material is provided, base the scenes on its actual content, not gener
     </ToolPageShell>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // LOADING PHASE
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "loading") return (
     <ToolPageShell key="shell">
       
@@ -504,7 +504,7 @@ If source material is provided, base the scenes on its actual content, not gener
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
-        <p style={{ fontSize: 15, color: TEXT, marginBottom: 8, fontWeight: 600 }}>Building your visual story…</p>
+        <p style={{ fontSize: 15, color: TEXT, marginBottom: 8, fontWeight: 600 }}>Building your visual story///</p>
         <p style={{ fontSize: 12, color: MUTED, marginBottom: 32 }}>Finding the perfect scenes for "{concept}"</p>
         <div style={{ width: 280, height: 2, background: "#1A1A1A" }}>
           <div style={{ height: "100%", width: `${progress}%`, background: TEAL, transition: "width 0.5s ease" }} />
@@ -513,9 +513,9 @@ If source material is provided, base the scenes on its actual content, not gener
     </ToolPageShell>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // RESULT PHASE — Storyboard grid
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // RESULT PHASE /// Storyboard grid
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "result") return (
     <ToolPageShell key="shell">
       
@@ -555,7 +555,7 @@ If source material is provided, base the scenes on its actual content, not gener
           {savedImages.length > 0 && (
             <button onClick={() => setPhase("gallery")}
               style={{ padding: "13px 24px", background: "rgba(0,196,180,0.06)", border: `0.5px solid rgba(0,196,180,0.25)`, color: "#8b1a2a", fontSize: 13, cursor: "pointer", fontFamily: FONT }}>
-              ♡ My Images ({savedImages.length})
+              /// My Images ({savedImages.length})
             </button>
           )}
         </div>
@@ -584,14 +584,14 @@ If source material is provided, base the scenes on its actual content, not gener
             )}
             <button onClick={() => setPhase("setup")}
               style={{ padding: "6px 12px", fontSize: 11, background: "transparent", border: "0.5px solid #252525", color: "#888", cursor: "pointer", fontFamily: FONT }}>
-              ← Back
+              /// Back
             </button>
           </div>
         </div>
         {savedImages.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>♡</div>
-            <p style={{ fontSize: 14 }}>No saved images yet. Hit ♡ Save on any scene card.</p>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>///</div>
+            <p style={{ fontSize: 14 }}>No saved images yet. Hit /// Save on any scene card.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
@@ -623,7 +623,7 @@ If source material is provided, base the scenes on its actual content, not gener
   return null
 }
 
-// ── Scene card ────────────────────────────────────────────────────────────────
+// ////// Scene card ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPhoto; index: number; concept: string; onRegenerate: () => void }) {
   const TEAL   = "#8b1a2a"
   const CARD   = "#1f0b13"
@@ -633,7 +633,7 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
   const FONT   = "'Nunito', system-ui, sans-serif"
 
   // DOM-level fallback cascade: Wikimedia/Pexels already resolved by fetchScenePhoto.
-  // This handles render-time failures: LoremFlickr → Unsplash → Picsum
+  // This handles render-time failures: LoremFlickr /// Unsplash /// Picsum
   
 
   return (
@@ -659,7 +659,7 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
           SCENE {index + 1}
         </div>
 
-        {/* Regenerate button — top right */}
+        {/* Regenerate button /// top right */}
         <button
           onClick={onRegenerate}
           disabled={scene.photoLoading}
@@ -705,7 +705,7 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
               style={{ flexShrink: 0, padding: "4px 8px", fontSize: 10, background: "rgba(0,196,180,0.06)", border: "0.5px solid rgba(0,196,180,0.2)", color: "#8b1a2a", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,196,180,0.12)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,196,180,0.06)"; }}>
-              ♡ Save
+              /// Save
             </button>
           )}
         </div>

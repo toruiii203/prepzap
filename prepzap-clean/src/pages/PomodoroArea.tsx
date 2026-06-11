@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { levelFromXp } from "@/lib/xp"
 import { BottomNav } from "@/components/BottomNav"
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
+// ///////// Design tokens ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const GOLD   = "#f0a040"
 const MAROON = "#8b1a2a"
 const BG     = "#160810"
@@ -17,7 +17,7 @@ const TEXT   = "#f5ede8"
 const TEXT2  = "rgba(245,237,232,0.55)"
 const TEXT3  = "rgba(245,237,232,0.28)"
 
-// ─── Fox Avatar SVG ───────────────────────────────────────────────────────────
+// ///////// Fox Avatar SVG /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function FoxAvatar({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "block" }}>
@@ -42,7 +42,7 @@ function FoxAvatar({ size = 40 }: { size?: number }) {
   )
 }
 
-// ─── Pomodoro timer hook ───────────────────────────────────────────────────────
+// ///////// Pomodoro timer hook /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function useTimer(initialSeconds: number) {
   const [seconds, setSeconds] = useState(initialSeconds)
   const [running, setRunning] = useState(false)
@@ -62,14 +62,14 @@ function useTimer(initialSeconds: number) {
   return { seconds, setSeconds, running, setRunning, fmt }
 }
 
-// ─── Place definitions ─────────────────────────────────────────────────────────
+// ///////// Place definitions ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const PLACES = [
-  { id: "library",   label: "The Library",     desc: "Silent zone · Deep work",     icon: "ti ti-books",          minLevel: 1,  timerMode: "flow",      ambience: "White noise" },
-  { id: "cafe",      label: "Fox Café",         desc: "Chill vibes · Pomodoro 25/5", icon: "ti ti-coffee",          minLevel: 1,  timerMode: "pomodoro",  ambience: "Café sounds" },
-  { id: "grove",     label: "Study Grove",      desc: "Nature sounds · Flow state",  icon: "ti ti-trees",           minLevel: 1,  timerMode: "flow",      ambience: "Nature sounds" },
-  { id: "tower",     label: "Scholar's Tower",  desc: "Power sessions · 50/10",      icon: "ti ti-building-castle", minLevel: 5,  timerMode: "long",      ambience: "Lo-fi beats" },
-  { id: "midnight",  label: "Midnight Den",     desc: "Night owl mode · Custom",     icon: "ti ti-moon",            minLevel: 8,  timerMode: "custom",    ambience: "Rain sounds" },
-  { id: "academy",   label: "Grand Academy",    desc: "Elite focus · 90-min blocks", icon: "ti ti-building",        minLevel: 12, timerMode: "long",      ambience: "Orchestra" },
+  { id: "library",   label: "The Library",     desc: "Silent zone �/ Deep work",     icon: "ti ti-books",          minLevel: 1,  timerMode: "flow",      ambience: "White noise" },
+  { id: "cafe",      label: "Fox Caf�/",         desc: "Chill vibes �/ Pomodoro 25/5", icon: "ti ti-coffee",          minLevel: 1,  timerMode: "pomodoro",  ambience: "Caf�/ sounds" },
+  { id: "grove",     label: "Study Grove",      desc: "Nature sounds �/ Flow state",  icon: "ti ti-trees",           minLevel: 1,  timerMode: "flow",      ambience: "Nature sounds" },
+  { id: "tower",     label: "Scholar's Tower",  desc: "Power sessions �/ 50/10",      icon: "ti ti-building-castle", minLevel: 5,  timerMode: "long",      ambience: "Lo-fi beats" },
+  { id: "midnight",  label: "Midnight Den",     desc: "Night owl mode �/ Custom",     icon: "ti ti-moon",            minLevel: 8,  timerMode: "custom",    ambience: "Rain sounds" },
+  { id: "academy",   label: "Grand Academy",    desc: "Elite focus �/ 90-min blocks", icon: "ti ti-building",        minLevel: 12, timerMode: "long",      ambience: "Orchestra" },
 ]
 
 const TIMER_PRESETS: Record<string, number> = {
@@ -79,12 +79,12 @@ const TIMER_PRESETS: Record<string, number> = {
   custom:   30 * 60,
 }
 
-// ─── Mock online users per place (would come from Supabase presence) ──────────
+// ///////// Mock online users per place (would come from Supabase presence) //////////////////////////////
 const MOCK_USERS: Record<string, number> = {
   library: 4, cafe: 2, grove: 6, tower: 0, midnight: 0, academy: 0,
 }
 
-// ─── PomodoroArea page ────────────────────────────────────────────────────────
+// ///////// PomodoroArea page ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export default function PomodoroArea() {
   const { user } = useAuth()
   const [xp, setXp]               = useState(0)
@@ -132,14 +132,14 @@ export default function PomodoroArea() {
   return (
     <div style={{ minHeight: "100vh", background: BG, color: TEXT, fontFamily: "'Nunito', system-ui, sans-serif" }}>
 
-      {/* ── NAV ── */}
+      {/* ////// NAV ////// */}
       <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", height: 54, borderBottom: `2px solid ${BORDER}`, background: "#1c0910" }}>
         <Link to="/dashboard" style={{ fontFamily: "'Fredoka One', cursive", fontSize: 22, color: GOLD, letterSpacing: 1, textDecoration: "none" }}>STUDENIUS</Link>
         <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: 18, color: TEXT }}>
           <i className="ti ti-clock" style={{ color: GOLD, marginRight: 8 }}/>Pomodoro Area
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ background: GOLD, color: BG, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>⚡ {xp} XP</div>
+          <div style={{ background: GOLD, color: BG, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>/// {xp} XP</div>
           <div style={{ width: 32, height: 32, borderRadius: "50%", background: MAROON, border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <FoxAvatar size={28}/>
           </div>
@@ -148,10 +148,10 @@ export default function PomodoroArea() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 0, height: "calc(100vh - 54px)" }}>
 
-        {/* ── LEFT: Place grid ── */}
+        {/* ////// LEFT: Place grid ////// */}
         <div style={{ overflowY: "auto", padding: 24 }}>
           <div style={{ marginBottom: 6, fontFamily: "'Fredoka One', cursive", fontSize: 22, color: TEXT }}>Pick your spot</div>
-          <div style={{ fontSize: 13, color: TEXT3, marginBottom: 24 }}>Your avatar appears here while you study · other students can see you</div>
+          <div style={{ fontSize: 13, color: TEXT3, marginBottom: 24 }}>Your avatar appears here while you study �/ other students can see you</div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 28 }}>
             {PLACES.map(p => {
@@ -234,7 +234,7 @@ export default function PomodoroArea() {
           </div>
         </div>
 
-        {/* ── RIGHT: Timer panel ── */}
+        {/* ////// RIGHT: Timer panel ////// */}
         <div style={{ background: "#1c0910", borderLeft: `2px solid ${BORDER}`, padding: 24, display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" }}>
 
           {!activePlace ? (
@@ -270,13 +270,13 @@ export default function PomodoroArea() {
               <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                 <button onClick={() => timer.setRunning(r => !r)}
                   style={{ flex: 1, padding: "10px 0", background: timer.running ? SURF2 : GOLD, border: `2px solid ${timer.running ? BORDER : GOLD}`, color: timer.running ? TEXT : BG, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Fredoka One', cursive", borderRadius: 10, transition: "all .2s" }}>
-                  {timer.running ? "⏸ Pause" : timer.seconds === 0 ? "↺ Restart" : "▶ Start"}
+                  {timer.running ? "/// Pause" : timer.seconds === 0 ? "/// Restart" : "/// Start"}
                 </button>
                 <button onClick={() => { timer.setRunning(false); timer.setSeconds(TIMER_PRESETS[place!.timerMode] ?? customMinutes * 60) }}
                   style={{ padding: "10px 14px", background: "transparent", border: `2px solid ${BORDER}`, color: TEXT2, fontSize: 13, cursor: "pointer", fontFamily: "inherit", borderRadius: 10, fontWeight: 700, transition: "all .2s" }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = BORDHV)}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = BORDER)}>
-                  ↺
+                  ///
                 </button>
               </div>
 

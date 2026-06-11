@@ -40,7 +40,7 @@ export default function SpotError() {
   const start = async () => {
     if (!topicInput.trim() && buildAIContext().length === 0) return;
     setIsLoading(true); setError(null);
-    const difficultyNote = difficulty === "easy" ? "Make errors obvious — wrong numbers or clearly swapped terms." : difficulty === "hard" ? "Make errors extremely subtle — plausible-sounding but factually wrong details that require deep knowledge to catch." : "Make errors moderately subtle — not obvious but detectable with good knowledge.";
+    const difficultyNote = difficulty === "easy" ? "Make errors obvious /// wrong numbers or clearly swapped terms." : difficulty === "hard" ? "Make errors extremely subtle /// plausible-sounding but factually wrong details that require deep knowledge to catch." : "Make errors moderately subtle /// not obvious but detectable with good knowledge.";
     const timeLimit = difficulty === "easy" ? 120 : difficulty === "hard" ? 60 : 90;
     try {
       const topic = topicInput.trim() || "the source material";
@@ -89,7 +89,7 @@ export default function SpotError() {
   const ss = String(timeLeft%60).padStart(2,"0");
 
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -104,7 +104,7 @@ export default function SpotError() {
   return (
     <ToolPageShell>
       <BuddyCompanion />
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -155,7 +155,7 @@ export default function SpotError() {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -164,7 +164,7 @@ export default function SpotError() {
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
       <main style={{ flex: 1, padding: "24px 16px" }}>
@@ -246,7 +246,7 @@ export default function SpotError() {
                 {buildAIContext().length > 0 && !topicInput.trim() && (
                   <button onClick={start} disabled={isLoading}
                     style={{ width: "100%", padding: "10px", background: "rgba(232,185,35,0.08)", border: `0.5px solid rgba(232,185,35,0.3)`, color: GOLD, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                    ⚡ Generate from Active Source
+                    /// Generate from Active Source
                   </button>
                 )}
                 {error && <p style={{ fontSize: 12, color: ROSE, background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.2)", padding: "10px 12px" }}>{error}</p>}
@@ -290,13 +290,13 @@ export default function SpotError() {
                   </button>
                   <button onClick={() => setSelectedText("")}
                     style={{ padding: "5px 8px", background: "transparent", border: "none", color: "#555", cursor: "pointer", fontSize: 13, flexShrink: 0 }}>
-                    ✕
+                    ///
                   </button>
                 </div>
               )}
 
               {found.length > 0 && (
-                <p style={{ fontSize: 12, color: TEAL }}>✅ Found {found.length} error{found.length > 1 ? "s" : ""}. Keep looking!</p>
+                <p style={{ fontSize: 12, color: TEAL }}>/// Found {found.length} error{found.length > 1 ? "s" : ""}. Keep looking!</p>
               )}
             </div>
           )}
@@ -309,7 +309,7 @@ export default function SpotError() {
                   {found.length}/{errors.length} Found
                 </div>
                 <p style={{ fontSize: 12, color: "#555", margin: 0 }}>
-                  {found.length === errors.length ? "Perfect! You caught every error 🎉" : "Here's what you missed:"}
+                  {found.length === errors.length ? "Perfect! You caught every error ////" : "Here's what you missed:"}
                 </p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

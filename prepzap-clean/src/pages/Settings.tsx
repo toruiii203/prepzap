@@ -112,7 +112,7 @@ export default function Settings() {
               <button style={{ padding: "4px 10px", border: "0.5px solid #252525", background: "transparent", color: "#555", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Edit</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {[{ label: "XP", value: "2,450" }, { label: "Streak", value: "12 🔥" }, { label: "Level", value: "8 🥇" }].map(s => (
+              {[{ label: "XP", value: "2,450" }, { label: "Streak", value: "12 ////" }, { label: "Level", value: "8 ////" }].map(s => (
                 <div key={s.label} style={{ padding: "10px 8px", background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A1A1A", textAlign: "center" }}>
                   <p style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F0", margin: "0 0 3px", fontFamily: "monospace" }}>{s.value}</p>
                   <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.label}</p>
@@ -149,7 +149,7 @@ export default function Settings() {
           <Section title="Appearance" icon={<Palette style={{ width: 12, height: 12, color: "#a78bfa" }} />}>
             <label style={{ fontSize: 11, fontWeight: 600, color: "#999", display: "block", marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>Theme</label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {([["light", "☀️", "Light"], ["dark", "🌙", "Dark"], ["system", "💻", "System"]] as [Theme, string, string][]).map(([t, icon, label]) => (
+              {([["light", "//////", "Light"], ["dark", "////", "Dark"], ["system", "////", "System"]] as [Theme, string, string][]).map(([t, icon, label]) => (
                 <button key={t} onClick={() => setTheme(t)}
                   style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: 12, border: `0.5px solid ${theme === t ? "#a78bfa" : "#252525"}`, background: theme === t ? "rgba(167,139,250,0.06)" : "transparent", cursor: "pointer" }}>
                   <span style={{ fontSize: 22 }}>{icon}</span>
@@ -245,7 +245,7 @@ export default function Settings() {
           </button>
 
           <p style={{ textAlign: "center", fontSize: 10, color: "#333" }}>
-            Studenius v1.0.0 · <a href="#" style={{ color: "#444", textDecoration: "none" }}>Privacy Policy</a> · <a href="#" style={{ color: "#444", textDecoration: "none" }}>Terms</a>
+            Studenius v1.0.0 �/ <a href="#" style={{ color: "#444", textDecoration: "none" }}>Privacy Policy</a> �/ <a href="#" style={{ color: "#444", textDecoration: "none" }}>Terms</a>
           </p>
         </div>
       </main>

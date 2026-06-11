@@ -1,7 +1,7 @@
 import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
 /**
- * FlipScript.tsx — Studenius
+ * FlipScript.tsx /// Studenius
  * Textarea replaced with 3 structured argument panels:
  *   1. Your Main Argument
  *   2. Your Evidence or Example
@@ -14,7 +14,7 @@ import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ////// Constants ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const TEAL   = "#8b1a2a"
 const GOLD   = "#f0a040"
 const BG     = "#160810"
@@ -33,7 +33,7 @@ interface DebateResult {
   score: number // 0-100 how strong the original argument is
 }
 
-// ── Panel component ───────────────────────────────────────────────────────────
+// ////// Panel component /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function ArgumentPanel({
   label,
   sublabel,
@@ -59,7 +59,7 @@ function ArgumentPanel({
           fontSize: 9, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase",
           color: colors[index], fontFamily: FONT,
         }}>
-          {String(index + 1).padStart(2, "0")} — {label}
+          {String(index + 1).padStart(2, "0")} /// {label}
         </span>
         {sublabel && (
           <span style={{ fontSize: 9, color: "#444", letterSpacing: "0.06em" }}>{sublabel}</span>
@@ -102,7 +102,7 @@ function ArgumentPanel({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export default function FlipScript() {
   const { model, setModel } = useModel()
 
@@ -118,9 +118,9 @@ export default function FlipScript() {
 
   const canSubmit = mainArg.trim().length >= 10 && evidence.trim().length >= 10
 
-  // ── History restore ────────────────────────────────────────────────────────
+  // ////// History restore ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -143,7 +143,7 @@ export default function FlipScript() {
     }
   }
 
-  // ── Generate from source ───────────────────────────────────────────────────
+  // ////// Generate from source /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleGenerateFromSource = () => {
     const libs = loadLibrary()
     if (libs.length > 1) { setShowSourcePicker(true); return }
@@ -151,7 +151,7 @@ export default function FlipScript() {
     if (src) setMainArg(`Based on my study of "${src.name.replace(/\.\w+$/, "")}"`)
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ////// Submit ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleSubmit = async () => {
     if (!canSubmit) return
     setPhase("loading")
@@ -159,7 +159,7 @@ export default function FlipScript() {
 
     const context = buildAIContext()
     const combinedArgument = `MAIN ARGUMENT:\n${mainArg}\n\nEVIDENCE / EXAMPLE:\n${evidence}\n\nANTICIPATED COUNTER:\n${anticipated || "(Not provided)"}`
-    const shortTopic = mainArg.slice(0, 60) + (mainArg.length > 60 ? "…" : "")
+    const shortTopic = mainArg.slice(0, 60) + (mainArg.length > 60 ? "///" : "")
     setTopic(shortTopic)
 
     const systemPrompt = `You are a rigorous debate coach and Socratic challenger. 
@@ -209,7 +209,7 @@ Return ONLY valid JSON:
     }
   }
 
-  // ── Shared header ──────────────────────────────────────────────────────────
+  // ////// Shared header //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const HeaderRow = () => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
       <div>
@@ -226,13 +226,13 @@ Return ONLY valid JSON:
     </div>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // INPUT PHASE
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "input") return (
     <ToolPageShell key="shell">
       <BuddyCompanion />
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -283,7 +283,7 @@ Return ONLY valid JSON:
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ Return ONLY valid JSON:
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
       <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
@@ -315,7 +315,7 @@ Return ONLY valid JSON:
         <HeaderRow />
 
         <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
-          Build your argument in three parts. The AI will counter it as hard as it can — then help you defend yourself.
+          Build your argument in three parts. The AI will counter it as hard as it can /// then help you defend yourself.
         </p>
 
         {/* Source chip */}
@@ -335,7 +335,7 @@ Return ONLY valid JSON:
             sublabel="The core claim you're making"
             value={mainArg}
             onChange={setMainArg}
-            placeholder="State your position clearly. What do you believe and why? e.g. 'Renewable energy should fully replace fossil fuels within 20 years because…'"
+            placeholder="State your position clearly. What do you believe and why? e.g. 'Renewable energy should fully replace fossil fuels within 20 years because///'"
           />
           <ArgumentPanel
             index={1}
@@ -343,15 +343,15 @@ Return ONLY valid JSON:
             sublabel="Data, case, or analogy that supports it"
             value={evidence}
             onChange={setEvidence}
-            placeholder="Give a concrete example, statistic, or case study that backs your argument…"
+            placeholder="Give a concrete example, statistic, or case study that backs your argument///"
           />
           <ArgumentPanel
             index={2}
             label="What You Think I'll Counter With"
-            sublabel="Optional — anticipate the pushback"
+            sublabel="Optional /// anticipate the pushback"
             value={anticipated}
             onChange={setAnticipated}
-            placeholder="What's the most obvious objection to your argument? Naming it first shows you've thought it through…"
+            placeholder="What's the most obvious objection to your argument? Naming it first shows you've thought it through///"
           />
         </div>
 
@@ -404,9 +404,9 @@ Return ONLY valid JSON:
     </ToolPageShell>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // LOADING
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "loading") return (
     <ToolPageShell key="shell">
       <BuddyCompanion />
@@ -422,15 +422,15 @@ Return ONLY valid JSON:
           </button>
         </div>
         <div style={{ width: 40, height: 40, border: `2px solid #222`, borderTopColor: TEAL, borderRadius: "50%", animation: "spin 0.7s linear infinite", marginBottom: 20 }} />
-        <p style={{ fontSize: 13, color: "#666" }}>Building the strongest counter-argument…</p>
+        <p style={{ fontSize: 13, color: "#666" }}>Building the strongest counter-argument///</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </main>
     </ToolPageShell>
   )
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // RESULT PHASE
-  // ════════════════════════════════════════════════════════════════════════════
+  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (phase === "result" && result) {
     const scoreColor = result.score >= 75 ? TEAL : result.score >= 50 ? GOLD : "#E84040"
 
@@ -467,7 +467,7 @@ Return ONLY valid JSON:
           {/* Counter-argument */}
           <div style={{ background: "rgba(232,64,64,0.04)", border: `0.5px solid rgba(232,64,64,0.2)`, padding: "20px 24px", marginBottom: 12 }}>
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#E84040", marginBottom: 12 }}>
-              — The Counter-Argument
+              /// The Counter-Argument
             </div>
             <p style={{ fontSize: 14, color: TEXT, lineHeight: 1.75, margin: 0 }}>{result.counterArgument}</p>
           </div>
@@ -482,7 +482,7 @@ Return ONLY valid JSON:
                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color, marginBottom: 10 }}>{label}</div>
                 {items.map((item, i) => (
                   <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7 }}>
-                    <span style={{ color, fontSize: 12, flexShrink: 0 }}>—</span>
+                    <span style={{ color, fontSize: 12, flexShrink: 0 }}>///</span>
                     <span style={{ fontSize: 12, color: "#B0B0B0", lineHeight: 1.55 }}>{item}</span>
                   </div>
                 ))}
@@ -493,7 +493,7 @@ Return ONLY valid JSON:
           {/* Rebuttal */}
           <div style={{ background: "rgba(232,185,35,0.04)", border: `0.5px solid rgba(232,185,35,0.2)`, padding: "20px 24px", marginBottom: 24 }}>
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: GOLD, marginBottom: 12 }}>
-              — How to Defend Yourself
+              /// How to Defend Yourself
             </div>
             <p style={{ fontSize: 13, color: "#C0C0C0", lineHeight: 1.7, margin: 0 }}>{result.rebuttal}</p>
           </div>

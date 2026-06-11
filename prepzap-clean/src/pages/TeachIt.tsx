@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -5,7 +6,6 @@ import { callGroq } from "@/lib/groq";
 import { buildAIContext } from "@/lib/sourceContext";
 
 interface TeachItProps {
-  onNavigate: (screen: string) => void;
 }
 
 interface FeynmanFeedback {
@@ -15,7 +15,7 @@ interface FeynmanFeedback {
   xpAwarded: number;
 }
 
-export default function TeachIt({ onNavigate }: TeachItProps) {
+export default function TeachIt(()) {
   const { user, profile, refreshProfile } = useAuth();
   const [topic, setTopic] = useState("");
   const [explanation, setExplanation] = useState("");
@@ -127,14 +127,14 @@ Required feedback JSON object structure:
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-on-background flex items-center justify-between px-5 h-16 w-full z-10 navbar-custom">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="text-secondary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center active:translate-y-0.5 border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 cursor-pointer"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
         </button>
         <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold pr-4 flex-1 text-center">Feynman TeachIt</span>
         <button 
-          onClick={() => onNavigate("SourceLibrary")}
+          onClick={() => navigate("/sources")}
           className="text-secondary hover:bg-surface-container-high transition-colors p-1 rounded-full flex items-center justify-center cursor-pointer"
         >
           <span className="material-symbols-outlined">library_books</span>
@@ -157,7 +157,7 @@ Required feedback JSON object structure:
             Feynman Technique
           </button>
           <button 
-            onClick={() => onNavigate("Practice")}
+            onClick={() => navigate("/practice")}
             className="relative pb-2 flex-1 flex justify-center text-slate-500 font-headline hover:text-on-background transition-colors font-bold text-[14px] cursor-pointer"
           >
             Practice Recall
@@ -191,7 +191,7 @@ Required feedback JSON object structure:
             </button>
             <span className="font-body-md text-body-md text-slate-400 mx-1 self-center font-bold text-[13px]">or</span>
             <button 
-              onClick={() => onNavigate("SourceLibrary")}
+              onClick={() => navigate("/sources")}
               className="bg-[#ffb4ab] border-2 border-[#1A1A1A] rounded-full px-4 py-1 text-black flex items-center gap-1 font-bold hover:opacity-90 active:translate-y-0.5 text-[12.5px] cursor-pointer shadow-[2px_2px_rgba(0,0,0,1)]"
             >
               <span className="material-symbols-outlined text-[14px]">attachment</span>

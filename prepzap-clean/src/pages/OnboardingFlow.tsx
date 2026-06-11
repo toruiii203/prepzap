@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ///////// Types ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 type Screen =
   | "intro"
   | "featureTeaser"
@@ -14,7 +14,7 @@ type Screen =
   | "learningStyle"
   | "finalTransition"
 
-// ─── Fox image paths (from /public/fox/) ─────────────────────────────────────
+// ///////// Fox image paths (from /public/fox/) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const FOX = {
   neutral:   "/fox/fox-neutral.png",
   happy:     "/fox/fox-happy.png",
@@ -25,8 +25,8 @@ const FOX = {
   laughing:  "/fox/fox-laughing.png",
 }
 
-// ─── Design tokens (from Stitch) ──────────────────────────────────────────────
-// Background: #FFFBEA (Stitch source of truth — not #FAF7F2)
+// ///////// Design tokens (from Stitch) //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Background: #FFFBEA (Stitch source of truth /// not #FAF7F2)
 const BG      = "#FFFBEA"
 const SURFACE = "#F0EDE0"
 const BLACK   = "#1A1A1A"
@@ -34,14 +34,14 @@ const CTA     = "#FF4D2E"
 const YELLOW  = "#FFE566"
 const WHITE   = "#FFFFFF"
 
-// ─── Layout constants (from Stitch) ───────────────────────────────────────────
+// ///////// Layout constants (from Stitch) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Header stretches to 800px on desktop; content column is 420px centered
 const HEADER_MAX  = 800
 const CONTENT_MAX = 420
 
-// ─── Shared styles ────────────────────────────────────────────────────────────
+// ///////// Shared styles ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const s = {
-  // Full-page wrapper — centers content column, fills height
+  // Full-page wrapper /// centers content column, fills height
   page: {
     width: "100%",
     minHeight: "100dvh",
@@ -51,7 +51,7 @@ const s = {
     fontFamily: "'Quicksand', sans-serif",
     alignItems: "center",
   },
-  // Sticky header — spans full width but inner flex row is capped at HEADER_MAX
+  // Sticky header /// spans full width but inner flex row is capped at HEADER_MAX
   header: {
     height: 52,
     background: BG,
@@ -113,7 +113,7 @@ const s = {
     fontFamily: "'Quicksand', sans-serif",
     flexShrink: 0,
   },
-  // Content column — 420px max, centered
+  // Content column /// 420px max, centered
   content: {
     maxWidth: CONTENT_MAX,
     width: "100%",
@@ -123,7 +123,7 @@ const s = {
     position: "relative" as const,
     background: BG,
   },
-  // Fixed bottom bar — 420px max, centered
+  // Fixed bottom bar /// 420px max, centered
   bottomBar: {
     position: "fixed" as const,
     bottom: 0,
@@ -227,7 +227,7 @@ const s = {
   }),
 }
 
-// ─── Shared Header ────────────────────────────────────────────────────────────
+// ///////// Shared Header ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function Header({ progress, onBack }: { progress?: number; onBack?: () => void }) {
   return (
     <header style={s.header}>
@@ -246,7 +246,7 @@ function Header({ progress, onBack }: { progress?: number; onBack?: () => void }
   )
 }
 
-// ─── Mascot Row ───────────────────────────────────────────────────────────────
+// ///////// Mascot Row /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function MascotRow({ src, dialogue, subtitle }: { src: string; dialogue: string; subtitle?: string }) {
   return (
     <div style={s.mascotBubble}>
@@ -268,7 +268,7 @@ function MascotRow({ src, dialogue, subtitle }: { src: string; dialogue: string;
   )
 }
 
-// ─── Bottom Bar ───────────────────────────────────────────────────────────────
+// ///////// Bottom Bar /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function BottomBar({ onSkip, onContinue, continueLabel = "Continue" }: {
   onSkip?: () => void
   onContinue?: () => void
@@ -288,7 +288,7 @@ function BottomBar({ onSkip, onContinue, continueLabel = "Continue" }: {
   )
 }
 
-// ─── SCREEN 1: Intro Hook ─────────────────────────────────────────────────────
+// ///////// SCREEN 1: Intro Hook ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
   const [slide, setSlide] = useState(0)
   const sliderRef = useRef<HTMLDivElement>(null)
@@ -362,8 +362,8 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
                 <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 14 }}>Students Love It</span>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {[
-                    { stars: "★★★★★", quote: '"Finally an app that actually helps me study."', name: "Mia R." },
-                    { stars: "★★★★★", quote: '"My grades went up in just 2 weeks!"', name: "Carlo T." },
+                    { stars: "///////////////", quote: '"Finally an app that actually helps me study."', name: "Mia R." },
+                    { stars: "///////////////", quote: '"My grades went up in just 2 weeks!"', name: "Carlo T." },
                   ].map((r, i) => (
                     <div key={i} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 14, padding: 12 }}>
                       <div style={{ color: CTA, fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>{r.stars}</div>
@@ -390,7 +390,7 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
             Create Free Account
           </button>
           <button onClick={onSignIn} style={{ display: "block", width: "100%", textAlign: "center", fontSize: 13, color: BLACK, marginTop: 12, textDecoration: "none", background: "none", border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif" }}>
-            I already have an account → <strong>Log In</strong>
+            I already have an account /// <strong>Log In</strong>
           </button>
           <p style={{ textAlign: "center", fontSize: 10, color: BLACK, opacity: 0.3, marginTop: 10 }}>By joining, you agree to our Terms</p>
         </div>
@@ -399,7 +399,7 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
   )
 }
 
-// ─── SCREEN 2: Feature Teaser ─────────────────────────────────────────────────
+// ///////// SCREEN 2: Feature Teaser ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function FeatureTeaser({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const features = [
     { icon: "style",      label: "Flashcards",     desc: "Master concepts quickly",   bg: "#FEF9C3", rot: 2  },
@@ -442,7 +442,7 @@ function FeatureTeaser({ onNext, onBack }: { onNext: () => void; onBack: () => v
   )
 }
 
-// ─── SCREEN 3: Account Gateway (Sign Up + Sign In) ────────────────────────────
+// ///////// SCREEN 3: Account Gateway (Sign Up + Sign In) ////////////////////////////////////////////////////////////////////////////////////
 function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: () => void; onBack: () => void; initialMode?: "signup" | "signin" }) {
   const navigate = useNavigate()
   const [mode, setMode]         = useState<"signup" | "signin">(initialMode)
@@ -593,11 +593,11 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
   )
 }
 
-// ─── SCREEN 4: Name Input ─────────────────────────────────────────────────────
-// Stitch design: no fox row — just headline + input + Go button
+// ///////// SCREEN 4: Name Input ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Stitch design: no fox row /// just headline + input + Go button
 function NameInput({ onNext, onBack }: { onNext: (name: string) => void; onBack: () => void }) {
   const [name, setName] = useState("")
-  const headlineText = name.length > 2 ? `${name}! Love it. 😄` : "What should I call you?"
+  const headlineText = name.length > 2 ? `${name}! Love it. ////` : "What should I call you?"
 
   return (
     <div style={s.page}>
@@ -625,7 +625,7 @@ function NameInput({ onNext, onBack }: { onNext: (name: string) => void; onBack:
   )
 }
 
-// ─── SCREEN 5: Subject Selection ──────────────────────────────────────────────
+// ///////// SCREEN 5: Subject Selection //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const subjects = [
   { id: "math",        name: "Mathematics", icon: "calculate",       text: "Math? Number cruncher!" },
   { id: "science",     name: "Science",     icon: "science",         text: "Science rules!" },
@@ -685,7 +685,7 @@ function SubjectSelection({ onNext, onBack }: { onNext: (selected: string[]) => 
   )
 }
 
-// ─── SCREEN 6: Subject Reaction ───────────────────────────────────────────────
+// ///////// SCREEN 6: Subject Reaction /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () => void }) {
   const [foxSrc, setFoxSrc]             = useState(FOX.peeking)
   const [foxY, setFoxY]                 = useState(110)
@@ -764,7 +764,7 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
   )
 }
 
-// ─── SCREEN 7: Goal Selection ─────────────────────────────────────────────────
+// ///////// SCREEN 7: Goal Selection ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const goals = [
   { id: "grades",  name: "Improve Grades",     icon: "trending_up", text: "Got it. Grades first." },
   { id: "faster",  name: "Study Faster",        icon: "bolt",        text: "Speed + retention. Let's go." },
@@ -815,7 +815,7 @@ function GoalSelection({ onNext, onBack }: { onNext: (goal: string) => void; onB
   )
 }
 
-// ─── SCREEN 8: Goal Reaction ──────────────────────────────────────────────────
+// ///////// SCREEN 8: Goal Reaction //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   const [foxSrc, setFoxSrc]         = useState(FOX.peeking)
   const [foxY, setFoxY]             = useState(110)
@@ -885,7 +885,7 @@ function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   )
 }
 
-// ─── SCREEN 9: Learning Style ─────────────────────────────────────────────────
+// ///////// SCREEN 9: Learning Style ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const learningStyles = [
   { id: "visual",     label: "Visual",         icon: "visibility",    text: "I see what you mean!" },
   { id: "tests",      label: "Practice Tests", icon: "content_paste", text: "Practice makes perfect." },
@@ -937,7 +937,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
   )
 }
 
-// ─── SCREEN 10: Final Transition ──────────────────────────────────────────────
+// ///////// SCREEN 10: Final Transition //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function FinalTransition({ onDone }: { onDone: () => void }) {
   const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
   const [foxY, setFoxY]                   = useState(110)
@@ -980,7 +980,7 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t14 = setTimeout(() => setChecklistVisible(false), 11200)
     const t15 = setTimeout(() => { setProgressWidth(100); setBgColor(YELLOW) }, 11600)
     const t16 = setTimeout(() => setBgColor(BG), 12200)
-    showLine("You're all set. 🎉", 11800, 0)
+    showLine("You're all set. ////", 11800, 0)
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
@@ -1067,7 +1067,7 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
   )
 }
 
-// ─── Main Onboarding Flow ─────────────────────────────────────────────────────
+// ///////// Main Onboarding Flow ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export default function Onboarding() {
   const navigate = useNavigate()
   const [screen, setScreen]                   = useState<Screen>("intro")
@@ -1079,7 +1079,7 @@ export default function Onboarding() {
 
   const go = (s: Screen) => setScreen(s)
 
-  // Check URL param — /onboarding?mode=signin drops straight to AccountGateway in sign-in mode
+  // Check URL param /// /onboarding?mode=signin drops straight to AccountGateway in sign-in mode
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get("mode") === "signin") {

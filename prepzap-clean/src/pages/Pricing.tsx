@@ -11,7 +11,7 @@ const plans = [
   {
     id: "free",
     name: "Free",
-    icon: "🎒",
+    icon: "////",
     monthly: 0,
     annual: 0,
     borderColor: "#252525",
@@ -37,7 +37,7 @@ const plans = [
   {
     id: "pro",
     name: "Pro",
-    icon: "⚡",
+    icon: "///",
     monthly: 9.99,
     annual: 6.99,
     borderColor: TEAL,
@@ -63,7 +63,7 @@ const plans = [
   {
     id: "premium",
     name: "Premium",
-    icon: "👑",
+    icon: "////",
     monthly: 19.99,
     annual: 15.99,
     borderColor: "#a78bfa",
@@ -95,12 +95,12 @@ const topUpCards = [
 ]
 
 const faqs = [
-  { q: "Can I cancel anytime?",               a: "Yes. Cancel anytime from Settings. You keep access until the end of your billing period — no surprise charges." },
+  { q: "Can I cancel anytime?",               a: "Yes. Cancel anytime from Settings. You keep access until the end of your billing period /// no surprise charges." },
   { q: "What counts as an AI credit?",        a: "One credit = one AI response (practice question, flashcard set, Feynman session, etc.). Generating 5 practice questions uses 1 credit." },
   { q: "Is there a student discount?",        a: "Yes! Students with a valid .edu email get 30% off Pro or Premium. Contact us at support@studenius.com to apply." },
   { q: "What payment methods are accepted?",  a: "We accept all major credit cards (Visa, Mastercard, Amex), GCash, and PayMaya for Philippine users." },
   { q: "Does the free trial require a card?", a: "No card needed to start your 7-day free trial. You'll only be charged after the trial ends if you choose to continue." },
-  { q: "Can I switch plans?",                 a: "Absolutely. Upgrade or downgrade anytime — we'll prorate the difference automatically." },
+  { q: "Can I switch plans?",                 a: "Absolutely. Upgrade or downgrade anytime /// we'll prorate the difference automatically." },
 ]
 
 export default function Pricing() {
@@ -202,7 +202,7 @@ export default function Pricing() {
           <div style={{ marginBottom: 48 }}>
             <div style={{ textAlign: "center", marginBottom: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 900, color: "#F0F0F0", margin: "0 0 4px" }}>Need more credits?</h2>
-              <p style={{ fontSize: 12, color: "#555", margin: 0 }}>One-time top-ups — no subscription required</p>
+              <p style={{ fontSize: 12, color: "#555", margin: 0 }}>One-time top-ups /// no subscription required</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12, maxWidth: 600, margin: "0 auto" }}>
               {topUpCards.map(card => (
@@ -229,10 +229,10 @@ export default function Pricing() {
           {/* Trust signals */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10, marginBottom: 48 }}>
             {[
-              { icon: "🔒", label: "Secure payments",  sub: "Powered by Stripe" },
-              { icon: "🔄", label: "Cancel anytime",   sub: "No lock-in contracts" },
-              { icon: "🎓", label: "Student discount", sub: "30% off with .edu email" },
-              { icon: "💬", label: "24/7 support",     sub: "Fast response, real humans" },
+              { icon: "////", label: "Secure payments",  sub: "Powered by Stripe" },
+              { icon: "////", label: "Cancel anytime",   sub: "No lock-in contracts" },
+              { icon: "////", label: "Student discount", sub: "30% off with .edu email" },
+              { icon: "////", label: "24/7 support",     sub: "Fast response, real humans" },
             ].map(({ icon, label, sub }) => (
               <div key={label} style={{ textAlign: "center", padding: 16, background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A1A1A" }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>{icon}</div>
@@ -310,7 +310,7 @@ export default function Pricing() {
 
           {/* Bottom CTA */}
           <div style={{ textAlign: "center", border: `0.5px solid rgba(0,196,180,0.2)`, background: "rgba(0,196,180,0.03)", padding: 48 }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🚀</div>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>////</div>
             <h2 style={{ fontSize: 24, fontWeight: 900, color: "#F0F0F0", margin: "0 0 10px" }}>Ready to study smarter?</h2>
             <p style={{ fontSize: 13, color: "#555", marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>
               Join thousands of students already using Studenius to ace their exams.
@@ -323,11 +323,11 @@ export default function Pricing() {
               </Link>
               <Link to="/dashboard">
                 <button style={{ padding: "12px 32px", background: "transparent", border: "0.5px solid #252525", color: "#C0C0C0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  See Dashboard →
+                  See Dashboard ///
                 </button>
               </Link>
             </div>
-            <p style={{ fontSize: 10, color: "#333", marginTop: 16 }}>No credit card required · Cancel anytime · 7-day free trial on paid plans</p>
+            <p style={{ fontSize: 10, color: "#333", marginTop: 16 }}>No credit card required �/ Cancel anytime �/ 7-day free trial on paid plans</p>
           </div>
 
         </div>

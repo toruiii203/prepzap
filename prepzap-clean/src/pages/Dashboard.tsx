@@ -1,12 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 interface DashboardProps {
-  onNavigate: (screen: string) => void;
 }
 
-export default function Dashboard({ onNavigate }: DashboardProps) {
+export default function Dashboard(()) {
   const { user, profile, refreshProfile } = useAuth();
 
   // Name Greeting logic
@@ -43,23 +43,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     fetchSessions();
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchTasks = () => {
     setLoadingTasks(true);
     try {
-      const { data, error } = await supabase.from("study_sessions").select("*").order("created_at", { ascending: true });
-      if (data && data.length > 0) {
-        setTasks(data);
-      } else {
-        // Seed default starting checklist if none exists
-        const defaultTasks = [
-          { id: "t1", title: "Review Cellular Biology lecture notes", completed: false, time: "Today 3pm" },
-          { id: "t2", title: "Practice physics kinetic equations", completed: true, time: "Yesterday" }
-        ];
-        await supabase.from("study_sessions").insert(defaultTasks);
-        setTasks(defaultTasks);
-      }
+      const stored = localStorage.getItem("pz_checklist");
+      const parsed = stored ? JSON.parse(stored) : [];
+      setTasks(parsed);
     } catch (err) {
-      console.error("Error loading tasks:", err);
+      setTasks([]);
     } finally {
       setLoadingTasks(false);
     }
@@ -118,13 +109,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const handleToggleTask = async (id: any, currentCompleted: boolean) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !currentCompleted } : t));
     try {
-      await supabase.from("study_sessions").update({ completed: !currentCompleted }).eq("id", id);
+      const updated = tasks.map(t => t.id === id ? { ...t, completed: !currentCompleted } : t);
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
     } catch (err) {
       console.error("Error toggling task completed status:", err);
     }
   };
 
-  const handleAddTask = async (e: React.FormEvent) => {
+  const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
     
@@ -135,8 +127,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     };
 
     try {
-      const { data, error } = await supabase.from("study_sessions").insert(newTask);
-      fetchTasks(); // Reload checklist list
+      const updated = [...tasks, { ...newTask, id: Date.now().toString() }];
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
+      setTasks(updated);
       setNewTaskTitle("");
     } catch (err) {
       console.error("Error adding task:", err);
@@ -146,7 +139,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const handleDeleteTask = async (id: any) => {
     setTasks(prev => prev.filter(t => t.id !== id));
     try {
-      await supabase.from("study_sessions").delete().eq("id", id);
+      const updated = tasks.filter(t => t.id !== id);
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
     } catch (err) {
       console.error("Error deleting task:", err);
     }
@@ -161,7 +155,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   const handleSaveSession = async () => {
     if (!sessionSubject.trim()) {
-      alert("Please enter a study subject or topic!");
+      
       return;
     }
 
@@ -182,11 +176,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       if (user && profile) {
         try {
           const currentXp = profile.total_xp || profile.xp || 0;
-          const currentCoins = profile.coins || 0;
-          await supabase.from("profiles").update({ 
-            total_xp: currentXp + xpEarned,
-            coins: currentCoins + coinsEarned
-          }).eq("id", user.id);
+          await supabase.from("profiles").update({ total_xp: currentXp + xpEarned }).eq("id", user.id);
           if (typeof refreshProfile === "function") {
             await refreshProfile();
           }
@@ -198,7 +188,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpEarned }).eq("id", user?.id ?? ""); await refreshProfile();
       }
 
-      alert(`🎉 Session Saved! You completed ${sessionDuration} minutes of "${sessionSubject}". Earned warmth of +${xpEarned} XP and +${coinsEarned} Study Coins!`);
+      // session saved
       
       setIsModalOpen(false);
       fetchSessions(); // Reload list & recalculate statistics
@@ -216,27 +206,27 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
-    <div className="w-full max-w-[390px] relative bg-[#FAF7F2] min-h-screen flex flex-col font-body-md text-on-background mx-auto">
+    <div className="w-full bg-[#FAF7F2] min-h-screen flex flex-col md:max-w-3xl md:mx-auto font-body-md text-on-background mx-auto">
       {/* TopAppBar */}
       <header className="h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
         <div className="text-[18px] font-black font-headline tracking-wider uppercase">Studenius</div>
         <div className="flex items-center gap-3">
           <span 
             className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75 font-bold"
-            onClick={() => onNavigate("SourceLibrary")}
+            onClick={() => navigate("sources")}
           >
             attach_file
           </span>
           <div 
             className="px-2.5 py-0.5 border-[1.5px] border-[#FAF7F2] rounded-full cursor-pointer hover:opacity-80 bg-[#fca623]/20"
-            onClick={() => onNavigate("GoProPricing")}
+            onClick={() => navigate("pricing")}
           >
             <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO</span>
           </div>
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75">notifications</span>
           <div 
             className="w-8 h-8 rounded-full bg-[#ae2925] text-white ink-border flex items-center justify-center font-black text-[13px] cursor-pointer"
-            onClick={() => onNavigate("StudentProfile")}
+            onClick={() => navigate("settings")}
           >
             {displayName.slice(0, 1).toUpperCase()}
           </div>
@@ -247,14 +237,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         
         {/* Simple Greeting Section */}
         <section className="flex flex-col gap-2 relative">
-          <div className="absolute right-0 top-[-10px] opacity-25 text-[22px] select-none">📚✏️🎓</div>
+          <div className="absolute right-0 top-[-10px] opacity-25 text-[22px] select-none">//////////////</div>
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <div className="w-[44px] h-[44px] rounded-full bg-[#fca623]/20 ink-border flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[20px] text-black">school</span>
               </div>
               <div className="flex flex-col">
-                <h1 className="text-[26px] font-black leading-tight font-headline tracking-tight">Hi, {displayName}! 👋</h1>
+                <h1 className="text-[26px] font-black leading-tight font-headline tracking-tight">Hi, {displayName}! ////</h1>
                 <p className="text-[14px] opacity-65 font-bold mt-0.5">Let's compile excellent study results today!</p>
               </div>
             </div>
@@ -310,7 +300,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         : "bg-[#FAF7F2] text-black/35"
                     } ${isToday ? "ring-2 ring-orange-400 scale-105" : ""}`}
                   >
-                    {studied ? "✔" : idx + 1}
+                    {studied ? "//" : idx + 1}
                   </div>
                 </div>
               );
@@ -339,7 +329,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar scroll-smooth">
               
               <div 
-                onClick={() => onNavigate("AITutor")}
+                onClick={() => navigate("ai-tutor")}
                 className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
                 style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
               >
@@ -351,7 +341,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               </div>
  
               <div 
-                onClick={() => onNavigate("Practice")}
+                onClick={() => navigate("practice")}
                 className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
                 style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
               >
@@ -363,7 +353,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               </div>
 
               <div 
-                onClick={() => onNavigate("Flashcards")}
+                onClick={() => navigate("flashcards")}
                 className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
                 style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
               >
@@ -375,7 +365,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               </div>
 
               <div 
-                onClick={() => onNavigate("QuickStudy")}
+                onClick={() => navigate("cram")}
                 className="w-[140px] h-[125px] shrink-0 ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-hard cursor-pointer hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
                 style={{ boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)" }}
               >
@@ -399,7 +389,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         {/* Quest Log Checklist */}
         <section>
           <div className="text-[18px] font-extrabold text-black mb-3 flex items-center gap-2">
-            Quest Log <span className="opacity-30 text-[13px] font-normal font-sans">📋</span>
+            Quest Log <span className="opacity-30 text-[13px] font-normal font-sans">////</span>
           </div>
           <div className="flex flex-col gap-4">
             <form onSubmit={handleAddTask} className="h-14 ink-border rounded-[12px] bg-[#FAF7F2] px-[14px] flex items-center justify-between">
@@ -408,8 +398,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 placeholder="Add a study checklist target..." 
-                className="text-[13.5px] text-black bg-transparent border-none outline-none focus:ring-0 p-0 w-full placeholder:text-black placeholder:opacity-40 font-bold"
-              />
+                className="text-[13.5px] text-black bg-transparent border-none outline-none focus:ring-0 p-0 w-full placeholder:text-black placeholder:opacity-40 font-bold">
               <button type="submit" className="material-symbols-outlined text-[24px] text-black opacity-55 hover:opacity-100 cursor-pointer">
                 add
               </button>
@@ -461,10 +450,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         <section>
           <div className="flex flex-col mb-3">
             <div className="text-[11px] font-black opacity-50 uppercase tracking-wider flex items-center gap-2 w-full">
-              Specific Performance Targets <span className="opacity-30 text-[12px] font-normal normal-case">🎯</span>
+              Specific Performance Targets <span className="opacity-30 text-[12px] font-normal normal-case">////</span>
               <div 
                 className="ml-auto w-6 h-6 rounded-full ink-border bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FAF7F2] transition-colors"
-                onClick={() => onNavigate("Challenges")}
+                onClick={() => navigate("daily5")}
               >
                 <span className="material-symbols-outlined text-[14px]">add</span>
               </div>
@@ -473,21 +462,21 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </div>
           <div className="flex flex-wrap gap-2.5">
             <div 
-              onClick={() => onNavigate("MathSolver")}
+              onClick={() => navigate("math")}
               className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
               style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
             >
               Mathematics
             </div>
             <div 
-              onClick={() => onNavigate("TeachIt")}
+              onClick={() => navigate("feynman")}
               className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
               style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
             >
               Physics
             </div>
             <div 
-              onClick={() => onNavigate("QuickStudy")}
+              onClick={() => navigate("cram")}
               className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
               style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
             >
@@ -499,7 +488,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         {/* Recent Sessions Timeline Activity */}
         <section className="ink-border rounded-[16px] bg-[#FAF7F2] p-5" style={{ boxShadow: "4px 4px 0px 0px rgba(0,0,0,1)" }}>
           <div className="text-[11.5px] font-black mb-4 opacity-50 uppercase tracking-wider border-b-[1.5px] border-black pb-2 flex items-center gap-2">
-            History Ledger <span className="opacity-30 text-[12px] font-normal normal-case">⏱</span>
+            History Ledger <span className="opacity-30 text-[12px] font-normal normal-case">///</span>
           </div>
           <div className="flex flex-col gap-5 relative">
             {/* Vertical timeline line */}
@@ -521,7 +510,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]"></div>
                   <div className="text-[14px] font-extrabold text-black flex-1 pr-2 truncate">{session.title}</div>
                   <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
-                    {session.duration}m · {formattedDate}
+                    {session.duration}m / {formattedDate}
                   </div>
                 </div>
               );
@@ -541,7 +530,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             className="w-full max-w-[340px] bg-[#FAF7F2] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#1A1A1A] text-left animate-in fade-in zoom-in duration-100"
           >
             <div className="flex items-center gap-2 mb-3.5">
-              <span className="text-xl">⚡</span>
+              <span className="text-xl">///</span>
               <h3 className="font-headline font-black text-[18px] text-black">Log Study Session</h3>
             </div>
             
@@ -557,8 +546,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   placeholder="e.g. Cellular Biology, Trigonometry"
                   value={sessionSubject}
                   onChange={(e) => setSessionSubject(e.target.value)}
-                  className="w-full border-2 border-black bg-white px-3 py-2 rounded-lg text-[13.5px] font-bold outline-none"
-                />
+                  className="w-full border-2 border-black bg-white px-3 py-2 rounded-lg text-[13.5px] font-bold outline-none">
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -570,8 +558,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   step="15"
                   value={sessionDuration}
                   onChange={(e) => setSessionDuration(Number(e.target.value))}
-                  className="w-full accent-primary border border-black/10 rounded-lg"
-                />
+                  className="w-full accent-primary border border-black/10 rounded-lg">
                 <div className="flex justify-between text-[10px] font-black text-slate-400">
                   <span>15m</span>
                   <span>45m</span>

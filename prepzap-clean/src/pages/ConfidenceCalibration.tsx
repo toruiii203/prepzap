@@ -59,7 +59,7 @@ export default function ConfidenceCalibration() {
   const current = concepts[currentConceptIdx];
 
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -80,7 +80,7 @@ export default function ConfidenceCalibration() {
 ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"concept":"short concept name","definition":"1-2 sentence clear explanation"}]
-Make concepts specific and testable — not too broad.`;
+Make concepts specific and testable /// not too broad.`;
       const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free");
       const parsed: Concept[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       const rated: RatedConcept[] = parsed.map(c => ({ ...c, rating: "no-idea" as Rating, pass: 0 }));
@@ -134,9 +134,9 @@ Make concepts specific and testable — not too broad.`;
   };
 
   const ratingConfig = {
-    "know":    { label: "Know it ✓", bg: "var(--pz-teal)",         color: "#000" },
+    "know":    { label: "Know it ///", bg: "var(--pz-teal)",         color: "#000" },
     "shaky":   { label: "Shaky ~",   bg: "var(--pz-gold)",         color: "#000" },
-    "no-idea": { label: "No idea ✗", bg: "var(--pz-rose, #E84040)", color: "#fff" },
+    "no-idea": { label: "No idea ///", bg: "var(--pz-rose, #E84040)", color: "#fff" },
   };
 
   const know   = concepts.filter(c => c.rating === "know").length;
@@ -154,14 +154,14 @@ Make concepts specific and testable — not too broad.`;
       <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
-        <ToolHeader icon={<Star className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Confidence Calibration" subtitle="Sort concepts into Know / Shaky / No idea — weak ones resurface automatically" />
+        <ToolHeader icon={<Star className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Confidence Calibration" subtitle="Sort concepts into Know / Shaky / No idea /// weak ones resurface automatically" />
 
         {/* SETUP */}
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
-              placeholder="e.g. Human Anatomy, JavaScript…"
+              placeholder="e.g. Human Anatomy, JavaScript///"
               label="Subject"
             />
 
@@ -174,7 +174,7 @@ Make concepts specific and testable — not too broad.`;
                       <div>
                         <p className="text-sm font-medium" style={{ color: "var(--pz-text)" }}>{h.topic}</p>
                         <p className="text-xs mt-0.5" style={{ color: "var(--pz-text-muted)" }}>
-                          ✓ {h.know} · ~ {h.shaky} · ✗ {h.noIdea}
+                          /// {h.know} �/ ~ {h.shaky} �/ /// {h.noIdea}
                         </p>
                       </div>
                       <div className="text-right">
@@ -193,7 +193,7 @@ Make concepts specific and testable — not too broad.`;
         {phase === "sort" && current && (
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Pass {pass} · {queueIdx + 1} of {queue.length}</span>
+              <span className="text-xs uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Pass {pass} �/ {queueIdx + 1} of {queue.length}</span>
               {pass === 2 && <span className="text-xs px-2 py-0.5" style={{ background: "var(--pz-gold-dim)", color: "var(--pz-gold)", border: "1px solid var(--pz-gold)30" }}>Review pass</span>}
             </div>
 
@@ -226,9 +226,9 @@ Make concepts specific and testable — not too broad.`;
 
             {/* Live tally */}
             <div className="flex gap-3 justify-center text-xs" style={{ color: "var(--pz-text-muted)" }}>
-              <span style={{ color: "var(--pz-teal)" }}>✓ {know}</span>
+              <span style={{ color: "var(--pz-teal)" }}>/// {know}</span>
               <span style={{ color: "var(--pz-gold)" }}>~ {shaky}</span>
-              <span style={{ color: "var(--pz-rose)" }}>✗ {noIdea}</span>
+              <span style={{ color: "var(--pz-rose)" }}>/// {noIdea}</span>
             </div>
           </div>
         )}
@@ -248,9 +248,9 @@ Make concepts specific and testable — not too broad.`;
                 {noIdea > 0  && <div style={{ flex: noIdea,  background: "var(--pz-rose)" }} />}
               </div>
               <div className="flex justify-center gap-4 text-xs" style={{ color: "var(--pz-text-muted)" }}>
-                <span style={{ color: "var(--pz-teal)" }}>✓ Know: {know}</span>
+                <span style={{ color: "var(--pz-teal)" }}>/// Know: {know}</span>
                 <span style={{ color: "var(--pz-gold)" }}>~ Shaky: {shaky}</span>
-                <span style={{ color: "var(--pz-rose)" }}>✗ No idea: {noIdea}</span>
+                <span style={{ color: "var(--pz-rose)" }}>/// No idea: {noIdea}</span>
               </div>
             </div>
 

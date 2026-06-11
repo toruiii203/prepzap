@@ -19,7 +19,7 @@ interface TopicRecord { topic: string; score: number; total: number; date: strin
 const STORAGE_KEY = "pz_recall_history";
 function loadHistory(): TopicRecord[] { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
 
-// Fuzzy match: true if typed contains keyword or close variant (edit distance ≤ 2)
+// Fuzzy match: true if typed contains keyword or close variant (edit distance /// 2)
 function fuzzyMatch(typed: string, keyword: string): boolean {
   const t = typed.toLowerCase();
   const kw = keyword.toLowerCase();
@@ -48,7 +48,7 @@ function scoreLocally(typed: string, keywords: string[]): { score: "correct" | "
 }
 
 
-// ── Quick suggestion chips ────────────────────────────────────────────────────
+// ////// Quick suggestion chips ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => void; suggestions: string[] }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -86,7 +86,7 @@ export default function RecallMode() {
   useEffect(() => { if (phase === "recall") inputRef.current?.focus(); }, [phase, current]);
 
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -129,7 +129,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
     const newStreak = score === "correct" ? streak + 1 : 0;
     setStreak(newStreak);
     if (newStreak > bestStreak) setBestStreak(newStreak);
-    if (newStreak > 0 && newStreak % 3 === 0) toast(`🔥 ${newStreak} in a row!`);
+    if (newStreak > 0 && newStreak % 3 === 0) toast(`//// ${newStreak} in a row!`);
 
     if (current + 1 < prompts.length) {
       setTimeout(() => { setCurrent(c => c + 1); setTyped(""); setShowAnswer(false); }, 800);
@@ -172,7 +172,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
             <GlobalContextBar compact />
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
-              placeholder="e.g. Photosynthesis, The Cold War…"
+              placeholder="e.g. Photosynthesis, The Cold War///"
               label="Subject"
             />
             <SuggestionChips onSelect={s => { setSubject(s); setTimeout(() => handleGenerate(), 0); }} suggestions={["Photosynthesis", "French Revolution", "Newton's Laws", "DNA Replication", "Civil War", "Trigonometry"]} />
@@ -234,14 +234,14 @@ keywords: 4-6 essential words from the answer that a correct response would incl
 
               <div className="flex gap-2">
                 <Button onClick={handleSubmit} disabled={!typed.trim() && !showAnswer} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000" }}>
-                  {typed.trim() ? "Submit →" : "Show Answer"}
+                  {typed.trim() ? "Submit ///" : "Show Answer"}
                 </Button>
                 {!showAnswer && <button onClick={() => setShowAnswer(true)} className="px-3 py-2.5 text-xs" style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent" }}>Peek</button>}
                 <button onClick={handleSkip} className="px-3 py-2.5" style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent" }}>
                   <SkipForward className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <p className="text-[10px] mt-1.5 text-center" style={{ color: "var(--pz-text-muted)" }}>⌘↵ to submit</p>
+              <p className="text-[10px] mt-1.5 text-center" style={{ color: "var(--pz-text-muted)" }}>////// to submit</p>
             </div>
           </div>
         )}
@@ -262,7 +262,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
                   </div>
                 ))}
               </div>
-              {bestStreak > 1 && <p className="text-xs mt-3" style={{ color: "var(--pz-rose)" }}>🔥 Best streak: {bestStreak}</p>}
+              {bestStreak > 1 && <p className="text-xs mt-3" style={{ color: "var(--pz-rose)" }}>//// Best streak: {bestStreak}</p>}
             </div>
 
             <div className="space-y-2">
@@ -271,7 +271,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-medium" style={{ color: "var(--pz-text)" }}>{r.prompt}</p>
                     <span className="text-[10px] font-semibold shrink-0 ml-2" style={{ color: scoreColor(r.score) }}>
-                      {r.score === "correct" ? "✓" : r.score === "partial" ? "~" : "✗"}
+                      {r.score === "correct" ? "///" : r.score === "partial" ? "~" : "///"}
                     </span>
                   </div>
                   {r.matched.length > 0 && <p className="text-[10px]" style={{ color: "var(--pz-teal)" }}>Matched: {r.matched.join(", ")}</p>}

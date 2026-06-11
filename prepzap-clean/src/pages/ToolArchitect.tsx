@@ -16,7 +16,7 @@ import { ActiveSourcePill } from "@/components/ActiveSourcePill"
 import { buildAIContext, getActiveSource, onSourceChange } from "@/lib/sourceContext"
 
 
-// ─── JSON Repair Utility ──────────────────────────────────────────────────────
+// ///////// JSON Repair Utility //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function repairJSON(raw: string): string {
   // Strip markdown fences
   let s = raw.replace(/```json|```/g, "").trim()
@@ -67,12 +67,12 @@ interface Roadmap {
 }
 
 const TOPIC_CATEGORIES = [
-  { emoji: "🖥️", label: "Programming", topics: ["Python", "JavaScript", "Data Structures", "SQL"] },
-  { emoji: "🎨", label: "Creative",    topics: ["UI/UX Design", "Video Editing", "Music Theory", "Drawing"] },
-  { emoji: "📊", label: "Business",    topics: ["Digital Marketing", "Excel", "Finance Basics", "Public Speaking"] },
-  { emoji: "🔬", label: "Science",     topics: ["Physics", "Biology", "Chemistry", "Statistics"] },
-  { emoji: "🌍", label: "Language",    topics: ["English Grammar", "Spanish", "Japanese", "Filipino"] },
-  { emoji: "🧠", label: "Skills",      topics: ["Critical Thinking", "Speed Reading", "Note Taking", "Time Management"] },
+  { emoji: "///////", label: "Programming", topics: ["Python", "JavaScript", "Data Structures", "SQL"] },
+  { emoji: "////", label: "Creative",    topics: ["UI/UX Design", "Video Editing", "Music Theory", "Drawing"] },
+  { emoji: "////", label: "Business",    topics: ["Digital Marketing", "Excel", "Finance Basics", "Public Speaking"] },
+  { emoji: "////", label: "Science",     topics: ["Physics", "Biology", "Chemistry", "Statistics"] },
+  { emoji: "////", label: "Language",    topics: ["English Grammar", "Spanish", "Japanese", "Filipino"] },
+  { emoji: "////", label: "Skills",      topics: ["Critical Thinking", "Speed Reading", "Note Taking", "Time Management"] },
 ]
 
 function lsKey(topic: string) {
@@ -153,7 +153,7 @@ export default function ToolArchitect() {
   return (
     <ToolPageShell>
       <BuddyCompanion />
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -204,7 +204,7 @@ export default function ToolArchitect() {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>·</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -213,7 +213,7 @@ export default function ToolArchitect() {
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
@@ -226,7 +226,7 @@ export default function ToolArchitect() {
                 <div className="w-7 h-7 rounded-none bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-lg"><BookOpen className="h-4 w-4 text-white"/></div>
                 Roadmap Generator
               </h1>
-              <p className="text-xs text-muted-foreground">Learn anything — from zero to mastery.</p>
+              <p className="text-xs text-muted-foreground">Learn anything /// from zero to mastery.</p>
             </div>
             {phase === "roadmap" && <Button variant="outline" size="sm" onClick={newTopic} className="gap-1"><RotateCcw className="h-3.5 w-3.5"/>New Topic</Button>}
           </div>
@@ -245,7 +245,7 @@ export default function ToolArchitect() {
               )}
               <ConceptChipSelector
                 onSelect={(topic) => generate(topic)}
-                placeholder="e.g. Machine Learning, Guitar, Spanish…"
+                placeholder="e.g. Machine Learning, Guitar, Spanish///"
                 label="What do you want to learn?"
                 staticChips={TOPIC_CATEGORIES.flatMap(c => c.topics).slice(0, 8)}
               />
@@ -274,8 +274,8 @@ export default function ToolArchitect() {
                 <div className="w-12 h-12 rounded-none bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center animate-pulse">
                   <BookOpen className="h-6 w-6 text-white"/>
                 </div>
-                <p className="font-bold">{retrying ? "Retrying with repaired JSON…" : `Generating your ${topic} roadmap…`}</p>
-                <p className="text-sm text-muted-foreground">{retrying ? "Almost there — fixing the response…" : "Mapping the journey from zero to mastery"}</p>
+                <p className="font-bold">{retrying ? "Retrying with repaired JSON///" : `Generating your ${topic} roadmap///`}</p>
+                <p className="text-sm text-muted-foreground">{retrying ? "Almost there /// fixing the response///" : "Mapping the journey from zero to mastery"}</p>
                 <div className="flex gap-1">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-none bg-amber-500 animate-bounce" style={{animationDelay:`${i*0.15}s`}}/>)}</div>
               </div>
               <RoadmapSkeleton />
@@ -362,7 +362,7 @@ export default function ToolArchitect() {
                   <div className="p-4 rounded-none text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
                     <p className="text-sm font-medium mb-2" style={{ color: "var(--pz-text)" }}>Overall Progress: {done} / {total} topics learned ({pct}%)</p>
                     <Progress value={pct} className="h-2"/>
-                    {pct === 100 && <p className="text-xs mt-2" style={{ color: "var(--pz-gold)" }}>🏆 Mastery achieved! You've completed the entire roadmap.</p>}
+                    {pct === 100 && <p className="text-xs mt-2" style={{ color: "var(--pz-gold)" }}>//// Mastery achieved! You've completed the entire roadmap.</p>}
                   </div>
                 )
               })()}

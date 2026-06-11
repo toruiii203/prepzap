@@ -1,5 +1,5 @@
 /**
- * useToolHistory — auto-saves and retrieves generation history per tool.
+ * useToolHistory /// auto-saves and retrieves generation history per tool.
  * Stored in localStorage under `studenius_history_<toolId>`.
  * Max 50 entries per tool.
  */
@@ -61,7 +61,7 @@ export function useToolHistory(toolId: string) {
   return { entries, save, remove, clear }
 }
 
-// ─── History Sidebar Panel ────────────────────────────────────────────────────
+// ///////// History Sidebar Panel ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 interface ToolHistoryPanelProps {
   entries: HistoryEntry[]
   onSelect: (entry: HistoryEntry) => void
@@ -156,7 +156,7 @@ export function ToolHistoryPanel({
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); onRemove(entry.id) }}
-                  style={{ position: "absolute", display: "none" }}>×</button>
+                  style={{ position: "absolute", display: "none" }}>�/</button>
               </div>
             ))
           )}
@@ -166,7 +166,7 @@ export function ToolHistoryPanel({
   )
 }
 
-// ─── History Trigger Button ───────────────────────────────────────────────────
+// ///////// History Trigger Button /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export function HistoryButton({ count, onClick }: { count: number; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "transparent", border: "0.5px solid #252525", color: "#555", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'Nunito',system-ui,sans-serif", letterSpacing: "0.06em", transition: "all .2s", position: "relative" }}

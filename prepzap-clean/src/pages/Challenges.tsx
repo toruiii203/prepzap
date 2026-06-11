@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -5,7 +6,6 @@ import { callGroq } from "@/lib/groq";
 import { buildAIContext } from "@/lib/sourceContext";
 
 interface ChallengesProps {
-  onNavigate: (screen: string) => void;
 }
 
 interface QuestCard {
@@ -16,7 +16,7 @@ interface QuestCard {
   completed?: boolean;
 }
 
-export default function Challenges({ onNavigate }: ChallengesProps) {
+export default function Challenges(()) {
   const { user, profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<"Daily5" | "BossRound">("Daily5");
   const [activeFocus, setActiveFocus] = useState("Anatomy");
@@ -156,7 +156,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
 
     setCompletedQuestIds(prev => [...prev, questId]);
     setQuests(prev => prev.map(q => q.id === questId ? { ...q, completed: true } : q));
-    alert(`🎉 Quest completed! You received +${xpAwarded} XP and +${coinsAwarded} Study Coins.`);
+    
   };
 
   return (
@@ -166,7 +166,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
       <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-[#1c1c19] z-50 shadow-xs navbar-custom">
         <div className="flex items-center justify-between px-5 h-16 w-full">
           <button 
-            onClick={() => onNavigate("Dashboard")}
+            onClick={() => navigate("/dashboard")}
             className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -174,7 +174,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
           <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold pr-4 flex-1 text-center">Daily Quests</span>
           
           <button 
-            onClick={() => onNavigate("Leaderboard")}
+            onClick={() => navigate("/dashboard")}
             className="text-primary hover:bg-surface-container-high transition-colors p-1 rounded-full flex items-center justify-center cursor-pointer"
           >
             <span className="material-symbols-outlined text-black">emoji_events</span>
@@ -199,7 +199,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
           <button 
             onClick={() => {
               setActiveTab("BossRound");
-              alert("Boss rounds unlock automatically at level 15!");
+              
             }}
             className={`flex-1 py-3.5 text-center font-label-md text-label-md font-bold transition-colors text-[14px] cursor-pointer ${
               activeTab === "BossRound" ? "bg-primary text-white" : "bg-white text-black hover:bg-neutral-50"
@@ -254,7 +254,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
           </div>
           
           <button 
-            onClick={() => onNavigate("SourceLibrary")}
+            onClick={() => navigate("/sources")}
             className="mt-2 flex items-center justify-center gap-2 w-full py-3 rounded-xl border-[#1c1c19] border-2 border-dashed bg-surface-container-low text-black font-bold font-headline select-none hover:bg-neutral-100 transition-colors cursor-pointer text-[13.5px]"
           >
             <span className="material-symbols-outlined text-xl">attach_file</span>
@@ -306,7 +306,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
                           {card.answer}
                         </p>
                         <p className="font-caption text-secondary font-semibold italic text-[12.5px] mt-1">
-                          💡 Hint: {card.hint}
+                          //// Hint: {card.hint}
                         </p>
 
                         {!isDone && (
@@ -314,7 +314,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
                             onClick={(e) => handleCompleteQuest(card.id, e)}
                             className="w-full bg-[#E8534A] text-white border border-black py-2 rounded-xl mt-2 font-bold text-xs hover:bg-opacity-95 shadow-[1.5px_1.5px_rgba(0,0,0,1)] cursor-pointer"
                           >
-                            ✓ Double-Check & Complete Task
+                            /// Double-Check & Complete Task
                           </button>
                         )}
                         {isDone && (

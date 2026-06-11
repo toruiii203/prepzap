@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { buddies } from "@/data/buddies";
 
-// ── Theme ────────────────────────────────────────────────────────────────────
+// ////// Theme ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const GOLD   = "#f0a040";
 const BG     = "#160810";
 const SURF   = "#1f0b13";
@@ -15,7 +15,7 @@ const TEXT   = "#f5ede8";
 const TEXT2  = "rgba(245,237,232,0.55)";
 const TEXT3  = "rgba(245,237,232,0.28)";
 
-// ── Cosmetic Data ─────────────────────────────────────────────────────────────
+// ////// Cosmetic Data ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const SHIRTS = [
   { id: "none",    label: "None",       color: "transparent" },
   { id: "red",     label: "Red Shirt",  color: "#ef4444" },
@@ -38,22 +38,22 @@ const PANTS = [
 ];
 
 const HATS = [
-  { id: "none",       label: "None",        emoji: "—" },
-  { id: "crown",      label: "Crown",       emoji: "👑" },
-  { id: "cap",        label: "Cap",         emoji: "🧢" },
-  { id: "graduation", label: "Grad Cap",    emoji: "🎓" },
-  { id: "headphones", label: "Headphones",  emoji: "🎧" },
-  { id: "halo",       label: "Halo",        emoji: "😇" },
-  { id: "beanie",     label: "Beanie",      emoji: "🪖" },
+  { id: "none",       label: "None",        emoji: "///" },
+  { id: "crown",      label: "Crown",       emoji: "////" },
+  { id: "cap",        label: "Cap",         emoji: "////" },
+  { id: "graduation", label: "Grad Cap",    emoji: "////" },
+  { id: "headphones", label: "Headphones",  emoji: "////" },
+  { id: "halo",       label: "Halo",        emoji: "////" },
+  { id: "beanie",     label: "Beanie",      emoji: "////" },
 ];
 
 const ACCESSORIES = [
-  { id: "none",       label: "None",       emoji: "—" },
-  { id: "glasses",    label: "Glasses",    emoji: "🤓" },
-  { id: "sunglasses", label: "Sunglasses", emoji: "😎" },
-  { id: "scarf",      label: "Scarf",      emoji: "🧣" },
-  { id: "medal",      label: "Medal",      emoji: "🏅" },
-  { id: "bow",        label: "Bow",        emoji: "🎀" },
+  { id: "none",       label: "None",       emoji: "///" },
+  { id: "glasses",    label: "Glasses",    emoji: "////" },
+  { id: "sunglasses", label: "Sunglasses", emoji: "////" },
+  { id: "scarf",      label: "Scarf",      emoji: "////" },
+  { id: "medal",      label: "Medal",      emoji: "////" },
+  { id: "bow",        label: "Bow",        emoji: "////" },
 ];
 
 const BACKGROUNDS = [
@@ -76,7 +76,7 @@ const FRAMES = [
   { id: "purple",  label: "Purple",  color: "#9333ea" },
 ];
 
-// ── SVG Overlays ──────────────────────────────────────────────────────────────
+// ////// SVG Overlays //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function ShirtOverlay({ shirt }: { shirt: string }) {
   const s = SHIRTS.find(x => x.id === shirt);
   if (!s || s.id === "none") return null;
@@ -183,7 +183,7 @@ function AccessoryOverlay({ acc }: { acc: string }) {
           <line x1="14" y1="0" x2="14" y2="-24" stroke="#f0a040" strokeWidth="3"/>
           <circle cx="14" cy="14" r="14" fill="#f0a040" stroke="#c07820" strokeWidth="2"/>
           <circle cx="14" cy="14" r="9" fill="#fbbf24"/>
-          <text x="14" y="19" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#92400e">★</text>
+          <text x="14" y="19" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#92400e">///</text>
         </g>
       )}
       {acc === "bow" && (
@@ -197,7 +197,7 @@ function AccessoryOverlay({ acc }: { acc: string }) {
   );
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// ////// Toast ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
   return (
     <div style={{
@@ -210,12 +210,12 @@ function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
       animation: "slideIn 0.2s ease"
     }}>
       <style>{`@keyframes slideIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }`}</style>
-      {type === "success" ? "✅ " : "❌ "}{msg}
+      {type === "success" ? "/// " : "/// "}{msg}
     </div>
   );
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// ////// Main Component ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 interface AvatarConfig {
   buddyId: string;
   shirt: string;
@@ -245,7 +245,7 @@ export default function Avatar() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  // Load saved config — Supabase first, then localStorage fallback
+  // Load saved config /// Supabase first, then localStorage fallback
   useEffect(() => {
     const lsConfig = localStorage.getItem(LS_KEY);
     if (lsConfig) {
@@ -271,7 +271,7 @@ export default function Avatar() {
 
   const handleSave = async () => {
     setSaving(true);
-    // Always save to localStorage first — instant fallback
+    // Always save to localStorage first /// instant fallback
     localStorage.setItem(LS_KEY, JSON.stringify(config));
     if (user?.id) {
       localStorage.setItem(`buddy_${user.id}`, config.buddyId);
@@ -290,7 +290,7 @@ export default function Avatar() {
         .eq("id", user.id);
 
       if (error) {
-        // Column might not exist yet — still saved to localStorage
+        // Column might not exist yet /// still saved to localStorage
         console.warn("Supabase save failed:", error.message);
         showToast("Saved locally. Run the SQL migration to sync to cloud.", "success");
       } else {
@@ -309,12 +309,12 @@ export default function Avatar() {
   const frameColor = FRAMES.find(f => f.id === config.frame)?.color || "transparent";
 
   const TABS = [
-    { id: "buddy",     label: "Buddy",     emoji: "🐾" },
-    { id: "shirt",     label: "Shirt",     emoji: "👕" },
-    { id: "pants",     label: "Pants",     emoji: "👖" },
-    { id: "hat",       label: "Hat",       emoji: "🎩" },
-    { id: "accessory", label: "Accessory", emoji: "✨" },
-    { id: "style",     label: "Style",     emoji: "🎨" },
+    { id: "buddy",     label: "Buddy",     emoji: "////" },
+    { id: "shirt",     label: "Shirt",     emoji: "////" },
+    { id: "pants",     label: "Pants",     emoji: "////" },
+    { id: "hat",       label: "Hat",       emoji: "////" },
+    { id: "accessory", label: "Accessory", emoji: "///" },
+    { id: "style",     label: "Style",     emoji: "////" },
   ] as const;
 
   // Color swatch button
@@ -327,7 +327,7 @@ export default function Avatar() {
       boxShadow: active ? `0 0 10px ${GOLD}66` : "none",
       fontSize: color === "transparent" ? 14 : undefined,
       color: TEXT3, flexShrink: 0,
-    }}>{color === "transparent" ? "—" : ""}</button>
+    }}>{color === "transparent" ? "///" : ""}</button>
   );
 
   // Option chip button
@@ -356,13 +356,13 @@ export default function Avatar() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontFamily: "'Fredoka One', cursive", fontSize: 28, color: GOLD }}>Avatar Studio</h1>
           <Link to="/dashboard" style={{ color: GOLD, fontWeight: 700, textDecoration: "none", fontSize: 13, border: `1px solid ${BORDER}`, padding: "8px 14px", borderRadius: 8 }}>
-            ← Dashboard
+            /// Dashboard
           </Link>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: 20, alignItems: "start" }}>
 
-          {/* ── Left Panel ── */}
+          {/* ////// Left Panel ////// */}
           <div>
             {/* Tabs */}
             <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
@@ -501,7 +501,7 @@ export default function Avatar() {
             </div>
           </div>
 
-          {/* ── Right Panel: Preview ── */}
+          {/* ////// Right Panel: Preview ////// */}
           <div style={{ position: "sticky", top: 24 }}>
             <div style={{ background: SURF, border: `2px solid ${BORDER}`, borderRadius: 20, padding: 20, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: TEXT3, textTransform: "uppercase", letterSpacing: "0.1em" }}>Preview</span>
@@ -535,7 +535,7 @@ export default function Avatar() {
                     </div>
                   </>
                 ) : (
-                  <span style={{ fontSize: 48 }}>🐾</span>
+                  <span style={{ fontSize: 48 }}>////</span>
                 )}
               </div>
 
@@ -571,7 +571,7 @@ export default function Avatar() {
                 fontFamily: "inherit", transition: "opacity 0.2s",
                 opacity: saving ? 0.7 : 1,
               }}>
-                {saving ? "Saving..." : "💾 Save Outfit"}
+                {saving ? "Saving..." : "//// Save Outfit"}
               </button>
 
               {/* SQL migration hint for devs */}

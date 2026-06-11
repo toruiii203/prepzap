@@ -58,7 +58,7 @@ export default function BossRound() {
       setQuestions(parsed.questions.slice(0,10));
       setCurrent(0); setSelected(null); setAnswered(false); setResults([]); setTimeLeft(300);
       setPhase("quiz");
-      toast.success(`Boss Round ready — ${difficulty} mode!`);
+      toast.success(`Boss Round ready /// ${difficulty} mode!`);
       if(timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(()=>setTimeLeft(prev=>{if(prev<=1){clearInterval(timerRef.current!);timerRef.current=null;return 0;}return prev-1;}),1000);
     } catch(e) { setError(e instanceof Error?e.message:"Error"); }
@@ -96,7 +96,7 @@ export default function BossRound() {
   const curDiff = DIFFICULTIES.find(d=>d.label===difficulty)!;
 
 
-  // ── QuickLaunch prefill ────────────────────────────────────────────────────
+  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     const targetTool = sessionStorage.getItem("quicklaunch_tool");
@@ -110,7 +110,7 @@ export default function BossRound() {
 
   return (
     <ToolPageShell>
-      {/* ── HISTORY SIDEBAR ── */}
+      {/* ////// HISTORY SIDEBAR ////// */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
@@ -162,7 +162,7 @@ export default function BossRound() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
                     <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span>
-                    <span>·</span>
+                    <span>�/</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>
@@ -171,7 +171,7 @@ export default function BossRound() {
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay →</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
         </div>
       </div>
 
@@ -208,7 +208,7 @@ export default function BossRound() {
             </div>
 
             <div style={{background:"#111",border:"0.5px solid #222",padding:20,display:"flex",flexDirection:"column",gap:16}}>
-              <ConceptChipSelector onSelect={(c)=>{setTopicInput(c);setTimeout(()=>start(),0);}} onKeyDown={e => e.key === "Enter" && start()} placeholder="e.g. Cell Biology, World War 2, Calculus…" label="What topic do you want to be tested on?"/>
+              <ConceptChipSelector onSelect={(c)=>{setTopicInput(c);setTimeout(()=>start(),0);}} onKeyDown={e => e.key === "Enter" && start()} placeholder="e.g. Cell Biology, World War 2, Calculus///" label="What topic do you want to be tested on?"/>
               <div>
                 <label style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#555",display:"block",marginBottom:10}}>Difficulty</label>
                 <div style={{display:"flex",gap:8}}>
@@ -236,7 +236,7 @@ export default function BossRound() {
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:11,fontWeight:700,color:"#555",fontFamily:"monospace"}}>{current+1} / {questions.length}</span>
-              <div style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:timeLeft<=60?"#ef4444":"#666"}}>⏱ {mm}:{ss}</div>
+              <div style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:timeLeft<=60?"#ef4444":"#666"}}>/// {mm}:{ss}</div>
               <span style={{fontSize:10,padding:"2px 8px",background:`rgba(232,185,35,0.12)`,color:GOLD,fontWeight:700,border:`0.5px solid ${GOLD}40`}}>+{Math.round((1/questions.length)*500)} XP</span>
             </div>
             <div style={{height:2,background:"#1A1A1A"}}>
@@ -268,7 +268,7 @@ export default function BossRound() {
                 </div>
                 <MathRenderer content={q.explanation} className="text-xs text-muted-foreground"/>
                 <button onClick={next} style={{padding:"10px 0",background:`linear-gradient(135deg,${GOLD},#f59e0b)`,border:"none",color:"#160810",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',system-ui,sans-serif"}}>
-                  {current+1<questions.length?"Next →":"See Final Score →"}
+                  {current+1<questions.length?"Next ///":"See Final Score ///"}
                 </button>
               </div>
             )}
@@ -280,7 +280,7 @@ export default function BossRound() {
             <Trophy style={{width:64,height:64,color:score>=8?GOLD:score>=6?TEAL:"#444"}}/>
             <div>
               <div style={{fontSize:48,fontWeight:700,color:"#F0F0F0",fontFamily:"monospace"}}>{score}<span style={{fontSize:24,color:"#555"}}>/10</span></div>
-              <p style={{fontSize:14,color:"#666",marginTop:6}}>{score>=9?"Legendary! 🏆":score>=7?"Strong work! 💪":score>=5?"Keep grinding! 📚":"Tougher than expected — review and retry"}</p>
+              <p style={{fontSize:14,color:"#666",marginTop:6}}>{score>=9?"Legendary! ////":score>=7?"Strong work! ////":score>=5?"Keep grinding! ////":"Tougher than expected /// review and retry"}</p>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,width:"100%"}}>
               {[{l:"Score",v:`${score}/10`,c:GOLD},{l:"XP Earned",v:`+${finalXP}`,c:TEAL},{l:"Accuracy",v:`${Math.round(score/10*100)}%`,c:"#8b5cf6"}].map(s=>(

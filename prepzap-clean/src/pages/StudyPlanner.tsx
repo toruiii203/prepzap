@@ -1,9 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 interface StudyPlannerProps {
-  onNavigate: (screen: string) => void;
 }
 
 interface PlannerSession {
@@ -15,7 +15,7 @@ interface PlannerSession {
   completed: boolean;
 }
 
-export default function StudyPlanner({ onNavigate }: StudyPlannerProps) {
+export default function StudyPlanner(()) {
   const [sessions, setSessions] = useState<PlannerSession[]>([]);
   const [activeMonth] = useState("June 2026");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -117,14 +117,14 @@ export default function StudyPlanner({ onNavigate }: StudyPlannerProps) {
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] z-50 flex items-center justify-between px-5 h-16 border-b-2 border-on-background shadow-xs navbar-custom">
         <button 
-          onClick={() => onNavigate("Dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
         </button>
         <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold">Studenius Planner</span>
         <button 
-          onClick={() => alert(`📅 Planner active: ${activeMonth}. Pro session syncing is enabled.`)}
+          onClick={() => alert(`//// Planner active: ${activeMonth}. Pro session syncing is enabled.`)}
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center"
         >
           <span className="material-symbols-outlined">calendar_month</span>
@@ -142,13 +142,13 @@ export default function StudyPlanner({ onNavigate }: StudyPlannerProps) {
             </h2>
             <div className="flex gap-2">
               <button 
-                onClick={() => alert("Moving back in calendar context")}
+                onClick={() => {}}
                 className="border-2 border-[#1c1c19] rounded-full w-8 h-8 flex items-center justify-center bg-white shadow-[1.5px_1.5px_0px_#1C1C19] active:translate-y-0.5 active:shadow-none"
               >
                 <span className="material-symbols-outlined text-sm font-semibold">chevron_left</span>
               </button>
               <button 
-                onClick={() => alert("Moving forward in calendar context")}
+                onClick={() => {}}
                 className="border-2 border-[#1c1c19] rounded-full w-8 h-8 flex items-center justify-center bg-white shadow-[1.5px_1.5px_0px_#1C1C19] active:translate-y-0.5 active:shadow-none"
               >
                 <span className="material-symbols-outlined text-sm font-semibold">chevron_right</span>
