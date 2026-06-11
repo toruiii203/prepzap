@@ -1,436 +1,344 @@
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { Navbar } from "@/components/Navbar"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import {
-  ChevronLeft, ChevronRight, Plus, Check, Clock,
-  BookOpen, X, Trash2, Flame, Bell
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
-const DAYS    = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-const MONTHS  = ["January","February","March","April","May","June",
-                 "July","August","September","October","November","December"]
-const PALETTE = [
-  "#10b981","#3b82f6","#a855f7","#f59e0b","#ef4444",
-  "#06b6d4","#ec4899","#84cc16","#f97316","#6366f1",
-  "#14b8a6","#e11d48","#7c3aed","#0ea5e9","#64748b",
-]
-
-interface SubTask { id: string; text: string; done: boolean }
-interface StudyEvent {
-  id: string; title: string; date: string
-  duration: number; color: string; completed: boolean
-  subTasks: SubTask[]
+interface StudyPlannerProps {
+  onNavigate: (screen: string) => void;
 }
 
-const sampleEvents: StudyEvent[] = [
-  { id:"1", title:"Biology Review",    date: new Date().toISOString().split("T")[0],                        duration:60, color:"#10b981", completed:false, subTasks:[] },
-  { id:"2", title:"Flashcard Session", date: new Date().toISOString().split("T")[0],                        duration:30, color:"#3b82f6", completed:true,  subTasks:[{id:"s1",text:"Review deck 1",done:true}] },
-  { id:"3", title:"Mock Exam — Math",  date: new Date(Date.now()+86400000).toISOString().split("T")[0],     duration:90, color:"#a855f7", completed:false, subTasks:[] },
-  { id:"4", title:"AI Tutor Session",  date: new Date(Date.now()+172800000).toISOString().split("T")[0],    duration:45, color:"#f59e0b", completed:false, subTasks:[] },
-]
-
-function todayStr() { return new Date().toISOString().split("T")[0] }
-
-// ── shared style helpers ──────────────────────────────────────────────────────
-const card: React.CSSProperties = {
-  background: "var(--pz-surface2)",
-  border: "1px solid var(--pz-border)",
-  borderRadius: "var(--pz-r-xl)",
+interface PlannerSession {
+  id: string | number;
+  subject: string;
+  time: string;
+  topic?: string;
+  color?: string;
+  completed: boolean;
 }
 
-export default function StudyPlanner() {
-  const [currentDate, setCurrentDate]   = useState(new Date())
-  const [events, setEvents]             = useState<StudyEvent[]>(sampleEvents)
-  const [selectedDate, setSelectedDate] = useState(todayStr())
-  const [showModal, setShowModal]       = useState(false)
-  const [formTitle,    setFormTitle]    = useState("")
-  const [formColor,    setFormColor]    = useState(PALETTE[0])
-  const [formDate,     setFormDate]     = useState(todayStr())
-  const [formDuration, setFormDuration] = useState(30)
-  const [subTaskInputs, setSubTaskInputs] = useState<Record<string,string>>({})
+export default function StudyPlanner({ onNavigate }: StudyPlannerProps) {
+  const [sessions, setSessions] = useState<PlannerSession[]>([]);
+  const [activeMonth] = useState("June 2026");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSubj, setNewSubj] = useState("");
+  const [newTime, setNewTime] = useState("");
+  const [newTopic, setNewTopic] = useState("");
+  const [selectedDayNum, setSelectedDayNum] = useState<number>(25);
 
-  const year        = currentDate.getFullYear()
-  const month       = currentDate.getMonth()
-  const firstDay    = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month+1, 0).getDate()
+  const STORAGE_KEY_PLANNER = "studenius_planner_slots";
 
-  const getEventsForDate = (d: string) => events.filter(e => e.date === d)
-  const toggleComplete   = (id: string) => setEvents(p => p.map(e => e.id===id ? {...e,completed:!e.completed} : e))
-  const deleteEvent      = (id: string) => setEvents(p => p.filter(e => e.id!==id))
-  const toggleSubTask    = (eid: string, sid: string) => setEvents(p => p.map(e => e.id===eid ? {...e, subTasks:e.subTasks.map(s=>s.id===sid?{...s,done:!s.done}:s)} : e))
-  const addSubTask = (eid: string) => {
-    const text = subTaskInputs[eid]?.trim(); if (!text) return
-    setEvents(p => p.map(e => e.id===eid ? {...e,subTasks:[...e.subTasks,{id:Date.now().toString(),text,done:false}]} : e))
-    setSubTaskInputs(p => ({...p,[eid]:""}))
-  }
+  // Load slots on mount
+  useEffect(() => {
+    const raw = localStorage.getItem(STORAGE_KEY_PLANNER);
+    if (raw) {
+      try {
+        setSessions(JSON.parse(raw));
+      } catch {
+        setSessions(getDefaultSessions());
+      }
+    } else {
+      const def = getDefaultSessions();
+      setSessions(def);
+      localStorage.setItem(STORAGE_KEY_PLANNER, JSON.stringify(def));
+    }
+  }, []);
 
-  const selectedEvents  = getEventsForDate(selectedDate)
-  const completedToday  = selectedEvents.filter(e => e.completed).length
+  const savePlannerRows = (updated: PlannerSession[]) => {
+    setSessions(updated);
+    localStorage.setItem(STORAGE_KEY_PLANNER, JSON.stringify(updated));
+  };
 
-  const days: (number|null)[] = []
-  for (let i=0; i<firstDay; i++) days.push(null)
-  for (let i=1; i<=daysInMonth; i++) days.push(i)
+  const getDefaultSessions = (): PlannerSession[] => {
+    return [
+      {
+        id: "s1",
+        subject: "Calculus III",
+        time: "10:00 AM - 11:30 AM",
+        topic: "Chapter 4 Review",
+        color: "bg-blue-500",
+        completed: false
+      },
+      {
+        id: "s2",
+        subject: "World History",
+        time: "02:00 PM - 03:30 PM",
+        topic: "Essay Draft Check",
+        color: "bg-green-500",
+        completed: false
+      },
+      {
+        id: "s3",
+        subject: "Chemistry Lab",
+        time: "08:00 AM - 09:00 AM",
+        topic: "Qualitative Assay",
+        color: "bg-emerald-700",
+        completed: true
+      }
+    ];
+  };
 
-  const openModal = (date?: string) => {
-    setFormDate(date ?? selectedDate); setFormTitle(""); setFormColor(PALETTE[0]); setFormDuration(30); setShowModal(true)
-  }
-  const addSession = () => {
-    if (!formTitle.trim()) return
-    setEvents(p => [...p, {id:Date.now().toString(),title:formTitle.trim(),date:formDate,duration:formDuration,color:formColor,completed:false,subTasks:[]}])
-    setSelectedDate(formDate); setShowModal(false)
-  }
+  const handleToggleCompleted = (id: string | number) => {
+    const updated = sessions.map((s) => (s.id === id ? { ...s, completed: !s.completed } : s));
+    savePlannerRows(updated);
+  };
 
-  // Stats
-  const streak = 12
-  const hoursThisWeek = 12.5
-  const sessionsDone = events.filter(e=>e.completed).length
-  const goalPct = Math.round((sessionsDone / Math.max(events.length,1))*100)
+  const handleAddSessionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubj || !newTime) return;
 
-  const upcoming = events
-    .filter(e => e.date > todayStr() && !e.completed)
-    .sort((a,b) => a.date.localeCompare(b.date))
-    .slice(0,4)
+    const colors = ["bg-blue-500", "bg-green-500", "bg-purple-500", "bg-amber-600", "bg-rose-500", "bg-yellow-500"];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+    const newS: PlannerSession = {
+      id: "slot_" + Date.now(),
+      subject: newSubj,
+      time: newTime,
+      topic: newTopic || "General study session",
+      color: randomColor,
+      completed: false
+    };
+
+    const updated = [...sessions, newS];
+    savePlannerRows(updated);
+
+    setNewSubj("");
+    setNewTime("");
+    setNewTopic("");
+    setShowAddForm(false);
+  };
+
+  const handleDeleteSession = (id: string | number) => {
+    const updated = sessions.filter(s => s.id !== id);
+    savePlannerRows(updated);
+  };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background:"var(--pz-bg)", color:"var(--pz-text)" }}>
-      <Navbar isLoggedIn user={{ name:"Learner", xp:2450, streak:12, plan:"free" }} />
+    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-screen flex flex-col items-center justify-start pb-28 font-body-md w-full max-w-[390px] mx-auto border-x border-black/10 shadow-xl relative overflow-y-auto flex-1">
+      
+      {/* TopAppBar */}
+      <header className="w-full top-0 sticky bg-[#FAF7F2] z-50 flex items-center justify-between px-5 h-16 border-b-2 border-on-background shadow-xs navbar-custom">
+        <button 
+          onClick={() => onNavigate("Dashboard")}
+          className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        </button>
+        <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold">Studenius Planner</span>
+        <button 
+          onClick={() => alert(`📅 Planner active: ${activeMonth}. Pro session syncing is enabled.`)}
+          className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center"
+        >
+          <span className="material-symbols-outlined">calendar_month</span>
+        </button>
+      </header>
 
-      <main className="flex-1 py-5 lg:py-8">
-        <div className="container mx-auto px-4 lg:px-8 max-w-6xl space-y-5">
-
-          {/* ── Header ── */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link to="/dashboard">
-                <button className="flex items-center gap-1 text-xs transition-opacity hover:opacity-60"
-                  style={{ color:"var(--pz-text-muted)" }}>
-                  <ChevronLeft className="h-3.5 w-3.5"/> Dashboard
-                </button>
-              </Link>
-              <div>
-                <h1 className="text-lg font-semibold" style={{ fontFamily:"'DM Serif Display',serif" }}>Study Planner</h1>
-                <p className="text-xs" style={{ color:"var(--pz-text-muted)" }}>Plan your sessions, hit your goals</p>
-              </div>
-            </div>
-            <button
-              onClick={() => openModal()}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-80"
-              style={{ background:"#10b981", color:"#fff", borderRadius:"var(--pz-r-md)" }}>
-              <Plus className="h-3.5 w-3.5"/> Add Session
-            </button>
-          </div>
-
-          {/* ── Stat tiles ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { icon:<Flame className="h-5 w-5" style={{color:"#f97316"}}/>, value:`${streak}`, emoji:"🔥", label:"Day Streak"       },
-              { icon:<Clock className="h-5 w-5" style={{color:"#3b82f6"}}/>, value:`${hoursThisWeek}h`, emoji:"", label:"Hours This Week"  },
-              { icon:<Check className="h-5 w-5" style={{color:"#10b981"}}/>, value:`${sessionsDone}`,    emoji:"",  label:"Sessions Done"   },
-              { icon:<span className="text-base">🎯</span>,                  value:`${goalPct}%`,         emoji:"",  label:"Goal Completion" },
-            ].map((s,i) => (
-              <div key={i} className="flex items-center gap-3 p-4" style={card}>
-                {s.icon}
-                <div>
-                  <p className="text-xl font-bold leading-none" style={{ fontFamily:"'DM Mono',monospace", color:"var(--pz-text)" }}>
-                    {s.value}{s.emoji}
-                  </p>
-                  <p className="text-[11px] mt-1" style={{ color:"var(--pz-text-muted)" }}>{s.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Main grid: Calendar left, Detail right ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-            {/* Calendar — takes 2 cols */}
-            <div className="lg:col-span-2" style={card}>
-              {/* Calendar header */}
-              <div className="flex items-center justify-between px-5 pt-5 pb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">📅</span>
-                  <span className="font-semibold text-base" style={{ color:"var(--pz-text)" }}>
-                    {MONTHS[month]} {year}
-                  </span>
-                </div>
-                <div className="flex gap-1.5">
-                  {[
-                    { icon:<ChevronLeft className="h-3.5 w-3.5"/>, onClick:()=>setCurrentDate(new Date(year,month-1,1)) },
-                    { icon:<ChevronRight className="h-3.5 w-3.5"/>, onClick:()=>setCurrentDate(new Date(year,month+1,1)) },
-                  ].map((b,i)=>(
-                    <button key={i} onClick={b.onClick}
-                      className="w-8 h-8 flex items-center justify-center transition-all hover:opacity-70"
-                      style={{ border:"1px solid var(--pz-border)", color:"var(--pz-text-muted)", borderRadius:"var(--pz-r-sm)" }}>
-                      {b.icon}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="px-4 pb-5">
-                {/* Day name headers */}
-                <div className="grid grid-cols-7 mb-2">
-                  {DAYS.map(d => (
-                    <div key={d} className="text-center text-[11px] font-semibold py-1.5 uppercase tracking-wider"
-                      style={{ color:"var(--pz-text-muted)" }}>{d}</div>
-                  ))}
-                </div>
-
-                {/* Day cells */}
-                <div className="grid grid-cols-7 gap-1">
-                  {days.map((day, i) => {
-                    if (!day) return <div key={`e-${i}`}/>
-                    const dateStr   = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`
-                    const dayEvts   = getEventsForDate(dateStr)
-                    const isToday   = dateStr === todayStr()
-                    const isSel     = dateStr === selectedDate
-                    return (
-                      <button key={day} onClick={() => setSelectedDate(dateStr)}
-                        className="aspect-square flex flex-col items-center justify-start pt-1.5 pb-1 text-xs font-medium transition-all"
-                        style={{
-                          borderRadius:"var(--pz-r-md)",
-                          background: isSel ? "#10b981" : isToday ? "rgba(16,185,129,0.12)" : "transparent",
-                          color: isSel ? "#fff" : isToday ? "#10b981" : "var(--pz-text-2)",
-                          border: isToday && !isSel ? "1px solid rgba(16,185,129,0.35)" : "1px solid transparent",
-                        }}>
-                        <span className="leading-none">{day}</span>
-                        {dayEvts.length > 0 && (
-                          <div className="flex gap-0.5 mt-1 flex-wrap justify-center">
-                            {dayEvts.slice(0,3).map((e,ei) => (
-                              <div key={ei} className="w-1.5 h-1.5 rounded-full"
-                                style={{ background: isSel ? "rgba(255,255,255,0.6)" : e.color }}/>
-                            ))}
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Right column — Day detail + Upcoming */}
-            <div className="flex flex-col gap-4">
-
-              {/* Day detail card */}
-              <div style={card}>
-                {/* Header */}
-                <div className="px-4 pt-4 pb-3" style={{ borderBottom:"1px solid var(--pz-border)" }}>
-                  <p className="text-sm font-semibold" style={{ color:"var(--pz-text)" }}>
-                    {new Date(selectedDate+"T00:00:00").toLocaleDateString("en-PH",{weekday:"long",month:"long",day:"numeric"})}
-                  </p>
-                  {selectedEvents.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-[11px] mb-1.5" style={{ color:"var(--pz-text-muted)" }}>
-                        {completedToday}/{selectedEvents.length} done
-                      </p>
-                      <Progress value={(completedToday/selectedEvents.length)*100} className="h-1.5"
-                        style={{ borderRadius:"99px" }} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Events */}
-                <div className="p-3 space-y-2">
-                  {selectedEvents.length === 0 ? (
-                    <div className="py-8 text-center" style={{ color:"var(--pz-text-muted)" }}>
-                      <BookOpen className="h-6 w-6 mx-auto mb-2 opacity-30"/>
-                      <p className="text-xs">No sessions planned</p>
-                    </div>
-                  ) : (
-                    selectedEvents.map(event => (
-                      <div key={event.id}
-                        className={cn("group transition-all", event.completed && "opacity-60")}
-                        style={{ background:"var(--pz-surface3)", borderRadius:"var(--pz-r-md)", border:"1px solid var(--pz-border)" }}>
-                        <div className="flex items-start gap-2.5 p-3">
-                          {/* Color bar */}
-                          <div className="w-1 self-stretch flex-shrink-0" style={{ background:event.color, borderRadius:"99px" }}/>
-                          {/* Checkbox */}
-                          <button onClick={() => toggleComplete(event.id)}
-                            className="mt-0.5 w-4 h-4 flex-shrink-0 flex items-center justify-center border-2 transition-all"
-                            style={{ borderRadius:"50%", background:event.completed?event.color:"transparent", borderColor:event.color }}>
-                            {event.completed && <Check className="h-2.5 w-2.5 text-white"/>}
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <p className={cn("text-sm font-medium", event.completed && "line-through")}
-                              style={{ color:"var(--pz-text)" }}>{event.title}</p>
-                            <span className="flex items-center gap-1 text-[11px] mt-0.5"
-                              style={{ color:"var(--pz-text-muted)", fontFamily:"'DM Mono',monospace" }}>
-                              <Clock className="h-2.5 w-2.5"/>{event.duration}min
-                            </span>
-                          </div>
-                          <button onClick={()=>deleteEvent(event.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 flex-shrink-0"
-                            style={{ color:"var(--pz-text-muted)" }}>
-                            <Trash2 className="h-3.5 w-3.5"/>
-                          </button>
-                        </div>
-                        {/* Sub-tasks */}
-                        {event.subTasks.length > 0 && (
-                          <div className="px-3 pb-2 space-y-1" style={{ borderTop:"1px solid var(--pz-border)" }}>
-                            {event.subTasks.map(sub => (
-                              <div key={sub.id} className="flex items-center gap-2 pt-1.5">
-                                <button onClick={()=>toggleSubTask(event.id,sub.id)}
-                                  className="w-3.5 h-3.5 flex-shrink-0 flex items-center justify-center border transition-all"
-                                  style={{ borderRadius:"3px", background:sub.done?event.color:"transparent", borderColor:sub.done?event.color:"var(--pz-border)" }}>
-                                  {sub.done && <Check className="h-2 w-2 text-white"/>}
-                                </button>
-                                <span className="text-xs" style={{ color:sub.done?"var(--pz-text-muted)":"var(--pz-text-2)", textDecoration:sub.done?"line-through":"none" }}>
-                                  {sub.text}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {/* Add sub-task */}
-                        <div className="px-3 pb-2.5 flex gap-1.5">
-                          <input
-                            value={subTaskInputs[event.id]||""}
-                            onChange={e=>setSubTaskInputs(p=>({...p,[event.id]:e.target.value}))}
-                            onKeyDown={e=>e.key==="Enter"&&addSubTask(event.id)}
-                            placeholder="Add sub-task..."
-                            className="flex-1 px-2 py-1 text-[11px] focus:outline-none"
-                            style={{ background:"var(--pz-surface2)", border:"1px solid var(--pz-border)", borderRadius:"var(--pz-r-sm)", color:"var(--pz-text)" }}/>
-                          <button onClick={()=>addSubTask(event.id)}
-                            className="px-2 text-[11px] transition-opacity hover:opacity-70"
-                            style={{ border:"1px solid var(--pz-border)", color:"var(--pz-text-muted)", borderRadius:"var(--pz-r-sm)" }}>
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  {/* Add another */}
-                  <button onClick={()=>openModal(selectedDate)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs transition-all hover:opacity-70"
-                    style={{ border:"1px dashed var(--pz-border)", color:"var(--pz-text-muted)", borderRadius:"var(--pz-r-md)" }}>
-                    <Plus className="h-3.5 w-3.5"/> Add another
-                  </button>
-                </div>
-              </div>
-
-              {/* Upcoming card */}
-              {upcoming.length > 0 && (
-                <div style={card}>
-                  <div className="flex items-center gap-2 px-4 pt-4 pb-3" style={{ borderBottom:"1px solid var(--pz-border)" }}>
-                    <Bell className="h-4 w-4" style={{ color:"#f59e0b" }}/>
-                    <span className="text-sm font-semibold" style={{ color:"var(--pz-text)" }}>Upcoming</span>
-                  </div>
-                  <div className="p-3 space-y-1.5">
-                    {upcoming.map(e => (
-                      <button key={e.id} onClick={()=>setSelectedDate(e.date)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-all hover:opacity-80"
-                        style={{ background:"var(--pz-surface3)", borderRadius:"var(--pz-r-sm)" }}>
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background:e.color }}/>
-                        <span className="flex-1 truncate" style={{ color:"var(--pz-text-2)" }}>{e.title}</span>
-                        <span className="flex-shrink-0 font-medium" style={{ color:"var(--pz-text-muted)", fontFamily:"'DM Mono',monospace" }}>
-                          {new Date(e.date+"T00:00:00").toLocaleDateString("en-PH",{month:"short",day:"numeric"})}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-        </div>
-      </main>
-
-      {/* ── Add Session Modal ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>setShowModal(false)}/>
-          <div className="relative w-full max-w-md p-6 space-y-4 z-10 shadow-2xl"
-            style={{ background:"var(--pz-surface)", border:"1px solid var(--pz-border)", borderRadius:"var(--pz-r-xl)" }}>
-
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-base" style={{ fontFamily:"'DM Serif Display',serif" }}>
-                Add Study Session
-              </h2>
-              <button onClick={()=>setShowModal(false)} className="p-1.5 transition-opacity hover:opacity-60" style={{ color:"var(--pz-text-muted)" }}>
-                <X className="h-4 w-4"/>
+      {/* Main Content */}
+      <main className="flex-1 w-full px-5 py-6 flex flex-col gap-6">
+        
+        {/* Calendar Navigation header */}
+        <section className="w-full flex flex-col gap-4">
+          <div className="flex justify-between items-center w-full">
+            <h2 className="font-headline text-headline-lg font-extrabold text-[21px] text-on-background">
+              {activeMonth}
+            </h2>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => alert("Moving back in calendar context")}
+                className="border-2 border-[#1c1c19] rounded-full w-8 h-8 flex items-center justify-center bg-white shadow-[1.5px_1.5px_0px_#1C1C19] active:translate-y-0.5 active:shadow-none"
+              >
+                <span className="material-symbols-outlined text-sm font-semibold">chevron_left</span>
+              </button>
+              <button 
+                onClick={() => alert("Moving forward in calendar context")}
+                className="border-2 border-[#1c1c19] rounded-full w-8 h-8 flex items-center justify-center bg-white shadow-[1.5px_1.5px_0px_#1C1C19] active:translate-y-0.5 active:shadow-none"
+              >
+                <span className="material-symbols-outlined text-sm font-semibold">chevron_right</span>
               </button>
             </div>
+          </div>
 
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block" style={{ color:"var(--pz-text-muted)" }}>
-                What are you studying?
-              </label>
-              <input autoFocus
-                className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/10"
-                style={{ background:"var(--pz-surface3)", border:"1px solid var(--pz-border)", borderRadius:"var(--pz-r-md)", color:"var(--pz-text)" }}
-                placeholder="e.g. Chapter 5, Calculus problems..."
-                value={formTitle} onChange={e=>setFormTitle(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&addSession()}/>
+          {/* Calendar Grid Representation */}
+          <div className="w-full bg-white border-2 border-black rounded-2xl p-5 shadow-[3.5px_3.5px_rgba(0,0,0,1)] flex flex-col gap-2.5">
+            {/* Days Header */}
+            <div className="grid grid-cols-7 gap-1 text-center font-label-sm text-[12px] text-[#E8534A] mb-2 font-bold opacity-60">
+              <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
             </div>
-
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block" style={{ color:"var(--pz-text-muted)" }}>Color</label>
-              <div className="flex flex-wrap gap-2">
-                {PALETTE.map(c=>(
-                  <button key={c} onClick={()=>setFormColor(c)}
-                    className="w-6 h-6 transition-all"
-                    style={{ background:c, borderRadius:"50%", outline:formColor===c?`3px solid ${c}`:"none", outlineOffset:"2px", transform:formColor===c?"scale(1.2)":"scale(1)" }}/>
-                ))}
-              </div>
+            
+            {/* Dates grid */}
+            <div className="grid grid-cols-7 gap-y-3.5 gap-x-1.5 text-center font-body-md text-[14.5px] font-bold">
+              {/* Previous month greyed out indicators (simplified) */}
+              <div className="text-neutral-300 select-none pb-1">1</div>
+              <div className="text-neutral-300 select-none pb-1">2</div>
+              <div className="text-neutral-300 select-none pb-1">3</div>
+              <div className="text-neutral-300 select-none pb-1">4</div>
+              
+              {/* Active days list */}
+              {Array.from({ length: 27 }, (_, i) => i + 5).map((day) => {
+                const isSelected = selectedDayNum === day;
+                return (
+                  <div 
+                    key={day}
+                    onClick={() => setSelectedDayNum(day)}
+                    className="flex flex-col items-center justify-center cursor-pointer relative"
+                  >
+                    {isSelected ? (
+                      <span className="w-8 h-8 rounded-full bg-[#E8534A] text-white flex items-center justify-center font-bold shadow-[1.5px_1.5px_rgba(0,0,0,1)] border border-black">
+                        {day}
+                      </span>
+                    ) : (
+                      <span className="hover:bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center">
+                        {day}
+                      </span>
+                    )}
+                    {day === 7 && <div className="w-1.5 h-1.5 rounded-full bg-teal-500 absolute bottom-[-4px]"></div>}
+                    {day === 12 && <div className="w-1.5 h-1.5 rounded-full bg-purple-500 absolute bottom-[-4px]"></div>}
+                    {day === 25 && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 absolute bottom-[-4px]"></div>}
+                  </div>
+                );
+              })}
+              
+              {/* Next month greyed out indicators */}
+              <div className="text-neutral-300 select-none pb-1">1</div>
+              <div className="text-neutral-300 select-none pb-1">2</div>
+              <div className="text-neutral-300 select-none pb-1">3</div>
+              <div className="text-neutral-300 select-none pb-1">4</div>
             </div>
+          </div>
+        </section>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block" style={{ color:"var(--pz-text-muted)" }}>Date</label>
-                <input type="date"
-                  className="w-full px-3 py-2 text-sm focus:outline-none"
-                  style={{ background:"var(--pz-surface3)", border:"1px solid var(--pz-border)", borderRadius:"var(--pz-r-md)", color:"var(--pz-text)" }}
-                  value={formDate} onChange={e=>setFormDate(e.target.value)}/>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block" style={{ color:"var(--pz-text-muted)" }}>Duration</label>
-                <div className="flex flex-wrap gap-1">
-                  {[15,30,45,60,90,120].map(d=>(
-                    <button key={d} onClick={()=>setFormDuration(d)}
-                      className="px-2 py-1 text-xs transition-all"
-                      style={{
-                        borderRadius:"var(--pz-r-sm)",
-                        background: formDuration===d ? formColor : "var(--pz-surface3)",
-                        color: formDuration===d ? "#fff" : "var(--pz-text-muted)",
-                        border: `1px solid ${formDuration===d ? formColor : "var(--pz-border)"}`,
-                      }}>
-                      {d<60?`${d}m`:`${d/60}h`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {/* Sessions list */}
+        <section className="w-full flex flex-col gap-4 pb-16">
+          <h3 className="font-headline text-headline-md font-extrabold text-[#1c1c19] text-[17.5px]">
+            Sessions for June {selectedDayNum}
+          </h3>
 
-            {formTitle && (
-              <div className="flex items-center gap-3 p-3" style={{ background:`${formColor}15`, border:`1px solid ${formColor}40`, borderRadius:"var(--pz-r-md)" }}>
-                <div className="w-1 h-8 flex-shrink-0" style={{ background:formColor, borderRadius:"99px" }}/>
-                <div>
-                  <p className="text-sm font-medium" style={{ color:"var(--pz-text)" }}>{formTitle}</p>
-                  <p className="text-xs" style={{ color:"var(--pz-text-muted)" }}>{formDuration<60?`${formDuration}min`:`${formDuration/60}h`}</p>
-                </div>
+          <div className="flex flex-col gap-4">
+            {sessions.length === 0 ? (
+              <div className="text-center py-8 border-2 border-dashed border-[#1a1a1a]/20 rounded-2xl bg-white">
+                <p className="text-sm font-bold opacity-60">No study blocks booked for today</p>
+                <button 
+                  onClick={() => setShowAddForm(true)}
+                  className="mt-2 text-xs bg-primary text-white border-2 border-black rounded-full px-3 py-1 font-bold"
+                >
+                  Create Study Slot
+                </button>
               </div>
+            ) : (
+              sessions.map((s) => {
+                const borderCol = s.color || "bg-blue-500";
+                return (
+                  <div 
+                    key={s.id}
+                    className={`w-full bg-white border-2 border-black rounded-2xl p-5 flex items-center justify-between relative overflow-hidden shadow-[2px_2px_rgba(0,0,0,1)] transition-opacity duration-200 ${
+                      s.completed ? "opacity-70 bg-[#f6f3ee]" : ""
+                    }`}
+                  >
+                    {/* Left color ribbon */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-3 border-r-2 border-black ${borderCol}`}></div>
+                    
+                    <div className={`pl-4 flex-1 pr-3 flex flex-col gap-1.5 text-left ${s.completed ? "line-through opacity-50" : ""}`}>
+                      <span className="font-label-sm text-label-sm text-secondary uppercase font-bold text-[11px] opacity-75">
+                        {s.time}
+                      </span>
+                      <h4 className="font-headline text-headline-md text-on-background font-extrabold text-[16px] leading-tight break-words">
+                        {s.subject}
+                      </h4>
+                      {s.topic && (
+                        <span className="font-body-md text-body-md text-on-surface-variant flex items-center gap-1.5 text-[13px] font-semibold">
+                          <span className="material-symbols-outlined text-[13px]">book</span>
+                          {s.topic}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {/* Delete slot */}
+                      <button 
+                        onClick={() => handleDeleteSession(s.id)}
+                        className="p-1 hover:text-[#E8534A] rounded-full transition-colors cursor-pointer"
+                        title="Delete slot"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+
+                      {/* Checkbox action */}
+                      <input 
+                        type="checkbox"
+                        checked={s.completed}
+                        onChange={() => handleToggleCompleted(s.id)}
+                        className="w-5.5 h-5.5 border-2 border-black rounded cursor-pointer accent-[#ae2925] shrink-0"
+                      />
+                    </div>
+                  </div>
+                );
+              })
             )}
+          </div>
+        </section>
 
-            <div className="flex gap-2 pt-1">
-              <button onClick={()=>setShowModal(false)}
-                className="flex-1 py-2.5 text-sm transition-opacity hover:opacity-70"
-                style={{ border:"1px solid var(--pz-border)", color:"var(--pz-text-muted)", borderRadius:"var(--pz-r-md)" }}>
+        {/* Dynamic add task popup */}
+        {showAddForm && (
+          <form 
+            onSubmit={handleAddSessionSubmit}
+            className="w-full bg-white border-2 border-black rounded-2xl p-5 flex flex-col gap-4 shadow-[4px_4px_rgba(0,0,0,1)] relative z-50 text-left"
+          >
+            <h4 className="font-headline text-[13.5px] uppercase tracking-wider text-[#E8534A] font-extrabold">
+              Add New Study Slot
+            </h4>
+            <div className="flex flex-col gap-3">
+              <input 
+                type="text" 
+                placeholder="Subject Name (e.g. Calculus III)" 
+                value={newSubj}
+                onChange={(e) => setNewSubj(e.target.value)}
+                className="border-2 border-black rounded-lg p-3 text-xs font-bold w-full"
+                required
+              />
+              <input 
+                type="text" 
+                placeholder="Time Bounds (e.g. 10:00 AM - 11:30 AM)" 
+                value={newTime}
+                onChange={(e) => setNewTime(e.target.value)}
+                className="border-2 border-black rounded-lg p-3 text-xs font-bold w-full"
+                required
+              />
+              <input 
+                type="text" 
+                placeholder="Session Topic / Target task" 
+                value={newTopic}
+                onChange={(e) => setNewTopic(e.target.value)}
+                className="border-2 border-black rounded-lg p-3 text-xs font-bold w-full"
+              />
+            </div>
+            <div className="flex justify-between mt-2">
+              <button 
+                type="button" 
+                onClick={() => setShowAddForm(false)}
+                className="text-xs font-bold text-slate-500 underline p-2 cursor-pointer"
+              >
                 Cancel
               </button>
-              <button disabled={!formTitle.trim()} onClick={addSession}
-                className="flex-1 py-2.5 text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-30"
-                style={{ background:formColor, color:"#fff", border:"none", borderRadius:"var(--pz-r-md)" }}>
-                Add Session
+              <button 
+                type="submit" 
+                className="bg-primary text-white hover:bg-neutral-800 text-xs font-extrabold px-5 py-3 border border-black rounded-lg shadow-sm cursor-pointer"
+              >
+                Save Slot
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </form>
+        )}
+
+      </main>
+
+      {/* Floating Action Button */}
+      <button 
+        onClick={() => {
+          setShowAddForm(true);
+        }}
+        className="absolute bottom-28 right-5 w-14 h-14 bg-[#E8534A] text-white border-2 border-black rounded-full flex items-center justify-center shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 select-none hover:bg-opacity-95 z-45 cursor-pointer"
+      >
+        <span className="material-symbols-outlined text-2xl font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
+      </button>
+
     </div>
-  )
+  );
 }

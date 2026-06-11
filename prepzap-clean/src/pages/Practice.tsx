@@ -1,699 +1,410 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { ToolPageShell } from "@/components/ToolPageShell";
-import { BottomNav } from "@/components/BottomNav";
-import { useToolHistory, ToolHistorySidebar, type ToolSession } from "@/components/ToolHistorySidebar";
-import {
-  loadLibrary,
-  loadContext,
-  onSourceChange,
-  type SourceFile,
-  type SourceContextState,
-} from "@/lib/sourceContext";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { callGroq } from "@/lib/groq";
+import { supabase } from "@/lib/supabase";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface MCQOption { label: string; text: string }
-interface MCQ {
-  id: string;
-  question: string;
-  options: MCQOption[];
-  answer: string;
-  explanation: string;
-  difficulty: "easy" | "medium" | "hard";
+interface Question {
+  q: string;
+  options: string[];
+  correct: number;
+  subject: string;
+  difficulty: string;
 }
 
-interface PracticeSession {
-  topic: string;
-  difficulty: "easy" | "medium" | "hard" | "mixed";
-  count: number;
-  questions: MCQ[];
-  answers: Record<string, string>;
-  submitted: boolean;
+interface PracticeProps {
+  onNavigate: (screen: string) => void;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const GOLD = "#f0a040";
-const BG = "#160810";
-const SURF = "#1f0b13";
-const SURF2 = "#2a0e18";
-const BORDER = "rgba(139,26,42,0.35)";
-const TEXT = "#f5ede8";
-const TEXT2 = "rgba(245,237,232,0.55)";
-const TEXT3 = "rgba(245,237,232,0.28)";
+export default function Practice({ onNavigate }: PracticeProps) {
+  const { user, profile, refreshProfile } = useAuth();
+  
+  const [view, setView] = useState<"quiz" | "results">("quiz");
+  const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes default
+  const [score, setScore] = useState(0);
+  const [answers, setAnswers] = useState<number[]>([]);
+  
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeSource, setActiveSource] = useState<any>(null);
+  const [activeSourcesCount, setActiveSourcesCount] = useState(0);
 
-const DIFF_COLORS = {
-  easy: "#10b981",
-  medium: "#f59e0b",
-  hard: "#ef4444",
-  mixed: "#8b5cf6",
-};
+  // Fallback / standard core educational quiz questions
+  const [questions, setQuestions] = useState<Question[]>([
+    {
+      q: "Which architectural pattern strictly isolates the domain logic from external concerns like databases or UI?",
+      options: [
+        "Model-View-Controller (MVC)",
+        "Hexagonal Architecture (Ports & Adapters)",
+        "Monolithic Architecture",
+        "Event-Driven Architecture"
+      ],
+      correct: 1,
+      subject: "Software Eng",
+      difficulty: "Hard"
+    },
+    {
+      q: "Which enzyme is responsible for unwinding the DNA double helix during replica creation?",
+      options: [
+        "DNA Polymerase",
+        "RNA Primase",
+        "Helicase",
+        "Ligase"
+      ],
+      correct: 2,
+      subject: "Biology",
+      difficulty: "Medium"
+    },
+    {
+      q: "If an object's velocity is doubled, what factor does its kinetic energy increase by?",
+      options: [
+        "2x",
+        "4x",
+        "8x",
+        "Does not change"
+      ],
+      correct: 1,
+      subject: "Physics",
+      difficulty: "Easy"
+    }
+  ]);
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function getActiveSourceFiles(
-  files: SourceFile[],
-  ctx: SourceContextState
-): SourceFile[] {
-  if (ctx.mode === "all") return files;
-  if (ctx.mode === "selected") {
-    const ids = ctx.selectedIds ?? [];
-    return files.filter((f) => ids.includes(f.id));
-  }
-  return [];
-}
+  // Synchronize active source contexts on mount
+  useEffect(() => {
+    const ctx = loadContext();
+    const activeIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
+    setActiveSourcesCount(ctx.selectedIds?.length ?? 0);
+    setActiveSource(getActiveSource());
+  }, []);
 
-function buildSourceSnippet(files: SourceFile[]): string {
-  if (!files.length) return "";
-  const combined = files
-    .map((f) => `[Source: ${f.name}]\n${f.content ?? ""}`)
-    .join("\n\n")
-    .slice(0, 8000);
-  return `\n\nUse the following source material to generate relevant questions:\n${combined}`;
-}
+  // Timer tick simulation
+  useEffect(() => {
+    if (view !== "quiz") return;
+    const interval = setInterval(() => {
+      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [view]);
 
-// ─── AI Generation ────────────────────────────────────────────────────────────
-async function generateMCQs(
-  topic: string,
-  difficulty: string,
-  count: number,
-  sourceSnippet: string
-): Promise<MCQ[]> {
-  const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
-  const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
-  const systemPrompt = `You are a rigorous academic quiz generator. Generate exactly ${count} multiple-choice questions about: "${topic}".
-Difficulty: ${difficulty}.${sourceSnippet}
-
-RESPOND ONLY with a valid JSON array. No preamble, no markdown fences.
-Format:
-[
-  {
-    "id": "q1",
-    "question": "...",
-    "options": [
-      {"label": "A", "text": "..."},
-      {"label": "B", "text": "..."},
-      {"label": "C", "text": "..."},
-      {"label": "D", "text": "..."}
-    ],
-    "answer": "A",
-    "explanation": "...",
-    "difficulty": "${difficulty === "mixed" ? "medium" : difficulty}"
-  }
-]`;
-
-  // Try Groq first
-  if (GROQ_KEY) {
+  const handleGenerateQuiz = async () => {
+    setIsGenerating(true);
     try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${GROQ_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: systemPrompt }],
-          temperature: 0.7,
-          max_tokens: 4000,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const raw = data.choices?.[0]?.message?.content ?? "";
-        const clean = raw.replace(/```json|```/g, "").trim();
-        const parsed = JSON.parse(clean);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch { /* fall through to Gemini */ }
-  }
+      const sourceText = buildAIContext();
+      const promptText = sourceText 
+        ? `Generate a set of 3 interesting, high-quality multi-choice quiz questions based on the following student resource note attachment:\n\n---\n${sourceText}\n---\n`
+        : `Generate 3 high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
 
-  // Fallback: Gemini
-  if (GEMINI_KEY) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 4000 },
-          }),
+      const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly 3 questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
+Each object in the JSON array MUST match this exact schema:
+{
+  "q": "The question title text",
+  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "correct": 0, // index of correct option (0 to 3)
+  "subject": "Name of Subject (e.g. History)",
+  "difficulty": "Easy, Medium or Hard"
+}`;
+
+      // Safe callGroq signature resolver mapping to local or remote environments
+      const callGroqWithModel = async (promptText: string, systemPrompt: string) => {
+        const fn = callGroq as any;
+        const fnStr = fn.toString();
+        if (fnStr.includes("messages") || fnStr.includes("llama")) {
+          return await fn([{ role: "user", content: promptText }], systemPrompt, "llama-3.3-70b-versatile", 1000);
+        } else {
+          return await fn(promptText, systemPrompt, "application/json");
         }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-        const clean = raw.replace(/```json|```/g, "").trim();
-        const parsed = JSON.parse(clean);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch { /* fall through */ }
-  }
-
-  throw new Error("Could not generate questions. Check your API keys in .env.");
-}
-
-// ─── Sub-components ────────────────────────────────────────────────────────────
-function ScoreBadge({ score, total }: { score: number; total: number }) {
-  const pct = Math.round((score / total) * 100);
-  const color = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        background: `${color}18`,
-        border: `2px solid ${color}`,
-        borderRadius: 12,
-        padding: "10px 20px",
-        color,
-        fontFamily: "'Fredoka One', cursive",
-        fontSize: 20,
-      }}
-    >
-      {score}/{total} · {pct}%
-    </div>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-export default function Practice() {
-  // Source context — safe initialization (fixes "confirmedSources is not defined")
-  const [sourceFiles, setSourceFiles] = useState<SourceFile[]>(() => {
-    try { return loadLibrary(); } catch { return []; }
-  });
-  const [sourceCtx, setSourceCtx] = useState<SourceContextState>(() => {
-    try { return loadContext(); } catch { return { mode: "none", selectedIds: [] }; }
-  });
-
-  useEffect(() => {
-    try {
-      return onSourceChange(() => {
-        setSourceFiles(loadLibrary());
-        setSourceCtx(loadContext());
-      });
-    } catch { return undefined; }
-  }, []);
-
-  // Derive active sources safely
-  const activeSources = getActiveSourceFiles(sourceFiles, sourceCtx);
-
-  // Session state
-  const [topic, setTopic] = useState("");
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard" | "mixed">("medium");
-  const [count, setCount] = useState(5);
-  const [session, setSession] = useState<PracticeSession | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // History sidebar
-  const { sessions, addSession, deleteSession } = useToolHistory("practice");
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-
-  // Quick-launch prefill
-  useEffect(() => {
-    try {
-      const prefill = sessionStorage.getItem("quicklaunch_prompt");
-      const tool = sessionStorage.getItem("quicklaunch_tool");
-      if (prefill && tool === "/practice") {
-        setTopic(prefill);
-        sessionStorage.removeItem("quicklaunch_prompt");
-        sessionStorage.removeItem("quicklaunch_tool");
-      }
-    } catch { /* ignore */ }
-  }, []);
-
-  const handleGenerate = async () => {
-    if (!topic.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const snippet = buildSourceSnippet(activeSources);
-      const questions = await generateMCQs(topic.trim(), difficulty, count, snippet);
-      const newSession: PracticeSession = {
-        topic: topic.trim(),
-        difficulty,
-        count: questions.length,
-        questions,
-        answers: {},
-        submitted: false,
       };
-      setSession(newSession);
-      const hist = addSession(topic.trim(), `${questions.length} ${difficulty} questions`);
-      setActiveSessionId(hist.id);
-    } catch (e: any) {
-      setError(e.message || "Something went wrong. Try again.");
+
+      const aiResponse = await callGroqWithModel(promptText, systemPrompt);
+      
+      // Sanitisation to extract JSON if anything like markdown wraps it
+      let sanitized = aiResponse.trim();
+      if (sanitized.startsWith("```json")) {
+        sanitized = sanitized.substring(7);
+      }
+      if (sanitized.endsWith("```")) {
+        sanitized = sanitized.substring(0, sanitized.length - 3);
+      }
+      sanitized = sanitized.trim();
+
+      const parsed = JSON.parse(sanitized);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setQuestions(parsed);
+        setCurrentQIndex(0);
+        setSelectedOption(null);
+        setAnswers([]);
+        setScore(0);
+        setTimeLeft(450); // reset clock to 7.5 mins
+        alert("🎉 Successfully compiled 3 custom study questions using Rex AI Reasoning!");
+      } else {
+        throw new Error("Invalid structure returned by AI model");
+      }
+    } catch (err: any) {
+      alert("Failed to compile quiz: " + err.message + ". Falling back to core standard review list.");
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleAnswer = (questionId: string, label: string) => {
-    if (!session || session.submitted) return;
-    setSession((prev) =>
-      prev ? { ...prev, answers: { ...prev.answers, [questionId]: label } } : prev
-    );
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const handleSubmit = () => {
-    if (!session) return;
-    setSession((prev) => prev ? { ...prev, submitted: true } : prev);
+  const handleSelectOption = (index: number) => {
+    setSelectedOption(index);
   };
 
-  const handleReset = () => {
-    setSession(null);
-    setActiveSessionId(null);
-    setTopic("");
+  const handleNext = () => {
+    if (selectedOption === null) return;
+
+    const correctAns = questions[currentQIndex].correct;
+    const isCorrect = selectedOption === correctAns;
+    const nextAnswers = [...answers, selectedOption];
+    setAnswers(nextAnswers);
+
+    let nextScore = score;
+    if (isCorrect) {
+      nextScore = score + 1;
+      setScore(nextScore);
+    }
+
+    if (currentQIndex + 1 < questions.length) {
+      setCurrentQIndex(prev => prev + 1);
+      setSelectedOption(null); // Reset option selected
+    } else {
+      // Award real game-like progression dynamics: XP and Coins
+      const xpAwarded = nextScore * 30 + 10;
+      const coinsAwarded = nextScore * 15 + 5;
+
+      const triggerRewards = async () => {
+        if (user && profile) {
+          try {
+            const currentXp = profile.total_xp || profile.xp || 0;
+            const currentCoins = profile.coins || 0;
+            await supabase
+              .from("profiles")
+              .update({ 
+                total_xp: currentXp + xpAwarded,
+                coins: currentCoins + coinsAwarded
+              })
+              .eq("id", user.id);
+            if (typeof refreshProfile === "function") {
+              await refreshProfile();
+            }
+          } catch (err) {
+            console.error("Error updating profile via Supabase:", err);
+            await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpAwarded }).eq("id", user?.id ?? ""); await refreshProfile();
+          }
+        } else {
+          await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpAwarded }).eq("id", user?.id ?? ""); await refreshProfile();
+        }
+      };
+
+      triggerRewards();
+      setView("results");
+    }
   };
 
-  const score = session
-    ? session.questions.filter((q) => session.answers[q.id] === q.answer).length
-    : 0;
+  const currentQuestion = questions[currentQIndex];
+  const progressPercent = Math.round(((currentQIndex + 1) / questions.length) * 100);
 
   return (
-    <ToolPageShell>
-      {/* History sidebar */}
-      <ToolHistorySidebar
-        toolKey="practice"
-        onNew={handleReset}
-        onSelect={(s: ToolSession) => {
-          setTopic(s.title);
-          setActiveSessionId(s.id);
-        }}
-        activeId={activeSessionId}
-      />
+    <div className="relative w-full max-w-[390px] min-h-screen bg-[#FAF7F2] border-black flex flex-col mx-auto overflow-hidden">
+      {/* TopAppBar */}
+      <header className="w-full top-0 sticky z-45 bg-[#FAF7F2] border-b-2 border-[#1A1A1A] flex items-center justify-between px-5 h-16">
+        <button 
+          onClick={() => onNavigate("Dashboard")}
+          className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 -ml-2 rounded-full flex items-center justify-center border-2 border-[#1A1A1A] bg-white h-10 w-10 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 className="font-headline text-headline-md text-[#1A1A1A] flex-1 text-center font-extrabold tracking-tight text-[21px]">Practice Exam</h1>
+        <button 
+          onClick={() => onNavigate("Analytics")}
+          className="text-[#1A1A1A] hover:bg-neutral-50 transition-colors p-2 -mr-2 rounded-full flex items-center justify-center"
+        >
+          <span className="material-symbols-outlined">history</span>
+        </button>
+      </header>
 
-      <div
-        style={{
-          maxWidth: 720,
-          margin: "0 auto",
-          padding: "20px 16px 100px",
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: GOLD, fontFamily: "'Fredoka One', cursive", margin: 0 }}>
-              📝 Practice
-            </h1>
-            <p style={{ fontSize: 12, color: TEXT2, margin: 0 }}>
-              AI-generated multiple choice questions on any topic
-            </p>
-          </div>
-        </div>
-
-        {/* Source context indicator */}
-        {activeSources.length > 0 && (
-          <div
-            style={{
-              background: `${GOLD}11`,
-              border: `1px solid ${GOLD}44`,
-              borderRadius: 10,
-              padding: "8px 12px",
-              marginBottom: 16,
-              fontSize: 11,
-              color: GOLD,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            📚 Using {activeSources.length} source{activeSources.length !== 1 ? "s" : ""} from your library
-          </div>
-        )}
-
-        {/* Session setup form */}
-        {!session && (
-          <div
-            style={{
-              background: SURF,
-              border: `2px solid ${BORDER}`,
-              borderRadius: 18,
-              padding: "20px",
-              marginBottom: 20,
-            }}
-          >
-            {/* Topic input */}
-            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: TEXT3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
-              Topic or Subject
-            </label>
-            <input
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-              placeholder="e.g. Mitosis, Newton's Laws, French Revolution..."
-              style={{
-                width: "100%",
-                background: SURF2,
-                border: `1.5px solid ${BORDER}`,
-                borderRadius: 12,
-                padding: "12px 14px",
-                color: TEXT,
-                fontSize: 14,
-                fontFamily: "'Nunito', sans-serif",
-                outline: "none",
-                marginBottom: 16,
-                boxSizing: "border-box",
-              }}
-            />
-
-            {/* Difficulty + Count row */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-              {/* Difficulty */}
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: TEXT3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
-                  Difficulty
-                </label>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {(["easy", "medium", "hard", "mixed"] as const).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDifficulty(d)}
-                      style={{
-                        flex: 1,
-                        padding: "8px 4px",
-                        borderRadius: 10,
-                        border: `1.5px solid ${difficulty === d ? DIFF_COLORS[d] : BORDER}`,
-                        background: difficulty === d ? `${DIFF_COLORS[d]}22` : SURF2,
-                        color: difficulty === d ? DIFF_COLORS[d] : TEXT2,
-                        fontSize: 10,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontFamily: "'Nunito', sans-serif",
-                        textTransform: "capitalize",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
+      {view === "quiz" && (
+        <>
+          {/* Main Content Area */}
+          <main className="flex-1 w-full px-5 py-6 flex flex-col gap-5 pb-[130px] overflow-y-auto">
+            
+            {/* AI Generator Banner */}
+            <div className="bg-[#e9f2ff] rounded-2xl border-2 border-[#1A1A1A] p-4.5 shadow-[3px_3px_0px_rgba(0,0,0,1)] flex flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🦊</span>
+                <span className="text-xs font-black text-primary uppercase tracking-wider">Rex AI Quiz Builder</span>
               </div>
-
-              {/* Count */}
-              <div style={{ minWidth: 120 }}>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: TEXT3, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
-                  # Questions
-                </label>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {[3, 5, 10, 15].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => setCount(n)}
-                      style={{
-                        flex: 1,
-                        padding: "8px 4px",
-                        borderRadius: 10,
-                        border: `1.5px solid ${count === n ? GOLD : BORDER}`,
-                        background: count === n ? `${GOLD}22` : SURF2,
-                        color: count === n ? GOLD : TEXT2,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontFamily: "'Nunito', sans-serif",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Generate button */}
-            <button
-              onClick={handleGenerate}
-              disabled={loading || !topic.trim()}
-              style={{
-                width: "100%",
-                padding: "14px",
-                borderRadius: 14,
-                background: topic.trim() && !loading ? GOLD : SURF2,
-                border: `2px solid ${topic.trim() && !loading ? GOLD : BORDER}`,
-                color: topic.trim() && !loading ? BG : TEXT3,
-                fontSize: 14,
-                fontWeight: 800,
-                cursor: topic.trim() && !loading ? "pointer" : "not-allowed",
-                fontFamily: "'Fredoka One', cursive",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              {loading ? (
-                <>
-                  <span style={{ display: "inline-block", animation: "spin 1s linear infinite", fontSize: 16 }}>⟳</span>
-                  Generating {count} questions...
-                </>
-              ) : (
-                <>📝 Generate {count} Questions</>
-              )}
-            </button>
-
-            {error && (
-              <div
-                style={{
-                  marginTop: 12,
-                  background: "#ef444418",
-                  border: "1px solid #ef444444",
-                  borderRadius: 10,
-                  padding: "10px 14px",
-                  color: "#ef4444",
-                  fontSize: 12,
-                }}
+              <p className="text-[12.5px] leading-snug font-bold text-black/80">
+                {activeSource 
+                  ? `Detected active file "${activeSource.name}"! You can compile a custom mock-quiz immediately.`
+                  : activeSourcesCount > 0
+                    ? `Detected ${activeSourcesCount} active source notes! Let's build a custom exam.`
+                    : "Let the Rex study tutor compile 3 custom multi-choice questions covering any subject!"}
+              </p>
+              <button
+                onClick={handleGenerateQuiz}
+                disabled={isGenerating}
+                className="bg-white hover:bg-black hover:text-white border-2 border-black text-xs font-extrabold py-2 px-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                ⚠️ {error}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Questions */}
-        {session && (
-          <>
-            {/* Session header */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 20,
-                flexWrap: "wrap",
-                gap: 10,
-              }}
-            >
-              <div>
-                <h2 style={{ fontSize: 16, fontWeight: 800, color: TEXT, margin: 0, fontFamily: "'Fredoka One', cursive" }}>
-                  {session.topic}
-                </h2>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: DIFF_COLORS[session.difficulty],
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                  }}
-                >
-                  {session.difficulty} · {session.questions.length} questions
-                </span>
-              </div>
-              {session.submitted ? (
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <ScoreBadge score={score} total={session.questions.length} />
-                  <button
-                    onClick={handleReset}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: 10,
-                      border: `1.5px solid ${BORDER}`,
-                      background: SURF2,
-                      color: TEXT2,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontFamily: "'Nunito', sans-serif",
-                    }}
-                  >
-                    ↩ New Practice
-                  </button>
-                </div>
-              ) : (
-                <span style={{ fontSize: 12, color: TEXT3 }}>
-                  {Object.keys(session.answers).length}/{session.questions.length} answered
-                </span>
-              )}
+                {isGenerating ? (
+                  <>
+                    <span className="animate-spin text-sm">⌛</span> Reading materials...
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm">✨</span> Generate Quiz via AI
+                  </>
+                )}
+              </button>
             </div>
 
-            {/* Questions list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {session.questions.map((q, qi) => {
-                const userAnswer = session.answers[q.id];
-                const isCorrect = userAnswer === q.answer;
+            {/* Progress / Meta Info */}
+            <div className="flex items-center justify-between w-full mt-1">
+              <div className="text-black bg-white px-3.5 py-1.5 rounded-full border-2 border-[#1A1A1A] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 text-[13px] font-bold">
+                <span className="material-symbols-outlined text-[15px] text-primary font-bold">timer</span>
+                {formatTime(timeLeft)}
+              </div>
+              <div className="text-[#1A1A1A] font-extrabold text-[16px]">
+                Question {currentQIndex + 1} <span className="text-slate-500 font-bold text-[13px]">/ {questions.length}</span>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full h-3 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden relative">
+              <div 
+                className="h-full bg-primary absolute left-0 top-0 transition-all duration-300" 
+                style={{ width: `${progressPercent}%`, borderRight: "2px solid #1A1A1A" }}
+              ></div>
+            </div>
+
+            {/* Question Card */}
+            <div className="bg-white rounded-2xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] p-5.5 relative overflow-visible">
+              <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#85f5eb] rounded-full border-2 border-[#1A1A1A] flex items-center justify-center transform rotate-12 z-10">
+                <span className="material-symbols-outlined text-[16px] text-[#1A1A1A] font-bold">psychology_alt</span>
+              </div>
+              
+              <h2 className="text-black font-extrabold leading-snug text-[16.5px]">
+                {currentQuestion.q}
+              </h2>
+              
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-slate-800 text-[11.5px] font-bold uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-[13px] mr-1 font-bold">folder</span>
+                  {currentQuestion.subject}
+                </span>
+                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-slate-800 text-[11.5px] font-bold uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-[13px] mr-1 font-bold">leaderboard</span>
+                  {currentQuestion.difficulty}
+                </span>
+              </div>
+            </div>
+
+            {/* Answers List */}
+            <div className="flex flex-col gap-3.5 mt-1">
+              {currentQuestion.options.map((option, idx) => {
+                const label = ["A", "B", "C", "D"][idx];
+                const isSelected = selectedOption === idx;
+                
                 return (
-                  <div
-                    key={q.id}
-                    style={{
-                      background: SURF,
-                      border: `2px solid ${
-                        !session.submitted || !userAnswer
-                          ? BORDER
-                          : isCorrect
-                          ? "#10b98144"
-                          : "#ef444444"
-                      }`,
-                      borderRadius: 16,
-                      padding: "16px",
-                      transition: "border-color 0.2s",
-                    }}
+                  <button
+                    key={idx}
+                    onClick={() => handleSelectOption(idx)}
+                    className={`w-full text-left rounded-2xl border-2 border-[#1A1A1A] p-4.5 flex items-center gap-4 transition-all duration-100 relative group cursor-pointer ${
+                      isSelected 
+                        ? "bg-[#ffdad6] shadow-[3px_3px_0px_rgba(0,0,0,1)] -translate-y-0.5" 
+                        : "bg-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,0.1)] hover:shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5"
+                    }`}
                   >
-                    {/* Question */}
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: TEXT,
-                        fontWeight: 600,
-                        marginBottom: 12,
-                        lineHeight: 1.5,
-                      }}
+                    <div 
+                      className={`w-8 h-8 rounded-full border-2 border-[#1A1A1A] flex items-center justify-center text-ink flex-shrink-0 font-extrabold text-[13px] transition-colors ${
+                        isSelected ? "bg-primary text-white" : "bg-neutral-100 text-[#1A1A1A]"
+                      }`}
                     >
-                      <span style={{ color: GOLD, fontWeight: 800, marginRight: 6 }}>
-                        Q{qi + 1}.
-                      </span>
-                      {q.question}
-                    </p>
-
-                    {/* Options */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {q.options.map((opt) => {
-                        const isSelected = userAnswer === opt.label;
-                        const isRight = opt.label === q.answer;
-                        let borderColor = BORDER;
-                        let bgColor = SURF2;
-                        let textColor = TEXT2;
-
-                        if (session.submitted) {
-                          if (isRight) { borderColor = "#10b981"; bgColor = "#10b98118"; textColor = "#10b981"; }
-                          else if (isSelected && !isRight) { borderColor = "#ef4444"; bgColor = "#ef444418"; textColor = "#ef4444"; }
-                        } else if (isSelected) {
-                          borderColor = GOLD; bgColor = `${GOLD}18`; textColor = TEXT;
-                        }
-
-                        return (
-                          <button
-                            key={opt.label}
-                            onClick={() => handleAnswer(q.id, opt.label)}
-                            disabled={session.submitted}
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: 10,
-                              padding: "10px 12px",
-                              borderRadius: 10,
-                              border: `1.5px solid ${borderColor}`,
-                              background: bgColor,
-                              color: textColor,
-                              fontSize: 13,
-                              fontFamily: "'Nunito', sans-serif",
-                              cursor: session.submitted ? "default" : "pointer",
-                              textAlign: "left",
-                              transition: "all 0.15s",
-                              width: "100%",
-                            }}
-                          >
-                            <span
-                              style={{
-                                flexShrink: 0,
-                                width: 22,
-                                height: 22,
-                                borderRadius: "50%",
-                                background: isSelected || (session.submitted && isRight) ? borderColor : "transparent",
-                                border: `1.5px solid ${borderColor}`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: 10,
-                                fontWeight: 800,
-                                color: isSelected || (session.submitted && isRight) ? BG : borderColor,
-                              }}
-                            >
-                              {opt.label}
-                            </span>
-                            <span style={{ lineHeight: 1.5, paddingTop: 2 }}>{opt.text}</span>
-                            {session.submitted && isRight && (
-                              <span style={{ marginLeft: "auto", fontSize: 14 }}>✓</span>
-                            )}
-                          </button>
-                        );
-                      })}
+                      {label}
                     </div>
-
-                    {/* Explanation */}
-                    {session.submitted && (
-                      <div
-                        style={{
-                          marginTop: 12,
-                          padding: "10px 12px",
-                          background: "#ffffff08",
-                          borderRadius: 10,
-                          border: `1px solid ${BORDER}`,
-                          fontSize: 12,
-                          color: TEXT2,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        <span style={{ color: GOLD, fontWeight: 700 }}>💡 Explanation: </span>
-                        {q.explanation}
-                      </div>
-                    )}
-                  </div>
+                    <span className={`text-[#1A1A1A] leading-tight text-[14.5px] ${isSelected ? "font-extrabold" : "font-bold"}`}>
+                      {option}
+                    </span>
+                  </button>
                 );
               })}
             </div>
+          </main>
 
-            {/* Submit button */}
-            {!session.submitted && (
-              <button
-                onClick={handleSubmit}
-                disabled={Object.keys(session.answers).length === 0}
-                style={{
-                  width: "100%",
-                  marginTop: 20,
-                  padding: "14px",
-                  borderRadius: 14,
-                  background:
-                    Object.keys(session.answers).length > 0 ? GOLD : SURF2,
-                  border: `2px solid ${
-                    Object.keys(session.answers).length > 0 ? GOLD : BORDER
-                  }`,
-                  color:
-                    Object.keys(session.answers).length > 0 ? BG : TEXT3,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor:
-                    Object.keys(session.answers).length > 0
-                      ? "pointer"
-                      : "not-allowed",
-                  fontFamily: "'Fredoka One', cursive",
-                  transition: "all 0.2s",
-                }}
-              >
-                Submit & See Results
-              </button>
-            )}
-          </>
-        )}
-      </div>
+          {/* Bottom Action Area (Fixed) */}
+          <div className="absolute bottom-0 w-full max-w-[390px] bg-[#FAF7F2] border-t-2 border-[#1A1A1A] px-5 py-4 pb-6 z-30">
+            <button 
+              disabled={selectedOption === null}
+              onClick={handleNext}
+              className={`w-full text-white py-3.5 rounded-xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${
+                selectedOption !== null ? "bg-primary opacity-100 cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"
+              }`}
+            >
+              Next Question
+              <span className="material-symbols-outlined font-bold">arrow_forward</span>
+            </button>
+          </div>
+        </>
+      )}
 
-      <BottomNav />
+      {view === "results" && (
+        <main className="flex-1 w-full px-5 py-8 flex flex-col items-center justify-center text-center">
+          <div className="w-20 h-20 bg-[#fca623]/20 border-2 border-[#1A1A1A] shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-full flex items-center justify-center mb-6">
+            <span className="material-symbols-outlined text-4xl text-[#1A1A1A] font-bold">emoji_events</span>
+          </div>
 
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-    </ToolPageShell>
+          <h2 className="text-[#1A1A1A] font-black mb-1.5 text-[24px]">Exam Compiled!</h2>
+          <p className="text-slate-500 font-bold max-w-[280px] mb-6 text-[14px]">
+            Practice test recorded in historic journals. Review detailed scores below.
+          </p>
+
+          <div className="w-full bg-white border-2 border-[#1A1A1A] rounded-2xl p-5.5 shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col gap-4 text-left mb-8">
+            <div className="flex justify-between items-center border-b pb-2.5">
+              <span className="font-extrabold text-slate-500 text-[13.5px]">SUCCESS METRIC</span>
+              <span className="text-primary text-[22px] font-black">
+                {Math.round((score / questions.length) * 100)}%
+              </span>
+            </div>
+            <div className="flex justify-between items-center border-b pb-2.5">
+              <span className="font-extrabold text-slate-500 text-[13.5px]">CORRECT HITS</span>
+              <span className="text-black text-[15.5px] font-bold">{score} / {questions.length} items</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-extrabold text-slate-500 text-[13.5px]">REWARDS UNLOCKED</span>
+              <span className="text-[#F5A623] font-bold text-[14.5px]">+{score * 30 + 10} XP · +{score * 15 + 5} Coins</span>
+            </div>
+          </div>
+
+          <div className="flex gap-4.5 w-full">
+            <button 
+              onClick={() => {
+                setView("quiz");
+                setCurrentQIndex(0);
+                setSelectedOption(null);
+                setScore(0);
+                setAnswers([]);
+                setTimeLeft(600);
+              }}
+              className="flex-1 bg-white border-2 border-[#1A1A1A] text-[#1A1A1A] py-3.5 rounded-xl font-bold hover:bg-neutral-50 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)] text-[13.5px] cursor-pointer"
+            >
+              Retry Exam
+            </button>
+            <button 
+              onClick={() => onNavigate("Dashboard")}
+              className="flex-1 bg-primary border-2 border-[#1A1A1A] text-white py-3.5 rounded-xl font-bold hover:opacity-95 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)] text-[13.5px] cursor-pointer"
+            >
+              Dashboard
+            </button>
+          </div>
+        </main>
+      )}
+    </div>
   );
 }

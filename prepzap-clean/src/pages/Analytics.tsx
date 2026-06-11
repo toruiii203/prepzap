@@ -1,255 +1,264 @@
-import { useState, useEffect } from "react"
-import { ToolPageShell } from "@/components/ToolPageShell"
-import { supabase } from "@/lib/supabase"
-import { useAuth } from "@/contexts/AuthContext"
-import { BarChart3, Clock, Target, Flame, Trophy, TrendingUp, Calendar } from "lucide-react"
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
-const TEAL  = "#8b1a2a"
-const GOLD  = "#f0a040"
-const ROSE  = "#E84040"
-const FONT  = "'Nunito', system-ui, sans-serif"
-const MONO  = "'Geist Mono', 'Courier New', monospace"
-
-const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-type Period = "week" | "month" | "all"
-
-interface ActivityItem { id: string; label: string; score: string; created_at: string }
-
-function relTime(iso: string) {
-  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
-  if (d === 0) return "Today"
-  if (d === 1) return "Yesterday"
-  return `${d}d ago`
+interface AnalyticsProps {
+  onNavigate: (screen: string) => void;
 }
 
-function parseScore(score: string): { correct: number; total: number } | null {
-  const m = score?.match(/(\d+)\s*\/\s*(\d+)/)
-  if (m) return { correct: parseInt(m[1]), total: parseInt(m[2]) }
-  return null
-}
-
-export default function Analytics() {
-  const { user } = useAuth()
-  const [activity, setActivity] = useState<ActivityItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<Period>("week")
+export default function Analytics({ onNavigate }: AnalyticsProps) {
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [tasksCompletedPct, setTasksCompletedPct] = useState(88);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return
-    supabase
-      .from("activity_log")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(200)
-      .then(({ data }) => {
-        if (data) setActivity(data)
-        setLoading(false)
-      })
-  }, [user?.id])
+    const fetchAnalytics = async () => {
+      try {
+        const { data: sessionData, error: sessionErr } = await supabase
+          .from("study_sessions")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-  // Filter by period
-  const now = Date.now()
-  const cutoff = period === "week" ? now - 7 * 86400000 : period === "month" ? now - 30 * 86400000 : 0
-  const filtered = activity.filter(a => new Date(a.created_at).getTime() >= cutoff)
+        if (!sessionErr && sessionData) {
+          setSessions(sessionData);
+        }
 
-  // Stats from real data
-  const totalSessions = filtered.length
-  const scoredItems = filtered.map(a => parseScore(a.score)).filter(Boolean) as { correct: number; total: number }[]
-  const totalCorrect = scoredItems.reduce((s, x) => s + x.correct, 0)
-  const totalQs = scoredItems.reduce((s, x) => s + x.total, 0)
-  const avgAccuracy = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0
+        const { data: taskData, error: taskErr } = await supabase
+          .from("activity_log")
+          .select("completed");
 
-  // Streak — consecutive days with activity
-  const activityDays = new Set(activity.map(a => a.created_at.slice(0, 10)))
-  let streak = 0
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(now - i * 86400000).toISOString().slice(0, 10)
-    if (activityDays.has(d)) streak++
-    else break
-  }
+        if (!taskErr && taskData && taskData.length > 0) {
+          const completedCount = taskData.filter(t => t.completed).length;
+          setTasksCompletedPct(Math.round((completedCount / taskData.length) * 100));
+        }
+      } catch (err) {
+        console.error("Error loading analytics data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
 
-  // Last 7 days bar data
-  const last7 = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(now - (6 - i) * 86400000)
-    const key = date.toISOString().slice(0, 10)
-    const dayActivity = activity.filter(a => a.created_at.slice(0, 10) === key)
-    const dayScored = dayActivity.map(a => parseScore(a.score)).filter(Boolean) as { correct: number; total: number }[]
-    const dayQs = dayScored.reduce((s, x) => s + x.total, 0)
-    const dayCorrect = dayScored.reduce((s, x) => s + x.correct, 0)
+  // Compute Weekly Hours breakdown dynamically (Mon - Sun)
+  const daysOfWeek = ["M", "T", "W", "T", "F", "S", "S"];
+  const weeklyHours = [0, 0, 0, 0, 0, 0, 0];
+
+  sessions.forEach(s => {
+    try {
+      const date = new Date(s.created_at);
+      const day = date.getDay(); // 0 is Sun, 1 is Mon...
+      const idx = day === 0 ? 6 : day - 1; // map so Mon starts index 0, Sun is 6
+      // simple guard to check if date was in past 7 days
+      const diffTime = Math.abs(new Date().getTime() - date.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays <= 7) {
+        weeklyHours[idx] += (s.duration || 0) / 60; // duration in minutes, convert to hours
+      }
+    } catch {}
+  });
+
+  const maxHours = Math.max(...weeklyHours, 1);
+  const weeklyData = daysOfWeek.map((day, idx) => {
+    const hoursVal = weeklyHours[idx];
+    const pct = Math.round((hoursVal / maxHours) * 80); // scale max bar to 80%
+    const currentDayOfWeekIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
     return {
-      day: DAYS[date.getDay()],
-      sessions: dayActivity.length,
-      questions: dayQs,
-      accuracy: dayQs > 0 ? Math.round((dayCorrect / dayQs) * 100) : 0,
+      day,
+      hours: `${hoursVal.toFixed(1)}h`,
+      height: `${Math.max(5, pct)}%`,
+      highlighted: idx === currentDayOfWeekIdx
+    };
+  });
+
+  // Calculate dynamic stats
+  const totalMins = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+  const activeHoursStr = (totalMins / 60).toFixed(1) + "h";
+  const totalSessionsCount = sessions.length;
+
+  const formatDateHelper = (isoString: string) => {
+    try {
+      const d = new Date(isoString);
+      const diffMs = new Date().getTime() - d.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch {
+      return "just now";
     }
-  })
-
-  const maxQs = Math.max(...last7.map(d => d.questions), 1)
-
-  // Tool usage breakdown
-  const toolCounts: Record<string, number> = {}
-  filtered.forEach(a => {
-    const tool = a.label?.split("·")[0]?.trim() || "Unknown"
-    toolCounts[tool] = (toolCounts[tool] || 0) + 1
-  })
-  const topTools = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]).slice(0, 6)
-  const maxTool = topTools[0]?.[1] || 1
-
-  const stat = (label: string, value: string | number, sub: string, color = TEAL) => (
-    <div style={{ flex: 1, padding: "16px", background: "#1f0b13", border: "0.5px solid #1E1E1E" }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: MONO, letterSpacing: "-0.02em" }}>{value}</div>
-      <div style={{ fontSize: 10, color: "#F0F0F0", fontWeight: 600, marginTop: 4, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 9, color: "#555", marginTop: 2 }}>{sub}</div>
-    </div>
-  )
+  };
 
   return (
-    <ToolPageShell>
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px 80px", fontFamily: FONT }}>
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <BarChart3 style={{ color: GOLD, width: 18, height: 18 }} />
-            <div>
-              <h1 style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>Progress</h1>
-              <p style={{ fontSize: 10, color: "#555", margin: 0 }}>Real data from your study sessions</p>
-            </div>
-          </div>
-          <div style={{ display: "flex", border: "0.5px solid #252525", overflow: "hidden" }}>
-            {(["week", "month", "all"] as Period[]).map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                style={{ padding: "5px 14px", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", background: period === p ? GOLD : "transparent", color: period === p ? "#000" : "#555", border: "none", cursor: "pointer", fontFamily: FONT, transition: "all 0.15s" }}>
-                {p === "all" ? "All time" : `This ${p}`}
-              </button>
-            ))}
-          </div>
+    <div className="bg-[#fcf9f4] text-[#1c1c19] min-h-screen flex flex-col font-body-md antialiased overflow-y-auto w-full max-w-[390px] mx-auto shadow-xl border-x border-[#1a1a1a]/10 pb-20 flex-1">
+      
+      {/* TopAppBar */}
+      <header className="bg-background w-full top-0 sticky border-b-2 border-on-background z-40 navbar-custom">
+        <div className="flex items-center justify-between px-5 h-16 w-full bg-[#FAF7F2]">
+          <button 
+            onClick={() => onNavigate("Dashboard")}
+            aria-label="Go back" 
+            className="w-10 h-10 flex items-center justify-center border-2 border-[#1c1c19] rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 shadow-[2px_2px_0px_#1a1a1a] bg-white cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-primary">arrow_back</span>
+          </button>
+          <h1 className="font-headline text-headline-lg text-on-background font-extrabold pr-4 flex-1 text-center text-[22px]">
+            Analytics
+          </h1>
+          <button 
+            onClick={() => {
+              navigator.clipboard?.writeText(window.location.origin);
+              alert("🔗 Shareable application link copied to clipboard!");
+            }}
+            aria-label="Share" 
+            className="w-10 h-10 flex items-center justify-center border-2 border-[#1c1c19] rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 shadow-[2px_2px_0px_#1a1a1a] bg-white cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-primary">share</span>
+          </button>
         </div>
+      </header>
 
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#555", fontSize: 13 }}>Loading your data...</div>
-        ) : activity.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#555" }}>
-            <BarChart3 style={{ width: 40, height: 40, opacity: 0.2, margin: "0 auto 12px" }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: "#555" }}>No activity yet</p>
-            <p style={{ fontSize: 12, color: "#333", marginTop: 4 }}>Start studying to see your progress here</p>
-          </div>
-        ) : (
-          <>
-            {/* Stats row */}
-            <div style={{ display: "flex", gap: 1, marginBottom: 1 }}>
-              {stat("Sessions", totalSessions, `In this ${period}`)}
-              {stat("Questions", totalQs || "—", totalQs > 0 ? `${totalCorrect} correct` : "Score data unavailable")}
-              {stat("Accuracy", totalQs > 0 ? `${avgAccuracy}%` : "—", totalQs > 0 ? (avgAccuracy >= 80 ? "Great work!" : avgAccuracy >= 60 ? "Keep going" : "Needs work") : "Complete scored sessions", avgAccuracy >= 80 ? TEAL : avgAccuracy >= 60 ? GOLD : ROSE)}
-              {stat("Streak", `${streak}🔥`, streak > 0 ? "Consecutive days" : "Study today to start!")}
+      {/* Main Container */}
+      <main className="flex-1 px-5 pt-6 flex flex-col gap-6">
+        
+        {/* Weekly Activity Chart Section */}
+        <section className="flex flex-col gap-3">
+          <h2 className="font-headline text-headline-md font-extrabold text-[16px]">Weekly Activity (Last 7 Days)</h2>
+          
+          <div className="bg-white rounded-[18px] border-2 border-[#1a1a1a] shadow-[4px_4px_0px_0px_#1a1a1a] p-5 h-72 flex flex-col relative overflow-visible">
+            {/* Y-axis helper lines */}
+            <div className="absolute inset-0 p-5 flex flex-col justify-between pointer-events-none z-0">
+              <div className="border-b border-[#1a1a1a] opacity-5 w-full h-0"></div>
+              <div className="border-b border-[#1a1a1a] opacity-5 w-full h-0"></div>
+              <div className="border-b border-[#1a1a1a] opacity-5 w-full h-0"></div>
+              <div className="border-b border-[#1a1a1a] opacity-5 w-full h-0"></div>
+              <div className="border-b border-[#1a1a1a] opacity-5 w-full h-0"></div>
             </div>
 
-            {/* 7-day bar chart */}
-            <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px", marginTop: 1, marginBottom: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <Clock style={{ color: TEAL, width: 14, height: 14 }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Questions per day (last 7 days)</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
-                {last7.map((d, i) => (
-                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    {d.questions > 0 && <span style={{ fontSize: 9, color: "#555", fontFamily: MONO }}>{d.questions}</span>}
-                    <div style={{ width: "100%", background: "#1A1A1A", flex: 1, display: "flex", alignItems: "flex-end" }}>
-                      <div style={{ width: "100%", height: `${Math.max(4, (d.questions / maxQs) * 100)}%`, background: d.questions > 0 ? TEAL : "#1A1A1A", transition: "height 0.5s" }} />
+            {/* Bars Column layout */}
+            <div className="flex-1 flex items-end justify-between gap-2.5 z-10 pt-4 relative overflow-visible">
+              {weeklyData.map((bar, idx) => (
+                <div 
+                  key={idx}
+                  onMouseEnter={() => setHoveredBar(idx)}
+                  onMouseLeave={() => setHoveredBar(null)}
+                  className="flex flex-col items-center gap-2.5 flex-1 h-full justify-end group cursor-pointer relative overflow-visible"
+                >
+                  {/* Dynamic Tooltip */}
+                  {(hoveredBar === idx || bar.highlighted) && (
+                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#1c1c19] text-[#FAF7F2] font-label-sm text-[13px] px-2 py-0.5 rounded shadow-sm transition-opacity whitespace-nowrap z-25 pointer-events-none font-bold">
+                      {bar.hours}
                     </div>
-                    <span style={{ fontSize: 9, color: "#555" }}>{d.day}</span>
+                  )}
+                  
+                  {/* Actual Visual Bar block */}
+                  <div 
+                    className={`w-full border-2 border-[#1a1a1a] rounded-t-[4px] relative transition-all duration-500 origin-bottom`}
+                    style={{ 
+                      height: bar.height, 
+                      backgroundColor: bar.highlighted ? "#E8534A" : "#ffb4ab",
+                      transform: hoveredBar === idx ? "scaleX(1.1)" : "scaleX(1)"
+                    }}
+                  >
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tool breakdown + recent activity side by side */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, marginBottom: 1 }}>
-              {/* Tool usage */}
-              <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <TrendingUp style={{ color: GOLD, width: 14, height: 14 }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Top Tools Used</span>
+                  
+                  <span className={`font-headline text-[14px] ${
+                    bar.highlighted ? "text-primary font-extrabold" : "text-on-surface-variant font-bold/80"
+                  }`}>
+                    {bar.day}
+                  </span>
                 </div>
-                {topTools.length === 0 ? (
-                  <p style={{ fontSize: 11, color: "#333" }}>No tool data yet</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {topTools.map(([tool, count]) => (
-                      <div key={tool}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "75%" }}>{tool}</span>
-                          <span style={{ fontSize: 10, color: "#555", fontFamily: MONO }}>{count}</span>
-                        </div>
-                        <div style={{ height: 3, background: "#1A1A1A" }}>
-                          <div style={{ height: "100%", width: `${(count / maxTool) * 100}%`, background: GOLD, transition: "width 0.6s" }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-              {/* Recent activity */}
-              <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px", overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <Calendar style={{ color: TEAL, width: 14, height: 14 }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Recent Sessions</span>
+        {/* Bento Stats row */}
+        <section className="grid grid-cols-3 gap-3.5">
+          
+          {/* Stat 1: Time */}
+          <div className="bg-white rounded-[18px] border-2 border-[#1a1a1a] shadow-[2px_2px_0px_0px_#1a1a1a] p-4 flex flex-col items-center justify-center gap-1.5 text-center min-h-[100px]">
+            <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>timer</span>
+            <span className="font-headline text-headline-md font-bold leading-tight text-[18px]">{activeHoursStr}</span>
+            <span className="text-[12px] font-bold text-on-surface-variant uppercase tracking-wider">Active Time</span>
+          </div>
+
+          {/* Stat 2: Active Sessions (Highlighted Red) */}
+          <div className="bg-primary rounded-[18px] border-2 border-[#1a1a1a] shadow-[2px_2px_0px_0px_#1a1a1a] p-4 flex flex-col items-center justify-center gap-1.5 text-center text-white min-h-[100px]">
+            <span className="material-symbols-outlined text-white text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+            <span className="font-headline text-headline-md font-bold leading-tight text-[18px]">{totalSessionsCount}</span>
+            <span className="text-[12px] font-bold text-white opacity-85 uppercase tracking-wider">Sessions</span>
+          </div>
+
+          {/* Stat 3: Avg Score */}
+          <div className="bg-white rounded-[18px] border-2 border-[#1a1a1a] shadow-[2px_2px_0px_0px_#1a1a1a] p-4 flex flex-col items-center justify-center gap-1.5 text-center min-h-[100px]">
+            <span className="material-symbols-outlined text-tertiary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>target</span>
+            <span className="font-headline text-headline-md font-bold leading-tight text-[18px]">{tasksCompletedPct}%</span>
+            <span className="text-[12px] font-bold text-on-surface-variant uppercase tracking-wider border-none">Task Rate</span>
+          </div>
+
+        </section>
+
+        {/* Recent Activity List */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-headline text-headline-md font-extrabold text-[#1c1c19] text-[16px]">Recent Sessions</h2>
+            <span 
+              onClick={() => onNavigate("MistakeJournal")}
+              className="text-[14.5px] font-bold text-primary cursor-pointer hover:underline"
+            >
+              View Journal
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {loading ? (
+              <div className="text-center py-6 text-on-surface-variant text-sm font-bold opacity-60">Loading session logs...</div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-10 border-2 border-dashed border-[#1a1a1a]/20 rounded-2xl bg-white">
+                <span className="material-symbols-outlined text-3xl opacity-30 text-primary">history</span>
+                <p className="text-sm font-bold opacity-60 mt-1">No sessions recorded yet</p>
+                <button 
+                  onClick={() => onNavigate("Dashboard")}
+                  className="mt-3 text-xs bg-primary text-white border-2 border-black rounded-full px-3.5 py-1.5"
+                >
+                  Start Studying
+                </button>
+              </div>
+            ) : (
+              sessions.slice(0, 3).map((ses, sIdx) => (
+                <div 
+                  key={ses.id || sIdx}
+                  className="bg-white rounded-[18px] border-2 border-[#1a1a1a] p-5 flex items-center gap-5 hover:translate-x-0.5 hover:-translate-y-0.5 transition-all shadow-ink-sm"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary-fixed border-2 border-black flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>menu_book</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-headline text-body-lg text-black font-extrabold truncate text-[15.5px]">{ses.subject}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[12px] font-bold text-[#faf7f2] bg-primary px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_rgba(0,0,0,1)]">
+                        {ses.duration} mins
+                      </span>
+                      <span className="text-[12px] text-on-surface-variant font-bold opacity-60">• {formatDateHelper(ses.created_at)}</span>
+                    </div>
+                  </div>
                 </div>
-                {filtered.length === 0 ? (
-                  <p style={{ fontSize: 11, color: "#333" }}>No sessions in this period</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 200, overflowY: "auto" }}>
-                    {filtered.slice(0, 10).map(item => {
-                      const scored = parseScore(item.score)
-                      const pct = scored ? Math.round((scored.correct / scored.total) * 100) : null
-                      return (
-                        <div key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "6px 0", borderBottom: "0.5px solid #141414" }}>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: 11, color: "#C0C0C0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{item.label}</p>
-                            <p style={{ fontSize: 9, color: "#444", margin: "2px 0 0", fontFamily: MONO }}>{relTime(item.created_at)}</p>
-                          </div>
-                          {pct !== null && (
-                            <span style={{ fontSize: 10, fontWeight: 700, fontFamily: MONO, color: pct >= 80 ? TEAL : pct >= 60 ? GOLD : ROSE, flexShrink: 0 }}>
-                              {item.score}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+              ))
+            )}
+          </div>
+        </section>
 
-            {/* Milestones based on real data */}
-            <div style={{ background: "#1f0b13", border: "0.5px solid #1E1E1E", padding: "16px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                <Trophy style={{ color: GOLD, width: 14, height: 14 }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#F0F0F0", letterSpacing: "0.06em", textTransform: "uppercase" }}>Milestones</span>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 }}>
-                {[
-                  { label: "First Session",  icon: "🎉", earned: activity.length >= 1 },
-                  { label: "10 Sessions",    icon: "📚", earned: activity.length >= 10 },
-                  { label: "50 Sessions",    icon: "⚡", earned: activity.length >= 50 },
-                  { label: "100 Questions",  icon: "🎯", earned: totalQs >= 100 },
-                  { label: "500 Questions",  icon: "🏆", earned: totalQs >= 500 },
-                  { label: "3-Day Streak",   icon: "🔥", earned: streak >= 3 },
-                  { label: "7-Day Streak",   icon: "💎", earned: streak >= 7 },
-                  { label: "80% Accuracy",   icon: "⭐", earned: avgAccuracy >= 80 },
-                ].map(m => (
-                  <div key={m.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "10px 8px", background: m.earned ? "rgba(232,185,35,0.06)" : "#0A0A0A", border: `0.5px solid ${m.earned ? "rgba(232,185,35,0.25)" : "#1A1A1A"}`, opacity: m.earned ? 1 : 0.4 }}>
-                    <span style={{ fontSize: 18 }}>{m.icon}</span>
-                    <span style={{ fontSize: 9, color: m.earned ? GOLD : "#555", textAlign: "center", fontWeight: m.earned ? 600 : 400, lineHeight: 1.3 }}>{m.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
+        {/* Call To Action */}
+        <button 
+          onClick={() => onNavigate("Dashboard")}
+          className="bg-primary text-white font-headline text-headline-md w-full py-4.5 rounded-xl border-2 border-black shadow-[4px_4px_0px_#1A1A1A] hover:bg-opacity-95 transition-all active:translate-y-1 active:shadow-none cursor-pointer mt-4 text-[16px] font-extrabold h-14 flex items-center justify-center"
+        >
+          Back to Dashboard
+        </button>
+
       </main>
-    </ToolPageShell>
-  )
+    </div>
+  );
 }

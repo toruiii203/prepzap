@@ -1,482 +1,224 @@
-import { useState, useRef, useCallback, useEffect } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Navbar } from "@/components/Navbar"
-import { GlobalContextBar } from "@/components/GlobalContextBar"
-import {
-  Upload, FileText, Trash2, ChevronLeft, Play, BrainCircuit,
-  Sparkles, Layers, HelpCircle, Calculator, ArrowRight,
-  File, Target, Zap, BookOpen, PenLine, FlaskConical, Camera, X
-} from "lucide-react"
-import {
-  loadLibrary, saveLibrary, loadContext, saveContext,
-  onSourceChange, type SourceFile
-} from "@/lib/sourceContext"
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Plus, Check } from "lucide-react";
+import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";
 
-const TOOLS = [
-  { href: "/practice",   label: "Practice",      icon: Play,        desc: "Generate questions" },
-  { href: "/flashcards", label: "Flashcards",    icon: BrainCircuit,       desc: "Key concept cards"  },
-  { href: "/ai-tutor",   label: "AI Tutor",      icon: Sparkles,    desc: "Ask about material" },
-  { href: "/synthesis",  label: "Synthesis Lab", icon: FlaskConical,desc: "Connect concepts"   },
-  { href: "/why-engine", label: "Why Engine",    icon: HelpCircle,  desc: "First principles"   },
-  { href: "/math",       label: "Math Solver",   icon: Calculator,  desc: "Extract & solve"    },
-  { href: "/spot-error", label: "Spot the Error",icon: Target,      desc: "Debug mode"         },
-  { href: "/daily5",     label: "Daily 5",       icon: Zap,         desc: "5 quick Qs"         },
-  { href: "/boss-round", label: "Boss Round",    icon: BookOpen,    desc: "Hard challenge"     },
-  { href: "/feynman",    label: "Feynman Mode",  icon: PenLine,     desc: "Teach to learn"     },
-]
-
-const ACCEPTED = [
-  "application/pdf","text/plain",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "image/png","image/jpeg",
-]
-const MAX_FILES   = 10
-const MAX_SIZE_MB = 15
-
-function formatSize(b: number) {
-  if (b < 1024) return `${b} B`
-  if (b < 1048576) return `${(b/1024).toFixed(1)} KB`
-  return `${(b/1048576).toFixed(1)} MB`
-}
-function typeBadge(t: string) {
-  if (t.includes("pdf"))  return "PDF"
-  if (t.includes("word")) return "DOCX"
-  if (t.includes("text")) return "TXT"
-  if (t.includes("png"))  return "PNG"
-  if (t.includes("jpeg")) return "JPG"
-  return "FILE"
+interface SourceLibraryProps {
+  onNavigate: (screen: string) => void;
 }
 
-const MASTERY = {
-  red:    { label: "Needs Work", color: "#ef4444", bg: "rgba(239,68,68,0.1)"  },
-  yellow: { label: "Learning",   color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-  green:  { label: "Mastered",   color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-}
+export default function SourceLibrary({ onNavigate }: SourceLibraryProps) {
+  const [activeQuickTool, setActiveTab] = useState("AI Tutor");
+  const [files, setFiles] = useState<any[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-async function extractPdfText(file: File): Promise<string> {
-  return new Promise(resolve => {
-    const r = new FileReader()
-    r.onload = async ev => {
-      try {
-        const buf = ev.target?.result as ArrayBuffer
-        if (!(window as any).pdfjsLib) {
-          await new Promise<void>((res, rej) => {
-            const s = document.createElement("script")
-            s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
-            s.onload = () => res(); s.onerror = rej; document.head.appendChild(s)
-          });
-          (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
-        }
-        const lib = (window as any).pdfjsLib
-        const pdf = await lib.getDocument({ data: buf }).promise
-        let text = ""
-        for (let i = 1; i <= Math.min(pdf.numPages, 15); i++) {
-          const pg = await pdf.getPage(i)
-          const c  = await pg.getTextContent()
-          text += c.items.map((x: any) => x.str).join(" ") + "\n"
-        }
-        resolve(text.trim().slice(0, 12000))
-      } catch { resolve("") }
+  // Synchronize state with persistent sources on mount
+  useEffect(() => {
+    setFiles(loadLibrary());
+    const ctx = loadContext();
+    setSelectedIds(Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || []);
+  }, []);
+
+  const quickTools = ["AI Tutor", "Flashcards", "Practice", "Quick Study"];
+
+  const handleToggleSelect = (id: string) => {
+    let next: string[];
+    if (selectedIds.includes(id)) {
+      next = selectedIds.filter(x => x !== id);
+    } else {
+      next = [...selectedIds, id];
     }
-    r.readAsArrayBuffer(file)
-  })
-}
+    setSelectedIds(next);
+    saveContext(next);
+  };
 
-export default function SourceLibrary() {
-  const [sources, setSources]       = useState<SourceFile[]>(loadLibrary)
-  const [dragging, setDragging]     = useState(false)
-  const [selected, setSelected]     = useState<Set<string>>(new Set())
-  const [error, setError]           = useState<string|null>(null)
-  const [extracting, setExtracting] = useState<string|null>(null)
-  const [cameraOpen, setCameraOpen] = useState(false)
-  const [cameraError, setCameraError] = useState<string|null>(null)
-  const [cameraReady, setCameraReady] = useState(false)
-  const inputRef  = useRef<HTMLInputElement>(null)
-  const videoRef  = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream|null>(null)
-  const navigate  = useNavigate()
+  const handleDeleteFile = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent toggling selection when clicking delete
+    const nextFiles = files.filter(f => f.id !== id);
+    setFiles(nextFiles);
+    saveLibrary(nextFiles);
 
-  // ref callback — fires the moment <video> mounts in DOM
-  const videoRefCallback = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el
-    if (el && streamRef.current) {
-      el.srcObject = streamRef.current
-      el.play().then(() => setCameraReady(true)).catch(console.error)
-    }
-  }, [])
+    // Also remove from selected context
+    const nextCtx = selectedIds.filter(x => x !== id);
+    setSelectedIds(nextCtx);
+    saveContext(nextCtx);
+  };
 
-  useEffect(() => onSourceChange(() => setSources(loadLibrary())), [])
+  const handleUploadClick = () => {
+    const fileName = prompt("Enter file name to upload (e.g. Science_Lab_Ch4.txt):");
+    if (!fileName) return;
+    
+    // Prompt for some basic contents to make it interactive in the mockups
+    const fileContent = prompt("Type some study sentences or flashcard material for this notes source:", "Photosynthesis reaction uses water, carbon dioxide, and solar light to assemble sugars inside chloroplast systems.");
+    if (!fileContent) return;
 
-  const processFiles = useCallback(async (files: File[]) => {
-    setError(null)
-    const current = loadLibrary()
-    if (current.length >= MAX_FILES) { setError(`Max ${MAX_FILES} files.`); return }
-    for (const file of files.slice(0, MAX_FILES - current.length)) {
-      if (!ACCEPTED.includes(file.type)) { setError(`"${file.name}" not supported.`); continue }
-      if (file.size > MAX_SIZE_MB*1048576) { setError(`"${file.name}" too large.`); continue }
-      const entry: SourceFile = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        name: file.name, size: file.size, type: file.type,
-        uploadedAt: new Date().toISOString(),
-      }
-      setExtracting(file.name)
-      if (file.type === "text/plain") {
-        const t = await file.text()
-        entry.preview = t.slice(0, 500); entry.fullText = t.slice(0, 12000)
-      } else if (file.type === "application/pdf") {
-        const t = await extractPdfText(file)
-        entry.preview = t.slice(0, 500); if (t) entry.fullText = t
-      }
-      setExtracting(null)
-      const lib = loadLibrary()
-      saveLibrary([...lib, entry]); setSources([...lib, entry])
-    }
-    setExtracting(null)
-  }, [])
+    const newFile = {
+      id: "f_" + Date.now(),
+      name: fileName,
+      type: "text",
+      content: fileContent,
+      size: `${Math.ceil(fileContent.length / 100) / 10} KB`,
+      created_at: new Date().toISOString(),
+      isPdf: fileName.toLowerCase().endsWith(".pdf")
+    };
 
-  const toggleSel = (id: string) => {
-    setSelected(prev => { const n = new Set(prev); n.has(id)?n.delete(id):n.add(id); return n })
-  }
+    const nextFiles = [newFile, ...files];
+    setFiles(nextFiles);
+    saveLibrary(nextFiles);
 
-  const closeCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach(t => t.stop())
-    streamRef.current = null
-    setCameraOpen(false); setCameraReady(false); setCameraError(null)
-  }, [])
+    // Auto-select uploaded file as active context
+    const nextCtx = [...selectedIds, newFile.id];
+    setSelectedIds(nextCtx);
+    saveContext(nextCtx);
 
-  const capturePhoto = useCallback(() => {
-    const v = videoRef.current
-    if (!v) return
-    const w = v.videoWidth || 1280
-    const h = v.videoHeight || 720
-    const canvas = document.createElement("canvas")
-    canvas.width = w; canvas.height = h
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-    ctx.drawImage(v, 0, 0, w, h)
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85)
-    const base64 = dataUrl.split(",")[1]
-    const name = `capture-${Date.now()}.jpg`
-    const sizeBytes = Math.round(base64.length * 0.75)
-    // Store base64 as fullText so AI tools can read the image content
-    const entry: import("@/lib/sourceContext").SourceFile = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      name,
-      size: sizeBytes,
-      type: "image/jpeg",
-      uploadedAt: new Date().toISOString(),
-      preview: "📷 Camera capture — image data stored for AI analysis",
-      fullText: `[IMAGE CAPTURE: ${name}]
-This source is a camera photo. The image data (base64 JPEG) is attached below for AI vision analysis.
-DATA:${dataUrl}`,
-    }
-    const lib = loadLibrary()
-    saveLibrary([...lib, entry])
-    setSources([...lib, entry])
-    closeCamera()
-  }, [closeCamera])
+    alert(`Successfully synced and saved "${fileName}" to local library! Selected as core AI search reference.`);
+  };
 
-  const openCamera = useCallback(async () => {
-    setCameraError(null); setCameraReady(false)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-      streamRef.current = stream
-      setCameraOpen(true)
-      // If video element already mounted (re-open case), wire immediately
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        videoRef.current.play().then(() => setCameraReady(true)).catch(console.error)
-      }
-    } catch (e) {
-      console.error("Camera error:", e)
-      setCameraError("Camera access denied or unavailable.")
-    }
-  }, [])
-
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setDragging(false)
-    processFiles(Array.from(e.dataTransfer.files))
-  }, [processFiles])
-
-  const remove = (id: string) => {
-    const updated = sources.filter(s => s.id !== id)
-    saveLibrary(updated); setSources(updated)
-    setSelected(p => { const n = new Set(p); n.delete(id); return n })
-    const ctx = loadContext()
-    if (ctx.selectedIds.includes(id))
-      saveContext({ ...ctx, selectedIds: ctx.selectedIds.filter(x => x !== id) })
-  }
-
-  const setMastery = (id: string, m: SourceFile["mastery"]) => {
-    const updated = sources.map(s => s.id===id ? {...s, mastery: s.mastery===m ? undefined : m} : s)
-    saveLibrary(updated); setSources(updated)
-  }
-
-  const sendToTool = (href: string) => {
-    if (selected.size > 0) saveContext({ mode:"selected", selectedIds: Array.from(selected) })
-    else saveContext({ mode:"all", selectedIds:[] })
-    navigate(href)
-  }
-
+  const handleQuickToolClick = (tool: string) => {
+    setActiveTab(tool);
+    if (tool === "AI Tutor") onNavigate("AITutor");
+    else if (tool === "Flashcards") onNavigate("Flashcards");
+    else if (tool === "Practice") onNavigate("Practice");
+    else if (tool === "Quick Study") onNavigate("QuickStudy");
+  };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#000308", color: "#F0F0F0", position: "relative" }}>
-      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: "radial-gradient(ellipse at 50% 30%, #0a0f1a 0%, #000308 100%)" }} />
+    <div className="bg-[#FAF7F2] text-[#1A1A1A] antialiased min-h-screen flex flex-col w-full max-w-[390px] mx-auto relative shadow-xl overflow-x-hidden border-x border-[#ebe8e3]">
+      
+      {/* TopAppBar */}
+      <header className="w-full top-0 sticky bg-[#FAF7F2] flex items-center justify-between px-5 h-16 w-full z-40 border-b-2 border-black">
+        <button 
+          onClick={() => onNavigate("Dashboard")}
+          className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer active:translate-y-0.5"
+        >
+          <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
+        </button>
+        <h1 className="font-headline text-headline-lg text-[#1A1A1A] tracking-tight font-extrabold pr-4 flex-1 text-center text-[20px]">
+          Source Library
+        </h1>
+        <button 
+          onClick={() => {
+            const term = prompt("Enter file search term:");
+            if (term) {
+              const matched = files.filter(f => f.name.toLowerCase().includes(term.toLowerCase()));
+              alert(`Matched ${matched.length} files: \n` + matched.map(f => f.name).join("\n"));
+            }
+          }}
+          className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer active:translate-y-0.5"
+        >
+          <Search className="w-6 h-6 text-[#1A1A1A]" />
+        </button>
+      </header>
 
-      <Navbar isLoggedIn user={{ name:"Learner", xp:2450, streak:12, plan:"free" }} />
+      {/* Main Content Canvas */}
+      <main className="flex-1 px-5 py-6 flex flex-col gap-6 pb-24 overflow-y-auto">
+        
+        {/* Upload Area */}
+        <section>
+          <div 
+            onClick={handleUploadClick}
+            className="bg-white rounded-2xl border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors min-h-[190px]"
+          >
+            <div className="flex gap-4 mb-1">
+              <div className="w-14 h-14 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3.5px_3px_0px_0px_#1A1A1A]">
+                <Paperclip className="w-6 h-6 text-primary" />
+              </div>
+              <div className="w-14 h-14 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3.5px_3px_0px_0px_#1A1A1A]">
+                <Camera className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+            <p className="font-headline font-bold text-headline-sm text-[#1A1A1A] text-center text-[16px]">
+              Tap to upload or take a photo
+            </p>
+            <p className="font-label-md text-label-md text-secondary text-center font-bold text-[13px]">
+              PDF, TXT, images (JPEG, PNG)
+            </p>
+          </div>
+        </section>
 
-      <main className="flex-1 py-6 lg:py-8" style={{ position: "relative", zIndex: 1 }}>
-        <div className="container mx-auto px-4 lg:px-8 max-w-5xl">
-
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <Link to="/dashboard">
-                <button className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70" style={{ color: "#555" }}>
-                  <ChevronLeft className="h-3.5 w-3.5" /> Dashboard
+        {/* Quick Launch Chips */}
+        <section>
+          <h2 className="font-headline text-headline-md text-[#1A1A1A] font-extrabold mb-4 text-[16px]">Quick Launch Tool</h2>
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-1 -mx-1">
+            {quickTools.map((tool) => {
+              const isActive = activeQuickTool === tool;
+              return (
+                <button
+                  key={tool}
+                  onClick={() => handleQuickToolClick(tool)}
+                  className={`whitespace-nowrap px-6 py-2.5 rounded-full border-2 border-[#1A1A1A] font-label-md transition-all duration-100 shrink-0 font-bold text-[13.5px] ${
+                    isActive
+                      ? "bg-primary text-white shadow-[2px_2px_0px_0px_#1A1A1A]"
+                      : "bg-white text-[#1A1A1A] hover:bg-neutral-100"
+                  }`}
+                >
+                  {tool}
                 </button>
-              </Link>
-              <span style={{ color: "#252525" }}>|</span>
-              <div className="flex items-center gap-2">
-                <div style={{ width: 32, height: 32, background: "rgba(0,196,180,0.1)", border: "0.5px solid #8b1a2a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Layers className="h-4 w-4" style={{ color: "#8b1a2a" }} />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold" style={{ letterSpacing: "-0.01em" }}>Source Library</h1>
-                  <p className="text-xs mt-0.5" style={{ color: "#555" }}>The brain — every tool reads from here</p>
-                </div>
-              </div>
-            </div>
-            <GlobalContextBar />
+              );
+            })}
           </div>
+        </section>
 
-          {/* Stats bar */}
-          {sources.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 mb-5 px-3 py-2 text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
-              <span style={{ color: "#555" }}><span style={{ color: "#F0F0F0", fontFamily: "monospace" }}>{sources.length}</span> files</span>
-              <span style={{ color: "#252525" }}>·</span>
-              <span style={{ color: "#555" }}><span style={{ color: "#F0F0F0", fontFamily: "monospace" }}>{sources.filter(s => s.fullText || s.preview).length}</span> with text</span>
-              {[["green","#10b981","mastered"],["yellow","#f59e0b","learning"],["red","#ef4444","needs work"]].map(([m,c,l]) => (
-                <span key={m} style={{ color: "#555" }}>
-                  <span style={{ color: c as string, fontFamily: "monospace" }}>{sources.filter(s => s.mastery === m).length}</span> {l}
-                </span>
-              ))}
-              <span className="ml-auto flex gap-3">
-                {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={{ color: "#555" }}>Clear selection</button>}
-                {sources.length > 1 && selected.size === 0 && <button onClick={() => setSelected(new Set(sources.map(s => s.id)))} style={{ color: "#555" }}>Select all</button>}
-              </span>
-            </div>
-          )}
-
-          <div className="grid lg:grid-cols-5 gap-6">
-
-            {/* Upload (2 cols) */}
-            <div className="lg:col-span-2 space-y-3">
-              <div
-                onDragOver={e => { e.preventDefault(); setDragging(true) }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={onDrop}
-                onClick={() => sources.length < MAX_FILES && inputRef.current?.click()}
-                className="flex flex-col items-center justify-center gap-3 py-10 px-4 text-center transition-all"
-                style={{
-                  border: `1.5px dashed ${dragging ? "#8b1a2a" : "#252525"}`,
-                  background: dragging ? "rgba(0,196,180,0.05)" : "rgba(255,255,255,0.02)",
-                  cursor: sources.length >= MAX_FILES ? "not-allowed" : "pointer",
-                  opacity: sources.length >= MAX_FILES ? 0.5 : 1,
-                }}
-              >
-                <div style={{ width: 40, height: 40, border: "0.5px solid #252525", background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Upload className="h-5 w-5" style={{ color: "#555" }} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: "#C0C0C0" }}>
-                    {extracting ? `Extracting "${extracting}"…` : dragging ? "Drop here" : "Drag & drop or click"}
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: "#555" }}>PDF, TXT, DOCX, PNG, JPG · Max {MAX_SIZE_MB} MB</p>
-                </div>
-                <span className="text-xs px-2 py-0.5" style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid #252525", color: "#555", fontFamily: "monospace" }}>{sources.length}/{MAX_FILES}</span>
-              </div>
-
-              <button
-                onClick={openCamera}
-                disabled={sources.length >= MAX_FILES}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-all hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: "rgba(0,196,180,0.05)", border: "0.5px solid #8b1a2a", color: "#8b1a2a" }}
-              >
-                <Camera className="h-3.5 w-3.5" /> Capture with Camera
-              </button>
-
-              {cameraError && <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.2)", color: "#f87171" }}>{cameraError}</p>}
-              <input ref={inputRef} type="file" multiple accept=".pdf,.txt,.docx,.png,.jpg,.jpeg" className="hidden"
-                onChange={e => { if (e.target.files) processFiles(Array.from(e.target.files)) }} />
-              {error && <p className="text-xs px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.2)", color: "#f87171" }}>{error}</p>}
-
-              <div className="p-3 space-y-2 text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
-                <p className="font-semibold" style={{ color: "#C0C0C0" }}>Source-First architecture</p>
-                <p style={{ color: "#555" }}>Use the context bar (top-right) to choose which sources every AI tool uses.</p>
-                {[["General AI","Built-in AI only"],["All Sources","All files injected"],["Pick Sources","Specific files"]].map(([m,d]) => (
-                  <div key={m} className="flex gap-2">
-                    <span style={{ color: "#8b1a2a" }}>›</span>
-                    <span><span style={{ color: "#C0C0C0" }}>{m}</span><span style={{ color: "#555" }}> — {d}</span></span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-3 space-y-2 text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}>
-                <p className="font-semibold" style={{ color: "#C0C0C0" }}>Confidence Heatmap</p>
-                <p style={{ color: "#555" }}>Click the dots on each source to mark your mastery level.</p>
-                {(Object.entries(MASTERY) as [string, {label:string;color:string}][]).map(([k,v]) => (
-                  <div key={k} className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: v.color }} />
-                    <span style={{ color: "#777" }}>{v.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Source cards (3 cols) */}
-            <div className="lg:col-span-3">
-              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#444" }}>Uploaded Sources</p>
-              {sources.length === 0 ? (
-                <div className="py-16 text-center" style={{ border: "0.5px solid #252525", background: "rgba(255,255,255,0.01)" }}>
-                  <div style={{ width: 40, height: 40, border: "0.5px solid #252525", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <File className="h-5 w-5" style={{ color: "#333" }} />
-                  </div>
-                  <p className="text-sm font-medium mb-1" style={{ color: "#555" }}>No sources yet</p>
-                  <p className="text-xs" style={{ color: "#333" }}>Upload PDFs or notes — every AI tool will use them</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {sources.map(s => {
-                    const isSel = selected.has(s.id)
-                    const m = s.mastery ? MASTERY[s.mastery] : null
-                    const badge = typeBadge(s.type)
-                    const IconEl = badge === "PDF" ? FileText : badge === "PNG" || badge === "JPG" ? Camera : File
-                    return (
-                      <div key={s.id} style={{
-                        background: isSel ? "rgba(0,196,180,0.05)" : "rgba(255,255,255,0.02)",
-                        border: `0.5px solid ${isSel ? "#8b1a2a" : "#252525"}`,
-                        transition: "all .15s",
-                      }}>
-                        <div className="flex items-start gap-3 px-3 py-2.5">
-                          <button onClick={() => toggleSel(s.id)}
-                            className="mt-0.5 w-4 h-4 flex-shrink-0 flex items-center justify-center border transition-all"
-                            style={{ background: isSel ? "#8b1a2a" : "transparent", borderColor: isSel ? "#8b1a2a" : "#333" }}>
-                            {isSel && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3L3 5L7 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/></svg>}
-                          </button>
-                          <div style={{ width: 32, height: 32, background: "rgba(0,196,180,0.06)", border: "0.5px solid #1E3C3C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <IconEl className="h-3.5 w-3.5" style={{ color: "#8b1a2a" }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate" style={{ color: "#E0E0E0" }}>{s.name}</p>
-                            <p className="text-[10px] mt-0.5" style={{ color: "#444", fontFamily: "monospace" }}>
-                              {badge} · {formatSize(s.size)} · {new Date(s.uploadedAt).toLocaleDateString()}
-                              {(s.fullText || s.preview) ? " · ✓ text" : ""}
-                            </p>
-                            {s.preview && <p className="text-[10px] mt-0.5 opacity-50 truncate" style={{ color: "#888" }}>{s.preview.slice(0, 80)}…</p>}
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0 mt-1">
-                            {(["red","yellow","green"] as const).map(mc => (
-                              <button key={mc} onClick={() => setMastery(s.id, mc)}
-                                className="w-3 h-3 rounded-full transition-all hover:scale-125"
-                                style={{ background: MASTERY[mc].color, opacity: s.mastery === mc ? 1 : 0.18 }}
-                                title={MASTERY[mc].label} />
-                            ))}
-                          </div>
-                          <button onClick={() => remove(s.id)} className="flex-shrink-0 p-1 transition-opacity hover:opacity-70" style={{ color: "#444" }}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                        {m && (
-                          <div className="px-3 pb-2">
-                            <span className="text-[10px] px-2 py-0.5" style={{ background: m.bg, color: m.color, border: `1px solid ${m.color}30` }}>{m.label}</span>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+        {/* File List */}
+        <section className="flex-1">
+          <div className="flex items-center justify-between mb-4 border-b border-black/10 pb-3">
+            <h2 className="font-headline text-headline-md text-black font-extrabold text-[16px]">My Attached Files</h2>
+            <span className="font-label-md text-label-md text-secondary font-bold text-[13px]">
+              {files.length} items
+            </span>
           </div>
-
-          {/* Open a Tool */}
-          {sources.length > 0 && (
-            <div className="mt-8">
-              <div className="flex items-center gap-2 mb-4">
-                <ArrowRight className="h-3.5 w-3.5" style={{ color: "#444" }} />
-                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#444" }}>Open a Tool</p>
-                <span className="text-xs ml-1" style={{ color: "#333" }}>
-                  {selected.size > 0 ? `— ${selected.size} source${selected.size !== 1 ? "s" : ""} will be activated` : "— all sources will be used"}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {TOOLS.map(tool => (
-                  <button key={tool.href} onClick={() => sendToTool(tool.href)}
-                    className="flex items-start gap-2.5 px-3 py-3 text-left transition-all"
-                    style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #252525" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+          
+          <div className="flex flex-col gap-5">
+            {files.map((file) => {
+              const isSelected = selectedIds.includes(file.id);
+              return (
+                <div 
+                  key={file.id}
+                  onClick={() => handleToggleSelect(file.id)}
+                  className={`rounded-2xl border-2 p-5 flex items-center gap-5 transition-all cursor-pointer ${
+                    isSelected 
+                      ? "bg-[#eaf1ff] border-primary shadow-[4px_4px_0px_0px_#ae2925]" 
+                      : "bg-white border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A]"
+                  } hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none`}
+                >
+                  <div className="w-12 h-12 rounded-lg bg-[#ebe8e3] flex items-center justify-center shrink-0 border-2 border-[#1A1A1A]">
+                    {isSelected ? (
+                      <Check className="w-6 h-6 text-primary stroke-[3]" />
+                    ) : file.isPdf ? (
+                      <FileText className="w-6 h-6 text-primary" />
+                    ) : (
+                      <File className="w-6 h-6 text-secondary" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-headline font-bold text-headline-sm text-[#1A1A1A] truncate pr-1 text-[15.5px]">
+                      {file.name}
+                    </h3>
+                    <p className="font-label-sm text-label-sm text-secondary text-[12.5px] font-semibold mt-0.5">
+                      {file.size} • {isSelected ? "Active Search context" : "Idle reference"}
+                    </p>
+                  </div>
+                  
+                  <button 
+                    onClick={(e) => handleDeleteFile(file.id, e)}
+                    aria-label="Delete file"
+                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 hover:bg-red-50 text-secondary hover:text-error transition-colors"
                   >
-                    <div style={{ width: 26, height: 26, background: "rgba(0,196,180,0.08)", border: "0.5px solid #1E3C3C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                      <tool.icon className="h-3 w-3" style={{ color: "#8b1a2a" }} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold truncate" style={{ color: "#C0C0C0" }}>{tool.label}</p>
-                      <p className="text-[10px] truncate mt-0.5" style={{ color: "#444" }}>{tool.desc}</p>
-                    </div>
+                    <Trash2 className="w-5 h-5" />
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Camera Modal */}
-      {cameraOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
-          <div className="relative w-full max-w-lg mx-4" style={{ background: "#1f0b13", border: "0.5px solid #252525" }}>
-            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "0.5px solid #252525" }}>
-              <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4" style={{ color: "#8b1a2a" }} />
-                <span className="text-sm font-semibold" style={{ color: "#E0E0E0" }}>Capture Photo</span>
-              </div>
-              <button onClick={closeCamera} className="p-1 transition-opacity hover:opacity-70" style={{ color: "#555" }}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="relative bg-black" style={{ aspectRatio: "4/3" }}>
-              <video ref={videoRefCallback} className="w-full h-full object-cover" playsInline muted />
-              {!cameraReady && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-xs" style={{ color: "#555" }}>Starting camera…</div>
                 </div>
-              )}
-              {cameraReady && (
-                <>
-                  <div className="absolute top-3 left-3 w-5 h-5" style={{ borderTop: "2px solid #8b1a2a", borderLeft: "2px solid #8b1a2a" }} />
-                  <div className="absolute top-3 right-3 w-5 h-5" style={{ borderTop: "2px solid #8b1a2a", borderRight: "2px solid #8b1a2a" }} />
-                  <div className="absolute bottom-3 left-3 w-5 h-5" style={{ borderBottom: "2px solid #8b1a2a", borderLeft: "2px solid #8b1a2a" }} />
-                  <div className="absolute bottom-3 right-3 w-5 h-5" style={{ borderBottom: "2px solid #8b1a2a", borderRight: "2px solid #8b1a2a" }} />
-                </>
-              )}
-            </div>
-            <div className="flex items-center justify-between px-4 py-3 gap-3">
-              <p className="text-xs" style={{ color: "#555" }}>Point at your notes, handwritten work, or any study material</p>
-              <button
-                onClick={capturePhoto}
-                disabled={!cameraReady}
-                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: "#8b1a2a", color: "#000" }}
-              >
-                <Camera className="h-3.5 w-3.5" /> Capture
-              </button>
-            </div>
+              );
+            })}
+
+            {files.length === 0 && (
+              <div className="text-center p-10 bg-white border-2 border-dashed border-[#1A1A1A] rounded-2xl opacity-60">
+                <p className="font-headline font-bold text-black text-[16px]">No Files Present</p>
+                <p className="text-[13px] mt-1 font-semibold">Upload file attachments to empower study generation.</p>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </section>
+      </main>
     </div>
-  )
+  );
 }
