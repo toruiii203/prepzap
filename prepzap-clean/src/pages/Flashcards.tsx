@@ -300,8 +300,8 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       {/* ══════════════════════════════════════════════════
           DESKTOP LAYOUT
           ══════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:ml-64 flex-col" style={{ minHeight: "100vh" }}>
-        <div className="flex flex-1 overflow-hidden" style={{ height: "100vh" }}>
+      <div className="hidden lg:flex lg:ml-64 flex-col" style={{ height: "100vh" }}>
+        <div className="flex flex-1 overflow-hidden">
 
           {/* Left panel: generate form + source library */}
           <div className="w-80 border-r-2 border-black bg-[#FAF7F2] flex flex-col overflow-y-auto shrink-0">
