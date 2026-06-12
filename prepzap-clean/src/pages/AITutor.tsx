@@ -5,8 +5,7 @@ import { callGroq } from "@/lib/groq";
 import { buildAIContext, loadContext, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 
-interface AITutorProps {
-}
+interface AITutorProps {}
 
 export default function AITutor() {
   const navigate = useNavigate();
@@ -22,37 +21,63 @@ export default function AITutor() {
   const [isLoading, setIsLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load the first selected source initially to match mockup
+  // Load active source name from library on mount and keep in sync
   useEffect(() => {
-    const ctx = loadContext();
-    const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
-    const libFiles = loadLibrary();
-    const active = libFiles.find(f => selectedIds.includes(f.id));
-    if (active) {
-      setActiveSource(active.name);
-    } else {
-      setActiveSource(null);
-    }
+    const syncSource = () => {
+      const ctx = loadContext();
+      const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
+      const libFiles = loadLibrary();
+      const active = libFiles.find((f: any) => selectedIds.includes(f.id));
+      setActiveSource(active ? active.name : null);
+    };
+    syncSource();
+    // Re-sync when window gets focus (user may have added sources)
+    window.addEventListener("focus", syncSource);
+    return () => window.removeEventListener("focus", syncSource);
   }, []);
 
   const handleSend = async (textToSend?: string) => {
     const finalMsg = textToSend || inputVal;
     if (!finalMsg.trim() || isLoading) return;
 
-    // Add User Message
     const userMsg = { sender: "user" as const, text: finalMsg };
     setMessages((prev) => [...prev, userMsg]);
     setInputVal("");
     setIsLoading(true);
 
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+
     try {
-      // Build dynamic context prompt using selected Source files
+      // Build context from SELECTED sources in the library
       const refContext = buildAIContext();
-      
-      // Select system prompt instruction based on Mode tab
+
+      // If there's no built-in context but we can see a source name, try reading it directly
+      let effectiveContext = refContext;
+      if (!effectiveContext) {
+        const ctx = loadContext();
+        const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
+        if (selectedIds.length > 0) {
+          const libFiles = loadLibrary();
+          const selectedFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
+          if (selectedFiles.length > 0) {
+            effectiveContext = selectedFiles.map((f: any) => {
+              // For image files, include description; for text/pdf, include content
+              if (f.type === "image" || (f.content && f.content.startsWith("data:image"))) {
+                return `[Attached image: ${f.name}]\n(Image content was captured for visual analysis)`;
+              }
+              return `=== ${f.name} ===\n${f.content || ""}`;
+            }).join("\n\n");
+          }
+        }
+      }
+
       let systemInstruction = "You are Rex AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. Speak clearly, concisely, and keep explanations elegant.";
-      
+
       if (activeMode === "ELI5") {
         systemInstruction = "You are Rex AI, Studenius's custom study assistant. You are a friendly teacher explaining concepts to a 5-year old. Use super simple analogies, short sentences, and a warm tone. Avoid jargon entirely.";
       } else if (activeMode === "Analogy") {
@@ -65,15 +90,15 @@ export default function AITutor() {
         systemInstruction = "You are Rex AI, Studenius's custom study assistant. Provide a high-yield bulleted cheat-sheet summary of the query or attached text. Highlight vocabulary, main formulas, and key processes clearly.";
       }
 
-      if (refContext) {
-        systemInstruction += `\nUse the following reference content uploaded by the student to contextualize your replies:\n${refContext}`;
+      // Inject source content into system prompt if available
+      if (effectiveContext) {
+        systemInstruction += `\n\nThe student has attached the following reference material. Base your answers on this content when relevant:\n\n${effectiveContext}`;
       }
 
-      const promptBody = messages.length > 1 
+      const promptBody = messages.length > 1
         ? `Given our study history, answer this: ${finalMsg}`
         : finalMsg;
 
-      // Safe callGroq signature resolver mapping to local or remote environments
       const callGroqWithModel = async (promptText: string, systemPrompt: string) => {
         const fn = callGroq as any;
         const fnStr = fn.toString();
@@ -85,7 +110,7 @@ export default function AITutor() {
       };
 
       const reply = await callGroqWithModel(promptBody, systemInstruction);
-      
+
       const botText = reply || "I processed your request beautifully! Let me know if you need to go deeper.";
       setMessages((prev) => [
         ...prev,
@@ -107,42 +132,48 @@ export default function AITutor() {
     handleSend(`Can you make a study sheet or explain ${title}?`);
   };
 
-  // Scroll to bottom when messages list changes
+  // Auto-grow textarea
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputVal(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
-    <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">
+    <div className="w-full h-[100dvh] bg-[#fcf9f4] flex flex-col overflow-hidden">
       {/* TopAppBar */}
-      <header className="flex items-center justify-between px-edge-margin h-16 w-full bg-background z-10 sticky top-0 border-b-2 border-[#1A1A1A]">
-        <button 
-          aria-label="Go back" 
+      <header className="flex items-center justify-between px-4 h-16 w-full bg-[#FAF7F2] z-10 sticky top-0 border-b-2 border-[#1A1A1A] shrink-0">
+        <button
+          aria-label="Go back"
           onClick={() => navigate("/dashboard")}
-          className="flex items-center justify-center p-2 rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 active:translate-x-0.5"
+          className="flex items-center justify-center p-2 rounded-full hover:bg-[#ebe8e3] transition-colors active:translate-y-0.5"
         >
-          <span className="material-symbols-outlined text-on-background">arrow_back</span>
+          <span className="material-symbols-outlined text-[#1A1A1A]">arrow_back</span>
         </button>
-        <h1 className="font-headline text-headline-md text-on-background font-extrabold tracking-tight">AI Tutor</h1>
-        <button 
-          aria-label="Settings" 
+        <h1 className="font-headline text-[20px] text-[#1A1A1A] font-extrabold tracking-tight">AI Tutor</h1>
+        <button
+          aria-label="Achievements"
           onClick={() => navigate("/daily5")}
-          className="flex items-center justify-center p-2 rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 active:translate-x-0.5"
+          className="flex items-center justify-center p-2 rounded-full hover:bg-[#ebe8e3] transition-colors active:translate-y-0.5"
         >
-          <span className="material-symbols-outlined text-on-background">emoji_events</span>
+          <span className="material-symbols-outlined text-[#1A1A1A]">emoji_events</span>
         </button>
       </header>
 
-      {/* Mode Pills (Horizontal Scroll) */}
-      <div className="w-full px-edge-margin py-[8px] overflow-x-auto no-scrollbar flex space-x-2 shrink-0 bg-background border-b-2 border-[#1A1A1A]">
+      {/* Mode Pills */}
+      <div className="w-full px-4 py-2 overflow-x-auto no-scrollbar flex space-x-2 shrink-0 bg-[#FAF7F2] border-b-2 border-[#1A1A1A]">
         {modes.map((mode) => (
           <button
             key={mode}
             onClick={() => setActiveMode(mode)}
-            className={`shrink-0 px-4 py-2 border-2 border-[#1A1A1A] rounded-full font-label-md flex items-center justify-center whitespace-nowrap transition-all duration-100 ${
+            className={`shrink-0 px-4 py-1.5 border-2 border-[#1A1A1A] rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-100 ${
               activeMode === mode
-                ? "bg-primary text-on-primary font-bold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                : "bg-surface-container-lowest text-on-background hover:bg-surface-container-high"
+                ? "bg-[#ae2925] text-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                : "bg-white text-[#1A1A1A] hover:bg-[#ebe8e3]"
             }`}
           >
             {mode}
@@ -150,96 +181,69 @@ export default function AITutor() {
         ))}
       </div>
 
-      {/* Main Content Area: Chat Feed or Empty State */}
-      <main className="flex-1 overflow-y-auto px-edge-margin py-6 flex flex-col bg-background relative">
-        {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            {/* Centered Fox Illustration */}
-            <div className="w-32 h-32 mb-6 relative">
-              <div className="absolute inset-0 bg-surface-container-highest rounded-full border-2 border-[#1A1A1A] ink-shadow-sm flex items-center justify-center overflow-hidden bg-white">
-                <img 
-                  alt="Fox illustration placeholder" 
-                  className="w-full h-full object-cover opacity-90" 
+      {/* Chat Feed — fills all remaining space and scrolls */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 bg-[#FAF7F2]">
+        {messages.length <= 1 && !messages.find(m => m.sender === "user") ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 pb-4">
+            <div className="w-24 h-24 relative">
+              <div className="absolute inset-0 bg-white rounded-full border-2 border-[#1A1A1A] shadow-[2px_2px_0px_0px_#1A1A1A] flex items-center justify-center overflow-hidden">
+                <img
+                  alt="Rex AI"
+                  className="w-full h-full object-cover opacity-90"
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuCc63uisIamWJ5-RGd-eTGRggtXe2G-vZFx4j_n1boryI-E4vd4dOpOPTpklWQGyawKLkcCcs00CytdTdnQRGN2DBhf-xdu9f6TobVS4-SnAaua7SKIYmfLF4fY6Ev-QL1K9ZsupOUlfkRXCbkCZ5VXNhTZNZAtjqBQo0_m2fXAsbS5bD0SfZdYXwjxFIiH1_GxzGSWCV692kt9pITLvuxptHkhyNjHLH3TFtZa8OiR-p7IWe2UOcblhr4ZjrpTd_-Yb2fzDskta06K"
                 />
               </div>
-              {/* Decorative sparkle */}
-              <span className="material-symbols-outlined absolute -top-2 -right-2 text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>sparkle</span>
+              <span className="material-symbols-outlined absolute -top-1 -right-1 text-[#ae2925] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>sparkle</span>
             </div>
-
-            {/* Welcome Text */}
-            <h2 className="font-headline text-headline-lg text-center mb-2 text-[#1A1A1A]">Ready to study?</h2>
-            <p className="font-body-md text-center text-on-surface-variant mb-6 max-w-[280px]">
-              Ask me anything about your current notes, or pick a suggestion to start.
+            <h2 className="font-extrabold text-[20px] text-center text-[#1A1A1A]">Ready to study?</h2>
+            <p className="text-[13px] text-center text-[#666] max-w-[260px]">
+              Ask me anything about your notes, or pick a suggestion below.
             </p>
-
-            {/* 2x2 Grid of Suggestion Chips */}
-            <div className="grid grid-cols-2 gap-4 w-full max-w-sm mb-4">
-              <button 
-                onClick={() => insertSuggestion("Key Concepts")}
-                className="bg-white border-2 border-[#1A1A1A] rounded-2xl p-4 flex flex-col items-start text-left ink-shadow-sm hover:bg-surface-container-high transition-colors"
-              >
-                <span className="material-symbols-outlined text-primary mb-2">lightbulb</span>
-                <span className="font-label-md font-bold text-[#1A1A1A]">Key Concepts</span>
-                <span className="text-[11px] text-on-surface-variant mt-1 leading-snug">Break down main ideas</span>
-              </button>
-
-              <button 
-                onClick={() => insertSuggestion("Practice Test")}
-                className="bg-white border-2 border-[#1A1A1A] rounded-2xl p-4 flex flex-col items-start text-left ink-shadow-sm hover:bg-surface-container-high transition-colors"
-              >
-                <span className="material-symbols-outlined text-primary mb-2">psychology_alt</span>
-                <span className="font-label-md font-bold text-[#1A1A1A]">Practice Test</span>
-                <span className="text-[11px] text-on-surface-variant mt-1 leading-snug">Generate 5 questions</span>
-              </button>
-
-              <button 
-                onClick={() => navigate("/flashcards")}
-                className="bg-white border-2 border-[#1A1A1A] rounded-2xl p-4 flex flex-col items-start text-left ink-shadow-sm hover:bg-surface-container-high transition-colors"
-              >
-                <span className="material-symbols-outlined text-primary mb-2">history_edu</span>
-                <span className="font-label-md font-bold text-[#1A1A1A]">Flashcards</span>
-                <span className="text-[11px] text-on-surface-variant mt-1 leading-snug">Make study cards</span>
-              </button>
-
-              <button 
-                onClick={() => insertSuggestion("Mind Map")}
-                className="bg-white border-2 border-[#1A1A1A] rounded-2xl p-4 flex flex-col items-start text-left ink-shadow-sm hover:bg-surface-container-high transition-colors"
-              >
-                <span className="material-symbols-outlined text-primary mb-2">draw</span>
-                <span className="font-label-md font-bold text-[#1A1A1A]">Mind Map</span>
-                <span className="text-[11px] text-on-surface-variant mt-1 leading-snug">Connect the topics</span>
-              </button>
+            <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+              {[
+                { icon: "lightbulb", label: "Key Concepts", sub: "Break down main ideas", action: () => insertSuggestion("Key Concepts") },
+                { icon: "psychology_alt", label: "Practice Test", sub: "Generate 5 questions", action: () => insertSuggestion("Practice Test") },
+                { icon: "history_edu", label: "Flashcards", sub: "Make study cards", action: () => navigate("/flashcards") },
+                { icon: "draw", label: "Mind Map", sub: "Connect the topics", action: () => insertSuggestion("Mind Map") },
+              ].map(({ icon, label, sub, action }) => (
+                <button key={label} onClick={action}
+                  className="bg-white border-2 border-[#1A1A1A] rounded-2xl p-4 flex flex-col items-start text-left shadow-[2px_2px_0px_0px_#1A1A1A] hover:bg-[#ebe8e3] transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[#ae2925] mb-2 text-[22px]">{icon}</span>
+                  <span className="font-bold text-[13px] text-[#1A1A1A]">{label}</span>
+                  <span className="text-[11px] text-[#666] mt-0.5">{sub}</span>
+                </button>
+              ))}
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
             {messages.map((msg, index) => (
-              <div 
-                key={index} 
-                className={`flex flex-col max-w-[80%] ${
+              <div
+                key={index}
+                className={`flex flex-col max-w-[82%] ${
                   msg.sender === "user" ? "self-end items-end" : "self-start items-start"
                 }`}
               >
-                <div 
-                  className={`p-3 rounded-2xl border-2 border-[#1A1A1A] ml-1 mr-1 ${
-                    msg.sender === "user" 
-                      ? "bg-primary text-[#FAF7F2] font-semibold shadow-[2px_2px_0px_0px_#1A1A1A]" 
-                      : "bg-white text-on-background shadow-[2px_2px_0px_0px_#1A1A1A]"
+                <div
+                  className={`p-3 rounded-2xl border-2 border-[#1A1A1A] ${
+                    msg.sender === "user"
+                      ? "bg-[#ae2925] text-white font-semibold shadow-[2px_2px_0px_0px_#1A1A1A]"
+                      : "bg-white text-[#1A1A1A] shadow-[2px_2px_0px_0px_#1A1A1A]"
                   }`}
                 >
                   <p className="text-[14px] leading-relaxed whitespace-pre-line">{msg.text}</p>
                 </div>
-                <span className="text-[10px] text-on-surface-variant opacity-65 mt-1 px-2">
+                <span className="text-[10px] text-[#888] mt-1 px-1">
                   {msg.sender === "user" ? "You" : "Rex AI"}
                 </span>
               </div>
             ))}
             {isLoading && (
-              <div className="flex flex-col max-w-[80%] self-start items-start animate-pulse">
-                <div className="p-3 rounded-2xl border-2 border-[#1A1A1A] bg-white text-on-background shadow-[2px_2px_0px_0px_#1A1A1A] flex items-center gap-2">
-                  <span className="material-symbols-outlined animate-spin text-primary text-[18px]">autorenew</span>
-                  <span className="text-[13px] font-bold">Rex is thinking...</span>
+              <div className="flex flex-col max-w-[80%] self-start items-start">
+                <div className="p-3 rounded-2xl border-2 border-[#1A1A1A] bg-white shadow-[2px_2px_0px_0px_#1A1A1A] flex items-center gap-2">
+                  <span className="material-symbols-outlined animate-spin text-[#ae2925] text-[18px]">autorenew</span>
+                  <span className="text-[13px] font-bold text-[#1A1A1A]">Rex is thinking...</span>
                 </div>
               </div>
             )}
@@ -248,40 +252,44 @@ export default function AITutor() {
         )}
       </main>
 
-      {/* Bottom Input Area */}
-      <footer className="w-full bg-white border-t-2 border-[#1A1A1A] px-edge-margin pt-3 pb-6 shrink-0 flex flex-col gap-2 z-20 sticky bottom-0" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-        {/* Source Active Chip */}
+      {/* Bottom Input — fixed to bottom, never cut off */}
+      <footer className="w-full bg-white border-t-2 border-[#1A1A1A] px-4 pt-3 shrink-0 flex flex-col gap-2 z-20"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+
+        {/* Active Source Chip */}
         {activeSource && (
-          <div className="flex items-center self-start bg-inverse-on-surface border-2 border-[#1A1A1A] rounded-full px-3 py-1 mb-1">
-            <span className="material-symbols-outlined text-[#1A1A1A] text-[16px] mr-1">attach_file</span>
-            <span className="font-label-sm text-label-sm text-[#1A1A1A] truncate max-w-[200px]">Active source: {activeSource}</span>
-            <button 
-              onClick={() => setActiveSource(null)}
-              aria-label="Remove source" 
-              className="ml-2 flex items-center justify-center hover:bg-[#FAF7F2] rounded-full p-0.5 border border-transparent hover:border-black/20"
+          <div className="flex items-center self-start bg-[#f0ece6] border-2 border-[#1A1A1A] rounded-full px-3 py-1">
+            <span className="material-symbols-outlined text-[#1A1A1A] text-[15px] mr-1">attach_file</span>
+            <span className="text-[12px] font-bold text-[#1A1A1A] truncate max-w-[200px]">Active: {activeSource}</span>
+            <button
+              onClick={() => {
+                setActiveSource(null);
+                // Also clear from context
+                const { saveContext } = require("@/lib/sourceContext");
+                saveContext([]);
+              }}
+              className="ml-2 hover:bg-[#ebe8e3] rounded-full p-0.5"
             >
-              <span className="material-symbols-outlined text-[#1A1A1A] text-[16px]">close</span>
+              <span className="material-symbols-outlined text-[#1A1A1A] text-[14px]">close</span>
             </button>
           </div>
         )}
 
-        {/* Input Bar */}
         <div className="flex items-end gap-2 w-full">
-          {/* Attach Button */}
-          <button 
+          {/* Attach button → go to sources */}
+          <button
             onClick={() => navigate("/sources")}
-            aria-label="Attach file" 
-            className="w-12 h-12 shrink-0 bg-white border-2 border-[#1A1A1A] rounded-2xl flex items-center justify-center ink-shadow-sm active:translate-y-0.5 active:translate-x-0.5 active:shadow-[1px_1px_0px_0px_#1A1A1A] text-[#1A1A1A]"
+            className="w-11 h-11 shrink-0 bg-white border-2 border-[#1A1A1A] rounded-xl flex items-center justify-center shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-y-0.5 active:shadow-none text-[#1A1A1A]"
           >
-            <span className="material-symbols-outlined">attach_file</span>
+            <span className="material-symbols-outlined text-[20px]">attach_file</span>
           </button>
 
-          {/* Input Box */}
+          {/* Textarea */}
           <div className="flex-1 relative">
-            <textarea 
-              aria-label="Message input" 
+            <textarea
+              ref={textareaRef}
               value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
+              onChange={handleTextareaChange}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -289,23 +297,18 @@ export default function AITutor() {
                 }
               }}
               rows={1}
-              className="w-full min-h-[48px] max-h-[120px] bg-white border-2 border-[#1A1A1A] rounded-2xl px-4 py-3 font-body-md text-[14px] text-[#1A1A1A] placeholder:text-on-surface-variant placeholder:opacity-60 resize-none focus:outline-none focus:ring-0 focus:border-[#1A1A1A] ink-shadow-sm" 
-              placeholder="Message AI Tutor..." 
+              className="w-full min-h-[44px] max-h-[120px] bg-white border-2 border-[#1A1A1A] rounded-xl px-4 py-2.5 text-[14px] text-[#1A1A1A] placeholder:text-[#aaa] resize-none focus:outline-none shadow-[2px_2px_0px_0px_#1A1A1A]"
+              placeholder="Message AI Tutor..."
+              style={{ overflowY: "auto" }}
             />
           </div>
 
-          {/* Send Button */}
-          <button 
+          {/* Send */}
+          <button
             onClick={() => handleSend()}
-            aria-label="Send message" 
-            className="w-12 h-12 shrink-0 bg-primary border-2 border-[#1A1A1A] rounded-2xl flex items-center justify-center ink-shadow-sm active:translate-y-0.5 active:translate-x-0.5 active:shadow-[1px_1px_0px_0px_#1A1A1A] text-[#FAF7F2]"
+            className="w-11 h-11 shrink-0 bg-[#ae2925] border-2 border-[#1A1A1A] rounded-xl flex items-center justify-center shadow-[2px_2px_0px_0px_#1A1A1A] active:translate-y-0.5 active:shadow-none"
           >
-            <span 
-              className="material-symbols-outlined" 
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              send
-            </span>
+            <span className="material-symbols-outlined text-white text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
           </button>
         </div>
       </footer>
