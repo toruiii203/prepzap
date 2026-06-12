@@ -139,7 +139,7 @@ export default function SourceLibrary() {
         </div>
       )}
 
-        {/* Search bar */
+        {/* Search bar */}
         {showSearch && (
           <input
             autoFocus
