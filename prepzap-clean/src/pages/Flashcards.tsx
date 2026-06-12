@@ -436,9 +436,6 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           </div>
         </main>
       )}
-
-        </div>
-      )}
     </div>
   );
 }

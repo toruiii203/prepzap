@@ -249,9 +249,6 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
           )
         )}
       </main>
-
-        </div>
-      )}
     </div>
   );
 }

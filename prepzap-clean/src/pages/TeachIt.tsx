@@ -279,9 +279,6 @@ Required feedback JSON object structure:
           </div>
         )}
       </main>
-
-        </div>
-      )}
     </div>
   );
 }
