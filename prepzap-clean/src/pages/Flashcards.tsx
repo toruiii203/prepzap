@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";
 import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { useToolHistory } from "@/pages/ToolHistory";
 
 interface Flashcard {
   front: string;
@@ -17,6 +18,7 @@ interface FlashcardsProps {
 export default function Flashcards() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth() as any;
+  const { save: saveHistory } = useToolHistory("flashcards");
   const [view, setView] = useState<"setup" | "study" | "results">("setup");
   const [topic, setTopic] = useState("");
   const [cardCount, setCardCount] = useState(8);
@@ -24,6 +26,7 @@ export default function Flashcards() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [cards, setCards] = useState<Flashcard[]>([]);
+  const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
   
   // Game scores
   const [scores, setScores] = useState({ gotIt: 0, unsure: 0, forgot: 0 });
@@ -79,6 +82,7 @@ export default function Flashcards() {
     const active = getActiveSource();
     if (active) {
       setTopic(`Active Source: ${active.name}`);
+      setActiveSourceObj(active);
     }
   }, []);
 
@@ -175,6 +179,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           }
         }
         setView("results");
+        saveHistory({ prompt: topic, preview: `${cards.length} cards studied`, output: topic, model: "rex-ai", meta: `${scores.gotIt + 1} got it / ${scores.forgot} forgot` });
       }
     }, 200);
   };
@@ -309,15 +314,19 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           {/* Flashcard Container (3D Flip) */}
           <div 
             onClick={() => setIsFlipped(!isFlipped)} 
-            className="relative w-full flex-1 max-h-[400px] perspective-1000 cursor-pointer mt-6"
+            className="relative w-full flex-1 max-h-[400px] cursor-pointer mt-6"
+            style={{ perspective: "1000px" }}
           >
             <div 
-              className={`transform-style-3d transition-transform duration-500 w-full h-full relative ${
-                isFlipped ? "rotate-y-180" : ""
-              }`}
+              className="transition-transform duration-500 w-full h-full relative"
+              style={{
+                transformStyle: "preserve-3d",
+                transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+              }}
             >
               {/* Front of Card (Question) */}
-              <div className="absolute inset-0 backface-hidden rounded-[18px] border-2 border-on-background bg-white shadow-ink-lg flex flex-col items-center justify-center p-8 text-center">
+              <div className="absolute inset-0 rounded-[18px] border-2 border-on-background bg-white shadow-ink-lg flex flex-col items-center justify-center p-8 text-center"
+                style={{ backfaceVisibility: "hidden" }}>
                 <div className="absolute top-5 left-5 right-5 flex justify-between items-start opacity-30">
                   <span className="material-symbols-outlined">format_quote</span>
                 </div>
@@ -335,7 +344,8 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               </div>
 
               {/* Back of Card (Answer) */}
-              <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-[18px] border-2 border-on-background bg-primary-fixed text-on-primary-fixed shadow-ink-lg flex flex-col items-center justify-center p-8 text-center">
+              <div className="absolute inset-0 rounded-[18px] border-2 border-on-background bg-primary-fixed text-on-primary-fixed shadow-ink-lg flex flex-col items-center justify-center p-8 text-center"
+                style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
                 <span className="material-symbols-outlined text-primary mb-3 text-[52px]">lightbulb</span>
                 <p className="font-headline text-headline-lg text-[#1c1c19] text-[22.5px] leading-snug">
                   {currentCard.back}
@@ -427,6 +437,13 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             </button>
           </div>
         </main>
+      )}
+
+      {activeSourceObj && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[358px] z-40 bg-black text-white rounded-full px-4 py-2 flex items-center justify-between text-[12px] font-bold">
+          <span>● Active source: {activeSourceObj.name}</span>
+          <button onClick={() => navigate("/sources")}>Change ›</button>
+        </div>
       )}
     </div>
   );

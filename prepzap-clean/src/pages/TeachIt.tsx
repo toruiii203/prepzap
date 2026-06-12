@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 
 interface TeachItProps {
 }
@@ -18,6 +18,7 @@ interface FeynmanFeedback {
 export default function TeachIt() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const activeSource = getActiveSource();
   const [topic, setTopic] = useState("");
   const [explanation, setExplanation] = useState("");
   const [feedback, setFeedback] = useState<FeynmanFeedback | null>(null);
@@ -143,7 +144,7 @@ Required feedback JSON object structure:
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 px-5 py-6 flex flex-col gap-6">
+      <main className="flex-1 px-5 py-6 flex flex-col gap-6 pb-24">
         {/* Header Title */}
         <div className="flex flex-col gap-1">
           <h2 className="font-headline text-headline-xl text-on-background font-extrabold leading-tight text-[22px]">Teach It (Feynman Learning)</h2>
@@ -278,6 +279,13 @@ Required feedback JSON object structure:
           </div>
         )}
       </main>
+
+      {activeSource && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[358px] z-40 bg-black text-white rounded-full px-4 py-2 flex items-center justify-between text-[12px] font-bold">
+          <span>● Active source: {activeSource.name}</span>
+          <button onClick={() => navigate("/sources")}>Change ›</button>
+        </div>
+      )}
     </div>
   );
 }

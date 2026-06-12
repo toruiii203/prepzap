@@ -3,12 +3,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { MathRenderer } from "@/components/MathRenderer";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, loadContext, loadLibrary } from "@/lib/sourceContext";
+import { useToolHistory } from "@/pages/ToolHistory";
 
 interface AITutorProps {
 }
 
 export default function AITutor() {
   const navigate = useNavigate();
+  const { save: saveHistory } = useToolHistory("ai-tutor");
   const [activeMode, setActiveMode] = useState("Explain");
   const modes = ["Explain", "ELI5", "Analogy", "Quiz Me", "Devil's Advocate", "Summarize"];
 
@@ -84,10 +86,12 @@ export default function AITutor() {
 
       const reply = await callGroqWithModel(promptBody, systemInstruction);
       
+      const botText = reply || "I processed your request beautifully! Let me know if you need to go deeper.";
       setMessages((prev) => [
         ...prev,
-        { sender: "bot" as const, text: reply || "I processed your request beautifully! Let me know if you need to go deeper." }
+        { sender: "bot" as const, text: botText }
       ]);
+      saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: "rex-ai", meta: activeMode });
     } catch (err: any) {
       console.error(err);
       setMessages((prev) => [
@@ -245,7 +249,7 @@ export default function AITutor() {
       </main>
 
       {/* Bottom Input Area */}
-      <footer className="w-full bg-white border-t-2 border-[#1A1A1A] px-edge-margin pt-3 pb-6 shrink-0 flex flex-col gap-2 z-20">
+      <footer className="w-full bg-white border-t-2 border-[#1A1A1A] px-edge-margin pt-3 pb-6 shrink-0 flex flex-col gap-2 z-20 sticky bottom-0" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
         {/* Source Active Chip */}
         {activeSource && (
           <div className="flex items-center self-start bg-inverse-on-surface border-2 border-[#1A1A1A] rounded-full px-3 py-1 mb-1">

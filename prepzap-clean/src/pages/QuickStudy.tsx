@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 
 interface QuickStudyProps {
 }
@@ -19,6 +19,7 @@ interface StudySheet {
 
 export default function QuickStudy() {
   const navigate = useNavigate();
+  const activeSource = getActiveSource();
   const [activeTab, setActiveTab] = useState<"Cram" | "HighYield">("Cram");
   const [topic, setTopic] = useState("");
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
@@ -137,7 +138,7 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
       </header>
 
       {/* Main Content Canvas */}
-      <main className="flex-1 w-full flex flex-col gap-6 px-5 py-6 overflow-y-auto">
+      <main className="flex-1 w-full flex flex-col gap-6 px-5 py-6 overflow-y-auto pb-24">
         
         {/* Nav Tabs */}
         <div className="flex border-2 border-black rounded-lg overflow-hidden bg-white shrink-0">
@@ -248,6 +249,13 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
           )
         )}
       </main>
+
+      {activeSource && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[358px] z-40 bg-black text-white rounded-full px-4 py-2 flex items-center justify-between text-[12px] font-bold">
+          <span>● Active source: {activeSource.name}</span>
+          <button onClick={() => navigate("/sources")}>Change ›</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,8 @@ export default function SourceLibrary() {
   const [uploadContent, setUploadContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Synchronize state with persistent sources on mount
   useEffect(() => {
@@ -50,6 +52,36 @@ export default function SourceLibrary() {
   };
 
   const handleUploadClick = () => setShowUploadModal(true);
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string || "";
+      const newFile = {
+        id: "f_" + Date.now(),
+        name: file.name,
+        type: file.type.includes("pdf") ? "pdf" : file.type.includes("image") ? "image" : "text",
+        content: content.length > 50000 ? content.slice(0, 50000) : content,
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+        created_at: new Date().toISOString(),
+        isPdf: file.name.toLowerCase().endsWith(".pdf"),
+      };
+      const nextFiles = [newFile, ...files];
+      setFiles(nextFiles);
+      saveLibrary(nextFiles);
+      const nextCtx = [...selectedIds, newFile.id];
+      setSelectedIds(nextCtx);
+      saveContext(nextCtx);
+    };
+    if (file.type.includes("image")) {
+      reader.readAsDataURL(file);
+    } else {
+      reader.readAsText(file);
+    }
+    e.target.value = "";
+  };
 
   const handleUploadConfirm = () => {
     if (!uploadFileName.trim()) return;
@@ -153,24 +185,50 @@ export default function SourceLibrary() {
         
         {/* Upload Area */}
         <section>
-          <div 
-            onClick={handleUploadClick}
-            className="bg-white rounded-2xl border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-neutral-50 transition-colors min-h-[190px]"
-          >
+          {/* Hidden real file inputs */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt,.jpg,.jpeg,.png"
+            className="hidden"
+            onChange={handleFileSelected}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileSelected}
+          />
+
+          <div className="bg-white rounded-2xl border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[190px]">
             <div className="flex gap-4 mb-1">
-              <div className="w-14 h-14 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3.5px_3px_0px_0px_#1A1A1A]">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-14 h-14 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3.5px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+              >
                 <Paperclip className="w-6 h-6 text-primary" />
-              </div>
-              <div className="w-14 h-14 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3.5px_3px_0px_0px_#1A1A1A]">
+              </button>
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="w-14 h-14 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3.5px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+              >
                 <Camera className="w-6 h-6 text-primary" />
-              </div>
+              </button>
             </div>
-            <p className="font-headline font-bold text-headline-sm text-[#1A1A1A] text-center text-[16px]">
-              Tap to upload or take a photo
+            <p className="font-headline font-bold text-[#1A1A1A] text-center text-[16px]">
+              Pick a file or take a photo
             </p>
-            <p className="font-label-md text-label-md text-secondary text-center font-bold text-[13px]">
+            <p className="font-bold text-secondary text-center text-[13px]">
               PDF, TXT, images (JPEG, PNG)
             </p>
+            <button
+              onClick={handleUploadClick}
+              className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] rounded-xl bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
+            >
+              Or paste text manually
+            </button>
           </div>
         </section>
 

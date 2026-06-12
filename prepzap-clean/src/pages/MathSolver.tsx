@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { callGroq } from "@/lib/groq";
+import { getActiveSource, buildAIContext } from "@/lib/sourceContext";
+import { useToolHistory } from "@/pages/ToolHistory";
 
 interface MathSolverProps {
 }
@@ -14,6 +16,8 @@ interface SolutionStep {
 export default function MathSolver() {
   const navigate = useNavigate();
   const [problem, setProblem] = useState("");
+  const activeSource = getActiveSource();
+  const { save: saveHistory } = useToolHistory("math-solver");
   const [steps, setSteps] = useState<SolutionStep[]>([]);
   const [solved, setSolved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,8 +50,10 @@ export default function MathSolver() {
     setErrorText("");
 
     try {
+      const sourceCtx = buildAIContext();
+      const sourceNote = sourceCtx ? `\n\nAdditional context from student's source material:\n${sourceCtx}` : "";
       const promptText = `Solve the following mathematical or scientific problem and provide a detailed, educationally robust step-by-step breakdown:
-"${problem}"
+"${problem}"${sourceNote}
 
 Return strictly a valid raw JSON array containing solution steps. Every element must be an object with:
 "stepNumber" (integer starting at 1),
@@ -79,6 +85,7 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
       if (Array.isArray(generated) && generated.length > 0) {
         setSteps(generated);
         setSolved(true);
+        saveHistory({ prompt: problem, preview: generated[0]?.description?.slice(0, 120) || "", output: JSON.stringify(generated), model: "rex-ai", meta: `${generated.length} steps` });
       } else {
         throw new Error("Invalid structure returned");
       }
@@ -227,6 +234,13 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
           </div>
         )}
       </main>
+
+      {activeSource && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[358px] z-40 bg-black text-white rounded-full px-4 py-2 flex items-center justify-between text-[12px] font-bold">
+          <span>● Active source: {activeSource.name}</span>
+          <button onClick={() => navigate("/sources")}>Change ›</button>
+        </div>
+      )}
     </div>
   );
 }

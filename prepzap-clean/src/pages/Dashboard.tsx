@@ -272,7 +272,6 @@ export default function Dashboard() {
         
         {/* Simple Greeting Section */}
         <section className="flex flex-col gap-2 relative">
-          <div className="absolute right-0 top-[-10px] opacity-25 text-[22px] select-none">//////////////</div>
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <div className="w-[44px] h-[44px] rounded-full bg-[#fca623]/20 ink-border flex items-center justify-center shrink-0">
@@ -337,7 +336,7 @@ export default function Dashboard() {
                         : "bg-[#FAF7F2] text-black/35"
                     } ${isToday ? "ring-2 ring-orange-400 scale-105" : ""}`}
                   >
-                    {studied ? "//" : idx + 1}
+                    {studied ? "✓" : idx + 1}
                   </div>
                 </div>
               );
@@ -347,11 +346,11 @@ export default function Dashboard() {
 
         {/* Core Stats Bento panel */}
         <section className="grid grid-cols-2 gap-3.5">
-          <div className="bg-white border-2 border-black rounded-xl p-4.5 shadow-[2px_2px_0px_#1A1A1A]">
+          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
             <div className="text-[22px] font-black text-black leading-tight">{stats.totalSessions}</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
           </div>
-          <div className="bg-white border-2 border-black rounded-xl p-4.5 shadow-[2px_2px_0px_#1A1A1A]">
+          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
             <div className="text-[22px] font-black text-black leading-tight">{stats.studyTimeHours}h</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
           </div>

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
+import { useToolHistory } from "@/pages/ToolHistory";
 
 interface Question {
   q: string;
@@ -19,6 +20,7 @@ interface PracticeProps {
 export default function Practice() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const { save: saveHistory } = useToolHistory("practice");
   
   const [view, setView] = useState<"quiz" | "results">("quiz");
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -168,12 +170,10 @@ Each object in the JSON array MUST match this exact schema:
       };
 
       triggerRewards();
+      saveHistory({ prompt: questions.map(q => q.q).join(" | ").slice(0, 120), preview: `Score: ${nextScore}/${questions.length}`, output: JSON.stringify(answers), model: "rex-ai", meta: `${nextScore}/${questions.length} correct` });
       setView("results");
     }
   };
-
-  const currentQuestion = questions[currentQIndex];
-  const progressPercent = Math.round(((currentQIndex + 1) / questions.length) * 100);
 
   return (
     <div className="w-full min-h-full bg-[#FAF7F2] flex flex-col flex-1 overflow-hidden">
@@ -200,6 +200,7 @@ Each object in the JSON array MUST match this exact schema:
           <main className="flex-1 w-full px-5 py-6 flex flex-col gap-5 pb-[130px] overflow-y-auto">
             
             {/* AI Generator Banner */}
+
             <div className="bg-[#e9f2ff] rounded-2xl border-2 border-[#1A1A1A] p-4.5 shadow-[3px_3px_0px_rgba(0,0,0,1)] flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
                 <span className="text-xl">////</span>
@@ -229,92 +230,119 @@ Each object in the JSON array MUST match this exact schema:
               </button>
             </div>
 
-            {/* Progress / Meta Info */}
-            <div className="flex items-center justify-between w-full mt-1">
-              <div className="text-black bg-white px-3.5 py-1.5 rounded-full border-2 border-[#1A1A1A] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 text-[13px] font-bold">
-                <span className="material-symbols-outlined text-[15px] text-primary font-bold">timer</span>
-                {formatTime(timeLeft)}
+            {/* Empty state — no questions yet */}
+            {questions.length === 0 && !isGenerating && (
+              <div className="flex flex-col items-center justify-center flex-1 py-16 gap-4 text-center">
+                <div className="w-20 h-20 bg-white border-2 border-[#1A1A1A] rounded-full flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,1)]">
+                  <span className="material-symbols-outlined text-4xl text-primary">quiz</span>
+                </div>
+                <h2 className="font-extrabold text-[18px] text-[#1A1A1A]">No quiz yet</h2>
+                <p className="text-slate-500 font-bold text-[13.5px] max-w-[260px]">
+                  Hit "Generate Quiz via AI" above to create your personalized practice exam.
+                </p>
               </div>
-              <div className="text-[#1A1A1A] font-extrabold text-[16px]">
-                Question {currentQIndex + 1} <span className="text-slate-500 font-bold text-[13px]">/ {questions.length}</span>
-              </div>
-            </div>
+            )}
 
-            {/* Progress Bar */}
-            <div className="w-full h-3 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden relative">
-              <div 
-                className="h-full bg-primary absolute left-0 top-0 transition-all duration-300" 
-                style={{ width: `${progressPercent}%`, borderRight: "2px solid #1A1A1A" }}
-              ></div>
-            </div>
-
-            {/* Question Card */}
-            <div className="bg-white rounded-2xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] p-5.5 relative overflow-visible">
-              <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#85f5eb] rounded-full border-2 border-[#1A1A1A] flex items-center justify-center transform rotate-12 z-10">
-                <span className="material-symbols-outlined text-[16px] text-[#1A1A1A] font-bold">psychology_alt</span>
+            {/* Loading state */}
+            {isGenerating && (
+              <div className="flex flex-col items-center justify-center flex-1 py-16 gap-4">
+                <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                <p className="font-bold text-[14px] text-slate-500">Rex AI is building your quiz...</p>
               </div>
-              
-              <h2 className="text-black font-extrabold leading-snug text-[16.5px]">
-                {currentQuestion.q}
-              </h2>
-              
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-slate-800 text-[11.5px] font-bold uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[13px] mr-1 font-bold">folder</span>
-                  {currentQuestion.subject}
-                </span>
-                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-slate-800 text-[11.5px] font-bold uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[13px] mr-1 font-bold">leaderboard</span>
-                  {currentQuestion.difficulty}
-                </span>
-              </div>
-            </div>
+            )}
 
-            {/* Answers List */}
-            <div className="flex flex-col gap-3.5 mt-1">
-              {currentQuestion.options.map((option, idx) => {
-                const label = ["A", "B", "C", "D"][idx];
-                const isSelected = selectedOption === idx;
-                
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectOption(idx)}
-                    className={`w-full text-left rounded-2xl border-2 border-[#1A1A1A] p-4.5 flex items-center gap-4 transition-all duration-100 relative group cursor-pointer ${
-                      isSelected 
-                        ? "bg-[#ffdad6] shadow-[3px_3px_0px_rgba(0,0,0,1)] -translate-y-0.5" 
-                        : "bg-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,0.1)] hover:shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5"
-                    }`}
-                  >
-                    <div 
-                      className={`w-8 h-8 rounded-full border-2 border-[#1A1A1A] flex items-center justify-center text-ink flex-shrink-0 font-extrabold text-[13px] transition-colors ${
-                        isSelected ? "bg-primary text-white" : "bg-neutral-100 text-[#1A1A1A]"
-                      }`}
-                    >
-                      {label}
+            {/* Quiz content — only when questions exist */}
+            {questions.length > 0 && !isGenerating && (() => {
+              const currentQuestion = questions[currentQIndex];
+              const progressPercent = Math.round(((currentQIndex + 1) / questions.length) * 100);
+              return (
+                <>
+                  {/* Progress / Meta Info */}
+                  <div className="flex items-center justify-between w-full mt-1">
+                    <div className="text-black bg-white px-3.5 py-1.5 rounded-full border-2 border-[#1A1A1A] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 text-[13px] font-bold">
+                      <span className="material-symbols-outlined text-[15px] text-primary font-bold">timer</span>
+                      {formatTime(timeLeft)}
                     </div>
-                    <span className={`text-[#1A1A1A] leading-tight text-[14.5px] ${isSelected ? "font-extrabold" : "font-bold"}`}>
-                      {option}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    <div className="text-[#1A1A1A] font-extrabold text-[16px]">
+                      Question {currentQIndex + 1} <span className="text-slate-500 font-bold text-[13px]">/ {questions.length}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full h-3 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden relative">
+                    <div 
+                      className="h-full bg-primary absolute left-0 top-0 transition-all duration-300" 
+                      style={{ width: `${progressPercent}%`, borderRight: "2px solid #1A1A1A" }}
+                    ></div>
+                  </div>
+
+                  {/* Question Card */}
+                  <div className="bg-white rounded-2xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] p-5 relative overflow-visible">
+                    <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#85f5eb] rounded-full border-2 border-[#1A1A1A] flex items-center justify-center transform rotate-12 z-10">
+                      <span className="material-symbols-outlined text-[16px] text-[#1A1A1A] font-bold">psychology_alt</span>
+                    </div>
+                    <h2 className="text-black font-extrabold leading-snug text-[16.5px]">
+                      {currentQuestion.q}
+                    </h2>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-slate-800 text-[11.5px] font-bold uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[13px] mr-1 font-bold">folder</span>
+                        {currentQuestion.subject}
+                      </span>
+                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-slate-800 text-[11.5px] font-bold uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[13px] mr-1 font-bold">leaderboard</span>
+                        {currentQuestion.difficulty}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Answers List */}
+                  <div className="flex flex-col gap-3.5 mt-1">
+                    {currentQuestion.options.map((option, idx) => {
+                      const label = ["A", "B", "C", "D"][idx];
+                      const isSelected = selectedOption === idx;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleSelectOption(idx)}
+                          className={`w-full text-left rounded-2xl border-2 border-[#1A1A1A] p-4 flex items-center gap-4 transition-all duration-100 cursor-pointer ${
+                            isSelected 
+                              ? "bg-[#ffdad6] shadow-[3px_3px_0px_rgba(0,0,0,1)] -translate-y-0.5" 
+                              : "bg-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,0.1)] hover:shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5"
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-full border-2 border-[#1A1A1A] flex items-center justify-center flex-shrink-0 font-extrabold text-[13px] transition-colors ${
+                            isSelected ? "bg-primary text-white" : "bg-neutral-100 text-[#1A1A1A]"
+                          }`}>
+                            {label}
+                          </div>
+                          <span className={`text-[#1A1A1A] leading-tight text-[14.5px] ${isSelected ? "font-extrabold" : "font-bold"}`}>
+                            {option}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
           </main>
 
-          {/* Bottom Action Area (Fixed) */}
-          <div className="sticky bottom-0 w-full bg-[#FAF7F2] border-t-2 border-[#1A1A1A] px-5 py-4 pb-6 z-30">
-            <button 
-              disabled={selectedOption === null}
-              onClick={handleNext}
-              className={`w-full text-white py-3.5 rounded-xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${
-                selectedOption !== null ? "bg-primary opacity-100 cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"
-              }`}
-            >
-              Next Question
-              <span className="material-symbols-outlined font-bold">arrow_forward</span>
-            </button>
-          </div>
+          {/* Bottom Action Area — only show when quiz is active */}
+          {questions.length > 0 && !isGenerating && (
+            <div className="sticky bottom-0 w-full bg-[#FAF7F2] border-t-2 border-[#1A1A1A] px-5 py-4 pb-6 z-30">
+              <button 
+                disabled={selectedOption === null}
+                onClick={handleNext}
+                className={`w-full text-white py-3.5 rounded-xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${
+                  selectedOption !== null ? "bg-primary opacity-100 cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"
+                }`}
+              >
+                Next Question
+                <span className="material-symbols-outlined font-bold">arrow_forward</span>
+              </button>
+            </div>
+          )}
         </>
       )}
 
