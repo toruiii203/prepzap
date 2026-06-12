@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
-import { getActiveSource, buildAIContext } from "@/lib/sourceContext";
+import { getActiveSource, buildAIContext, loadContext, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 
 interface MathSolverProps {
@@ -16,12 +16,20 @@ interface SolutionStep {
 export default function MathSolver() {
   const navigate = useNavigate();
   const [problem, setProblem] = useState("");
-  const activeSource = getActiveSource();
+  const [activeSource, setActiveSource] = useState<any>(getActiveSource());
   const { save: saveHistory } = useToolHistory("math-solver");
   const [steps, setSteps] = useState<SolutionStep[]>([]);
   const [solved, setSolved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
+
+  // Re-sync active source when window gets focus (user may have changed sources)
+  useEffect(() => {
+    const syncSource = () => setActiveSource(getActiveSource());
+    syncSource();
+    window.addEventListener("focus", syncSource);
+    return () => window.removeEventListener("focus", syncSource);
+  }, []);
 
   const symbols = ["+", "-", "×", "÷", "/", "^", "√", "x²", "sin(x)", "cos(x)", "tan(x)", "log(x)", "π", "=", "(", ")", "x", "y"];
 
@@ -121,7 +129,7 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
       {/* TopAppBar */}
       <header className="flex items-center justify-between px-5 h-16 w-full top-0 sticky z-50 bg-[#FAF7F2] border-b-2 border-on-background shadow-xs">
         <button 
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full cursor-pointer flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -129,14 +137,15 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
         <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold">Studenius AI Solver</span>
         <button 
           onClick={() => navigate("/sources")}
-          className="text-secondary hover:bg-surface-container-high transition-colors p-1 rounded-full cursor-pointer"
+          className="text-secondary hover:bg-surface-container-high transition-colors p-2 rounded-full cursor-pointer flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
+          title="Source Library"
         >
-          <span className="material-symbols-outlined">library_books</span>
+          <span className="material-symbols-outlined text-[18px]">library_books</span>
         </button>
       </header>
 
       <main className="flex-1 px-5 py-6 flex flex-col gap-6">
-        {/* Header Title with Camera Action */}
+        {/* Header Title with Sample Buttons */}
         <div className="flex items-center justify-between">
           <h2 className="font-headline text-headline-lg text-on-background text-[21.5px] font-extrabold">Math & Science Solver</h2>
           <div className="flex gap-2">
@@ -163,6 +172,30 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
             </button>
           </div>
         </div>
+
+        {/* Active Source Chip */}
+        {activeSource && (
+          <div className="flex items-center gap-2 bg-[#e9f2ff] border-2 border-[#1A1A1A] rounded-xl px-3 py-2 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+            <span className="material-symbols-outlined text-[#1A1A1A] text-[16px]">attach_file</span>
+            <span className="text-[12px] font-bold text-[#1A1A1A] flex-1 truncate">Active: {activeSource.name}</span>
+            <button
+              onClick={() => navigate("/sources")}
+              className="text-[11px] font-bold text-[#ae2925] hover:underline shrink-0"
+            >
+              Change ›
+            </button>
+          </div>
+        )}
+        {!activeSource && (
+          <button
+            onClick={() => navigate("/sources")}
+            className="flex items-center gap-2 bg-white border-2 border-dashed border-[#1A1A1A] rounded-xl px-3 py-2 hover:bg-[#ebe8e3] transition-colors w-full"
+          >
+            <span className="material-symbols-outlined text-[#1A1A1A] text-[16px]">library_books</span>
+            <span className="text-[12px] font-bold text-[#666]">Attach from Source Library (optional)</span>
+            <span className="material-symbols-outlined text-[#1A1A1A] text-[14px] ml-auto">chevron_right</span>
+          </button>
+        )}
 
         {/* Quick Symbols bar */}
         <div className="flex gap-2.5 overflow-x-auto pb-2.5 select-none no-scrollbar">
@@ -235,12 +268,6 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
         )}
       </main>
 
-      {activeSource && (
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[358px] z-40 bg-black text-white rounded-full px-4 py-2 flex items-center justify-between text-[12px] font-bold">
-          <span>● Active source: {activeSource.name}</span>
-          <button onClick={() => navigate("/sources")}>Change ›</button>
-        </div>
-      )}
     </div>
   );
 }

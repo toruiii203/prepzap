@@ -191,7 +191,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-background border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
         <button 
-          onClick={() => view === "study" ? setView("setup") : navigate("/dashboard")}
+          onClick={() => view === "study" ? setView("setup") : navigate(-1)}
           aria-label="Go Back" 
           className="material-symbols-outlined text-primary hover:bg-surface-container-high transition-colors w-10 h-10 flex items-center justify-center rounded-full"
         >
@@ -199,14 +199,12 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         </button>
         <h1 className="font-headline text-headline-md text-primary font-bold text-[21.5px]">Flashcards</h1>
         <button 
-          onClick={() => {
-            setCurrentCardIndex(0);
-            setIsFlipped(false);
-          }}
-          aria-label="Shuffle Cards" 
-          className="material-symbols-outlined text-primary hover:bg-surface-container-high transition-colors w-10 h-10 flex items-center justify-center rounded-full"
+          onClick={() => navigate("/sources")}
+          aria-label="Source Library" 
+          title="Source Library"
+          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#ebe8e3] transition-colors border-2 border-[#1A1A1A] bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]"
         >
-          shuffle
+          <span className="material-symbols-outlined text-[#1A1A1A] text-[18px]">library_books</span>
         </button>
       </header>
 
@@ -439,10 +437,6 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         </main>
       )}
 
-      {activeSourceObj && (
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[358px] z-40 bg-black text-white rounded-full px-4 py-2 flex items-center justify-between text-[12px] font-bold">
-          <span>● Active source: {activeSourceObj.name}</span>
-          <button onClick={() => navigate("/sources")}>Change ›</button>
         </div>
       )}
     </div>

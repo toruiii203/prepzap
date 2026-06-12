@@ -98,7 +98,7 @@ export default function Analytics() {
       <header className="bg-background w-full top-0 sticky border-b-2 border-on-background z-40 navbar-custom">
         <div className="flex items-center justify-between px-5 h-16 w-full bg-[#FAF7F2]">
           <button 
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(-1)}
             aria-label="Go back" 
             className="w-10 h-10 flex items-center justify-center border-2 border-[#1c1c19] rounded-full hover:bg-surface-container-high transition-colors active:translate-y-0.5 shadow-[2px_2px_0px_#1a1a1a] bg-white cursor-pointer"
           >

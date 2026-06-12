@@ -29,7 +29,7 @@ export default function ToolsHub() {
       <header className="h-16 px-5 flex items-center justify-between bg-[#FAF7F2] border-b-[1.5px] border-black sticky top-0 z-40">
         <button
           type="button"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           className="material-symbols-outlined text-[22px] hover:opacity-70"
           aria-label="Back to dashboard"
         >

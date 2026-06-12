@@ -89,7 +89,7 @@ export default function Leaderboard() {
       <header className="flex w-full sticky top-0 left-0 z-50 justify-between items-center px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-surface navbar-custom">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(-1)}
             className="text-on-surface hover:opacity-85 transition-transform active:translate-y-0.5 border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 flex items-center justify-center rounded-full cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>

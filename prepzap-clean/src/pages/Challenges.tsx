@@ -167,7 +167,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
       <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-[#1c1c19] z-50 shadow-xs navbar-custom">
         <div className="flex items-center justify-between px-5 h-16 w-full">
           <button 
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(-1)}
             className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>

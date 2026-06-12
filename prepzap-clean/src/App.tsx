@@ -94,10 +94,14 @@ import VisualLearner from "./pages/VisualLearner";
 import Avatar from "./pages/Avatar";
 import Shop from "./pages/Shop";
 
-// ── Removed imports (files deleted/moved): ───────────────────────────────────
+// ── Restored pages (accidentally removed): ───────────────────────────────────
+import HighYieldDetector from "./pages/HighYieldDetector";
+import MistakeJournal from "./pages/MistakeJournal";
+
+// ── Still removed (files deleted): ───────────────────────────────────────────
 // FeynmanMode, ToolArchitect, Daily5, FlipScript, SpotError, BuildDef,
-// BlankMap, BossRound, ConfidenceCalibration, HighYieldDetector,
-// MistakeJournal, StudyDNA, FocusState, PomodoroArea, Login
+// BlankMap, BossRound, ConfidenceCalibration, StudyDNA, FocusState,
+// PomodoroArea, Login
 // ─────────────────────────────────────────────────────────────────────────────
 
 const queryClient = new QueryClient();
@@ -202,6 +206,9 @@ function AppRoutes() {
           <Route path="/avatar" element={<Avatar />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/admin" element={<Admin />} />
+          {/* Restored routes */}
+          <Route path="/high-yield" element={<HighYieldDetector />} />
+          <Route path="/mistakes" element={<MistakeJournal />} />
         </Route>
 
         {/* Catch-all */}

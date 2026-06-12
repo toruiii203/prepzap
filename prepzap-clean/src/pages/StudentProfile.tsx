@@ -9,7 +9,7 @@ export default function StudentProfile() {
 
   const doLogout = async () => {
     await signOut();
-    navigate("/login");
+    navigate("/onboarding");
   };
 
   const displayName = profile?.full_name || profile?.name || user?.name || user?.email?.split('@')[0] || "Master (You)";

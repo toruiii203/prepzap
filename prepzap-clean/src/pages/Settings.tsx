@@ -64,7 +64,7 @@ export default function Settings() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    navigate("/login")
+    navigate("/onboarding")
   }
 
   const chipStyle = (active: boolean) => ({

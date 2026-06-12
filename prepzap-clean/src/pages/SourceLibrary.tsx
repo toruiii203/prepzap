@@ -303,7 +303,7 @@ export default function SourceLibrary() {
       {/* Header */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] flex items-center justify-between px-5 h-16 z-40 border-b-2 border-black shrink-0">
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full active:translate-y-0.5"
         >
           <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />

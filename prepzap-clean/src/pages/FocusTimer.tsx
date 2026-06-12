@@ -354,7 +354,7 @@ export default function FocusTimer() {
       {/* Header */}
       <header className="flex items-center justify-between px-5 h-16 w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-[#1A1A1A] z-30 shrink-0">
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           className="w-10 h-10 flex items-center justify-center border-2 border-[#1A1A1A] rounded-lg bg-white hover:bg-[#ebe8e3] transition-colors shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 active:shadow-none"
         >
           <span className="material-symbols-outlined text-[20px]">arrow_back</span>

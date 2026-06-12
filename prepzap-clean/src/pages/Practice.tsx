@@ -180,7 +180,7 @@ Each object in the JSON array MUST match this exact schema:
       {/* TopAppBar */}
       <header className="w-full top-0 sticky z-45 bg-[#FAF7F2] border-b-2 border-[#1A1A1A] flex items-center justify-between px-5 h-16">
         <button 
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 -ml-2 rounded-full flex items-center justify-center border-2 border-[#1A1A1A] bg-white h-10 w-10 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
         >
           <span className="material-symbols-outlined">arrow_back</span>

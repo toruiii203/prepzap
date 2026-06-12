@@ -121,7 +121,7 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
       {/* TopAppBar */}
       <header className="w-full top-0 sticky flex items-center justify-between px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-background z-40 navbar-custom">
         <button 
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           aria-label="Back" 
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
         >
@@ -250,10 +250,6 @@ Ensure you provide exactly 4 concise but rigorous study points. Return raw JSON 
         )}
       </main>
 
-      {activeSource && (
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[358px] z-40 bg-black text-white rounded-full px-4 py-2 flex items-center justify-between text-[12px] font-bold">
-          <span>● Active source: {activeSource.name}</span>
-          <button onClick={() => navigate("/sources")}>Change ›</button>
         </div>
       )}
     </div>

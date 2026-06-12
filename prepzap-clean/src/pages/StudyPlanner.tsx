@@ -118,7 +118,7 @@ export default function StudyPlanner() {
       {/* TopAppBar */}
       <header className="w-full top-0 sticky bg-[#FAF7F2] z-50 flex items-center justify-between px-5 h-16 border-b-2 border-on-background shadow-xs navbar-custom">
         <button 
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
