@@ -8,14 +8,19 @@ interface StudeniusShellProps {
 }
 
 /**
- * Centers the Studenius mobile frame on desktop with cream canvas + ink borders.
+ * Mobile: 390px centered phone frame on dark canvas.
+ * Desktop (lg+): full viewport, no frame, no bottom nav.
  */
 export function StudeniusShell({ children, hideNav = false }: StudeniusShellProps) {
   return (
-    <div className="studenius-app min-h-[100dvh] w-full flex justify-center bg-[#2a2a2a]">
-      <div className="relative w-full max-w-[390px] min-h-[100dvh] bg-[#FAF7F2] border-x-[1.5px] border-black shadow-[0_0_40px_rgba(0,0,0,0.2)] flex flex-col">
+    <div className="studenius-app min-h-[100dvh] w-full flex justify-center bg-[#2a2a2a] lg:bg-[#FAF7F2]">
+      <div className="relative w-full max-w-[390px] lg:max-w-none min-h-[100dvh] bg-[#FAF7F2] border-x-[1.5px] border-black lg:border-x-0 shadow-[0_0_40px_rgba(0,0,0,0.2)] lg:shadow-none flex flex-col">
         {children}
-        {!hideNav && <BottomNav />}
+        {!hideNav && (
+          <div className="lg:hidden">
+            <BottomNav />
+          </div>
+        )}
       </div>
     </div>
   );
