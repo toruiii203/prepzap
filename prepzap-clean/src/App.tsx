@@ -50,7 +50,7 @@ function PWAInstallBanner() {
   return (
     <div style={{ position: "fixed", bottom: 72, left: 12, right: 12, zIndex: 9998, background: "var(--pz-surface2, #1f0b13)", border: "2px solid var(--pz-border, rgba(139,26,42,0.35))", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, boxShadow: "none" }}>
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pz-gold, #f0a040)", fontFamily: "'Fredoka One', cursive" }}>Install PrepZap</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pz-gold, #f0a040)", fontFamily: "'Fredoka One', cursive" }}>Install Studenius</span>
         <span style={{ fontSize: 11, color: "var(--pz-text-2, rgba(245,237,232,0.55))", marginTop: 2, fontFamily: "'Nunito', sans-serif" }}>Add to Home Screen for the full app experience</span>
       </div>
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -61,6 +61,7 @@ function PWAInstallBanner() {
   );
 }
 
+// ── Pages still present ──────────────────────────────────────────────────────
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
@@ -83,30 +84,21 @@ import Challenges from "./pages/Challenges";
 import TeachIt from "./pages/TeachIt";
 import QuickStudy from "./pages/QuickStudy";
 import GoProPricing from "./pages/GoProPricing";
-import FeynmanMode from "./pages/FeynmanMode";
-import ToolArchitect from "./pages/ToolArchitect";
 import Pricing from "./pages/Pricing";
 import MathSolver from "./pages/MathSolver";
-import Login from "./pages/Login";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import Daily5 from "./pages/Daily5";
-import FlipScript from "./pages/FlipScript";
-import SpotError from "./pages/SpotError";
-import BuildDef from "./pages/BuildDef";
-import BlankMap from "./pages/BlankMap";
-import BossRound from "./pages/BossRound";
 import CramMode from "./pages/CramMode";
-import ConfidenceCalibration from "./pages/ConfidenceCalibration";
-import HighYieldDetector from "./pages/HighYieldDetector";
-import MistakeJournal from "./pages/MistakeJournal";
 import RecallMode from "./pages/RecallMode";
-import StudyDNA from "./pages/StudyDNA";
-import FocusState from "./pages/FocusState";
 import VisualLearner from "./pages/VisualLearner";
-import PomodoroArea from "./pages/PomodoroArea";
 import Avatar from "./pages/Avatar";
 import Shop from "./pages/Shop";
+
+// ── Removed imports (files deleted/moved): ───────────────────────────────────
+// FeynmanMode, ToolArchitect, Daily5, FlipScript, SpotError, BuildDef,
+// BlankMap, BossRound, ConfidenceCalibration, HighYieldDetector,
+// MistakeJournal, StudyDNA, FocusState, PomodoroArea, Login
+// ─────────────────────────────────────────────────────────────────────────────
 
 const queryClient = new QueryClient();
 
@@ -124,23 +116,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, needsOnboarding } = useAuth();
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#1a0a0a",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "rgba(245,237,232,0.75)",
-          fontSize: 14,
-        }}
-      >
+      <div style={{ minHeight: "100vh", background: "#1a0a0a", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,237,232,0.75)", fontSize: 14 }}>
         Loading page...
       </div>
     );
   }
   if (!session) return <Navigate to="/login" replace />;
-  // New Google OAuth users have no profile row → send to onboarding
   if (needsOnboarding && window.location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
@@ -151,7 +132,7 @@ function MobileRootRedirect() {
   const { session, loading } = useAuth();
   if (loading) return null;
   if (!isMobile()) return <Landing />;
-  return <Navigate to={session ? "/dashboard" : "/login"} replace />;
+  return <Navigate to={session ? "/dashboard" : "/onboarding"} replace />;
 }
 
 function AppRoutes() {
@@ -171,17 +152,7 @@ function AppRoutes() {
     <PageErrorBoundary>
       <Suspense
         fallback={
-          <div
-            style={{
-              minHeight: "100vh",
-              background: "#1a0a0a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "rgba(245,237,232,0.75)",
-              fontSize: 14,
-            }}
-          >
+          <div style={{ minHeight: "100vh", background: "#1a0a0a", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,237,232,0.75)", fontSize: 14 }}>
             Loading page...
           </div>
         }
@@ -196,14 +167,17 @@ function AppRoutes() {
       <SourceBreadcrumb />
       <PWAInstallBanner />
       <Routes>
+        {/* Public */}
         <Route path="/" element={safe(<MobileRootRedirect />)} />
         <Route path="/landing" element={safe(<Landing />)} />
-        <Route path="/login" element={safe(<Login />)} />
+        <Route path="/login" element={safe(<Navigate to="/onboarding" replace />)} />
         <Route path="/signup" element={<Navigate to="/onboarding" replace />} />
         <Route path="/pricing" element={safe(<Pricing />)} />
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
         <Route path="/onboarding" element={safe(<Onboarding />)} />
+
+        {/* Protected — inside shell layout */}
         <Route element={safe(<ProtectedStudeniusLayout />)}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/practice" element={<Practice />} />
@@ -220,29 +194,17 @@ function AppRoutes() {
           <Route path="/quick-study" element={<QuickStudy />} />
           <Route path="/go-pro" element={<GoProPricing />} />
           <Route path="/math" element={<MathSolver />} />
-          <Route path="/mistakes" element={<MistakeJournal />} />
           <Route path="/sources" element={<SourceLibrary />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/cram" element={<CramMode />} />
+          <Route path="/recall" element={<RecallMode />} />
+          <Route path="/visual-learner" element={<VisualLearner />} />
+          <Route path="/avatar" element={<Avatar />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
-        <Route path="/cram" element={safe(<ProtectedRoute><CramMode /></ProtectedRoute>)} />
-        <Route path="/pomodoro-area" element={safe(<ProtectedRoute><PomodoroArea /></ProtectedRoute>)} />
-        <Route path="/feynman" element={safe(<ProtectedRoute><FeynmanMode /></ProtectedRoute>)} />
-        <Route path="/tool-architect" element={safe(<ProtectedRoute><ToolArchitect /></ProtectedRoute>)} />
-        <Route path="/settings" element={safe(<ProtectedRoute><Settings /></ProtectedRoute>)} />
-        <Route path="/daily5" element={safe(<ProtectedRoute><Daily5 /></ProtectedRoute>)} />
-        <Route path="/flip-script" element={safe(<ProtectedRoute><FlipScript /></ProtectedRoute>)} />
-        <Route path="/spot-error" element={safe(<ProtectedRoute><SpotError /></ProtectedRoute>)} />
-        <Route path="/build-def" element={safe(<ProtectedRoute><BuildDef /></ProtectedRoute>)} />
-        <Route path="/blank-map" element={safe(<ProtectedRoute><BlankMap /></ProtectedRoute>)} />
-        <Route path="/boss-round" element={safe(<ProtectedRoute><BossRound /></ProtectedRoute>)} />
-        <Route path="/confidence" element={safe(<ProtectedRoute><ConfidenceCalibration /></ProtectedRoute>)} />
-        <Route path="/high-yield" element={safe(<ProtectedRoute><HighYieldDetector /></ProtectedRoute>)} />
-        <Route path="/recall" element={safe(<ProtectedRoute><RecallMode /></ProtectedRoute>)} />
-        <Route path="/study-dna" element={safe(<ProtectedRoute><StudyDNA /></ProtectedRoute>)} />
-        <Route path="/focus-state" element={safe(<ProtectedRoute><FocusState /></ProtectedRoute>)} />
-        <Route path="/visual-learner" element={safe(<ProtectedRoute><VisualLearner /></ProtectedRoute>)} />
-        <Route path="/avatar" element={safe(<ProtectedRoute><Avatar /></ProtectedRoute>)} />
-        <Route path="/shop" element={safe(<ProtectedRoute><Shop /></ProtectedRoute>)} />
-        <Route path="/admin" element={safe(<ProtectedRoute><Admin /></ProtectedRoute>)} />
+
+        {/* Catch-all */}
         <Route path="*" element={safe(<NotFound />)} />
       </Routes>
     </>
