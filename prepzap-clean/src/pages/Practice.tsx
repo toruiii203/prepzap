@@ -229,7 +229,7 @@ Each object in the JSON array MUST match this exact schema:
 
   // ─── Desktop Quiz View ────────────────────────────────────────────────────
   const DesktopQuizView = () => (
-    <div className="hidden lg:flex lg:ml-64 flex-col min-h-screen bg-[#FAF7F2]">
+    <div className="hidden lg:flex lg:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ height: "100vh" }}>
       <main className="flex-1 flex flex-col p-12 max-w-5xl mx-auto w-full">
 
         {/* AI Generator Banner */}
@@ -396,7 +396,7 @@ Each object in the JSON array MUST match this exact schema:
 
   // ─── Desktop Results View ─────────────────────────────────────────────────
   const DesktopResultsView = () => (
-    <div className="hidden lg:flex lg:ml-64 flex-col min-h-screen bg-[#FAF7F2] items-center justify-center p-12">
+    <div className="hidden lg:flex lg:ml-64 flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto" style={{ height: "100vh" }}>
       <div className="max-w-xl w-full flex flex-col items-center text-center">
         <div className="w-24 h-24 bg-[#fca623]/20 border-[3px] border-black shadow-[5px_5px_0px_#000] flex items-center justify-center mb-8">
           <span className="material-symbols-outlined text-5xl font-bold">emoji_events</span>

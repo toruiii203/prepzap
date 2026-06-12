@@ -148,7 +148,7 @@ export default function Analytics() {
       <DesktopSidebar />
 
       {/* ── DESKTOP LAYOUT ── */}
-      <div className="hidden lg:flex lg:ml-64 flex-col" style={{ minHeight: "100vh" }}>
+      <div className="hidden lg:flex lg:ml-64 flex-col overflow-y-auto" style={{ height: "100vh" }}>
         <div className="flex-1 p-12 flex flex-col gap-6">
 
           {/* Desktop Header */}
