@@ -16,7 +16,6 @@ export default function SourceLibrary() {
   const [uploadContent, setUploadContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchronize state with persistent sources on mount
   useEffect(() => {
@@ -139,7 +138,8 @@ export default function SourceLibrary() {
         </div>
       )}
 
-        {/* Search bar */}
+      {/* Main Content Canvas */}
+      <main className="flex-1 px-5 py-6 flex flex-col gap-6 pb-24 overflow-y-auto">
         {showSearch && (
           <input
             autoFocus
