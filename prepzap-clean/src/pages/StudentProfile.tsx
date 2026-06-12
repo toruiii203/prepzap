@@ -7,6 +7,11 @@ export default function StudentProfile() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth() as any;
 
+  const doLogout = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
   const displayName = profile?.full_name || profile?.name || user?.name || user?.email?.split('@')[0] || "Master (You)";
   const levelVal = profile?.level || user?.level || 1;
   const xpVal = profile?.total_xp || profile?.xp || user?.xp || 0;
@@ -143,14 +148,7 @@ export default function StudentProfile() {
           </button>
 
           <button
-            onClick={async () => {
-              setShowLogoutModal(true);
-  };
-  const doLogout = async () => {
-                await signOut();
-                navigate("/login");
-              }
-            }}
+            onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center justify-center bg-white border-2 border-[#1A1A1A] border-b-4 rounded-xl p-5 hover:bg-red-50 hover:border-red-900 active:translate-y-0 active:border-b-2 transition-all"
           >
             <div className="flex items-center gap-2">
