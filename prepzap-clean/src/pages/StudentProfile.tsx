@@ -3,6 +3,7 @@ import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function StudentProfile() {
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth() as any;
 
@@ -143,7 +144,9 @@ export default function StudentProfile() {
 
           <button
             onClick={async () => {
-              if (window.confirm("Log out of Studenius?")) {
+              setShowLogoutModal(true);
+  };
+  const doLogout = async () => {
                 await signOut();
                 navigate("/login");
               }
@@ -157,6 +160,18 @@ export default function StudentProfile() {
           </button>
         </section>
       </main>
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
+          <div className="bg-[#FAF7F2] border-2 border-black rounded-2xl p-6 w-full max-w-sm shadow-[4px_4px_0px_0px_#000]">
+            <h2 className="font-extrabold text-[17px] mb-2">Log out?</h2>
+            <p className="text-[14px] text-black/60 mb-5">You'll need to sign in again to access Studenius.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLogoutModal(false)} className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-[14px]">Cancel</button>
+              <button onClick={doLogout} className="flex-1 py-3 bg-[#ae2925] text-white border-2 border-black rounded-xl font-bold text-[14px] shadow-[3px_3px_0px_0px_#000]">Log Out</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useRef, useEffect } from "react";
+import { MathRenderer } from "@/components/MathRenderer";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, loadContext, loadLibrary } from "@/lib/sourceContext";
 
@@ -13,7 +14,7 @@ export default function AITutor() {
 
   const [inputVal, setInputVal] = useState("");
   const [messages, setMessages] = useState<Array<{ sender: "user" | "bot"; text: string }>>([
-    { sender: "bot", text: "Hello! I am Rex, your custom AI study assistant. Ask me anything, or upload context from the Source Library to get started!" }
+    { sender: "bot", text: "Hello! I am Rex AI, your custom study assistant. Ask me anything, or upload context from the Source Library to get started!" }
   ]);
   const [activeSource, setActiveSource] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,18 +49,18 @@ export default function AITutor() {
       const refContext = buildAIContext();
       
       // Select system prompt instruction based on Mode tab
-      let systemInstruction = "You are Studenius AI, a master student companion. Speak clearly, concisely, and keep explanations elegant.";
+      let systemInstruction = "You are Rex AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. Speak clearly, concisely, and keep explanations elegant.";
       
       if (activeMode === "ELI5") {
-        systemInstruction = "You are a friendly teacher explaining concepts to a 5-year old. Use super simple analogies, short sentences, and a warm tone. Avoid jargon entirely.";
+        systemInstruction = "You are Rex AI, Studenius's custom study assistant. You are a friendly teacher explaining concepts to a 5-year old. Use super simple analogies, short sentences, and a warm tone. Avoid jargon entirely.";
       } else if (activeMode === "Analogy") {
-        systemInstruction = "You are a creative tutor specializing in analogies. Explain the topic or answer the question by creating a vivid, memorable analogy pairing (e.g. comparing it to a factory, kitchen, or engine).";
+        systemInstruction = "You are Rex AI, Studenius's custom study assistant. You are a creative tutor specializing in analogies. Explain the topic or answer the question by creating a vivid, memorable analogy pairing (e.g. comparing it to a factory, kitchen, or engine).";
       } else if (activeMode === "Quiz Me") {
-        systemInstruction = "Ask a challenging but fun single-question multiple-choice quiz related to the user's prompt or source text. Provide options A, B, C, D and wait for them to answer.";
+        systemInstruction = "You are Rex AI, Studenius's custom study assistant. Ask a challenging but fun single-question multiple-choice quiz related to the user's prompt or source text. Provide options A, B, C, D and wait for them to answer.";
       } else if (activeMode === "Devil's Advocate") {
-        systemInstruction = "Challenge the user's view or construct a Socratic response. Politely expose logical gaps or steel-man the opposing side to deepen their understanding.";
+        systemInstruction = "You are Rex AI, Studenius's custom study assistant. Challenge the user's view or construct a Socratic response. Politely expose logical gaps or steel-man the opposing side to deepen their understanding.";
       } else if (activeMode === "Summarize") {
-        systemInstruction = "Provide a high-yield bulleted cheat-sheet summary of the query or attached text. Highlight vocabulary, main formulas, and key processes clearly.";
+        systemInstruction = "You are Rex AI, Studenius's custom study assistant. Provide a high-yield bulleted cheat-sheet summary of the query or attached text. Highlight vocabulary, main formulas, and key processes clearly.";
       }
 
       if (refContext) {

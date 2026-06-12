@@ -26,12 +26,12 @@ type Phase = "setup" | "session" | "done";
 function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => void; suggestions: string[] }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-      <span style={{ fontSize: 10, color: "var(--pz-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", alignSelf: "center", marginRight: 2 }}>Try:</span>
+      <span style={{ fontSize: 10, color: "rgba(0,0,0,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", alignSelf: "center", marginRight: 2 }}>Try:</span>
       {suggestions.map(s => (
         <button key={s} onClick={() => onSelect(s)}
-          style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderRadius: 20, padding: "4px 12px", fontSize: 11, color: "var(--pz-text-2)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-gold)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-gold)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-border)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-text-2)"; }}>
+          style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderRadius: 20, padding: "4px 12px", fontSize: 11, color: "rgba(0,0,0,0.65)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#ae2925"; (e.currentTarget as HTMLElement).style.color = "#ae2925"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,0,0,0.12)"; (e.currentTarget as HTMLElement).style.color = "rgba(0,0,0,0.65)"; }}>
           {s}
         </button>
       ))}
@@ -131,20 +131,20 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
   const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const progress = topics.length > 0 ? (completed.length / topics.length) * 100 : 0;
   const timerPct = topics[currentIdx] ? (timeLeft / (topics[currentIdx].timeMinutes * 60)) * 100 : 100;
-  const timerColor = timeLeft < 30 ? "var(--pz-rose)" : timeLeft < 60 ? "var(--pz-gold)" : "var(--pz-teal)";
+  const timerColor = timeLeft < 30 ? "#E8534A" : timeLeft < 60 ? "#ae2925" : "#2a9d8f";
 
   return (
     <ToolPageShell>
       <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
-        <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="Cram Mode" subtitle="Guided timed session /// one topic at a time" />
+        <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "#ae2925" }} />} title="Cram Mode" subtitle="Guided timed session /// one topic at a time" />
 
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
             <div className="p-3 flex items-start gap-2" style={{ background: "rgba(232,64,64,0.06)", border: "1px solid rgba(232,64,64,0.2)" }}>
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--pz-rose)" }} />
-              <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>Emergency mode /// walks you through each topic with a live timer. Stay focused.</p>
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#E8534A" }} />
+              <p className="text-xs" style={{ color: "rgba(0,0,0,0.65)" }}>Emergency mode /// walks you through each topic with a live timer. Stay focused.</p>
             </div>
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
@@ -153,11 +153,11 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
             />
             <SuggestionChips onSelect={s => { setSubject(s); setTimeout(() => handleGenerate(), 0); }} suggestions={["Organic Chemistry", "World War II", "Calculus Derivatives", "Human Anatomy", "Macroeconomics", "Cell Biology"]} />
             <div>
-              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Time Available</label>
+              <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "rgba(0,0,0,0.4)" }}>Time Available</label>
               <div className="flex gap-2 flex-wrap">
                 {["0.5", "1", "1.5", "2", "3", "4"].map(h => (
                   <button key={h} onClick={() => setHoursAvailable(h)} className="px-3 py-1.5 text-xs"
-                    style={{ border: `1px solid ${hoursAvailable === h ? "var(--pz-gold)" : "var(--pz-border)"}`, background: hoursAvailable === h ? "var(--pz-gold-dim)" : "var(--pz-surface2)", color: hoursAvailable === h ? "var(--pz-gold)" : "var(--pz-text-muted)", fontWeight: hoursAvailable === h ? 700 : 400 }}>
+                    style={{ border: `1px solid ${hoursAvailable === h ? "#ae2925" : "rgba(0,0,0,0.12)"}`, background: hoursAvailable === h ? "rgba(174,41,37,0.1)" : "#F0EBE3", color: hoursAvailable === h ? "#ae2925" : "rgba(0,0,0,0.4)", fontWeight: hoursAvailable === h ? 700 : 400 }}>
                     {parseFloat(h) < 1 ? `${parseFloat(h) * 60}min` : `${h}hr`}
                   </button>
                 ))}
@@ -169,21 +169,21 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
         {phase === "session" && topics.length > 0 && (
           <div className="mt-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-1.5" style={{ background: "var(--pz-surface3)" }}>
-                <div className="h-full transition-all duration-500" style={{ width: `${progress}%`, background: "var(--pz-gold)" }} />
+              <div className="flex-1 h-1.5" style={{ background: "#E8E4DC" }}>
+                <div className="h-full transition-all duration-500" style={{ width: `${progress}%`, background: "#ae2925" }} />
               </div>
-              <span className="text-xs shrink-0" style={{ color: "var(--pz-text-muted)", fontFamily: "monospace" }}>{completed.length}/{topics.length}</span>
+              <span className="text-xs shrink-0" style={{ color: "rgba(0,0,0,0.4)", fontFamily: "monospace" }}>{completed.length}/{topics.length}</span>
             </div>
 
-            <div className="p-5" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-gold)" }}>
+            <div className="p-5" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderTop: "2px solid #ae2925" }}>
               <div className="flex items-start justify-between gap-3 mb-4">
-                <h2 className="text-base font-semibold" style={{ color: "var(--pz-text)" }}>{topics[currentIdx].topic}</h2>
-                <span className="text-xs px-2 py-0.5 shrink-0" style={{ background: "var(--pz-surface3)", color: "var(--pz-text-muted)", fontFamily: "monospace" }}>{currentIdx + 1}/{topics.length}</span>
+                <h2 className="text-base font-semibold" style={{ color: "#1A1A1A" }}>{topics[currentIdx].topic}</h2>
+                <span className="text-xs px-2 py-0.5 shrink-0" style={{ background: "#E8E4DC", color: "rgba(0,0,0,0.4)", fontFamily: "monospace" }}>{currentIdx + 1}/{topics.length}</span>
               </div>
               <ul className="space-y-2 mb-5">
                 {topics[currentIdx].keyPoints.map((pt, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--pz-text-2)" }}>
-                    <ChevronRight className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--pz-gold)" }} /> {pt}
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "rgba(0,0,0,0.65)" }}>
+                    <ChevronRight className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#ae2925" }} /> {pt}
                   </li>
                 ))}
               </ul>
@@ -193,17 +193,17 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
                     <Clock className="h-3.5 w-3.5" style={{ color: timerColor }} />
                     <span className="text-sm font-bold" style={{ color: timerColor, fontFamily: "monospace" }}>{fmt(timeLeft)}</span>
                   </div>
-                  <span className="text-xs" style={{ color: "var(--pz-text-muted)" }}>{topics[currentIdx].timeMinutes}min allocated</span>
+                  <span className="text-xs" style={{ color: "rgba(0,0,0,0.4)" }}>{topics[currentIdx].timeMinutes}min allocated</span>
                 </div>
-                <div className="h-1.5" style={{ background: "var(--pz-surface3)" }}>
+                <div className="h-1.5" style={{ background: "#E8E4DC" }}>
                   <div className="h-full" style={{ width: `${Math.max(0, timerPct)}%`, background: timerColor, transition: "width 1s linear, background 0.3s" }} />
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleGotIt} className="flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2" style={{ background: "var(--pz-teal)", color: "#000" }}>
+                <Button onClick={handleGotIt} className="flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2" style={{ background: "#2a9d8f", color: "#000" }}>
                   <CheckCircle className="h-4 w-4" /> Got it ///
                 </Button>
-                <Button onClick={handleMoreTime} className="px-4 py-2.5 text-sm flex items-center gap-1.5" style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>
+                <Button onClick={handleMoreTime} className="px-4 py-2.5 text-sm flex items-center gap-1.5" style={{ background: "#E8E4DC", border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)" }}>
                   <RotateCcw className="h-3.5 w-3.5" /> More time
                 </Button>
               </div>
@@ -211,11 +211,11 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
 
             {topics.slice(currentIdx + 1).length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-xs uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Up next</p>
+                <p className="text-xs uppercase tracking-widest" style={{ color: "rgba(0,0,0,0.4)" }}>Up next</p>
                 {topics.slice(currentIdx + 1).map((t, i) => (
-                  <div key={i} className="px-3 py-2 flex items-center justify-between" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
-                    <span className="text-xs" style={{ color: "var(--pz-text-2)" }}>{t.topic}</span>
-                    <span className="text-xs" style={{ color: "var(--pz-text-muted)", fontFamily: "monospace" }}>{t.timeMinutes}min</span>
+                  <div key={i} className="px-3 py-2 flex items-center justify-between" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)" }}>
+                    <span className="text-xs" style={{ color: "rgba(0,0,0,0.65)" }}>{t.topic}</span>
+                    <span className="text-xs" style={{ color: "rgba(0,0,0,0.4)", fontFamily: "monospace" }}>{t.timeMinutes}min</span>
                   </div>
                 ))}
               </div>
@@ -225,22 +225,22 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
 
         {phase === "done" && (
           <div className="mt-6 space-y-4">
-            <div className="p-6 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-gold)" }}>
-              <Trophy className="h-10 w-10 mx-auto mb-3" style={{ color: "var(--pz-gold)" }} />
-              <h2 className="text-xl font-bold mb-1" style={{ color: "var(--pz-text)" }}>Session Complete!</h2>
-              <p className="text-sm" style={{ color: "var(--pz-text-muted)" }}>Covered {topics.length} topics in ~{Math.round(totalUsed / 60)} min</p>
+            <div className="p-6 text-center" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderTop: "2px solid #ae2925" }}>
+              <Trophy className="h-10 w-10 mx-auto mb-3" style={{ color: "#ae2925" }} />
+              <h2 className="text-xl font-bold mb-1" style={{ color: "#1A1A1A" }}>Session Complete!</h2>
+              <p className="text-sm" style={{ color: "rgba(0,0,0,0.4)" }}>Covered {topics.length} topics in ~{Math.round(totalUsed / 60)} min</p>
             </div>
             <div className="space-y-2">
               {topics.map((t, i) => (
-                <div key={i} className="p-3 flex items-center gap-3" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderLeft: `3px solid ${completed.includes(i) ? "var(--pz-teal)" : "var(--pz-rose)"}` }}>
-                  <CheckCircle className="h-4 w-4 shrink-0" style={{ color: completed.includes(i) ? "var(--pz-teal)" : "var(--pz-text-muted)" }} />
-                  <span className="text-sm" style={{ color: "var(--pz-text)" }}>{t.topic}</span>
+                <div key={i} className="p-3 flex items-center gap-3" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderLeft: `3px solid ${completed.includes(i) ? "#2a9d8f" : "#E8534A"}` }}>
+                  <CheckCircle className="h-4 w-4 shrink-0" style={{ color: completed.includes(i) ? "#2a9d8f" : "rgba(0,0,0,0.4)" }} />
+                  <span className="text-sm" style={{ color: "#1A1A1A" }}>{t.topic}</span>
                 </div>
               ))}
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => { setPhase("setup"); setTopics([]); }} className="flex-1 py-2.5 text-sm" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>New Session</Button>
-              <Button onClick={handleGenerate} disabled={loading} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000" }}>{loading ? "Loading..." : "Redo Session"}</Button>
+              <Button onClick={() => { setPhase("setup"); setTopics([]); }} className="flex-1 py-2.5 text-sm" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)" }}>New Session</Button>
+              <Button onClick={handleGenerate} disabled={loading} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "#ae2925", color: "#000" }}>{loading ? "Loading..." : "Redo Session"}</Button>
             </div>
           </div>
         )}

@@ -32,44 +32,7 @@ export default function Practice() {
   const [activeSourcesCount, setActiveSourcesCount] = useState(0);
 
   // Fallback / standard core educational quiz questions
-  const [questions, setQuestions] = useState<Question[]>([
-    {
-      q: "Which architectural pattern strictly isolates the domain logic from external concerns like databases or UI?",
-      options: [
-        "Model-View-Controller (MVC)",
-        "Hexagonal Architecture (Ports & Adapters)",
-        "Monolithic Architecture",
-        "Event-Driven Architecture"
-      ],
-      correct: 1,
-      subject: "Software Eng",
-      difficulty: "Hard"
-    },
-    {
-      q: "Which enzyme is responsible for unwinding the DNA double helix during replica creation?",
-      options: [
-        "DNA Polymerase",
-        "RNA Primase",
-        "Helicase",
-        "Ligase"
-      ],
-      correct: 2,
-      subject: "Biology",
-      difficulty: "Medium"
-    },
-    {
-      q: "If an object's velocity is doubled, what factor does its kinetic energy increase by?",
-      options: [
-        "2x",
-        "4x",
-        "8x",
-        "Does not change"
-      ],
-      correct: 1,
-      subject: "Physics",
-      difficulty: "Easy"
-    }
-  ]);
+  const [questions, setQuestions] = useState<Question[]>([]);
 
   // Synchronize active source contexts on mount
   useEffect(() => {
@@ -379,7 +342,7 @@ Each object in the JSON array MUST match this exact schema:
             </div>
             <div className="flex justify-between items-center">
               <span className="font-extrabold text-slate-500 text-[13.5px]">REWARDS UNLOCKED</span>
-              <span className="text-[#F5A623] font-bold text-[14.5px]">+{score * 30 + 10} XP Â/ +{score * 15 + 5} Coins</span>
+              <span className="text-[#F5A623] font-bold text-[14.5px]">+{score * 30 + 10} XP ï¿½/ +{score * 15 + 5} Coins</span>
             </div>
           </div>
 

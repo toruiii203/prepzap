@@ -52,12 +52,12 @@ function scoreLocally(typed: string, keywords: string[]): { score: "correct" | "
 function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => void; suggestions: string[] }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-      <span style={{ fontSize: 10, color: "var(--pz-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", alignSelf: "center", marginRight: 2 }}>Try:</span>
+      <span style={{ fontSize: 10, color: "rgba(0,0,0,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", alignSelf: "center", marginRight: 2 }}>Try:</span>
       {suggestions.map(s => (
         <button key={s} onClick={() => onSelect(s)}
-          style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderRadius: 20, padding: "4px 12px", fontSize: 11, color: "var(--pz-text-2)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-gold)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-gold)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--pz-border)"; (e.currentTarget as HTMLElement).style.color = "var(--pz-text-2)"; }}>
+          style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderRadius: 20, padding: "4px 12px", fontSize: 11, color: "rgba(0,0,0,0.65)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#ae2925"; (e.currentTarget as HTMLElement).style.color = "#ae2925"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,0,0,0.12)"; (e.currentTarget as HTMLElement).style.color = "rgba(0,0,0,0.65)"; }}>
           {s}
         </button>
       ))}
@@ -153,7 +153,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
     else setPhase("results");
   };
 
-  const scoreColor = (s: string) => s === "correct" ? "var(--pz-teal)" : s === "partial" ? "var(--pz-gold)" : "var(--pz-rose)";
+  const scoreColor = (s: string) => s === "correct" ? "#2a9d8f" : s === "partial" ? "#ae2925" : "#E8534A";
   const finalCorrect = results.filter(r => r.score === "correct").length;
   const finalPartial = results.filter(r => r.score === "partial").length;
 
@@ -179,15 +179,15 @@ keywords: 4-6 essential words from the answer that a correct response would incl
 
             {history.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs uppercase tracking-widest mb-3" style={{ color: "var(--pz-text-muted)" }}>Past Sessions</p>
+                <p className="text-xs uppercase tracking-widest mb-3" style={{ color: "rgba(0,0,0,0.4)" }}>Past Sessions</p>
                 <div className="space-y-1.5">
                   {history.slice(0, 8).map((h, i) => (
-                    <div key={i} className="px-3 py-2 flex items-center justify-between" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)" }}>
+                    <div key={i} className="px-3 py-2 flex items-center justify-between" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)" }}>
                       <div>
-                        <span className="text-xs font-medium" style={{ color: "var(--pz-text)" }}>{h.topic}</span>
-                        <span className="text-xs ml-2" style={{ color: "var(--pz-text-muted)" }}>{relTime(h.date)}</span>
+                        <span className="text-xs font-medium" style={{ color: "#1A1A1A" }}>{h.topic}</span>
+                        <span className="text-xs ml-2" style={{ color: "rgba(0,0,0,0.4)" }}>{relTime(h.date)}</span>
                       </div>
-                      <span className="text-xs font-bold" style={{ color: (h.score / h.total) >= 0.7 ? "var(--pz-teal)" : "var(--pz-gold)", fontFamily: "monospace" }}>
+                      <span className="text-xs font-bold" style={{ color: (h.score / h.total) >= 0.7 ? "#2a9d8f" : "#ae2925", fontFamily: "monospace" }}>
                         {h.score}/{h.total}
                       </span>
                     </div>
@@ -202,87 +202,87 @@ keywords: 4-6 essential words from the answer that a correct response would incl
           <div className="mt-6 space-y-4">
             {/* Streak + progress */}
             <div className="flex items-center justify-between">
-              <div className="flex-1 h-1.5 mr-4" style={{ background: "var(--pz-surface3)" }}>
-                <div className="h-full transition-all" style={{ width: `${(current / prompts.length) * 100}%`, background: "var(--pz-gold)" }} />
+              <div className="flex-1 h-1.5 mr-4" style={{ background: "#E8E4DC" }}>
+                <div className="h-full transition-all" style={{ width: `${(current / prompts.length) * 100}%`, background: "#ae2925" }} />
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 {streak > 0 && (
-                  <div className="flex items-center gap-1" style={{ color: "var(--pz-rose)" }}>
+                  <div className="flex items-center gap-1" style={{ color: "#E8534A" }}>
                     <Flame className="h-3.5 w-3.5" />
                     <span className="text-xs font-bold" style={{ fontFamily: "monospace" }}>{streak}</span>
                   </div>
                 )}
-                <span className="text-xs" style={{ color: "var(--pz-text-muted)", fontFamily: "monospace" }}>{current + 1}/{prompts.length}</span>
+                <span className="text-xs" style={{ color: "rgba(0,0,0,0.4)", fontFamily: "monospace" }}>{current + 1}/{prompts.length}</span>
               </div>
             </div>
 
-            <div className="p-4" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-gold)" }}>
-              <p className="text-base font-medium mb-4" style={{ color: "var(--pz-text)" }}>{prompts[current].prompt}</p>
+            <div className="p-4" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderTop: "2px solid #ae2925" }}>
+              <p className="text-base font-medium mb-4" style={{ color: "#1A1A1A" }}>{prompts[current].prompt}</p>
               <textarea ref={inputRef} value={typed} onChange={e => setTyped(e.target.value)}
                 placeholder="Type your answer from memory..." rows={4}
                 onKeyDown={e => { if (e.key === "Enter" && e.metaKey) handleSubmit(); }}
                 className="w-full px-3 py-2.5 text-sm outline-none resize-none mb-3"
-                style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
+                style={{ background: "#E8E4DC", border: "1px solid rgba(0,0,0,0.12)", color: "#1A1A1A" }} />
 
               {showAnswer && (
-                <div className="p-3 mb-3" style={{ background: "var(--pz-surface3)", borderLeft: "2px solid var(--pz-gold)" }}>
-                  <p className="text-xs font-medium mb-1" style={{ color: "var(--pz-gold)" }}>Model answer:</p>
-                  <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>{prompts[current].answer}</p>
-                  <p className="text-xs mt-2" style={{ color: "var(--pz-text-muted)" }}>Key terms: {prompts[current].keywords.join(", ")}</p>
+                <div className="p-3 mb-3" style={{ background: "#E8E4DC", borderLeft: "2px solid #ae2925" }}>
+                  <p className="text-xs font-medium mb-1" style={{ color: "#ae2925" }}>Model answer:</p>
+                  <p className="text-xs" style={{ color: "rgba(0,0,0,0.65)" }}>{prompts[current].answer}</p>
+                  <p className="text-xs mt-2" style={{ color: "rgba(0,0,0,0.4)" }}>Key terms: {prompts[current].keywords.join(", ")}</p>
                 </div>
               )}
 
               <div className="flex gap-2">
-                <Button onClick={handleSubmit} disabled={!typed.trim() && !showAnswer} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000" }}>
+                <Button onClick={handleSubmit} disabled={!typed.trim() && !showAnswer} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "#ae2925", color: "#000" }}>
                   {typed.trim() ? "Submit ///" : "Show Answer"}
                 </Button>
-                {!showAnswer && <button onClick={() => setShowAnswer(true)} className="px-3 py-2.5 text-xs" style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent" }}>Peek</button>}
-                <button onClick={handleSkip} className="px-3 py-2.5" style={{ border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)", background: "transparent" }}>
+                {!showAnswer && <button onClick={() => setShowAnswer(true)} className="px-3 py-2.5 text-xs" style={{ border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)", background: "transparent" }}>Peek</button>}
+                <button onClick={handleSkip} className="px-3 py-2.5" style={{ border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)", background: "transparent" }}>
                   <SkipForward className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <p className="text-[10px] mt-1.5 text-center" style={{ color: "var(--pz-text-muted)" }}>////// to submit</p>
+              <p className="text-[10px] mt-1.5 text-center" style={{ color: "rgba(0,0,0,0.4)" }}>////// to submit</p>
             </div>
           </div>
         )}
 
         {phase === "results" && (
           <div className="mt-6 space-y-4">
-            <div className="p-5 text-center" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderTop: "2px solid var(--pz-gold)" }}>
-              <Trophy className="h-8 w-8 mx-auto mb-2" style={{ color: "var(--pz-gold)" }} />
+            <div className="p-5 text-center" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderTop: "2px solid #ae2925" }}>
+              <Trophy className="h-8 w-8 mx-auto mb-2" style={{ color: "#ae2925" }} />
               <div className="flex justify-center gap-6 mt-2">
                 {[
-                  { label: "Correct", value: finalCorrect, color: "var(--pz-teal)" },
-                  { label: "Partial", value: finalPartial, color: "var(--pz-gold)" },
-                  { label: "Wrong", value: results.filter(r => r.score === "wrong").length, color: "var(--pz-rose)" },
+                  { label: "Correct", value: finalCorrect, color: "#2a9d8f" },
+                  { label: "Partial", value: finalPartial, color: "#ae2925" },
+                  { label: "Wrong", value: results.filter(r => r.score === "wrong").length, color: "#E8534A" },
                 ].map(s => (
                   <div key={s.label} className="text-center">
                     <div className="text-2xl font-bold" style={{ color: s.color, fontFamily: "monospace" }}>{s.value}</div>
-                    <div className="text-[10px] mt-0.5" style={{ color: "var(--pz-text-muted)" }}>{s.label}</div>
+                    <div className="text-[10px] mt-0.5" style={{ color: "rgba(0,0,0,0.4)" }}>{s.label}</div>
                   </div>
                 ))}
               </div>
-              {bestStreak > 1 && <p className="text-xs mt-3" style={{ color: "var(--pz-rose)" }}>//// Best streak: {bestStreak}</p>}
+              {bestStreak > 1 && <p className="text-xs mt-3" style={{ color: "#E8534A" }}>//// Best streak: {bestStreak}</p>}
             </div>
 
             <div className="space-y-2">
               {results.map((r, i) => (
-                <div key={i} className="p-3" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", borderLeft: `3px solid ${scoreColor(r.score)}` }}>
+                <div key={i} className="p-3" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", borderLeft: `3px solid ${scoreColor(r.score)}` }}>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-medium" style={{ color: "var(--pz-text)" }}>{r.prompt}</p>
+                    <p className="text-xs font-medium" style={{ color: "#1A1A1A" }}>{r.prompt}</p>
                     <span className="text-[10px] font-semibold shrink-0 ml-2" style={{ color: scoreColor(r.score) }}>
                       {r.score === "correct" ? "///" : r.score === "partial" ? "~" : "///"}
                     </span>
                   </div>
-                  {r.matched.length > 0 && <p className="text-[10px]" style={{ color: "var(--pz-teal)" }}>Matched: {r.matched.join(", ")}</p>}
-                  {r.typed && <p className="text-xs mt-1 italic" style={{ color: "var(--pz-text-muted)" }}>You: {r.typed.slice(0, 100)}{r.typed.length > 100 ? "..." : ""}</p>}
+                  {r.matched.length > 0 && <p className="text-[10px]" style={{ color: "#2a9d8f" }}>Matched: {r.matched.join(", ")}</p>}
+                  {r.typed && <p className="text-xs mt-1 italic" style={{ color: "rgba(0,0,0,0.4)" }}>You: {r.typed.slice(0, 100)}{r.typed.length > 100 ? "..." : ""}</p>}
                 </div>
               ))}
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={() => { setPhase("setup"); setPrompts([]); }} className="flex-1 py-2.5 text-sm" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text-muted)" }}>New Subject</Button>
-              <Button onClick={handleGenerate} disabled={loading} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "var(--pz-gold)", color: "#000" }}>{loading ? "Loading..." : "Go Again"}</Button>
+              <Button onClick={() => { setPhase("setup"); setPrompts([]); }} className="flex-1 py-2.5 text-sm" style={{ background: "#F0EBE3", border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)" }}>New Subject</Button>
+              <Button onClick={handleGenerate} disabled={loading} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "#ae2925", color: "#000" }}>{loading ? "Loading..." : "Go Again"}</Button>
             </div>
           </div>
         )}
