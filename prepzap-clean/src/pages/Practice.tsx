@@ -435,7 +435,7 @@ Each object in the JSON array MUST match this exact schema:
   );
 
   return (
-    <div className="w-full min-h-full bg-[#FAF7F2] flex flex-col flex-1 overflow-hidden">
+    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
       {/* ═══════════════════════════════════════════════════
           DESKTOP LAYOUT
@@ -447,7 +447,7 @@ Each object in the JSON array MUST match this exact schema:
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden flex flex-col flex-1">
+      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* TopAppBar */}
         <header className="w-full top-0 sticky z-45 bg-[#FAF7F2] border-b-2 border-[#1A1A1A] flex items-center justify-between px-5 h-16">
