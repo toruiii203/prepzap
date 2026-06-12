@@ -460,8 +460,10 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     const { error: e } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Sign-up goes to onboarding; sign-in goes straight to dashboard
-        redirectTo: `${window.location.origin}${isSignIn ? "/dashboard" : "/onboarding"}`,
+        // Always land on /onboarding; ?step tells it where to resume.
+        // Sign-up: ?step=nameInput  →  skip straight to nameInput screen
+        // Sign-in: ?step=done      →  navigate to /dashboard immediately
+        redirectTo: `${window.location.origin}/onboarding?step=${isSignIn ? "done" : "nameInput"}`,
         queryParams: { prompt: "select_account" },
       },
     })
@@ -1079,12 +1081,28 @@ export default function Onboarding() {
 
   const go = (s: Screen) => setScreen(s)
 
-  // Check URL param /// /onboarding?mode=signin drops straight to AccountGateway in sign-in mode
+  // Check URL param on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+
+    // Legacy: ?mode=signin  →  jump to accountGateway in sign-in mode
     if (params.get("mode") === "signin") {
       setStartInSignIn(true)
       go("accountGateway")
+      return
+    }
+
+    // Google OAuth return (sign-up): ?step=nameInput  →  skip past accountGateway
+    if (params.get("step") === "nameInput") {
+      go("nameInput")
+      window.history.replaceState({}, "", "/onboarding")
+      return
+    }
+
+    // Google OAuth return (sign-in): ?step=done  →  go straight to dashboard
+    if (params.get("step") === "done") {
+      navigate("/dashboard", { replace: true })
+      return
     }
   }, [])
 

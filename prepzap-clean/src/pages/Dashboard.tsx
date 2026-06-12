@@ -3,32 +3,34 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
+// All 12 tools flat — used for desktop grid and mobile carousel
+const ALL_TOOLS = [
+  { route: "/ai-tutor",   icon: "smart_toy",       title: "AI Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
+  { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
+  { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-black" },
+  { route: "/quick-study",icon: "bolt",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
+  { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-black" },
+  { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-black" },
+  { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-black" },
+  { route: "/quick-study",icon: "menu_book",        title: "Quick Study",     desc: "5 min bursts",      color: "text-black" },
+  { route: "/sources",    icon: "folder_open",      title: "Source Library",  desc: "Your materials",    color: "text-black" },
+  { route: "/mistakes",   icon: "auto_stories",     title: "Mistake Journal", desc: "Learn from errors", color: "text-[#ba1a1a]" },
+  { route: "/analytics",  icon: "bar_chart",        title: "Analytics",       desc: "Track progress",    color: "text-black" },
+  { route: "/challenges", icon: "emoji_events",     title: "Challenges",      desc: "Compete & win",     color: "text-[#F5A623]" },
+] as const;
+
+// Mobile carousel: chunk into slides of 4
+const TOOL_SLIDES = [
+  ALL_TOOLS.slice(0, 4),
+  ALL_TOOLS.slice(4, 8),
+  ALL_TOOLS.slice(8, 12),
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [toolsPage, setToolsPage] = useState(0);
   const toolsScrollRef = useRef<HTMLDivElement>(null);
-
-  const TOOL_SLIDES = [
-    [
-      { route: "/ai-tutor", icon: "smart_toy", title: "AI Tutor", desc: "Interactive help" },
-      { route: "/practice", icon: "assignment", title: "Practice", desc: "Mock exams" },
-      { route: "/flashcards", icon: "style", title: "Flashcards", desc: "Spaced rep" },
-      { route: "/quick-study", icon: "bolt", title: "Cram Mode", desc: "Quick review" },
-    ],
-    [
-      { route: "/planner", icon: "calendar_month", title: "Study Planner", desc: "Today's schedule" },
-      { route: "/math", icon: "calculate", title: "Math Solver", desc: "Step-by-step" },
-      { route: "/teach-it", icon: "psychology", title: "Teach It", desc: "Explain concepts" },
-      { route: "/quick-study", icon: "menu_book", title: "Quick Study", desc: "High yield" },
-    ],
-    [
-      { route: "/sources", icon: "attach_file", title: "Source Library", desc: "My files" },
-      { route: "/mistakes", icon: "playlist_remove", title: "Mistake Journal", desc: "Review errors" },
-      { route: "/analytics", icon: "bar_chart", title: "Analytics", desc: "Weekly activity" },
-      { route: "/challenges", icon: "emoji_events", title: "Challenges", desc: "Daily streaks" },
-    ],
-  ] as const;
 
   const handleToolsScroll = () => {
     const el = toolsScrollRef.current;
@@ -44,35 +46,28 @@ export default function Dashboard() {
     setToolsPage(page);
   };
 
-  // Name Greeting logic
-  const displayName = user?.avatarConfig?.full_name || (user as any)?.user_metadata?.full_name || user?.name || user?.email?.split('@')[0] || "Master";
+  const displayName =
+    user?.avatarConfig?.full_name ||
+    (user as any)?.user_metadata?.full_name ||
+    user?.name ||
+    user?.email?.split("@")[0] ||
+    "Master";
 
-  // Checklist State loaded from Supabase
   const [tasks, setTasks] = useState<{ id: any; title: string; completed: boolean; time?: string }[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [loadingTasks, setLoadingTasks] = useState(true);
 
-  // Recent Sessions State loaded from Supabase
   const [sessions, setSessions] = useState<{ id: any; title: string; duration: number; created_at: string }[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
 
-  // Calculated Statistics
-  const [stats, setStats] = useState({
-    totalSessions: 0,
-    studyTimeHours: 0,
-    avgScore: 92
-  });
-
-  // Calendar Markings (Mon=0, Tue=1, ..., Sun=6)
+  const [stats, setStats] = useState({ totalSessions: 0, studyTimeHours: 0, avgScore: 92 });
   const [studiedDays, setStudiedDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
 
-  // Study Session Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sessionSubject, setSessionSubject] = useState("");
-  const [sessionDuration, setSessionDuration] = useState(30); // minutes
+  const [sessionDuration, setSessionDuration] = useState(30);
   const [savingSession, setSavingSession] = useState(false);
 
-  // Load from Supabase on mount
   useEffect(() => {
     fetchTasks();
     fetchSessions();
@@ -84,7 +79,7 @@ export default function Dashboard() {
       const stored = localStorage.getItem("pz_checklist");
       const parsed = stored ? JSON.parse(stored) : [];
       setTasks(parsed);
-    } catch (err) {
+    } catch {
       setTasks([]);
     } finally {
       setLoadingTasks(false);
@@ -94,16 +89,15 @@ export default function Dashboard() {
   const fetchSessions = async () => {
     setLoadingSessions(true);
     try {
-      const { data, error } = await supabase.from("study_sessions").select("*").order("created_at", { ascending: false });
+      const { data } = await supabase.from("study_sessions").select("*").order("created_at", { ascending: false });
       if (data && data.length > 0) {
         setSessions(data);
         calculateStatsAndCalendar(data);
       } else {
-        // Seed default educational study sessions to look full on fresh start
         const defaultSessions = [
           { id: "s1", title: "Computer Science Study", duration: 45, created_at: new Date(Date.now() - 3600000).toISOString() },
-          { id: "s2", title: "Math Quiz Review", duration: 30, created_at: new Date(Date.now() - 86400000).toISOString() },
-          { id: "s3", title: "Biology Note Analysis", duration: 60, created_at: new Date(Date.now() - 172800000).toISOString() }
+          { id: "s2", title: "Math Quiz Review",       duration: 30, created_at: new Date(Date.now() - 86400000).toISOString() },
+          { id: "s3", title: "Biology Note Analysis",  duration: 60, created_at: new Date(Date.now() - 172800000).toISOString() },
         ];
         await supabase.from("study_sessions").insert(defaultSessions);
         setSessions(defaultSessions);
@@ -117,118 +111,61 @@ export default function Dashboard() {
   };
 
   const calculateStatsAndCalendar = (loadedSessions: any[]) => {
-    // 1. Core stats
     const totalSess = loadedSessions.length;
     const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration) || 0), 0);
     const hours = Math.round((totalMins / 60) * 10) / 10;
-    
-    setStats({
-      totalSessions: totalSess,
-      studyTimeHours: hours || 0.5,
-      avgScore: profile?.avg_score ?? 0
-    });
+    setStats({ totalSessions: totalSess, studyTimeHours: hours || 0.5, avgScore: profile?.avg_score ?? 0 });
 
-    // 2. Weekly Calendar mapping (Mon - Sun)
     const daysStudied = new Array(7).fill(false);
-    loadedSessions.forEach(session => {
-      const dateList = new Date(session.created_at);
-      let dayIdx = dateList.getDay() - 1; // 0 for Sun, 1 for Mon
-      if (dayIdx === -1) dayIdx = 6; // map Sunday to last item (index 6)
-      if (dayIdx >= 0 && dayIdx < 7) {
-        daysStudied[dayIdx] = true;
-      }
+    loadedSessions.forEach((session) => {
+      let dayIdx = new Date(session.created_at).getDay() - 1;
+      if (dayIdx === -1) dayIdx = 6;
+      if (dayIdx >= 0 && dayIdx < 7) daysStudied[dayIdx] = true;
     });
     setStudiedDays(daysStudied);
   };
 
-  const handleToggleTask = async (id: any, currentCompleted: boolean) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !currentCompleted } : t));
-    try {
-      const updated = tasks.map(t => t.id === id ? { ...t, completed: !currentCompleted } : t);
-      localStorage.setItem("pz_checklist", JSON.stringify(updated));
-    } catch (err) {
-      console.error("Error toggling task completed status:", err);
-    }
+  const handleToggleTask = (id: any, currentCompleted: boolean) => {
+    const updated = tasks.map((t) => (t.id === id ? { ...t, completed: !currentCompleted } : t));
+    setTasks(updated);
+    try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
   };
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    
-    const newTask = {
-      title: newTaskTitle,
-      completed: false,
-      time: "Just now"
-    };
-
-    try {
-      const updated = [...tasks, { ...newTask, id: Date.now().toString() }];
-      localStorage.setItem("pz_checklist", JSON.stringify(updated));
-      setTasks(updated);
-      setNewTaskTitle("");
-    } catch (err) {
-      console.error("Error adding task:", err);
-    }
+    const updated = [...tasks, { id: Date.now().toString(), title: newTaskTitle, completed: false, time: "Just now" }];
+    try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
+    setTasks(updated);
+    setNewTaskTitle("");
   };
 
-  const handleDeleteTask = async (id: any) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-    try {
-      const updated = tasks.filter(t => t.id !== id);
-      localStorage.setItem("pz_checklist", JSON.stringify(updated));
-    } catch (err) {
-      console.error("Error deleting task:", err);
-    }
+  const handleDeleteTask = (id: any) => {
+    const updated = tasks.filter((t) => t.id !== id);
+    setTasks(updated);
+    try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
   };
 
-  // Start study timer / save session modal logic
-  const handleOpenModal = () => {
-    setSessionSubject("");
-    setSessionDuration(30);
-    setIsModalOpen(true);
-  };
+  const handleOpenModal = () => { setSessionSubject(""); setSessionDuration(30); setIsModalOpen(true); };
 
   const handleSaveSession = async () => {
-    if (!sessionSubject.trim()) {
-      
-      return;
-    }
-
+    if (!sessionSubject.trim()) return;
     setSavingSession(true);
     try {
-      const newSession = {
-        title: sessionSubject,
-        duration: Number(sessionDuration),
-        created_at: new Date().toISOString()
-      };
-
+      const newSession = { title: sessionSubject, duration: Number(sessionDuration), created_at: new Date().toISOString() };
       await supabase.from("study_sessions").insert(newSession);
-      
-      // Earn game progression variables on completion of study log
       const xpEarned = Math.round(sessionDuration * 1.5);
-      const coinsEarned = Math.round(sessionDuration * 0.5);
-
-      if (user && profile) {
-        try {
-          const currentXp = profile.total_xp || profile.xp || 0;
-          await supabase.from("profiles").update({ total_xp: currentXp + xpEarned }).eq("id", user.id);
-          if (typeof refreshProfile === "function") {
-            await refreshProfile();
-          }
-        } catch (err) {
-          console.error("Error updating profile via Supabase:", err);
-          await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpEarned }).eq("id", user?.id ?? ""); await refreshProfile();
-        }
-      } else {
-        await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpEarned }).eq("id", user?.id ?? ""); await refreshProfile();
+      try {
+        const currentXp = profile?.total_xp || profile?.xp || 0;
+        await supabase.from("profiles").update({ total_xp: currentXp + xpEarned }).eq("id", user?.id ?? "");
+        if (typeof refreshProfile === "function") await refreshProfile();
+      } catch (err) {
+        console.error("Error updating XP:", err);
       }
-
-      // session saved
-      
       setIsModalOpen(false);
-      fetchSessions(); // Reload list & recalculate statistics
+      fetchSessions();
     } catch (err) {
-      console.error("Error saving logged session:", err);
+      console.error("Error saving session:", err);
     } finally {
       setSavingSession(false);
     }
@@ -237,105 +174,419 @@ export default function Dashboard() {
   const completedCount = tasks.filter((t) => t.completed).length;
   const goalCount = tasks.length > 5 ? tasks.length : 5;
   const progressPercent = Math.min(100, Math.round((completedCount / goalCount) * 100));
+  const circumference = 2 * Math.PI * 42; // r=42
+  const dashOffset = circumference - (progressPercent / 100) * circumference;
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+  // ─── Shared sub-components ────────────────────────────────────────────────
+
+  // Quest Log body (shared between mobile + desktop)
+  const QuestLogBody = () => (
+    <>
+      <div className="flex-1 p-4 overflow-y-auto">
+        {loadingTasks ? (
+          <div className="text-center py-4 text-xs font-bold text-slate-400">Loading checklist...</div>
+        ) : tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-40">
+            <span className="material-symbols-outlined text-[48px] mb-2">task_alt</span>
+            <p className="text-sm font-bold">No quests yet.<br />Add your first target below.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {tasks.map((task) => (
+              <div key={task.id} className="flex items-center gap-3 justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleToggleTask(task.id, task.completed)}
+                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
+                      task.completed ? "bg-[#E8534A]" : "bg-white hover:bg-[#ffdad6]"
+                    }`}
+                  >
+                    {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
+                  </button>
+                  <div className={`text-[14px] font-extrabold ${task.completed ? "line-through opacity-40" : ""}`}>
+                    {task.title}
+                    {task.time && (
+                      <span className="text-[11px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-black/10">
+                        {task.time}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteTask(task.id)}
+                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-black cursor-pointer transition-colors"
+                >
+                  delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="border-t-2 border-black p-3">
+        <form onSubmit={handleAddTask} className="flex gap-2">
+          <input
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Add a quest..."
+            className="flex-1 bg-transparent border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40"
+          />
+          <button
+            type="submit"
+            className="border-2 border-black bg-black text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+          </button>
+        </form>
+      </div>
+    </>
+  );
+
+  // Recent Sessions rows (shared)
+  const RecentSessionsRows = () => (
+    <div className="divide-y-2 divide-black">
+      {loadingSessions ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
+      ) : sessions.length === 0 ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">No sessions yet. Start studying!</div>
+      ) : (
+        sessions.slice(0, 3).map((session, sIdx) => {
+          const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          const icons = ["science", "calculate", "history_edu"];
+          const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
+          return (
+            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`w-11 h-11 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
+                  style={{ boxShadow: "2px 2px 0px #000" }}>
+                  <span className="material-symbols-outlined text-[20px]">{icons[sIdx % 3]}</span>
+                </div>
+                <div>
+                  <div className="text-[14px] font-extrabold text-black">{session.title}</div>
+                  <div className="text-[11px] font-bold text-black/50">{session.duration}m • {formattedDate}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round(session.duration * 1.5)} XP</div>
+                <div className="text-[11px] font-bold text-black/40">{session.duration}m studied</div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+
+  // Weekly bar chart (shared, driven by studiedDays)
+  const WeeklyBars = () => {
+    const heights = [45, 65, 90, 55, 100, 35, 25]; // fallback visual heights
+    return (
+      <div className="h-48 flex items-end justify-between px-4 pb-2">
+        {daysOfWeek.map((day, idx) => (
+          <div key={day} className="flex flex-col items-center gap-2 group">
+            <div
+              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
+                studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
+              }`}
+              style={{ height: `${heights[idx]}%` }}
+            />
+            <span className="text-[10px] font-black uppercase text-black/60">{day.slice(0, 3)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
-      {/* TopAppBar */}
-      <header className="h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
-        <div className="text-[18px] font-black font-headline tracking-wider uppercase">Studenius</div>
-        <div className="flex items-center gap-3">
-          <span 
-            className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75 font-bold"
-            onClick={() => navigate("/sources")}
-          >
-            attach_file
-          </span>
-          <div 
-            className="px-2.5 py-0.5 border-[1.5px] border-[#FAF7F2] rounded-full cursor-pointer hover:opacity-80 bg-[#fca623]/20"
+
+      {/* ═══════════════════════════════════════════════════
+          DESKTOP SIDEBAR — hidden on mobile (lg:flex)
+          ═══════════════════════════════════════════════════ */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
+        <div className="mb-6">
+          <h1 className="text-[28px] font-black tracking-tight text-black">Studenius</h1>
+          <p className="text-[13px] font-bold text-black/50">Academic Level: Pro</p>
+        </div>
+
+        <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
+          {[
+            { icon: "dashboard",     label: "Dashboard",      route: "/dashboard",  active: true },
+            { icon: "smart_toy",     label: "AI Tutor",       route: "/ai-tutor" },
+            { icon: "style",         label: "Flashcards",     route: "/flashcards" },
+            { icon: "assignment",    label: "Practice",       route: "/practice" },
+            { icon: "timer",         label: "Focus Timer",    route: "/focus" },
+            { icon: "calendar_today",label: "Study Planner",  route: "/planner" },
+            { icon: "folder_open",   label: "Source Library", route: "/sources" },
+            { icon: "bar_chart",     label: "Analytics",      route: "/analytics" },
+          ].map((item) => (
+            <button
+              key={item.route}
+              onClick={() => navigate(item.route)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
+                item.active
+                  ? "bg-black text-white scale-95"
+                  : "text-black hover:bg-[#E2E2E2]"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-auto border-t-[1.5px] border-black pt-4 flex flex-col gap-2">
+          <button
             onClick={() => navigate("/go-pro")}
+            className="w-full bg-[#F5A623] border-[1.5px] border-black py-2 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90 transition-opacity"
           >
+            Upgrade to Pro
+          </button>
+          <button
+            onClick={() => navigate("/settings")}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] transition-colors w-full"
+          >
+            <span className="material-symbols-outlined text-[20px]">settings</span>
+            Settings
+          </button>
+          <button
+            onClick={() => navigate("/profile")}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#E2E2E2] transition-colors w-full"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-[1.5px] border-black flex items-center justify-center font-black text-[13px] flex-shrink-0">
+              {displayName.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-[13px] font-bold text-black">{displayName}</span>
+              <span className="text-[11px] font-bold text-black/50">Level {profile?.level ?? 1}</span>
+            </div>
+          </button>
+        </div>
+      </aside>
+
+      {/* ═══════════════════════════════════════════════════
+          MOBILE TOP BAR — hidden on desktop (lg:hidden)
+          ═══════════════════════════════════════════════════ */}
+      <header className="lg:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
+        <div className="text-[18px] font-black tracking-wider uppercase">Studenius</div>
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
+          <div className="px-2.5 py-0.5 border-[1.5px] border-black rounded-full cursor-pointer bg-[#fca623]/20" onClick={() => navigate("/go-pro")}>
             <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO</span>
           </div>
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75">notifications</span>
-          <div 
-            className="w-8 h-8 rounded-full bg-[#ae2925] text-white ink-border flex items-center justify-center font-black text-[13px] cursor-pointer"
-            onClick={() => navigate("/profile")}
-          >
+          <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-2 border-black flex items-center justify-center font-black text-[13px] cursor-pointer" onClick={() => navigate("/profile")}>
             {displayName.slice(0, 1).toUpperCase()}
           </div>
         </div>
       </header>
 
-      <main className="px-5 pt-6 pb-28 flex flex-col gap-6">
-        
-        {/* Simple Greeting Section */}
-        <section className="flex flex-col gap-2 relative">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-3">
-              <div className="w-[44px] h-[44px] rounded-full bg-[#fca623]/20 ink-border flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[20px] text-black">school</span>
-              </div>
-              <div className="flex flex-col">
-                <h1 className="text-[26px] font-black leading-tight font-headline tracking-tight text-black">Good morning, {displayName}.</h1>
-                <p className="text-[14px] text-black/65 font-bold mt-0.5">
-                  {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* ═══════════════════════════════════════════════════
+          DESKTOP LAYOUT — lg:block, offset by sidebar
+          ═══════════════════════════════════════════════════ */}
+      <div className="hidden lg:block lg:ml-64 h-full overflow-y-auto p-12">
 
-        {/* Dynamic Study Goals Counter Bar */}
-        <section 
-          className="ink-border rounded-2xl bg-[#FAF7F2] p-5 cursor-default transition-all duration-150"
-          style={{ borderWidth: "2px", boxShadow: "5px 5px 0px 0px rgba(0,0,0,1)" }}
-        >
-          <div className="flex justify-between items-end mb-4">
-            <div>
-              <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">CURRENT GOAL</div>
-              <div className="text-[15px] font-extrabold text-black">{completedCount} of {goalCount} checklist targets completed</div>
-            </div>
-            <div className="text-[28px] font-black font-headline leading-none" style={{ color: "#1A1A1A" }}>
-              {completedCount}/{goalCount}
-            </div>
+        {/* Desktop Header */}
+        <header className="flex justify-between items-end mb-8">
+          <div>
+            <h2 className="text-[32px] font-black leading-tight text-black">Good morning, {displayName}.</h2>
+            <p className="text-[16px] font-bold text-black/60 mt-1">
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} • Keep the streak alive
+            </p>
           </div>
-          <div className="h-2 bg-[#E8E4DC] rounded-full overflow-hidden ink-border">
-            <div 
-              className="h-full bg-black rounded-r-full transition-all duration-500" 
-              style={{ width: `${progressPercent}%`, backgroundColor: "#1A1A1A" }}
-            ></div>
+          <div className="flex gap-3">
+            <button className="border-2 border-black bg-[#FAF7F2] p-2 flex items-center justify-center hover:bg-[#E2E2E2] transition-colors" style={{ boxShadow: "3px 3px 0px #000" }}>
+              <span className="material-symbols-outlined">notifications</span>
+            </button>
+            <button onClick={() => navigate("/go-pro")} className="border-2 border-black bg-[#FAF7F2] p-2 flex items-center justify-center hover:bg-[#E2E2E2] transition-colors" style={{ boxShadow: "3px 3px 0px #000" }}>
+              <span className="material-symbols-outlined">workspace_premium</span>
+            </button>
           </div>
-        </section>
+        </header>
 
-        {/* Start Study Session Quick Action Button - Modal Trigger */}
+        {/* Desktop Start Study Session CTA */}
         <button
           onClick={handleOpenModal}
-          className="w-full py-3.5 rounded-xl border-2 border-black bg-primary text-white font-extrabold font-headline hover:opacity-95 text-center flex items-center justify-center gap-2 cursor-pointer transition-transform duration-75 active:translate-y-0.5 shadow-[3px_3px_0px_rgba(0,0,0,1)] text-[14.5px]"
+          className="w-full border-2 border-black bg-black text-white flex items-center justify-center gap-3 py-4 mb-8 font-extrabold text-[18px] hover:bg-[#222] transition-colors"
+          style={{ boxShadow: "4px 4px 0px #000" }}
+        >
+          <span className="material-symbols-outlined text-[24px]">play_circle</span>
+          Start Study Session
+        </button>
+
+        {/* Desktop Bento Grid */}
+        <div className="grid grid-cols-12 gap-6">
+
+          {/* Stats Row: Today's Goal + Total Sessions + Time Studied */}
+          <div className="col-span-8 grid grid-cols-3 gap-6">
+
+            {/* Today's Goal */}
+            <section className="border-2 border-black bg-white p-4 flex flex-col items-center text-center relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
+              <div className="absolute top-0 left-0 w-full h-1 bg-[#FF4D2E]" />
+              <div className="text-[10px] font-black uppercase tracking-wider text-black/50 self-start mb-3">Today's Goal</div>
+              <div className="relative w-24 h-24 flex items-center justify-center mb-2">
+                <svg className="w-full h-full -rotate-90">
+                  <circle className="text-[#E8E4DC]" cx="48" cy="48" fill="transparent" r="42" stroke="currentColor" strokeWidth="6" />
+                  <circle
+                    className="text-black"
+                    cx="48" cy="48" fill="transparent" r="42"
+                    stroke="currentColor" strokeWidth="6"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[22px] font-black leading-tight">{completedCount}/{goalCount}</span>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Sessions</span>
+            </section>
+
+            {/* Total Sessions */}
+            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
+              <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Total Sessions</div>
+              <div>
+                <div className="text-[48px] font-black leading-none text-black">{stats.totalSessions}</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Lifetime</div>
+              </div>
+            </section>
+
+            {/* Time Studied */}
+            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
+              <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Time Studied</div>
+              <div>
+                <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyTimeHours}h</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Total Hours</div>
+              </div>
+            </section>
+          </div>
+
+          {/* Quest Log — tall right column spanning 2 rows */}
+          <section className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FAF7F2]/50">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Quest Log</h3>
+              <span className="material-symbols-outlined text-[20px]">history_edu</span>
+            </div>
+            <QuestLogBody />
+          </section>
+
+          {/* Quick Tools — 4x3 grid */}
+          <section className="col-span-8 border-2 border-black bg-[#F0EDE0] p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <h3 className="text-[13px] font-black uppercase tracking-wider mb-4">Quick Tools</h3>
+            <div className="grid grid-cols-4 gap-3">
+              {ALL_TOOLS.map((tool) => (
+                <button
+                  key={tool.route + tool.title}
+                  onClick={() => navigate(tool.route)}
+                  className="border-2 border-black bg-white p-3 flex flex-col items-center justify-center text-center gap-1 h-28 hover:bg-black hover:text-white group transition-colors"
+                  style={{ boxShadow: "3px 3px 0px #000" }}
+                >
+                  <span className={`material-symbols-outlined text-[22px] group-hover:text-white ${tool.color}`}>{tool.icon}</span>
+                  <span className="text-[13px] font-extrabold group-hover:text-white">{tool.title}</span>
+                  <span className="text-[11px] font-bold text-black/50 group-hover:text-white/70">{tool.desc}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Weekly Momentum */}
+          <section className="col-span-8 border-2 border-black bg-white p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Weekly Momentum</h3>
+              <div className="flex gap-2">
+                <span className="px-3 py-1 bg-black text-white text-[11px] font-black uppercase tracking-wider">Study Hours</span>
+                <span className="px-3 py-1 border-[1.5px] border-black text-[11px] font-black uppercase tracking-wider">Goals Met</span>
+              </div>
+            </div>
+            <WeeklyBars />
+          </section>
+
+          {/* Academic Streak */}
+          <section className="col-span-4 border-2 border-black bg-[#FF4D2E] text-white p-4 flex flex-col justify-between min-h-[200px]" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <div className="flex justify-between items-start">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Academic Streak</h3>
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+            </div>
+            <div className="flex items-baseline gap-2 my-2">
+              <span className="text-[64px] font-black leading-none">{profile?.streak_days ?? 24}</span>
+              <span className="text-[24px] font-black uppercase">Days</span>
+            </div>
+            <p className="text-[12px] font-bold opacity-90">Keep it up! You're in the top 5% of users this month.</p>
+            <button className="mt-3 py-2 border-2 border-white bg-white/10 text-[13px] font-black uppercase tracking-wider hover:bg-white hover:text-[#FF4D2E] transition-colors">
+              Claim Weekly Reward
+            </button>
+          </section>
+
+          {/* Recent Sessions — full width */}
+          <section className="col-span-12 border-2 border-black bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <div className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Recent Sessions</h3>
+              <button className="text-[13px] font-extrabold text-[#FF4D2E] hover:underline">View All</button>
+            </div>
+            <RecentSessionsRows />
+          </section>
+
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════
+          MOBILE LAYOUT — block on mobile, hidden on desktop
+          ═══════════════════════════════════════════════════ */}
+      <main className="lg:hidden px-5 pt-6 pb-28 flex flex-col gap-6">
+
+        {/* Greeting */}
+        <section className="flex items-center gap-3">
+          <div className="w-[44px] h-[44px] rounded-full bg-[#fca623]/20 border-2 border-black flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-[20px]">school</span>
+          </div>
+          <div>
+            <h1 className="text-[26px] font-black leading-tight tracking-tight">Good morning, {displayName}.</h1>
+            <p className="text-[14px] text-black/65 font-bold mt-0.5">
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+            </p>
+          </div>
+        </section>
+
+        {/* Goal Progress Bar */}
+        <section className="border-2 border-black rounded-2xl bg-[#FAF7F2] p-5" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">Current Goal</div>
+              <div className="text-[15px] font-extrabold">{completedCount} of {goalCount} checklist targets completed</div>
+            </div>
+            <div className="text-[28px] font-black leading-none">{completedCount}/{goalCount}</div>
+          </div>
+          <div className="h-2 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
+            <div className="h-full bg-black rounded-r-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+          </div>
+        </section>
+
+        {/* Start Study Session */}
+        <button
+          onClick={handleOpenModal}
+          className="w-full py-3.5 rounded-xl border-2 border-black bg-black text-white font-extrabold flex items-center justify-center gap-2 cursor-pointer active:translate-y-0.5 shadow-[3px_3px_0px_rgba(0,0,0,1)] text-[14.5px] transition-transform"
         >
           <span className="material-symbols-outlined text-[18px]">play_circle</span>
           Start Study Session
         </button>
 
-        {/* Weekly Study Calendar Visualizer */}
-        <section className="ink-border rounded-2xl bg-white p-5 cursor-default" style={{ boxShadow: "4px 4px 0px 0px rgba(0,0,0,1)" }}>
+        {/* Weekly Calendar (mobile only) */}
+        <section className="border-2 border-black rounded-2xl bg-white p-5" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
           <div className="text-[11.5px] opacity-50 font-black uppercase tracking-wider mb-3">Weekly Study Calendar</div>
           <div className="grid grid-cols-7 gap-1.5">
             {daysOfWeek.map((day, idx) => {
               const studied = studiedDays[idx];
               const isToday = idx === new Date().getDay() - 1 || (new Date().getDay() === 0 && idx === 6);
-              
               return (
                 <div key={day} className="flex flex-col items-center gap-1.5">
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{day[0]}</span>
-                  <div 
-                    className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-extrabold text-[11px] transition-all ${
-                      studied 
-                        ? "bg-primary text-white shadow-[1px_1px_0px_#000]" 
-                        : "bg-[#FAF7F2] text-black/35"
-                    } ${isToday ? "ring-2 ring-orange-400 scale-105" : ""}`}
-                  >
+                  <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-extrabold text-[11px] transition-all ${
+                    studied ? "bg-black text-white shadow-[1px_1px_0px_#000]" : "bg-[#FAF7F2] text-black/35"
+                  } ${isToday ? "ring-2 ring-orange-400 scale-105" : ""}`}>
                     {studied ? "✓" : idx + 1}
                   </div>
                 </div>
@@ -344,48 +595,43 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Core Stats Bento panel */}
+        {/* Stats */}
         <section className="grid grid-cols-2 gap-3.5">
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black text-black leading-tight">{stats.totalSessions}</div>
+            <div className="text-[22px] font-black leading-tight">{stats.totalSessions}</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
           </div>
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black text-black leading-tight">{stats.studyTimeHours}h</div>
+            <div className="text-[22px] font-black leading-tight">{stats.studyTimeHours}h</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
           </div>
         </section>
 
-        {/* Tools Selector Row — 3 swipe pages matching stitch mockup */}
+        {/* Tools — swipeable carousel (mobile only) */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
             <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Tools</div>
-            <button
-              type="button"
-              onClick={() => navigate("/tools")}
-              className="text-[11px] font-bold text-black/50 underline"
-            >
-              See all
-            </button>
+            <button type="button" onClick={() => navigate("/tools")} className="text-[11px] font-bold text-black/50 underline">See all</button>
           </div>
           <div className="relative">
             <div
               ref={toolsScrollRef}
               onScroll={handleToolsScroll}
-              className="flex overflow-x-auto snap-x snap-mandatory gap-0 pb-2 no-scrollbar scroll-smooth"
+              className="flex overflow-x-auto snap-x snap-mandatory gap-0 pb-2 scroll-smooth"
+              style={{ scrollbarWidth: "none" }}
             >
               {TOOL_SLIDES.map((slide, slideIdx) => (
                 <div key={slideIdx} className="min-w-full snap-start grid grid-cols-2 gap-3 px-0.5">
                   {slide.map((tool) => (
                     <button
-                      key={tool.route}
+                      key={tool.title}
                       type="button"
                       onClick={() => navigate(tool.route)}
-                      className="h-[110px] ink-border rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
+                      className="h-[110px] border-2 border-black rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
                     >
-                      <span className="material-symbols-outlined text-[20px] mb-2 block">{tool.icon}</span>
+                      <span className={`material-symbols-outlined text-[20px] mb-2 block ${tool.color}`}>{tool.icon}</span>
                       <div>
-                        <div className="text-[13px] font-bold text-black">{tool.title}</div>
+                        <div className="text-[13px] font-bold">{tool.title}</div>
                         <div className="text-[11px] text-black/40 font-semibold">{tool.desc}</div>
                       </div>
                     </button>
@@ -396,212 +642,115 @@ export default function Dashboard() {
             <div className="absolute right-0 top-0 bottom-2 w-12 pointer-events-none bg-gradient-to-l from-[#FAF7F2] to-transparent" />
             <div className="flex justify-center gap-1.5 mt-2">
               {TOOL_SLIDES.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  aria-label={`Tools page ${idx + 1}`}
-                  onClick={() => scrollToolsToPage(idx)}
-                  className={`w-1.5 h-1.5 rounded-full transition-opacity ${toolsPage === idx ? "bg-black" : "bg-black/20"}`}
-                />
+                <button key={idx} type="button" onClick={() => scrollToolsToPage(idx)}
+                  className={`w-1.5 h-1.5 rounded-full transition-opacity ${toolsPage === idx ? "bg-black" : "bg-black/20"}`} />
               ))}
             </div>
           </div>
         </section>
 
-        {/* Quest Log Checklist */}
+        {/* Quest Log — mobile */}
         <section>
-          <div className="text-[18px] font-extrabold text-black mb-3 flex items-center gap-2">
-            Quest Log <span className="opacity-30 text-[13px] font-normal font-sans">////</span>
+          <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2">
+            Quest Log <span className="opacity-30 text-[13px] font-normal">////</span>
           </div>
-          <div className="flex flex-col gap-4">
-            <form onSubmit={handleAddTask} className="h-14 ink-border rounded-[12px] bg-[#FAF7F2] px-[14px] flex items-center justify-between">
-              <input 
-                type="text" 
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                placeholder="Add a study checklist target..." 
-                className="text-[13.5px] text-black bg-transparent border-none outline-none focus:ring-0 p-0 w-full placeholder:text-black placeholder:opacity-40 font-bold" />
-              <button type="submit" className="material-symbols-outlined text-[24px] text-black opacity-55 hover:opacity-100 cursor-pointer">
-                add
-              </button>
-            </form>
-            
-            <div className="flex flex-col gap-4 mt-2 px-1">
-              {loadingTasks ? (
-                <div className="text-center py-2 text-xs font-bold text-slate-400">Loading checklist...</div>
-              ) : tasks.map((task) => (
-                <div key={task.id} className="flex items-center gap-3 justify-between">
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => handleToggleTask(task.id, task.completed)}
-                      className={`w-5 h-5 rounded-full ink-border flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
-                        task.completed ? "bg-black" : "bg-white hover:bg-[#ffdad6]"
-                      }`}
-                      style={task.completed ? { backgroundColor: "#E8534A" } : {}}
-                    >
-                      {task.completed && (
-                        <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>
-                      )}
-                    </button>
-                    <div className={`text-[14px] font-extrabold ${task.completed ? "line-through opacity-40" : ""}`}>
-                      {task.title} 
-                      {task.time && (
-                        <span className="text-[11.5px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-black/10">
-                          {task.time}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="material-symbols-outlined text-[18px] text-black/30 hover:text-black hover:scale-105 cursor-pointer transform transition-transform"
-                  >
-                    delete
-                  </button>
-                </div>
-              ))}
-
-              {!loadingTasks && tasks.length === 0 && (
-                <div className="text-center py-2 text-xs font-semibold text-slate-400">No active targets! Add custom milestone goals above.</div>
-              )}
-            </div>
+          <div className="border-2 border-black rounded-xl bg-white overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+            <QuestLogBody />
           </div>
         </section>
 
-        {/* Focus On Chips */}
+        {/* Performance Target Chips */}
         <section>
-          <div className="flex flex-col mb-3">
-            <div className="text-[11px] font-black opacity-50 uppercase tracking-wider flex items-center gap-2 w-full">
-              Specific Performance Targets <span className="opacity-30 text-[12px] font-normal normal-case">////</span>
-              <div 
-                className="ml-auto w-6 h-6 rounded-full ink-border bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FAF7F2] transition-colors"
-                onClick={() => navigate("/planner")}
-              >
-                <span className="material-symbols-outlined text-[14px]">add</span>
-              </div>
+          <div className="text-[11px] font-black opacity-50 uppercase tracking-wider flex items-center gap-2 mb-1">
+            Specific Performance Targets
+            <div className="ml-auto w-6 h-6 rounded-full border-2 border-black bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-white transition-colors" onClick={() => navigate("/planner")}>
+              <span className="material-symbols-outlined text-[14px]">add</span>
             </div>
-            <div className="text-[12px] text-black opacity-45 mt-0.5 font-bold">Based on study sessions recorded</div>
           </div>
+          <div className="text-[12px] text-black/45 font-bold mb-2">Based on study sessions recorded</div>
           <div className="flex flex-wrap gap-2.5">
-            <div 
-              onClick={() => navigate("/math")}
-              className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
-              style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
-            >
-              Mathematics
-            </div>
-            <div 
-              onClick={() => navigate("/teach-it")}
-              className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
-              style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
-            >
-              Physics
-            </div>
-            <div 
-              onClick={() => navigate("/quick-study")}
-              className="ink-border rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-[#FAF7F2] transition-colors cursor-pointer text-center"
-              style={{ boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
-            >
-              English Essay
-            </div>
+            {["Mathematics", "Physics", "English Essay"].map((chip, i) => (
+              <div key={chip} onClick={() => navigate(["/math", "/teach-it", "/quick-study"][i])}
+                className="border-2 border-black rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer"
+                style={{ boxShadow: "2px 2px 0px rgba(0,0,0,1)" }}>
+                {chip}
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* Recent Sessions Timeline Activity */}
-        <section className="ink-border rounded-[16px] bg-[#FAF7F2] p-5" style={{ boxShadow: "4px 4px 0px 0px rgba(0,0,0,1)" }}>
-          <div className="text-[11.5px] font-black mb-4 opacity-50 uppercase tracking-wider border-b-[1.5px] border-black pb-2 flex items-center gap-2">
+        {/* History Ledger (mobile recent sessions) */}
+        <section className="border-2 border-black rounded-[16px] bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+          <div className="text-[11.5px] font-black opacity-50 uppercase tracking-wider border-b-[1.5px] border-black p-4 pb-3">
             History Ledger <span className="opacity-30 text-[12px] font-normal normal-case">///</span>
           </div>
-          <div className="flex flex-col gap-5 relative">
-            {/* Vertical timeline line */}
-            <div className="absolute left-[3px] top-2 bottom-2 w-[1.5px] bg-black opacity-20"></div>
-            
+          <div className="p-4 flex flex-col gap-5 relative">
+            <div className="absolute left-[19px] top-6 bottom-4 w-[1.5px] bg-black opacity-20" />
             {loadingSessions ? (
               <div className="text-center py-2 text-xs font-bold text-slate-400">Loading ledger...</div>
             ) : sessions.slice(0, 3).map((session, sIdx) => {
-              const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric"
-              });
-
+              const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
               return (
-                <div 
-                  key={session.id || sIdx}
-                  className="flex justify-between items-center relative pl-5 cursor-default group"
-                >
-                  <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]"></div>
-                  <div className="text-[14px] font-extrabold text-black flex-1 pr-2 truncate">{session.title}</div>
+                <div key={session.id || sIdx} className="flex justify-between items-center relative pl-5">
+                  <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
+                  <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
                   <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
                     {session.duration}m / {formattedDate}
                   </div>
                 </div>
               );
             })}
-
             {!loadingSessions && sessions.length === 0 && (
-              <div className="text-center py-1 text-xs text-slate-400 font-bold">No sessions registered yet. Click top start button study!</div>
+              <div className="text-center py-1 text-xs text-slate-400 font-bold">No sessions yet. Start studying!</div>
             )}
           </div>
         </section>
       </main>
 
-      {/* Persistent Study Session Modal */}
+      {/* ═══════════════════════════════════════════════════
+          STUDY SESSION MODAL — shared, works on both
+          ═══════════════════════════════════════════════════ */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-5 z-55">
-          <div 
-            className="w-full max-w-[340px] bg-[#FAF7F2] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#1A1A1A] text-left animate-in fade-in zoom-in duration-100"
-          >
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-5 z-50">
+          <div className="w-full max-w-[380px] bg-[#FAF7F2] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#1A1A1A]">
             <div className="flex items-center gap-2 mb-3.5">
               <span className="text-xl">///</span>
-              <h3 className="font-headline font-black text-[18px] text-black">Log Study Session</h3>
+              <h3 className="font-black text-[18px]">Log Study Session</h3>
             </div>
-            
             <p className="text-[12px] text-slate-500 font-bold mb-4 leading-normal">
-              Empower your checklist goal with custom registered study hours in the library profile!
+              Empower your checklist goal with custom registered study hours!
             </p>
-
             <div className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Study Topic / Subject</label>
-                <input 
+                <input
                   type="text"
                   placeholder="e.g. Cellular Biology, Trigonometry"
                   value={sessionSubject}
                   onChange={(e) => setSessionSubject(e.target.value)}
-                  className="w-full border-2 border-black bg-white px-3 py-2 rounded-lg text-[13.5px] font-bold outline-none" />
+                  className="w-full border-2 border-black bg-white px-3 py-2 rounded-lg text-[13.5px] font-bold outline-none"
+                />
               </div>
-
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Duration Of Session: {sessionDuration} min</label>
-                <input 
-                  type="range"
-                  min="15"
-                  max="120"
-                  step="15"
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                  Duration: {sessionDuration} min
+                </label>
+                <input
+                  type="range" min="15" max="120" step="15"
                   value={sessionDuration}
                   onChange={(e) => setSessionDuration(Number(e.target.value))}
-                  className="w-full accent-primary border border-black/10 rounded-lg" />
+                  className="w-full accent-black"
+                />
                 <div className="flex justify-between text-[10px] font-black text-slate-400">
-                  <span>15m</span>
-                  <span>45m</span>
-                  <span>90m</span>
-                  <span>120m</span>
+                  <span>15m</span><span>45m</span><span>90m</span><span>120m</span>
                 </div>
               </div>
             </div>
-
-            <div className="flex gap-3.5 mt-6">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="flex-1 bg-white border-2 border-black text-black py-2.5 rounded-xl font-bold text-[13px] hover:bg-neutral-50 cursor-pointer"
-              >
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-white border-2 border-black py-2.5 rounded-xl font-bold text-[13px] hover:bg-neutral-50 cursor-pointer">
                 Cancel
               </button>
-              <button 
-                disabled={savingSession}
-                onClick={handleSaveSession}
-                className="flex-1 bg-primary border-2 border-black text-white py-2.5 rounded-xl font-bold text-[13px] hover:opacity-95 cursor-pointer"
-              >
+              <button disabled={savingSession} onClick={handleSaveSession} className="flex-1 bg-black border-2 border-black text-white py-2.5 rounded-xl font-bold text-[13px] hover:opacity-90 cursor-pointer disabled:opacity-50">
                 {savingSession ? "Saving..." : "Save Log"}
               </button>
             </div>
