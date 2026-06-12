@@ -19,11 +19,11 @@ export default function MathSolver() {
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
 
-  const symbols = ["+", "///", "Ã/", "Ã/", "///", "Ï/", "///", "xÂ/", "sin(x)", "cos(x)", "tan(x)", "log(x)", "=", "(", ")", "x", "y"];
+  const symbols = ["+", "-", "Ã—", "Ã·", "/", "^", "âˆš", "xÂ²", "sin(x)", "cos(x)", "tan(x)", "log(x)", "Ï€", "=", "(", ")", "x", "y"];
 
   const appendSymbol = (sym: string) => {
     let cleanSym = sym;
-    if (sym === "xÂ/") cleanSym = "Â/";
+    if (sym === "xï¿½/") cleanSym = "ï¿½/";
     setProblem(prev => prev + cleanSym);
   };
 
@@ -33,7 +33,7 @@ export default function MathSolver() {
     } else if (type === "physics") {
       setProblem("F = ma. If mass is 12kg and acceleration is 3m/s^2, what is Force?");
     } else {
-      setProblem("2xÂ/ + 5x /// 3 = 0");
+      setProblem("2xÂ² + 5x - 3 = 0");
     }
     setSolved(false);
     setSteps([]);
@@ -212,9 +212,9 @@ Only return the raw system JSON array. No markdown codeblocks, no explanations, 
                         {st.description}
                       </p>
                       {st.mathBlock && (
-                        <p className="font-headline text-on-background mt-2 bg-slate-100 px-3 py-1.5 rounded border border-on-background/20 inline-block text-[15.5px] font-extrabold font-mono break-all">
+                        <div className="font-mono mt-2 bg-[#1a1a1a] text-[#f0e68c] px-4 py-2.5 rounded-xl border-2 border-black text-[15px] font-bold break-all">
                           {st.mathBlock}
-                        </p>
+                        </div>
                       )}
                     </div>
                   </div>

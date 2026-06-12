@@ -129,13 +129,12 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         throw new Error("Invalid format received");
       }
     } catch (err) {
-      console.warn("Dynamic flashcards generation failed, utilizing robust fallback deck:", err);
-      // Select subset of mock cards matching cardCount
-      const subset = [];
-      for (let i = 0; i < cardCount; i++) {
-        subset.push(mockCards[i % mockCards.length]);
-      }
-      setCards(subset);
+      console.warn("Flashcard generation failed:", err);
+      setCards([{
+        front: "Generation failed. Check your connection and try again.",
+        back: "Try a different topic or reload the page.",
+        explanation: "Error: " + String(err)
+      }]);
     } finally {
       setIsLoading(false);
       setView("study");
@@ -179,7 +178,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
     }, 200);
   };
 
-  const currentCard = cards[currentCardIndex % cards.length] || mockCards[currentCardIndex % mockCards.length];
+  const currentCard = cards[currentCardIndex % cards.length] || { front: "Loading...", back: "", explanation: "" };
 
   return (
     <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">

@@ -12,7 +12,7 @@ export default function FocusTimer() {
   const [duration, setDuration] = useState<25 | 50>(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
-  const [sessionCount, setSessionCount] = useState(2); // Mock: 2 completed out of 4
+  const [sessionCount, setSessionCount] = useState(0);
 
   const awardStudyRewards = async (minutes: number) => {
     const xpEarned = minutes * 2;

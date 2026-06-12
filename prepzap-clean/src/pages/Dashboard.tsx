@@ -125,7 +125,7 @@ export default function Dashboard() {
     setStats({
       totalSessions: totalSess,
       studyTimeHours: hours || 0.5,
-      avgScore: 92 // fallback mockup ratio
+      avgScore: profile?.avg_score ?? 0
     });
 
     // 2. Weekly Calendar mapping (Mon - Sun)
@@ -476,7 +476,7 @@ export default function Dashboard() {
               Specific Performance Targets <span className="opacity-30 text-[12px] font-normal normal-case">////</span>
               <div 
                 className="ml-auto w-6 h-6 rounded-full ink-border bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FAF7F2] transition-colors"
-                onClick={handleOpenModal}
+                onClick={() => navigate("/planner")}
               >
                 <span className="material-symbols-outlined text-[14px]">add</span>
               </div>

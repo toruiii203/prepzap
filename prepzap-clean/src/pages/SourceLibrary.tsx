@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Plus, Check } from "lucide-react";
 import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";
 
@@ -11,6 +11,12 @@ export default function SourceLibrary() {
   const [activeQuickTool, setActiveTab] = useState("AI Tutor");
   const [files, setFiles] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [uploadContent, setUploadContent] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchronize state with persistent sources on mount
   useEffect(() => {
@@ -44,34 +50,29 @@ export default function SourceLibrary() {
     saveContext(nextCtx);
   };
 
-  const handleUploadClick = () => {
-    const fileName = prompt("Enter file name to upload (e.g. Science_Lab_Ch4.txt):");
-    if (!fileName) return;
-    
-    // Prompt for some basic contents to make it interactive in the mockups
-    const fileContent = prompt("Type some study sentences or flashcard material for this notes source:", "Photosynthesis reaction uses water, carbon dioxide, and solar light to assemble sugars inside chloroplast systems.");
-    if (!fileContent) return;
+  const handleUploadClick = () => setShowUploadModal(true);
 
+  const handleUploadConfirm = () => {
+    if (!uploadFileName.trim()) return;
+    const fileContent = uploadContent.trim() || "No content provided.";
     const newFile = {
       id: "f_" + Date.now(),
-      name: fileName,
+      name: uploadFileName.trim(),
       type: "text",
       content: fileContent,
       size: `${Math.ceil(fileContent.length / 100) / 10} KB`,
       created_at: new Date().toISOString(),
-      isPdf: fileName.toLowerCase().endsWith(".pdf")
+      isPdf: uploadFileName.toLowerCase().endsWith(".pdf")
     };
-
     const nextFiles = [newFile, ...files];
     setFiles(nextFiles);
     saveLibrary(nextFiles);
-
-    // Auto-select uploaded file as active context
     const nextCtx = [...selectedIds, newFile.id];
     setSelectedIds(nextCtx);
     saveContext(nextCtx);
-
-    
+    setShowUploadModal(false);
+    setUploadFileName("");
+    setUploadContent("");
   };
 
   const handleQuickToolClick = (tool: string) => {
@@ -97,21 +98,58 @@ export default function SourceLibrary() {
           Source Library
         </h1>
         <button 
-          onClick={() => {
-            const term = prompt("Enter file search term:");
-            if (term) {
-              const matched = files.filter(f => f.name.toLowerCase().includes(term.toLowerCase()));
-              alert(`Matched ${matched.length} files: \n` + matched.map(f => f.name).join("\n"));
-            }
-          }}
+          onClick={() => setShowSearch(s => !s)}
           className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full flex items-center justify-center cursor-pointer active:translate-y-0.5"
         >
           <Search className="w-6 h-6 text-[#1A1A1A]" />
         </button>
       </header>
 
-      {/* Main Content Canvas */}
-      <main className="flex-1 px-5 py-6 flex flex-col gap-6 pb-24 overflow-y-auto">
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
+          <div className="bg-[#FAF7F2] border-2 border-black rounded-2xl p-6 w-full max-w-sm shadow-[4px_4px_0px_0px_#000]">
+            <h2 className="font-extrabold text-[17px] mb-4">Upload Source</h2>
+            <input
+              autoFocus
+              type="text"
+              value={uploadFileName}
+              onChange={e => setUploadFileName(e.target.value)}
+              placeholder="File name (e.g. Science_Lab_Ch4.txt)"
+              className="w-full border-2 border-black rounded-xl px-4 py-3 text-[14px] font-semibold bg-white mb-3 outline-none"
+            />
+            <textarea
+              value={uploadContent}
+              onChange={e => setUploadContent(e.target.value)}
+              placeholder="Paste study notes or flashcard material here..."
+              rows={4}
+              className="w-full border-2 border-black rounded-xl px-4 py-3 text-[13px] font-semibold bg-white mb-4 outline-none resize-none"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowUploadModal(false); setUploadFileName(""); setUploadContent(""); }}
+                className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-[14px]"
+              >Cancel</button>
+              <button
+                onClick={handleUploadConfirm}
+                className="flex-1 py-3 bg-[#ae2925] text-white border-2 border-black rounded-xl font-bold text-[14px] shadow-[3px_3px_0px_0px_#000]"
+              >Upload</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+        {/* Search bar */
+        {showSearch && (
+          <input
+            autoFocus
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search files..."
+            className="w-full border-2 border-black rounded-xl px-4 py-3 text-[14px] font-semibold bg-white outline-none"
+          />
+        )}
         
         {/* Upload Area */}
         <section>
@@ -169,7 +207,7 @@ export default function SourceLibrary() {
           </div>
           
           <div className="flex flex-col gap-5">
-            {files.map((file) => {
+            {files.filter(f => !searchTerm || f.name.toLowerCase().includes(searchTerm.toLowerCase())).map((file) => {
               const isSelected = selectedIds.includes(file.id);
               return (
                 <div 
