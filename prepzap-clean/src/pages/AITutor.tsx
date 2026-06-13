@@ -412,7 +412,7 @@ export default function AITutor() {
           </div>
         </div>
 
-        {/* Chat Feed — flex-1 + overflow-y-auto = scrollable, never clips input */
+        {/* Chat Feed — flex-1 + overflow-y-auto = scrollable, never clips input */}
         <main className="flex-1 overflow-y-auto px-4 py-4 bg-[#FAF7F2]">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-full gap-4 pb-2">
