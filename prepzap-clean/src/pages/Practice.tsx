@@ -245,10 +245,24 @@ Each object in the JSON array MUST match this exact schema:
                 ? `Detected ${activeSourcesCount} active source notes! Let's build a custom exam.`
                 : "Let Rex compile 3 custom multi-choice questions covering any subject!"}
           </p>
-          <button onClick={handleGenerateQuiz} disabled={isGenerating}
-            className="self-start bg-white hover:bg-black hover:text-white border-2 border-black text-xs font-extrabold py-2 px-4 shadow-[2px_2px_0px_#000] transition-all active:translate-y-0.5 active:shadow-none flex items-center gap-2 cursor-pointer">
-            {isGenerating ? <><span className="animate-spin">///</span> Reading materials...</> : <><span>///</span> Generate Quiz via AI</>}
-          </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={handleGenerateQuiz} disabled={isGenerating}
+              className="self-start bg-white hover:bg-black hover:text-white border-2 border-black text-xs font-extrabold py-2 px-4 shadow-[2px_2px_0px_#000] transition-all active:translate-y-0.5 active:shadow-none flex items-center gap-2 cursor-pointer">
+              {isGenerating ? <><span className="animate-spin">///</span> Reading materials...</> : <><span>///</span> Generate Quiz via AI</>}
+            </button>
+            {activeSource ? (
+              <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 shadow-[2px_2px_0px_#000]">
+                <span className="material-symbols-outlined text-[#FF4D2E] text-[15px]">attach_file</span>
+                <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
+              </div>
+            ) : (
+              <button onClick={() => navigate("/sources")}
+                className="flex items-center gap-2 border-2 border-dashed border-black/40 text-black/50 text-xs font-bold py-2 px-4 hover:border-black hover:text-black transition-all cursor-pointer">
+                <span className="material-symbols-outlined text-[15px]">attach_file</span>
+                Attach source
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Empty state */}
@@ -259,8 +273,17 @@ Each object in the JSON array MUST match this exact schema:
             </div>
             <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
             <p className="text-black/50 font-bold text-[14px] max-w-[300px]">
-              Hit "Generate Quiz via AI" above to create your personalized practice exam.
+              {activeSource
+                ? `"${activeSource.name}" is ready — generate a quiz from it!`
+                : `Attach a source from your library, or generate a general-subject quiz above.`}
             </p>
+            {!activeSource && (
+              <button onClick={() => navigate("/sources")}
+                className="mt-2 border-2 border-dashed border-black/30 px-8 py-4 flex items-center justify-center gap-2 text-[13px] font-bold text-black/40 hover:border-black hover:text-black transition-all">
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                Attach a source from library
+              </button>
+            )}
           </div>
         )}
 
@@ -458,9 +481,9 @@ Each object in the JSON array MUST match this exact schema:
           </button>
           <h1 className="font-extrabold tracking-tight text-[21px] flex-1 text-center">Practice Exam</h1>
           <button
-            onClick={() => navigate("/analytics")}
-            className="text-[#1A1A1A] hover:bg-neutral-50 transition-colors p-2 -mr-2 rounded-full flex items-center justify-center">
-            <span className="material-symbols-outlined">history</span>
+            onClick={() => navigate("/sources")}
+            className="text-[#1A1A1A] hover:bg-[#ebe8e3] transition-colors p-2 -mr-2 rounded-full flex items-center justify-center border-2 border-[#1A1A1A] bg-white h-10 w-10 shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-y-0.5">
+            <span className="material-symbols-outlined text-[18px]">library_books</span>
           </button>
         </header>
 
@@ -481,13 +504,26 @@ Each object in the JSON array MUST match this exact schema:
                       ? `Detected ${activeSourcesCount} active source notes! Let's build a custom exam.`
                       : "Let the Rex study tutor compile 3 custom multi-choice questions covering any subject!"}
                 </p>
-                <button onClick={handleGenerateQuiz} disabled={isGenerating}
-                  className="bg-white hover:bg-black hover:text-white border-2 border-black text-xs font-extrabold py-2 px-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5 cursor-pointer">
-                  {isGenerating ? <><span className="animate-spin text-sm">///</span> Reading materials...</> : <><span className="text-sm">///</span> Generate Quiz via AI</>}
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button onClick={handleGenerateQuiz} disabled={isGenerating}
+                    className="bg-white hover:bg-black hover:text-white border-2 border-black text-xs font-extrabold py-2 px-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5 cursor-pointer">
+                    {isGenerating ? <><span className="animate-spin text-sm">///</span> Reading materials...</> : <><span className="text-sm">///</span> Generate Quiz via AI</>}
+                  </button>
+                  {activeSource ? (
+                    <div className="flex items-center gap-1.5 bg-white border-2 border-[#1A1A1A] rounded-lg px-2.5 py-1.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                      <span className="material-symbols-outlined text-[#FF4D2E] text-[14px]">attach_file</span>
+                      <span className="text-[11px] font-bold truncate max-w-[120px]">{activeSource.name}</span>
+                    </div>
+                  ) : (
+                    <button onClick={() => navigate("/sources")}
+                      className="flex items-center gap-1.5 bg-white border-2 border-dashed border-black/40 text-black/50 text-xs font-bold py-2 px-3 rounded-lg hover:border-black hover:text-black transition-all cursor-pointer">
+                      <span className="material-symbols-outlined text-[14px]">attach_file</span>
+                      Attach source
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Empty state */}
               {questions.length === 0 && !isGenerating && (
                 <div className="flex flex-col items-center justify-center flex-1 py-16 gap-4 text-center">
                   <div className="w-20 h-20 bg-white border-2 border-[#1A1A1A] rounded-full flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,1)]">
@@ -495,8 +531,17 @@ Each object in the JSON array MUST match this exact schema:
                   </div>
                   <h2 className="font-extrabold text-[18px]">No quiz yet</h2>
                   <p className="text-black/50 font-bold text-[13.5px] max-w-[260px]">
-                    Hit "Generate Quiz via AI" above to create your personalized practice exam.
+                    {activeSource
+                      ? `"${activeSource.name}" is ready — generate a quiz from it!`
+                      : `Attach a source from your library, or generate a quiz on any subject.`}
                   </p>
+                  {!activeSource && (
+                    <button onClick={() => navigate("/sources")}
+                      className="mt-1 w-full max-w-[260px] border-2 border-dashed border-black/30 p-4 flex items-center justify-center gap-2 text-[13px] font-bold text-black/40 hover:border-black hover:text-black transition-all rounded-xl">
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                      Attach a source
+                    </button>
+                  )}
                 </div>
               )}
 
