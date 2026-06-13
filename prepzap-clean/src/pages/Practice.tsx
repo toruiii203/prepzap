@@ -74,6 +74,26 @@ function DesktopBanner({ activeSource, setActiveSource, topicInput, setTopicInpu
   );
 }
 
+function parseHistoryEntry(entry: HistoryEntry) {
+  const meta = entry.meta || "";
+  const parts = meta.split("/");
+  const correct = parseInt(parts[0]) || 0;
+  const total = parseInt(parts[1]) || 3;
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
+  const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
+  let timeAgo = "";
+  const ts = (entry as any).createdAt || entry.created_at;
+  if (ts) {
+    const diff = Date.now() - new Date(ts).getTime();
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(h / 24);
+    timeAgo = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
+  }
+  const title = entry.preview || entry.prompt || "Practice Quiz";
+  return { pct, ringColor, ringBg, timeAgo, title, correct, total };
+}
+
 function HistoryCard({ entry }: { entry: HistoryEntry }) {
   const { pct, ringColor, ringBg, timeAgo, title, correct, total } = parseHistoryEntry(entry);
   return (
@@ -223,25 +243,7 @@ Each object in the JSON array MUST match this exact schema:
   const currentQuestion = questions.length > 0 ? questions[currentQIndex] : null;
 
   // ── History helpers ────────────────────────────────────────────────────────
-  const parseHistoryEntry = (entry: HistoryEntry) => {
-    const meta = entry.meta || "";
-    const parts = meta.split("/");
-    const correct = parseInt(parts[0]) || 0;
-    const total = parseInt(parts[1]) || 3;
-    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-    const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
-    const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
-    let timeAgo = "";
-    const ts = (entry as any).createdAt || entry.created_at;
-    if (ts) {
-      const diff = Date.now() - new Date(ts).getTime();
-      const h = Math.floor(diff / 3600000);
-      const d = Math.floor(h / 24);
-      timeAgo = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
-    }
-    const title = entry.preview || entry.prompt || "Practice Quiz";
-    return { pct, ringColor, ringBg, timeAgo, title, correct, total };
-  };
+
 
   // ── Shared: Banner ─────────────────────────────────────────────────────────
 
