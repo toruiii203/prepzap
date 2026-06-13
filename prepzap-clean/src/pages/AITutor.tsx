@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useRef, useEffect } from "react";
 import { MathRenderer } from "@/components/MathRenderer";
 import { callGroq } from "@/lib/groq";

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Check, Image } from "lucide-react";
 import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";

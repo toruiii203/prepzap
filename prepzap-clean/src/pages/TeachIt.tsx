@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -129,7 +130,7 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
       {/* ═══════════════════════════════════════════════════
           DESKTOP LAYOUT
           ═══════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:ml-64 flex-col" style={{ height: "100vh" }}>
+      <div className="hidden md:flex md:ml-64 flex-col" style={{ height: "100vh" }}>
 
         {/* Desktop Header — same style as AITutor */}
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { callGroq } from "@/lib/groq";
 import { getActiveSource, buildAIContext, loadContext, loadContext as loadCtx, loadLibrary } from "@/lib/sourceContext";

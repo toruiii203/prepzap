@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 

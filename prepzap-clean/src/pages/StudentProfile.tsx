@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
