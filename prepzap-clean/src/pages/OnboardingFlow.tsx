@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
+import { supabase } from "@/lib/supabase"
 
 // ///////// Types ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 type Screen =
@@ -456,7 +457,6 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
 
   const handleGoogle = async () => {
     setLoading(true); setError(null)
-    const { supabase } = await import("@/lib/supabase")
     const { error: e } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -474,7 +474,6 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     if (!email || !password) { setError("Please fill in all fields."); return }
     if (!isSignIn && password.length < 6) { setError("Password must be at least 6 characters."); return }
     setLoading(true); setError(null)
-    const { supabase } = await import("@/lib/supabase")
 
     if (isSignIn) {
       const { error: e } = await supabase.auth.signInWithPassword({ email, password })
@@ -1072,38 +1071,78 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
 // ///////// Main Onboarding Flow ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export default function Onboarding() {
   const navigate = useNavigate()
-  const [screen, setScreen]                   = useState<Screen>("intro")
-  const [userName, setUserName]               = useState("")
+
+  // ── Read ?step / ?mode SYNCHRONOUSLY in the useState initializer so the
+  //    correct screen is set on frame 1 — before AuthContext or any router
+  //    guard can redirect us away.
+  const [screen, setScreen] = useState<Screen>(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("step") === "nameInput") return "nameInput"
+    if (params.get("mode") === "signin")    return "accountGateway"
+    return "intro"
+  })
+  const [startInSignIn, setStartInSignIn] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get("mode") === "signin"
+  })
+
+  const [userName, setUserName]                 = useState("")
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
-  const [selectedGoal, setSelectedGoal]       = useState("")
-  const [selectedStyles, setSelectedStyles]   = useState<string[]>([])
-  const [startInSignIn, setStartInSignIn]     = useState(false)
+  const [selectedGoal, setSelectedGoal]         = useState("")
+  const [selectedStyles, setSelectedStyles]     = useState<string[]>([])
 
   const go = (s: Screen) => setScreen(s)
 
-  // Check URL param on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
 
-    // Legacy: ?mode=signin  →  jump to accountGateway in sign-in mode
-    if (params.get("mode") === "signin") {
-      setStartInSignIn(true)
-      go("accountGateway")
-      return
-    }
-
-    // Google OAuth return (sign-up): ?step=nameInput  →  skip past accountGateway
-    if (params.get("step") === "nameInput") {
-      go("nameInput")
+    // Clean the URL after reading params so they don't persist on refresh
+    if (params.get("step") || params.get("mode")) {
       window.history.replaceState({}, "", "/onboarding")
-      return
     }
 
-    // Google OAuth return (sign-in): ?step=done  →  go straight to dashboard
+    // Google OAuth return (sign-in): ?step=done → go straight to dashboard
     if (params.get("step") === "done") {
       navigate("/dashboard", { replace: true })
       return
     }
+
+    // Fallback listener: handles edge cases where the Supabase PKCE session
+    // token arrives AFTER the component mounts (e.g. slow network, token
+    // exchange delay). Without this the user would be stuck on the intro screen.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event !== "SIGNED_IN" || !session) return
+
+        // If ?step=nameInput was already handled by the useState initializer,
+        // the screen is already "nameInput" — nothing more to do for sign-up.
+        // If we're in sign-in mode, send straight to dashboard.
+        const currentParams = new URLSearchParams(window.location.search)
+        const step = currentParams.get("step")
+
+        if (step === "done") {
+          navigate("/dashboard", { replace: true })
+          return
+        }
+
+        // Only act if we're still on the accountGateway / intro screens
+        // (i.e. the user hasn't manually progressed past them yet)
+        setScreen(prev => {
+          if (prev === "accountGateway" || prev === "intro") {
+            // Returning user (sign-in flow) → dashboard
+            if (startInSignIn) {
+              navigate("/dashboard", { replace: true })
+              return prev
+            }
+            // New Google user (sign-up flow) → continue onboarding
+            return "nameInput"
+          }
+          return prev
+        })
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return (
