@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { loadContext, buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
@@ -14,48 +14,54 @@ interface Question {
   difficulty: string;
 }
 
-interface PracticeProps {
+interface HistoryEntry {
+  prompt?: string;
+  preview?: string;
+  meta?: string;
+  created_at?: string;
 }
 
 export default function Practice() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
-  const { save: saveHistory, entries: historyEntries = [], load: loadHistoryFn } = useToolHistory("practice") as any;
-  
+  const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
+
   const [view, setView] = useState<"quiz" | "results">("quiz");
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(600);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
-  
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeSource, setActiveSource] = useState<any>(null);
   const [activeSourcesCount, setActiveSourcesCount] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [topicInput, setTopicInput] = useState("");
 
   useEffect(() => {
     const ctx = loadContext();
-    const activeIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
-    setActiveSourcesCount(ctx.selectedIds?.length ?? 0);
+    setActiveSourcesCount(ctx?.selectedIds?.length ?? 0);
     setActiveSource(getActiveSource());
   }, []);
 
   useEffect(() => {
-    if (view !== "quiz") return;
+    if (view !== "quiz" || questions.length === 0) return;
     const interval = setInterval(() => {
       setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(interval);
-  }, [view]);
+  }, [view, questions.length]);
 
   const handleGenerateQuiz = async () => {
     setIsGenerating(true);
     try {
       const sourceText = buildAIContext();
-      const promptText = sourceText 
-        ? `Generate a set of 3 interesting, high-quality multi-choice quiz questions based on the following student resource note attachment:\n\n---\n${sourceText}\n---\n`
-        : `Generate 3 high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
+      const topicHint = topicInput.trim();
+      const promptText = sourceText
+        ? `Generate a set of 3 interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
+        : topicHint
+          ? `Generate 3 high-quality educational quiz questions about: ${topicHint}`
+          : `Generate 3 high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
 
       const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly 3 questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
 Each object in the JSON array MUST match this exact schema:
@@ -67,18 +73,16 @@ Each object in the JSON array MUST match this exact schema:
   "difficulty": "Easy, Medium or Hard"
 }`;
 
-      const callGroqWithModel = async (promptText: string, systemPrompt: string) => {
+      const callGroqWithModel = async (p: string, s: string) => {
         const fn = callGroq as any;
         const fnStr = fn.toString();
         if (fnStr.includes("messages") || fnStr.includes("llama")) {
-          return await fn([{ role: "user", content: promptText }], systemPrompt, "llama-3.3-70b-versatile", 1000);
-        } else {
-          return await fn(promptText, systemPrompt, "application/json");
+          return await fn([{ role: "user", content: p }], s, "llama-3.3-70b-versatile", 1000);
         }
+        return await fn(p, s, "application/json");
       };
 
       const aiResponse = await callGroqWithModel(promptText, systemPrompt);
-      
       let sanitized = aiResponse.trim();
       if (sanitized.startsWith("```json")) sanitized = sanitized.substring(7);
       if (sanitized.endsWith("```")) sanitized = sanitized.substring(0, sanitized.length - 3);
@@ -93,9 +97,10 @@ Each object in the JSON array MUST match this exact schema:
         setScore(0);
         setTimeLeft(450);
       } else {
-        throw new Error("Invalid structure returned by AI model");
+        throw new Error("Invalid structure");
       }
-    } catch (err: any) {
+    } catch (err) {
+      console.error("Quiz generation error:", err);
     } finally {
       setIsGenerating(false);
     }
@@ -107,21 +112,13 @@ Each object in the JSON array MUST match this exact schema:
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const handleSelectOption = (index: number) => setSelectedOption(index);
-
   const handleNext = () => {
     if (selectedOption === null) return;
-
-    const correctAns = questions[currentQIndex].correct;
-    const isCorrect = selectedOption === correctAns;
+    const isCorrect = selectedOption === questions[currentQIndex].correct;
     const nextAnswers = [...answers, selectedOption];
     setAnswers(nextAnswers);
-
     let nextScore = score;
-    if (isCorrect) {
-      nextScore = score + 1;
-      setScore(nextScore);
-    }
+    if (isCorrect) { nextScore = score + 1; setScore(nextScore); }
 
     if (currentQIndex + 1 < questions.length) {
       setCurrentQIndex(prev => prev + 1);
@@ -129,30 +126,25 @@ Each object in the JSON array MUST match this exact schema:
     } else {
       const xpAwarded = nextScore * 30 + 10;
       const coinsAwarded = nextScore * 15 + 5;
-
       const triggerRewards = async () => {
         if (user && profile) {
           try {
-            const currentXp = profile.total_xp || profile.xp || 0;
-            const currentCoins = profile.coins || 0;
-            await supabase
-              .from("profiles")
-              .update({ 
-                total_xp: currentXp + xpAwarded,
-                coins: currentCoins + coinsAwarded
-              })
-              .eq("id", user.id);
+            await supabase.from("profiles").update({
+              total_xp: (profile.total_xp || profile.xp || 0) + xpAwarded,
+              coins: (profile.coins || 0) + coinsAwarded,
+            }).eq("id", user.id);
             if (typeof refreshProfile === "function") await refreshProfile();
-          } catch (err) {
-            console.error("Error updating profile via Supabase:", err);
-            await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpAwarded }).eq("id", user?.id ?? "");
-            await refreshProfile();
-          }
+          } catch (err) { console.error(err); }
         }
       };
-
       triggerRewards();
-      saveHistory({ prompt: questions.map(q => q.q).join(" | ").slice(0, 120), preview: `Score: ${nextScore}/${questions.length}`, output: JSON.stringify(answers), model: "rex-ai", meta: `${nextScore}/${questions.length} correct` });
+      saveHistory({
+        prompt: questions.map(q => q.q).join(" | ").slice(0, 120),
+        preview: `Score: ${nextScore}/${questions.length}`,
+        output: JSON.stringify(nextAnswers),
+        model: "rex-ai",
+        meta: `${nextScore}/${questions.length}`,
+      });
       setView("results");
     }
   };
@@ -160,18 +152,94 @@ Each object in the JSON array MUST match this exact schema:
   const progressPercent = questions.length > 0 ? Math.round(((currentQIndex + 1) / questions.length) * 100) : 0;
   const currentQuestion = questions.length > 0 ? questions[currentQIndex] : null;
 
-  // ─── Desktop Sidebar ──────────────────────────────────────────────────────
-  const DesktopSidebar = () => (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-black flex-shrink-0" />
+  // ── History helpers ────────────────────────────────────────────────────────
+  const parseHistoryEntry = (entry: HistoryEntry) => {
+    const meta = entry.meta || "";
+    const parts = meta.split("/");
+    const correct = parseInt(parts[0]) || 0;
+    const total = parseInt(parts[1]) || 3;
+    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
+    const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
+    let timeAgo = "";
+    if (entry.created_at) {
+      const diff = Date.now() - new Date(entry.created_at).getTime();
+      const h = Math.floor(diff / 3600000);
+      const d = Math.floor(h / 24);
+      timeAgo = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
+    }
+    const title = entry.preview || entry.prompt || "Practice Quiz";
+    return { pct, ringColor, ringBg, timeAgo, title, correct, total };
+  };
+
+  // ── Shared: Banner ─────────────────────────────────────────────────────────
+  const DesktopBanner = () => (
+    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-[22px] font-extrabold text-black leading-tight">Studenius</h1>
-          <p className="text-[11px] font-bold mt-1 opacity-70">Academic Level: Pro</p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
+            <h2 className="font-extrabold text-[20px]">Rex AI Quiz Builder</h2>
+          </div>
+          <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {activeSource ? (
+            <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1.5 bg-[#F0EDE0]">
+              <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">description</span>
+              <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
+              <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
+            </div>
+          ) : (
+            <button onClick={() => navigate("/sources")}
+              className="flex items-center gap-2 border-[1.5px] border-dashed border-black px-4 py-2 rounded-lg text-[13px] font-bold hover:bg-[#F0EDE0] transition-colors">
+              <span className="material-symbols-outlined text-[18px]">attach_file</span>
+              Attach source
+            </button>
+          )}
+          <button onClick={handleGenerateQuiz} disabled={isGenerating}
+            className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg">
+            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+            {isGenerating ? "Generating..." : "Generate Quiz via AI"}
+          </button>
         </div>
       </div>
+      <textarea
+        value={topicInput}
+        onChange={e => setTopicInput(e.target.value)}
+        className="w-full h-[100px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
+        placeholder="Paste your notes or type a topic to generate a custom quiz..."
+      />
+    </div>
+  );
+
+  // ── Desktop: History cards ─────────────────────────────────────────────────
+  const HistoryCard = ({ entry }: { entry: HistoryEntry }) => {
+    const { pct, ringColor, ringBg, timeAgo, title, correct, total } = parseHistoryEntry(entry);
+    return (
+      <div className="bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
+          style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
+          {pct}%
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-extrabold text-[13px] leading-snug line-clamp-2 mb-1">{title}</p>
+          <p className="text-[11px] text-black/40 font-bold">{correct}/{total} correct{timeAgo ? ` · ${timeAgo}` : ""}</p>
+        </div>
+        <span className="material-symbols-outlined text-[18px] text-black/20 self-center shrink-0">chevron_right</span>
+      </div>
+    );
+  };
+
+  // ── Sidebar ────────────────────────────────────────────────────────────────
+  const DesktopSidebar = () => (
+    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
+      <div className="mb-8">
+        <h1 className="text-[24px] font-extrabold text-black leading-tight">Studenius</h1>
+        <p className="text-[11px] font-bold mt-1 opacity-50">Academic Level: Pro</p>
+      </div>
       <nav className="flex-1 flex flex-col gap-1 overflow-y-auto pb-4">
-        <div className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-2 mt-2">MAIN</div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 mt-1">Main</p>
         {[
           { icon: "dashboard", label: "Dashboard", route: "/dashboard" },
           { icon: "psychology", label: "AI Tutor", route: "/ai-tutor" },
@@ -179,14 +247,11 @@ Each object in the JSON array MUST match this exact schema:
           { icon: "quiz", label: "Practice", route: "/practice", active: true },
         ].map(item => (
           <button key={item.route} onClick={() => navigate(item.route)}
-            className={`flex items-center gap-4 px-2 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
-              item.active ? "bg-black text-white" : "text-black hover:bg-[#E2E2E2]"
-            }`}>
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            {item.label}
+            className={`flex items-center gap-3 px-2 py-2.5 rounded-lg text-[13px] font-bold transition-all text-left w-full ${item.active ? "bg-black text-white" : "text-black hover:bg-[#E2E2E2]"}`}>
+            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>{item.label}
           </button>
         ))}
-        <div className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-2 mt-6">TOOLS</div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 mt-5">Tools</p>
         {[
           { icon: "timer", label: "Focus Timer", route: "/timer" },
           { icon: "calendar_today", label: "Study Planner", route: "/planner" },
@@ -194,20 +259,18 @@ Each object in the JSON array MUST match this exact schema:
           { icon: "history_edu", label: "Mistake Journal", route: "/mistakes" },
         ].map(item => (
           <button key={item.route} onClick={() => navigate(item.route)}
-            className="flex items-center gap-4 px-2 py-2.5 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] transition-all text-left w-full">
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            {item.label}
+            className="flex items-center gap-3 px-2 py-2.5 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] transition-all text-left w-full">
+            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>{item.label}
           </button>
         ))}
-        <div className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-2 mt-6">RESOURCES</div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 mt-5">Resources</p>
         {[
           { icon: "library_books", label: "Source Library", route: "/sources" },
           { icon: "monitoring", label: "Analytics", route: "/analytics" },
         ].map(item => (
           <button key={item.route} onClick={() => navigate(item.route)}
-            className="flex items-center gap-4 px-2 py-2.5 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] transition-all text-left w-full">
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            {item.label}
+            className="flex items-center gap-3 px-2 py-2.5 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] transition-all text-left w-full">
+            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>{item.label}
           </button>
         ))}
       </nav>
@@ -217,151 +280,82 @@ Each object in the JSON array MUST match this exact schema:
           Upgrade to Pro
         </button>
         <button onClick={() => navigate("/settings")}
-          className="flex items-center gap-4 px-2 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
+          className="flex items-center gap-3 px-2 py-2 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] w-full">
           <span className="material-symbols-outlined text-[20px]">settings</span>Settings
         </button>
-        <button className="flex items-center gap-4 px-2 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
+        <button className="flex items-center gap-3 px-2 py-2 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] w-full">
           <span className="material-symbols-outlined text-[20px]">help_outline</span>Help
         </button>
       </div>
     </aside>
   );
 
-  // ─── Desktop Quiz View ────────────────────────────────────────────────────
+  // ── Desktop: Quiz View ─────────────────────────────────────────────────────
   const DesktopQuizView = () => (
     <div className="hidden lg:flex lg:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ height: "100vh" }}>
-      <main className="flex-1 flex flex-col p-12 max-w-5xl mx-auto w-full">
+      <main className="flex-1 flex flex-col p-10 max-w-5xl mx-auto w-full">
+        <DesktopBanner />
 
-        {/* AI Generator Banner */}
-        <div className="bg-[#e9f2ff] border-[1.5px] border-black p-5 shadow-[3px_3px_0px_#000] flex flex-col gap-3 mb-8">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black">////</span>
-            <span className="text-xs font-black text-[#FF4D2E] uppercase tracking-wider">Rex AI Quiz Builder</span>
+        {/* Loading */}
+        {isGenerating && (
+          <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4">
+            <div className="w-16 h-16 border-4 border-[#FF4D2E] border-t-transparent rounded-full animate-spin" />
+            <p className="font-bold text-[14px] text-black/50">Rex AI is building your quiz...</p>
           </div>
-          <p className="text-[13px] font-bold text-black/80">
-            {activeSource
-              ? `Detected active file "${activeSource.name}"! You can compile a custom mock-quiz immediately.`
-              : activeSourcesCount > 0
-                ? `Detected ${activeSourcesCount} active source notes! Let's build a custom exam.`
-                : "Let Rex compile 3 custom multi-choice questions covering any subject!"}
-          </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            <button onClick={handleGenerateQuiz} disabled={isGenerating}
-              className="self-start bg-white hover:bg-black hover:text-white border-2 border-black text-xs font-extrabold py-2 px-4 shadow-[2px_2px_0px_#000] transition-all active:translate-y-0.5 active:shadow-none flex items-center gap-2 cursor-pointer">
-              {isGenerating ? <><span className="animate-spin">///</span> Reading materials...</> : <><span>///</span> Generate Quiz via AI</>}
-            </button>
-            {activeSource ? (
-              <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 shadow-[2px_2px_0px_#000]">
-                <span className="material-symbols-outlined text-[#FF4D2E] text-[15px]">attach_file</span>
-                <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
-              </div>
-            ) : (
-              <button onClick={() => navigate("/sources")}
-                className="flex items-center gap-2 border-2 border-dashed border-black/40 text-black/50 text-xs font-bold py-2 px-4 hover:border-black hover:text-black transition-all cursor-pointer">
-                <span className="material-symbols-outlined text-[15px]">attach_file</span>
-                Attach source
-              </button>
-            )}
-          </div>
-        </div>
+        )}
 
-        {/* Empty / History state */}
+        {/* Empty + History */}
         {questions.length === 0 && !isGenerating && (
           <div className="flex gap-8 flex-1">
-            {/* Left: empty state */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center py-24 gap-4">
-              <div className="w-20 h-20 bg-white border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#000]">
-                <span className="material-symbols-outlined text-4xl text-[#FF4D2E]">quiz</span>
+            {/* Empty state */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-20 gap-4">
+              <div className="w-28 h-28 bg-[#E2E2E2] border-[1.5px] border-black shadow-[5px_5px_0px_#000] rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-[56px] text-black opacity-40" style={{ fontVariationSettings: "'FILL' 1" }}>extension_off</span>
               </div>
-              <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
-              <p className="text-black/50 font-bold text-[14px] max-w-[300px]">
+              <h2 className="font-extrabold text-[24px]">No quiz yet</h2>
+              <p className="text-black/50 font-bold text-[14px] max-w-[280px] leading-relaxed">
                 {activeSource
-                  ? `"${activeSource.name}" is ready — hit Generate to build a quiz from it!`
-                  : "Generate a quiz above, or attach a source from your library first."}
+                  ? `"${activeSource.name}" is attached — hit Generate!`
+                  : "Paste your notes, type a topic, or just hit Generate for a random quiz."}
               </p>
             </div>
 
-            {/* Right: history panel */}
+            {/* History panel — only if entries exist */}
             {historyEntries.length > 0 && (
-              <aside className="w-[300px] shrink-0 flex flex-col gap-4 py-8">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
+              <aside className="w-[300px] shrink-0 flex flex-col gap-3 py-6">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
                   <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
                 </div>
-                <div className="flex flex-col gap-3">
-                  {historyEntries.slice(0, 5).map((entry: any, i: number) => {
-                    const meta = entry.meta || "";
-                    const parts = meta.split("/");
-                    const correct = parseInt(parts[0]) || 0;
-                    const total = parseInt(parts[1]) || 3;
-                    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-                    const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
-                    const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
-                    const timeAgo = entry.created_at
-                      ? (() => {
-                          const diff = Date.now() - new Date(entry.created_at).getTime();
-                          const h = Math.floor(diff / 3600000);
-                          const d = Math.floor(h / 24);
-                          return d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
-                        })()
-                      : "";
-                    return (
-                      <div key={i} className="bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer">
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[14px]"
-                          style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
-                          {pct}%
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-extrabold text-[13px] leading-snug truncate">{entry.preview || entry.prompt || "Practice Quiz"}</p>
-                          <p className="text-[11px] text-black/40 font-bold mt-0.5">{meta} correct · {timeAgo}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                {historyEntries.slice(0, 5).map((entry: HistoryEntry, i: number) => (
+                  <HistoryCard key={i} entry={entry} />
+                ))}
               </aside>
             )}
           </div>
         )}
 
-        {/* Loading state */}
-        {isGenerating && (
-          <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4">
-            <div className="w-16 h-16 border-4 border-black border-t-transparent animate-spin" />
-            <p className="font-bold text-[14px] text-black/50">Rex AI is building your quiz...</p>
-          </div>
-        )}
-
-        {/* Quiz active */}
+        {/* Active Quiz */}
         {questions.length > 0 && !isGenerating && currentQuestion && (
           <>
-            {/* Top status bar */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 gap-4">
               <div className="flex-grow w-full lg:max-w-md flex flex-col gap-2">
                 <div className="flex justify-between">
-                  <span className="text-[14px] font-extrabold tracking-widest uppercase">Question {currentQIndex + 1}/{questions.length}</span>
-                  <span className="text-[14px] font-extrabold">{progressPercent}%</span>
+                  <span className="text-[13px] font-extrabold tracking-widest uppercase">Question {currentQIndex + 1}/{questions.length}</span>
+                  <span className="text-[13px] font-extrabold">{progressPercent}%</span>
                 </div>
-                <div className="h-4 w-full bg-[#E8E4DC] border-[1.5px] border-black overflow-hidden">
+                <div className="h-3 w-full bg-[#E8E4DC] border-[1.5px] border-black overflow-hidden">
                   <div className="h-full bg-black transition-all duration-300" style={{ width: `${progressPercent}%` }} />
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                {/* Source pill */}
                 {activeSource ? (
-                  <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0] text-[12px] font-bold">
+                  <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1 bg-[#F0EDE0] text-[12px] font-bold">
                     <span className="material-symbols-outlined text-[16px]">description</span>
                     <span className="truncate max-w-[160px]">{activeSource.name}</span>
-                    <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[16px] hover:text-[#FF4D2E] transition-colors">close</button>
+                    <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[16px] hover:text-[#FF4D2E]">close</button>
                   </div>
-                ) : (
-                  <button onClick={() => navigate("/sources")}
-                    className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0] hover:bg-[#E2E2E2] text-[12px] font-bold transition-colors">
-                    <span className="material-symbols-outlined text-[16px]">attach_file</span>
-                    Attach Source
-                  </button>
-                )}
-                {/* Timer */}
+                ) : null}
                 <div className="flex items-center gap-3 px-5 py-2 bg-[#F0EDE0] border-[1.5px] border-black shadow-[3px_3px_0px_#000]">
                   <span className="material-symbols-outlined">timer</span>
                   <span className="text-[22px] font-bold tracking-tighter">{formatTime(timeLeft)}</span>
@@ -369,82 +363,52 @@ Each object in the JSON array MUST match this exact schema:
               </div>
             </div>
 
-            {/* Question card */}
-            <div className="bg-[#FAF7F2] border-[3px] border-black p-8 shadow-[5px_5px_0px_#000] mb-8 relative mt-8">
-              <div className="absolute -top-4 -left-4 bg-black text-white px-4 py-1 text-[13px] font-extrabold tracking-widest uppercase">
-                MULTIPLE CHOICE
-              </div>
+            <div className="bg-[#FAF7F2] border-[3px] border-black p-8 shadow-[5px_5px_0px_#000] mb-8 relative mt-4">
+              <div className="absolute -top-4 -left-4 bg-black text-white px-4 py-1 text-[11px] font-extrabold tracking-widest uppercase">MULTIPLE CHOICE</div>
               <div className="flex flex-wrap gap-2 mb-4">
-                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[13px] mr-1">folder</span>
-                  {currentQuestion.subject}
+                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-[13px] mr-1">folder</span>{currentQuestion.subject}
                 </span>
-                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-[13px] mr-1">leaderboard</span>
-                  {currentQuestion.difficulty}
+                <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-[13px] mr-1">leaderboard</span>{currentQuestion.difficulty}
                 </span>
               </div>
-              <h2 className="text-[28px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
-              <div className="h-[1.5px] bg-black w-full opacity-20 my-4" />
-              <p className="text-[16px] opacity-80 italic">Select the most accurate response from the grid below.</p>
+              <h2 className="text-[26px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
+              <div className="h-[1px] bg-black w-full opacity-10 my-4" />
+              <p className="text-[14px] opacity-60 italic">Select the most accurate response from the grid below.</p>
             </div>
 
-            {/* Answer grid */}
-            <div className="grid grid-cols-2 gap-4 mb-8 overflow-visible">
+            <div className="grid grid-cols-2 gap-4 mb-8">
               {currentQuestion.options.map((option, idx) => {
                 const label = ["A", "B", "C", "D"][idx];
                 const isSelected = selectedOption === idx;
                 return (
-                  <button key={idx} onClick={() => handleSelectOption(idx)}
-                    className={`group relative text-left border-[1.5px] border-black p-4 shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] transition-all w-full ${
-                      isSelected
-                        ? "bg-[#FF4D2E] text-white"
-                        : "bg-[#FAF7F2] hover:bg-black hover:text-white"
-                    }`}>
-                    <div className="flex items-start gap-4 justify-between w-full">
-                      <div className="flex items-start gap-4">
-                        <span className={`text-[13px] font-extrabold px-2 py-1 border-[1.5px] border-black flex-shrink-0 ${
-                          isSelected ? "bg-white text-black" : "bg-black text-white group-hover:bg-white group-hover:text-black"
-                        }`}>{label}</span>
-                        <span className="text-[15px] font-medium leading-snug">{option}</span>
-                      </div>
-                      {isSelected && (
-                        <span className="material-symbols-outlined flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                      )}
+                  <button key={idx} onClick={() => setSelectedOption(idx)}
+                    className={`text-left border-[1.5px] border-black p-4 shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all ${isSelected ? "bg-[#FF4D2E] text-white" : "bg-[#FAF7F2] hover:bg-black hover:text-white"}`}>
+                    <div className="flex items-start gap-3">
+                      <span className={`text-[12px] font-extrabold px-2 py-0.5 border-[1.5px] border-black flex-shrink-0 ${isSelected ? "bg-white text-black" : "bg-black text-white"}`}>{label}</span>
+                      <span className="text-[14px] font-medium leading-snug">{option}</span>
                     </div>
                   </button>
                 );
               })}
             </div>
 
-            {/* Bottom nav */}
             <div className="flex flex-col gap-3">
-              <div>
-                <div className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-2">QUESTION NAVIGATOR</div>
-                <div className="flex gap-2">
-                  {questions.map((_, i) => (
-                    <button key={i}
-                      className={`w-[28px] h-[28px] flex items-center justify-center text-xs font-extrabold border transition-all ${
-                        i === currentQIndex
-                          ? "bg-black text-white border-black"
-                          : answers[i] !== undefined
-                            ? "bg-[#2d6a2d] text-white border-[#2d6a2d]"
-                            : "bg-[#E8E4DC] text-black/40 border-black/20 hover:border-black/50"
-                      }`}>
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1">Question Navigator</div>
+              <div className="flex gap-2 mb-4">
+                {questions.map((_, i) => (
+                  <button key={i} className={`w-7 h-7 flex items-center justify-center text-xs font-extrabold border transition-all ${
+                    i === currentQIndex ? "bg-black text-white border-black"
+                    : answers[i] !== undefined ? "bg-[#2d6a2d] text-white border-[#2d6a2d]"
+                    : "bg-[#E8E4DC] text-black/40 border-black/20"
+                  }`}>{i + 1}</button>
+                ))}
               </div>
               <div className="flex justify-end">
-                <button
-                  disabled={selectedOption === null}
-                  onClick={handleNext}
-                  className={`bg-[#FF4D2E] text-white text-[20px] font-bold px-12 py-5 border-[3px] border-black shadow-[5px_5px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] flex items-center gap-4 transition-all ${
-                    selectedOption === null ? "opacity-40 pointer-events-none" : "hover:opacity-90"
-                  }`}>
-                  Next Question
-                  <span className="material-symbols-outlined text-3xl">arrow_forward</span>
+                <button disabled={selectedOption === null} onClick={handleNext}
+                  className={`bg-[#FF4D2E] text-white text-[18px] font-bold px-12 py-4 border-[3px] border-black shadow-[5px_5px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] flex items-center gap-4 transition-all ${selectedOption === null ? "opacity-40 pointer-events-none" : "hover:opacity-90"}`}>
+                  Next Question <span className="material-symbols-outlined text-2xl">arrow_forward</span>
                 </button>
               </div>
             </div>
@@ -454,17 +418,15 @@ Each object in the JSON array MUST match this exact schema:
     </div>
   );
 
-  // ─── Desktop Results View ─────────────────────────────────────────────────
+  // ── Desktop: Results ───────────────────────────────────────────────────────
   const DesktopResultsView = () => (
     <div className="hidden lg:flex lg:ml-64 flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto" style={{ height: "100vh" }}>
       <div className="max-w-xl w-full flex flex-col items-center text-center">
         <div className="w-24 h-24 bg-[#fca623]/20 border-[3px] border-black shadow-[5px_5px_0px_#000] flex items-center justify-center mb-8">
-          <span className="material-symbols-outlined text-5xl font-bold">emoji_events</span>
+          <span className="material-symbols-outlined text-5xl">emoji_events</span>
         </div>
         <h2 className="text-[36px] font-black mb-2">Exam Complete!</h2>
-        <p className="text-black/50 font-bold max-w-[320px] mb-8 text-[15px]">
-          Practice test recorded. Review your detailed scores below.
-        </p>
+        <p className="text-black/50 font-bold max-w-[320px] mb-8 text-[15px]">Practice test recorded. Review your detailed scores below.</p>
         <div className="w-full bg-white border-[3px] border-black shadow-[5px_5px_0px_#000] p-6 flex flex-col gap-4 text-left mb-8">
           <div className="flex justify-between items-center border-b border-black/10 pb-4">
             <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">SUCCESS METRIC</span>
@@ -480,10 +442,9 @@ Each object in the JSON array MUST match this exact schema:
           </div>
         </div>
         <div className="flex gap-4 w-full">
-          <button
-            onClick={() => { setView("quiz"); setCurrentQIndex(0); setSelectedOption(null); setScore(0); setAnswers([]); setTimeLeft(600); }}
+          <button onClick={() => { setView("quiz"); setCurrentQIndex(0); setSelectedOption(null); setScore(0); setAnswers([]); setTimeLeft(600); setQuestions([]); }}
             className="flex-1 bg-white border-[3px] border-black text-black py-4 font-extrabold hover:bg-[#E2E2E2] active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer">
-            Retry Exam
+            New Quiz
           </button>
           <button onClick={() => navigate("/dashboard")}
             className="flex-1 bg-[#FF4D2E] border-[3px] border-black text-white py-4 font-extrabold hover:opacity-95 active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer">
@@ -494,188 +455,148 @@ Each object in the JSON array MUST match this exact schema:
     </div>
   );
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
-      {/* ═══════════════════════════════════════════════════
-          DESKTOP LAYOUT
-          ═══════════════════════════════════════════════════ */}
+      {/* ── DESKTOP ── */}
       <DesktopSidebar />
       {view === "quiz" && <DesktopQuizView />}
       {view === "results" && <DesktopResultsView />}
 
-      {/* ═══════════════════════════════════════════════════
-          MOBILE LAYOUT
-          ═══════════════════════════════════════════════════ */}
+      {/* ── MOBILE ── */}
       <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
-        {/* TopAppBar */}
-        <header className="w-full top-0 sticky z-45 bg-[#FAF7F2] border-b-2 border-[#1A1A1A] flex items-center justify-between px-5 h-16">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-[#FF4D2E] hover:bg-[#ebe8e3] transition-colors p-2 -ml-2 rounded-full flex items-center justify-center border-2 border-[#1A1A1A] bg-white h-10 w-10 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-            <span className="material-symbols-outlined">arrow_back</span>
+        {/* Header */}
+        <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[3px] border-black flex items-center justify-between px-4 h-16">
+          <button onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5">
+            <span className="material-symbols-outlined text-[22px]">arrow_back</span>
           </button>
-          <h1 className="font-extrabold tracking-tight text-[21px] flex-1 text-center">Practice Exam</h1>
-          <button
-            onClick={() => navigate("/sources")}
-            className="text-[#1A1A1A] hover:bg-[#ebe8e3] transition-colors p-2 -mr-2 rounded-full flex items-center justify-center border-2 border-[#1A1A1A] bg-white h-10 w-10 shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-y-0.5">
-            <span className="material-symbols-outlined text-[18px]">library_books</span>
+          <h1 className="font-extrabold text-[20px]">Practice</h1>
+          <button onClick={() => navigate("/sources")}
+            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5">
+            <span className="material-symbols-outlined text-[20px]">library_books</span>
           </button>
         </header>
 
         {view === "quiz" && (
           <>
-            <main className="flex-1 w-full px-5 py-6 flex flex-col gap-5 pb-[130px] overflow-y-auto">
+            <main className="flex-1 w-full px-4 py-5 flex flex-col gap-5 overflow-y-auto pb-28">
 
-              {/* AI Generator Banner */}
-              <div className="bg-[#e9f2ff] rounded-2xl border-2 border-[#1A1A1A] p-4 shadow-[3px_3px_0px_rgba(0,0,0,1)] flex flex-col gap-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">////</span>
-                  <span className="text-xs font-black text-[#FF4D2E] uppercase tracking-wider">Rex AI Quiz Builder</span>
+              {/* Mobile Banner */}
+              <section className="bg-white rounded-xl border-[1.5px] border-black shadow-[3px_3px_0px_#000] p-4 flex flex-col gap-3 relative overflow-hidden">
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#FF4D2E] rounded-full opacity-10 blur-xl pointer-events-none" />
+                <div className="flex items-center gap-2 z-10">
+                  <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
+                  <span className="font-extrabold text-[13px] uppercase tracking-wider text-[#FF4D2E]">Rex AI Quiz Builder</span>
                 </div>
-                <p className="text-[12.5px] leading-snug font-bold text-black/80">
-                  {activeSource
-                    ? `Detected active file "${activeSource.name}"! You can compile a custom mock-quiz immediately.`
-                    : activeSourcesCount > 0
-                      ? `Detected ${activeSourcesCount} active source notes! Let's build a custom exam.`
-                      : "Let the Rex study tutor compile 3 custom multi-choice questions covering any subject!"}
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button onClick={handleGenerateQuiz} disabled={isGenerating}
-                    className="bg-white hover:bg-black hover:text-white border-2 border-black text-xs font-extrabold py-2 px-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5 cursor-pointer">
-                    {isGenerating ? <><span className="animate-spin text-sm">///</span> Reading materials...</> : <><span className="text-sm">///</span> Generate Quiz via AI</>}
-                  </button>
+                <textarea
+                  value={topicInput}
+                  onChange={e => setTopicInput(e.target.value)}
+                  className="w-full h-24 bg-[#FAF7F2] border-[1.5px] border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none z-10"
+                  placeholder="Paste notes or type a topic..."
+                />
+                <div className="flex gap-2 z-10">
                   {activeSource ? (
-                    <div className="flex items-center gap-1.5 bg-white border-2 border-[#1A1A1A] rounded-lg px-2.5 py-1.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-                      <span className="material-symbols-outlined text-[#FF4D2E] text-[14px]">attach_file</span>
-                      <span className="text-[11px] font-bold truncate max-w-[120px]">{activeSource.name}</span>
+                    <div className="flex-1 flex items-center gap-2 bg-[#F0EDE0] border-[1.5px] border-black rounded-full px-3 py-2">
+                      <span className="material-symbols-outlined text-[#FF4D2E] text-[14px]">description</span>
+                      <span className="text-[11px] font-bold truncate flex-1">{activeSource.name}</span>
+                      <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px]">close</button>
                     </div>
                   ) : (
                     <button onClick={() => navigate("/sources")}
-                      className="flex items-center gap-1.5 bg-white border-2 border-dashed border-black/40 text-black/50 text-xs font-bold py-2 px-3 rounded-lg hover:border-black hover:text-black transition-all cursor-pointer">
-                      <span className="material-symbols-outlined text-[14px]">attach_file</span>
-                      Attach source
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-[1.5px] border-dashed border-black rounded-lg text-[12px] font-bold hover:bg-[#F0EDE0] transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">attach_file</span>Attach source
                     </button>
                   )}
+                  <button onClick={handleGenerateQuiz} disabled={isGenerating}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-[1.5px] border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
+                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                    {isGenerating ? "Loading..." : "Generate"}
+                  </button>
                 </div>
-              </div>
+              </section>
 
+              {/* Loading */}
+              {isGenerating && (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <div className="w-14 h-14 rounded-full border-4 border-[#FF4D2E] border-t-transparent animate-spin" />
+                  <p className="font-bold text-[13px] text-black/50">Rex AI is building your quiz...</p>
+                </div>
+              )}
+
+              {/* Empty + History */}
               {questions.length === 0 && !isGenerating && (
                 <>
-                  {/* Empty state */}
-                  <div className="flex flex-col items-center justify-center flex-1 py-16 gap-4 text-center">
-                    <div className="w-20 h-20 bg-white border-2 border-[#1A1A1A] rounded-full flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,1)]">
-                      <span className="material-symbols-outlined text-4xl text-[#FF4D2E]">quiz</span>
+                  <div className="flex flex-col items-center text-center gap-3 py-8">
+                    <div className="w-24 h-24 bg-[#E2E2E2] border-[1.5px] border-black shadow-[3px_3px_0px_#000] rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[48px] text-black opacity-40" style={{ fontVariationSettings: "'FILL' 1" }}>extension_off</span>
                     </div>
-                    <h2 className="font-extrabold text-[18px]">No quiz yet</h2>
-                    <p className="text-black/50 font-bold text-[13.5px] max-w-[260px]">
+                    <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
+                    <p className="font-bold text-[13px] text-black/50 max-w-[260px]">
                       {activeSource
                         ? `"${activeSource.name}" is ready — hit Generate!`
-                        : "Generate a quiz above, or attach a source first."}
+                        : "Paste notes, type a topic, or just hit Generate."}
                     </p>
                   </div>
 
-                  {/* History list */}
                   {historyEntries.length > 0 && (
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
                         <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
                       </div>
-                      {historyEntries.slice(0, 5).map((entry: any, i: number) => {
-                        const meta = entry.meta || "";
-                        const parts = meta.split("/");
-                        const correct = parseInt(parts[0]) || 0;
-                        const total = parseInt(parts[1]) || 3;
-                        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-                        const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
-                        const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
-                        const timeAgo = entry.created_at
-                          ? (() => {
-                              const diff = Date.now() - new Date(entry.created_at).getTime();
-                              const h = Math.floor(diff / 3600000);
-                              const d = Math.floor(h / 24);
-                              return d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
-                            })()
-                          : "";
-                        return (
-                          <div key={i} className="bg-white border-2 border-[#1A1A1A] rounded-2xl shadow-[2px_2px_0px_rgba(0,0,0,1)] p-4 flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer">
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
-                              style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
-                              {pct}%
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-extrabold text-[13px] leading-snug line-clamp-2">{entry.preview || entry.prompt || "Practice Quiz"}</p>
-                              <p className="text-[11px] text-black/40 font-bold mt-0.5">{meta} correct · {timeAgo}</p>
-                            </div>
-                            <span className="material-symbols-outlined text-[18px] text-black/20 self-center shrink-0">chevron_right</span>
-                          </div>
-                        );
-                      })}
+                      {historyEntries.slice(0, 5).map((entry: HistoryEntry, i: number) => (
+                        <HistoryCard key={i} entry={entry} />
+                      ))}
                     </div>
                   )}
                 </>
               )}
 
-              {/* Loading state */}
-              {isGenerating && (
-                <div className="flex flex-col items-center justify-center flex-1 py-16 gap-4">
-                  <div className="w-16 h-16 rounded-full border-4 border-[#FF4D2E] border-t-transparent animate-spin" />
-                  <p className="font-bold text-[14px] text-black/50">Rex AI is building your quiz...</p>
-                </div>
-              )}
-
-              {/* Quiz content */}
+              {/* Active quiz */}
               {questions.length > 0 && !isGenerating && currentQuestion && (
                 <>
-                  <div className="flex items-center justify-between w-full mt-1">
-                    <div className="text-black bg-white px-3.5 py-1.5 rounded-full border-2 border-[#1A1A1A] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 text-[13px] font-bold">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="bg-white px-3 py-1.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1.5 text-[13px] font-bold">
                       <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]">timer</span>
                       {formatTime(timeLeft)}
                     </div>
-                    <div className="text-[#1A1A1A] font-extrabold text-[16px]">
-                      Question {currentQIndex + 1} <span className="text-black/50 font-bold text-[13px]">/ {questions.length}</span>
+                    <div className="font-extrabold text-[15px]">
+                      Question {currentQIndex + 1} <span className="text-black/40 font-bold text-[13px]">/ {questions.length}</span>
                     </div>
                   </div>
-
-                  <div className="w-full h-3 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden relative">
-                    <div className="h-full bg-[#FF4D2E] absolute left-0 top-0 transition-all duration-300"
-                      style={{ width: `${progressPercent}%`, borderRight: "2px solid #1A1A1A" }} />
+                  <div className="w-full h-3 bg-white border-2 border-black rounded-full overflow-hidden">
+                    <div className="h-full bg-[#FF4D2E] transition-all duration-300" style={{ width: `${progressPercent}%` }} />
                   </div>
-
-                  <div className="bg-white rounded-2xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] p-5 relative overflow-visible">
-                    <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#85f5eb] rounded-full border-2 border-[#1A1A1A] flex items-center justify-center transform rotate-12 z-10">
-                      <span className="material-symbols-outlined text-[16px] font-bold">psychology_alt</span>
+                  <div className="bg-white rounded-2xl border-2 border-black shadow-[3px_3px_0px_#000] p-5 relative">
+                    <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#85f5eb] rounded-full border-2 border-black flex items-center justify-center rotate-12 z-10">
+                      <span className="material-symbols-outlined text-[16px]">psychology_alt</span>
                     </div>
-                    <h2 className="text-black font-extrabold leading-snug text-[16.5px]">{currentQuestion.q}</h2>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-[11.5px] font-bold uppercase tracking-wider">
-                        <span className="material-symbols-outlined text-[13px] mr-1">folder</span>
-                        {currentQuestion.subject}
+                    <h2 className="font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[12px] mr-1">folder</span>{currentQuestion.subject}
                       </span>
-                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-[#1A1A1A] rounded-full text-[11.5px] font-bold uppercase tracking-wider">
-                        <span className="material-symbols-outlined text-[13px] mr-1">leaderboard</span>
-                        {currentQuestion.difficulty}
+                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[12px] mr-1">leaderboard</span>{currentQuestion.difficulty}
                       </span>
                     </div>
                   </div>
-
-                  <div className="flex flex-col gap-3.5 mt-1">
+                  <div className="flex flex-col gap-3">
                     {currentQuestion.options.map((option, idx) => {
                       const label = ["A", "B", "C", "D"][idx];
                       const isSelected = selectedOption === idx;
                       return (
-                        <button key={idx} onClick={() => handleSelectOption(idx)}
-                          className={`w-full text-left rounded-2xl border-2 border-[#1A1A1A] p-4 flex items-center gap-4 transition-all duration-100 cursor-pointer ${
-                            isSelected
-                              ? "bg-[#ffdad6] shadow-[3px_3px_0px_rgba(0,0,0,1)] -translate-y-0.5"
-                              : "bg-white hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,0.1)] hover:shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5"
+                        <button key={idx} onClick={() => setSelectedOption(idx)}
+                          className={`w-full text-left rounded-2xl border-2 border-black p-4 flex items-center gap-3 transition-all ${
+                            isSelected ? "bg-[#ffdad6] shadow-[3px_3px_0px_#000] -translate-y-0.5" : "bg-white shadow-[1px_1px_0px_rgba(0,0,0,0.1)] hover:shadow-[3px_3px_0px_#000] hover:-translate-y-0.5"
                           }`}>
-                          <div className={`w-8 h-8 rounded-full border-2 border-[#1A1A1A] flex items-center justify-center flex-shrink-0 font-extrabold text-[13px] transition-colors ${
-                            isSelected ? "bg-[#FF4D2E] text-white" : "bg-neutral-100 text-[#1A1A1A]"
-                          }`}>{label}</div>
-                          <span className={`text-[#1A1A1A] leading-tight text-[14.5px] ${isSelected ? "font-extrabold" : "font-bold"}`}>{option}</span>
+                          <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center flex-shrink-0 font-extrabold text-[13px] ${isSelected ? "bg-[#FF4D2E] text-white" : "bg-neutral-100"}`}>{label}</div>
+                          <span className={`text-[14px] leading-tight ${isSelected ? "font-extrabold" : "font-bold"}`}>{option}</span>
                         </button>
                       );
                     })}
@@ -685,15 +606,10 @@ Each object in the JSON array MUST match this exact schema:
             </main>
 
             {questions.length > 0 && !isGenerating && (
-              <div className="sticky bottom-0 w-full bg-[#FAF7F2] border-t-2 border-[#1A1A1A] px-5 py-4 pb-6 z-30">
-                <button
-                  disabled={selectedOption === null}
-                  onClick={handleNext}
-                  className={`w-full text-white py-3.5 rounded-xl border-2 border-[#1A1A1A] shadow-[3px_3px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${
-                    selectedOption !== null ? "bg-[#FF4D2E] opacity-100 cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"
-                  }`}>
-                  Next Question
-                  <span className="material-symbols-outlined font-bold">arrow_forward</span>
+              <div className="sticky bottom-0 w-full bg-[#FAF7F2] border-t-2 border-black px-4 py-4 pb-6 z-30">
+                <button disabled={selectedOption === null} onClick={handleNext}
+                  className={`w-full text-white py-3.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${selectedOption !== null ? "bg-[#FF4D2E] cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"}`}>
+                  Next Question <span className="material-symbols-outlined">arrow_forward</span>
                 </button>
               </div>
             )}
@@ -701,42 +617,38 @@ Each object in the JSON array MUST match this exact schema:
         )}
 
         {view === "results" && (
-          <main className="flex-1 w-full px-5 py-8 flex flex-col items-center justify-center text-center">
-            <div className="w-20 h-20 bg-[#fca623]/20 border-2 border-[#1A1A1A] shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-full flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-4xl font-bold">emoji_events</span>
+          <main className="flex-1 w-full px-5 py-8 flex flex-col items-center justify-center text-center overflow-y-auto">
+            <div className="w-20 h-20 bg-[#fca623]/20 border-2 border-black shadow-[4px_4px_0px_#000] rounded-full flex items-center justify-center mb-6">
+              <span className="material-symbols-outlined text-4xl">emoji_events</span>
             </div>
-            <h2 className="text-[#1A1A1A] font-black mb-1.5 text-[24px]">Exam Compiled!</h2>
-            <p className="text-black/50 font-bold max-w-[280px] mb-6 text-[14px]">
-              Practice test recorded in historic journals. Review detailed scores below.
-            </p>
-            <div className="w-full bg-white border-2 border-[#1A1A1A] rounded-2xl p-5 shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col gap-4 text-left mb-8">
+            <h2 className="font-black mb-1.5 text-[24px]">Exam Complete!</h2>
+            <p className="text-black/50 font-bold max-w-[280px] mb-6 text-[14px]">Practice test recorded. Review your scores below.</p>
+            <div className="w-full bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#000] flex flex-col gap-4 text-left mb-8">
               <div className="flex justify-between items-center border-b pb-2.5">
-                <span className="font-extrabold text-black/50 text-[13.5px]">SUCCESS METRIC</span>
+                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Success Metric</span>
                 <span className="text-[#FF4D2E] text-[22px] font-black">{Math.round((score / questions.length) * 100)}%</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2.5">
-                <span className="font-extrabold text-black/50 text-[13.5px]">CORRECT HITS</span>
-                <span className="text-black text-[15.5px] font-bold">{score} / {questions.length} items</span>
+                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Correct Hits</span>
+                <span className="text-[15px] font-bold">{score} / {questions.length} items</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-black/50 text-[13.5px]">REWARDS UNLOCKED</span>
-                <span className="text-[#F5A623] font-bold text-[14.5px]">+{score * 30 + 10} XP / +{score * 15 + 5} Coins</span>
+                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Rewards</span>
+                <span className="text-[#F5A623] font-bold text-[14px]">+{score * 30 + 10} XP / +{score * 15 + 5} Coins</span>
               </div>
             </div>
-            <div className="flex gap-4 w-full">
-              <button
-                onClick={() => { setView("quiz"); setCurrentQIndex(0); setSelectedOption(null); setScore(0); setAnswers([]); setTimeLeft(600); }}
-                className="flex-1 bg-white border-2 border-[#1A1A1A] text-[#1A1A1A] py-3.5 rounded-xl font-bold hover:bg-neutral-50 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)] text-[13.5px] cursor-pointer">
-                Retry Exam
+            <div className="flex gap-3 w-full">
+              <button onClick={() => { setView("quiz"); setCurrentQIndex(0); setSelectedOption(null); setScore(0); setAnswers([]); setTimeLeft(600); setQuestions([]); }}
+                className="flex-1 bg-white border-2 border-black py-3.5 rounded-xl font-bold active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer">
+                New Quiz
               </button>
               <button onClick={() => navigate("/dashboard")}
-                className="flex-1 bg-[#FF4D2E] border-2 border-[#1A1A1A] text-white py-3.5 rounded-xl font-bold hover:opacity-95 active:translate-y-0.5 shadow-[2px_2px_0px_rgba(0,0,0,1)] text-[13.5px] cursor-pointer">
+                className="flex-1 bg-[#FF4D2E] border-2 border-black text-white py-3.5 rounded-xl font-bold active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer">
                 Dashboard
               </button>
             </div>
           </main>
         )}
-
       </div>
     </div>
   );
