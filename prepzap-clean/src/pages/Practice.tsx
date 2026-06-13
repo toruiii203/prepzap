@@ -21,6 +21,75 @@ interface HistoryEntry {
   created_at?: string;
 }
 
+interface DesktopBannerProps {
+  activeSource: { name: string } | null;
+  setActiveSource: (s: null) => void;
+  topicInput: string;
+  setTopicInput: (v: string) => void;
+  isGenerating: boolean;
+  onGenerate: () => void;
+  onNavigateToSources: () => void;
+}
+
+function DesktopBanner({ activeSource, setActiveSource, topicInput, setTopicInput, isGenerating, onGenerate, onNavigateToSources }: DesktopBannerProps) {
+  return (
+    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
+            <h2 className="font-extrabold text-[20px]">Rex AI Quiz Builder</h2>
+          </div>
+          <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {activeSource ? (
+            <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1.5 bg-[#F0EDE0]">
+              <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">description</span>
+              <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
+              <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
+            </div>
+          ) : (
+            <button onClick={onNavigateToSources}
+              className="flex items-center gap-2 border-[1.5px] border-dashed border-black px-4 py-2 rounded-lg text-[13px] font-bold hover:bg-[#F0EDE0] transition-colors">
+              <span className="material-symbols-outlined text-[18px]">attach_file</span>
+              Attach source
+            </button>
+          )}
+          <button onClick={onGenerate} disabled={isGenerating}
+            className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg">
+            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+            {isGenerating ? "Generating..." : "Generate Quiz via AI"}
+          </button>
+        </div>
+      </div>
+      <textarea
+        value={topicInput}
+        onChange={e => setTopicInput(e.target.value)}
+        className="w-full h-[100px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
+        placeholder="Paste your notes or type a topic to generate a custom quiz..."
+      />
+    </div>
+  );
+}
+
+function HistoryCard({ entry }: { entry: HistoryEntry }) {
+  const { pct, ringColor, ringBg, timeAgo, title, correct, total } = parseHistoryEntry(entry);
+  return (
+    <div className="bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5">
+      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
+        style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
+        {pct}%
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-extrabold text-[13px] leading-snug line-clamp-2 mb-1">{title}</p>
+        <p className="text-[11px] text-black/40 font-bold">{correct}/{total} correct{timeAgo ? ` · ${timeAgo}` : ""}</p>
+      </div>
+      <span className="material-symbols-outlined text-[18px] text-black/20 self-center shrink-0">chevron_right</span>
+    </div>
+  );
+}
+
 export default function Practice() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
@@ -162,8 +231,9 @@ Each object in the JSON array MUST match this exact schema:
     const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
     const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
     let timeAgo = "";
-    if (entry.created_at) {
-      const diff = Date.now() - new Date(entry.created_at).getTime();
+    const ts = (entry as any).createdAt || entry.created_at;
+    if (ts) {
+      const diff = Date.now() - new Date(ts).getTime();
       const h = Math.floor(diff / 3600000);
       const d = Math.floor(h / 24);
       timeAgo = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
@@ -173,128 +243,15 @@ Each object in the JSON array MUST match this exact schema:
   };
 
   // ── Shared: Banner ─────────────────────────────────────────────────────────
-  const DesktopBanner = () => (
-    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
-            <h2 className="font-extrabold text-[20px]">Rex AI Quiz Builder</h2>
-          </div>
-          <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {activeSource ? (
-            <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1.5 bg-[#F0EDE0]">
-              <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">description</span>
-              <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
-              <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
-            </div>
-          ) : (
-            <button onClick={() => navigate("/sources")}
-              className="flex items-center gap-2 border-[1.5px] border-dashed border-black px-4 py-2 rounded-lg text-[13px] font-bold hover:bg-[#F0EDE0] transition-colors">
-              <span className="material-symbols-outlined text-[18px]">attach_file</span>
-              Attach source
-            </button>
-          )}
-          <button onClick={handleGenerateQuiz} disabled={isGenerating}
-            className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg">
-            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-            {isGenerating ? "Generating..." : "Generate Quiz via AI"}
-          </button>
-        </div>
-      </div>
-      <textarea
-        value={topicInput}
-        onChange={e => setTopicInput(e.target.value)}
-        className="w-full h-[100px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
-        placeholder="Paste your notes or type a topic to generate a custom quiz..."
-      />
-    </div>
-  );
 
-  // ── Desktop: History cards ─────────────────────────────────────────────────
-  const HistoryCard = ({ entry }: { entry: HistoryEntry }) => {
-    const { pct, ringColor, ringBg, timeAgo, title, correct, total } = parseHistoryEntry(entry);
-    return (
-      <div className="bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
-          style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
-          {pct}%
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-extrabold text-[13px] leading-snug line-clamp-2 mb-1">{title}</p>
-          <p className="text-[11px] text-black/40 font-bold">{correct}/{total} correct{timeAgo ? ` · ${timeAgo}` : ""}</p>
-        </div>
-        <span className="material-symbols-outlined text-[18px] text-black/20 self-center shrink-0">chevron_right</span>
-      </div>
-    );
-  };
 
-  // ── Sidebar ────────────────────────────────────────────────────────────────
-  const DesktopSidebar = () => (
-    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
-      <div className="mb-8">
-        <h1 className="text-[24px] font-extrabold text-black leading-tight">Studenius</h1>
-        <p className="text-[11px] font-bold mt-1 opacity-50">Academic Level: Pro</p>
-      </div>
-      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto pb-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 mt-1">Main</p>
-        {[
-          { icon: "dashboard", label: "Dashboard", route: "/dashboard" },
-          { icon: "psychology", label: "AI Tutor", route: "/ai-tutor" },
-          { icon: "style", label: "Flashcards", route: "/flashcards" },
-          { icon: "quiz", label: "Practice", route: "/practice", active: true },
-        ].map(item => (
-          <button key={item.route} onClick={() => navigate(item.route)}
-            className={`flex items-center gap-3 px-2 py-2.5 rounded-lg text-[13px] font-bold transition-all text-left w-full ${item.active ? "bg-black text-white" : "text-black hover:bg-[#E2E2E2]"}`}>
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>{item.label}
-          </button>
-        ))}
-        <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 mt-5">Tools</p>
-        {[
-          { icon: "timer", label: "Focus Timer", route: "/timer" },
-          { icon: "calendar_today", label: "Study Planner", route: "/planner" },
-          { icon: "military_tech", label: "Challenges", route: "/challenges" },
-          { icon: "history_edu", label: "Mistake Journal", route: "/mistakes" },
-        ].map(item => (
-          <button key={item.route} onClick={() => navigate(item.route)}
-            className="flex items-center gap-3 px-2 py-2.5 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] transition-all text-left w-full">
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>{item.label}
-          </button>
-        ))}
-        <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 mt-5">Resources</p>
-        {[
-          { icon: "library_books", label: "Source Library", route: "/sources" },
-          { icon: "monitoring", label: "Analytics", route: "/analytics" },
-        ].map(item => (
-          <button key={item.route} onClick={() => navigate(item.route)}
-            className="flex items-center gap-3 px-2 py-2.5 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] transition-all text-left w-full">
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>{item.label}
-          </button>
-        ))}
-      </nav>
-      <div className="mt-auto border-t-[1.5px] border-black pt-4 flex flex-col gap-2">
-        <button onClick={() => navigate("/go-pro")}
-          className="w-full bg-[#FF4D2E] text-white border-[1.5px] border-black py-3 text-[13px] font-extrabold shadow-[3px_3px_0px_#000] hover:opacity-90 active:translate-y-0.5">
-          Upgrade to Pro
-        </button>
-        <button onClick={() => navigate("/settings")}
-          className="flex items-center gap-3 px-2 py-2 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">settings</span>Settings
-        </button>
-        <button className="flex items-center gap-3 px-2 py-2 rounded-lg text-[13px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">help_outline</span>Help
-        </button>
-      </div>
-    </aside>
-  );
+
 
   // ── Desktop: Quiz View ─────────────────────────────────────────────────────
   const DesktopQuizView = () => (
     <div className="hidden md:flex md:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ height: "100vh" }}>
       <main className="flex-1 flex flex-col p-10 max-w-5xl mx-auto w-full">
-        <DesktopBanner />
+        <DesktopBanner activeSource={activeSource} setActiveSource={setActiveSource} topicInput={topicInput} setTopicInput={setTopicInput} isGenerating={isGenerating} onGenerate={handleGenerateQuiz} onNavigateToSources={() => navigate("/sources")} />
 
         {/* Loading */}
         {isGenerating && (
@@ -462,7 +419,7 @@ Each object in the JSON array MUST match this exact schema:
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
       {/* ── DESKTOP ── */}
-      <DesktopSidebar />
+      <SharedSidebar active="/practice" />
       {view === "quiz" && <DesktopQuizView />}
       {view === "results" && <DesktopResultsView />}
 

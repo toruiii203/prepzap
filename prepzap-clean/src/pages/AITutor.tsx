@@ -15,6 +15,40 @@ const FOX = {
   laughing:  "/fox/fox-laughing.png",
 };
 
+interface MessageThreadProps {
+  messages: Array<{ sender: "user" | "bot"; text: string }>;
+  isLoading: boolean;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+}
+
+function MessageThread({ messages, isLoading, messagesEndRef }: MessageThreadProps) {
+  return (
+    <div className="flex flex-col gap-4">
+      {messages.map((msg, i) => (
+        <div key={i} className={`flex flex-col max-w-[82%] ${msg.sender === "user" ? "self-end items-end" : "self-start items-start"}`}>
+          <div className={`p-3 rounded-2xl border-2 border-black ${
+            msg.sender === "user"
+              ? "bg-[#ae2925] text-white shadow-[2px_2px_0px_#000]"
+              : "bg-white text-black shadow-[2px_2px_0px_#000]"
+          }`}>
+            <p className="text-[14px] leading-relaxed whitespace-pre-line">{msg.text}</p>
+          </div>
+          <span className="text-[10px] text-[#888] mt-1 px-1">{msg.sender === "user" ? "You" : "Rex AI"}</span>
+        </div>
+      ))}
+      {isLoading && (
+        <div className="flex flex-col max-w-[80%] self-start">
+          <div className="p-3 rounded-2xl border-2 border-black bg-white shadow-[2px_2px_0px_#000] flex items-center gap-2">
+            <span className="material-symbols-outlined animate-spin text-[#ae2925] text-[18px]">autorenew</span>
+            <span className="text-[13px] font-bold">Rex is thinking...</span>
+          </div>
+        </div>
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+}
+
 export default function AITutor() {
   const navigate = useNavigate();
   const { save: saveHistory } = useToolHistory("ai-tutor");
@@ -144,80 +178,11 @@ export default function AITutor() {
     { icon: "search_check",   label: "Find Gaps",     sub: "Review my notes",           action: () => insertSuggestion("gaps in my notes") },
   ];
 
-  // ─── Shared: message thread ───────────────────────────────────────────────
-  const MessageThread = () => (
-    <div className="flex flex-col gap-4">
-      {messages.map((msg, i) => (
-        <div key={i} className={`flex flex-col max-w-[82%] ${msg.sender === "user" ? "self-end items-end" : "self-start items-start"}`}>
-          <div className={`p-3 rounded-2xl border-2 border-black ${
-            msg.sender === "user"
-              ? "bg-[#ae2925] text-white shadow-[2px_2px_0px_#000]"
-              : "bg-white text-black shadow-[2px_2px_0px_#000]"
-          }`}>
-            <p className="text-[14px] leading-relaxed whitespace-pre-line">{msg.text}</p>
-          </div>
-          <span className="text-[10px] text-[#888] mt-1 px-1">{msg.sender === "user" ? "You" : "Rex AI"}</span>
-        </div>
-      ))}
-      {isLoading && (
-        <div className="flex flex-col max-w-[80%] self-start">
-          <div className="p-3 rounded-2xl border-2 border-black bg-white shadow-[2px_2px_0px_#000] flex items-center gap-2">
-            <span className="material-symbols-outlined animate-spin text-[#ae2925] text-[18px]">autorenew</span>
-            <span className="text-[13px] font-bold">Rex is thinking...</span>
-          </div>
-        </div>
-      )}
-      <div ref={messagesEndRef} />
-    </div>
-  );
-
-  // ─── Shared: sidebar nav (desktop only) ───────────────────────────────────
-  const DesktopSidebar = () => (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-2 border-black bg-[#FAF7F2] w-64">
-      <div className="mb-6">
-        <h1 className="text-[28px] font-black tracking-tight">Studenius</h1>
-        <p className="text-[13px] font-bold text-black/50">Academic Level: Pro</p>
-      </div>
-      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
-        {[
-          { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
-          { icon: "smart_toy",      label: "AI Tutor",       route: "/ai-tutor",   active: true },
-          { icon: "style",          label: "Flashcards",     route: "/flashcards" },
-          { icon: "assignment",     label: "Practice",       route: "/practice" },
-          { icon: "timer",          label: "Focus Timer",    route: "/timer" },
-          { icon: "calendar_today", label: "Study Planner",  route: "/planner" },
-          { icon: "folder_open",    label: "Source Library", route: "/sources" },
-          { icon: "bar_chart",      label: "Analytics",      route: "/analytics" },
-        ].map((item) => (
-          <button key={item.route} onClick={() => navigate(item.route)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
-              item.active ? "bg-black text-white scale-95" : "text-black hover:bg-[#E2E2E2]"
-            }`}>
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
-      </nav>
-      <div className="mt-auto border-t-2 border-black pt-4 flex flex-col gap-2">
-        <button onClick={() => navigate("/go-pro")}
-          className="w-full bg-[#F5A623] border-2 border-black py-2 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90">
-          Upgrade to Pro
-        </button>
-        <button onClick={() => navigate("/settings")}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">settings</span>Settings
-        </button>
-        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">help_outline</span>Help
-        </button>
-      </div>
-    </aside>
-  );
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
-      <DesktopSidebar />
+      <SharedSidebar active="/ai-tutor" />
 
       {/* ═══════════════════════════════════════════════════
           DESKTOP LAYOUT
@@ -298,7 +263,7 @@ export default function AITutor() {
                   </div>
                 </div>
               ) : (
-                <MessageThread />
+                <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} />
               )}
             </div>
 
@@ -447,7 +412,7 @@ export default function AITutor() {
               </div>
             </div>
           ) : (
-            <MessageThread />
+            <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} />
           )}
         </main>
 

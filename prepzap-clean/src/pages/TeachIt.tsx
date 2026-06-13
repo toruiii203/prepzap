@@ -114,53 +114,10 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
 
   const wordCount = explanation.trim().split(/\s+/).filter(Boolean).length;
 
-  // ── Sidebar (exact copy from AITutor) ──────────────────────────
-  const DesktopSidebar = () => (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-2 border-black bg-[#FAF7F2] w-64">
-      <div className="mb-6">
-        <h1 className="text-[28px] font-black tracking-tight">Studenius</h1>
-        <p className="text-[13px] font-bold text-black/50">Academic Level: Pro</p>
-      </div>
-      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
-        {[
-          { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
-          { icon: "smart_toy",      label: "AI Tutor",       route: "/ai-tutor" },
-          { icon: "style",          label: "Flashcards",     route: "/flashcards" },
-          { icon: "assignment",     label: "Practice",       route: "/practice",  active: true },
-          { icon: "timer",          label: "Focus Timer",    route: "/timer" },
-          { icon: "calendar_today", label: "Study Planner",  route: "/planner" },
-          { icon: "folder_open",    label: "Source Library", route: "/sources" },
-          { icon: "bar_chart",      label: "Analytics",      route: "/analytics" },
-        ].map((item) => (
-          <button key={item.route} onClick={() => navigate(item.route)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
-              item.active ? "bg-black text-white scale-95" : "text-black hover:bg-[#E2E2E2]"
-            }`}>
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
-      </nav>
-      <div className="mt-auto border-t-2 border-black pt-4 flex flex-col gap-2">
-        <button onClick={() => navigate("/go-pro")}
-          className="w-full bg-[#F5A623] border-2 border-black py-2 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90">
-          Upgrade to Pro
-        </button>
-        <button onClick={() => navigate("/settings")}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">settings</span>Settings
-        </button>
-        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">help_outline</span>Help
-        </button>
-      </div>
-    </aside>
-  );
-
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
-      <DesktopSidebar />
+      <SharedSidebar active="/teach-it" />
 
       {/* XP Toast */}
       {showXpToast && (

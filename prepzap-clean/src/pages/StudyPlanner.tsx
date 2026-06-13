@@ -122,6 +122,122 @@ function getDefaultSessions(): PlannerSession[] {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+interface AddEventFormProps {
+  onClose: () => void;
+  handleAddSubmit: (e: React.FormEvent) => void;
+  newIsDue: boolean;
+  setNewIsDue: (v: boolean) => void;
+  newSubj: string;
+  setNewSubj: (v: string) => void;
+  newTime: string;
+  setNewTime: (v: string) => void;
+  newTopic: string;
+  setNewTopic: (v: string) => void;
+  newDueDate: string;
+  setNewDueDate: (v: string) => void;
+  newHours: string;
+  setNewHours: (v: string) => void;
+}
+
+function AddEventForm({ onClose, handleAddSubmit, newIsDue, setNewIsDue, newSubj, setNewSubj, newTime, setNewTime, newTopic, setNewTopic, newDueDate, setNewDueDate, newHours, setNewHours }: AddEventFormProps) {
+  return (
+    <form
+      onSubmit={handleAddSubmit}
+      className="bg-white border-2 border-black shadow-[5px_5px_0px_#000] p-6 flex flex-col gap-4"
+    >
+      <div className="flex items-center justify-between border-b-2 border-black pb-3">
+        <h4 className="text-[13px] font-black uppercase tracking-widest text-[#E8534A]">
+          Add New {newIsDue ? "Deadline" : "Study Slot"}
+        </h4>
+        <button type="button" onClick={onClose}>
+          <span className="material-symbols-outlined text-[20px] hover:text-[#E8534A]">close</span>
+        </button>
+      </div>
+
+      {/* Slot / Deadline toggle */}
+      <div className="flex border-2 border-black overflow-hidden">
+        {([false, true] as const).map((isDue) => (
+          <button
+            key={String(isDue)}
+            type="button"
+            onClick={() => setNewIsDue(isDue)}
+            className={`flex-1 py-2 text-[12px] font-black uppercase tracking-wider border-r-2 last:border-r-0 border-black transition-colors ${
+              newIsDue === isDue ? "bg-black text-white" : "bg-white text-black hover:bg-[#E2E2E2]"
+            }`}
+          >
+            {isDue ? "Deadline" : "Study Slot"}
+          </button>
+        ))}
+      </div>
+
+      <input
+        type="text"
+        placeholder={newIsDue ? "Assignment / Exam name" : "Subject (e.g. Calculus III)"}
+        value={newSubj}
+        onChange={e => setNewSubj(e.target.value)}
+        className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+        required
+      />
+      <input
+        type="text"
+        placeholder="Time (e.g. 10:00 AM - 11:30 AM)"
+        value={newTime}
+        onChange={e => setNewTime(e.target.value)}
+        className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+        required
+      />
+      <input
+        type="text"
+        placeholder="Topic / Notes (optional)"
+        value={newTopic}
+        onChange={e => setNewTopic(e.target.value)}
+        className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+      />
+      {newIsDue && (
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-black uppercase tracking-widest text-black/50">Due Date</label>
+          <input
+            type="date"
+            value={newDueDate}
+            onChange={e => setNewDueDate(e.target.value)}
+            className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+          />
+        </div>
+      )}
+      {!newIsDue && (
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-black uppercase tracking-widest text-black/50">Estimated Hours</label>
+          <input
+            type="number"
+            min="0.5" max="12" step="0.5"
+            value={newHours}
+            onChange={e => setNewHours(e.target.value)}
+            className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+          />
+        </div>
+      )}
+      <div className="flex gap-3 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 py-2.5 border-2 border-black text-[13px] font-black hover:bg-[#E2E2E2] transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="flex-1 relative group cursor-pointer"
+        >
+          <div className="w-full py-2.5 bg-black text-white border-2 border-black text-[13px] font-black z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
+            Save
+          </div>
+          <div className="absolute inset-0 bg-[#E8534A] translate-y-1 translate-x-1 group-active:translate-y-0 group-active:translate-x-0 transition-transform" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export default function StudyPlanner() {
   const navigate = useNavigate();
 
@@ -260,58 +376,6 @@ export default function StudyPlanner() {
     setShowAddForm(false);
   };
 
-  // ─── Sidebar ────────────────────────────────────────────────────────────────
-  const DesktopSidebar = () => (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-2 border-black bg-[#FAF7F2] w-64">
-      <div className="mb-6">
-        <h1 className="text-[28px] font-black tracking-tight">Studenius</h1>
-        <p className="text-[13px] font-bold text-black/50">Academic Level: Pro</p>
-      </div>
-      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
-        {[
-          { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
-          { icon: "smart_toy",      label: "AI Tutor",       route: "/ai-tutor" },
-          { icon: "style",          label: "Flashcards",     route: "/flashcards" },
-          { icon: "assignment",     label: "Practice",       route: "/practice" },
-          { icon: "calculate",      label: "Math Solver",    route: "/math-solver" },
-          { icon: "auto_awesome",   label: "Quick Study",    route: "/quick-study" },
-          { icon: "timer",          label: "Focus Timer",    route: "/timer" },
-          { icon: "calendar_today", label: "Study Planner",  route: "/planner", active: true },
-          { icon: "folder_open",    label: "Source Library", route: "/sources" },
-          { icon: "bar_chart",      label: "Analytics",      route: "/analytics" },
-        ].map((item) => (
-          <button
-            key={item.route}
-            onClick={() => navigate(item.route)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
-              item.active ? "bg-black text-white scale-95" : "text-black hover:bg-[#E2E2E2]"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
-      </nav>
-      <div className="mt-auto border-t-2 border-black pt-4 flex flex-col gap-2">
-        <button
-          onClick={() => navigate("/go-pro")}
-          className="w-full bg-[#F5A623] border-2 border-black py-2 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90"
-        >
-          Upgrade to Pro
-        </button>
-        <button
-          onClick={() => navigate("/settings")}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full"
-        >
-          <span className="material-symbols-outlined text-[20px]">settings</span>Settings
-        </button>
-        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">help_outline</span>Help
-        </button>
-      </div>
-    </aside>
-  );
-
   // ─── Shared: Calendar ────────────────────────────────────────────────────────
   const CalendarGrid = ({ compact = false }: { compact?: boolean }) => (
     <div className={`border-2 border-black bg-white shadow-[3px_3px_0px_#000] ${compact ? "p-4" : "p-5"}`}>
@@ -373,104 +437,6 @@ export default function StudyPlanner() {
         })}
       </div>
     </div>
-  );
-
-  // ─── Shared: Add Event Form ───────────────────────────────────────────────
-  const AddEventForm = ({ onClose }: { onClose: () => void }) => (
-    <form
-      onSubmit={handleAddSubmit}
-      className="bg-white border-2 border-black shadow-[5px_5px_0px_#000] p-6 flex flex-col gap-4"
-    >
-      <div className="flex items-center justify-between border-b-2 border-black pb-3">
-        <h4 className="text-[13px] font-black uppercase tracking-widest text-[#E8534A]">
-          Add New {newIsDue ? "Deadline" : "Study Slot"}
-        </h4>
-        <button type="button" onClick={onClose}>
-          <span className="material-symbols-outlined text-[20px] hover:text-[#E8534A]">close</span>
-        </button>
-      </div>
-
-      {/* Slot / Deadline toggle */}
-      <div className="flex border-2 border-black overflow-hidden">
-        {([false, true] as const).map((isDue) => (
-          <button
-            key={String(isDue)}
-            type="button"
-            onClick={() => setNewIsDue(isDue)}
-            className={`flex-1 py-2 text-[12px] font-black uppercase tracking-wider border-r-2 last:border-r-0 border-black transition-colors ${
-              newIsDue === isDue ? "bg-black text-white" : "bg-white text-black hover:bg-[#E2E2E2]"
-            }`}
-          >
-            {isDue ? "Deadline" : "Study Slot"}
-          </button>
-        ))}
-      </div>
-
-      <input
-        type="text"
-        placeholder={newIsDue ? "Assignment / Exam name" : "Subject (e.g. Calculus III)"}
-        value={newSubj}
-        onChange={e => setNewSubj(e.target.value)}
-        className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
-        required
-      />
-      <input
-        type="text"
-        placeholder="Time (e.g. 10:00 AM - 11:30 AM)"
-        value={newTime}
-        onChange={e => setNewTime(e.target.value)}
-        className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
-        required
-      />
-      <input
-        type="text"
-        placeholder="Topic / Notes (optional)"
-        value={newTopic}
-        onChange={e => setNewTopic(e.target.value)}
-        className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
-      />
-      {newIsDue && (
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-black uppercase tracking-widest text-black/50">Due Date</label>
-          <input
-            type="date"
-            value={newDueDate}
-            onChange={e => setNewDueDate(e.target.value)}
-            className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
-          />
-        </div>
-      )}
-      {!newIsDue && (
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-black uppercase tracking-widest text-black/50">Estimated Hours</label>
-          <input
-            type="number"
-            min="0.5" max="12" step="0.5"
-            value={newHours}
-            onChange={e => setNewHours(e.target.value)}
-            className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
-          />
-        </div>
-      )}
-      <div className="flex gap-3 pt-1">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 py-2.5 border-2 border-black text-[13px] font-black hover:bg-[#E2E2E2] transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="flex-1 relative group cursor-pointer"
-        >
-          <div className="w-full py-2.5 bg-black text-white border-2 border-black text-[13px] font-black z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
-            Save
-          </div>
-          <div className="absolute inset-0 bg-[#E8534A] translate-y-1 translate-x-1 group-active:translate-y-0 group-active:translate-x-0 transition-transform" />
-        </button>
-      </div>
-    </form>
   );
 
   // ─── Shared: Timeline ────────────────────────────────────────────────────────
@@ -651,7 +617,7 @@ export default function StudyPlanner() {
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
-      <DesktopSidebar />
+      <SharedSidebar active="/planner" />
 
       {/* ═══════════════════════════════════════════════════
           DESKTOP LAYOUT
@@ -729,7 +695,7 @@ export default function StudyPlanner() {
             onClick={e => { if (e.target === e.currentTarget) setShowAddForm(false); }}
           >
             <div className="w-[480px] max-w-[90vw]">
-              <AddEventForm onClose={() => setShowAddForm(false)} />
+              <AddEventForm onClose={() => setShowAddForm(false)} handleAddSubmit={handleAddSubmit} newIsDue={newIsDue} setNewIsDue={setNewIsDue} newSubj={newSubj} setNewSubj={setNewSubj} newTime={newTime} setNewTime={setNewTime} newTopic={newTopic} setNewTopic={setNewTopic} newDueDate={newDueDate} setNewDueDate={setNewDueDate} newHours={newHours} setNewHours={setNewHours} />
             </div>
           </div>
         )}
@@ -808,7 +774,7 @@ export default function StudyPlanner() {
 
           {/* Mobile add form inline */}
           {showAddForm && (
-            <AddEventForm onClose={() => setShowAddForm(false)} />
+            <AddEventForm onClose={() => setShowAddForm(false)} handleAddSubmit={handleAddSubmit} newIsDue={newIsDue} setNewIsDue={setNewIsDue} newSubj={newSubj} setNewSubj={setNewSubj} newTime={newTime} setNewTime={setNewTime} newTopic={newTopic} setNewTopic={setNewTopic} newDueDate={newDueDate} setNewDueDate={setNewDueDate} newHours={newHours} setNewHours={setNewHours} />
           )}
 
         </main>

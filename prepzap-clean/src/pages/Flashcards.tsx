@@ -15,6 +15,63 @@ interface Flashcard {
 interface FlashcardsProps {
 }
 
+interface FlashCard {
+  front: string;
+  back: string;
+  explanation: string;
+}
+
+interface DesktopFlashcardProps {
+  currentCard: FlashCard;
+  isFlipped: boolean;
+  setIsFlipped: (v: boolean) => void;
+}
+
+function DesktopFlashcard({ currentCard, isFlipped, setIsFlipped }: DesktopFlashcardProps) {
+  return (
+    <div
+      onClick={() => setIsFlipped(!isFlipped)}
+      className="relative w-full cursor-pointer"
+      style={{ perspective: "1000px", height: "340px" }}
+    >
+      <div
+        className="transition-transform duration-500 w-full h-full relative"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+        }}
+      >
+        <div
+          className="absolute inset-0 border-2 border-black bg-white shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center p-10 text-center rounded-xl"
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          <div className="absolute top-5 left-5 opacity-20">
+            <span className="material-symbols-outlined">style</span>
+          </div>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-black/40 mb-4">Question</p>
+          <h3 className="text-[22px] font-black leading-snug max-w-[480px]">{currentCard.front}</h3>
+          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/30">
+            <span className="material-symbols-outlined text-[16px]">touch_app</span>
+            <span className="text-[12px] font-bold uppercase tracking-wider">Click to flip</span>
+          </div>
+        </div>
+        <div
+          className="absolute inset-0 border-2 border-black bg-[#F0EDE0] shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center p-10 text-center rounded-xl"
+          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+        >
+          <span className="material-symbols-outlined text-black text-[40px] mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+          <p className="text-[24px] font-black leading-snug mb-3">{currentCard.back}</p>
+          <p className="text-[14px] font-bold text-black/60 max-w-[400px] leading-relaxed">{currentCard.explanation}</p>
+          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/30">
+            <span className="material-symbols-outlined text-[16px]">touch_app</span>
+            <span className="text-[12px] font-bold uppercase tracking-wider">Click to see question</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Flashcards() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth() as any;
@@ -196,106 +253,13 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
   const currentCard = cards[currentCardIndex % cards.length] || mockCards[currentCardIndex % mockCards.length];
 
-  // ── DesktopSidebar ──────────────────────────────────────────────────────────
-  const DesktopSidebar = () => (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-2 border-black bg-[#FAF7F2] w-64">
-      <div className="mb-6">
-        <h1 className="text-[28px] font-black tracking-tight">Studenius</h1>
-        <p className="text-[13px] font-bold text-black/50">Academic Level: Pro</p>
-      </div>
-      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
-        {[
-          { icon: "dashboard",   label: "Dashboard",      route: "/dashboard",  active: false },
-          { icon: "smart_toy",   label: "AI Tutor",       route: "/ai-tutor",   active: false },
-          { icon: "style",       label: "Flashcards",     route: "/flashcards", active: true  },
-          { icon: "assignment",  label: "Practice",       route: "/practice",   active: false },
-          { icon: "timer",       label: "Focus Timer",    route: "/timer",      active: false },
-          { icon: "monitoring",  label: "Analytics",      route: "/analytics",  active: false },
-          { icon: "folder_open", label: "Source Library", route: "/sources",    active: false },
-          { icon: "bar_chart",   label: "Progress",       route: "/progress",   active: false },
-        ].map((item) => (
-          <button
-            key={item.route}
-            onClick={() => navigate(item.route)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
-              item.active ? "bg-black text-white scale-95" : "text-black hover:bg-[#E2E2E2]"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
-      </nav>
-      <div className="mt-auto border-t-2 border-black pt-4 flex flex-col gap-2">
-        <button
-          onClick={() => navigate("/go-pro")}
-          className="w-full bg-[#F5A623] border-2 border-black py-2 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90"
-        >
-          Upgrade to Pro
-        </button>
-        <button
-          onClick={() => navigate("/settings")}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full"
-        >
-          <span className="material-symbols-outlined text-[20px]">settings</span>Settings
-        </button>
-        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
-          <span className="material-symbols-outlined text-[20px]">help_outline</span>Help
-        </button>
-      </div>
-    </aside>
-  );
-
   // ── Desktop: Shared flashcard flip area ─────────────────────────────────────
-  const DesktopFlashcard = () => (
-    <div
-      onClick={() => setIsFlipped(!isFlipped)}
-      className="relative w-full cursor-pointer"
-      style={{ perspective: "1000px", height: "340px" }}
-    >
-      <div
-        className="transition-transform duration-500 w-full h-full relative"
-        style={{
-          transformStyle: "preserve-3d",
-          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-        }}
-      >
-        {/* Front */}
-        <div
-          className="absolute inset-0 border-2 border-black bg-white shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center p-10 text-center rounded-xl"
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          <div className="absolute top-5 left-5 opacity-20">
-            <span className="material-symbols-outlined">style</span>
-          </div>
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-black/40 mb-4">Question</p>
-          <h3 className="text-[22px] font-black leading-snug max-w-[480px]">{currentCard.front}</h3>
-          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/30">
-            <span className="material-symbols-outlined text-[16px]">touch_app</span>
-            <span className="text-[12px] font-bold uppercase tracking-wider">Click to flip</span>
-          </div>
-        </div>
-        {/* Back */}
-        <div
-          className="absolute inset-0 border-2 border-black bg-[#F0EDE0] shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center p-10 text-center rounded-xl"
-          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-        >
-          <span className="material-symbols-outlined text-black text-[40px] mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
-          <p className="text-[24px] font-black leading-snug mb-3">{currentCard.back}</p>
-          <p className="text-[14px] font-bold text-black/60 max-w-[400px] leading-relaxed">{currentCard.explanation}</p>
-          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/30">
-            <span className="material-symbols-outlined text-[16px]">touch_app</span>
-            <span className="text-[12px] font-bold uppercase tracking-wider">Click to see question</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
-      <DesktopSidebar />
+      <SharedSidebar active="/flashcards" />
 
       {/* ══════════════════════════════════════════════════
           DESKTOP LAYOUT
@@ -510,7 +474,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
 
                 {/* Card */}
-                <DesktopFlashcard />
+                <DesktopFlashcard currentCard={currentCard} isFlipped={isFlipped} setIsFlipped={setIsFlipped} />
 
                 {/* Response buttons */}
                 <div className="grid grid-cols-3 gap-4">
