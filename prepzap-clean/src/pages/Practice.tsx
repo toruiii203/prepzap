@@ -20,7 +20,7 @@ interface PracticeProps {
 export default function Practice() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
-  const { save: saveHistory } = useToolHistory("practice");
+  const { save: saveHistory, entries: historyEntries = [], load: loadHistoryFn } = useToolHistory("practice") as any;
   
   const [view, setView] = useState<"quiz" | "results">("quiz");
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -265,24 +265,61 @@ Each object in the JSON array MUST match this exact schema:
           </div>
         </div>
 
-        {/* Empty state */}
+        {/* Empty / History state */}
         {questions.length === 0 && !isGenerating && (
-          <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4 text-center">
-            <div className="w-20 h-20 bg-white border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#000]">
-              <span className="material-symbols-outlined text-4xl text-[#FF4D2E]">quiz</span>
+          <div className="flex gap-8 flex-1">
+            {/* Left: empty state */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-24 gap-4">
+              <div className="w-20 h-20 bg-white border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_#000]">
+                <span className="material-symbols-outlined text-4xl text-[#FF4D2E]">quiz</span>
+              </div>
+              <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
+              <p className="text-black/50 font-bold text-[14px] max-w-[300px]">
+                {activeSource
+                  ? `"${activeSource.name}" is ready — hit Generate to build a quiz from it!`
+                  : "Generate a quiz above, or attach a source from your library first."}
+              </p>
             </div>
-            <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
-            <p className="text-black/50 font-bold text-[14px] max-w-[300px]">
-              {activeSource
-                ? `"${activeSource.name}" is ready — generate a quiz from it!`
-                : `Attach a source from your library, or generate a general-subject quiz above.`}
-            </p>
-            {!activeSource && (
-              <button onClick={() => navigate("/sources")}
-                className="mt-2 border-2 border-dashed border-black/30 px-8 py-4 flex items-center justify-center gap-2 text-[13px] font-bold text-black/40 hover:border-black hover:text-black transition-all">
-                <span className="material-symbols-outlined text-[18px]">add</span>
-                Attach a source from library
-              </button>
+
+            {/* Right: history panel */}
+            {historyEntries.length > 0 && (
+              <aside className="w-[300px] shrink-0 flex flex-col gap-4 py-8">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
+                  <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {historyEntries.slice(0, 5).map((entry: any, i: number) => {
+                    const meta = entry.meta || "";
+                    const parts = meta.split("/");
+                    const correct = parseInt(parts[0]) || 0;
+                    const total = parseInt(parts[1]) || 3;
+                    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+                    const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
+                    const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
+                    const timeAgo = entry.created_at
+                      ? (() => {
+                          const diff = Date.now() - new Date(entry.created_at).getTime();
+                          const h = Math.floor(diff / 3600000);
+                          const d = Math.floor(h / 24);
+                          return d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
+                        })()
+                      : "";
+                    return (
+                      <div key={i} className="bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[14px]"
+                          style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
+                          {pct}%
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-extrabold text-[13px] leading-snug truncate">{entry.preview || entry.prompt || "Practice Quiz"}</p>
+                          <p className="text-[11px] text-black/40 font-bold mt-0.5">{meta} correct · {timeAgo}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </aside>
             )}
           </div>
         )}
@@ -525,24 +562,60 @@ Each object in the JSON array MUST match this exact schema:
               </div>
 
               {questions.length === 0 && !isGenerating && (
-                <div className="flex flex-col items-center justify-center flex-1 py-16 gap-4 text-center">
-                  <div className="w-20 h-20 bg-white border-2 border-[#1A1A1A] rounded-full flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,1)]">
-                    <span className="material-symbols-outlined text-4xl text-[#FF4D2E]">quiz</span>
+                <>
+                  {/* Empty state */}
+                  <div className="flex flex-col items-center justify-center flex-1 py-16 gap-4 text-center">
+                    <div className="w-20 h-20 bg-white border-2 border-[#1A1A1A] rounded-full flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,1)]">
+                      <span className="material-symbols-outlined text-4xl text-[#FF4D2E]">quiz</span>
+                    </div>
+                    <h2 className="font-extrabold text-[18px]">No quiz yet</h2>
+                    <p className="text-black/50 font-bold text-[13.5px] max-w-[260px]">
+                      {activeSource
+                        ? `"${activeSource.name}" is ready — hit Generate!`
+                        : "Generate a quiz above, or attach a source first."}
+                    </p>
                   </div>
-                  <h2 className="font-extrabold text-[18px]">No quiz yet</h2>
-                  <p className="text-black/50 font-bold text-[13.5px] max-w-[260px]">
-                    {activeSource
-                      ? `"${activeSource.name}" is ready — generate a quiz from it!`
-                      : `Attach a source from your library, or generate a quiz on any subject.`}
-                  </p>
-                  {!activeSource && (
-                    <button onClick={() => navigate("/sources")}
-                      className="mt-1 w-full max-w-[260px] border-2 border-dashed border-black/30 p-4 flex items-center justify-center gap-2 text-[13px] font-bold text-black/40 hover:border-black hover:text-black transition-all rounded-xl">
-                      <span className="material-symbols-outlined text-[18px]">add</span>
-                      Attach a source
-                    </button>
+
+                  {/* History list */}
+                  {historyEntries.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
+                        <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
+                      </div>
+                      {historyEntries.slice(0, 5).map((entry: any, i: number) => {
+                        const meta = entry.meta || "";
+                        const parts = meta.split("/");
+                        const correct = parseInt(parts[0]) || 0;
+                        const total = parseInt(parts[1]) || 3;
+                        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+                        const ringColor = pct >= 80 ? "#16a34a" : pct >= 50 ? "#ca8a04" : "#dc2626";
+                        const ringBg = pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef9c3" : "#fee2e2";
+                        const timeAgo = entry.created_at
+                          ? (() => {
+                              const diff = Date.now() - new Date(entry.created_at).getTime();
+                              const h = Math.floor(diff / 3600000);
+                              const d = Math.floor(h / 24);
+                              return d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : "Just now";
+                            })()
+                          : "";
+                        return (
+                          <div key={i} className="bg-white border-2 border-[#1A1A1A] rounded-2xl shadow-[2px_2px_0px_rgba(0,0,0,1)] p-4 flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
+                              style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
+                              {pct}%
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-extrabold text-[13px] leading-snug line-clamp-2">{entry.preview || entry.prompt || "Practice Quiz"}</p>
+                              <p className="text-[11px] text-black/40 font-bold mt-0.5">{meta} correct · {timeAgo}</p>
+                            </div>
+                            <span className="material-symbols-outlined text-[18px] text-black/20 self-center shrink-0">chevron_right</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               {/* Loading state */}
