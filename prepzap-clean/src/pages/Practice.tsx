@@ -233,7 +233,7 @@ Each object in the JSON array MUST match this exact schema:
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   const DesktopSidebar = () => (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
+    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
       <div className="mb-8">
         <h1 className="text-[24px] font-extrabold text-black leading-tight">Studenius</h1>
         <p className="text-[11px] font-bold mt-1 opacity-50">Academic Level: Pro</p>
@@ -292,7 +292,7 @@ Each object in the JSON array MUST match this exact schema:
 
   // ── Desktop: Quiz View ─────────────────────────────────────────────────────
   const DesktopQuizView = () => (
-    <div className="hidden lg:flex lg:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ height: "100vh" }}>
+    <div className="hidden md:flex md:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ height: "100vh" }}>
       <main className="flex-1 flex flex-col p-10 max-w-5xl mx-auto w-full">
         <DesktopBanner />
 
@@ -338,8 +338,8 @@ Each object in the JSON array MUST match this exact schema:
         {/* Active Quiz */}
         {questions.length > 0 && !isGenerating && currentQuestion && (
           <>
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 gap-4">
-              <div className="flex-grow w-full lg:max-w-md flex flex-col gap-2">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+              <div className="flex-grow w-full md:max-w-md flex flex-col gap-2">
                 <div className="flex justify-between">
                   <span className="text-[13px] font-extrabold tracking-widest uppercase">Question {currentQIndex + 1}/{questions.length}</span>
                   <span className="text-[13px] font-extrabold">{progressPercent}%</span>
@@ -420,7 +420,7 @@ Each object in the JSON array MUST match this exact schema:
 
   // ── Desktop: Results ───────────────────────────────────────────────────────
   const DesktopResultsView = () => (
-    <div className="hidden lg:flex lg:ml-64 flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto" style={{ height: "100vh" }}>
+    <div className="hidden md:flex md:ml-64 flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto" style={{ height: "100vh" }}>
       <div className="max-w-xl w-full flex flex-col items-center text-center">
         <div className="w-24 h-24 bg-[#fca623]/20 border-[3px] border-black shadow-[5px_5px_0px_#000] flex items-center justify-center mb-8">
           <span className="material-symbols-outlined text-5xl">emoji_events</span>
@@ -467,7 +467,7 @@ Each object in the JSON array MUST match this exact schema:
       {view === "results" && <DesktopResultsView />}
 
       {/* ── MOBILE ── */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* Header */}
         <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[3px] border-black flex items-center justify-between px-4 h-16">
