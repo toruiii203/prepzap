@@ -89,7 +89,6 @@ export default function SourceLibrary() {
   // Open live camera view
   const openCamera = async () => {
     try {
-      // Try rear camera first (environment), fallback to any
       const constraints = [
         { video: { facingMode: { exact: "environment" } } },
         { video: { facingMode: "environment" } },
@@ -104,7 +103,6 @@ export default function SourceLibrary() {
       setCameraCapturing(true);
       setCameraPreview(null);
       setCameraNote("");
-      // Attach stream to video element after state update
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -112,7 +110,6 @@ export default function SourceLibrary() {
         }
       }, 100);
     } catch (err) {
-      // Fallback: use file input with capture on mobile
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "image/*";
@@ -133,7 +130,6 @@ export default function SourceLibrary() {
     }
   };
 
-  // Snap a photo from the live stream
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
@@ -145,18 +141,15 @@ export default function SourceLibrary() {
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     setCameraPreview(dataUrl);
-    // Stop stream after capture
     cameraStream?.getTracks().forEach(t => t.stop());
     setCameraStream(null);
   };
 
-  // Retake — reopen camera
   const retakePhoto = () => {
     setCameraPreview(null);
     openCamera();
   };
 
-  // Save captured image as a source
   const saveCapturedPhoto = () => {
     if (!cameraPreview) return;
     const timestamp = new Date().toLocaleString("en-PH", { dateStyle: "short", timeStyle: "short" });
@@ -165,7 +158,7 @@ export default function SourceLibrary() {
       id: "f_" + Date.now(),
       name,
       type: "image",
-      content: cameraPreview,  // base64 data URL — AI can read this
+      content: cameraPreview,
       size: `${(cameraPreview.length * 0.75 / 1024).toFixed(1)} KB`,
       created_at: new Date().toISOString(),
       isPdf: false,
@@ -202,11 +195,138 @@ export default function SourceLibrary() {
     else if (tool === "Quick Study") navigate("/quick-study");
   };
 
-  // Camera Modal
+  // ── Shared inner components ──────────────────────────────────────────────
+
+  const FileIcon = ({ file, isSelected }: { file: any; isSelected: boolean }) => {
+    if (isSelected) return <Check className="w-6 h-6 text-[#ae2925] stroke-[3]" />;
+    if (file.isPhoto && file.content?.startsWith("data:image"))
+      return <img src={file.content} alt={file.name} className="w-full h-full object-cover" />;
+    if (file.isPdf) return <FileText className="w-6 h-6 text-[#ae2925]" />;
+    if (file.type === "image") return <Image className="w-6 h-6 text-[#ae2925]" />;
+    return <File className="w-6 h-6 text-[#666]" />;
+  };
+
+  const FileRow = ({ file }: { file: any }) => {
+    const isSelected = selectedIds.includes(file.id);
+    return (
+      <div
+        key={file.id}
+        onClick={() => handleToggleSelect(file.id)}
+        className={`rounded-2xl border-2 p-4 flex items-center gap-4 transition-all cursor-pointer ${
+          isSelected
+            ? "bg-[#fff0ef] border-[#ae2925] shadow-[4px_4px_0px_0px_#ae2925]"
+            : "bg-white border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A]"
+        } hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none`}
+      >
+        <div className="w-12 h-12 rounded-lg bg-[#ebe8e3] flex items-center justify-center shrink-0 border-2 border-[#1A1A1A] overflow-hidden">
+          <FileIcon file={file} isSelected={isSelected} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-[15px] text-[#1A1A1A] truncate">{file.name}</h3>
+          <p className="text-[12px] font-semibold text-[#888] mt-0.5">
+            {file.note || file.size} • {isSelected ? "✓ Active context" : "Idle"}
+          </p>
+        </div>
+        <button
+          onClick={(e) => handleDeleteFile(file.id, e)}
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 hover:bg-red-50 text-[#888] hover:text-red-500 transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
+
+  const UploadZone = () => (
+    <div className="bg-white border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[180px]">
+      <div className="flex gap-5 mb-1">
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+          >
+            <Paperclip className="w-7 h-7 text-[#ae2925]" />
+          </button>
+          <span className="text-[11px] font-bold text-[#666]">PDF / TXT</span>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={openCamera}
+            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+          >
+            <Camera className="w-7 h-7 text-[#ae2925]" />
+          </button>
+          <span className="text-[11px] font-bold text-[#666]">Capture</span>
+        </div>
+      </div>
+      <p className="font-bold text-[#1A1A1A] text-center text-[16px]">
+        Upload a file or capture your notes
+      </p>
+      <p className="font-bold text-[#888] text-center text-[12px]">
+        PDF, TXT • or point camera at textbook / whiteboard
+      </p>
+      <button
+        onClick={() => setShowUploadModal(true)}
+        className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
+      >
+        Or paste text manually
+      </button>
+    </div>
+  );
+
+  // ── Desktop Sidebar ──────────────────────────────────────────────────────
+
+  const DesktopSidebar = ({ navigate }: { navigate: (r: string) => void }) => (
+    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-2 border-black bg-[#FAF7F2] w-64">
+      <div className="mb-6">
+        <h1 className="text-[28px] font-black tracking-tight">Studenius</h1>
+        <p className="text-[13px] font-bold text-black/50">Academic Level: Pro</p>
+      </div>
+      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
+        {[
+          { icon: "dashboard",      label: "Dashboard",       route: "/dashboard" },
+          { icon: "smart_toy",      label: "AI Tutor",        route: "/ai-tutor" },
+          { icon: "style",          label: "Flashcards",      route: "/flashcards" },
+          { icon: "assignment",     label: "Practice",        route: "/practice" },
+          { icon: "timer",          label: "Focus Timer",     route: "/timer" },
+          { icon: "calendar_today", label: "Study Planner",   route: "/planner" },
+          { icon: "military_tech",  label: "Challenges",      route: "/challenges" },
+          { icon: "history_edu",    label: "Mistake Journal", route: "/mistake-journal" },
+          { icon: "folder_open",    label: "Source Library",  route: "/sources", active: true },
+          { icon: "bar_chart",      label: "Analytics",       route: "/analytics" },
+          { icon: "shopping_bag",   label: "Shop",            route: "/shop" },
+          { icon: "person",         label: "Profile",         route: "/profile" },
+        ].map((item: any) => (
+          <button key={item.route} onClick={() => navigate(item.route)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
+              item.active ? "bg-black text-white scale-95" : "text-black hover:bg-[#E2E2E2]"
+            }`}>
+            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            {item.label}
+          </button>
+        ))}
+      </nav>
+      <div className="mt-auto border-t-2 border-black pt-4 flex flex-col gap-2">
+        <button onClick={() => navigate("/go-pro")}
+          className="w-full bg-[#F5A623] border-2 border-black py-2 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90">
+          Upgrade to Pro
+        </button>
+        <button onClick={() => navigate("/settings")}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
+          <span className="material-symbols-outlined text-[20px]">settings</span>Settings
+        </button>
+        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] w-full">
+          <span className="material-symbols-outlined text-[20px]">help_outline</span>Help
+        </button>
+      </div>
+    </aside>
+  );
+
+  // ── Camera modal (fullscreen, layout-agnostic) ───────────────────────────
+
   if (cameraCapturing) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col">
-        {/* Camera header */}
         <div className="flex items-center justify-between px-4 py-3 bg-black/80">
           <button
             onClick={() => {
@@ -225,22 +345,13 @@ export default function SourceLibrary() {
           <div className="w-10" />
         </div>
 
-        {/* Live view or preview */}
         <div className="flex-1 relative overflow-hidden">
           {cameraPreview ? (
             <img src={cameraPreview} alt="Captured" className="w-full h-full object-contain" />
           ) : (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
+            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           )}
           <canvas ref={canvasRef} className="hidden" />
-
-          {/* Viewfinder corners when live */}
           {!cameraPreview && (
             <>
               <div className="absolute top-8 left-8 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-md opacity-70" />
@@ -254,7 +365,6 @@ export default function SourceLibrary() {
           )}
         </div>
 
-        {/* Controls */}
         <div className="bg-black/90 px-5 py-4 flex flex-col gap-3">
           {cameraPreview ? (
             <>
@@ -297,29 +407,19 @@ export default function SourceLibrary() {
     );
   }
 
+  // ── Filtered files ───────────────────────────────────────────────────────
+
+  const filteredFiles = files.filter(
+    f => !searchTerm || f.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const selectedFiles = files.filter(f => selectedIds.includes(f.id));
+
   return (
-    <div className="bg-[#FAF7F2] text-[#1A1A1A] antialiased min-h-full flex flex-col w-full flex-1">
+    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
-      {/* Header */}
-      <header className="w-full top-0 sticky bg-[#FAF7F2] flex items-center justify-between px-5 h-16 z-40 border-b-2 border-black shrink-0">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full active:translate-y-0.5"
-        >
-          <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
-        </button>
-        <h1 className="font-headline text-[20px] text-[#1A1A1A] tracking-tight font-extrabold text-center flex-1">
-          Source Library
-        </h1>
-        <button
-          onClick={() => setShowSearch(s => !s)}
-          className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full active:translate-y-0.5"
-        >
-          <Search className="w-6 h-6 text-[#1A1A1A]" />
-        </button>
-      </header>
+      <DesktopSidebar navigate={navigate} />
 
-      {/* Upload Modal (paste text) */}
+      {/* ── Shared Modals ── */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
           <div className="bg-[#FAF7F2] border-2 border-black rounded-2xl p-6 w-full max-w-sm shadow-[4px_4px_0px_0px_#000]">
@@ -353,153 +453,374 @@ export default function SourceLibrary() {
         </div>
       )}
 
-      {/* Main */}
-      <main className="flex-1 px-5 py-6 flex flex-col gap-6 pb-24 overflow-y-auto">
-        {showSearch && (
-          <input
-            autoFocus
-            type="text"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search files..."
-            className="w-full border-2 border-black rounded-xl px-4 py-3 text-[14px] font-semibold bg-white outline-none"
-          />
-        )}
+      {/* Hidden file input — shared */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.txt"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+      <canvas ref={canvasRef} className="hidden" />
 
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.txt"
-          className="hidden"
-          onChange={handleFileSelected}
-        />
+      {/* ════════════════════════════════════════════════════
+          DESKTOP LAYOUT
+      ════════════════════════════════════════════════════ */}
+      <div className="hidden lg:flex lg:ml-64 flex-col min-h-screen">
 
-        {/* Upload Area */}
-        <section>
-          <div className="bg-white rounded-2xl border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[200px]">
-            <div className="flex gap-5 mb-1">
-              {/* File Upload */}
-              <div className="flex flex-col items-center gap-1.5">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
-                >
-                  <Paperclip className="w-7 h-7 text-[#ae2925]" />
-                </button>
-                <span className="text-[11px] font-bold text-[#666]">PDF / TXT</span>
+        {/* Desktop Header */}
+        <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
+          <div className="flex items-center gap-4">
+            <span className="text-[22px] font-black tracking-tight">SOURCE LIBRARY</span>
+            <div className="w-px h-6 bg-black/20" />
+            <span className="text-[13px] font-bold text-black/50">{files.length} file{files.length !== 1 ? "s" : ""} • {selectedIds.length} active</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="material-symbols-outlined text-black hover:text-[#FF4D2E] transition-colors">notifications</button>
+            <button onClick={() => navigate("/go-pro")} className="material-symbols-outlined text-black hover:text-[#F5A623] transition-colors">workspace_premium</button>
+            <div
+              onClick={() => navigate("/profile")}
+              className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer hover:opacity-90"
+            >
+              R
+            </div>
+          </div>
+        </header>
+
+        {/* Desktop Dual Pane */}
+        <div className="flex flex-1 overflow-hidden">
+
+          {/* Left Pane — Library & Upload */}
+          <div className="w-[60%] flex flex-col border-r-2 border-black overflow-y-auto">
+
+            {/* Search + view header */}
+            <div className="px-8 py-5 border-b-2 border-black flex items-center gap-4 shrink-0">
+              <div className="relative flex-1">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-black/40">search</span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Search your sources..."
+                  className="w-full pl-10 pr-4 py-2 border-2 border-black bg-[#F0EDE0] text-[14px] font-semibold outline-none focus:bg-white transition-colors"
+                />
               </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 bg-black text-white border-2 border-black text-[13px] font-extrabold shadow-[2px_2px_0px_#555] hover:opacity-90 shrink-0"
+              >
+                <span className="material-symbols-outlined text-[18px]">upload</span>
+                Upload
+              </button>
+              <button
+                onClick={openCamera}
+                className="flex items-center gap-2 px-4 py-2 bg-[#FAF7F2] border-2 border-black text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] shrink-0"
+              >
+                <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                Scan
+              </button>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#FAF7F2] border-2 border-black text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] shrink-0"
+              >
+                <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                Paste
+              </button>
+            </div>
 
-              {/* Camera Capture */}
-              <div className="flex flex-col items-center gap-1.5">
-                <button
-                  onClick={openCamera}
-                  className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
-                >
-                  <Camera className="w-7 h-7 text-[#ae2925]" />
-                </button>
-                <span className="text-[11px] font-bold text-[#666]">Capture</span>
+            {/* Upload drop zone */}
+            <div className="px-8 py-6 border-b-2 border-black shrink-0">
+              <div
+                className="w-full h-36 border-2 border-dashed border-black bg-[#F0EDE0] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-[#E8E4DC] transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).classList.add("bg-black", "!border-solid"); }}
+                onDragLeave={e => { (e.currentTarget as HTMLDivElement).classList.remove("bg-black", "!border-solid"); }}
+                onDrop={e => {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLDivElement).classList.remove("bg-black", "!border-solid");
+                  const file = e.dataTransfer.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const content = ev.target?.result as string || "";
+                    addFileToLibrary({
+                      id: "f_" + Date.now(),
+                      name: file.name,
+                      type: file.type.includes("pdf") ? "pdf" : file.type.includes("image") ? "image" : "text",
+                      content: content.length > 50000 ? content.slice(0, 50000) : content,
+                      size: `${(file.size / 1024).toFixed(1)} KB`,
+                      created_at: new Date().toISOString(),
+                      isPdf: file.name.toLowerCase().endsWith(".pdf"),
+                    });
+                  };
+                  if (file.type.includes("image")) reader.readAsDataURL(file);
+                  else reader.readAsText(file);
+                }}
+              >
+                <span className="material-symbols-outlined text-[36px] text-black/30">upload_file</span>
+                <span className="text-[13px] font-extrabold uppercase tracking-widest text-black/50">Drag & Drop PDF, TXT, or Image</span>
+                <span className="text-[11px] font-bold text-black/30">Max 50 MB</span>
               </div>
             </div>
 
-            <p className="font-headline font-bold text-[#1A1A1A] text-center text-[16px]">
-              Upload a file or capture your notes
-            </p>
-            <p className="font-bold text-[#888] text-center text-[12px]">
-              PDF, TXT • or point camera at textbook / whiteboard
-            </p>
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] rounded-xl bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
-            >
-              Or paste text manually
-            </button>
-          </div>
-        </section>
-
-        {/* Quick Launch */}
-        <section>
-          <h2 className="font-headline font-extrabold text-[16px] text-[#1A1A1A] mb-3">Quick Launch Tool</h2>
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-1 -mx-1">
-            {quickTools.map((tool) => (
-              <button
-                key={tool}
-                onClick={() => handleQuickToolClick(tool)}
-                className={`whitespace-nowrap px-5 py-2.5 rounded-full border-2 border-[#1A1A1A] font-bold text-[13px] shrink-0 transition-all ${
-                  activeQuickTool === tool
-                    ? "bg-[#ae2925] text-white shadow-[2px_2px_0px_0px_#1A1A1A]"
-                    : "bg-white text-[#1A1A1A] hover:bg-neutral-100"
-                }`}
-              >
-                {tool}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* File List */}
-        <section className="flex-1">
-          <div className="flex items-center justify-between mb-4 border-b border-black/10 pb-3">
-            <h2 className="font-extrabold text-[16px]">My Attached Files</h2>
-            <span className="font-bold text-[#888] text-[13px]">{files.length} items</span>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {files
-              .filter(f => !searchTerm || f.name.toLowerCase().includes(searchTerm.toLowerCase()))
-              .map((file) => {
-                const isSelected = selectedIds.includes(file.id);
-                return (
-                  <div
-                    key={file.id}
-                    onClick={() => handleToggleSelect(file.id)}
-                    className={`rounded-2xl border-2 p-4 flex items-center gap-4 transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-[#fff0ef] border-[#ae2925] shadow-[4px_4px_0px_0px_#ae2925]"
-                        : "bg-white border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A]"
-                    } hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none`}
+            {/* File list */}
+            <div className="px-8 py-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-[11px] font-black uppercase tracking-widest text-black/50">My Files ({filteredFiles.length})</h2>
+                {selectedIds.length > 0 && (
+                  <button
+                    onClick={() => { setSelectedIds([]); saveContext([]); }}
+                    className="text-[11px] font-extrabold text-[#ae2925] uppercase tracking-widest hover:underline"
                   >
-                    {/* Thumbnail / icon */}
-                    <div className="w-12 h-12 rounded-lg bg-[#ebe8e3] flex items-center justify-center shrink-0 border-2 border-[#1A1A1A] overflow-hidden">
-                      {isSelected ? (
-                        <Check className="w-6 h-6 text-[#ae2925] stroke-[3]" />
-                      ) : file.isPhoto && file.content?.startsWith("data:image") ? (
-                        <img src={file.content} alt={file.name} className="w-full h-full object-cover" />
-                      ) : file.isPdf ? (
-                        <FileText className="w-6 h-6 text-[#ae2925]" />
-                      ) : file.type === "image" ? (
-                        <Image className="w-6 h-6 text-[#ae2925]" />
-                      ) : (
-                        <File className="w-6 h-6 text-[#666]" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-[15px] text-[#1A1A1A] truncate">{file.name}</h3>
-                      <p className="text-[12px] font-semibold text-[#888] mt-0.5">
-                        {file.note || file.size} • {isSelected ? "✓ Active context" : "Idle"}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={(e) => handleDeleteFile(file.id, e)}
-                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 hover:bg-red-50 text-[#888] hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-
-            {files.length === 0 && (
-              <div className="text-center p-10 bg-white border-2 border-dashed border-[#1A1A1A] rounded-2xl opacity-60">
-                <p className="font-bold text-[16px]">No Files Present</p>
-                <p className="text-[13px] mt-1 font-semibold">Upload or capture notes to power AI generation.</p>
+                    Clear All Active
+                  </button>
+                )}
               </div>
-            )}
+
+              {filteredFiles.map(file => (
+                <FileRow key={file.id} file={file} />
+              ))}
+
+              {filteredFiles.length === 0 && (
+                <div className="text-center p-10 bg-white border-2 border-dashed border-[#1A1A1A] opacity-60">
+                  <p className="font-black text-[16px] uppercase tracking-wide">
+                    {files.length === 0 ? "No Files Present" : "No Matches"}
+                  </p>
+                  <p className="text-[13px] mt-1 font-semibold">
+                    {files.length === 0
+                      ? "Upload or capture notes to power AI generation."
+                      : "Try a different search term."}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </section>
-      </main>
+
+          {/* Right Pane — Active Context + Quick Launch */}
+          <div className="w-[40%] flex flex-col overflow-y-auto bg-[#FAF7F2]">
+
+            {/* Active context panel */}
+            <div className="px-8 py-6 border-b-2 border-black">
+              <h2 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-4">Active Context</h2>
+              {selectedFiles.length === 0 ? (
+                <div className="bg-[#F0EDE0] border-2 border-black p-5 text-center" style={{ boxShadow: "3px 3px 0px #000" }}>
+                  <span className="material-symbols-outlined text-[32px] text-black/20 block mb-2">folder_open</span>
+                  <p className="text-[13px] font-bold text-black/50">No files selected</p>
+                  <p className="text-[12px] font-semibold text-black/30 mt-1">Tap files on the left to add them to AI context</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {selectedFiles.map(file => (
+                    <div key={file.id} className="bg-[#fff0ef] border-2 border-[#ae2925] p-3 flex items-center gap-3" style={{ boxShadow: "3px 3px 0px #ae2925" }}>
+                      <div className="w-9 h-9 bg-[#ae2925] flex items-center justify-center shrink-0 border-2 border-black overflow-hidden">
+                        {file.isPhoto && file.content?.startsWith("data:image") ? (
+                          <img src={file.content} alt={file.name} className="w-full h-full object-cover" />
+                        ) : file.isPdf ? (
+                          <span className="material-symbols-outlined text-white text-[16px]">picture_as_pdf</span>
+                        ) : file.type === "image" ? (
+                          <span className="material-symbols-outlined text-white text-[16px]">image</span>
+                        ) : (
+                          <span className="material-symbols-outlined text-white text-[16px]">description</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[13px] truncate">{file.name}</p>
+                        <p className="text-[11px] font-semibold text-[#ae2925]">{file.size} • Active</p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleToggleSelect(file.id); }}
+                        className="w-7 h-7 flex items-center justify-center hover:bg-red-100 text-[#888] hover:text-red-500 transition-colors shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Launch */}
+            <div className="px-8 py-6 border-b-2 border-black">
+              <h2 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-4">Quick Launch Tool</h2>
+              <div className="flex flex-col gap-3">
+                {[
+                  { label: "AI Tutor", icon: "smart_toy", route: "/ai-tutor", desc: "Chat with AI about your sources" },
+                  { label: "Flashcards", icon: "style", route: "/flashcards", desc: "Auto-generate flashcards from files" },
+                  { label: "Practice", icon: "assignment", route: "/practice", desc: "Build a quiz from your notes" },
+                  { label: "Quick Study", icon: "bolt", route: "/quick-study", desc: "Fast-track key concepts" },
+                ].map(tool => (
+                  <button
+                    key={tool.route}
+                    onClick={() => handleQuickToolClick(tool.label)}
+                    className={`flex items-center gap-4 px-4 py-3 border-2 border-black text-left transition-all w-full ${
+                      selectedIds.length > 0
+                        ? "bg-white hover:bg-[#F0EDE0] shadow-[3px_3px_0px_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
+                        : "bg-[#F0EDE0] opacity-60 cursor-not-allowed"
+                    }`}
+                    disabled={selectedIds.length === 0}
+                  >
+                    <div className="w-10 h-10 bg-black flex items-center justify-center shrink-0 border-2 border-black">
+                      <span className="material-symbols-outlined text-white text-[18px]">{tool.icon}</span>
+                    </div>
+                    <div>
+                      <p className="font-black text-[14px]">{tool.label}</p>
+                      <p className="text-[11px] font-semibold text-black/50">{tool.desc}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[18px] text-black/30 ml-auto">arrow_forward</span>
+                  </button>
+                ))}
+              </div>
+              {selectedIds.length === 0 && (
+                <p className="text-[11px] font-bold text-black/40 mt-3 text-center uppercase tracking-widest">Select files above to enable tools</p>
+              )}
+            </div>
+
+            {/* Storage Stats */}
+            <div className="px-8 py-6">
+              <h2 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-4">Library Stats</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Total Files", value: files.length, icon: "folder" },
+                  { label: "Active in AI", value: selectedIds.length, icon: "memory" },
+                  { label: "PDFs", value: files.filter(f => f.isPdf).length, icon: "picture_as_pdf" },
+                  { label: "Images", value: files.filter(f => f.type === "image").length, icon: "image" },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-white border-2 border-black p-4" style={{ boxShadow: "3px 3px 0px #000" }}>
+                    <span className="material-symbols-outlined text-[20px] text-black/40 block mb-1">{stat.icon}</span>
+                    <p className="font-black text-[22px]">{stat.value}</p>
+                    <p className="text-[11px] font-bold text-black/50 uppercase tracking-widest">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════
+          MOBILE LAYOUT — DO NOT TOUCH
+      ════════════════════════════════════════════════════ */}
+      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]">
+
+        {/* Header */}
+        <header className="w-full top-0 sticky bg-[#FAF7F2] flex items-center justify-between px-5 h-16 z-40 border-b-2 border-black shrink-0">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full active:translate-y-0.5"
+          >
+            <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
+          </button>
+          <h1 className="font-headline text-[20px] text-[#1A1A1A] tracking-tight font-extrabold text-center flex-1">
+            Source Library
+          </h1>
+          <button
+            onClick={() => setShowSearch(s => !s)}
+            className="text-primary hover:bg-[#ebe8e3] transition-colors p-2 rounded-full active:translate-y-0.5"
+          >
+            <Search className="w-6 h-6 text-[#1A1A1A]" />
+          </button>
+        </header>
+
+        {/* Main */}
+        <main className="flex-1 px-5 py-6 flex flex-col gap-6 pb-24 overflow-y-auto">
+          {showSearch && (
+            <input
+              autoFocus
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search files..."
+              className="w-full border-2 border-black rounded-xl px-4 py-3 text-[14px] font-semibold bg-white outline-none"
+            />
+          )}
+
+          {/* Upload Area */}
+          <section>
+            <div className="bg-white rounded-2xl border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[200px]">
+              <div className="flex gap-5 mb-1">
+                {/* File Upload */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+                  >
+                    <Paperclip className="w-7 h-7 text-[#ae2925]" />
+                  </button>
+                  <span className="text-[11px] font-bold text-[#666]">PDF / TXT</span>
+                </div>
+
+                {/* Camera Capture */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    onClick={openCamera}
+                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+                  >
+                    <Camera className="w-7 h-7 text-[#ae2925]" />
+                  </button>
+                  <span className="text-[11px] font-bold text-[#666]">Capture</span>
+                </div>
+              </div>
+
+              <p className="font-headline font-bold text-[#1A1A1A] text-center text-[16px]">
+                Upload a file or capture your notes
+              </p>
+              <p className="font-bold text-[#888] text-center text-[12px]">
+                PDF, TXT • or point camera at textbook / whiteboard
+              </p>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] rounded-xl bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
+              >
+                Or paste text manually
+              </button>
+            </div>
+          </section>
+
+          {/* Quick Launch */}
+          <section>
+            <h2 className="font-headline font-extrabold text-[16px] text-[#1A1A1A] mb-3">Quick Launch Tool</h2>
+            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-1 -mx-1">
+              {quickTools.map((tool) => (
+                <button
+                  key={tool}
+                  onClick={() => handleQuickToolClick(tool)}
+                  className={`whitespace-nowrap px-5 py-2.5 rounded-full border-2 border-[#1A1A1A] font-bold text-[13px] shrink-0 transition-all ${
+                    activeQuickTool === tool
+                      ? "bg-[#ae2925] text-white shadow-[2px_2px_0px_0px_#1A1A1A]"
+                      : "bg-white text-[#1A1A1A] hover:bg-neutral-100"
+                  }`}
+                >
+                  {tool}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* File List */}
+          <section className="flex-1">
+            <div className="flex items-center justify-between mb-4 border-b border-black/10 pb-3">
+              <h2 className="font-extrabold text-[16px]">My Attached Files</h2>
+              <span className="font-bold text-[#888] text-[13px]">{files.length} items</span>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {files
+                .filter(f => !searchTerm || f.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((file) => (
+                  <FileRow key={file.id} file={file} />
+                ))}
+
+              {files.length === 0 && (
+                <div className="text-center p-10 bg-white border-2 border-dashed border-[#1A1A1A] rounded-2xl opacity-60">
+                  <p className="font-bold text-[16px]">No Files Present</p>
+                  <p className="text-[13px] mt-1 font-semibold">Upload or capture notes to power AI generation.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
+
     </div>
   );
 }
