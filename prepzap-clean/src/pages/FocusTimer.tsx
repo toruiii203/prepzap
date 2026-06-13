@@ -499,7 +499,7 @@ export default function FocusTimer() {
             </div>
 
             {/* Card 3: Current Task */}
-            <div className="p-6">
+            <div className="p-6 border-b-2 border-black">
               <h3 className="text-[13px] font-extrabold uppercase tracking-wider mb-3">What are you focusing on?</h3>
               {currentTask ? (
                 <div className="flex items-center gap-2 bg-[#F0EDE0] border-2 border-black px-3 py-2.5 shadow-[2px_2px_0px_#000]">
@@ -528,6 +528,32 @@ export default function FocusTimer() {
               )}
             </div>
 
+            {/* Card 4: Session Log */}
+            <div className="p-6">
+              <h3 className="text-[13px] font-extrabold uppercase tracking-wider mb-3">Session Log</h3>
+              {completedToday === 0 ? (
+                <div className="flex flex-col items-center py-6 gap-2 text-center opacity-40">
+                  <span className="material-symbols-outlined text-[32px]">history</span>
+                  <p className="text-[12px] font-bold">No sessions completed today yet.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {Array.from({ length: completedToday }, (_, i) => (
+                    <div key={i} className="flex items-center gap-3 border-2 border-black bg-white px-3 py-2.5 shadow-[2px_2px_0px_#000]">
+                      <div className="w-8 h-8 bg-[#ae2925] border-2 border-black flex items-center justify-center shrink-0">
+                        <span className="text-white text-[11px] font-black">#{i + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-extrabold truncate">{currentTask || "Focus Session"}</p>
+                        <p className="text-[10px] font-bold text-black/40">{settings.focusDuration} min · Completed</p>
+                      </div>
+                      <span className="material-symbols-outlined text-green-600 text-[18px]">check_circle</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
@@ -535,7 +561,7 @@ export default function FocusTimer() {
       {/* ══════════════════════════════════════════════════
           MOBILE LAYOUT — updated with new features
           ══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
         <div className="bg-[#fcf9f4] text-[#1A1A1A] flex flex-col w-full flex-1 relative overflow-x-hidden" style={{ height: "100dvh" }}>
 
           {/* Mobile Header */}
@@ -649,6 +675,27 @@ export default function FocusTimer() {
                 </div>
               )}
             </div>
+
+            {/* Session Log (mobile) */}
+            {completedToday > 0 && (
+              <div className="w-full">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider mb-2">Session Log</p>
+                <div className="flex flex-col gap-2">
+                  {Array.from({ length: completedToday }, (_, i) => (
+                    <div key={i} className="flex items-center gap-3 border-2 border-black bg-white px-3 py-2.5 rounded-lg shadow-[2px_2px_0px_#000]">
+                      <div className="w-8 h-8 bg-[#ae2925] border-2 border-black rounded-lg flex items-center justify-center shrink-0">
+                        <span className="text-white text-[11px] font-black">#{i + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-extrabold truncate">{currentTask || "Focus Session"}</p>
+                        <p className="text-[10px] font-bold text-black/40">{settings.focusDuration} min · Completed</p>
+                      </div>
+                      <span className="material-symbols-outlined text-green-600 text-[18px]">check_circle</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </main>
         </div>

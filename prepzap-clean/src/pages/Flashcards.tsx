@@ -596,7 +596,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       {/* ══════════════════════════════════════════════════
           MOBILE LAYOUT — DO NOT TOUCH
           ══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ minHeight: "100dvh" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ minHeight: "100dvh" }}>
         <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">
           {/* TopAppBar */}
           <header className="w-full top-0 sticky bg-background border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
@@ -706,7 +706,18 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           {/* VIEW 2: STUDY STATE */}
           {view === "study" && !isLoading && (
             <main className="flex-1 px-5 py-6 flex flex-col items-center">
-              {/* Progress Bar */}
+              {/* Progress Bar + Question Counter */}
+              <div className="w-full flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-1 shadow-[2px_2px_0px_#000]">
+                  <span className="material-symbols-outlined text-[14px] text-[#ae2925]">style</span>
+                  <span className="text-[12px] font-black">Card {currentCardIndex + 1} / {cards.length}</span>
+                </div>
+                <div className="flex gap-3 text-[12px] font-extrabold">
+                  <span className="text-green-600">✓ {scores.gotIt}</span>
+                  <span className="text-black/40">? {scores.unsure}</span>
+                  <span className="text-[#FF4D2E]">✗ {scores.forgot}</span>
+                </div>
+              </div>
               <div className="w-full flex items-center gap-4 mb-4">
                 <span className="font-label-md text-label-md text-on-background w-12 text-right">
                   {currentCardIndex + 1} / {cardCount}
@@ -835,6 +846,37 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               </div>
             </main>
           )}
+
+          {/* Recent Decks — Mobile */}
+          {view === "setup" && (
+            <div className="mt-4 border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
+              <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black">
+                <span className="material-symbols-outlined text-[18px]">history</span>
+                <h3 className="text-[14px] font-extrabold">Recent Decks</h3>
+              </div>
+              <div className="flex flex-col divide-y divide-black/10">
+                {[
+                  { name: "Macroeconomics 101", time: "2 hours ago", pct: 75 },
+                  { name: "Discrete Mathematics", time: "Yesterday", pct: 32 },
+                  { name: "Art History: Renaissance", time: "3 days ago", pct: 90 },
+                ].map((deck) => (
+                  <div key={deck.name} className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAF7F2] transition-colors cursor-pointer">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-extrabold truncate">{deck.name}</p>
+                      <p className="text-[11px] font-bold text-black/40">{deck.time}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="w-16 h-2 bg-[#E8E4DC] border border-black overflow-hidden">
+                        <div className="h-full bg-black" style={{ width: `${deck.pct}%` }} />
+                      </div>
+                      <span className="text-[10px] font-extrabold">{deck.pct}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 

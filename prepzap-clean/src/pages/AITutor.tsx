@@ -362,7 +362,7 @@ export default function AITutor() {
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* Mobile TopAppBar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">
@@ -390,7 +390,29 @@ export default function AITutor() {
           ))}
         </div>
 
-        {/* Chat Feed — flex-1 + overflow-y-auto = scrollable, never clips input */}
+
+        {/* Mobile Settings Panel — Source Selector + Mode Counter */}
+        <div className="w-full px-4 py-2 shrink-0 bg-[#FAF7F2] border-b-2 border-black flex items-center justify-between gap-3">
+          {activeSource ? (
+            <div className="flex items-center gap-2 bg-[#F0EDE0] border-2 border-black rounded-full px-3 py-1 flex-1 min-w-0">
+              <span className="material-symbols-outlined text-[14px]">description</span>
+              <span className="text-[11px] font-bold truncate">{activeSource}</span>
+              <button onClick={handleClearSource} className="material-symbols-outlined text-[13px] hover:text-[#FF4D2E] shrink-0 transition-colors">close</button>
+            </div>
+          ) : (
+            <button onClick={() => navigate("/sources")}
+              className="flex items-center gap-1.5 bg-white border-2 border-dashed border-black/30 rounded-full px-3 py-1 text-[11px] font-bold text-black/40 hover:border-black hover:text-black transition-all flex-1">
+              <span className="material-symbols-outlined text-[14px]">attach_file</span>
+              Attach Source
+            </button>
+          )}
+          <div className="flex items-center gap-2 shrink-0 border-2 border-black bg-white px-3 py-1 shadow-[2px_2px_0px_#000]">
+            <span className="material-symbols-outlined text-[14px]">chat</span>
+            <span className="text-[11px] font-black">{messages.length} msgs</span>
+          </div>
+        </div>
+
+        {/* Chat Feed — flex-1 + overflow-y-auto = scrollable, never clips input */
         <main className="flex-1 overflow-y-auto px-4 py-4 bg-[#FAF7F2]">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-full gap-4 pb-2">

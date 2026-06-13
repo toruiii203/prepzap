@@ -675,14 +675,52 @@ export default function StudyPlanner() {
               </div>
 
               {/* Col 2 — Timeline (5 cols) */}
-              <div className="col-span-5 flex flex-col">
+              <div className="col-span-5 flex flex-col gap-5">
+                {/* Topic Input */}
+                <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000] p-4 flex items-center gap-3 shrink-0">
+                  <span className="material-symbols-outlined text-[#ae2925] text-[20px]">edit_note</span>
+                  <input
+                    type="text"
+                    placeholder="Quick add topic / session note..."
+                    className="flex-1 bg-[#FAF7F2] border-2 border-black px-3 py-2 text-[13px] font-bold placeholder:text-black/30 focus:outline-none shadow-[2px_2px_0px_#000]"
+                  />
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#ae2925] text-white border-2 border-black font-extrabold text-[12px] shadow-[2px_2px_0px_#000] hover:opacity-90 transition-opacity shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                    Add Session
+                  </button>
+                </div>
                 <TimelinePanel />
               </div>
 
-              {/* Col 3 — Goals + Deadlines (3 cols) */}
+              {/* Col 3 — Goals + Deadlines + History (3 cols) */}
               <div className="col-span-3 flex flex-col gap-5">
                 <WeeklyGoalsPanel />
                 <DeadlinesPanel />
+                {/* History Panel */}
+                <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000] p-5">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest border-b-2 border-black pb-3 mb-4">
+                    Completed Sessions
+                  </h3>
+                  {sessions.filter(s => s.completed).length === 0 ? (
+                    <p className="text-[12px] font-bold text-black/40 py-4 text-center">No completed sessions yet</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {sessions.filter(s => s.completed).slice(0, 4).map((s) => (
+                        <div key={s.id} className="flex items-center gap-2 p-2 border border-black/10 bg-[#FAF7F2]">
+                          <div className={`w-2 h-8 border border-black shrink-0 ${s.color || "bg-blue-500"}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-extrabold truncate line-through text-black/50">{s.subject}</p>
+                            <p className="text-[10px] font-bold text-black/30">{s.time}</p>
+                          </div>
+                          <span className="material-symbols-outlined text-green-600 text-[14px]">check_circle</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -706,7 +744,7 @@ export default function StudyPlanner() {
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT — preserved + enhanced
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* Mobile TopAppBar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">

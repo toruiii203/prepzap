@@ -442,6 +442,57 @@ Return raw JSON only, no wrapping!`;
               <OutputCard />
             </div>
 
+            {/* History Panel + Suggestion Cards */}
+            <div className="grid grid-cols-2 gap-6 mt-2">
+              {/* History Panel */}
+              <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
+                <div className="flex items-center justify-between px-5 py-3 border-b-2 border-black bg-[#FAF7F2]">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest">Study History</h3>
+                  <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
+                </div>
+                <div className="flex flex-col divide-y divide-black/10">
+                  {[
+                    { topic: "Cellular Respiration", mode: "Cram", score: 88, time: "1h ago" },
+                    { topic: "Quantum Mechanics Basics", mode: "High Yield", score: 72, time: "Yesterday" },
+                    { topic: "French Revolution Timeline", mode: "Cram", score: 95, time: "2 days ago" },
+                  ].map((item) => (
+                    <div key={item.topic} className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAF7F2] cursor-pointer group">
+                      <div className={`w-10 h-10 border-2 border-black flex items-center justify-center font-black text-[11px] shrink-0 ${item.score >= 80 ? "bg-[#F0EDE0]" : "bg-white"}`}>
+                        {item.score}%
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-extrabold truncate">{item.topic}</p>
+                        <p className="text-[10px] font-bold text-black/40 uppercase tracking-wider">{item.mode} · {item.time}</p>
+                      </div>
+                      <span className="material-symbols-outlined text-[16px] text-black/20 group-hover:text-black transition-colors">chevron_right</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Suggestion Cards */}
+              <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
+                <div className="px-5 py-3 border-b-2 border-black bg-[#FAF7F2]">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest">Quick Suggestions</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-0 divide-x-2 divide-y-2 divide-black">
+                  {[
+                    { icon: "science", label: "Cell Biology", color: "text-green-600" },
+                    { icon: "calculate", label: "Calculus III", color: "text-[#ae2925]" },
+                    { icon: "history_edu", label: "World History", color: "text-[#F5A623]" },
+                    { icon: "psychology", label: "Cognitive Psych", color: "text-black" },
+                  ].map((s) => (
+                    <button key={s.label}
+                      onClick={() => setTopic(s.label)}
+                      className="flex flex-col items-start gap-2 p-4 hover:bg-[#FAF7F2] transition-colors text-left group">
+                      <span className={`material-symbols-outlined ${s.color} text-[22px]`}>{s.icon}</span>
+                      <span className="text-[13px] font-extrabold group-hover:underline">{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -449,7 +500,7 @@ Return raw JSON only, no wrapping!`;
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT — preserved + enhanced
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* Mobile TopAppBar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">
@@ -462,9 +513,10 @@ Return raw JSON only, no wrapping!`;
           <h1 className="text-[18px] font-black">AI Quick Cram</h1>
           <button
             onClick={() => navigate("/timer")}
-            className="flex items-center justify-center w-9 h-9"
+            className="flex items-center gap-1.5 border-2 border-black bg-white px-2.5 py-1 shadow-[2px_2px_0px_#000] active:translate-y-0.5"
           >
-            <span className="material-symbols-outlined text-[#E8534A]">bolt</span>
+            <span className="material-symbols-outlined text-[#ae2925] text-[16px]">timer</span>
+            <span className="text-[11px] font-black text-[#ae2925]">TIMER</span>
           </button>
         </header>
 

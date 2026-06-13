@@ -350,7 +350,7 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* Mobile header */}
         <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-black flex items-center justify-between px-5 h-16 z-10 shrink-0">
@@ -384,6 +384,27 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
               className="relative pb-2 flex-1 flex justify-center text-black/40 font-bold text-[14px] cursor-pointer">
               Practice Recall
             </button>
+          </div>
+
+          {/* Source + Settings Bar */}
+          <div className="flex items-center gap-2">
+            {activeSource ? (
+              <div className="flex items-center gap-2 bg-[#F0EDE0] border-2 border-black rounded-full px-3 py-1.5 flex-1 min-w-0">
+                <span className="material-symbols-outlined text-[14px]">description</span>
+                <span className="text-[11px] font-bold truncate">{activeSource}</span>
+                <button onClick={handleClearSource} className="material-symbols-outlined text-[13px] hover:text-[#FF4D2E] shrink-0">close</button>
+              </div>
+            ) : (
+              <button onClick={() => navigate("/sources")}
+                className="flex items-center gap-2 bg-white border-2 border-dashed border-black/30 rounded-full px-3 py-1.5 text-[11px] font-bold text-black/40 hover:border-black hover:text-black transition-all flex-1">
+                <span className="material-symbols-outlined text-[14px]">attach_file</span>
+                Attach Source
+              </button>
+            )}
+            <div className="flex items-center gap-1.5 border-2 border-black bg-white px-3 py-1.5 shadow-[2px_2px_0px_#000] shrink-0">
+              <span className="material-symbols-outlined text-[14px]">avg_pace</span>
+              <span className="text-[11px] font-black">{feedback ? `${feedback.clarityScore}/100` : "—"}</span>
+            </div>
           </div>
 
           {/* Topic input */}
@@ -494,6 +515,34 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
               </div>
             </div>
           )}
+          {/* History Panel (mobile) */}
+          {!feedback && (
+            <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
+              <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black bg-[#FAF7F2]">
+                <span className="material-symbols-outlined text-[18px]">history_edu</span>
+                <h3 className="text-[13px] font-extrabold">Past Explanations</h3>
+              </div>
+              <div className="flex flex-col divide-y divide-black/10">
+                {[
+                  { topic: "Photosynthesis", score: 82, date: "2h ago" },
+                  { topic: "Newton's 2nd Law", score: 67, date: "Yesterday" },
+                  { topic: "Osmosis vs Diffusion", score: 91, date: "3 days ago" },
+                ].map((item) => (
+                  <div key={item.topic} className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAF7F2] cursor-pointer">
+                    <div className={`w-10 h-10 border-2 border-black flex items-center justify-center font-black text-[11px] shrink-0 ${item.score >= 80 ? "bg-green-100 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
+                      {item.score}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-extrabold truncate">{item.topic}</p>
+                      <p className="text-[11px] font-bold text-black/40">{item.date}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[16px] text-black/20">chevron_right</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
 

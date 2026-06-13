@@ -560,6 +560,27 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
               </div>
             </div>
 
+            {/* Mode Selector */}
+            <div className="px-8 pt-5 pb-3 border-b-2 border-black/10 shrink-0">
+              <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Problem Mode</h3>
+              <div className="flex gap-2">
+                {[
+                  { label: "Algebra", icon: "functions", type: "math" },
+                  { label: "Physics", icon: "science", type: "physics" },
+                  { label: "Chemistry", icon: "biotech", type: "chem" },
+                ].map(({ label, icon, type }) => (
+                  <button
+                    key={type}
+                    onClick={() => loadSampleProblem(type)}
+                    className="flex-1 flex flex-col items-center gap-1.5 py-3 border-2 border-black bg-white hover:bg-[#E2E2E2] transition-all shadow-[2px_2px_0px_#000] active:translate-y-0.5 active:shadow-none"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Sample buttons */}
             <div className="px-8 pt-4 pb-2 shrink-0 flex items-center gap-3">
               <span className="text-[11px] font-black uppercase tracking-widest text-black/50">Try a sample:</span>
@@ -653,6 +674,24 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
 
           {/* Right Pane — 42% — results */}
           <div className="w-[42%] flex flex-col overflow-y-auto px-8 py-6 bg-[#FAF7F2]">
+            {/* Stats Panel */}
+            <div className="mb-5 grid grid-cols-3 gap-3">
+              <div className="border-2 border-black bg-white p-3 flex flex-col items-center gap-1 shadow-[2px_2px_0px_#000]">
+                <span className="material-symbols-outlined text-[#ae2925] text-[18px]">functions</span>
+                <span className="text-[18px] font-black">{steps.length || 0}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-black/50">Steps</span>
+              </div>
+              <div className="border-2 border-black bg-white p-3 flex flex-col items-center gap-1 shadow-[2px_2px_0px_#000]">
+                <span className="material-symbols-outlined text-[#F5A623] text-[18px]">schedule</span>
+                <span className="text-[18px] font-black">{loading ? "..." : solved ? "✓" : "—"}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-black/50">Status</span>
+              </div>
+              <div className="border-2 border-black bg-white p-3 flex flex-col items-center gap-1 shadow-[2px_2px_0px_#000]">
+                <span className="material-symbols-outlined text-[18px]">dataset</span>
+                <span className="text-[18px] font-black">{problem.length || 0}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-black/50">Chars</span>
+              </div>
+            </div>
             <RightPanel />
           </div>
 
@@ -662,7 +701,7 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT — DO NOT TOUCH (preserved + enhanced)
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* Mobile TopAppBar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">
