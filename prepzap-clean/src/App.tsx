@@ -145,7 +145,7 @@ function MobileRootRedirect() {
 
 function AppRoutes() {
   const { user } = useAuth();
-  const [showSplash, setShowSplash] = useState(isMobile());
+  const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
