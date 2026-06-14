@@ -100,6 +100,7 @@ import Arena from "./pages/Arena";
 import ArenaRoom from "./pages/ArenaRoom";
 import ArenaQuiz from "./pages/ArenaQuiz";
 import ArenaResults from "./pages/ArenaResults";
+import ArenaInvite from "./pages/ArenaInvite";
 
 // ── Still removed (files deleted): ───────────────────────────────────────────
 // FeynmanMode, ToolArchitect, Daily5, FlipScript, SpotError, BuildDef,
@@ -211,6 +212,9 @@ function AppRoutes() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/high-yield" element={<HighYieldDetector />} />
           <Route path="/mistakes" element={<MistakeJournal />} />
+
+          {/* Arena — public invite page (no auth needed) */}
+          <Route path="/invite/:code" element={<ArenaInvite />} />
 
           {/* Arena */}
           <Route path="/arena" element={<Arena />} />

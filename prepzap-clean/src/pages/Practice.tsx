@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { loadContext, buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { loadContext, buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
@@ -55,8 +55,12 @@ interface BannerProps {
   setActiveSource: (v: any) => void;
   onGenerate: () => void;
   onNavigate: (r: string) => void;
+  onPickSource: () => void;
+  libraryFiles: any[];
+  showSourcePicker: boolean;
+  setShowSourcePicker: (v: boolean) => void;
 }
-function DesktopBanner({ activeSource, isGenerating, topicInput, setTopicInput, setActiveSource, onGenerate, onNavigate }: BannerProps) {
+function DesktopBanner({ activeSource, isGenerating, topicInput, setTopicInput, setActiveSource, onGenerate, onNavigate, onPickSource, libraryFiles, showSourcePicker, setShowSourcePicker }: BannerProps) {
   return (
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -68,19 +72,40 @@ function DesktopBanner({ activeSource, isGenerating, topicInput, setTopicInput, 
           <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {activeSource ? (
-            <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1.5 bg-[#F0EDE0]">
-              <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">description</span>
-              <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
-              <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
-            </div>
-          ) : (
-            <button onClick={() => onNavigate("/sources")}
-              className="flex items-center gap-2 border-[1.5px] border-dashed border-black px-4 py-2 rounded-lg text-[13px] font-bold hover:bg-[#F0EDE0] transition-colors">
-              <span className="material-symbols-outlined text-[18px]">attach_file</span>
-              Attach source
-            </button>
-          )}
+          <div className="relative">
+            {activeSource ? (
+              <div className="flex items-center gap-2 border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0]">
+                <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">description</span>
+                <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
+                <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowSourcePicker(!showSourcePicker)}
+                className="flex items-center gap-2 border-[1.5px] border-dashed border-black px-4 py-2 text-[13px] font-bold hover:bg-[#F0EDE0] transition-colors">
+                <span className="material-symbols-outlined text-[18px]">attach_file</span>
+                Attach source
+              </button>
+            )}
+            {showSourcePicker && !activeSource && (
+              <div className="absolute top-full mt-1 left-0 z-50 border-2 border-black bg-white shadow-[3px_3px_0px_#000] min-w-[260px] max-h-52 overflow-y-auto">
+                {libraryFiles.length === 0 ? (
+                  <div className="p-4 text-[12px] font-bold text-black/40 text-center">
+                    No files in Source Library yet.
+                    <button onClick={() => onNavigate("/sources")} className="block mt-1 text-[#FF4D2E] underline font-extrabold">Upload one →</button>
+                  </div>
+                ) : libraryFiles.map((file: any) => (
+                  <button key={file.id} onClick={() => { setActiveSource(file); setShowSourcePicker(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 border-b border-black/10 hover:bg-[#F0EDE0] text-left transition-colors">
+                    <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">description</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold truncate">{file.name}</p>
+                      <p className="text-[10px] font-bold text-black/40 uppercase">{file.type || "Document"}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={onGenerate} disabled={isGenerating}
             className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg disabled:opacity-60">
             <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
@@ -132,10 +157,13 @@ export default function Practice() {
   const [activeSource, setActiveSource]     = useState<any>(null);
   const [questions, setQuestions]           = useState<Question[]>([]);
   const [topicInput, setTopicInput]         = useState("");
+  const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
 
   useEffect(() => {
     loadContext();
     setActiveSource(getActiveSource());
+    loadLibrary().then(setLibraryFiles).catch(() => setLibraryFiles([]));
   }, []);
 
   useEffect(() => {
@@ -236,8 +264,8 @@ Each object MUST match this schema exactly:
       {/* ══ DESKTOP ══════════════════════════════════════════════════════════ */}
       <SharedSidebar active="/practice" />
 
-      {view === "quiz" && (
-        <div className="hidden md:flex md:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ height: "100vh" }}>
+      <div className="hidden md:flex md:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ minHeight: "100vh" }}>
+        {view === "quiz" && (
           <main className="flex-1 flex flex-col p-10 max-w-5xl mx-auto w-full">
 
             <DesktopBanner
@@ -248,6 +276,10 @@ Each object MUST match this schema exactly:
               setActiveSource={setActiveSource}
               onGenerate={handleGenerateQuiz}
               onNavigate={navigate}
+              onPickSource={() => setShowSourcePicker(true)}
+              libraryFiles={libraryFiles}
+              showSourcePicker={showSourcePicker}
+              setShowSourcePicker={setShowSourcePicker}
             />
 
             {/* Loading */}
@@ -369,11 +401,10 @@ Each object MUST match this schema exactly:
               </>
             )}
           </main>
-        </div>
-      )}
+        )}
 
-      {view === "results" && (
-        <div className="hidden md:flex md:ml-64 flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto" style={{ height: "100vh" }}>
+        {view === "results" && (
+          <div className="flex flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto flex-1">
           <div className="max-w-xl w-full flex flex-col items-center text-center">
             <div className="w-24 h-24 bg-[#fca623]/20 border-[3px] border-black shadow-[5px_5px_0px_#000] flex items-center justify-center mb-8">
               <span className="material-symbols-outlined text-5xl">emoji_events</span>
@@ -405,8 +436,8 @@ Each object MUST match this schema exactly:
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ══ MOBILE ═══════════════════════════════════════════════════════════ */}
       <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
@@ -448,7 +479,7 @@ Each object MUST match this schema exactly:
                       <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px]">close</button>
                     </div>
                   ) : (
-                    <button onClick={() => navigate("/sources")}
+                    <button onClick={() => setShowSourcePicker(!showSourcePicker)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-[1.5px] border-dashed border-black rounded-lg text-[12px] font-bold hover:bg-[#F0EDE0] transition-colors">
                       <span className="material-symbols-outlined text-[16px]">attach_file</span>Attach source
                     </button>
@@ -460,6 +491,26 @@ Each object MUST match this schema exactly:
                   </button>
                 </div>
               </section>
+
+              {showSourcePicker && !activeSource && (
+                <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000] max-h-44 overflow-y-auto">
+                  {libraryFiles.length === 0 ? (
+                    <div className="p-4 text-center text-[12px] font-bold text-black/40">
+                      No files yet.
+                      <button onClick={() => navigate("/sources")} className="block mt-1 text-[#FF4D2E] underline font-extrabold mx-auto">Upload to Source Library →</button>
+                    </div>
+                  ) : libraryFiles.map((file: any) => (
+                    <button key={file.id} onClick={() => { setActiveSource(file); setShowSourcePicker(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 border-b border-black/10 hover:bg-[#F0EDE0] text-left transition-colors">
+                      <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">description</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold truncate">{file.name}</p>
+                        <p className="text-[10px] font-bold text-black/40 uppercase">{file.type || "Document"}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {isGenerating && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">

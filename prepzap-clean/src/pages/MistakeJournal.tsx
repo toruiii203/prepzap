@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { callGroq } from "@/lib/groq";
 
 interface MistakeItem {
@@ -21,80 +22,14 @@ interface MistakeItem {
   };
 }
 
-const INITIAL_MISTAKES: MistakeItem[] = [
-  {
-    id: 1,
-    subject: "Biology",
-    date: "Oct 24",
-    overdue: true,
-    resolved: false,
-    title: "Confused Mitosis with Meiosis",
-    desc: "I thought crossing over happened in Mitosis prophase, but it actually happens in Meiosis Prophase I.",
-    note: '"Remember: Crossing over strictly occurs in Meiosis Prophase I to enhance genetic diversity."',
-    quiz: {
-      q: "During which phase does crossing over of homologous chromosomes occur?",
-      options: ["Mitosis Prophase", "Meiosis Prophase I", "Mitosis Metaphase", "Meiosis Anaphase II"],
-      correct: 1,
-      explanation: "Crossing over strictly happens in Prophase I of Meiosis to enhance genetic variations!"
-    }
-  },
-  {
-    id: 2,
-    subject: "Physics",
-    date: "Yesterday",
-    overdue: false,
-    resolved: false,
-    title: "Forgot the square in Kinetic Energy formula",
-    desc: "Used KE = 1/2 mv instead of 1/2 mv². Need to double check equations before final calculations.",
-    tags: ["Formula", "Mechanics"],
-    quiz: {
-      q: "What is the correct kinetic energy formula?",
-      options: ["KE = mv", "KE = 1/2 mv", "KE = 1/2 mv²", "KE = mgh"],
-      correct: 2,
-      explanation: "Kinetic Energy is 1/2 mv², while mgh represents gravitational potential energy."
-    }
-  },
-  {
-    id: 3,
-    subject: "Mathematics",
-    date: "Today",
-    overdue: false,
-    resolved: true,
-    title: "Sign error in quadratic formula",
-    desc: "Dropped the negative sign on the 'b' term when plugging into x = (-b ± √(b²-4ac)) / 2a.",
-    tags: ["Algebra", "Signs"],
-    quiz: {
-      q: "If b = 5, what is the (-b) term in the quadratic formula?",
-      options: ["5", "-5", "√5", "1/5"],
-      correct: 1,
-      explanation: "Since b is positive 5, the term (-b) becomes negative 5."
-    }
-  },
-  {
-    id: 4,
-    subject: "Chemistry",
-    date: "Oct 05",
-    overdue: true,
-    resolved: false,
-    title: "Stoichiometry Ratios",
-    desc: "Forgot to balance the equation before calculating the limiting reagent. Yield was 40% off.",
-    quiz: undefined,
-  },
-  {
-    id: 5,
-    subject: "History",
-    date: "Oct 08",
-    overdue: false,
-    resolved: true,
-    title: "Treaty of Versailles Dates",
-    desc: "Swapped the dates for the armistice and the actual signing. Forgot the territorial clauses regarding the Danzig Corridor.",
-    tags: ["Dates", "Geography"],
-    quiz: undefined,
-  },
-];
+// FIX: INITIAL_MISTAKES removed — page was showing hardcoded fake data
+// even before the user added anything. Start with empty array.
+const INITIAL_MISTAKES: MistakeItem[] = [];
 
 export default function MistakeJournal() {
   const navigate = useNavigate();
+  // FIX: pull profile from auth so avatar initial is dynamic, not hardcoded "R"
+  const { profile } = useAuth();
   const [activeSubject, setActiveSubject] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeQuizId, setActiveQuizId] = useState<number | string | null>(null);
@@ -118,6 +53,7 @@ export default function MistakeJournal() {
   const toReview = mistakes.filter(m => !m.resolved).length;
   const resolved = mistakes.filter(m => m.resolved).length;
 
+  // FIX: removed fragile fn.toString() heuristic — call callGroq directly
   const handleStartQuiz = async (item: MistakeItem) => {
     if (item.quiz) {
       setActiveQuizId(item.id);
@@ -136,21 +72,33 @@ Mistake: "${item.desc}"
 Return strictly a valid raw JSON object (no markdown):
 {"q":"...","options":["A","B","C","D"],"correct":1,"explanation":"..."}`;
       const systemPrompt = "You are a master scientific tutor generating study practice questions as raw JSON only.";
-      const fn = callGroq as any;
-      const fnStr = fn.toString();
-      let aiResponse: string;
-      if (fnStr.includes("messages") || fnStr.includes("llama")) {
-        aiResponse = await fn([{ role: "user", content: promptText }], systemPrompt, "llama-3.3-70b-versatile", 1000);
-      } else {
-        aiResponse = await fn(promptText, systemPrompt, "application/json");
-      }
-      let sanitized = aiResponse.trim().replace(/^```(json)?/, "").replace(/```$/, "").trim();
+      const aiResponse = await callGroq(
+        [{ role: "user", content: promptText }],
+        systemPrompt,
+        "llama-3.3-70b-versatile",
+        1000
+      );
+      const sanitized = aiResponse.trim().replace(/^```(json)?/, "").replace(/```$/, "").trim();
       const generated = JSON.parse(sanitized);
       if (generated.q && Array.isArray(generated.options)) {
         setMistakes(prev => prev.map(m => m.id === item.id ? { ...m, quiz: generated } : m));
         setActiveQuizId(item.id);
       } else throw new Error("Invalid structure");
     } catch {
+      // FIX: on AI failure, show a generic fallback quiz rather than silently
+      // opening an empty quiz panel
+      const fallbackQuiz = {
+        q: `Which of the following best corrects the misconception: "${item.title}"?`,
+        options: [
+          item.desc.slice(0, 60) + "...",
+          "Review the correct definition in your notes",
+          "The original understanding was correct",
+          "This concept requires no correction",
+        ],
+        correct: 1,
+        explanation: "Always verify against your study materials for the accurate definition.",
+      };
+      setMistakes(prev => prev.map(m => m.id === item.id ? { ...m, quiz: fallbackQuiz } : m));
       setActiveQuizId(item.id);
     } finally {
       setLoadingQuizId(null);
@@ -183,25 +131,56 @@ Return strictly a valid raw JSON object (no markdown):
       title: newTitle,
       desc: newDesc || "Review this concept.",
     };
-    setMistakes([newItem, ...mistakes]);
+    setMistakes(prev => [newItem, ...prev]);
     setNewTitle("");
     setNewDesc("");
+    setNewSubject("Biology");
     setNewEntryOpen(false);
   };
+
+  // FIX: mark a mistake resolved manually without needing quiz
+  const handleMarkResolved = (id: number | string) => {
+    setMistakes(prev => prev.map(m => m.id === id ? { ...m, resolved: true } : m));
+    if (activeQuizId === id) {
+      setActiveQuizId(null);
+      setSelectedOption(null);
+      setQuizFeedback(null);
+    }
+  };
+
+  // FIX: delete a mistake entry
+  const handleDelete = (id: number | string) => {
+    setMistakes(prev => prev.filter(m => m.id !== id));
+    if (activeQuizId === id) setActiveQuizId(null);
+  };
+
+  // ─── AI Insight: only shown when there are enough mistakes to detect a pattern ───
+  const showAiInsight = mistakes.length >= 3;
+  // Find dominant unresolved subject for dynamic insight
+  const subjectCounts = subjects.slice(1).map(sub => ({
+    sub,
+    count: mistakes.filter(m => m.subject === sub && !m.resolved).length,
+  })).filter(x => x.count > 0).sort((a, b) => b.count - a.count);
+  const topSubjects = subjectCounts.slice(0, 2).map(x => x.sub);
+  const aiInsightText = topSubjects.length >= 2
+    ? `You consistently struggle with ${topSubjects[0]} and ${topSubjects[1]}. A targeted bridge-session connecting these subjects has been prepared.`
+    : topSubjects.length === 1
+    ? `You have multiple unresolved entries in ${topSubjects[0]}. Focus your next review session there.`
+    : "Keep logging mistakes — patterns will appear here once you have 3 or more entries.";
 
   // ─── Shared: mistake card ─────────────────────────────────────────────────
   const MistakeCard = ({ item }: { item: MistakeItem }) => (
     <article className={`bg-white border-2 border-black flex flex-col overflow-hidden transition-all hover:-translate-y-0.5 ${
-      item.resolved ? "opacity-80" : ""
+      item.resolved ? "opacity-70" : ""
     }`} style={{ boxShadow: "5px 5px 0px #000" }}>
       {/* Card header */}
       <div className="px-5 py-4 border-b-2 border-black bg-[#F0EDE0]">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="bg-black text-white px-3 py-0.5 text-[10px] font-black uppercase rounded-full tracking-widest">
             {item.subject}
           </span>
           {item.resolved ? (
-            <span className="text-black font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+            <span className="text-green-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
               <span>✓</span> Resolved
             </span>
           ) : (
@@ -216,36 +195,47 @@ Return strictly a valid raw JSON object (no markdown):
           )}
         </div>
         <div className="flex justify-between items-start">
-          <h3 className="font-black text-[18px] leading-tight pr-4">{item.title}</h3>
+          <h3 className="font-black text-[17px] leading-tight pr-4">{item.title}</h3>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span className="text-[12px] font-bold text-black/50">{item.date}</span>
-            <button className="text-black hover:text-[#FF4D2E] transition-colors">
-              <span className="material-symbols-outlined text-[18px]">edit</span>
+            {/* FIX: edit button was dead — replaced with delete for now */}
+            <button
+              onClick={() => handleDelete(item.id)}
+              title="Delete entry"
+              className="text-black/30 hover:text-[#FF4D2E] transition-colors">
+              <span className="material-symbols-outlined text-[18px]">delete</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Card body */}
-      <div className="p-5 flex-1 flex flex-col gap-3">
-        <p className="text-[14px] text-black/70 font-medium leading-relaxed flex-1">{item.desc}</p>
+      {/* Card body — hidden during quiz to prevent cheating */}
+      {activeQuizId === item.id ? (
+        <div className="px-5 py-4 flex items-center gap-2 text-black/30 border-b-2 border-black/10 bg-[#FAF7F2]">
+          <span className="material-symbols-outlined text-[16px]">lock</span>
+          <span className="text-[11px] font-black uppercase tracking-widest">Answer hidden during quiz</span>
+        </div>
+      ) : (
+        <div className="p-5 flex-1 flex flex-col gap-3">
+          <p className="text-[14px] text-black/70 font-medium leading-relaxed flex-1">{item.desc}</p>
 
-        {item.note && (
-          <div className="bg-[#FAF7F2] border-2 border-black p-3 italic text-[12px] font-medium text-black/70">
-            {item.note}
-          </div>
-        )}
+          {item.note && (
+            <div className="bg-[#FAF7F2] border-2 border-black p-3 italic text-[12px] font-medium text-black/70">
+              {item.note}
+            </div>
+          )}
 
-        {item.tags && item.tags.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {item.tags.map(tag => (
-              <span key={tag} className="bg-[#E2E2E2] border border-black/20 px-2 py-0.5 text-[11px] font-bold">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+          {item.tags && item.tags.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {item.tags.map(tag => (
+                <span key={tag} className="bg-[#E2E2E2] border border-black/20 px-2 py-0.5 text-[11px] font-bold">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quiz section */}
       {activeQuizId === item.id && item.quiz ? (
@@ -284,14 +274,24 @@ Return strictly a valid raw JSON object (no markdown):
         </div>
       ) : (
         /* CTA footer */
-        <div className="border-t-2 border-black">
-          <button onClick={() => handleStartQuiz(item)} disabled={loadingQuizId === item.id || item.resolved}
-            className={`w-full py-3 flex items-center justify-center gap-2 text-[13px] font-black transition-colors ${
+        <div className="border-t-2 border-black flex">
+          {/* FIX: added Mark Resolved shortcut so users don't HAVE to take a quiz */}
+          {!item.resolved && (
+            <button
+              onClick={() => handleMarkResolved(item.id)}
+              className="px-4 py-3 bg-white border-r-2 border-black text-black/40 hover:text-green-700 hover:bg-green-50 transition-colors text-[12px] font-black flex items-center gap-1 shrink-0"
+              title="Mark as resolved">
+              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+            </button>
+          )}
+          <button
+            onClick={() => handleStartQuiz(item)}
+            disabled={loadingQuizId === item.id || item.resolved}
+            className={`flex-1 py-3 flex items-center justify-center gap-2 text-[13px] font-black transition-colors ${
               item.resolved
                 ? "bg-[#E2E2E2] text-black/40 cursor-not-allowed"
                 : "bg-[#FF4D2E] text-white hover:bg-black cursor-pointer"
-            }`}
-            style={!item.resolved ? { boxShadow: "none" } : undefined}>
+            }`}>
             {loadingQuizId === item.id ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -309,9 +309,10 @@ Return strictly a valid raw JSON object (no markdown):
     </article>
   );
 
-  // ─── New Entry Modal (shared) ─────────────────────────────────────────────
+  // ─── New Entry Modal ──────────────────────────────────────────────────────
   const NewEntryModal = () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={e => { if (e.target === e.currentTarget) setNewEntryOpen(false); }}>
       <div className="bg-[#FAF7F2] border-2 border-black w-full max-w-md" style={{ boxShadow: "6px 6px 0px #000" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black">
           <h3 className="font-black text-[18px]">New Mistake Entry</h3>
@@ -320,13 +321,19 @@ Return strictly a valid raw JSON object (no markdown):
         <div className="p-5 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-black uppercase tracking-widest text-black/50">Title / Misconception</label>
-            <input value={newTitle} onChange={e => setNewTitle(e.target.value)}
+            <input
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
               className="border-2 border-black bg-white px-3 py-2 text-[14px] font-medium focus:outline-none shadow-[2px_2px_0px_#000]"
-              placeholder="e.g. Confused Mitosis with Meiosis" />
+              placeholder="e.g. Confused Mitosis with Meiosis"
+              autoFocus
+            />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-black uppercase tracking-widest text-black/50">Subject</label>
-            <select value={newSubject} onChange={e => setNewSubject(e.target.value)}
+            <select
+              value={newSubject}
+              onChange={e => setNewSubject(e.target.value)}
               className="border-2 border-black bg-white px-3 py-2 text-[14px] font-medium focus:outline-none shadow-[2px_2px_0px_#000]">
               {["Biology","Physics","Mathematics","Chemistry","History","General"].map(s => (
                 <option key={s}>{s}</option>
@@ -335,13 +342,22 @@ Return strictly a valid raw JSON object (no markdown):
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-black uppercase tracking-widest text-black/50">Description</label>
-            <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={3}
+            <textarea
+              value={newDesc}
+              onChange={e => setNewDesc(e.target.value)}
+              rows={3}
               className="border-2 border-black bg-white px-3 py-2 text-[14px] font-medium focus:outline-none resize-none shadow-[2px_2px_0px_#000]"
-              placeholder="What was the correct fact or formula you forgot?" />
+              placeholder="What was the correct fact or formula you forgot?"
+            />
           </div>
-          <button onClick={handleAddNewMistake}
-            className="w-full bg-[#FF4D2E] text-white border-2 border-black py-3 font-black text-[14px] hover:bg-black transition-colors"
-            style={{ boxShadow: "3px 3px 0px #000" }}>
+          {/* FIX: disable button when title is empty to prevent blank entries */}
+          <button
+            onClick={handleAddNewMistake}
+            disabled={!newTitle.trim()}
+            className={`w-full text-white border-2 border-black py-3 font-black text-[14px] transition-colors ${
+              newTitle.trim() ? "bg-[#FF4D2E] hover:bg-black cursor-pointer" : "bg-[#FF4D2E] opacity-40 cursor-not-allowed"
+            }`}
+            style={{ boxShadow: newTitle.trim() ? "3px 3px 0px #000" : "none" }}>
             + Add Entry
           </button>
         </div>
@@ -349,8 +365,18 @@ Return strictly a valid raw JSON object (no markdown):
     </div>
   );
 
+  // ─── Empty state ──────────────────────────────────────────────────────────
+  const EmptyState = ({ colSpan = false }: { colSpan?: boolean }) => (
+    <div className={`text-center py-16 border-2 border-dashed border-black/20 bg-white flex flex-col items-center gap-3 ${colSpan ? "col-span-full" : ""}`}>
+      <span className="material-symbols-outlined text-[48px] text-black/20">menu_book</span>
+      <p className="font-black text-[16px] text-black/40">No mistakes logged yet</p>
+      <p className="text-[13px] text-black/30 font-medium">Tap <strong>+ New Entry</strong> to log your first misconception</p>
+    </div>
+  );
+
   return (
-    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+    // FIX: same root layout fix as TeachIt — height:100dvh + overflow:hidden
+    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
 
       <SharedSidebar active="/mistakes" />
 
@@ -359,7 +385,7 @@ Return strictly a valid raw JSON object (no markdown):
       {/* ═══════════════════════════════════════════════════
           DESKTOP LAYOUT
           ═══════════════════════════════════════════════════ */}
-      <div className="hidden md:flex md:ml-64 flex-col min-h-screen">
+      <div className="hidden md:flex md:ml-64 flex-col flex-1 overflow-hidden">
 
         {/* Desktop Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
@@ -380,9 +406,11 @@ Return strictly a valid raw JSON object (no markdown):
           <div className="flex items-center gap-3">
             <button className="material-symbols-outlined text-black hover:text-[#FF4D2E] transition-colors">notifications</button>
             <button onClick={() => navigate("/go-pro")} className="material-symbols-outlined text-black hover:text-[#F5A623] transition-colors">workspace_premium</button>
-            <div onClick={() => navigate("/profile")}
+            {/* FIX: avatar was hardcoded "R" — now uses profile initial */}
+            <div
+              onClick={() => navigate("/profile")}
               className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer hover:opacity-90">
-              R
+              {profile?.display_name?.charAt(0)?.toUpperCase() ?? "S"}
             </div>
           </div>
         </header>
@@ -390,12 +418,11 @@ Return strictly a valid raw JSON object (no markdown):
         {/* Desktop Dual Pane */}
         <div className="flex flex-1 overflow-hidden">
 
-          {/* Left Pane — 65% — cards grid */}
-          <div className="w-[65%] flex flex-col border-r-2 border-black overflow-y-auto">
+          {/* Left Pane — cards grid */}
+          <div className="flex-1 flex flex-col border-r-2 border-black overflow-y-auto">
 
             {/* Filters row */}
             <div className="px-8 pt-6 pb-4 border-b-2 border-black/10 shrink-0 flex items-center justify-between gap-4">
-              {/* Subject chips */}
               <div className="flex flex-wrap gap-2">
                 {subjects.map(sub => (
                   <button key={sub} onClick={() => { setActiveSubject(sub); setActiveQuizId(null); }}
@@ -406,15 +433,18 @@ Return strictly a valid raw JSON object (no markdown):
                   </button>
                 ))}
               </div>
-              {/* Search + New Entry */}
               <div className="flex items-center gap-3 shrink-0">
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-black/30 text-[18px]">search</span>
-                  <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  <input
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
                     className="border-2 border-black bg-white pl-9 pr-4 py-2 text-[13px] font-medium w-52 focus:outline-none shadow-[2px_2px_0px_#000] focus:translate-x-0.5 focus:translate-y-0.5 focus:shadow-none transition-all"
-                    placeholder="Search mistakes..." />
+                    placeholder="Search mistakes..."
+                  />
                 </div>
-                <button onClick={() => setNewEntryOpen(true)}
+                <button
+                  onClick={() => setNewEntryOpen(true)}
                   className="flex items-center gap-2 bg-[#FF4D2E] text-white border-2 border-black px-4 py-2 text-[13px] font-black hover:bg-black transition-colors whitespace-nowrap"
                   style={{ boxShadow: "3px 3px 0px #000" }}>
                   <span className="material-symbols-outlined text-[18px]">add</span>
@@ -432,46 +462,53 @@ Return strictly a valid raw JSON object (no markdown):
             </div>
 
             {/* Cards grid */}
-            <div className="px-8 pb-8">
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredMistakes.map(item => <MistakeCard key={item.id} item={item} />)}
+            <div className="px-8 pb-8 pt-2">
+              {filteredMistakes.length === 0 && mistakes.length === 0 ? (
+                <EmptyState colSpan />
+              ) : (
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filteredMistakes.map(item => <MistakeCard key={item.id} item={item} />)}
 
-                {/* AI Insight card */}
-                <article className="bg-black text-white border-2 border-black flex flex-col justify-between relative overflow-hidden min-h-[300px]"
-                  style={{ boxShadow: "5px 5px 0px #000" }}>
-                  <div className="absolute -top-6 -right-6 w-24 h-24 bg-[#F5A623] rotate-45 border-2 border-black" />
-                  <div className="p-6 flex flex-col gap-3 flex-1 justify-center items-center text-center">
-                    <span className="material-symbols-outlined text-[#F5A623] text-[48px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-                    <h3 className="font-black text-[20px]">AI Insight: Patterns Found</h3>
-                    <p className="text-[13px] text-white/70 font-medium leading-relaxed">
-                      You consistently struggle with formula recall across Physics and Mathematics. A bridge-session has been prepared.
-                    </p>
-                  </div>
-                  <button className="w-full py-3 bg-[#F5A623] text-black border-t-2 border-black font-black text-[13px] hover:bg-white transition-colors">
-                    Review Pattern
+                  {/* FIX: AI Insight card in grid only shown when there's
+                      real pattern data — not as hardcoded static content */}
+                  {showAiInsight && (
+                    <article className="bg-black text-white border-2 border-black flex flex-col justify-between relative overflow-hidden min-h-[280px]"
+                      style={{ boxShadow: "5px 5px 0px #000" }}>
+                      <div className="absolute -top-6 -right-6 w-24 h-24 bg-[#F5A623] rotate-45 border-2 border-black" />
+                      <div className="p-6 flex flex-col gap-3 flex-1 justify-center items-center text-center">
+                        <span className="material-symbols-outlined text-[#F5A623] text-[48px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                        <h3 className="font-black text-[18px]">AI Insight: Patterns Found</h3>
+                        <p className="text-[13px] text-white/70 font-medium leading-relaxed">{aiInsightText}</p>
+                      </div>
+                      <button className="w-full py-3 bg-[#F5A623] text-black border-t-2 border-black font-black text-[13px] hover:bg-white transition-colors">
+                        Review Pattern
+                      </button>
+                    </article>
+                  )}
+
+                  {filteredMistakes.length === 0 && mistakes.length > 0 && (
+                    <div className="col-span-full text-center py-12 border-2 border-dashed border-black/20 bg-white">
+                      <span className="material-symbols-outlined text-[40px] text-black/20 mb-2 block">search_off</span>
+                      <p className="font-black text-[16px] text-black/40">No results for this filter.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {mistakes.length > 0 && (
+                <div className="flex justify-center mt-10">
+                  <button
+                    className="border-2 border-black bg-[#FAF7F2] px-10 py-3 font-black text-[15px] hover:bg-black hover:text-white transition-colors"
+                    style={{ boxShadow: "4px 4px 0px #000" }}>
+                    Load Past Errors
                   </button>
-                </article>
-
-                {filteredMistakes.length === 0 && (
-                  <div className="col-span-full text-center py-12 border-2 border-dashed border-black/20 bg-white">
-                    <span className="material-symbols-outlined text-[40px] text-black/20 mb-2 block">done_all</span>
-                    <p className="font-black text-[16px] text-black/40">All settled! No active mistakes here.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Load more */}
-              <div className="flex justify-center mt-10">
-                <button className="border-2 border-black bg-[#FAF7F2] px-10 py-3 font-black text-[15px] hover:bg-black hover:text-white transition-colors"
-                  style={{ boxShadow: "4px 4px 0px #000" }}>
-                  Load Past Errors
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right Pane — 35% — summary + AI insight */}
-          <div className="w-[35%] flex flex-col overflow-y-auto bg-[#FAF7F2]">
+          {/* Right Pane — summary */}
+          <div className="w-[320px] shrink-0 flex flex-col overflow-y-auto bg-[#FAF7F2]">
 
             {/* Stats */}
             <div className="px-6 pt-6 pb-4 border-b-2 border-black/10 shrink-0">
@@ -488,54 +525,66 @@ Return strictly a valid raw JSON object (no markdown):
               </div>
             </div>
 
-            {/* Subject breakdown */}
-            <div className="px-6 py-4 border-b-2 border-black/10 shrink-0">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">By Subject</h3>
-              <div className="flex flex-col gap-2">
-                {["Biology","Physics","Mathematics","Chemistry","History"].map(sub => {
-                  const count = mistakes.filter(m => m.subject === sub && !m.resolved).length;
-                  if (count === 0) return null;
-                  return (
+            {/* Subject breakdown — only shown when there's data */}
+            {subjectCounts.length > 0 && (
+              <div className="px-6 py-4 border-b-2 border-black/10 shrink-0">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">By Subject</h3>
+                <div className="flex flex-col gap-2">
+                  {subjectCounts.map(({ sub, count }) => (
                     <button key={sub} onClick={() => { setActiveSubject(sub); setActiveQuizId(null); }}
                       className="flex items-center justify-between px-3 py-2 border-2 border-black bg-white hover:bg-[#F0EDE0] transition-colors text-left">
                       <span className="text-[13px] font-black">{sub}</span>
                       <span className="bg-[#FF4D2E] text-white text-[11px] font-black px-2 py-0.5">{count}</span>
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Accuracy trend */}
+            {/* Resolution Rate */}
             <div className="px-6 py-4 border-b-2 border-black/10 shrink-0">
               <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Resolution Rate</h3>
-              <div className="flex items-end gap-1 mb-2">
-                <span className="text-[36px] font-black text-[#FF4D2E] leading-none">
-                  {mistakes.length > 0 ? Math.round((resolved / (toReview + resolved)) * 100) : 0}%
-                </span>
-                <span className="text-[13px] font-black text-black/50 mb-1">resolved</span>
-              </div>
-              <div className="h-3 w-full bg-[#E8E4DC] border-2 border-black overflow-hidden">
-                <div className="h-full bg-black transition-all"
-                  style={{ width: `${mistakes.length > 0 ? (resolved / (toReview + resolved)) * 100 : 0}%` }} />
-              </div>
-              <p className="text-[11px] font-bold text-black/40 mt-1">Keep reviewing to push this higher</p>
+              {mistakes.length === 0 ? (
+                <p className="text-[12px] font-bold text-black/30">Log mistakes to track your progress</p>
+              ) : (
+                <>
+                  <div className="flex items-end gap-1 mb-2">
+                    <span className="text-[36px] font-black text-[#FF4D2E] leading-none">
+                      {Math.round((resolved / (toReview + resolved)) * 100)}%
+                    </span>
+                    <span className="text-[13px] font-black text-black/50 mb-1">resolved</span>
+                  </div>
+                  <div className="h-3 w-full bg-[#E8E4DC] border-2 border-black overflow-hidden">
+                    <div className="h-full bg-black transition-all"
+                      style={{ width: `${(resolved / (toReview + resolved)) * 100}%` }} />
+                  </div>
+                  <p className="text-[11px] font-bold text-black/40 mt-1">Keep reviewing to push this higher</p>
+                </>
+              )}
             </div>
 
-            {/* AI Insight panel */}
-            <div className="px-6 py-4 flex-1">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">AI Insight</h3>
-              <div className="bg-black text-white border-2 border-black p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
-                <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F5A623] rotate-45" />
-                <span className="material-symbols-outlined text-[#F5A623] text-[32px] mb-3 block" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-                <p className="text-[13px] text-white/80 font-medium leading-relaxed mb-4">
-                  You consistently struggle with formula recall. A targeted bridge-session connecting Physics and Math has been prepared for you.
-                </p>
-                <button className="w-full py-2.5 bg-[#F5A623] text-black border-2 border-white font-black text-[12px] hover:bg-white transition-colors">
-                  Review Pattern
-                </button>
+            {/* AI Insight panel — only shown when real pattern exists */}
+            {showAiInsight && (
+              <div className="px-6 py-4 flex-1">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">AI Insight</h3>
+                <div className="bg-black text-white border-2 border-black p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
+                  <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F5A623] rotate-45" />
+                  <span className="material-symbols-outlined text-[#F5A623] text-[32px] mb-3 block" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  <p className="text-[13px] text-white/80 font-medium leading-relaxed mb-4">{aiInsightText}</p>
+                  <button className="w-full py-2.5 bg-[#F5A623] text-black border-2 border-white font-black text-[12px] hover:bg-white transition-colors">
+                    Review Pattern
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Placeholder when no data */}
+            {!showAiInsight && (
+              <div className="px-6 py-4 flex-1 flex flex-col items-center justify-center text-center opacity-30 gap-2">
+                <span className="material-symbols-outlined text-[40px]">insights</span>
+                <p className="text-[12px] font-bold">Log {3 - mistakes.length} more mistake{3 - mistakes.length !== 1 ? "s" : ""} to unlock AI insights</p>
+              </div>
+            )}
 
           </div>
         </div>
@@ -544,10 +593,10 @@ Return strictly a valid raw JSON object (no markdown):
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]">
+      <div className="md:hidden w-full flex flex-col flex-1 overflow-hidden bg-[#FAF7F2]">
 
         {/* Mobile TopAppBar */}
-        <header className="w-full sticky top-0 bg-[#FAF7F2] border-b-2 border-black z-50">
+        <header className="w-full bg-[#FAF7F2] border-b-2 border-black z-50 shrink-0">
           <div className="flex items-center justify-between px-5 h-14">
             <button onClick={() => navigate(-1)}
               className="flex items-center justify-center border-2 border-black bg-white w-9 h-9 shadow-[2px_2px_0px_#000] hover:bg-[#ebe8e3]">
@@ -561,7 +610,7 @@ Return strictly a valid raw JSON object (no markdown):
           </div>
         </header>
 
-        <main className="flex-1 flex flex-col px-5 pb-28 pt-5 gap-5">
+        <main className="flex-1 overflow-y-auto px-5 pb-28 pt-5 gap-5 flex flex-col">
 
           {/* Stats row */}
           <div className="flex gap-3">
@@ -603,54 +652,60 @@ Return strictly a valid raw JSON object (no markdown):
 
           {/* Cards list */}
           <div className="flex flex-col gap-5">
-            {filteredMistakes.map(item => <MistakeCard key={item.id} item={item} />)}
-
-            {filteredMistakes.length === 0 && (
+            {mistakes.length === 0 ? (
+              <EmptyState />
+            ) : filteredMistakes.length === 0 ? (
               <div className="text-center py-10 border-2 border-dashed border-black/20 bg-white rounded-2xl">
-                <span className="material-symbols-outlined text-[36px] text-black/20 mb-2 block">done_all</span>
-                <p className="font-black text-[15px] text-black/40">All settled!</p>
-                <p className="text-[12px] text-black/30 mt-1 font-medium">No active mistakes in this category.</p>
+                <span className="material-symbols-outlined text-[36px] text-black/20 mb-2 block">search_off</span>
+                <p className="font-black text-[15px] text-black/40">No results for this filter.</p>
               </div>
+            ) : (
+              filteredMistakes.map(item => <MistakeCard key={item.id} item={item} />)
             )}
           </div>
 
-          {/* Resolution rate widget */}
-          <div className="border-2 border-black bg-[#F0EDE0] p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
-            <div className="absolute top-3 right-3">
-              <span className="material-symbols-outlined text-black/10 text-[40px]">history_edu</span>
+          {/* Resolution rate — only when there's data */}
+          {mistakes.length > 0 && (
+            <div className="border-2 border-black bg-[#F0EDE0] p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
+              <div className="absolute top-3 right-3">
+                <span className="material-symbols-outlined text-black/10 text-[40px]">history_edu</span>
+              </div>
+              <h4 className="font-black text-[16px] mb-2">Resolution Rate</h4>
+              <div className="flex items-end gap-1 mb-3">
+                <span className="text-[36px] font-black text-[#FF4D2E] leading-none">
+                  {Math.round((resolved / (toReview + resolved)) * 100)}%
+                </span>
+                <span className="text-[13px] font-black text-black/50 mb-1">resolved</span>
+              </div>
+              <div className="h-3 w-full bg-[#E8E4DC] border-2 border-black overflow-hidden rounded-full">
+                <div className="h-full bg-black transition-all rounded-full"
+                  style={{ width: `${(resolved / (toReview + resolved)) * 100}%` }} />
+              </div>
+              <p className="mt-2 text-[11px] font-bold text-black/40">Keep reviewing to push this higher</p>
             </div>
-            <h4 className="font-black text-[16px] mb-2">Resolution Rate</h4>
-            <div className="flex items-end gap-1 mb-3">
-              <span className="text-[36px] font-black text-[#FF4D2E] leading-none">
-                {mistakes.length > 0 ? Math.round((resolved / (toReview + resolved)) * 100) : 0}%
-              </span>
-              <span className="text-[13px] font-black text-black/50 mb-1">resolved</span>
-            </div>
-            <div className="h-3 w-full bg-[#E8E4DC] border-2 border-black overflow-hidden rounded-full">
-              <div className="h-full bg-black transition-all rounded-full"
-                style={{ width: `${mistakes.length > 0 ? (resolved / (toReview + resolved)) * 100 : 0}%` }} />
-            </div>
-            <p className="mt-2 text-[11px] font-bold text-black/40">Keep reviewing to push this higher</p>
-          </div>
+          )}
 
-          {/* AI Insight mobile */}
-          <div className="bg-black text-white border-2 border-black p-5 relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
-            <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F5A623] rotate-45" />
-            <span className="material-symbols-outlined text-[#F5A623] text-[36px] mb-2 block" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            <h3 className="font-black text-[18px] mb-2">AI Insight: Patterns Found</h3>
-            <p className="text-[13px] text-white/70 font-medium leading-relaxed mb-4">
-              You consistently struggle with formula recall across Physics and Mathematics. A bridge-session has been prepared.
-            </p>
-            <button className="w-full py-3 bg-[#F5A623] text-black border-2 border-white font-black text-[13px]">
-              Review Pattern
+          {/* AI Insight — only when pattern data exists */}
+          {showAiInsight && (
+            <div className="bg-black text-white border-2 border-black p-5 relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
+              <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F5A623] rotate-45" />
+              <span className="material-symbols-outlined text-[#F5A623] text-[36px] mb-2 block" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <h3 className="font-black text-[18px] mb-2">AI Insight: Patterns Found</h3>
+              <p className="text-[13px] text-white/70 font-medium leading-relaxed mb-4">{aiInsightText}</p>
+              <button className="w-full py-3 bg-[#F5A623] text-black border-2 border-white font-black text-[13px]">
+                Review Pattern
+              </button>
+            </div>
+          )}
+
+          {/* Load more — only when there's content */}
+          {mistakes.length > 0 && (
+            <button
+              className="w-full border-2 border-black bg-white py-4 font-black text-[14px] hover:bg-black hover:text-white transition-colors"
+              style={{ boxShadow: "4px 4px 0px #000" }}>
+              Load Past Errors
             </button>
-          </div>
-
-          {/* Load more */}
-          <button className="w-full border-2 border-black bg-white py-4 font-black text-[14px] hover:bg-black hover:text-white transition-colors"
-            style={{ boxShadow: "4px 4px 0px #000" }}>
-            Load Past Errors
-          </button>
+          )}
 
         </main>
 
