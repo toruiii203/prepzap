@@ -95,13 +95,14 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
   }, []);
 
   const handleCreate = async () => {
-    if (!roomName.trim() || !topic.trim()) { setError("Room name and topic are required."); return; }
+    if (!roomName.trim()) { setError("Room name is required."); return; }
+    if (!selectedSource && !topic.trim()) { setError("Enter a topic or pick a source from your library."); return; }
     if (!user) return;
     setLoading(true); setError("");
     try {
       setLoadingMsg("Generating questions with AI...");
       const effectiveTopic = selectedSource
-        ? `${topic.trim()}\n\nSource Material:\n${(selectedSource.fullText || selectedSource.preview || selectedSource.name).slice(0, 3000)}`
+        ? `${topic.trim() || selectedSource.name}\n\nSource Material:\n${(selectedSource.fullText || selectedSource.preview || selectedSource.name).slice(0, 3000)}`
         : topic.trim();
       const questions = await generateQuestions(effectiveTopic, questionCount, difficulty);
       setLoadingMsg("Creating room...");
@@ -111,8 +112,9 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
         if (!ex) break;
         code = generateCode();
       }
+      const topicLabel = topic.trim() || selectedSource?.name || "Untitled";
       const { error: insertError } = await supabase.from("exam_rooms").insert({
-        code, host_id: user.id, room_name: roomName.trim(), topic: topic.trim(),
+        code, host_id: user.id, room_name: roomName.trim(), topic: topicLabel,
         questions, mode, difficulty, question_count: questionCount, time_limit: timeLimit, status: "waiting", is_public: isPublic,
       });
       if (insertError) throw insertError;
