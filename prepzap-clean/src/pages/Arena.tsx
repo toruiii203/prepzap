@@ -41,6 +41,7 @@ interface ExamRoom {
   host_id: string;
   deadline: string | null;
   created_at: string;
+  is_public: boolean;
 }
 
 type LeaderboardTab = "today" | "alltime";
@@ -397,6 +398,18 @@ export default function Arena() {
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [countdown, setCountdown] = useState("");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const shareRoom = (code: string) => {
+    const url = `${window.location.origin}/invite/${code}`;
+    if (navigator.share) {
+      navigator.share({ title: "Join my Studenius Arena room!", url });
+    } else {
+      navigator.clipboard.writeText(url);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    }
+  };
 
   useEffect(() => {
     const tick = () => {
@@ -443,7 +456,7 @@ export default function Arena() {
     const load = async () => {
       setLoadingRooms(true);
       const { data } = await supabase.from("exam_rooms").select("*")
-        .in("status", ["waiting", "active"]).order("created_at", { ascending: false }).limit(10);
+        .in("status", ["waiting", "active"]).eq("is_public", true).order("created_at", { ascending: false }).limit(20);
       setRooms(data ?? []); setLoadingRooms(false);
     };
     load();
@@ -560,13 +573,18 @@ export default function Arena() {
         ) : rooms.map((room) => (
           <div key={room.id} className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] p-3 flex justify-between items-center hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000] transition-all">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 border border-black ${room.mode === "live" ? "bg-[#FF4D2E] text-white" : "bg-[#f0a040] text-black"}`}>
                   {room.mode.toUpperCase()}
                 </span>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 border border-black/30 ${room.status === "active" ? "bg-green-100 text-green-800" : "bg-black/5 text-black/50"}`}>
                   {room.status.toUpperCase()}
                 </span>
+                {!room.is_public && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 border border-black/30 bg-black text-white flex items-center gap-0.5">
+                    <span className="material-symbols-outlined text-[10px]">lock</span>PRIVATE
+                  </span>
+                )}
               </div>
               <h4 className="font-bold text-[14px] text-black truncate">{room.room_name}</h4>
               <p className="text-[11px] text-black/50 mt-0.5 truncate">{room.topic}</p>
@@ -574,10 +592,19 @@ export default function Arena() {
                 <span>{room.question_count}Q</span><span>{room.time_limit}m</span><span className="capitalize">{room.difficulty}</span>
               </div>
             </div>
-            <button onClick={() => navigate(`/arena/room/${room.code}`)}
-              className="ml-3 w-9 h-9 flex items-center justify-center border-2 border-black bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex-shrink-0">
-              <span className="material-symbols-outlined text-[18px]">login</span>
-            </button>
+            <div className="ml-3 flex gap-2 flex-shrink-0">
+              <button onClick={() => shareRoom(room.code)}
+                className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                title="Copy invite link">
+                <span className="material-symbols-outlined text-[18px]">
+                  {copiedCode === room.code ? "check" : "share"}
+                </span>
+              </button>
+              <button onClick={() => navigate(`/arena/room/${room.code}`)}
+                className="w-9 h-9 flex items-center justify-center border-2 border-black bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
+                <span className="material-symbols-outlined text-[18px]">login</span>
+              </button>
+            </div>
           </div>
         ))}
       </div>
