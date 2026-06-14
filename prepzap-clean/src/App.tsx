@@ -139,8 +139,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function MobileRootRedirect() {
   const { session, loading } = useAuth();
   if (loading) return null;
-  if (!isMobile()) return <Landing />;
-  return <Navigate to={session ? "/dashboard" : "/onboarding"} replace />;
+  if (session) return <Navigate to="/dashboard" replace />;
+  return <Landing />;
 }
 
 function AppRoutes() {
