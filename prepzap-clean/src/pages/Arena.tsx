@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq, safeParseJSON } from "@/lib/groq";
-import { loadLibrary, type SourceItem } from "@/lib/sourceContext";
+import { loadLibrary, type SourceFile } from "@/lib/sourceContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DailyQuiz {
@@ -86,8 +86,8 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [error, setError] = useState("");
-  const [sources, setSources] = useState<SourceItem[]>([]);
-  const [selectedSource, setSelectedSource] = useState<SourceItem | null>(null);
+  const [sources, setSources] = useState<SourceFile[]>([]);
+  const [selectedSource, setSelectedSource] = useState<SourceFile | null>(null);
   const [showSources, setShowSources] = useState(false);
 
   useEffect(() => {
@@ -101,7 +101,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
     try {
       setLoadingMsg("Generating questions with AI...");
       const effectiveTopic = selectedSource
-        ? `${topic.trim()}\n\nSource Material:\n${selectedSource.content?.slice(0, 3000) ?? selectedSource.title}`
+        ? `${topic.trim()}\n\nSource Material:\n${(selectedSource.fullText || selectedSource.preview || selectedSource.name).slice(0, 3000)}`
         : topic.trim();
       const questions = await generateQuestions(effectiveTopic, questionCount, difficulty);
       setLoadingMsg("Creating room...");
@@ -167,7 +167,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 <button onClick={() => setShowSources(s => !s)}
                   className="w-full bg-white border-2 border-black px-3 py-2.5 text-left text-[13px] font-medium flex justify-between items-center shadow-[2px_2px_0px_0px_#000]">
                   <span className={selectedSource ? "text-black" : "text-black/30"}>
-                    {selectedSource ? selectedSource.title : "Pick a source (optional)"}
+                    {selectedSource ? selectedSource.name : "Pick a source (optional)"}
                   </span>
                   <span className="material-symbols-outlined text-[18px]">{showSources ? "expand_less" : "expand_more"}</span>
                 </button>
@@ -180,7 +180,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
                     {sources.map((s) => (
                       <button key={s.id} onClick={() => { setSelectedSource(s); setShowSources(false); }}
                         className={`w-full px-3 py-2.5 text-left text-[13px] font-medium border-b border-black/10 last:border-0 hover:bg-[#f0a040]/20 ${selectedSource?.id === s.id ? "bg-[#f0a040]/30 font-bold" : ""}`}>
-                        {s.title}
+                        {s.name}
                       </button>
                     ))}
                   </div>
