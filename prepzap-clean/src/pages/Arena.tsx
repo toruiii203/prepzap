@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq, safeParseJSON } from "@/lib/groq";
+import { loadLibrary, type SourceItem } from "@/lib/sourceContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DailyQuiz {
@@ -85,6 +86,13 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [error, setError] = useState("");
+  const [sources, setSources] = useState<SourceItem[]>([]);
+  const [selectedSource, setSelectedSource] = useState<SourceItem | null>(null);
+  const [showSources, setShowSources] = useState(false);
+
+  useEffect(() => {
+    try { setSources(loadLibrary()); } catch { setSources([]); }
+  }, []);
 
   const handleCreate = async () => {
     if (!roomName.trim() || !topic.trim()) { setError("Room name and topic are required."); return; }
@@ -92,7 +100,10 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setLoading(true); setError("");
     try {
       setLoadingMsg("Generating questions with AI...");
-      const questions = await generateQuestions(topic.trim(), questionCount, difficulty);
+      const effectiveTopic = selectedSource
+        ? `${topic.trim()}\n\nSource Material:\n${selectedSource.content?.slice(0, 3000) ?? selectedSource.title}`
+        : topic.trim();
+      const questions = await generateQuestions(effectiveTopic, questionCount, difficulty);
       setLoadingMsg("Creating room...");
       let code = generateCode();
       for (let i = 0; i < 10; i++) {
@@ -148,7 +159,41 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
               className="w-full bg-white border-2 border-black px-3 py-2.5 text-[15px] font-medium placeholder:text-black/30 focus:outline-none shadow-[2px_2px_0px_0px_#000] resize-none" />
           </div>
 
-          {/* Questions + Difficulty side by side on desktop */}
+          {/* Source Library picker */}
+          {sources.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider">From Source Library</label>
+              <div className="relative">
+                <button onClick={() => setShowSources(s => !s)}
+                  className="w-full bg-white border-2 border-black px-3 py-2.5 text-left text-[13px] font-medium flex justify-between items-center shadow-[2px_2px_0px_0px_#000]">
+                  <span className={selectedSource ? "text-black" : "text-black/30"}>
+                    {selectedSource ? selectedSource.title : "Pick a source (optional)"}
+                  </span>
+                  <span className="material-symbols-outlined text-[18px]">{showSources ? "expand_less" : "expand_more"}</span>
+                </button>
+                {showSources && (
+                  <div className="absolute top-full left-0 right-0 z-20 bg-white border-2 border-black border-t-0 max-h-40 overflow-y-auto shadow-[3px_3px_0px_0px_#000]">
+                    <button onClick={() => { setSelectedSource(null); setShowSources(false); }}
+                      className="w-full px-3 py-2.5 text-left text-[13px] text-black/40 font-medium border-b border-black/10 hover:bg-black/5">
+                      None
+                    </button>
+                    {sources.map((s) => (
+                      <button key={s.id} onClick={() => { setSelectedSource(s); setShowSources(false); }}
+                        className={`w-full px-3 py-2.5 text-left text-[13px] font-medium border-b border-black/10 last:border-0 hover:bg-[#f0a040]/20 ${selectedSource?.id === s.id ? "bg-[#f0a040]/30 font-bold" : ""}`}>
+                        {s.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {selectedSource && (
+                <p className="text-[11px] text-black/50 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                  AI will use this source to generate questions
+                </p>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold uppercase tracking-wider">Questions</label>
@@ -555,16 +600,6 @@ export default function Arena() {
         <div>
           <h1 className="font-black text-[36px] text-black tracking-tight leading-none">Arena</h1>
           <p className="text-[13px] text-black/50 font-medium mt-1">Test your knowledge and compete with peers.</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowCreate(true)}
-            className="bg-black text-white font-bold text-[13px] px-5 py-2.5 border-2 border-black flex items-center gap-2 shadow-[3px_3px_0px_0px_#f0a040] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
-            <span className="material-symbols-outlined text-[18px]">add</span>Create Room
-          </button>
-          <button onClick={() => setShowJoin(true)}
-            className="bg-white text-black font-bold text-[13px] px-5 py-2.5 border-2 border-black flex items-center gap-2 shadow-[3px_3px_0px_0px_#000] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
-            <span className="material-symbols-outlined text-[18px]">login</span>Join Room
-          </button>
         </div>
       </header>
 
