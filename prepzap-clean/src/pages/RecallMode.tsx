@@ -129,7 +129,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
     const newStreak = score === "correct" ? streak + 1 : 0;
     setStreak(newStreak);
     if (newStreak > bestStreak) setBestStreak(newStreak);
-    if (newStreak > 0 && newStreak % 3 === 0) toast(`//// ${newStreak} in a row!`);
+    if (newStreak > 0 && newStreak % 3 === 0) toast(`🔥 ${newStreak} in a row!`);
 
     if (current + 1 < prompts.length) {
       setTimeout(() => { setCurrent(c => c + 1); setTyped(""); setShowAnswer(false); }, 800);
@@ -241,7 +241,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
                   <SkipForward className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <p className="text-[10px] mt-1.5 text-center" style={{ color: "rgba(0,0,0,0.4)" }}>////// to submit</p>
+              <p className="text-[10px] mt-1.5 text-center" style={{ color: "rgba(0,0,0,0.4)" }}>Press Enter to submit</p>
             </div>
           </div>
         )}
@@ -262,7 +262,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
                   </div>
                 ))}
               </div>
-              {bestStreak > 1 && <p className="text-xs mt-3" style={{ color: "#E8534A" }}>//// Best streak: {bestStreak}</p>}
+              {bestStreak > 1 && <p className="text-xs mt-3" style={{ color: "#E8534A" }}>🔥 Best streak: {bestStreak}</p>}
             </div>
 
             <div className="space-y-2">
@@ -271,7 +271,7 @@ keywords: 4-6 essential words from the answer that a correct response would incl
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-medium" style={{ color: "#1A1A1A" }}>{r.prompt}</p>
                     <span className="text-[10px] font-semibold shrink-0 ml-2" style={{ color: scoreColor(r.score) }}>
-                      {r.score === "correct" ? "///" : r.score === "partial" ? "~" : "///"}
+                      {r.score === "correct" ? "✓" : r.score === "partial" ? "~" : "✗"}
                     </span>
                   </div>
                   {r.matched.length > 0 && <p className="text-[10px]" style={{ color: "#2a9d8f" }}>Matched: {r.matched.join(", ")}</p>}

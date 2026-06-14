@@ -69,7 +69,7 @@ export default function HighYieldDetector() {
   const hasSource = ctx.length > 0;
 
   const freqColor = (f: string) => f === "very high" ? "var(--pz-rose)" : f === "high" ? "var(--pz-gold)" : "var(--pz-teal)";
-  const freqLabel = (f: string) => f === "very high" ? "//// Very High" : f === "high" ? "/// High" : "//// Medium";
+  const freqLabel = (f: string) => f === "very high" ? "🔴 Very High" : f === "high" ? "🟠 High" : "🟡 Medium";
 
 
   // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -234,7 +234,7 @@ Mix question types: definition, application, comparison.`;
                 {/* Why testable */}
                 {expanded === i && (
                   <div className="px-3 pb-3">
-                    <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>//// {item.whyTestable}</p>
+                    <p className="text-xs" style={{ color: "var(--pz-text-2)" }}>💡 {item.whyTestable}</p>
                   </div>
                 )}
 
@@ -253,8 +253,8 @@ Mix question types: definition, application, comparison.`;
                           style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }} />
                         {!drills[i].revealed[qi] ? (
                           <div className="flex gap-2">
-                            <button onClick={() => handleReveal(i, qi, true)} className="text-xs px-2.5 py-1" style={{ background: "var(--pz-teal-dim)", color: "var(--pz-teal)", border: "1px solid var(--pz-teal)30" }}>/// Correct</button>
-                            <button onClick={() => handleReveal(i, qi, false)} className="text-xs px-2.5 py-1" style={{ background: "rgba(232,64,64,0.08)", color: "var(--pz-rose)", border: "1px solid rgba(232,64,64,0.2)" }}>/// Wrong</button>
+                            <button onClick={() => handleReveal(i, qi, true)} className="text-xs px-2.5 py-1" style={{ background: "var(--pz-teal-dim)", color: "var(--pz-teal)", border: "1px solid var(--pz-teal)30" }}>✓ Correct</button>
+                            <button onClick={() => handleReveal(i, qi, false)} className="text-xs px-2.5 py-1" style={{ background: "rgba(232,64,64,0.08)", color: "var(--pz-rose)", border: "1px solid rgba(232,64,64,0.2)" }}>✗ Wrong</button>
                           </div>
                         ) : (
                           <div className="p-2" style={{ background: "var(--pz-surface3)", borderLeft: `2px solid ${drills[i].scores[qi] ? "var(--pz-teal)" : "var(--pz-rose)"}` }}>
@@ -275,7 +275,7 @@ Mix question types: definition, application, comparison.`;
 
             {/* Full practice set */}
             <Button onClick={handleFullPractice} disabled={practiceLoading} className="w-full py-2.5 mt-2 text-sm font-semibold" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)" }}>
-              {practiceLoading ? "Generating..." : "/// Generate Full Practice Set (10 questions)"}
+              {practiceLoading ? "Generating..." : "Generate Full Practice Set (10 questions)"}
             </Button>
 
             {practiceSet.length > 0 && (
@@ -293,9 +293,9 @@ Mix question types: definition, application, comparison.`;
                     {!practiceRevealed[i] ? (
                       <div className="flex gap-2">
                         <button onClick={() => { const r = [...practiceRevealed]; r[i] = true; setPracticeRevealed(r); const s = [...practiceScores]; s[i] = true; setPracticeScores(s); }}
-                          className="text-xs px-2.5 py-1" style={{ background: "var(--pz-teal-dim)", color: "var(--pz-teal)", border: "1px solid var(--pz-teal)30" }}>/// Correct</button>
+                          className="text-xs px-2.5 py-1" style={{ background: "var(--pz-teal-dim)", color: "var(--pz-teal)", border: "1px solid var(--pz-teal)30" }}>✓ Correct</button>
                         <button onClick={() => { const r = [...practiceRevealed]; r[i] = true; setPracticeRevealed(r); const s = [...practiceScores]; s[i] = false; setPracticeScores(s); }}
-                          className="text-xs px-2.5 py-1" style={{ background: "rgba(232,64,64,0.08)", color: "var(--pz-rose)", border: "1px solid rgba(232,64,64,0.2)" }}>/// Wrong</button>
+                          className="text-xs px-2.5 py-1" style={{ background: "rgba(232,64,64,0.08)", color: "var(--pz-rose)", border: "1px solid rgba(232,64,64,0.2)" }}>✗ Wrong</button>
                       </div>
                     ) : (
                       <div className="p-2" style={{ background: "var(--pz-surface3)", borderLeft: `2px solid ${practiceScores[i] ? "var(--pz-teal)" : "var(--pz-rose)"}` }}>

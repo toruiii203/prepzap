@@ -160,7 +160,7 @@ Return strictly a valid raw JSON object (no markdown):
   const handleSubmitQuiz = (item: MistakeItem) => {
     if (selectedQuizOption === null || !item.quiz) return;
     if (selectedQuizOption === item.quiz.correct) {
-      setQuizFeedback("//// Correct! You've mastered this item.");
+      setQuizFeedback("✓ Correct! You've mastered this item.");
       setTimeout(() => {
         setMistakes(prev => prev.map(m => m.id === item.id ? { ...m, resolved: true } : m));
         setActiveQuizId(null);
@@ -168,7 +168,7 @@ Return strictly a valid raw JSON object (no markdown):
         setQuizFeedback(null);
       }, 2000);
     } else {
-      setQuizFeedback("/// Not quite. Hint: " + item.quiz.explanation);
+      setQuizFeedback("✗ Not quite. Hint: " + item.quiz.explanation);
     }
   };
 
@@ -265,7 +265,7 @@ Return strictly a valid raw JSON object (no markdown):
             </div>
             {quizFeedback && (
               <p className={`p-3 border-2 text-[12px] font-bold ${
-                quizFeedback.startsWith("////") ? "bg-green-50 border-green-400 text-green-800" : "bg-red-50 border-red-300 text-red-800"
+                quizFeedback.startsWith("✓") ? "bg-green-50 border-green-400 text-green-800" : "bg-red-50 border-red-300 text-red-800"
               }`}>{quizFeedback}</p>
             )}
             <div className="flex justify-between items-center">

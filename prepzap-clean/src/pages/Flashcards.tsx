@@ -386,7 +386,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-wider">Daily Goal</p>
-                  <p className="text-[13px] font-bold">14/20 Cards Mastered</p>
+                  <p className="text-[13px] font-bold">{scores.gotIt} Got It this session</p>
                 </div>
               </div>
             </div>
@@ -554,27 +554,19 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             </div>
 
             <div className="flex flex-col divide-y-2 divide-black/10 flex-1">
-              {[
-                { name: "Macroeconomics 101",      time: "2 hours ago",  pct: 75 },
-                { name: "Discrete Mathematics",    time: "Yesterday",    pct: 32 },
-                { name: "Art History: Renaissance",time: "3 days ago",   pct: 90 },
-                { name: "Spanish Vocab: Travel",   time: "5 days ago",   pct: 55 },
-              ].map((deck) => (
-                <div
-                  key={deck.name}
-                  className="p-4 hover:bg-[#FAF7F2] transition-colors cursor-pointer group"
-                >
+              {libraryFiles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-center opacity-40 flex-1">
+                  <span className="material-symbols-outlined text-[32px]">history</span>
+                  <p className="text-[12px] font-bold">No decks yet. Generate your first one!</p>
+                </div>
+              ) : libraryFiles.slice(0, 4).map((file: any) => (
+                <div key={file.id} className="p-4 hover:bg-[#FAF7F2] transition-colors cursor-pointer group"
+                  onClick={() => handleSelectSource(file)}>
                   <div className="flex justify-between items-start mb-1">
-                    <h4 className="text-[13px] font-extrabold leading-tight">{deck.name}</h4>
+                    <h4 className="text-[13px] font-extrabold leading-tight truncate">{file.name.replace(/\.[^.]+$/, "")}</h4>
                     <span className="material-symbols-outlined text-[16px] text-black/20 group-hover:text-black transition-colors">more_vert</span>
                   </div>
-                  <p className="text-[11px] font-bold text-black/40 mb-3">{deck.time}</p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-[#E8E4DC] border border-black overflow-hidden">
-                      <div className="h-full bg-black" style={{ width: `${deck.pct}%` }} />
-                    </div>
-                    <span className="text-[10px] font-extrabold">{deck.pct}%</span>
-                  </div>
+                  <p className="text-[11px] font-bold text-black/40 mb-1">Source file</p>
                 </div>
               ))}
             </div>
@@ -582,11 +574,11 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             {/* Stats mini card */}
             <div className="m-4 p-4 bg-black text-white border-2 border-black shadow-[3px_3px_0px_#FF4D2E]">
               <div className="flex justify-between items-center mb-2">
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#F5A623]">Total Progress</p>
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#F5A623]">Session Score</p>
                 <span className="material-symbols-outlined text-[18px]">monitoring</span>
               </div>
-              <p className="text-[32px] font-black leading-none mb-1">428</p>
-              <p className="text-[12px] font-bold text-white/50">Cards learned this month</p>
+              <p className="text-[32px] font-black leading-none mb-1">{scores.gotIt + scores.unsure + scores.forgot || "—"}</p>
+              <p className="text-[12px] font-bold text-white/50">Cards reviewed this session</p>
             </div>
           </div>
 
@@ -847,31 +839,24 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             </main>
           )}
 
-          {/* Recent Decks — Mobile */}
-          {view === "setup" && (
+          {/* Recent Sources — Mobile */}
+          {view === "setup" && libraryFiles.length > 0 && (
             <div className="mt-4 border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
               <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black">
                 <span className="material-symbols-outlined text-[18px]">history</span>
-                <h3 className="text-[14px] font-extrabold">Recent Decks</h3>
+                <h3 className="text-[14px] font-extrabold">Your Sources</h3>
               </div>
               <div className="flex flex-col divide-y divide-black/10">
-                {[
-                  { name: "Macroeconomics 101", time: "2 hours ago", pct: 75 },
-                  { name: "Discrete Mathematics", time: "Yesterday", pct: 32 },
-                  { name: "Art History: Renaissance", time: "3 days ago", pct: 90 },
-                ].map((deck) => (
-                  <div key={deck.name} className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAF7F2] transition-colors cursor-pointer">
+                {libraryFiles.slice(0, 3).map((file: any) => (
+                  <button key={file.id} onClick={() => handleSelectSource(file)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAF7F2] transition-colors w-full text-left">
+                    <span className="material-symbols-outlined text-[18px] shrink-0">description</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-extrabold truncate">{deck.name}</p>
-                      <p className="text-[11px] font-bold text-black/40">{deck.time}</p>
+                      <p className="text-[13px] font-extrabold truncate">{file.name}</p>
+                      <p className="text-[11px] font-bold text-black/40">Tap to use as source</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="w-16 h-2 bg-[#E8E4DC] border border-black overflow-hidden">
-                        <div className="h-full bg-black" style={{ width: `${deck.pct}%` }} />
-                      </div>
-                      <span className="text-[10px] font-extrabold">{deck.pct}%</span>
-                    </div>
-                  </div>
+                    <span className="material-symbols-outlined text-[16px] text-black/20">chevron_right</span>
+                  </button>
                 ))}
               </div>
             </div>

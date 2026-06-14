@@ -11,7 +11,7 @@ const plans = [
   {
     id: "free",
     name: "Free",
-    icon: "////",
+    icon: "star",
     monthly: 0,
     annual: 0,
     borderColor: "#252525",
@@ -37,7 +37,7 @@ const plans = [
   {
     id: "pro",
     name: "Pro",
-    icon: "///",
+    icon: "star",
     monthly: 9.99,
     annual: 6.99,
     borderColor: TEAL,
@@ -63,7 +63,7 @@ const plans = [
   {
     id: "premium",
     name: "Premium",
-    icon: "////",
+    icon: "star",
     monthly: 19.99,
     annual: 15.99,
     borderColor: "#a78bfa",
@@ -229,10 +229,10 @@ export default function Pricing() {
           {/* Trust signals */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10, marginBottom: 48 }}>
             {[
-              { icon: "////", label: "Secure payments",  sub: "Powered by Stripe" },
-              { icon: "////", label: "Cancel anytime",   sub: "No lock-in contracts" },
-              { icon: "////", label: "Student discount", sub: "30% off with .edu email" },
-              { icon: "////", label: "24/7 support",     sub: "Fast response, real humans" },
+              { icon: "star", label: "Secure payments",  sub: "Powered by Stripe" },
+              { icon: "star", label: "Cancel anytime",   sub: "No lock-in contracts" },
+              { icon: "star", label: "Student discount", sub: "30% off with .edu email" },
+              { icon: "star", label: "24/7 support",     sub: "Fast response, real humans" },
             ].map(({ icon, label, sub }) => (
               <div key={label} style={{ textAlign: "center", padding: 16, background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A1A1A" }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>{icon}</div>
@@ -310,7 +310,7 @@ export default function Pricing() {
 
           {/* Bottom CTA */}
           <div style={{ textAlign: "center", border: `0.5px solid rgba(0,196,180,0.2)`, background: "rgba(0,196,180,0.03)", padding: 48 }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>////</div>
+            <span className="material-symbols-outlined" style={{ fontSize: 48 }}>sentiment_dissatisfied</span>
             <h2 style={{ fontSize: 24, fontWeight: 900, color: "#F0F0F0", margin: "0 0 10px" }}>Ready to study smarter?</h2>
             <p style={{ fontSize: 13, color: "#555", marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>
               Join thousands of students already using Studenius to ace their exams.
@@ -327,7 +327,7 @@ export default function Pricing() {
                 </button>
               </Link>
             </div>
-            <p style={{ fontSize: 10, color: "#333", marginTop: 16 }}>No credit card required Â/ Cancel anytime Â/ 7-day free trial on paid plans</p>
+            <p style={{ fontSize: 10, color: "#333", marginTop: 16 }}>No credit card required ï¿½/ Cancel anytime ï¿½/ 7-day free trial on paid plans</p>
           </div>
 
         </div>

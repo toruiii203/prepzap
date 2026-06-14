@@ -106,7 +106,7 @@ function getDefaultSessions(): PlannerSession[] {
       dueDate: isoOffset(1), isDue: true, estimatedHours: 0,
     },
     {
-      id: "dl2", subject: "Macroeconomics Essay",
+      id: "dl2", subject: "Upcoming Deadline",
       time: "11:59 PM", timeHour: 23,
       topic: "Draft completion goal", color: "bg-orange-500",
       completed: false, dayNum: d + 3,

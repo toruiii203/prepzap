@@ -309,7 +309,7 @@ export default function Dashboard() {
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
         <div className="mb-6">
           <h1 className="text-[28px] font-black tracking-tight text-black">Studenius</h1>
-          <p className="text-[13px] font-bold text-black/50">Academic Level: Pro</p>
+          <p className="text-[13px] font-bold text-black/50">Academic Level: {profile?.plan === "pro" ? "Pro" : "Free"}</p>
         </div>
 
         <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
@@ -652,7 +652,7 @@ export default function Dashboard() {
         {/* Quest Log — mobile */}
         <section>
           <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2">
-            Quest Log <span className="opacity-30 text-[13px] font-normal">////</span>
+            Quest Log
           </div>
           <div className="border-2 border-black rounded-xl bg-white overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
             <QuestLogBody />
@@ -682,7 +682,7 @@ export default function Dashboard() {
         {/* History Ledger (mobile recent sessions) */}
         <section className="border-2 border-black rounded-[16px] bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
           <div className="text-[11.5px] font-black opacity-50 uppercase tracking-wider border-b-[1.5px] border-black p-4 pb-3">
-            History Ledger <span className="opacity-30 text-[12px] font-normal normal-case">///</span>
+            History Ledger
           </div>
           <div className="p-4 flex flex-col gap-5 relative">
             <div className="absolute left-[19px] top-6 bottom-4 w-[1.5px] bg-black opacity-20" />
@@ -714,7 +714,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-5 z-50">
           <div className="w-full max-w-[380px] bg-[#FAF7F2] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#1A1A1A]">
             <div className="flex items-center gap-2 mb-3.5">
-              <span className="text-xl">///</span>
+              <span className="material-symbols-outlined text-[20px]">history</span>
               <h3 className="font-black text-[18px]">Log Study Session</h3>
             </div>
             <p className="text-[12px] text-slate-500 font-bold mb-4 leading-normal">

@@ -61,7 +61,7 @@ function PWAInstallBanner() {
   );
 }
 
-// ── Pages still present ──────────────────────────────────────────────────────
+// ── Pages ────────────────────────────────────────────────────────────────────
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
@@ -79,7 +79,6 @@ import StudyPlanner from "./pages/StudyPlanner";
 import AITutor from "./pages/AITutor";
 import ToolsHub from "./pages/ToolsHub";
 import StudentProfile from "./pages/StudentProfile";
-import Leaderboard from "./pages/Leaderboard";
 import Challenges from "./pages/Challenges";
 import TeachIt from "./pages/TeachIt";
 import QuickStudy from "./pages/QuickStudy";
@@ -93,10 +92,14 @@ import RecallMode from "./pages/RecallMode";
 import VisualLearner from "./pages/VisualLearner";
 import Avatar from "./pages/Avatar";
 import Shop from "./pages/Shop";
-
-// ── Restored pages (accidentally removed): ───────────────────────────────────
 import HighYieldDetector from "./pages/HighYieldDetector";
 import MistakeJournal from "./pages/MistakeJournal";
+
+// ── Arena ────────────────────────────────────────────────────────────────────
+import Arena from "./pages/Arena";
+import ArenaRoom from "./pages/ArenaRoom";
+import ArenaQuiz from "./pages/ArenaQuiz";
+import ArenaResults from "./pages/ArenaResults";
 
 // ── Still removed (files deleted): ───────────────────────────────────────────
 // FeynmanMode, ToolArchitect, Daily5, FlipScript, SpotError, BuildDef,
@@ -192,7 +195,7 @@ function AppRoutes() {
           <Route path="/ai-tutor" element={<AITutor />} />
           <Route path="/tools" element={<ToolsHub />} />
           <Route path="/profile" element={<StudentProfile />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/leaderboard" element={<Arena />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/teach-it" element={<TeachIt />} />
           <Route path="/quick-study" element={<QuickStudy />} />
@@ -206,9 +209,14 @@ function AppRoutes() {
           <Route path="/avatar" element={<Avatar />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/admin" element={<Admin />} />
-          {/* Restored routes */}
           <Route path="/high-yield" element={<HighYieldDetector />} />
           <Route path="/mistakes" element={<MistakeJournal />} />
+
+          {/* Arena */}
+          <Route path="/arena" element={<Arena />} />
+          <Route path="/arena/room/:code" element={<ArenaRoom />} />
+          <Route path="/arena/quiz/:code" element={<ArenaQuiz />} />
+          <Route path="/arena/results/:code" element={<ArenaResults />} />
         </Route>
 
         {/* Catch-all */}

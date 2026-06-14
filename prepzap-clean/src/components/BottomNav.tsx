@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 
 const tabs = [
   { href: "/tools", label: "Tools", icon: "grid_view" },
-  { href: "/leaderboard", label: "Leaderboard", icon: "emoji_events", dot: true },
+  { href: "/arena", label: "Arena", icon: "sports_esports" },
   { href: "/dashboard", label: "Home", icon: "home", activeFill: true },
   { href: "/timer", label: "Timer", icon: "timer" },
   { href: "/profile", label: "Profile", icon: "person" },
@@ -12,8 +12,11 @@ function isTabActive(href: string, pathname: string): boolean {
   switch (href) {
     case "/tools":
       return pathname === "/tools";
-    case "/leaderboard":
-      return pathname === "/leaderboard" || pathname === "/challenges";
+    case "/arena":
+      return (
+        pathname === "/arena" ||
+        pathname.startsWith("/arena/")
+      );
     case "/dashboard":
       return pathname === "/dashboard" || pathname === "/";
     case "/timer":
@@ -33,7 +36,7 @@ export function BottomNav() {
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] h-14 bg-[#FAF7F2] border-t-[1.5px] border-black flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"
       aria-label="Main navigation"
     >
-      {tabs.map(({ href, icon, dot, activeFill }) => {
+      {tabs.map(({ href, icon, activeFill }) => {
         const active = isTabActive(href, location.pathname);
 
         return (
@@ -46,15 +49,16 @@ export function BottomNav() {
           >
             <span
               className="material-symbols-outlined text-[24px]"
-              style={active && activeFill ? { fontVariationSettings: "'FILL' 1" } : undefined}
+              style={
+                active && activeFill
+                  ? { fontVariationSettings: "'FILL' 1" }
+                  : undefined
+              }
             >
               {icon}
             </span>
             {active && (
               <div className="w-1.5 h-1.5 bg-black rounded-full absolute bottom-1" />
-            )}
-            {dot && !active && (
-              <div className="absolute top-2 right-2 w-2 h-2 bg-[#E8534A] rounded-full border border-[#FAF7F2]" />
             )}
           </Link>
         );

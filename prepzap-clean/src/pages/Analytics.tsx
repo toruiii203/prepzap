@@ -496,7 +496,7 @@ export default function Analytics() {
                           <span className="text-[12px] font-bold text-[#faf7f2] bg-primary px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_rgba(0,0,0,1)]">
                             {ses.duration} mins
                           </span>
-                          <span className="text-[12px] text-on-surface-variant font-bold opacity-60">/// {formatDateHelper(ses.created_at)}</span>
+                          <span className="text-[12px] text-on-surface-variant font-bold opacity-60">{formatDateHelper(ses.created_at)}</span>
                         </div>
                       </div>
                     </div>

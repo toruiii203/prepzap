@@ -40,7 +40,7 @@ export class PageErrorBoundary extends React.Component<Props, State> {
           }}
         >
           <div style={{ maxWidth: 480 }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>//////</div>
+            <span className="material-symbols-outlined" style={{ fontSize: 48, display: "block", marginBottom: 16 }}>error</span>
             <h2 style={{ color: "#F5A623", marginBottom: 10, fontFamily: "'Fredoka One', cursive", fontSize: 24 }}>
               This page hit an error
             </h2>

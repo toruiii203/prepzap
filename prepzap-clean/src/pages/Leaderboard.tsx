@@ -268,7 +268,7 @@ export default function Leaderboard() {
             <h3 className="font-headline text-[15.5px] font-extrabold text-on-surface truncate">
               {profile?.full_name || profile?.username || user?.email || "You (Master)"}
             </h3>
-            <p className="text-[12px] font-bold text-orange-600">//// {userStreak} Day Streak</p>
+            <p className="text-[12px] font-bold text-orange-600">🔥 {userStreak} Day Streak</p>
           </div>
 
           <div className="text-right shrink-0">

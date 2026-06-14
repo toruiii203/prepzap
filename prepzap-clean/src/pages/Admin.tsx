@@ -60,7 +60,7 @@ export default function Admin() {
 
   const applyCredits = () => {
     if (!creditEmail.trim() || !creditAmount) return
-    toast({ title: "Credits Applied", description: `+${creditAmount} credits added to ${creditEmail}. Reason: ${creditReason || "///"}` })
+    toast({ title: "Credits Applied", description: `+${creditAmount} credits added to ${creditEmail}. Reason: ${creditReason || "No reason"}` })
     setCreditEmail(""); setCreditAmount(""); setCreditReason("")
   }
 

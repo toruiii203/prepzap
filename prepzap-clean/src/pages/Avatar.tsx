@@ -38,22 +38,22 @@ const PANTS = [
 ];
 
 const HATS = [
-  { id: "none",       label: "None",        emoji: "///" },
-  { id: "crown",      label: "Crown",       emoji: "////" },
-  { id: "cap",        label: "Cap",         emoji: "////" },
-  { id: "graduation", label: "Grad Cap",    emoji: "////" },
-  { id: "headphones", label: "Headphones",  emoji: "////" },
-  { id: "halo",       label: "Halo",        emoji: "////" },
-  { id: "beanie",     label: "Beanie",      emoji: "////" },
+  { id: "none",       label: "None",        emoji: "" },
+  { id: "crown",      label: "Crown",       emoji: "" },
+  { id: "cap",        label: "Cap",         emoji: "" },
+  { id: "graduation", label: "Grad Cap",    emoji: "" },
+  { id: "headphones", label: "Headphones",  emoji: "" },
+  { id: "halo",       label: "Halo",        emoji: "" },
+  { id: "beanie",     label: "Beanie",      emoji: "" },
 ];
 
 const ACCESSORIES = [
-  { id: "none",       label: "None",       emoji: "///" },
-  { id: "glasses",    label: "Glasses",    emoji: "////" },
-  { id: "sunglasses", label: "Sunglasses", emoji: "////" },
-  { id: "scarf",      label: "Scarf",      emoji: "////" },
-  { id: "medal",      label: "Medal",      emoji: "////" },
-  { id: "bow",        label: "Bow",        emoji: "////" },
+  { id: "none",       label: "None",       emoji: "" },
+  { id: "glasses",    label: "Glasses",    emoji: "" },
+  { id: "sunglasses", label: "Sunglasses", emoji: "" },
+  { id: "scarf",      label: "Scarf",      emoji: "" },
+  { id: "medal",      label: "Medal",      emoji: "" },
+  { id: "bow",        label: "Bow",        emoji: "" },
 ];
 
 const BACKGROUNDS = [
@@ -183,7 +183,7 @@ function AccessoryOverlay({ acc }: { acc: string }) {
           <line x1="14" y1="0" x2="14" y2="-24" stroke="#f0a040" strokeWidth="3"/>
           <circle cx="14" cy="14" r="14" fill="#f0a040" stroke="#c07820" strokeWidth="2"/>
           <circle cx="14" cy="14" r="9" fill="#fbbf24"/>
-          <text x="14" y="19" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#92400e">///</text>
+          <text x="14" y="19" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#92400e">LVL</text>
         </g>
       )}
       {acc === "bow" && (
@@ -210,7 +210,7 @@ function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
       animation: "slideIn 0.2s ease"
     }}>
       <style>{`@keyframes slideIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }`}</style>
-      {type === "success" ? "/// " : "/// "}{msg}
+      {type === "success" ? "✓ " : "✗ "}{msg}
     </div>
   );
 }
@@ -309,12 +309,12 @@ export default function Avatar() {
   const frameColor = FRAMES.find(f => f.id === config.frame)?.color || "transparent";
 
   const TABS = [
-    { id: "buddy",     label: "Buddy",     emoji: "////" },
-    { id: "shirt",     label: "Shirt",     emoji: "////" },
-    { id: "pants",     label: "Pants",     emoji: "////" },
-    { id: "hat",       label: "Hat",       emoji: "////" },
-    { id: "accessory", label: "Accessory", emoji: "///" },
-    { id: "style",     label: "Style",     emoji: "////" },
+    { id: "buddy",     label: "Buddy",     emoji: "" },
+    { id: "shirt",     label: "Shirt",     emoji: "" },
+    { id: "pants",     label: "Pants",     emoji: "" },
+    { id: "hat",       label: "Hat",       emoji: "" },
+    { id: "accessory", label: "Accessory", emoji: "" },
+    { id: "style",     label: "Style",     emoji: "" },
   ] as const;
 
   // Color swatch button
@@ -327,7 +327,7 @@ export default function Avatar() {
       boxShadow: active ? `0 0 10px ${GOLD}66` : "none",
       fontSize: color === "transparent" ? 14 : undefined,
       color: TEXT3, flexShrink: 0,
-    }}>{color === "transparent" ? "///" : ""}</button>
+    }}>{color === "transparent" ? "×" : ""}</button>
   );
 
   // Option chip button
@@ -535,7 +535,7 @@ export default function Avatar() {
                     </div>
                   </>
                 ) : (
-                  <span style={{ fontSize: 48 }}>////</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 48 }}>checkroom</span>
                 )}
               </div>
 
@@ -571,7 +571,7 @@ export default function Avatar() {
                 fontFamily: "inherit", transition: "opacity 0.2s",
                 opacity: saving ? 0.7 : 1,
               }}>
-                {saving ? "Saving..." : "//// Save Outfit"}
+                {saving ? "Saving..." : "Save Outfit"}
               </button>
 
               {/* SQL migration hint for devs */}

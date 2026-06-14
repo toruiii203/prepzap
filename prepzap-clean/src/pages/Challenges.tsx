@@ -81,7 +81,7 @@ export default function Challenges() {
       desc: "Quick 10-question AI-generated review of yesterday's notes.",
       expiry: "EXPIRES IN 4H",
       cta: "TAKE QUIZ",
-      ctaAction: () => navigate("/practice?mode=daily-quiz"),
+      ctaAction: () => navigate("/arena"),
     },
     {
       id: "knowledge-share",
@@ -188,7 +188,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
   const StreakBar = () => (
     <div className="flex justify-between items-center gap-2">
       {streakDays.map((st, idx) => (
-        <div key={idx} className={`flex-1 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${
+        <div key={idx} className={`flex-1 h-12 border-2 flex items-center justify-center transition-all ${
           st.completed ? "bg-black text-white shadow-[2px_2px_rgba(0,0,0,1)]"
           : st.activeToday ? "bg-white border-[#E8534A] border-[3px] text-black"
           : "bg-white border-black text-neutral-400"
@@ -228,8 +228,8 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
             const isDone = completedQuestIds.includes(card.id) || card.completed;
             return (
               <div key={card.id} onClick={() => setExpandedCard(isOpen ? null : card.id)}
-                className={`bg-white rounded-2xl border-2 border-black p-5 shadow-[4px_4px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer relative ${isDone ? "opacity-75 bg-slate-50" : ""}`}>
-                <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full border-2 border-black bg-[#FAF7F2] text-black flex items-center justify-center font-black text-[13px] shadow-[2px_2px_rgba(0,0,0,1)]">
+                className={`bg-white border-2 border-black p-5 shadow-[3px_3px_0px_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer relative ${isDone ? "opacity-75 bg-slate-50" : ""}`}>
+                <div className="absolute -top-3 -left-3 w-8 h-8 border-2 border-black bg-[#FAF7F2] text-black flex items-center justify-center font-black text-[13px] shadow-[2px_2px_0px_#000]">
                   {card.id}
                 </div>
                 <div className="flex justify-between items-start pt-2 pl-2">
@@ -242,10 +242,10 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
                       <span className="bg-black/10 text-black font-bold px-2 py-0.5 rounded mr-1">Answer</span>
                       {card.answer}
                     </p>
-                    <p className="text-[12px] text-[#ae2925] font-bold italic">//// Hint: {card.hint}</p>
+                    <p className="text-[12px] text-[#ae2925] font-bold italic">💡 Hint: {card.hint}</p>
                     {!isDone && (
                       <button onClick={(e) => handleCompleteQuest(card.id, e)}
-                        className="w-full bg-[#E8534A] text-white border-2 border-black py-2 rounded-xl mt-2 font-bold text-[12px] hover:opacity-90 shadow-[2px_2px_rgba(0,0,0,1)] cursor-pointer">
+                        className="w-full bg-[#ae2925] text-white border-2 border-black py-2 mt-2 font-extrabold text-[12px] hover:opacity-90 shadow-[2px_2px_0px_#000] cursor-pointer">
                         /// Double-Check & Complete Task
                       </button>
                     )}
@@ -260,7 +260,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
               </div>
             );
           })}
-          <div className="bg-[#f6f3ee] rounded-2xl border-2 border-black border-dashed p-5 flex items-center justify-center min-h-[72px] opacity-60 cursor-not-allowed">
+          <div className="bg-[#f6f3ee] border-2 border-black border-dashed p-5 flex items-center justify-center min-h-[72px] opacity-60 cursor-not-allowed">
             <span className="material-symbols-outlined text-black/30 mr-2">lock</span>
             <span className="font-black text-black/40 text-[14px]">Level 3 (Locked)</span>
           </div>
@@ -309,7 +309,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
   const LockedCard = ({ title, hint }: { title: string; hint: string }) => (
     <div className="relative bg-[#f3f3f3] border-2 border-black opacity-60 select-none">
       <div className="absolute inset-0 flex items-center justify-center z-10">
-        <div className="bg-black text-white p-3 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+        <div className="bg-black text-white p-3 shadow-[2px_2px_0px_#000]">
           <span className="material-symbols-outlined text-[28px]">lock</span>
         </div>
       </div>
@@ -375,7 +375,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
             <div className="w-px h-6 bg-black/20" />
             <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
               <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-              <span className="text-[12px] font-black">{profile?.streak || 12} Day Streak</span>
+              <span className="text-[12px] font-black">{profile?.streak ?? 0} Day Streak</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -402,7 +402,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
 
             {/* Tab toggle */}
             <div className="px-8 pt-5 pb-4 shrink-0">
-              <div className="flex w-full border-2 border-black rounded-xl overflow-hidden">
+              <div className="flex w-full border-2 border-black overflow-hidden">
                 <button onClick={() => setActiveTab("Daily5")}
                   className={`flex-1 py-3 text-[13px] font-black transition-colors cursor-pointer ${activeTab === "Daily5" ? "bg-black text-white" : "bg-white text-black hover:bg-[#ebe8e3]"}`}>
                   Daily 5 Challenges
@@ -438,7 +438,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
               <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Choose Topic</h3>
               <FocusChips />
               <button onClick={() => navigate("/sources")}
-                className="mt-3 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-black bg-white text-black font-black text-[13px] hover:bg-[#ebe8e3] transition-colors cursor-pointer rounded-lg">
+                className="mt-3 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-black bg-white text-black font-black text-[13px] hover:bg-[#ebe8e3] transition-colors cursor-pointer">
                 <span className="material-symbols-outlined text-[18px]">attach_file</span>
                 Extract from Source Library
               </button>
@@ -483,18 +483,18 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT
           ═══════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]">
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]">
 
         {/* Mobile TopAppBar */}
         <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-black z-50">
           <div className="flex items-center justify-between px-5 h-14">
             <button onClick={() => navigate(-1)}
-              className="flex items-center justify-center p-2 rounded-full hover:bg-[#ebe8e3] border-2 border-black bg-white w-9 h-9 shadow-[2px_2px_0px_#000]">
+              className="flex items-center justify-center border-2 border-black bg-white w-9 h-9 shadow-[2px_2px_0px_#000]">
               <span className="material-symbols-outlined text-black text-[18px]">arrow_back</span>
             </button>
             <span className="font-black text-[18px]">Daily Quests</span>
             <button onClick={() => navigate("/dashboard")}
-              className="flex items-center justify-center p-1 rounded-full hover:bg-[#ebe8e3]">
+              className="flex items-center justify-center w-9 h-9 hover:bg-[#ebe8e3]">
               <span className="material-symbols-outlined text-black">emoji_events</span>
             </button>
           </div>
@@ -504,14 +504,14 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
         <main className="flex-1 flex flex-col px-5 pb-24 pt-6 gap-6">
 
           {/* Tab toggle */}
-          <div className="flex w-full border-2 border-black rounded-2xl overflow-hidden bg-white shrink-0">
+          <div className="flex w-full border-2 border-black overflow-hidden bg-white shrink-0">
             <button onClick={() => setActiveTab("Daily5")}
-              className={`flex-1 py-3.5 text-center font-black transition-colors text-[14px] cursor-pointer ${activeTab === "Daily5" ? "bg-black text-white" : "bg-white text-black hover:bg-neutral-50"}`}>
+              className={`flex-1 py-3.5 text-center font-black transition-colors text-[13px] cursor-pointer ${activeTab === "Daily5" ? "bg-black text-white" : "bg-white text-black hover:bg-[#ebe8e3]"}`}>
               Daily 5 Challenges
             </button>
             <div className="w-[2px] bg-black" />
             <button onClick={() => setActiveTab("BossRound")}
-              className={`flex-1 py-3.5 text-center font-black transition-colors text-[14px] cursor-pointer ${activeTab === "BossRound" ? "bg-black text-white" : "bg-white text-black hover:bg-neutral-50"}`}>
+              className={`flex-1 py-3.5 text-center font-black transition-colors text-[13px] cursor-pointer ${activeTab === "BossRound" ? "bg-black text-white" : "bg-white text-black hover:bg-[#ebe8e3]"}`}>
               Boss Round
             </button>
           </div>
@@ -520,7 +520,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
           <section className="flex flex-col gap-3">
             <div className="flex justify-between items-end mb-1">
               <h2 className="font-black text-[16px]">Streak Log</h2>
-              <span className="text-[#ae2925] font-black text-[13px]">{profile?.streak || 12} Day Streak</span>
+              <span className="text-[#ae2925] font-black text-[13px]">{profile?.streak ?? 0} Day Streak</span>
             </div>
             <StreakBar />
           </section>
@@ -530,7 +530,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
             <h3 className="text-[#ae2925] font-black text-[11px] uppercase tracking-wider">Choose Topic</h3>
             <FocusChips />
             <button onClick={() => navigate("/sources")}
-              className="mt-2 flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed border-black bg-white text-black font-black text-[13px] hover:bg-[#ebe8e3] transition-colors cursor-pointer">
+              className="mt-2 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-black bg-white text-black font-black text-[13px] hover:bg-[#ebe8e3] transition-colors cursor-pointer">
               <span className="material-symbols-outlined text-[18px]">attach_file</span>
               Extract from Source Library
             </button>
@@ -540,21 +540,21 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
           <section className="flex flex-col gap-4">
             <h3 className="font-black text-[16px]">Active Quests</h3>
             {staticChallenges.map((ch) => (
-              <div key={ch.id} className="group bg-white border-2 border-black flex flex-col rounded-2xl overflow-hidden shadow-[4px_4px_rgba(0,0,0,1)]">
+              <div key={ch.id} className="group bg-white border-2 border-black flex flex-col overflow-hidden shadow-[3px_3px_0px_#000]">
                 <div className="px-4 py-3 border-b-2 border-black flex justify-between items-center">
-                  <span className={`text-[12px] font-black px-2 py-1 rounded-full uppercase ${ch.tagStyle}`}>{ch.tag}</span>
+                  <span className={`text-[11px] font-black px-2 py-1 uppercase tracking-wider ${ch.tagStyle}`}>{ch.tag}</span>
                   <span className={`material-symbols-outlined ${ch.iconStyle}`} style={{ fontVariationSettings: "'FILL' 1" }}>{ch.icon}</span>
                 </div>
                 <div className="p-4 flex-1">
-                  <p className="font-black text-[17px] mb-1">{ch.title}</p>
-                  <p className="text-[13px] text-black/60 font-medium mb-3 leading-relaxed">{ch.desc}</p>
+                  <p className="font-black text-[16px] mb-1">{ch.title}</p>
+                  <p className="text-[13px] text-black/60 font-bold mb-3 leading-relaxed">{ch.desc}</p>
                   {ch.progress !== undefined && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-[12px] font-black">
                         <span>Progress</span><span>{ch.progressLabel}</span>
                       </div>
-                      <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black rounded-full overflow-hidden">
-                        <div className={`h-full ${ch.barColor} rounded-full`} style={{ width: ch.barWidth }} />
+                      <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black overflow-hidden">
+                        <div className={`h-full ${ch.barColor}`} style={{ width: ch.barWidth }} />
                       </div>
                     </div>
                   )}
@@ -567,7 +567,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
                 </div>
                 <button
                   onClick={ch.isShare ? () => setShareModalOpen(true) : ch.ctaAction}
-                  className="w-full py-3.5 border-t-2 border-black text-[13px] font-black bg-white hover:bg-black hover:text-white transition-colors cursor-pointer active:translate-x-0.5 active:translate-y-0.5">
+                  className="w-full py-3.5 border-t-2 border-black text-[13px] font-black bg-white hover:bg-black hover:text-white transition-colors cursor-pointer">
                   {ch.cta}
                 </button>
               </div>
@@ -577,14 +577,14 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
               { title: "The Archivist", hint: "Unlocked after 14-day streak." },
               { title: "Grandmaster", hint: "Complete all monthly challenges." },
             ].map((lc) => (
-              <div key={lc.title} className="relative bg-[#f3f3f3] border-2 border-black rounded-2xl opacity-60 select-none overflow-hidden min-h-[120px] flex items-center justify-center">
+              <div key={lc.title} className="relative bg-[#f3f3f3] border-2 border-black opacity-60 select-none overflow-hidden min-h-[100px] flex items-center justify-center shadow-[3px_3px_0px_#000]">
                 <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="bg-black text-white p-3 rounded-full">
-                    <span className="material-symbols-outlined text-[28px]">lock</span>
+                  <div className="bg-black text-white p-3">
+                    <span className="material-symbols-outlined text-[24px]">lock</span>
                   </div>
                 </div>
                 <div className="blur-sm p-4 w-full">
-                  <p className="font-black text-[17px]">{lc.title}</p>
+                  <p className="font-black text-[16px]">{lc.title}</p>
                   <p className="text-[13px] text-black/60">{lc.hint}</p>
                 </div>
               </div>
@@ -605,7 +605,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
 
           {/* Daily Progress widget */}
           <section>
-            <div className="border-2 border-black bg-[#F0EDE0] p-5 relative overflow-hidden rounded-2xl" style={{ boxShadow: "3px 3px 0px #000" }}>
+            <div className="border-2 border-black bg-[#F0EDE0] p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
               <div className="absolute top-3 right-3">
                 <span className="material-symbols-outlined text-black/15 text-[40px]">military_tech</span>
               </div>

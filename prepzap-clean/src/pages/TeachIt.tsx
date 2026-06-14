@@ -516,29 +516,15 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             </div>
           )}
           {/* History Panel (mobile) */}
-          {!feedback && (
+          {!feedback && topic.length === 0 && (
             <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
               <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black bg-[#FAF7F2]">
                 <span className="material-symbols-outlined text-[18px]">history_edu</span>
                 <h3 className="text-[13px] font-extrabold">Past Explanations</h3>
               </div>
-              <div className="flex flex-col divide-y divide-black/10">
-                {[
-                  { topic: "Photosynthesis", score: 82, date: "2h ago" },
-                  { topic: "Newton's 2nd Law", score: 67, date: "Yesterday" },
-                  { topic: "Osmosis vs Diffusion", score: 91, date: "3 days ago" },
-                ].map((item) => (
-                  <div key={item.topic} className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAF7F2] cursor-pointer">
-                    <div className={`w-10 h-10 border-2 border-black flex items-center justify-center font-black text-[11px] shrink-0 ${item.score >= 80 ? "bg-green-100 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
-                      {item.score}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-extrabold truncate">{item.topic}</p>
-                      <p className="text-[11px] font-bold text-black/40">{item.date}</p>
-                    </div>
-                    <span className="material-symbols-outlined text-[16px] text-black/20">chevron_right</span>
-                  </div>
-                ))}
+              <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-40">
+                <span className="material-symbols-outlined text-[32px]">auto_stories</span>
+                <p className="text-[12px] font-bold">Your past explanations will appear here</p>
               </div>
             </div>
           )}

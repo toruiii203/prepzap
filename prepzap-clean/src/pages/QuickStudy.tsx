@@ -444,49 +444,48 @@ Return raw JSON only, no wrapping!`;
 
             {/* History Panel + Suggestion Cards */}
             <div className="grid grid-cols-2 gap-6 mt-2">
-              {/* History Panel */}
+              {/* History Panel — from tool history hook */}
               <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
                 <div className="flex items-center justify-between px-5 py-3 border-b-2 border-black bg-[#FAF7F2]">
                   <h3 className="text-[11px] font-black uppercase tracking-widest">Study History</h3>
                   <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
                 </div>
-                <div className="flex flex-col divide-y divide-black/10">
-                  {[
-                    { topic: "Cellular Respiration", mode: "Cram", score: 88, time: "1h ago" },
-                    { topic: "Quantum Mechanics Basics", mode: "High Yield", score: 72, time: "Yesterday" },
-                    { topic: "French Revolution Timeline", mode: "Cram", score: 95, time: "2 days ago" },
-                  ].map((item) => (
-                    <div key={item.topic} className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAF7F2] cursor-pointer group">
-                      <div className={`w-10 h-10 border-2 border-black flex items-center justify-center font-black text-[11px] shrink-0 ${item.score >= 80 ? "bg-[#F0EDE0]" : "bg-white"}`}>
-                        {item.score}%
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-extrabold truncate">{item.topic}</p>
-                        <p className="text-[10px] font-bold text-black/40 uppercase tracking-wider">{item.mode} · {item.time}</p>
-                      </div>
-                      <span className="material-symbols-outlined text-[16px] text-black/20 group-hover:text-black transition-colors">chevron_right</span>
-                    </div>
-                  ))}
-                </div>
+                {historyEntries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-40">
+                    <span className="material-symbols-outlined text-[28px]">history</span>
+                    <p className="text-[11px] font-bold">No history yet. Generate your first sheet!</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col divide-y divide-black/10">
+                    {historyEntries.slice(0, 4).map((entry: any, i: number) => (
+                      <button key={i} onClick={() => setTopic(entry.prompt || "")}
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAF7F2] cursor-pointer group text-left w-full">
+                        <div className="w-10 h-10 border-2 border-black bg-[#F0EDE0] flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-[18px]">article</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-extrabold truncate">{entry.prompt || entry.preview || "Study Sheet"}</p>
+                          <p className="text-[10px] font-bold text-black/40 uppercase tracking-wider">{entry.meta || activeTab}</p>
+                        </div>
+                        <span className="material-symbols-outlined text-[16px] text-black/20 group-hover:text-black transition-colors">chevron_right</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Suggestion Cards */}
+              {/* Suggestion Cards — use existing chips array */}
               <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
                 <div className="px-5 py-3 border-b-2 border-black bg-[#FAF7F2]">
                   <h3 className="text-[11px] font-black uppercase tracking-widest">Quick Suggestions</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-0 divide-x-2 divide-y-2 divide-black">
-                  {[
-                    { icon: "science", label: "Cell Biology", color: "text-green-600" },
-                    { icon: "calculate", label: "Calculus III", color: "text-[#ae2925]" },
-                    { icon: "history_edu", label: "World History", color: "text-[#F5A623]" },
-                    { icon: "psychology", label: "Cognitive Psych", color: "text-black" },
-                  ].map((s) => (
-                    <button key={s.label}
-                      onClick={() => setTopic(s.label)}
+                  {chips.slice(0, 4).map((chip, idx) => (
+                    <button key={idx}
+                      onClick={() => setTopic(chip)}
                       className="flex flex-col items-start gap-2 p-4 hover:bg-[#FAF7F2] transition-colors text-left group">
-                      <span className={`material-symbols-outlined ${s.color} text-[22px]`}>{s.icon}</span>
-                      <span className="text-[13px] font-extrabold group-hover:underline">{s.label}</span>
+                      <span className="material-symbols-outlined text-[#ae2925] text-[22px]">bolt</span>
+                      <span className="text-[13px] font-extrabold group-hover:underline">{chip}</span>
                     </button>
                   ))}
                 </div>

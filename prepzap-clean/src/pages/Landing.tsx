@@ -1,16 +1,16 @@
 /**
- * STUDENIUS /// Landing Page
+ * STUDENIUS — Landing Page
  * All parallax effects are pure CSS + React hooks (no GSAP dependency).
  *
  * NEW in this version:
- *  H �/ Scroll progress line    /// 1px teal bar at very top of viewport
- *  A �/ Infinite marquee        /// kinetic tool-name ticker between sections
- *  D �/ Mouse parallax hero     /// cursor-driven depth layers in hero
- *  E �/ Animated counters       /// numbers count up from 0 on viewport enter
- *  C �/ Word-by-word reveal     /// manifesto lights up word by word on scroll
- *  B �/ Sticky feature showcase /// pinned left panel, scrolling right features
- *  F �/ Horizontal scroll       /// vertical scroll drives horizontal card strip
- *  G �/ Clip-path transitions   /// wipe reveals between content sections
+ *  H �/ Scroll progress line    — 1px teal bar at very top of viewport
+ *  A �/ Infinite marquee        — kinetic tool-name ticker between sections
+ *  D �/ Mouse parallax hero     — cursor-driven depth layers in hero
+ *  E �/ Animated counters       — numbers count up from 0 on viewport enter
+ *  C �/ Word-by-word reveal     — manifesto lights up word by word on scroll
+ *  B �/ Sticky feature showcase — pinned left panel, scrolling right features
+ *  F �/ Horizontal scroll       — vertical scroll drives horizontal card strip
+ *  G �/ Clip-path transitions   — wipe reveals between content sections
  */
 
 import { useState, useEffect, useRef, useMemo, createContext, useContext } from "react";
@@ -177,7 +177,7 @@ const CSS = `
   @keyframes rocket-exhaust{0%,100%{opacity:0.6;transform:scaleY(1);}50%{opacity:1;transform:scaleY(1.15);}}
   @keyframes rocket-rise{0%{transform:translateY(0);}100%{transform:translateY(-12px);}}
 
-  /* Mobile hamburger /// default hidden, shown on small screens */
+  /* Mobile hamburger — default hidden, shown on small screens */
   .show-mobile{display:none!important;}
   @media(max-width:768px){
     .hide-mobile{display:none!important;}
@@ -235,24 +235,24 @@ const mockQuestion = {
 };
 
 const features = [
-  {n:"01",title:"AI Tutor (BrainBot)",    desc:"Ask anything /// Explain, ELI5, Analogy, Quiz, Debate, Summary",      icon:"////"},
-  {n:"02",title:"Practice & Flashcards",  desc:"AI-generated questions and spaced-repetition from your materials",   icon:"////"},
-  {n:"03",title:"Cram Mode",              desc:"Emergency timed session /// AI breaks subjects into prioritised topics",icon:"///"},
-  {n:"04",title:"High Yield Detector",    desc:"Identifies the most testable concepts and drills you instantly",      icon:"////"},
-  {n:"05",title:"Recall Mode",            desc:"Type from memory and get scored /// the hardest way to study",          icon:"////"},
-  {n:"06",title:"Confidence Calibration", desc:"Sort every concept into Know / Shaky / No idea",                     icon:"////"},
-  {n:"07",title:"Mistake Journal",        desc:"Log errors with spaced-repetition /// overdue items resurface",        icon:"////"},
-  {n:"08",title:"Roadmap Generator",      desc:"Zero-to-mastery plan for any subject, broken into phases",           icon:"///////"},
-  {n:"09",title:"Feynman Mode",           desc:"Teach the AI /// it pokes holes until you truly understand",           icon:"////"},
-  {n:"10",title:"Source Library",         desc:"Upload PDFs, images, or notes /// every tool reads them",              icon:"////"},
-  {n:"11",title:"Study DNA",              desc:"Your living learner profile /// adapts and reveals your patterns",     icon:"////"},
-  {n:"12",title:"Focus Timer + Progress", desc:"Built-in Pomodoro with activity tracking and session analytics",     icon:"//////"},
+  {n:"01",title:"AI Tutor (BrainBot)",    desc:"Ask anything — Explain, ELI5, Analogy, Quiz, Debate, Summary",      icon:"smart_toy"},
+  {n:"02",title:"Practice & Flashcards",  desc:"AI-generated questions and spaced-repetition from your materials",   icon:"style"},
+  {n:"03",title:"Cram Mode",              desc:"Emergency timed session — AI breaks subjects into prioritised topics",icon:"timer"},
+  {n:"04",title:"High Yield Detector",    desc:"Identifies the most testable concepts and drills you instantly",      icon:"trending_up"},
+  {n:"05",title:"Recall Mode",            desc:"Type from memory and get scored — the hardest way to study",          icon:"psychology"},
+  {n:"06",title:"Confidence Calibration", desc:"Sort every concept into Know / Shaky / No idea",                     icon:"tune"},
+  {n:"07",title:"Mistake Journal",        desc:"Log errors with spaced-repetition — overdue items resurface",        icon:"edit_note"},
+  {n:"08",title:"Roadmap Generator",      desc:"Zero-to-mastery plan for any subject, broken into phases",           icon:"map"},
+  {n:"09",title:"Feynman Mode",           desc:"Teach the AI — it pokes holes until you truly understand",           icon:"school"},
+  {n:"10",title:"Source Library",         desc:"Upload PDFs, images, or notes — every tool reads them",              icon:"auto_stories"},
+  {n:"11",title:"Study DNA",              desc:"Your living learner profile — adapts and reveals your patterns",     icon:"biotech"},
+  {n:"12",title:"Focus Timer + Progress", desc:"Built-in Pomodoro with activity tracking and session analytics",     icon:"alarm"},
 ];
 
 const testimonials = [
   {name:"Maria S.",  role:"Nursing Student",      text:"Uploaded my lecture notes and got 200 practice questions instantly. Passed my boards first try.",   stars:5, initials:"MS", color:TEAL},
   {name:"James W.",  role:"Medical Student",       text:"Cram Mode the night before exams is genuinely a lifesaver. It structures everything perfectly.",      stars:5, initials:"JW", color:PURPLE},
-  {name:"Sarah C.",  role:"High School Teacher",   text:"Feynman Mode exposed every gap in my knowledge. Not just for exams /// for truly understanding.",       stars:5, initials:"SC", color:GOLD},
+  {name:"Sarah C.",  role:"High School Teacher",   text:"Feynman Mode exposed every gap in my knowledge. Not just for exams — for truly understanding.",       stars:5, initials:"SC", color:GOLD},
   {name:"Ahmed R.",  role:"Engineering Student",   text:"High Yield Detector told me exactly what to study before finals. Went from a C to an A.",             stars:5, initials:"AR", color:"#4A9EFF"},
   {name:"Priya K.",  role:"Law Student",           text:"The Roadmap Generator broke down contract law into phases I could actually follow. Game changer.",      stars:5, initials:"PK", color:TEAL},
   {name:"Daniel M.", role:"Language Learner",      text:"Spaced repetition flashcards in three languages at once. My vocabulary doubled in two months.",         stars:5, initials:"DM", color:PURPLE},
@@ -279,7 +279,7 @@ const sectionLabel: React.CSSProperties = {
 };
 
 // lerp(a,b,t): moves 'a' toward 'b' by factor 't' each frame.
-// Creates exponential decay /// fast approach, asymptotic settle = "momentum" feel.
+// Creates exponential decay — fast approach, asymptotic settle = "momentum" feel.
 const lerp=(a:number,b:number,t:number)=>a+(b-a)*t;
 
 function useScrollY(){
@@ -300,7 +300,7 @@ function useScrollY(){
         if(delta>0.1){
           rafRef.current=requestAnimationFrame(tick);
         } else {
-          runningRef.current=false; // settle /// stop burning CPU
+          runningRef.current=false; // settle — stop burning CPU
         }
       };
       rafRef.current=requestAnimationFrame(tick);
@@ -346,7 +346,7 @@ function useMouseParallax(){
       rawRef.current={x:(e.clientX/window.innerWidth-0.5)*2,y:(e.clientY/window.innerHeight-0.5)*2};
     };
     window.addEventListener("mousemove",onMove,{passive:true});
-    // t=0.06 /// ~100ms+ trailing lag /// the "gliding to a halt" cinematic feel
+    // t=0.06 — ~100ms+ trailing lag — the "gliding to a halt" cinematic feel
     const tick=()=>{
       smoothRef.current={
         x:lerp(smoothRef.current.x,rawRef.current.x,0.06),
@@ -390,7 +390,7 @@ function loadGSAP(cb: ()=>void){
   });
 }
 
-function useSmoothScroll(){ /* native scroll /// Lenis removed */ }
+function useSmoothScroll(){ /* native scroll — Lenis removed */ }
 
 function useGSAPReveal(
   containerRef: React.RefObject<HTMLElement>,
@@ -784,7 +784,7 @@ function Scene3Flashcard({ progress }: { progress: number }){
     const group = new THREE.Group();
     scene.add(group);
 
-    // Main card /// box geometry
+    // Main card — box geometry
     const cardGeo = new THREE.BoxGeometry(4.2,2.6,0.08);
     const cardMat = new THREE.MeshStandardMaterial({color:0x080d1a, roughness:0.1, metalness:0.9, envMapIntensity:1});
     const card = new THREE.Mesh(cardGeo, cardMat);
@@ -892,9 +892,9 @@ function ThreeDJourneySection(){
   const sceneP    = p < 0.33 ? p/0.33 : p < 0.66 ? (p-0.33)/0.33 : (p-0.66)/0.34;
 
   const scenes = [
-    { label:"01 /// The Universe",  title:"Enter a universe\nbuilt for learning",    sub:"A galaxy of 12 AI tools orbiting one mission /// your breakthrough.", color:TEAL },
-    { label:"02 /// The Network",   title:"Intelligence that\nadapts to you",         sub:"BrainBot learns your gaps. Neural pathways form. You level up.", color:PURPLE },
-    { label:"03 /// The Method",    title:"Study smarter.\nNot longer.",              sub:"Flip between modes /// Recall, Cram, Feynman, High Yield /// in one flow.", color:GOLD },
+    { label:"01 — The Universe",  title:"Enter a universe\nbuilt for learning",    sub:"A galaxy of 12 AI tools orbiting one mission — your breakthrough.", color:TEAL },
+    { label:"02 — The Network",   title:"Intelligence that\nadapts to you",         sub:"BrainBot learns your gaps. Neural pathways form. You level up.", color:PURPLE },
+    { label:"03 — The Method",    title:"Study smarter.\nNot longer.",              sub:"Flip between modes — Recall, Cram, Feynman, High Yield — in one flow.", color:GOLD },
   ];
 
   const cur = scenes[scene];
@@ -907,7 +907,7 @@ function ThreeDJourneySection(){
     <div ref={outerRef} style={{height:"380vh", position:"relative", background:VOID}}>
       <div style={{position:"sticky",top:0,height:"100vh",overflow:"hidden",background:VOID}}>
 
-        {/* Scene canvases /// layered, opacity transitions between them */}
+        {/* Scene canvases — layered, opacity transitions between them */}
         <div style={{position:"absolute",inset:0,opacity:scene===0?1:0,transition:"opacity 0.9s ease"}}>
           <Scene1Galaxy progress={sceneP}/>
         </div>
@@ -938,7 +938,7 @@ function ThreeDJourneySection(){
           </div>
         )}
 
-        {/* HUD overlay /// scene label */}
+        {/* HUD overlay — scene label */}
         <div style={{position:"absolute",top:"32px",left:"40px",zIndex:10,pointerEvents:"none"}}>
           <div style={{...mono,fontSize:"9px",color:"rgba(255,255,255,0.2)",letterSpacing:"0.22em",textTransform:"uppercase"}}>{cur.label}</div>
         </div>
@@ -1079,7 +1079,7 @@ function ClipReveal({children,delay=0}:{children:React.ReactNode;delay?:number})
   return <div ref={ref} style={{clipPath:"inset(0 100% 0 0)",opacity:0}}>{children}</div>;
 }
 
-// SplitText: animates each character in on scroll /// Oryzo signature move
+// SplitText: animates each character in on scroll — Oryzo signature move
 function SplitTextReveal({text,style,delay=0,tag="span"}:{text:string;style?:React.CSSProperties;delay?:number;tag?:string}){
   const ref=useRef<HTMLSpanElement>(null);
   useEffect(()=>{
@@ -1102,7 +1102,7 @@ function SplitTextReveal({text,style,delay=0,tag="span"}:{text:string;style?:Rea
   return(
     <span ref={ref} style={{display:"inline",overflow:"hidden",...style}}>
       {text.split("").map((ch,i)=>(
-        <span key={i} className="char" style={{display:"inline-block",opacity:0,whiteSpace:ch===" "?"pre":"normal"}}>{ch===" "?"�/":ch}</span>
+        <span key={i} className="char" style={{display:"inline-block",opacity:0,whiteSpace:ch===" "?"pre":"normal"}}>{ch===" "?"�/":ch}</span>
       ))}
     </span>
   );
@@ -1130,7 +1130,7 @@ function WordReveal(){
         background:"radial-gradient(ellipse 60% 50% at 50% 50%,rgba(0,196,180,0.04) 0%,transparent 70%)"}}/>
       <div style={{maxWidth:"720px",margin:"0 auto",position:"relative"}}>
         <div style={{...mono,fontSize:"10px",color:"#282e42",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:"36px"}}>
-          /// The Studenius Principle
+          — The Studenius Principle
         </div>
         <p style={{fontSize:"clamp(24px,3.8vw,44px)",fontWeight:300,letterSpacing:"-0.025em",lineHeight:1.35}}>
           {words.map((word,i)=>{
@@ -1305,7 +1305,7 @@ function HorizontalScrollGallery(){
   );
 }
 
-// ///////// Background layers (absolute /// scoped to hero) /////////////////////////////////////////////////////////////////////////////////
+// ///////// Background layers (absolute — scoped to hero) /////////////////////////////////////////////////////////////////////////////////
 function StarFieldContained(){
   const canvasRef=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
@@ -1613,12 +1613,12 @@ function OrbitalRings(){
 function AstronautScene(){
   const {ref,inView}=useInView(0.1);
   const eqs=[
-    {x:48, y:190,label:"E=mc�/",     dur:"24s",delay:"0s"},
+    {x:48, y:190,label:"E=mc�/",     dur:"24s",delay:"0s"},
     {x:398,y:255,label:"///f(x)dx",   dur:"32s",delay:"4s"},
     {x:60, y:370,label:"PV=nRT",    dur:"28s",delay:"8s"},
     {x:390,y:390,label:"F=ma",      dur:"20s",delay:"2s"},
-    {x:80, y:440,label:"�/G=�/H///T�/S",dur:"36s",delay:"11s"},
-    {x:340,y:130,label:"///�/B=�////J",  dur:"42s",delay:"6s"},
+    {x:80, y:440,label:"�/G=�/H///T�/S",dur:"36s",delay:"11s"},
+    {x:340,y:130,label:"///�/B=�////J",  dur:"42s",delay:"6s"},
   ];
   return(
     <div ref={ref} style={{
@@ -1793,8 +1793,8 @@ function _CinematicSection_UNUSED(){
         <div style={{position:"absolute",left:"24px",bottom:"10%",...mono,fontSize:"9px",
           color:"rgba(0,196,180,0.35)",letterSpacing:"0.12em",lineHeight:1.9,
           opacity:p>0.06?0.75:0,transition:"opacity 0.4s"}}>
-          <div>LAT {((p*90)-45).toFixed(2)}�/</div>
-          <div>LON {((p*360)-180).toFixed(2)}�/</div>
+          <div>LAT {((p*90)-45).toFixed(2)}�/</div>
+          <div>LON {((p*360)-180).toFixed(2)}�/</div>
           <div>ALT {Math.round(400+p*1200)} km</div>
         </div>
       </div>
@@ -1888,10 +1888,10 @@ function HeroSection(){
   const showToast=useToast();
 
   // layer(): GPU-composited depth helper.
-  // 'speed'  /// fraction of scrollY applied as Y offset (0.05x=bg, 0.4x=fg).
-  // 'zDepth' /// 0=near/foreground, 1=far/background.
-  //   /// scale:  foreground elements grow slightly as scroll pulls them toward camera.
-  //   /// blur:   far elements soften on scroll, simulating depth-of-field.
+  // 'speed'  — fraction of scrollY applied as Y offset (0.05x=bg, 0.4x=fg).
+  // 'zDepth' — 0=near/foreground, 1=far/background.
+  //   — scale:  foreground elements grow slightly as scroll pulls them toward camera.
+  //   — blur:   far elements soften on scroll, simulating depth-of-field.
   const layer=(
     mouseFactor:number,
     speed=0,
@@ -1911,15 +1911,15 @@ function HeroSection(){
 
   return(
     <section style={{padding:"110px 32px 120px",maxWidth:"720px",margin:"0 auto",width:"100%",position:"relative",zIndex:2}}>
-      {/* Parallax depth layers /// each on a distinct Z plane */}
+      {/* Parallax depth layers — each on a distinct Z plane */}
       <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
-        {/* Deep background nebula /// slowest scroll (0.05x), heavy blur = far plane */}
+        {/* Deep background nebula — slowest scroll (0.05x), heavy blur = far plane */}
         <div style={layer(5,0.05,0.9,{position:"absolute",right:"-80px",top:"20px",width:"320px",height:"320px",borderRadius:"50%",
           background:"radial-gradient(ellipse,rgba(123,94,167,0.055) 0%,transparent 70%)"})}/>
-        {/* Mid-ground ring /// 0.18x scroll */}
+        {/* Mid-ground ring — 0.18x scroll */}
         <div style={layer(12,0.18,0.5,{position:"absolute",right:"-20px",top:"80px",width:"160px",height:"160px",borderRadius:"50%",
           border:"0.5px solid rgba(0,196,180,0.055)"})}/>
-        {/* Foreground dots /// each at a distinct speed for genuine depth stagger */}
+        {/* Foreground dots — each at a distinct speed for genuine depth stagger */}
         {[
           {sz:3,r:110,t:90, mf:15,speed:0.38,zDepth:0.1},
           {sz:2,r:155,t:135,mf:22,speed:0.28,zDepth:0.2},
@@ -1933,7 +1933,7 @@ function HeroSection(){
             background:i%2===0?TEAL:GOLD,opacity:0.3,
           }}/>
         ))}
-        {/* Foreground text column /// fastest scroll (0.4x), closest plane, zero blur */}
+        {/* Foreground text column — fastest scroll (0.4x), closest plane, zero blur */}
         <div style={layer(19,0.4,0,{position:"absolute",right:"30px",top:"40px",...mono,fontSize:"9px",
           color:"rgba(0,196,180,0.12)",letterSpacing:"0.14em",lineHeight:2.4,textTransform:"uppercase",whiteSpace:"nowrap"})}>
           {["recall","understand","retain","master","grow"].map((w,i)=><div key={i}>{w}</div>)}
@@ -1951,7 +1951,7 @@ function HeroSection(){
         </span>
       </h1>
       <p style={{fontSize:"15px",color:"#555",maxWidth:"480px",marginBottom:"36px",lineHeight:1.78,fontWeight:300,animation:"hero-enter 1.4s ease 0.47s both"}}>
-        12 AI-powered study tools in one platform /// flashcards, cram mode, tutor, recall, confidence tracking and more. Built for students who demand results.
+        12 AI-powered study tools in one platform — flashcards, cram mode, tutor, recall, confidence tracking and more. Built for students who demand results.
       </p>
       <div style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap",animation:"hero-enter 1.4s ease 0.63s both"}}>
         <Link to="/signup">
@@ -1971,10 +1971,10 @@ function HeroSection(){
         </Link>
       </div>
       <p style={{...mono,fontSize:"10px",color:"#1e2a44",marginTop:"18px",letterSpacing:"0.06em",animation:"hero-enter 1.4s ease 0.79s both"}}>
-        No credit card required �/ Free plan always available
+        No credit card required �/ Free plan always available
       </p>
 
-      {/* Scroll indicator /// fades out once user scrolls */}
+      {/* Scroll indicator — fades out once user scrolls */}
       <div style={{
         position:"absolute",bottom:"-48px",left:"50%",transform:"translateX(-50%)",
         display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",
@@ -2048,7 +2048,7 @@ function ChatDemo(){
         </div>
         <div style={{borderLeft:`0.5px solid ${TEAL}`,paddingLeft:"14px",marginBottom:"16px"}}>
           <p style={{fontSize:"12px",color:"#666",lineHeight:1.65,fontWeight:300}}>
-            Try the acronym <strong style={{color:"#E0E8F0",fontWeight:500}}>PCISSFM</strong>: Pyruvate /// Citrate /// Isocitrate /// Succinate /// Succinyl /// Fumarate /// Malate. Make a silly sentence and it'll stick.
+            Try the acronym <strong style={{color:"#E0E8F0",fontWeight:500}}>PCISSFM</strong>: Pyruvate — Citrate — Isocitrate — Succinate — Succinyl — Fumarate — Malate. Make a silly sentence and it'll stick.
           </p>
         </div>
         <div style={{borderTop:"0.5px solid #0d1220",paddingTop:"14px",display:"flex",gap:"8px"}}>
@@ -2064,7 +2064,7 @@ function ChatDemo(){
 function FloatingObjectsSection(){
   const ref=useRef<HTMLDivElement>(null);
   const rawP=useRef(0);      // raw [0-1] scroll progress, updated instantly
-  const smoothP=useRef(0);   // lerped output /// trails behind rawP
+  const smoothP=useRef(0);   // lerped output — trails behind rawP
   const rafRef=useRef<number>(0);
   const [p,setP]=useState(0);
   const {ref:inRef,inView}=useInView(0.1);
@@ -2076,7 +2076,7 @@ function FloatingObjectsSection(){
     };
     window.addEventListener("scroll",onScroll,{passive:true});
     onScroll();
-    // t=0.07 /// SVGs glide to a halt rather than hard-stop
+    // t=0.07 — SVGs glide to a halt rather than hard-stop
     const tick=()=>{
       smoothP.current=lerp(smoothP.current,rawP.current,0.07);
       setP(smoothP.current);
@@ -2086,11 +2086,11 @@ function FloatingObjectsSection(){
     return ()=>{window.removeEventListener("scroll",onScroll);cancelAnimationFrame(rafRef.current);};
   },[]);
 
-  // Each SVG moves at a distinct fraction of max travel /// genuine Z-depth stagger:
-  //   circle  0.12x /// slowest, background plane
-  //   diamond 0.22x /// mid-ground (original speed)
-  //   cross   0.30x /// closer mid-ground
-  //   hex     0.18x /// mid-background
+  // Each SVG moves at a distinct fraction of max travel — genuine Z-depth stagger:
+  //   circle  0.12x — slowest, background plane
+  //   diamond 0.22x — mid-ground (original speed)
+  //   cross   0.30x — closer mid-ground
+  //   hex     0.18x — mid-background
   const circleY =-p*110*0.12/0.22;
   const diamondY=-p*55;
   const crossY  =-p*170*0.30/0.22;
@@ -2102,21 +2102,21 @@ function FloatingObjectsSection(){
         <div style={{position:"absolute",top:"38%",left:"-5%",width:"160px",height:"1px",background:`linear-gradient(90deg,transparent,${TEAL},transparent)`,opacity:0.15,animation:"beam-sweep 10s ease-in-out infinite"}}/>
         <div style={{position:"absolute",top:"65%",left:"-5%",width:"100px",height:"1px",background:`linear-gradient(90deg,transparent,${GOLD},transparent)`,opacity:0.12,animation:"beam-sweep 15s ease-in-out 5s infinite"}}/>
       </div>
-      {/* Circle /// slowest, background plane */}
+      {/* Circle — slowest, background plane */}
       <div style={{position:"absolute",left:"7%",top:"12%",transform:`translate3d(0,${circleY}px,0)`,willChange:"transform",animation:"float-a 7s ease-in-out infinite"}}>
         <svg width="88" height="88" viewBox="0 0 88 88" style={{opacity:0.18}}><circle cx="44" cy="44" r="40" fill="none" stroke={TEAL} strokeWidth="0.8"/><circle cx="44" cy="44" r="26" fill="none" stroke={TEAL} strokeWidth="0.5" strokeDasharray="4 6"/><circle cx="44" cy="44" r="3" fill={TEAL} opacity="0.5"/></svg>
       </div>
-      {/* Diamond /// mid-ground */}
+      {/* Diamond — mid-ground */}
       <div style={{position:"absolute",right:"10%",top:"8%",transform:`translate3d(0,${diamondY}px,0)`,willChange:"transform",animation:"float-b 10s ease-in-out 1.5s infinite"}}>
         <svg width="58" height="58" viewBox="0 0 58 58" style={{opacity:0.14}}><polygon points="29,2 56,29 29,56 2,29" fill="none" stroke={GOLD} strokeWidth="0.8"/><circle cx="29" cy="29" r="4" fill={GOLD} opacity="0.4"/></svg>
       </div>
-      {/* Cross /// foreground, fastest */}
+      {/* Cross — foreground, fastest */}
       <div style={{position:"absolute",left:"20%",bottom:"18%",transform:`translate3d(0,${crossY}px,0)`,willChange:"transform"}}>
         <div style={{animation:"spin-slow 22s linear infinite",opacity:0.1}}>
           <svg width="68" height="68" viewBox="0 0 68 68"><line x1="34" y1="0" x2="34" y2="68" stroke={PURPLE} strokeWidth="0.6"/><line x1="0" y1="34" x2="68" y2="34" stroke={PURPLE} strokeWidth="0.6"/><circle cx="34" cy="34" r="28" fill="none" stroke={PURPLE} strokeWidth="0.5"/></svg>
         </div>
       </div>
-      {/* Hex /// mid-background */}
+      {/* Hex — mid-background */}
       <div style={{position:"absolute",right:"22%",bottom:"12%",transform:`translate3d(0,${hexY}px,0)`,willChange:"transform"}}>
         <div style={{animation:"spin-rev 30s linear infinite",opacity:0.11}}>
           <svg width="76" height="76" viewBox="0 0 76 76"><polygon points="38,4 70,21 70,55 38,72 6,55 6,21" fill="none" stroke={TEAL} strokeWidth="0.7"/></svg>
@@ -2128,7 +2128,7 @@ function FloatingObjectsSection(){
       <div ref={inRef} style={{position:"relative",zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"500px",padding:"60px 32px",textAlign:"center"}}>
         <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:"20px",transition:"all 0.8s ease",opacity:inView?0.7:0,transform:inView?"translateY(0)":"translateY(20px)"}}>/// Built Different</div>
         <h2 style={{fontSize:"clamp(24px,3.5vw,44px)",fontWeight:300,letterSpacing:"-0.03em",color:"#F2F5F8",maxWidth:"560px",lineHeight:1.2,marginBottom:"16px",transition:"all 0.9s ease 0.1s",opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(30px)"}}>Every tool moves<br/>with your progress</h2>
-        <p style={{fontSize:"13px",color:"#444",maxWidth:"360px",lineHeight:1.7,fontWeight:300,transition:"all 1s ease 0.2s",opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(20px)"}}>Studenius adapts in real time /// your Study DNA updates every session.</p>
+        <p style={{fontSize:"13px",color:"#444",maxWidth:"360px",lineHeight:1.7,fontWeight:300,transition:"all 1s ease 0.2s",opacity:inView?1:0,transform:inView?"translateY(0)":"translateY(20px)"}}>Studenius adapts in real time — your Study DNA updates every session.</p>
       </div>
     </div>
   );
@@ -2609,7 +2609,7 @@ function SceneAsteroid(){
 function ThreeDShowcaseSection(){
   const items=[
     {label:"BrainBot AI",desc:"Ask anything. Get taught, quizzed, or challenged.",scene:<SceneBrain/>,color:TEAL},
-    {label:"Study DNA",desc:"Your living learner profile /// adapts every session.",scene:<SceneDNA/>,color:PURPLE},
+    {label:"Study DNA",desc:"Your living learner profile — adapts every session.",scene:<SceneDNA/>,color:PURPLE},
     {label:"Knowledge Crystals",desc:"Hard facts forged into long-term memory.",scene:<SceneCrystal/>,color:GOLD},
   ];
   return(
@@ -2653,7 +2653,7 @@ function SpaceObjectsSection(){
               Every student is a<br/><span style={{color:TEAL}}>satellite in orbit</span>
             </h2>
             <p style={{fontSize:"13px",color:"#444",lineHeight:1.75,fontWeight:300,marginBottom:"24px"}}>
-              You're not just studying. You're navigating a knowledge universe. Studenius is mission control /// tracking your trajectory, closing the gaps, plotting your path to mastery.
+              You're not just studying. You're navigating a knowledge universe. Studenius is mission control — tracking your trajectory, closing the gaps, plotting your path to mastery.
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
               {["Adaptive difficulty per session","Real-time gap detection","12 tools in one orbit"].map((t,i)=>(
@@ -2684,10 +2684,10 @@ function SpaceObjectsSection(){
 // ///////// HOW IT WORKS SECTION ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function HowItWorksSection(){
   const steps=[
-    {n:"01",title:"Upload your materials",desc:"Drop in PDFs, images, lecture notes /// any format. Studenius reads everything.",icon:"////",color:TEAL},
-    {n:"02",title:"AI analyzes your gaps",desc:"BrainBot maps what you know, what's shaky, and what's missing. Your Study DNA forms.",icon:"////",color:PURPLE},
-    {n:"03",title:"Study with 12 AI tools",desc:"Flashcards, Cram Mode, Feynman Method, Recall, High Yield /// use any tool any time.",icon:"///",color:GOLD},
-    {n:"04",title:"Track and adapt",desc:"Your confidence calibration updates in real time. The platform learns as you do.",icon:"////",color:"#4A9EFF"},
+    {n:"01",title:"Upload your materials",desc:"Drop in PDFs, images, lecture notes — any format. Studenius reads everything.",icon:"star",color:TEAL},
+    {n:"02",title:"AI analyzes your gaps",desc:"BrainBot maps what you know, what's shaky, and what's missing. Your Study DNA forms.",icon:"star",color:PURPLE},
+    {n:"03",title:"Study with 12 AI tools",desc:"Flashcards, Cram Mode, Feynman Method, Recall, High Yield — use any tool any time.",icon:"star",color:GOLD},
+    {n:"04",title:"Track and adapt",desc:"Your confidence calibration updates in real time. The platform learns as you do.",icon:"star",color:"#4A9EFF"},
   ];
   return(
     <div style={{background:"#05080f",padding:"100px 0",position:"relative",zIndex:2}}>
@@ -2802,7 +2802,7 @@ function PricingSection(){
         </div>
         <ClipReveal delay={0.2}>
           <p style={{textAlign:"center",fontSize:"11px",color:"#1e2838",marginTop:"32px",...mono,letterSpacing:"0.06em"}}>
-            All plans include 14-day free trial �/ No credit card required
+            All plans include 14-day free trial �/ No credit card required
           </p>
         </ClipReveal>
       </div>
@@ -2812,12 +2812,12 @@ function PricingSection(){
 
 // ///////// FAQ SECTION ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const faqData=[
-  {q:"How is Studenius different from ChatGPT?",a:"ChatGPT is a general chatbot. Studenius is purpose-built for learning /// with spaced repetition, recall testing, session analytics, Study DNA, and 12 tools designed specifically to make knowledge stick."},
+  {q:"How is Studenius different from ChatGPT?",a:"ChatGPT is a general chatbot. Studenius is purpose-built for learning — with spaced repetition, recall testing, session analytics, Study DNA, and 12 tools designed specifically to make knowledge stick."},
   {q:"Can I upload my own study materials?",a:"Yes. Upload PDFs, images, screenshots, or paste text. BrainBot and all tools will read your materials and generate content directly from them."},
   {q:"What is Cram Mode?",a:"Cram Mode is an emergency study session where AI breaks down your subject into prioritized topics based on what's most testable, then drills you in a timed format. Perfect for the night before an exam."},
-  {q:"What is Study DNA?",a:"Study DNA is your living learner profile /// it tracks your strengths, weaknesses, learning pace, and mistake patterns. It updates every session and shapes how all tools interact with you."},
+  {q:"What is Study DNA?",a:"Study DNA is your living learner profile — it tracks your strengths, weaknesses, learning pace, and mistake patterns. It updates every session and shapes how all tools interact with you."},
   {q:"Is there a free plan?",a:"Yes, there's a free plan with access to core features and limited usage. No credit card required to sign up."},
-  {q:"Does it work for any subject?",a:"Yes. Medicine, law, engineering, languages, finance, programming /// if you can upload or describe the content, Studenius can help you master it."},
+  {q:"Does it work for any subject?",a:"Yes. Medicine, law, engineering, languages, finance, programming — if you can upload or describe the content, Studenius can help you master it."},
 ];
 
 function FAQSection(){
@@ -3106,14 +3106,14 @@ function RocketTelescopeSection(){
             <div style={{height:"360px",position:"relative"}}><SceneRocket/></div>
             <div style={{padding:"24px",borderTop:"0.5px solid #0d1220"}}>
               <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.12em",marginBottom:"8px",textTransform:"uppercase"}}>Cram Mode</div>
-              <p style={{fontSize:"13px",color:"#555",fontWeight:300,lineHeight:1.6}}>Emergency study sessions that launch you from zero to ready /// fast as a rocket at liftoff.</p>
+              <p style={{fontSize:"13px",color:"#555",fontWeight:300,lineHeight:1.6}}>Emergency study sessions that launch you from zero to ready — fast as a rocket at liftoff.</p>
             </div>
           </div>
           <div style={{background:"#160810"}}>
             <div style={{height:"360px",position:"relative"}}><SceneTelescope/></div>
             <div style={{padding:"24px",borderTop:"0.5px solid #0d1220"}}>
               <div style={{...mono,fontSize:"10px",color:GOLD,letterSpacing:"0.12em",marginBottom:"8px",textTransform:"uppercase"}}>Roadmap Generator</div>
-              <p style={{fontSize:"13px",color:"#555",fontWeight:300,lineHeight:1.6}}>Point at any subject and Studenius maps the path /// zero to mastery, broken into focused phases.</p>
+              <p style={{fontSize:"13px",color:"#555",fontWeight:300,lineHeight:1.6}}>Point at any subject and Studenius maps the path — zero to mastery, broken into focused phases.</p>
             </div>
           </div>
         </div>
@@ -3149,7 +3149,7 @@ function SceneAstronaut(){
     const hring=new THREE.Mesh(new THREE.TorusGeometry(0.58,0.04,8,32),new THREE.MeshStandardMaterial({color:0x888ea0,roughness:0.3,metalness:0.9}));
     hring.position.y=1.1;group.add(hring);
 
-    // Torso /// bulky suit
+    // Torso — bulky suit
     const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.52,0.46,1.1,16),suitMat);
     torso.position.y=0.35;group.add(torso);
     // PLSS backpack
@@ -3419,7 +3419,7 @@ function AstronautSection(){
               You're the astronaut.<br/><span style={{color:TEAL}}>We're mission control.</span>
             </h2>
             <p style={{fontSize:"13px",color:"#444",lineHeight:1.75,fontWeight:300,marginBottom:"28px"}}>
-              Studenius tracks your trajectory through any subject. No matter how vast the knowledge space /// we map it, break it down, and navigate it with you in real time.
+              Studenius tracks your trajectory through any subject. No matter how vast the knowledge space — we map it, break it down, and navigate it with you in real time.
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {["Zero to orbit in any subject","Real-time position tracking","Mission briefings before every exam"].map((txt,i)=>(
@@ -3456,7 +3456,7 @@ function ProductShowcaseSection(){
             <div style={{height:"340px",position:"relative"}}><SceneLaptop/></div>
             <div style={{padding:"24px",borderTop:"0.5px solid #0d1220"}}>
               <div style={{...mono,fontSize:"10px",color:TEAL,letterSpacing:"0.12em",marginBottom:"8px",textTransform:"uppercase"}}>Dashboard</div>
-              <p style={{fontSize:"13px",color:"#555",fontWeight:300,lineHeight:1.6}}>Your full study command center /// sessions, progress, DNA profile, all tools /// in one clean interface.</p>
+              <p style={{fontSize:"13px",color:"#555",fontWeight:300,lineHeight:1.6}}>Your full study command center — sessions, progress, DNA profile, all tools — in one clean interface.</p>
             </div>
           </div>
           <div style={{background:"#05080f"}}>
@@ -3515,7 +3515,7 @@ function NewsletterBar(){
         <p style={{fontSize:"12px",color:"#444",marginBottom:"24px",fontWeight:300}}>No spam. Just the best AI study techniques, feature drops, and student wins.</p>
         {sent?(
           <div style={{...mono,fontSize:"11px",color:TEAL,letterSpacing:"0.08em",padding:"12px",border:`0.5px solid ${TEAL}`,background:"rgba(0,196,180,0.05)"}}>
-            /// You're in! We'll be in touch.
+            — You're in! We'll be in touch.
           </div>
         ):(
           <div style={{display:"flex",maxWidth:420,margin:"0 auto",flexWrap:"wrap",gap:8}}>
@@ -3536,7 +3536,7 @@ function NewsletterBar(){
           </div>
         )}
         {err&&<div style={{...mono,fontSize:"10px",color:"#e05050",marginTop:8,letterSpacing:"0.04em"}}>Please enter a valid email</div>}
-        <div style={{...mono,fontSize:"9px",color:"#1e2838",marginTop:12,letterSpacing:"0.06em"}}>Free forever plan available �/ No credit card</div>
+        <div style={{...mono,fontSize:"9px",color:"#1e2838",marginTop:12,letterSpacing:"0.06em"}}>Free forever plan available �/ No credit card</div>
       </div>
     </div>
   );
@@ -3621,7 +3621,7 @@ export default function Landing(){
   },[]);
 
   return(<ToastCtx.Provider value={showToast}>
-    {/* Loading screen /// outside PageFade so it renders immediately without fade delay */}
+    {/* Loading screen — outside PageFade so it renders immediately without fade delay */}
     {!loaded&&<LoadingScreen onDone={()=>setLoaded(true)}/>}
 
     <PageFade>
@@ -3685,11 +3685,11 @@ export default function Landing(){
 
       {/* ////// HERO SECTION with scoped space background ////// */}
       <div style={{position:"relative",overflow:"hidden",background:VOID,zIndex:2,isolation:"isolate"}}>
-        {/* Three.js hero galaxy /// full bleed behind everything */}
+        {/* Three.js hero galaxy — full bleed behind everything */}
         <div style={{position:"absolute",inset:0,zIndex:0,pointerEvents:"none"}}>
           <HeroGalaxy/>
         </div>
-        {/* Legacy space bg layers /// subtle overlay */}
+        {/* Legacy space bg layers — subtle overlay */}
         <div style={{position:"absolute",inset:0,zIndex:1,pointerEvents:"none",overflow:"hidden",opacity:0.5}}>
           <NebulaLayer/>
           <BinaryRain/>
@@ -3707,7 +3707,7 @@ export default function Landing(){
         <ThreeDJourneySection/>
       </div>
 
-      {/* E: Stats strip /// single source of truth */}
+      {/* E: Stats strip — single source of truth */}
       <div style={hairline}/>
       <div style={{background:"rgba(4,6,14,0.96)",borderBottom:"0.5px solid #0d1220",position:"relative",zIndex:2,overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 80% 100% at 50% 50%,rgba(0,196,180,0.03) 0%,transparent 70%)",pointerEvents:"none"}}/>
@@ -3755,7 +3755,7 @@ export default function Landing(){
         {/* F: Horizontal scroll */}
         <HorizontalScrollGallery/>
 
-        {/* 3D Showcase /// Brain, DNA, Crystal */}
+        {/* 3D Showcase — Brain, DNA, Crystal */}
         <div id="showcase">
           <ThreeDShowcaseSection/>
         </div>
@@ -3774,7 +3774,7 @@ export default function Landing(){
 
         <div style={hairline}/>
 
-        {/* Space Objects /// Satellite + Asteroid */}
+        {/* Space Objects — Satellite + Asteroid */}
         <SpaceObjectsSection/>
 
         <div style={hairline}/>
@@ -3889,7 +3889,7 @@ export default function Landing(){
             <h3 style={{fontSize:"clamp(16px,2.5vw,22px)",fontWeight:300,color:"#E0E8F0",marginBottom:8,letterSpacing:"-0.02em"}}>
               Studenius on iOS & Android
             </h3>
-            <p style={{fontSize:"12px",color:"#333",marginBottom:24,fontWeight:300}}>Study on the go. Same 12 tools, same Study DNA /// in your pocket.</p>
+            <p style={{fontSize:"12px",color:"#333",marginBottom:24,fontWeight:300}}>Study on the go. Same 12 tools, same Study DNA — in your pocket.</p>
             <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
               {["App Store","Google Play"].map((store,i)=>(
                 <button key={i}
@@ -3941,7 +3941,7 @@ export default function Landing(){
             </div>
           </div>
           <div style={{borderTop:"0.5px solid #0d1220",maxWidth:"1100px",margin:"0 auto",padding:"16px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-            <span style={{...mono,fontSize:"10px",color:"#64748b",letterSpacing:"0.06em"}}>STUDENIUS �/ {new Date().getFullYear()}</span>
+            <span style={{...mono,fontSize:"10px",color:"#64748b",letterSpacing:"0.06em"}}>STUDENIUS �/ {new Date().getFullYear()}</span>
             <div style={{display:"flex",gap:16,alignItems:"center"}}>
               <Link to="/privacy" style={{...mono,fontSize:"11px",color:"#a0aec0",letterSpacing:"0.06em",textDecoration:"none",fontWeight:600}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#f0a040")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#a0aec0")}>Privacy Policy</Link>
               <Link to="/terms" style={{...mono,fontSize:"11px",color:"#a0aec0",letterSpacing:"0.06em",textDecoration:"none",fontWeight:600}} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="#f0a040")} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="#a0aec0")}>Terms</Link>

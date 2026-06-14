@@ -121,7 +121,7 @@ export default function GoProPricing() {
               <h3 className="text-headline-lg font-headline font-extrabold mb-1.5 text-[21px]">Studenius VIP</h3>
               <div className="flex items-baseline gap-1">
                 <span className="text-[32px] font-extrabold">
-                  {billingCycle === "Monthly" ? "///199" : "///1,499"}
+                  {billingCycle === "Monthly" ? "₱199" : "₱1,499"}
                 </span>
                 <span className="text-[14px] opacity-85 font-semibold">
                   {billingCycle === "Monthly" ? "/month" : "/year"}
@@ -154,7 +154,7 @@ export default function GoProPricing() {
             <div className="mb-3">
               <h3 className="text-headline-md font-bold text-neutral-500 mb-1 text-[17px]">Standard Plan</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-[23px] font-extrabold">///0</span>
+                <span className="text-[23px] font-extrabold">₱0</span>
                 <span className="text-[13px] text-zinc-500 font-bold">/month</span>
               </div>
             </div>

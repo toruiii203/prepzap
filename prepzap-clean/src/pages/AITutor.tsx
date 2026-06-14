@@ -351,7 +351,7 @@ export default function AITutor() {
                 <div className="h-3 w-full bg-[#E8E4DC] border-2 border-black rounded-full overflow-hidden">
                   <div className="h-full bg-black w-[85%]" />
                 </div>
-                <p className="mt-2 text-[11px] font-bold text-black/50">85% to Next Milestone (Top 5% Student)</p>
+                <p className="mt-2 text-[11px] font-bold text-black/50">Keep asking Rex to deepen your understanding</p>
               </div>
             </div>
 
