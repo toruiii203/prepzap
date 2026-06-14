@@ -36,6 +36,24 @@ export default function ArenaRoom() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [chatMsg, setChatMsg] = useState("");
   const [chatLog, setChatLog] = useState<{ name: string; text: string; isMe: boolean }[]>([]);
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+
+  const shareInvite = () => {
+    const url = `${window.location.origin}/invite/${room?.code}`;
+    if (navigator.share) {
+      navigator.share({ title: `Join "${room?.room_name}" on Studenius Arena!`, url });
+    } else {
+      navigator.clipboard.writeText(url);
+      setCopied("link");
+      setTimeout(() => setCopied(null), 2000);
+    }
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(room?.code ?? "");
+    setCopied("code");
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   const fetchRoom = useCallback(async () => {
     if (!code) return;
@@ -255,9 +273,16 @@ export default function ArenaRoom() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-mono font-black text-[18px] border-2 border-black px-3 py-1.5 bg-[#f5f0e8] tracking-widest shadow-[2px_2px_0px_0px_#000]">{room.code}</span>
-                <button onClick={() => navigator.clipboard.writeText(room.code)}
-                  className="border-2 border-black p-2 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none">
-                  <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                <button onClick={copyCode}
+                  className="border-2 border-black p-2 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                  title="Copy code">
+                  <span className="material-symbols-outlined text-[18px]">{copied === "code" ? "check" : "content_copy"}</span>
+                </button>
+                <button onClick={shareInvite}
+                  className="border-2 border-black px-3 py-2 bg-[#f0a040] font-bold text-[12px] flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                  title="Share invite link">
+                  <span className="material-symbols-outlined text-[16px]">{copied === "link" ? "check" : "share"}</span>
+                  {copied === "link" ? "Copied!" : "Invite"}
                 </button>
               </div>
             </div>
