@@ -239,9 +239,10 @@ Each object MUST match this schema exactly:
         supabase.from("profiles").update({
           total_xp: (profile.total_xp || profile.xp || 0) + xpAwarded,
           coins:    (profile.coins || 0) + coinsAwarded,
-        }).eq("id", user.id).then(() => {
+        }).eq("id", user.id).then(({ error }: { error: unknown }) => {
+          if (error) console.error(error);
           if (typeof refreshProfile === "function") refreshProfile();
-        }).catch(console.error);
+        });
       }
       saveHistory({
         prompt:  questions.map(q => q.q).join(" | ").slice(0, 120),
