@@ -436,6 +436,7 @@ Each object MUST match this schema exactly:
               </button>
             </div>
           </div>
+          </div>
         )}
       </div>
 
