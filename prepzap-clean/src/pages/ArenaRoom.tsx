@@ -14,7 +14,6 @@ interface ExamRoom {
   time_limit: number;
   status: string;
   host_id: string;
-  is_public: boolean;
 }
 
 interface Player {
@@ -35,7 +34,6 @@ export default function ArenaRoom() {
   const [isHost, setIsHost] = useState(false);
   const [starting, setStarting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
   const [chatMsg, setChatMsg] = useState("");
   const [chatLog, setChatLog] = useState<{ name: string; text: string; isMe: boolean }[]>([]);
 
@@ -87,35 +85,6 @@ export default function ArenaRoom() {
       });
     return () => { supabase.removeChannel(channel); };
   }, [room, user, code, navigate, myStatus, fetchPlayers]);
-
-  const copyCode = () => {
-    navigator.clipboard.writeText(room!.code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const inviteUrl = `${window.location.origin}/invite/${room?.code}`;
-
-  const shareInvite = async () => {
-    const text = `🎮 You're invited to join "${room?.room_name}" on Studenius!\n\nRoom Code: ${room?.code}\n📚 Topic: ${room?.topic}\n⚡ ${room?.question_count} questions · ${room?.time_limit} min · ${room?.difficulty}\n\nJoin here 👉 ${inviteUrl}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Join ${room?.room_name} on Studenius`, text, url: inviteUrl });
-        return;
-      } catch (_) {}
-    }
-    // Fallback: copy to clipboard
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const copyInviteText = () => {
-    const text = `🎮 You're invited to join "${room?.room_name}" on Studenius!\n\nRoom Code: ${room?.code}\n📚 Topic: ${room?.topic}\n⚡ ${room?.question_count} questions · ${room?.time_limit} min · ${room?.difficulty}\n\nJoin here 👉 ${inviteUrl}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const sendChat = async () => {
     if (!chatMsg.trim() || !room || !user) return;
@@ -171,7 +140,7 @@ export default function ArenaRoom() {
             {playerIsHost && (
               <span className="absolute -top-2.5 -right-2.5 bg-[#f0a040] border-2 border-black text-[9px] font-black px-1.5 py-0.5">HOST</span>
             )}
-            <div className={`w-11 h-11 border-2 border-black flex items-center justify-center font-black text-[16px] ${isMe ? "bg-black text-white" : "bg-[#f5f0e8]"}`}>
+            <div className={`w-11 h-11 rounded-full border-2 border-black flex items-center justify-center font-black text-[16px] ${isMe ? "bg-black text-white" : "bg-[#f5f0e8]"}`}>
               {player.display_name.charAt(0).toUpperCase()}
             </div>
             <p className="font-bold text-[13px] text-black truncate w-full text-center">{isMe ? "You" : player.display_name}</p>
@@ -251,40 +220,6 @@ export default function ArenaRoom() {
             <span>{room.question_count}Q</span><span>{room.time_limit}m</span><span className="capitalize">{room.difficulty}</span>
           </div>
         </div>
-        {/* Share panel — mobile */}
-        <div className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-black uppercase tracking-wider text-black/50">Room Code</p>
-            <span className={`text-[10px] font-bold px-2 py-0.5 border border-black/30 flex items-center gap-1 ${room.is_public ? "bg-blue-50 text-blue-700" : "bg-black/5 text-black/50"}`}>
-              <span className="material-symbols-outlined text-[12px]">{room.is_public ? "public" : "lock"}</span>
-              {room.is_public ? "PUBLIC" : "PRIVATE"}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <div className="flex-1 font-mono font-black text-[22px] text-center border-2 border-black px-4 py-2 bg-[#f5f0e8] tracking-widest shadow-[2px_2px_0px_0px_#000]">
-              {room.code}
-            </div>
-            <button onClick={copyCode}
-              className={`border-2 border-black px-3 flex items-center gap-1.5 font-bold text-[12px] shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ${copied ? "bg-[#f0a040]" : "bg-white"}`}>
-              <span className="material-symbols-outlined text-[16px]">{copied ? "check" : "content_copy"}</span>
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
-          {/* Invite buttons */}
-          <div className="flex gap-2">
-            <button onClick={shareInvite}
-              className="flex-1 flex items-center justify-center gap-2 bg-black text-white border-2 border-black py-2.5 text-[12px] font-extrabold shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
-              <span className="material-symbols-outlined text-[16px]">share</span>
-              Share Invite
-            </button>
-            <button onClick={copyInviteText}
-              className={`flex items-center justify-center gap-1.5 border-2 border-black px-4 py-2.5 text-[12px] font-bold shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ${copied ? "bg-[#f0a040]" : "bg-white"}`}>
-              <span className="material-symbols-outlined text-[16px]">{copied ? "check" : "content_copy"}</span>
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
-        </div>
-
         <div>
           <p className="font-black text-[12px] uppercase tracking-wider text-black/50 mb-2">Players ({players.length}) · {readyCount}/{players.length} ready</p>
           <PlayerGrid />
@@ -318,31 +253,12 @@ export default function ArenaRoom() {
                   <span className="capitalize">{room.difficulty}</span>
                 </p>
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-2 py-1 border border-black/30 flex items-center gap-1 ${room.is_public ? "bg-blue-50 text-blue-700" : "bg-black/5 text-black/50"}`}>
-                    <span className="material-symbols-outlined text-[12px]">{room.is_public ? "public" : "lock"}</span>
-                    {room.is_public ? "PUBLIC" : "PRIVATE"}
-                  </span>
-                  <span className="font-mono font-black text-[18px] border-2 border-black px-3 py-1.5 bg-[#f5f0e8] tracking-widest shadow-[2px_2px_0px_0px_#000]">{room.code}</span>
-                  <button onClick={copyCode}
-                    className={`border-2 border-black p-2 shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ${copied ? "bg-[#f0a040]" : "bg-white"}`}
-                    title="Copy code">
-                    <span className="material-symbols-outlined text-[18px]">{copied ? "check" : "content_copy"}</span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={shareInvite}
-                    className="flex items-center gap-1.5 bg-black text-white border-2 border-black px-3 py-1.5 text-[11px] font-extrabold shadow-[2px_2px_0px_0px_#f0a040] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
-                    <span className="material-symbols-outlined text-[14px]">share</span>
-                    Share Invite
-                  </button>
-                  <button onClick={copyInviteText}
-                    className={`flex items-center gap-1.5 border-2 border-black px-3 py-1.5 text-[11px] font-extrabold shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ${copied ? "bg-[#f0a040]" : "bg-white"}`}>
-                    <span className="material-symbols-outlined text-[14px]">{copied ? "check" : "content_copy"}</span>
-                    {copied ? "Copied!" : "Copy Invite"}
-                  </button>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-black text-[18px] border-2 border-black px-3 py-1.5 bg-[#f5f0e8] tracking-widest shadow-[2px_2px_0px_0px_#000]">{room.code}</span>
+                <button onClick={() => navigator.clipboard.writeText(room.code)}
+                  className="border-2 border-black p-2 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none">
+                  <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                </button>
               </div>
             </div>
           </div>

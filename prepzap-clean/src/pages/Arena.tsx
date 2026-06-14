@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq, safeParseJSON } from "@/lib/groq";
-import { SharedSidebar } from "@/components/SharedSidebar";
-import { loadLibrary } from "@/lib/sourceContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DailyQuiz {
@@ -42,7 +40,6 @@ interface ExamRoom {
   host_id: string;
   deadline: string | null;
   created_at: string;
-  is_public: boolean;
 }
 
 type LeaderboardTab = "today" | "alltime";
@@ -88,13 +85,6 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [error, setError] = useState("");
-  const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
-  const [selectedSource, setSelectedSource] = useState<any>(null);
-  const [showSources, setShowSources] = useState(false);
-
-  useEffect(() => {
-    loadLibrary().then(setLibraryFiles).catch(() => setLibraryFiles([]));
-  }, []);
 
   const handleCreate = async () => {
     if (!roomName.trim() || !topic.trim()) { setError("Room name and topic are required."); return; }
@@ -102,10 +92,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setLoading(true); setError("");
     try {
       setLoadingMsg("Generating questions with AI...");
-      const topicWithSource = selectedSource
-        ? `${topic.trim()}\n\nSource material:\n${selectedSource.content?.slice(0, 2000) || selectedSource.name}`
-        : topic.trim();
-      const questions = await generateQuestions(topicWithSource, questionCount, difficulty);
+      const questions = await generateQuestions(topic.trim(), questionCount, difficulty);
       setLoadingMsg("Creating room...");
       let code = generateCode();
       for (let i = 0; i < 10; i++) {
@@ -132,11 +119,11 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="w-full md:w-[520px] md:max-h-[85vh] bg-[#f5f0e8] md:rounded-none rounded-t-[24px] border-t-[3px] md:border-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col relative"
         style={{ maxHeight: "90dvh" }}>
-        <div className="flex flex-col items-center md:items-start pt-3 pb-3 px-5 border-b-2 border-black sticky top-0 bg-[#f5f0e8] z-10">
+        <div className="flex flex-col items-center md:items-start pt-3 pb-3 px-5 border-b-2 border-black sticky top-0 bg-[#f5f0e8] rounded-t-[24px] md:rounded-none z-10">
           <div className="w-10 h-1 bg-black/20 rounded-full mb-3 md:hidden" />
           <div className="w-full flex justify-between items-center">
             <h2 className="font-bold text-[18px] text-black">Create a Room</h2>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center border-2 border-black bg-white">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-full bg-white">
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
@@ -159,45 +146,6 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <textarea value={topic} onChange={(e) => setTopic(e.target.value)}
               placeholder="Describe the topic or paste your notes..." rows={3}
               className="w-full bg-white border-2 border-black px-3 py-2.5 text-[15px] font-medium placeholder:text-black/30 focus:outline-none shadow-[2px_2px_0px_0px_#000] resize-none" />
-          </div>
-
-          {/* Source Library Sync */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="text-[11px] font-bold uppercase tracking-wider">Sync from Source Library</label>
-              <span className="text-[10px] font-bold text-black/40">Optional</span>
-            </div>
-            {selectedSource ? (
-              <div className="flex items-center gap-3 border-2 border-black bg-[#F0EDE0] px-3 py-2.5 shadow-[2px_2px_0px_0px_#000]">
-                <span className="material-symbols-outlined text-[18px] text-[#ae2925]">description</span>
-                <span className="flex-1 text-[13px] font-bold truncate">{selectedSource.name}</span>
-                <button onClick={() => setSelectedSource(null)} className="material-symbols-outlined text-[16px] text-black/40 hover:text-black">close</button>
-              </div>
-            ) : (
-              <button onClick={() => setShowSources(!showSources)}
-                className="flex items-center gap-2 border-2 border-dashed border-black bg-white px-3 py-2.5 text-[13px] font-bold text-black/50 hover:text-black hover:border-solid transition-all shadow-[2px_2px_0px_0px_#000]">
-                <span className="material-symbols-outlined text-[18px]">folder_open</span>
-                Pick from your Source Library
-              </button>
-            )}
-            {showSources && !selectedSource && (
-              <div className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] max-h-40 overflow-y-auto">
-                {libraryFiles.length === 0 ? (
-                  <div className="p-4 text-center text-[12px] font-bold text-black/40">No files in your Source Library yet.</div>
-                ) : libraryFiles.map((file: any) => (
-                  <button key={file.id}
-                    onClick={() => { setSelectedSource(file); setShowSources(false); if (!topic.trim()) setTopic(file.name.replace(/\.[^.]+$/, "")); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 border-b border-black/10 hover:bg-[#F0EDE0] text-left transition-colors">
-                    <span className="material-symbols-outlined text-[16px]">description</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold truncate">{file.name}</p>
-                      <p className="text-[10px] font-bold text-black/40 uppercase">{file.type || "Document"}</p>
-                    </div>
-                    <span className="material-symbols-outlined text-[14px] text-black/20">add</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Questions + Difficulty side by side on desktop */}
@@ -256,22 +204,15 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </div>
           </div>
 
-          {/* Visibility */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider">Room Visibility</label>
-            <div className="flex border-2 border-black overflow-hidden shadow-[2px_2px_0px_0px_#000]">
-              <button onClick={() => setIsPublic(true)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 text-[13px] font-bold border-r-2 border-black transition-colors ${isPublic ? "bg-black text-white" : "bg-white text-black"}`}>
-                <span className="material-symbols-outlined text-[16px]">public</span>Public
-              </button>
-              <button onClick={() => setIsPublic(false)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 text-[13px] font-bold transition-colors ${!isPublic ? "bg-black text-white" : "bg-white text-black"}`}>
-                <span className="material-symbols-outlined text-[16px]">lock</span>Private
-              </button>
+          <div className="flex items-center justify-between border-2 border-black px-3 py-3 bg-white shadow-[2px_2px_0px_0px_#000]">
+            <div>
+              <p className="font-bold text-[14px] text-black">Public Room</p>
+              <p className="text-[11px] text-black/50 mt-0.5">Visible to everyone in the lobby</p>
             </div>
-            <p className="text-[11px] text-black/40">
-              {isPublic ? "Anyone can see and join this room." : "Only people with the code can join."}
-            </p>
+            <button onClick={() => setIsPublic(p => !p)}
+              className={`w-12 h-6 rounded-full border-2 border-black relative transition-colors ${isPublic ? "bg-[#f0a040]" : "bg-white"}`}>
+              <span className={`absolute top-0.5 w-4 h-4 bg-black rounded-full transition-all ${isPublic ? "left-6" : "left-0.5"}`} />
+            </button>
           </div>
 
           {error && <p className="text-[13px] text-red-600 border-2 border-red-400 px-3 py-2 bg-red-50">{error}</p>}
@@ -333,12 +274,12 @@ function JoinRoomModal({ onClose, onJoined }: { onClose: () => void; onJoined: (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
       style={{ background: "rgba(0,0,0,0.55)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="w-full md:w-[440px] bg-[#f5f0e8] border-t-[3px] md:border-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col">
-        <div className="flex flex-col items-center md:items-start pt-3 pb-3 px-5 border-b-2 border-black ">
+      <div className="w-full md:w-[440px] bg-[#f5f0e8] rounded-t-[24px] md:rounded-none border-t-[3px] md:border-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col">
+        <div className="flex flex-col items-center md:items-start pt-3 pb-3 px-5 border-b-2 border-black rounded-t-[24px] md:rounded-none">
           <div className="w-10 h-1 bg-black/20 rounded-full mb-3 md:hidden" />
           <div className="w-full flex justify-between items-center">
             <h2 className="font-bold text-[18px] text-black">Join a Room</h2>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center border-2 border-black bg-white">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-full bg-white">
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
@@ -445,11 +386,7 @@ export default function Arena() {
         .order("score", { ascending: false }).order("time_taken", { ascending: true }).limit(10);
       if (leaderboardTab === "today") query = query.eq("quiz_date", todayPH());
       const { data } = await query;
-      if (!data || data.length === 0) { setLeaderboard([]); setLoadingLeaderboard(false); return; }
-      const userIds = data.map((r: any) => r.user_id);
-      const { data: profiles } = await supabase.from("profiles").select("id, username, full_name").in("id", userIds);
-      const nameMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p.full_name || p.username || "Student"]));
-      setLeaderboard((data ?? []).map((row: any) => ({ ...row, display_name: nameMap[row.user_id] || "Student" })));
+      setLeaderboard((data ?? []).map((row, i) => ({ ...row, display_name: `Player ${i + 1}` })));
       setLoadingLeaderboard(false);
     };
     load();
@@ -458,11 +395,8 @@ export default function Arena() {
   useEffect(() => {
     const load = async () => {
       setLoadingRooms(true);
-      // Show public rooms OR rooms hosted by the current user
       const { data } = await supabase.from("exam_rooms").select("*")
-        .in("status", ["waiting", "active"])
-        .or(`is_public.eq.true,host_id.eq.${user?.id ?? "00000000-0000-0000-0000-000000000000"}`)
-        .order("created_at", { ascending: false }).limit(20);
+        .in("status", ["waiting", "active"]).order("created_at", { ascending: false }).limit(10);
       setRooms(data ?? []); setLoadingRooms(false);
     };
     load();
@@ -471,15 +405,6 @@ export default function Arena() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
-
-  const shareRoom = async (room: ExamRoom) => {
-    const url = `${window.location.origin}/invite/${room.code}`;
-    const text = `🎮 You're invited to join "${room.room_name}" on Studenius!\n\nRoom Code: ${room.code}\n📚 Topic: ${room.topic}\n⚡ ${room.question_count} questions · ${room.time_limit} min · ${room.difficulty}\n\nJoin here 👉 ${url}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: `Join ${room.room_name} on Studenius`, text, url }); return; } catch (_) {}
-    }
-    navigator.clipboard.writeText(text);
-  };
 
   // ── Shared sub-components ──────────────────────────────────────────────────
   const DailyCard = () => (
@@ -546,7 +471,7 @@ export default function Arena() {
             <div key={entry.user_id + i}
               className={`flex items-center gap-3 px-4 py-3 ${i < leaderboard.length - 1 ? "border-b-2 border-black" : ""} ${isMe ? "bg-[#f0a040]/15" : ""}`}>
               <span className="w-6 text-center font-black text-[14px]">{medal ?? `${i + 1}`}</span>
-              <div className={`w-8 h-8 border-2 border-black flex items-center justify-center font-bold text-[11px] ${isMe ? "bg-black text-white" : "bg-black/10"}`}>
+              <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-bold text-[11px] ${isMe ? "bg-black text-white" : "bg-black/10"}`}>
                 {isMe ? "YOU" : entry.display_name.charAt(0)}
               </div>
               <span className="flex-1 font-bold text-[14px] text-black truncate">{isMe ? "You" : entry.display_name}</span>
@@ -588,20 +513,13 @@ export default function Arena() {
         ) : rooms.map((room) => (
           <div key={room.id} className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] p-3 flex justify-between items-center hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_#000] transition-all">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <div className="flex items-center gap-2 mb-1">
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 border border-black ${room.mode === "live" ? "bg-[#FF4D2E] text-white" : "bg-[#f0a040] text-black"}`}>
                   {room.mode.toUpperCase()}
                 </span>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 border border-black/30 ${room.status === "active" ? "bg-green-100 text-green-800" : "bg-black/5 text-black/50"}`}>
                   {room.status.toUpperCase()}
                 </span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 border border-black/30 flex items-center gap-0.5 ${room.is_public ? "bg-blue-50 text-blue-700" : "bg-black/5 text-black/40"}`}>
-                  <span className="material-symbols-outlined text-[10px]">{room.is_public ? "public" : "lock"}</span>
-                  {room.is_public ? "PUBLIC" : "PRIVATE"}
-                </span>
-                {room.host_id === user?.id && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 border border-black/30 bg-[#f0a040]/30 text-black/60">HOST</span>
-                )}
               </div>
               <h4 className="font-bold text-[14px] text-black truncate">{room.room_name}</h4>
               <p className="text-[11px] text-black/50 mt-0.5 truncate">{room.topic}</p>
@@ -609,17 +527,10 @@ export default function Arena() {
                 <span>{room.question_count}Q</span><span>{room.time_limit}m</span><span className="capitalize">{room.difficulty}</span>
               </div>
             </div>
-            <div className="flex gap-2 ml-3 flex-shrink-0">
-              <button onClick={() => shareRoom(room)}
-                title="Share invite"
-                className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
-                <span className="material-symbols-outlined text-[16px]">share</span>
-              </button>
-              <button onClick={() => navigate(`/arena/room/${room.code}`)}
-                className="w-9 h-9 flex items-center justify-center border-2 border-black bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
-                <span className="material-symbols-outlined text-[18px]">login</span>
-              </button>
-            </div>
+            <button onClick={() => navigate(`/arena/room/${room.code}`)}
+              className="ml-3 w-9 h-9 flex items-center justify-center border-2 border-black bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex-shrink-0">
+              <span className="material-symbols-outlined text-[18px]">login</span>
+            </button>
           </div>
         ))}
       </div>
@@ -627,17 +538,14 @@ export default function Arena() {
   );
 
   return (
-    <div className="flex min-h-[100dvh] bg-[#f5f0e8]">
-      <SharedSidebar active="/arena" />
-
-      <div className="flex flex-col flex-1 md:ml-64">
+    <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
       {/* ── Mobile header ── */}
       <header className="md:hidden sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black px-4 py-3 flex justify-between items-center">
         <div>
           <h1 className="font-black text-[22px] text-black tracking-tight leading-none">Arena</h1>
           <p className="text-[11px] text-black/50 font-medium mt-0.5">Compete. Rank. Win.</p>
         </div>
-        <div className="w-8 h-8 border-2 border-black bg-black/10 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-black bg-black/10 flex items-center justify-center">
           <span className="material-symbols-outlined text-[18px]">person</span>
         </div>
       </header>
@@ -678,8 +586,6 @@ export default function Arena() {
         <div className="col-span-8">
           <RoomsCard />
         </div>
-      </div>
-
       </div>
 
       {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} onCreated={(code) => { setShowCreate(false); navigate(`/arena/room/${code}`); }} />}

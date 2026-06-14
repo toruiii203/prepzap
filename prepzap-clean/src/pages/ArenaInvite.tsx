@@ -1,131 +1,137 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
-interface ExamRoom {
-  id: string;
-  code: string;
+interface RoomPreview {
   room_name: string;
   topic: string;
-  mode: "live" | "open";
-  difficulty: string;
+  difficulty: "easy" | "medium" | "hard";
   question_count: number;
-  time_limit: number;
+  mode: "live" | "open";
   status: string;
-  is_public: boolean;
 }
+
+const DIFF_COLOR: Record<string, string> = {
+  easy: "bg-green-100 text-green-800 border-green-400",
+  medium: "bg-yellow-100 text-yellow-800 border-yellow-400",
+  hard: "bg-red-100 text-red-800 border-red-400",
+};
 
 export default function ArenaInvite() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [room, setRoom] = useState<ExamRoom | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+
+  const [room, setRoom] = useState<RoomPreview | null>(null);
+  const [fetchError, setFetchError] = useState("");
+  const [fetching, setFetching] = useState(true);
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user && code) {
+      navigate(`/arena/room/${code}`, { replace: true });
+    }
+  }, [authLoading, user, code, navigate]);
 
   useEffect(() => {
     if (!code) return;
-    supabase.from("exam_rooms").select("*").eq("code", code.toUpperCase()).single()
-      .then(({ data }) => {
-        if (!data) { setNotFound(true); }
-        else { setRoom(data); }
-        setLoading(false);
-      });
+    (async () => {
+      setFetching(true);
+      const { data, error } = await supabase
+        .from("exam_rooms")
+        .select("room_name, topic, difficulty, question_count, mode, status")
+        .eq("code", code.toUpperCase())
+        .neq("status", "finished")
+        .single();
+      if (error || !data) {
+        setFetchError("Room not found or has already ended.");
+      } else {
+        setRoom(data as RoomPreview);
+      }
+      setFetching(false);
+    })();
   }, [code]);
 
-  // If logged in, go straight to the room
-  useEffect(() => {
-    if (user && room) navigate(`/arena/room/${room.code}`, { replace: true });
-  }, [user, room, navigate]);
+  const redirectParam = `?redirect=/arena/room/${code}`;
 
-  if (loading) return (
-    <div className="min-h-[100dvh] bg-[#f5f0e8] flex items-center justify-center">
-      <span className="material-symbols-outlined animate-spin text-[36px]">progress_activity</span>
-    </div>
-  );
-
-  if (notFound) return (
-    <div className="min-h-[100dvh] bg-[#f5f0e8] flex flex-col items-center justify-center gap-4 px-6 text-center">
-      <span className="material-symbols-outlined text-[56px] text-black/20">search_off</span>
-      <h1 className="font-black text-[24px]">Room not found</h1>
-      <p className="text-[14px] font-bold text-black/50">This room may have ended or the code is invalid.</p>
-      <button onClick={() => navigate("/arena")}
-        className="mt-2 bg-black text-white font-extrabold px-8 py-3 border-2 border-black shadow-[3px_3px_0px_0px_#f0a040]">
-        Go to Arena
-      </button>
-    </div>
-  );
+  if (authLoading || (user && code)) return null; // redirecting
 
   return (
-    <div className="min-h-[100dvh] bg-[#f5f0e8] flex flex-col items-center justify-center px-4">
-      {/* Studenius brand */}
-      <div className="mb-8 text-center">
-        <h1 className="font-black text-[32px] tracking-tight">Studenius</h1>
-        <p className="text-[13px] font-bold text-black/50">Study smarter. Compete harder.</p>
-      </div>
-
-      {/* Invite card */}
-      <div className="w-full max-w-[420px] border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000] overflow-hidden">
-        {/* Header */}
-        <div className="bg-[#f0a040] border-b-2 border-black px-5 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]">sports_esports</span>
-            <span className="font-black text-[13px] uppercase tracking-widest">You're Invited!</span>
-          </div>
-          <span className={`text-[10px] font-bold px-2 py-1 border-2 border-black ${room!.mode === "live" ? "bg-black text-white" : "bg-white text-black"}`}>
-            {room!.mode.toUpperCase()}
-          </span>
+    <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <p className="font-black text-[28px] tracking-tight text-black">studenius</p>
+          <p className="text-[13px] text-black/50 font-medium mt-0.5">Arena Invite</p>
         </div>
 
-        {/* Room details */}
-        <div className="px-5 py-5 flex flex-col gap-4">
-          <div>
-            <h2 className="font-black text-[26px] leading-tight">{room!.room_name}</h2>
-            <p className="text-[14px] text-black/60 font-bold mt-1">{room!.topic}</p>
+        {fetching ? (
+          <div className="border-[2px] border-black bg-white shadow-[4px_4px_0px_#000] px-6 py-8 text-center">
+            <span className="material-symbols-outlined text-[32px] animate-spin text-black/40">progress_activity</span>
+            <p className="mt-3 text-[14px] font-medium text-black/50">Loading room...</p>
           </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: "quiz", label: "Questions", value: `${room!.question_count}Q` },
-              { icon: "timer", label: "Time Limit", value: `${room!.time_limit}m` },
-              { icon: "trending_up", label: "Difficulty", value: room!.difficulty },
-            ].map(({ icon, label, value }) => (
-              <div key={label} className="border-2 border-black p-3 flex flex-col items-center gap-1 bg-[#f5f0e8]">
-                <span className="material-symbols-outlined text-[20px]">{icon}</span>
-                <span className="font-black text-[15px] capitalize">{value}</span>
-                <span className="text-[10px] font-bold text-black/40 uppercase tracking-wider">{label}</span>
+        ) : fetchError ? (
+          <div className="border-[2px] border-black bg-white shadow-[4px_4px_0px_#000] px-6 py-8 text-center">
+            <span className="material-symbols-outlined text-[40px] text-red-400">error</span>
+            <p className="mt-3 text-[15px] font-bold text-black">{fetchError}</p>
+            <button onClick={() => navigate("/arena")}
+              className="mt-5 w-full bg-black text-white font-bold py-3 border-2 border-black shadow-[3px_3px_0px_#ae2925]">
+              Go to Arena
+            </button>
+          </div>
+        ) : room && (
+          <>
+            {/* Room card */}
+            <div className="border-[2px] border-black bg-white shadow-[4px_4px_0px_#000] px-5 py-5 mb-5">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div>
+                  <p className="font-black text-[18px] text-black leading-tight">{room.room_name}</p>
+                  <p className="text-[12px] text-black/50 font-medium mt-0.5 uppercase tracking-wide">
+                    {room.mode === "live" ? "Live Room" : "Open Challenge"}
+                  </p>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-1 border ${DIFF_COLOR[room.difficulty]} capitalize`}>
+                  {room.difficulty}
+                </span>
               </div>
-            ))}
-          </div>
 
-          {/* Room code */}
-          <div className="border-2 border-black bg-[#f5f0e8] p-3 flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-widest text-black/50">Room Code</span>
-            <span className="font-mono font-black text-[20px] tracking-widest">{room!.code}</span>
-          </div>
+              <p className="text-[13px] text-black/70 font-medium border-l-[3px] border-[#ae2925] pl-3 mb-4 line-clamp-3">
+                {room.topic}
+              </p>
 
-          {/* CTA */}
-          <div className="flex flex-col gap-2 pt-1">
-            <button onClick={() => navigate(`/login?redirect=/arena/room/${room!.code}`)}
-              className="w-full bg-black text-white font-extrabold text-[15px] py-4 border-2 border-black shadow-[4px_4px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-2">
-              Sign in to Join <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-            </button>
-            <button onClick={() => navigate(`/signup?redirect=/arena/room/${room!.code}`)}
-              className="w-full bg-white text-black font-extrabold text-[15px] py-4 border-2 border-black shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2">
-              Create free account <span className="material-symbols-outlined text-[18px]">person_add</span>
-            </button>
-          </div>
+              <div className="flex gap-3">
+                <div className="flex items-center gap-1.5 text-[12px] font-bold text-black/60">
+                  <span className="material-symbols-outlined text-[16px]">quiz</span>
+                  {room.question_count} questions
+                </div>
+                <div className="flex items-center gap-1.5 text-[12px] font-bold text-black/60">
+                  <span className="material-symbols-outlined text-[16px]">
+                    {room.status === "waiting" ? "hourglass_empty" : "sensors"}
+                  </span>
+                  {room.status === "waiting" ? "Waiting to start" : "In progress"}
+                </div>
+              </div>
+            </div>
 
-          <p className="text-center text-[11px] text-black/30 font-bold">
-            Studenius is free. No credit card needed.
-          </p>
-        </div>
+            {/* CTAs */}
+            <div className="flex flex-col gap-3">
+              <button onClick={() => navigate(`/login${redirectParam}`)}
+                className="w-full bg-black text-white font-bold text-[15px] py-3.5 border-2 border-black shadow-[4px_4px_0px_#ae2925] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+                Sign In to Join
+              </button>
+              <button onClick={() => navigate(`/signup${redirectParam}`)}
+                className="w-full bg-[#FAF7F2] text-black font-bold text-[15px] py-3.5 border-2 border-black shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+                Create Account
+              </button>
+            </div>
+
+            <p className="text-center text-[11px] text-black/40 font-medium mt-4">
+              Invited via code <span className="font-black text-black/70">{code?.toUpperCase()}</span>
+            </p>
+          </>
+        )}
       </div>
-
-      <p className="mt-6 text-[12px] font-bold text-black/30">
-        studenius.com · AI-powered study tools
-      </p>
     </div>
   );
 }

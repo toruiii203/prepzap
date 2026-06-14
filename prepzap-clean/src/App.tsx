@@ -184,6 +184,7 @@ function AppRoutes() {
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
         <Route path="/onboarding" element={safe(<Onboarding />)} />
+        <Route path="/invite/:code" element={safe(<ArenaInvite />)} />
 
         {/* Protected — inside shell layout */}
         <Route element={safe(<ProtectedStudeniusLayout />)}>
@@ -212,9 +213,6 @@ function AppRoutes() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/high-yield" element={<HighYieldDetector />} />
           <Route path="/mistakes" element={<MistakeJournal />} />
-
-          {/* Arena — public invite page (no auth needed) */}
-          <Route path="/invite/:code" element={<ArenaInvite />} />
 
           {/* Arena */}
           <Route path="/arena" element={<Arena />} />
