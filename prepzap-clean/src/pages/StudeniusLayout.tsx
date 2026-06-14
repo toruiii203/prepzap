@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: "/math", icon: "calculate", label: "Math Solver" },
   { href: "/sources", icon: "attach_file", label: "Source Library" },
   { href: "/analytics", icon: "bar_chart", label: "Analytics" },
-  { href: "/leaderboard", icon: "emoji_events", label: "Leaderboard" },
+  { href: "/arena", icon: "sports_esports", label: "Arena" },
   { href: "/timer", icon: "timer", label: "Focus Timer" },
   { href: "/profile", icon: "person", label: "Profile" },
   { href: "/settings", icon: "settings", label: "Settings" },

@@ -1,282 +1,578 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { callGroq, safeParseJSON } from "@/lib/groq";
+import { loadLibrary } from "@/lib/sourceContext";
 
-interface LeaderboardProps {
+interface DailyQuiz {
+  id: string;
+  date: string;
+  topic: string;
+  difficulty: string;
+  questions: Question[];
 }
 
-export default function Leaderboard() {
-  const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<"All" | "Friends">("All");
-  const [playedQuiz, setPlayedQuiz] = useState(false);
-  const [activeQuizModal, setActiveQuizModal] = useState(false);
+interface Question {
+  question: string;
+  options: string[];
+  correct_answer: string;
+  explanation: string;
+}
 
-  const players = [
-    {
-      rank: 1,
-      name: "Alex G.",
-      level: 42,
-      xp: "9,420",
-      streak: "14 Day Streak",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuCnMqXFEdYRP4Xq80UFNXa8-08Tx1M_OtuOdEXJoPLQb9s2unZtKO6ZQCaoRDfpZapxS-1Jcmyn9QrjgnbCRWLvBHSHgC2DpA-xEuForSczggl91iXodtpTb9Iwdh1uoJOzJLXo2hSz3WpbSrHUBknYP7dMKm4NZJaB6eNQC_AHtQhJts_xFyCzx5UAYPnBfxq5Eq3lTu_N8htQ8M_s-u_LTjQv7QBRiGwURNihGH1OBVuGCV8qoqoq5GaaI0dWSowNg-pvvv4ZHbVx",
-      bgColor: "bg-secondary-container"
-    },
-    {
-      rank: 2,
-      name: "Sam W.",
-      level: 38,
-      xp: "8,950",
-      streak: "9 Day Streak",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBwnfgQ7GE39V5YH7vyxmY3XgHDENI5mgiTO5Q2U8FVZ4BOuiqQiKIIRJE3atG_R5fxA-06HRdDoY3zkl9592PDTj6Gp0CM88jNYf9UBqhdxp0SlqQbguuxfEdjQEsoxBgxWM4LGicqpPtnUV-TNlusX-CC44VGddAmB-q-MM1bniT-1ns6YqbZRk1GNntkNm4T5Ht9OsnXsU8wdHpREXqDWU2y6mPMeO5tXmfeDSY87-FI6yGzabwqx0iG6QcwCHYMzKbUz8cnAM23",
-      bgColor: "bg-tertiary-fixed"
-    },
-    {
-      rank: 3,
-      name: "Jordan M.",
-      level: 35,
-      xp: "8,100",
-      streak: "5 Day Streak",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDXwYFTxjl6FqE3Xdyecni_RyaL8WKWyT_khkyGxuXNzpFaGrWZ2s_VXIWz9sQ_UhcORJ1sNqb6qe2Hoe2Feq9I5A7vpEG2Qu5QOE2s-uWxgBHoNC5CNlUQAFYZLPb1KSwpZjjCG8Fr8lId3fKSk9_UL6bg1YdVtLE3YHZP3-qEBDbxy9VI9qkppgQNEoCQf_jqdmvg5SxkBmsBsD9SIleLMApEtrR_bVR0otQzQRLaXa0p3MJuKV9dxLNyxVcIwGHHcsT2eKFXw6Q5",
-      bgColor: "bg-outline-variant"
-    }
-  ];
+interface LeaderboardEntry {
+  user_id: string;
+  score: number;
+  time_taken: number;
+  display_name: string;
+}
 
-  const handlePlayQuiz = () => {
-    setActiveQuizModal(true);
-  };
+interface ExamRoom {
+  id: string;
+  code: string;
+  room_name: string;
+  topic: string;
+  mode: "live" | "open";
+  difficulty: string;
+  question_count: number;
+  time_limit: number;
+  status: string;
+  host_id: string;
+  deadline: string | null;
+  created_at: string;
+}
 
-  const handleQuizAnswer = async (optionIdx: number) => {
-    if (optionIdx === 2) { // Math question correct answer
-      const xpAwarded = 100;
-      
+type LeaderboardTab = "today" | "alltime";
 
-      if (user && profile) {
-        try {
-          const currentXp = profile.total_xp || profile.xp || 0;
-          await supabase
-            .from("profiles")
-            .update({ 
-              total_xp: currentXp + xpAwarded
-            })
-            .eq("id", user.id);
-          if (typeof refreshProfile === "function") {
-            await refreshProfile();
-          }
-        } catch (err) {
-          console.error("Error supporting dynamic award:", err);
-          await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpAwarded }).eq("id", user?.id ?? ""); await refreshProfile();
-        }
-      } else {
-        await supabase.from("profiles").update({ total_xp: (profile?.total_xp ?? 0) + xpAwarded }).eq("id", user?.id ?? ""); await refreshProfile();
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s.toString().padStart(2, "0")}s`;
+}
+
+function todayPH(): string {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }))
+    .toISOString().split("T")[0];
+}
+
+function generateCode(): string {
+  const L = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const D = "0123456789";
+  const rL = () => L[Math.floor(Math.random() * L.length)];
+  const rD = () => D[Math.floor(Math.random() * D.length)];
+  return `${rL()}${rL()}-${rD()}${rD()}${rD()}${rD()}`;
+}
+
+async function generateQuestions(topic: string, count: number, difficulty: string): Promise<Question[]> {
+  const prompt = `Generate ${count} multiple choice questions about "${topic}" at ${difficulty} difficulty for university-level students.
+Return ONLY a JSON array, no markdown, no explanation:
+[{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct_answer":"A","explanation":"..."}]`;
+  const raw = await callGroq(prompt, undefined, "gemini-2.0-flash", 2048);
+  return safeParseJSON<Question[]>(raw);
+}
+
+// ── Create Room Modal ─────────────────────────────────────────────────────────
+function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreated: (code: string) => void }) {
+  const { user } = useAuth();
+  const [roomName, setRoomName] = useState("");
+  const [topic, setTopic] = useState("");
+  const [questionCount, setQuestionCount] = useState<5 | 10 | 20>(10);
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [mode, setMode] = useState<"live" | "open">("live");
+  const [timeLimit, setTimeLimit] = useState(15);
+  const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("");
+  const [error, setError] = useState("");
+  const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
+  const [selectedSource, setSelectedSource] = useState<any>(null);
+  const [showSources, setShowSources] = useState(false);
+
+  useEffect(() => {
+    loadLibrary().then(setLibraryFiles).catch(() => setLibraryFiles([]));
+  }, []);
+
+  const handleCreate = async () => {
+    if (!roomName.trim() || !topic.trim()) { setError("Room name and topic are required."); return; }
+    if (!user) return;
+    setLoading(true); setError("");
+    try {
+      setLoadingMsg("Generating questions with AI...");
+      const topicWithSource = selectedSource
+        ? `${topic.trim()}
+
+Source material context:
+${selectedSource.content?.slice(0, 2000) || selectedSource.name}`
+        : topic.trim();
+      const questions = await generateQuestions(topicWithSource, questionCount, difficulty);
+      setLoadingMsg("Creating room...");
+      let code = generateCode();
+      for (let i = 0; i < 10; i++) {
+        const { data: ex } = await supabase.from("exam_rooms").select("id").eq("code", code).single();
+        if (!ex) break;
+        code = generateCode();
       }
-    } else {
-      
+      const { error: insertError } = await supabase.from("exam_rooms").insert({
+        code, host_id: user.id, room_name: roomName.trim(), topic: topic.trim(),
+        questions, mode, difficulty, question_count: questionCount, time_limit: timeLimit, status: "waiting",
+      });
+      if (insertError) throw insertError;
+      onCreated(code);
+    } catch (e: any) {
+      setError(e.message ?? "Failed to create room. Try again.");
+    } finally {
+      setLoading(false); setLoadingMsg("");
     }
-    setPlayedQuiz(true);
-    setActiveQuizModal(false);
   };
-
-  // Compute dynamic levels relative to profile state
-  const activeXp = profile?.total_xp || profile?.xp || 2150;
-  const userLevel = profile?.level || Math.floor(activeXp / 800) + 1;
-  const userStreak = profile?.streak || user?.streak || 4;
 
   return (
-    <div className="bg-[#fcf9f4] text-on-surface flex flex-col min-h-full relative pb-32 w-full flex-1 overflow-y-auto">
-      {/* Top Navigation Bar */}
-      <header className="flex w-full sticky top-0 left-0 z-50 justify-between items-center px-5 h-16 bg-[#FAF7F2] border-b-2 border-on-surface navbar-custom">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate(-1)}
-            className="text-on-surface hover:opacity-85 transition-transform active:translate-y-0.5 border-2 border-black bg-white shadow-[2px_2px_rgba(0,0,0,1)] w-9 h-9 flex items-center justify-center rounded-full cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          </button>
-          <span className="font-headline text-[18px] text-[#1c1c19] font-extrabold">Studenius Ranks</span>
-        </div>
-        <button 
-          onClick={() => navigate("/go-pro")}
-          className="text-label-sm font-label-lg text-on-surface px-4 py-1.5 bg-[#ffb4ab] border-2 border-on-surface rounded-full shadow-[2px_2px_rgba(0,0,0,1)] flex items-center gap-1 active:translate-y-0.5 font-bold cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-black" style={{ fontSize: "14px", fontVariationSettings: "'FILL' 1" }}>star</span>
-          PRO
-        </button>
-      </header>
-
-      {/* Main Content Scroll Canvas */}
-      <main className="flex-1 w-full px-5 pt-4 flex flex-col gap-6 overflow-y-auto">
-        
-        {/* Quiz of the Day Promos banner */}
-        <section className="bg-neutral-900 border-2 border-[#1c1c19] text-white rounded-2xl relative overflow-hidden p-6 shadow-[4px_4px_rgba(0,0,0,1)]">
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(#ffffff 2px, transparent 0)", backgroundSize: "20px 20px" }}></div>
-          <div className="relative z-10 flex flex-col gap-5">
-            
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-yellow-450" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
-                <span className="font-headline font-bold text-[11px] text-zinc-400 uppercase tracking-wider">DAILY QUIZ</span>
-              </div>
-              <div className="flex flex-col items-end gap-[7px]">
-                <span className="bg-[#ffb4ab] text-black border-2 border-on-surface text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-[1.5px_1.5px_rgba(0,0,0,1)]">
-                  ACTIVE
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center py-2">
-              <div className="w-16 h-16 bg-white rounded-full border-2 border-on-surface mb-3 flex items-center justify-center text-on-surface shadow-[3px_3px_rgba(0,0,0,1)] transform -rotate-6">
-                <span className="material-symbols-outlined text-4xl text-black" style={{ fontVariationSettings: "'FILL' 1" }}>calculate</span>
-              </div>
-              <h2 className="font-headline text-headline-xl text-center mb-1 text-white font-extrabold tracking-tight text-[21px]">Study Arena Challenge</h2>
-              <p className="text-zinc-400 text-[13.5px] text-center max-w-[240px] font-semibold">
-                Answer today's premium diagnostic question and earn +100 XP instantly.
-              </p>
-            </div>
-
-            <button 
-              onClick={handlePlayQuiz}
-              className="w-full bg-[#E8534A] text-white border-2 border-on-surface py-3 rounded-lg text-label-lg font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-opacity-95 shadow-[2px_2px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none"
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
-              {playedQuiz ? "Practice Daily Quiz Again" : "Complete Daily Challenge"}
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.55)" }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-[390px] bg-[#f5f0e8] rounded-t-[24px] border-t-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col relative" style={{ maxHeight: "90dvh" }}>
+        <div className="flex flex-col items-center pt-3 pb-3 px-4 border-b-2 border-black sticky top-0 bg-[#f5f0e8] rounded-t-[24px] z-10">
+          <div className="w-10 h-1 bg-black/20 rounded-full mb-3" />
+          <div className="w-full flex justify-between items-center">
+            <h2 className="font-bold text-[18px] text-black">Create a Room</h2>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-full bg-white">
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
-        </section>
+        </div>
 
-        {/* Modal daily quiz gameplay */}
-        {activeQuizModal && (
-          <div className="bg-white border-2 border-black rounded-2xl p-6 shadow-[4px_4px_rgba(0,0,0,1)] flex flex-col gap-4 animate-fade-in relative z-50">
-            <span className="text-xs uppercase text-primary font-bold">Daily Study Arena</span>
-            <p className="font-headline font-extrabold text-[15.5px] leading-snug">
-              Which mathematical base constant represents standard organic exponential growth in physical curves?
-            </p>
-            <div className="grid grid-cols-1 gap-2.5 mt-2">
-              {["Pi (?/)", "Golden Ratio (?/)", "Euler's Number (e)", "Square Root of 2"].map((ansOption, sIdx) => (
-                <button
-                  key={sIdx}
-                  onClick={() => handleQuizAnswer(sIdx)}
-                  className="w-full text-left bg-zinc-50 hover:bg-zinc-100 border-2 border-black p-3 rounded-xl font-bold font-headline text-[13.5px] cursor-pointer"
-                >
-                  {sIdx + 1}. {ansOption}
+        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-5 pb-32">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider">Room Name</label>
+            <input value={roomName} onChange={(e) => setRoomName(e.target.value)} placeholder="e.g. Chem Finals Grind"
+              className="w-full bg-white border-2 border-black px-3 py-2.5 text-[15px] font-medium placeholder:text-black/30 focus:outline-none shadow-[2px_2px_0px_0px_#000]" />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-end">
+              <label className="text-[11px] font-bold uppercase tracking-wider">Topic / Material</label>
+              <span className="text-[10px] font-bold text-[#f0a040] flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[13px]">bolt</span>AI Generated
+              </span>
+            </div>
+            <textarea value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Describe the topic or paste your notes..." rows={3}
+              className="w-full bg-white border-2 border-black px-3 py-2.5 text-[15px] font-medium placeholder:text-black/30 focus:outline-none shadow-[2px_2px_0px_0px_#000] resize-none" />
+          </div>
+
+          {/* Source Library Sync */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center">
+              <label className="text-[11px] font-bold uppercase tracking-wider">Sync from Source Library</label>
+              <span className="text-[10px] font-bold text-black/40">Optional</span>
+            </div>
+            {selectedSource ? (
+              <div className="flex items-center gap-3 border-2 border-black bg-[#F0EDE0] px-3 py-2.5 shadow-[2px_2px_0px_0px_#000]">
+                <span className="material-symbols-outlined text-[18px] text-[#ae2925]">description</span>
+                <span className="flex-1 text-[13px] font-bold truncate">{selectedSource.name}</span>
+                <button onClick={() => setSelectedSource(null)} className="material-symbols-outlined text-[16px] text-black/40 hover:text-black">close</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowSources(!showSources)}
+                className="flex items-center gap-2 border-2 border-dashed border-black bg-white px-3 py-2.5 text-[13px] font-bold text-black/50 hover:text-black hover:border-solid transition-all shadow-[2px_2px_0px_0px_#000]">
+                <span className="material-symbols-outlined text-[18px]">folder_open</span>
+                Pick a file from your library
+              </button>
+            )}
+            {showSources && !selectedSource && (
+              <div className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] max-h-40 overflow-y-auto">
+                {libraryFiles.length === 0 ? (
+                  <div className="p-4 text-center text-[12px] font-bold text-black/40">
+                    No files in your Source Library yet.
+                  </div>
+                ) : libraryFiles.map((file: any) => (
+                  <button key={file.id} onClick={() => { setSelectedSource(file); setShowSources(false); if (!topic.trim()) setTopic(file.name.replace(/\.[^.]+$/, "")); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 border-b border-black/10 hover:bg-[#F0EDE0] text-left transition-colors">
+                    <span className="material-symbols-outlined text-[16px]">description</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold truncate">{file.name}</p>
+                      <p className="text-[10px] font-bold text-black/40 uppercase tracking-wider">{file.type || "Document"}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[14px] text-black/20">add</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider">Questions</label>
+            <div className="flex border-2 border-black bg-white overflow-hidden shadow-[2px_2px_0px_0px_#000]">
+              {([5, 10, 20] as const).map((n, i) => (
+                <button key={n} onClick={() => setQuestionCount(n)}
+                  className={`flex-1 py-2.5 text-[13px] font-bold transition-colors ${questionCount === n ? "bg-black text-white" : "bg-white text-black"} ${i < 2 ? "border-r-2 border-black" : ""}`}>
+                  {n}
                 </button>
               ))}
             </div>
-            <button 
-              onClick={() => setActiveQuizModal(false)}
-              className="text-center font-bold text-xs underline p-1 mt-1 cursor-pointer text-slate-500"
-            >
-              Dismiss Quiz
-            </button>
           </div>
-        )}
 
-        {/* Leaderboard Tabs */}
-        <div className="flex gap-5 border-b-2 border-on-surface pb-2 mt-2">
-          <button 
-            onClick={() => setActiveTab("All")}
-            className={`text-headline text-headline-md pb-1 -mb-[10px] z-10 font-extrabold cursor-pointer ${
-              activeTab === "All" ? "border-b-4 border-primary text-black" : "text-neutral-400 hover:text-black"
-            }`}
-          >
-            All Students
-          </button>
-          
-          <button 
-            onClick={() => {
-              setActiveTab("Friends");
-              
-            }}
-            className={`text-headline text-headline-md pb-1 -mb-[10px] z-10 font-extrabold cursor-pointer ${
-              activeTab === "Friends" ? "border-b-4 border-primary text-black" : "text-neutral-400 hover:text-black"
-            }`}
-          >
-            Friends
-          </button>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider">Difficulty</label>
+            <div className="flex border-2 border-black bg-white overflow-hidden shadow-[2px_2px_0px_0px_#000]">
+              {(["easy", "medium", "hard"] as const).map((d, i) => (
+                <button key={d} onClick={() => setDifficulty(d)}
+                  className={`flex-1 py-2.5 text-[13px] font-bold capitalize transition-colors ${difficulty === d ? "bg-black text-white" : "bg-white text-black"} ${i < 2 ? "border-r-2 border-black" : ""}`}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider">Room Mode</label>
+            {(["live", "open"] as const).map((m) => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`w-full border-2 border-black p-3 text-left flex items-start gap-3 transition-all ${mode === m ? "bg-[#f0a040] shadow-[3px_3px_0px_0px_#000]" : "bg-white shadow-[2px_2px_0px_0px_#000]"}`}>
+                <span className="material-symbols-outlined text-[20px] mt-0.5">{m === "live" ? "sensors" : "schedule"}</span>
+                <div>
+                  <p className="font-bold text-[14px] text-black">{m === "live" ? "Live Room" : "Open Challenge"}</p>
+                  <p className="text-[12px] text-black/60 mt-0.5">
+                    {m === "live" ? "Everyone starts at the same time. Host controls the start." : "Async — players can join anytime before the deadline."}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider">Time Limit (minutes)</label>
+            <div className="flex gap-2 flex-wrap">
+              {[5, 10, 15, 30, 45].map((t) => (
+                <button key={t} onClick={() => setTimeLimit(t)}
+                  className={`px-4 py-2 border-2 border-black text-[13px] font-bold transition-all ${timeLimit === t ? "bg-black text-white shadow-[2px_2px_0px_0px_#f0a040]" : "bg-white text-black shadow-[2px_2px_0px_0px_#000]"}`}>
+                  {t}m
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {error && <p className="text-[13px] text-red-600 border-2 border-red-400 px-3 py-2 bg-red-50">{error}</p>}
         </div>
 
-        {/* Ranked Players list */}
-        <section className="flex flex-col gap-4 mt-2 pb-[120px]">
-          {players.map((plyr, idx) => (
-            <div 
-              key={idx}
-              className="bg-white rounded-2xl border-2 border-[#1c1c19] flex items-center p-5 relative overflow-hidden shadow-[2px_2px_rgba(0,0,0,1)]"
-            >
-              <div className="w-8 flex-shrink-0 text-center font-headline text-headline-lg font-extrabold text-[#E8534A]">
-                {plyr.rank}
-              </div>
-              
-              <div className="relative mx-3.5 shrink-0">
-                <div className={`w-12 h-12 rounded-full border-2 border-on-surface overflow-hidden p-0.5 ${plyr.bgColor} bg-white`}>
-                  <img 
-                    alt={`${plyr.name} avatar`} 
-                    className="w-full h-full object-cover rounded-full" 
-                    referrerPolicy="no-referrer"
-                    src={plyr.avatar}
-                  />
-                </div>
-                <div className="absolute -bottom-1 -right-1 bg-neutral-900 text-white text-[9px] font-bold px-1 rounded-full border border-on-surface">
-                  Lv.{plyr.level}
-                </div>
-              </div>
+        <div className="absolute bottom-0 left-0 right-0 bg-[#f5f0e8] border-t-2 border-black px-4 py-4">
+          <p className="text-center text-[11px] text-black/40 mb-2">{loadingMsg || "Room code generated automatically."}</p>
+          <button onClick={handleCreate} disabled={loading}
+            className="w-full bg-black text-white font-bold text-[15px] py-3.5 border-2 border-black shadow-[4px_4px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading ? <><span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>{loadingMsg}</> : <>Generate & Create Room<span className="material-symbols-outlined text-[18px]">arrow_forward</span></>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-              <div className="flex-1 min-w-0 pl-1 text-left">
-                <h3 className="text-body-lg text-on-surface truncate pr-2 font-headline font-extrabold text-[16px]">
-                  {plyr.name}
-                </h3>
-                <p className="text-label-md text-[#E8534A] flex items-center gap-1 font-bold text-[12px] mt-0.5">
-                  //// {plyr.streak}
-                </p>
-              </div>
+// ── Join Room Modal ───────────────────────────────────────────────────────────
+function JoinRoomModal({ onClose, onJoined }: { onClose: () => void; onJoined: (code: string) => void }) {
+  const { user } = useAuth();
+  const [code, setCode] = useState("");
+  const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name ?? user?.email?.split("@")[0] ?? "Player");
+  const [room, setRoom] = useState<ExamRoom | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState("");
 
-              <div className="text-right shrink-0">
-                <div className="font-headline text-headline-md font-bold text-on-surface">{plyr.xp}</div>
-                <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">XP</div>
-              </div>
+  useEffect(() => {
+    const normalized = code.toUpperCase().trim();
+    if (normalized.length !== 7) { setRoom(null); setError(""); return; }
+    const lookup = async () => {
+      setChecking(true); setError("");
+      const { data } = await supabase.from("exam_rooms").select("*").eq("code", normalized).neq("status", "finished").single();
+      setRoom(data ?? null);
+      if (!data) setError("Room not found or already finished.");
+      setChecking(false);
+    };
+    lookup();
+  }, [code]);
+
+  const handleJoin = async () => {
+    if (!room || !user) return;
+    setJoining(true); setError("");
+    try {
+      const { error: err } = await supabase.from("room_presence").upsert(
+        { room_id: room.id, user_id: user.id, display_name: displayName.trim() || "Player", status: "waiting" },
+        { onConflict: "room_id,user_id" }
+      );
+      if (err) throw err;
+      onJoined(room.code);
+    } catch (e: any) {
+      setError(e.message ?? "Failed to join."); setJoining(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.55)" }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-[390px] bg-[#f5f0e8] rounded-t-[24px] border-t-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col">
+        <div className="flex flex-col items-center pt-3 pb-3 px-4 border-b-2 border-black rounded-t-[24px]">
+          <div className="w-10 h-1 bg-black/20 rounded-full mb-3" />
+          <div className="w-full flex justify-between items-center">
+            <h2 className="font-bold text-[18px] text-black">Join a Room</h2>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-full bg-white">
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 py-5 flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider">Room Code</label>
+            <div className="relative">
+              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="XK-4821"
+                maxLength={7} className="w-full bg-white border-[3px] border-black px-4 py-3 text-center font-mono text-[22px] font-bold uppercase tracking-widest focus:outline-none shadow-[3px_3px_0px_0px_#000]" />
+              {checking && <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[20px] text-black/40 animate-spin">progress_activity</span>}
+              {room && !checking && <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[20px] text-[#f0a040]">check_circle</span>}
             </div>
-          ))}
-
-          {/* Ellipsis separator */}
-          <div className="flex justify-center text-on-surface-variant opacity-60">
-            <span className="material-symbols-outlined">more_vert</span>
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider">Display Name</label>
+            <input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+              className="w-full bg-white border-2 border-black px-3 py-2.5 text-[15px] font-medium focus:outline-none shadow-[2px_2px_0px_0px_#000]" />
+          </div>
+
+          {room && (
+            <div className="border-2 border-black bg-white p-4 shadow-[3px_3px_0px_0px_#000] relative">
+              <div className="absolute -top-3 -right-2 bg-[#a3e635] text-black border-2 border-black px-2 py-0.5 text-[10px] font-bold uppercase flex items-center gap-1">
+                Room found <span className="material-symbols-outlined text-[12px]">check</span>
+              </div>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-bold text-[16px] text-black">{room.room_name}</h3>
+                  <p className="text-[12px] text-black/50 mt-0.5">{room.topic}</p>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-1 border-2 border-black flex items-center gap-1 ${room.mode === "live" ? "bg-[#FF4D2E] text-white" : "bg-[#f0a040] text-black"}`}>
+                  {room.mode === "live" && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                  {room.mode.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex gap-3 mt-3 text-[11px] font-bold text-black/50">
+                <span>{room.question_count}Q</span><span>{room.time_limit}m</span><span className="capitalize">{room.difficulty}</span>
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-[13px] text-red-600">{error}</p>}
+          <p className="text-[11px] text-black/40 text-center">Make sure you're ready before joining a Live Room.</p>
+          <button onClick={handleJoin} disabled={!room || joining}
+            className="w-full bg-black text-white font-bold text-[15px] py-3.5 border-2 border-black shadow-[4px_4px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+            {joining ? "Joining..." : "Join Room"}<span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Arena Page ───────────────────────────────────────────────────────────
+export default function Arena() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [dailyQuiz, setDailyQuiz] = useState<DailyQuiz | null>(null);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [leaderboardTab, setLeaderboardTab] = useState<LeaderboardTab>("today");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [rooms, setRooms] = useState<ExamRoom[]>([]);
+  const [loadingQuiz, setLoadingQuiz] = useState(true);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showJoin, setShowJoin] = useState(false);
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+      const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - now.getTime();
+      const h = Math.floor(diff / 3600000).toString().padStart(2, "0");
+      const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
+      const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
+      setCountdown(`${h}:${m}:${s}`);
+    };
+    tick(); const id = setInterval(tick, 1000); return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoadingQuiz(true);
+      const today = todayPH();
+      const { data } = await supabase.from("daily_quiz").select("*").eq("date", today).single();
+      setDailyQuiz(data ?? null);
+      if (data && user) {
+        const { data: sub } = await supabase.from("daily_submissions").select("id").eq("quiz_date", today).eq("user_id", user.id).single();
+        setAlreadySubmitted(!!sub);
+      }
+      setLoadingQuiz(false);
+    };
+    load();
+  }, [user]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoadingLeaderboard(true);
+      let query = supabase.from("daily_submissions").select("user_id, score, time_taken, submitted_at")
+        .order("score", { ascending: false }).order("time_taken", { ascending: true }).limit(10);
+      if (leaderboardTab === "today") query = query.eq("quiz_date", todayPH());
+      const { data } = await query;
+      setLeaderboard((data ?? []).map((row, i) => ({ ...row, display_name: `Player ${i + 1}` })));
+      setLoadingLeaderboard(false);
+    };
+    load();
+  }, [leaderboardTab]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoadingRooms(true);
+      const { data } = await supabase.from("exam_rooms").select("*").in("status", ["waiting", "active"]).order("created_at", { ascending: false }).limit(10);
+      setRooms(data ?? []); setLoadingRooms(false);
+    };
+    load();
+    const ch = supabase.channel("arena-rooms").on("postgres_changes", { event: "*", schema: "public", table: "exam_rooms" }, load).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  return (
+    <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8] pb-20">
+      <header className="sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black px-4 py-3 flex justify-between items-center">
+        <div>
+          <h1 className="font-black text-[22px] text-black tracking-tight leading-none">Arena</h1>
+          <p className="text-[11px] text-black/50 font-medium mt-0.5">Compete. Rank. Win.</p>
+        </div>
+        <div className="w-8 h-8 rounded-full border-2 border-black bg-black/10 flex items-center justify-center">
+          <span className="material-symbols-outlined text-[18px]">person</span>
+        </div>
+      </header>
+
+      <main className="flex flex-col gap-6 px-4 pt-5">
+        {/* Daily Challenge */}
+        <section className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] overflow-hidden">
+          <div className="bg-[#f0a040] border-b-2 border-black px-4 py-2 flex justify-between items-center">
+            <span className="font-bold text-[11px] uppercase tracking-widest">Daily Challenge</span>
+            <span className="font-bold text-[11px]">{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+          </div>
+          {loadingQuiz ? (
+            <div className="p-6 flex justify-center"><span className="material-symbols-outlined animate-spin text-[24px] text-black/30">progress_activity</span></div>
+          ) : dailyQuiz ? (
+            <div className="p-4 flex flex-col gap-3">
+              <div>
+                <h2 className="font-black text-[18px] text-black leading-tight">{dailyQuiz.topic}</h2>
+                <div className="flex gap-2 mt-1.5">
+                  <span className="text-[10px] font-bold border-2 border-black px-2 py-0.5 capitalize">{dailyQuiz.difficulty}</span>
+                  <span className="text-[10px] font-bold border-2 border-black px-2 py-0.5">{dailyQuiz.questions.length} Questions</span>
+                </div>
+              </div>
+              {alreadySubmitted ? (
+                <div className="bg-black/5 border-2 border-black px-4 py-3 text-center">
+                  <p className="font-bold text-[14px] text-black">Already submitted today ✓</p>
+                  <p className="text-[11px] text-black/50 mt-0.5">Come back tomorrow for a new challenge.</p>
+                </div>
+              ) : (
+                <button onClick={() => navigate("/arena/quiz/daily")}
+                  className="w-full bg-black text-white font-bold text-[14px] py-3 border-2 border-black flex justify-between items-center px-4 shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+                  Take Today's Quiz
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </button>
+              )}
+              <p className="text-center text-[11px] text-black/40">Resets in {countdown}</p>
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <p className="font-bold text-[14px] text-black/50">No quiz today yet.</p>
+              <p className="text-[11px] text-black/30 mt-1">Generated at midnight PH time.</p>
+            </div>
+          )}
+        </section>
+
+        {/* Leaderboard */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-[16px] text-black tracking-tight">Rankings</h3>
+            <div className="flex gap-1.5">
+              {(["today", "alltime"] as const).map((tab) => (
+                <button key={tab} onClick={() => setLeaderboardTab(tab)}
+                  className={`text-[11px] font-bold px-3 py-1 border-2 border-black transition-colors ${leaderboardTab === tab ? "bg-black text-white" : "bg-white text-black"}`}>
+                  {tab === "today" ? "Today" : "All-Time"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000]">
+            {loadingLeaderboard ? (
+              <div className="p-6 flex justify-center"><span className="material-symbols-outlined animate-spin text-[24px] text-black/30">progress_activity</span></div>
+            ) : leaderboard.length === 0 ? (
+              <div className="p-6 text-center"><p className="font-bold text-[13px] text-black/40">No submissions yet — be first!</p></div>
+            ) : leaderboard.map((entry, i) => {
+              const isMe = entry.user_id === user?.id;
+              const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+              return (
+                <div key={entry.user_id + i} className={`flex items-center gap-3 px-4 py-3 ${i < leaderboard.length - 1 ? "border-b-2 border-black" : ""} ${isMe ? "bg-[#f0a040]/15" : ""}`}>
+                  <span className="w-6 text-center font-black text-[14px]">{medal ?? `${i + 1}`}</span>
+                  <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-bold text-[11px] ${isMe ? "bg-black text-white" : "bg-black/10"}`}>
+                    {isMe ? "YOU" : entry.display_name.charAt(0)}
+                  </div>
+                  <span className="flex-1 font-bold text-[14px] text-black truncate">{isMe ? "You" : entry.display_name}</span>
+                  <div className="text-right">
+                    <p className="font-black text-[14px] text-black">{entry.score.toLocaleString()}</p>
+                    <p className="text-[10px] text-black/40">{formatTime(entry.time_taken)}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Exam Rooms */}
+        <section className="flex flex-col gap-3">
+          <h3 className="font-black text-[16px] text-black tracking-tight">Exam Rooms</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setShowCreate(true)}
+              className="bg-black text-white font-bold text-[13px] py-3 border-2 border-black flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+              <span className="material-symbols-outlined text-[18px]">add</span>Create
+            </button>
+            <button onClick={() => setShowJoin(true)}
+              className="bg-white text-black font-bold text-[13px] py-3 border-2 border-black flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+              <span className="material-symbols-outlined text-[18px]">login</span>Join
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {loadingRooms ? (
+              <div className="p-4 flex justify-center"><span className="material-symbols-outlined animate-spin text-[24px] text-black/30">progress_activity</span></div>
+            ) : rooms.length === 0 ? (
+              <div className="border-2 border-dashed border-black p-6 text-center">
+                <p className="font-bold text-[13px] text-black/40">No active rooms.</p>
+                <p className="text-[11px] text-black/30 mt-1">Create one and invite friends.</p>
+              </div>
+            ) : rooms.map((room) => (
+              <div key={room.id} className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] p-3 flex justify-between items-center">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 border border-black ${room.mode === "live" ? "bg-[#FF4D2E] text-white" : "bg-[#f0a040] text-black"}`}>
+                      {room.mode.toUpperCase()}
+                    </span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 border border-black/30 ${room.status === "active" ? "bg-green-100 text-green-800" : "bg-black/5 text-black/50"}`}>
+                      {room.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-[14px] text-black truncate">{room.room_name}</h4>
+                  <p className="text-[11px] text-black/50 mt-0.5 truncate">{room.topic}</p>
+                  <div className="flex gap-3 mt-1 text-[10px] font-bold text-black/40">
+                    <span>{room.question_count}Q</span><span>{room.time_limit}m</span><span className="capitalize">{room.difficulty}</span>
+                  </div>
+                </div>
+                <button onClick={() => navigate(`/arena/room/${room.code}`)}
+                  className="ml-3 w-9 h-9 flex items-center justify-center border-2 border-black bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex-shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">login</span>
+                </button>
+              </div>
+            ))}
+          </div>
         </section>
       </main>
 
-      {/* Sticky "Your Rank" baseline Card */}
-      <div className="absolute bottom-[86px] left-0 w-full z-45 px-5">
-        <div className="rounded-2xl border-2 border-on-surface bg-[#f7f3ec] flex items-center p-4.5 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] border-solid">
-          <div className="w-8 flex-shrink-0 text-center font-headline font-bold text-on-surface">
-            4
-          </div>
-          
-          <div className="relative mx-3.5 shrink-0">
-            <div className="w-12 h-12 rounded-full border-2 border-on-surface overflow-hidden bg-primary text-white flex items-center justify-center font-bold">
-              ////
-            </div>
-            <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[9px] font-bold px-1 rounded-full border border-on-surface">
-              Lv.{userLevel}
-            </div>
-          </div>
-
-          <div className="flex-grow min-w-0 pl-1 text-left">
-            <h3 className="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-wider mb-0.5">
-              YOUR PERSONAL RANK
-            </h3>
-            <h3 className="font-headline text-[15.5px] font-extrabold text-on-surface truncate">
-              {profile?.full_name || profile?.username || user?.email || "You (Master)"}
-            </h3>
-            <p className="text-[12px] font-bold text-orange-600">🔥 {userStreak} Day Streak</p>
-          </div>
-
-          <div className="text-right shrink-0">
-            <div className="font-headline text-headline-md font-bold text-on-surface">{activeXp.toLocaleString()}</div>
-            <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">XP</div>
-          </div>
-        </div>
-      </div>
+      {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} onCreated={(code) => { setShowCreate(false); navigate(`/arena/room/${code}`); }} />}
+      {showJoin && <JoinRoomModal onClose={() => setShowJoin(false)} onJoined={(code) => { setShowJoin(false); navigate(`/arena/room/${code}`); }} />}
     </div>
   );
 }

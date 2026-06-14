@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
@@ -60,7 +61,7 @@ export default function Dashboard() {
   const [sessions, setSessions] = useState<{ id: any; title: string; duration: number; created_at: string }[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
 
-  const [stats, setStats] = useState({ totalSessions: 0, studyTimeHours: 0, avgScore: 92 });
+  const [stats, setStats] = useState({ totalSessions: 0, studyTimeHours: 0, avgScore: 0 });
   const [studiedDays, setStudiedDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,14 +95,8 @@ export default function Dashboard() {
         setSessions(data);
         calculateStatsAndCalendar(data);
       } else {
-        const defaultSessions = [
-          { id: "s1", title: "Computer Science Study", duration: 45, created_at: new Date(Date.now() - 3600000).toISOString() },
-          { id: "s2", title: "Math Quiz Review",       duration: 30, created_at: new Date(Date.now() - 86400000).toISOString() },
-          { id: "s3", title: "Biology Note Analysis",  duration: 60, created_at: new Date(Date.now() - 172800000).toISOString() },
-        ];
-        await supabase.from("study_sessions").insert(defaultSessions);
-        setSessions(defaultSessions);
-        calculateStatsAndCalendar(defaultSessions);
+        setSessions([]);
+        calculateStatsAndCalendar([]);
       }
     } catch (err) {
       console.error("Error loading sessions:", err);
@@ -114,7 +109,7 @@ export default function Dashboard() {
     const totalSess = loadedSessions.length;
     const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration) || 0), 0);
     const hours = Math.round((totalMins / 60) * 10) / 10;
-    setStats({ totalSessions: totalSess, studyTimeHours: hours || 0.5, avgScore: profile?.avg_score ?? 0 });
+    setStats({ totalSessions: totalSess, studyTimeHours: hours, avgScore: profile?.avg_score ?? 0 });
 
     const daysStudied = new Array(7).fill(false);
     loadedSessions.forEach((session) => {
@@ -303,74 +298,12 @@ export default function Dashboard() {
   return (
     <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
 
-      {/* ═══════════════════════════════════════════════════
-          DESKTOP SIDEBAR — hidden on mobile (lg:flex)
-          ═══════════════════════════════════════════════════ */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64">
-        <div className="mb-6">
-          <h1 className="text-[28px] font-black tracking-tight text-black">Studenius</h1>
-          <p className="text-[13px] font-bold text-black/50">Academic Level: {profile?.plan === "pro" ? "Pro" : "Free"}</p>
-        </div>
-
-        <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
-          {[
-            { icon: "dashboard",     label: "Dashboard",      route: "/dashboard",  active: true },
-            { icon: "smart_toy",     label: "AI Tutor",       route: "/ai-tutor" },
-            { icon: "style",         label: "Flashcards",     route: "/flashcards" },
-            { icon: "assignment",    label: "Practice",       route: "/practice" },
-            { icon: "timer",         label: "Focus Timer",    route: "/focus" },
-            { icon: "calendar_today",label: "Study Planner",  route: "/planner" },
-            { icon: "folder_open",   label: "Source Library", route: "/sources" },
-            { icon: "bar_chart",     label: "Analytics",      route: "/analytics" },
-          ].map((item) => (
-            <button
-              key={item.route}
-              onClick={() => navigate(item.route)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-bold transition-all text-left w-full ${
-                item.active
-                  ? "bg-black text-white scale-95"
-                  : "text-black hover:bg-[#E2E2E2]"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="mt-auto border-t-[1.5px] border-black pt-4 flex flex-col gap-2">
-          <button
-            onClick={() => navigate("/go-pro")}
-            className="w-full bg-[#F5A623] border-[1.5px] border-black py-2 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90 transition-opacity"
-          >
-            Upgrade to Pro
-          </button>
-          <button
-            onClick={() => navigate("/settings")}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-bold text-black hover:bg-[#E2E2E2] transition-colors w-full"
-          >
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-            Settings
-          </button>
-          <button
-            onClick={() => navigate("/profile")}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#E2E2E2] transition-colors w-full"
-          >
-            <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-[1.5px] border-black flex items-center justify-center font-black text-[13px] flex-shrink-0">
-              {displayName.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-[13px] font-bold text-black">{displayName}</span>
-              <span className="text-[11px] font-bold text-black/50">Level {profile?.level ?? 1}</span>
-            </div>
-          </button>
-        </div>
-      </aside>
+      <SharedSidebar active="/dashboard" />
 
       {/* ═══════════════════════════════════════════════════
-          MOBILE TOP BAR — hidden on desktop (lg:hidden)
+          MOBILE TOP BAR — hidden on desktop (md:hidden)
           ═══════════════════════════════════════════════════ */}
-      <header className="lg:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
+      <header className="md:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
         <div className="text-[18px] font-black tracking-wider uppercase">Studenius</div>
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
@@ -385,9 +318,9 @@ export default function Dashboard() {
       </header>
 
       {/* ═══════════════════════════════════════════════════
-          DESKTOP LAYOUT — lg:block, offset by sidebar
+          DESKTOP LAYOUT — md:block, offset by sidebar
           ═══════════════════════════════════════════════════ */}
-      <div className="hidden lg:block lg:ml-64 h-full overflow-y-auto p-12">
+      <div className="hidden md:block md:ml-64 h-full overflow-y-auto p-12">
 
         {/* Desktop Header */}
         <header className="flex justify-between items-end mb-8">
@@ -512,13 +445,11 @@ export default function Dashboard() {
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
             </div>
             <div className="flex items-baseline gap-2 my-2">
-              <span className="text-[64px] font-black leading-none">{profile?.streak_days ?? 24}</span>
+              <span className="text-[64px] font-black leading-none">{profile?.streak ?? 0}</span>
               <span className="text-[24px] font-black uppercase">Days</span>
             </div>
-            <p className="text-[12px] font-bold opacity-90">Keep it up! You're in the top 5% of users this month.</p>
-            <button className="mt-3 py-2 border-2 border-white bg-white/10 text-[13px] font-black uppercase tracking-wider hover:bg-white hover:text-[#FF4D2E] transition-colors">
-              Claim Weekly Reward
-            </button>
+            <p className="text-[12px] font-bold opacity-90">{(profile?.streak ?? 0) > 0 ? `${profile?.streak} day streak — keep it going!` : "Start your first session to build your streak."}</p>
+
           </section>
 
           {/* Recent Sessions — full width */}
@@ -536,7 +467,7 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT — block on mobile, hidden on desktop
           ═══════════════════════════════════════════════════ */}
-      <main className="lg:hidden px-5 pt-6 pb-28 flex flex-col gap-6">
+      <main className="md:hidden px-5 pt-6 pb-28 flex flex-col gap-6">
 
         {/* Greeting */}
         <section className="flex items-center gap-3">
@@ -669,13 +600,16 @@ export default function Dashboard() {
           </div>
           <div className="text-[12px] text-black/45 font-bold mb-2">Based on study sessions recorded</div>
           <div className="flex flex-wrap gap-2.5">
-            {["Mathematics", "Physics", "English Essay"].map((chip, i) => (
-              <div key={chip} onClick={() => navigate(["/math", "/teach-it", "/quick-study"][i])}
-                className="border-2 border-black rounded-full px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer"
+            {sessions.slice(0, 3).map((s, i) => (
+              <div key={s.id || i} onClick={() => navigate("/practice")}
+                className="border-2 border-black px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer"
                 style={{ boxShadow: "2px 2px 0px rgba(0,0,0,1)" }}>
-                {chip}
+                {s.title}
               </div>
             ))}
+            {sessions.length === 0 && (
+              <p className="text-[12px] text-black/40 font-bold">Complete study sessions to see your targets here.</p>
+            )}
           </div>
         </section>
 
@@ -712,7 +646,7 @@ export default function Dashboard() {
           ═══════════════════════════════════════════════════ */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-5 z-50">
-          <div className="w-full max-w-[380px] bg-[#FAF7F2] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#1A1A1A]">
+          <div className="w-full max-w-[380px] bg-[#FAF7F2] border-2 border-black p-5 shadow-[4px_4px_0px_#1A1A1A]">
             <div className="flex items-center gap-2 mb-3.5">
               <span className="material-symbols-outlined text-[20px]">history</span>
               <h3 className="font-black text-[18px]">Log Study Session</h3>
@@ -728,7 +662,7 @@ export default function Dashboard() {
                   placeholder="e.g. Cellular Biology, Trigonometry"
                   value={sessionSubject}
                   onChange={(e) => setSessionSubject(e.target.value)}
-                  className="w-full border-2 border-black bg-white px-3 py-2 rounded-lg text-[13.5px] font-bold outline-none"
+                  className="w-full border-2 border-black bg-white px-3 py-2 text-[13.5px] font-bold outline-none"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -747,10 +681,10 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-white border-2 border-black py-2.5 rounded-xl font-bold text-[13px] hover:bg-neutral-50 cursor-pointer">
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-white border-2 border-black py-2.5 font-bold text-[13px] hover:bg-neutral-50 cursor-pointer">
                 Cancel
               </button>
-              <button disabled={savingSession} onClick={handleSaveSession} className="flex-1 bg-black border-2 border-black text-white py-2.5 rounded-xl font-bold text-[13px] hover:opacity-90 cursor-pointer disabled:opacity-50">
+              <button disabled={savingSession} onClick={handleSaveSession} className="flex-1 bg-black border-2 border-black text-white py-2.5 font-bold text-[13px] hover:opacity-90 cursor-pointer disabled:opacity-50">
                 {savingSession ? "Saving..." : "Save Log"}
               </button>
             </div>

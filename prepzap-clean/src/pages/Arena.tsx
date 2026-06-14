@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq, safeParseJSON } from "@/lib/groq";
+import { loadLibrary } from "@/lib/sourceContext";
 
 interface DailyQuiz {
   id: string;
@@ -82,6 +83,13 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [error, setError] = useState("");
+  const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
+  const [selectedSource, setSelectedSource] = useState<any>(null);
+  const [showSources, setShowSources] = useState(false);
+
+  useEffect(() => {
+    loadLibrary().then(setLibraryFiles).catch(() => setLibraryFiles([]));
+  }, []);
 
   const handleCreate = async () => {
     if (!roomName.trim() || !topic.trim()) { setError("Room name and topic are required."); return; }
@@ -89,7 +97,13 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setLoading(true); setError("");
     try {
       setLoadingMsg("Generating questions with AI...");
-      const questions = await generateQuestions(topic.trim(), questionCount, difficulty);
+      const topicWithSource = selectedSource
+        ? `${topic.trim()}
+
+Source material context:
+${selectedSource.content?.slice(0, 2000) || selectedSource.name}`
+        : topic.trim();
+      const questions = await generateQuestions(topicWithSource, questionCount, difficulty);
       setLoadingMsg("Creating room...");
       let code = generateCode();
       for (let i = 0; i < 10; i++) {
@@ -140,6 +154,46 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
             </div>
             <textarea value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Describe the topic or paste your notes..." rows={3}
               className="w-full bg-white border-2 border-black px-3 py-2.5 text-[15px] font-medium placeholder:text-black/30 focus:outline-none shadow-[2px_2px_0px_0px_#000] resize-none" />
+          </div>
+
+          {/* Source Library Sync */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center">
+              <label className="text-[11px] font-bold uppercase tracking-wider">Sync from Source Library</label>
+              <span className="text-[10px] font-bold text-black/40">Optional</span>
+            </div>
+            {selectedSource ? (
+              <div className="flex items-center gap-3 border-2 border-black bg-[#F0EDE0] px-3 py-2.5 shadow-[2px_2px_0px_0px_#000]">
+                <span className="material-symbols-outlined text-[18px] text-[#ae2925]">description</span>
+                <span className="flex-1 text-[13px] font-bold truncate">{selectedSource.name}</span>
+                <button onClick={() => setSelectedSource(null)} className="material-symbols-outlined text-[16px] text-black/40 hover:text-black">close</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowSources(!showSources)}
+                className="flex items-center gap-2 border-2 border-dashed border-black bg-white px-3 py-2.5 text-[13px] font-bold text-black/50 hover:text-black hover:border-solid transition-all shadow-[2px_2px_0px_0px_#000]">
+                <span className="material-symbols-outlined text-[18px]">folder_open</span>
+                Pick a file from your library
+              </button>
+            )}
+            {showSources && !selectedSource && (
+              <div className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] max-h-40 overflow-y-auto">
+                {libraryFiles.length === 0 ? (
+                  <div className="p-4 text-center text-[12px] font-bold text-black/40">
+                    No files in your Source Library yet.
+                  </div>
+                ) : libraryFiles.map((file: any) => (
+                  <button key={file.id} onClick={() => { setSelectedSource(file); setShowSources(false); if (!topic.trim()) setTopic(file.name.replace(/\.[^.]+$/, "")); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 border-b border-black/10 hover:bg-[#F0EDE0] text-left transition-colors">
+                    <span className="material-symbols-outlined text-[16px]">description</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold truncate">{file.name}</p>
+                      <p className="text-[10px] font-bold text-black/40 uppercase tracking-wider">{file.type || "Document"}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[14px] text-black/20">add</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
