@@ -224,7 +224,7 @@ export default function ArenaRoom() {
       {/* ── Mobile layout ── */}
       <div className="md:hidden flex flex-col gap-5 px-4 pt-5 pb-40">
         {/* Room info */}
-        <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-4 relative overflow-hidden">
+        <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-4 relative">
           <div className="flex justify-between items-start mb-3">
             <div>
               <h2 className="font-black text-[18px] text-black">{room.room_name}</h2>
@@ -254,7 +254,7 @@ export default function ArenaRoom() {
         {/* Center — room info + player grid */}
         <div className="flex-1 p-8 overflow-y-auto flex flex-col gap-6">
           {/* Room info card */}
-          <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-6 relative overflow-hidden">
+          <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-6 relative">
             <div className="absolute -top-3 -right-3 rotate-6">
               <span className={`text-[11px] font-bold px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_#000] ${room.mode === "live" ? "bg-[#E8534A] text-white" : "bg-[#f0a040] text-black"}`}>
                 {room.mode.toUpperCase()}
