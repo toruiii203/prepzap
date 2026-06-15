@@ -163,7 +163,7 @@ export default function Practice() {
   useEffect(() => {
     loadContext();
     setActiveSource(getActiveSource());
-    loadLibrary().then(setLibraryFiles).catch(() => setLibraryFiles([]));
+    setLibraryFiles(loadLibrary());
   }, []);
 
   useEffect(() => {

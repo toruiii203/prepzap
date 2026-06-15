@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface StudyPoint {
   label: string;
@@ -23,16 +25,35 @@ export default function QuickStudy() {
   const navigate = useNavigate();
   const activeSource = getActiveSource();
   const { save: saveHistory } = useToolHistory("quick-study");
+  const { isPro, canUse, remaining, logUsage } = usePlan();
 
   const [activeTab, setActiveTab] = useState<"Cram" | "HighYield">("Cram");
   const [topic, setTopic] = useState("");
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Freemium state
+  const [remainingUses, setRemainingUses] = useState<number>(3);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    remaining("quick_study").then(setRemainingUses);
+  }, [remaining]);
+
   const chips = ["Cell Biology", "Anatomy", "Genetics", "Neuroscience", "Biochemistry", "Physiology"];
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
+
+    // Freemium gate
+    if (!isPro) {
+      const allowed = await canUse("quick_study");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     setLoading(true);
     setGeneratedSheet(null);
 
@@ -104,6 +125,10 @@ Return raw JSON only, no wrapping!`;
           model: "rex-ai",
           meta: `${activeTab} · ${sheet.tags.join(", ")}`,
         });
+        if (!isPro) {
+          await logUsage("quick_study");
+          remaining("quick_study").then(setRemainingUses);
+        }
       } else {
         throw new Error("Invalid structure");
       }
@@ -298,6 +323,14 @@ Return raw JSON only, no wrapping!`;
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
+      {showUpgrade && (
+        <UpgradePrompt
+          feature="quick_study"
+          remaining={remainingUses}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
+
       <SharedSidebar active="/quick-study" />
 
       {/* ═══════════════════════════════════════════════════
@@ -412,6 +445,14 @@ Return raw JSON only, no wrapping!`;
                     </div>
                     <div className="absolute inset-0 bg-[#E8534A] translate-y-1 translate-x-1 group-active:translate-y-0 group-active:translate-x-0 transition-transform" />
                   </button>
+                  {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+                    <div className="mt-2 flex flex-col items-center gap-1">
+                      <p className="text-[12px] text-black/50 font-bold">
+                        {remainingUses} session{remainingUses !== 1 ? "s" : ""} left today
+                      </p>
+                      {remainingUses <= 2 && <SoftWarning feature="quick_study" remaining={remainingUses} />}
+                    </div>
+                  )}
                 </div>
               </div>
 

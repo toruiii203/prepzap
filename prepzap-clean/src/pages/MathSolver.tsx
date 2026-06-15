@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { callGroq } from "@/lib/groq";
 import { getActiveSource, buildAIContext, loadContext, loadContext as loadCtx, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface SolutionStep {
   stepNumber: number;
@@ -261,11 +263,20 @@ export default function MathSolver() {
   const [problem, setProblem] = useState("");
   const [activeSource, setActiveSource] = useState<any>(getActiveSource());
   const { save: saveHistory } = useToolHistory("math-solver");
+  const { isPro, canUse, remaining, logUsage } = usePlan();
   const [steps, setSteps] = useState<SolutionStep[]>([]);
   const [solved, setSolved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
   const [visualizerTab, setVisualizerTab] = useState<"2d" | "table">("2d");
+
+  // Freemium state
+  const [remainingUses, setRemainingUses] = useState<number>(5);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    remaining("math_solver").then(setRemainingUses);
+  }, [remaining]);
 
   const calcBtnRef = useRef<HTMLButtonElement>(null);
   const desktopCalcBtnRef = useRef<HTMLButtonElement>(null);
@@ -298,6 +309,16 @@ export default function MathSolver() {
 
   const handleSolve = async () => {
     if (!problem.trim()) return;
+
+    // Freemium gate
+    if (!isPro) {
+      const allowed = await canUse("math_solver");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     setLoading(true);
     setSolved(false);
 
@@ -343,6 +364,10 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
           model: "rex-ai",
           meta: `${generated.length} steps`,
         });
+        if (!isPro) {
+          await logUsage("math_solver");
+          remaining("math_solver").then(setRemainingUses);
+        }
       } else {
         throw new Error("Invalid structure returned");
       }
@@ -497,6 +522,14 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+
+      {showUpgrade && (
+        <UpgradePrompt
+          feature="math_solver"
+          remaining={remainingUses}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
 
       <SharedSidebar active="/math" />
 
@@ -670,6 +703,12 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
             <div className="px-8 pb-4 text-[11px] font-bold text-black/30 text-center">
               AI Solver can make mistakes. Verify important results with your textbook.
             </div>
+            {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+              <div className="px-8 pb-3 flex flex-col items-center gap-2">
+                <p className="text-[12px] text-black/50 font-bold">{remainingUses} solve{remainingUses !== 1 ? "s" : ""} left today</p>
+                {remainingUses <= 2 && <SoftWarning feature="math_solver" remaining={remainingUses} />}
+              </div>
+            )}
           </div>
 
           {/* Right Pane — 42% — results */}

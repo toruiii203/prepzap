@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { callGroq } from "@/lib/groq";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface MistakeItem {
   id: number | string;
@@ -30,6 +32,7 @@ export default function MistakeJournal() {
   const navigate = useNavigate();
   // FIX: pull profile from auth so avatar initial is dynamic, not hardcoded "R"
   const { profile } = useAuth();
+  const { isPro, canUse, remaining, logUsage } = usePlan();
   const [activeSubject, setActiveSubject] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeQuizId, setActiveQuizId] = useState<number | string | null>(null);
@@ -41,6 +44,14 @@ export default function MistakeJournal() {
   const [newTitle, setNewTitle] = useState("");
   const [newSubject, setNewSubject] = useState("Biology");
   const [newDesc, setNewDesc] = useState("");
+
+  // Freemium state
+  const [remainingUses, setRemainingUses] = useState<number>(5);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    remaining("mistake_journal").then(setRemainingUses);
+  }, [remaining]);
 
   const subjects = ["All", "Biology", "Physics", "Mathematics", "Chemistry", "History"];
 
@@ -120,8 +131,19 @@ Return strictly a valid raw JSON object (no markdown):
     }
   };
 
-  const handleAddNewMistake = () => {
+  const handleAddNewMistake = async () => {
     if (!newTitle.trim()) return;
+
+    // Freemium gate
+    if (!isPro) {
+      const allowed = await canUse("mistake_journal");
+      if (!allowed) {
+        setNewEntryOpen(false);
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     const newItem: MistakeItem = {
       id: "mistake_" + Date.now(),
       subject: newSubject,
@@ -136,6 +158,11 @@ Return strictly a valid raw JSON object (no markdown):
     setNewDesc("");
     setNewSubject("Biology");
     setNewEntryOpen(false);
+
+    if (!isPro) {
+      await logUsage("mistake_journal");
+      remaining("mistake_journal").then(setRemainingUses);
+    }
   };
 
   // FIX: mark a mistake resolved manually without needing quiz
@@ -380,6 +407,14 @@ Return strictly a valid raw JSON object (no markdown):
 
       <SharedSidebar active="/mistakes" />
 
+      {showUpgrade && (
+        <UpgradePrompt
+          feature="mistake_journal"
+          remaining={remainingUses}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
+
       {newEntryOpen && <NewEntryModal />}
 
       {/* ═══════════════════════════════════════════════════
@@ -451,6 +486,14 @@ Return strictly a valid raw JSON object (no markdown):
                   New Entry
                 </button>
               </div>
+              {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+                <div className="flex items-center justify-end gap-2 px-8 pt-1">
+                  <span className="text-[12px] text-black/50 font-bold">
+                    {remainingUses} entr{remainingUses !== 1 ? "ies" : "y"} left today
+                  </span>
+                  {remainingUses <= 2 && <SoftWarning feature="mistake_journal" remaining={remainingUses} />}
+                </div>
+              )}
             </div>
 
             {/* Count label */}

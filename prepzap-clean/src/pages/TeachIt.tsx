@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource, saveContext } from "@/lib/sourceContext";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface FeynmanFeedback {
   strengths: string[];
@@ -17,6 +19,7 @@ interface FeynmanFeedback {
 export default function TeachIt() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const { isPro, canUse, remaining, logUsage } = usePlan();
   const [activeSource, setActiveSource] = useState<string | null>(() => getActiveSource()?.name ?? null);
   const [topic, setTopic] = useState("");
   const [explanation, setExplanation] = useState("");
@@ -24,6 +27,14 @@ export default function TeachIt() {
   const [loading, setLoading] = useState(false);
   const [showXpToast, setShowXpToast] = useState(false);
   const [xpEarnedToast, setXpEarnedToast] = useState(0);
+
+  // Freemium state
+  const [remainingUses, setRemainingUses] = useState<number>(3);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    remaining("teach_it").then(setRemainingUses);
+  }, [remaining]);
 
   const selectTopicTemplate = (title: string) => {
     setTopic(title);
@@ -38,6 +49,16 @@ export default function TeachIt() {
 
   const handleAnalyze = async () => {
     if (!explanation.trim()) return;
+
+    // Freemium gate
+    if (!isPro) {
+      const allowed = await canUse("teach_it");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     setLoading(true);
     setFeedback(null);
     const targetTopic = topic.trim() || "General Study Concept";
@@ -86,6 +107,11 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             await refreshProfile();
           } catch {}
         }
+
+        if (!isPro) {
+          await logUsage("teach_it");
+          remaining("teach_it").then(setRemainingUses);
+        }
       } else {
         throw new Error("Invalid structure");
       }
@@ -126,6 +152,14 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
     // FIX: root div uses height:100dvh + overflow:hidden so the desktop child
     // doesn't fight for its own 100vh and cause layout collapse
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
+
+      {showUpgrade && (
+        <UpgradePrompt
+          feature="teach_it"
+          remaining={remainingUses}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
 
       <SharedSidebar active="/teach-it" />
 
@@ -299,6 +333,14 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                 </span>
                 {loading ? "Analyzing..." : "Analyze Explanation"}
               </button>
+              {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+                <div className="flex flex-col items-center gap-1 mt-1">
+                  <p className="text-[12px] text-black/50 font-bold">
+                    {remainingUses} session{remainingUses !== 1 ? "s" : ""} left today
+                  </p>
+                  {remainingUses <= 2 && <SoftWarning feature="teach_it" remaining={remainingUses} />}
+                </div>
+              )}
             </div>
           </div>
 

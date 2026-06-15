@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";
 import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface Flashcard {
   front: string;
@@ -77,6 +79,7 @@ export default function Flashcards() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth() as any;
   const { save: saveHistory } = useToolHistory("flashcards");
+  const { isPro, canUse, remaining, logUsage } = usePlan();
   const [view, setView] = useState<"setup" | "study" | "results">("setup");
   const [topic, setTopic] = useState("");
   const [cardCount, setCardCount] = useState(8);
@@ -86,6 +89,14 @@ export default function Flashcards() {
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
   const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
+
+  // Freemium state
+  const [remainingUses, setRemainingUses] = useState<number>(3);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    remaining("flashcard_gen").then(setRemainingUses);
+  }, [remaining]);
 
   // Game scores
   const [scores, setScores] = useState({ gotIt: 0, unsure: 0, forgot: 0 });
@@ -159,6 +170,15 @@ export default function Flashcards() {
   };
 
   const handleGenerate = async () => {
+    // Freemium gate
+    if (!isPro) {
+      const allowed = await canUse("flashcard_gen");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     setIsLoading(true);
     setScores({ gotIt: 0, unsure: 0, forgot: 0 });
     setCurrentCardIndex(0);
@@ -210,6 +230,11 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         subset.push(mockCards[i % mockCards.length]);
       }
       setCards(subset);
+      // Log usage after successful generation
+      if (!isPro) {
+        await logUsage("flashcard_gen");
+        remaining("flashcard_gen").then(setRemainingUses);
+      }
     } finally {
       setIsLoading(false);
       setView("study");
@@ -259,6 +284,14 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+
+      {showUpgrade && (
+        <UpgradePrompt
+          feature="flashcard_gen"
+          remaining={remainingUses}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
 
       <SharedSidebar active="/flashcards" />
 
@@ -336,6 +369,16 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </>
                 )}
               </button>
+              {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+                <p className="text-center text-[12px] text-black/50 font-bold mt-1">
+                  {remainingUses} generation{remainingUses !== 1 ? "s" : ""} left today
+                </p>
+              )}
+              {!isPro && remainingUses <= 2 && remainingUses > 0 && (
+                <div className="flex justify-center mt-1">
+                  <SoftWarning feature="flashcard_gen" remaining={remainingUses} />
+                </div>
+              )}
             </div>
 
             {/* Source Library Picker */}
