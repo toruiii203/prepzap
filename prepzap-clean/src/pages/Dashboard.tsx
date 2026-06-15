@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { usePlan } from "@/hooks/usePlan";
 
 // All 12 tools flat — used for desktop grid and mobile carousel
 const ALL_TOOLS = [
@@ -30,6 +31,7 @@ const TOOL_SLIDES = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const { isPro } = usePlan();
   const [toolsPage, setToolsPage] = useState(0);
   const toolsScrollRef = useRef<HTMLDivElement>(null);
 
@@ -308,7 +310,11 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
           <div className="px-2.5 py-0.5 border-[1.5px] border-black rounded-full cursor-pointer bg-[#fca623]/20" onClick={() => navigate("/go-pro")}>
-            <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO</span>
+            {isPro ? (
+              <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO ✦</span>
+            ) : (
+              <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">Go Pro</span>
+            )}
           </div>
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75">notifications</span>
           <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-2 border-black flex items-center justify-center font-black text-[13px] cursor-pointer" onClick={() => navigate("/profile")}>

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { loadLibrary } from "@/lib/sourceContext";
+import { usePlan } from "@/hooks/usePlan";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -126,8 +127,8 @@ const StatCard = ({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function StudentProfile() {
   const navigate = useNavigate();
+  const { isPro } = usePlan();
 
   const [userName, setUserName] = useState("Student");
   const [userEmail, setUserEmail] = useState("");
@@ -225,7 +226,7 @@ export default function StudentProfile() {
               >
                 <span className="text-[64px] font-black text-[#FAF7F2] leading-none">{userInitial}</span>
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-[#F5A623] border-2 border-black px-2 py-0.5 text-[11px] font-black uppercase tracking-widest">
+              <div className="absolute -bottom-2 -right-2 bg-[#F5A623] border-2 border-black px-2 py-0.5 text-[11px] font-black uppercase tracking-widest" style={{ display: isPro ? "block" : "none" }}>
                 PRO
               </div>
             </div>
@@ -244,7 +245,7 @@ export default function StudentProfile() {
                 <span className="w-1 h-1 bg-black/30 rounded-full" />
                 <p className="text-[14px] font-semibold text-black/60 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
-                  Pro Scholar
+                  {isPro ? "Pro Scholar" : "Free Plan"}
                 </p>
               </div>
             </div>
@@ -353,7 +354,7 @@ export default function StudentProfile() {
               <div className="w-24 h-24 bg-black flex items-center justify-center border-2 border-black shadow-[3px_3px_0px_#555]">
                 <span className="text-[48px] font-black text-[#FAF7F2] leading-none">{userInitial}</span>
               </div>
-              <div className="absolute -bottom-1 -right-1 bg-[#F5A623] border-2 border-black px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest">
+              <div className="absolute -bottom-1 -right-1 bg-[#F5A623] border-2 border-black px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{ display: isPro ? "block" : "none" }}>
                 PRO
               </div>
             </div>
@@ -370,7 +371,7 @@ export default function StudentProfile() {
                 <span className="w-1 h-1 bg-black/20 rounded-full" />
                 <span className="text-[12px] font-semibold text-[#888] flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">workspace_premium</span>
-                  Pro Scholar
+                  {isPro ? "Pro Scholar" : "Free Plan"}
                 </span>
               </div>
             </div>

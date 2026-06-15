@@ -11,6 +11,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/contexts/AuthContext"
+import { usePlan } from "@/hooks/usePlan"
 
 type Theme = "light" | "dark" | "system"
 type DailyGoal = 15 | 30 | 45 | 60 | 90 | 120
@@ -33,6 +35,8 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 
 export default function Settings() {
   const navigate = useNavigate()
+  const { user, profile } = useAuth() as any
+  const { isPro, remaining } = usePlan()
   const [theme, setTheme] = useState<Theme>("system")
   const [dailyGoal, setDailyGoal] = useState<DailyGoal>(60)
   const [notifs, setNotifs] = useState({ streak: true, reminders: true, community: false, weekly: true })
@@ -41,6 +45,8 @@ export default function Settings() {
   const [userName, setUserName] = useState("Learner")
   const [userEmail, setUserEmail] = useState("learner@example.com")
   const [userInitial, setUserInitial] = useState("L")
+  const [creditsLeft, setCreditsLeft] = useState<number | null>(null)
+  const FREE_CREDITS_TOTAL = 50
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,6 +59,11 @@ export default function Settings() {
       }
     })
   }, [])
+
+  useEffect(() => {
+    // Load real remaining credits from usePlan
+    remaining("quick_study").then((r) => setCreditsLeft(r))
+  }, [remaining])
 
   const toggleSubject = (s: string) =>
     setSubjects(prev => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n })
@@ -107,12 +118,12 @@ export default function Settings() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "#F0F0F0", margin: "0 0 2px" }}>{userName}</p>
                 <p style={{ fontSize: 11, color: "#555", margin: "0 0 6px" }}>{userEmail}</p>
-                <span style={{ fontSize: 9, padding: "2px 6px", background: "rgba(0,196,180,0.08)", color: TEAL, border: `0.5px solid rgba(0,196,180,0.25)`, fontWeight: 700, letterSpacing: "0.08em" }}>FREE PLAN</span>
+                <span style={{ fontSize: 9, padding: "2px 6px", background: isPro ? "rgba(245,198,66,0.12)" : "rgba(0,196,180,0.08)", color: isPro ? GOLD : TEAL, border: `0.5px solid ${isPro ? "rgba(245,198,66,0.3)" : "rgba(0,196,180,0.25)"}`, fontWeight: 700, letterSpacing: "0.08em" }}>{isPro ? "PRO PLAN" : "FREE PLAN"}</span>
               </div>
               <button style={{ padding: "4px 10px", border: "0.5px solid #252525", background: "transparent", color: "#555", fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Edit</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {[{ label: "XP", value: String(profile?.total_xp ?? 0) }, { label: "Streak", value: String(profile?.streak ?? 0) }, { label: "Level", value: String(profile?.level ?? 1) }].map(s => (
+              {[{ label: "XP", value: String(profile?.total_xp ?? profile?.xp ?? 0) }, { label: "Streak", value: String(profile?.streak ?? 0) }, { label: "Level", value: String(profile?.level ?? 1) }].map(s => (
                 <div key={s.label} style={{ padding: "10px 8px", background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A1A1A", textAlign: "center" }}>
                   <p style={{ fontSize: 16, fontWeight: 700, color: "#F0F0F0", margin: "0 0 3px", fontFamily: "monospace" }}>{s.value}</p>
                   <p style={{ fontSize: 10, color: "#555", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.label}</p>
@@ -184,24 +195,40 @@ export default function Settings() {
             </div>
           </Section>
 
-          {/* Plan */}
           <Section title="Plan" icon={<Zap style={{ width: 12, height: 12, color: GOLD }} />}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#F0F0F0", margin: "0 0 2px" }}>Free Plan</p>
-                <p style={{ fontSize: 11, color: "#555", margin: 0 }}>50 credits remaining</p>
-              </div>
-              <span style={{ fontSize: 9, padding: "2px 6px", background: "rgba(0,196,180,0.08)", color: TEAL, border: `0.5px solid rgba(0,196,180,0.25)`, fontWeight: 700, letterSpacing: "0.08em" }}>ACTIVE</span>
-            </div>
-            <div style={{ height: 4, background: "#1A1A1A", marginBottom: 10 }}>
-              <div style={{ height: "100%", width: "50%", background: TEAL }} />
-            </div>
-            <p style={{ fontSize: 11, color: "#555", marginBottom: 12 }}>Upgrade to Pro for unlimited AI questions, Feynman Mode, and more.</p>
-            <Link to="/pricing">
-              <button style={{ width: "100%", padding: "10px", background: `linear-gradient(135deg,${TEAL},#0097A7)`, border: "none", color: "#0A0A0A", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit", letterSpacing: "0.06em" }}>
-                <CreditCard style={{ width: 14, height: 14 }} /> UPGRADE TO PRO
-              </button>
-            </Link>
+            {isPro ? (
+              <>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#F0F0F0", margin: "0 0 2px" }}>Pro Plan</p>
+                    <p style={{ fontSize: 11, color: "#555", margin: 0 }}>Unlimited AI access — you're all set.</p>
+                  </div>
+                  <span style={{ fontSize: 9, padding: "2px 6px", background: "rgba(245,198,66,0.12)", color: GOLD, border: `0.5px solid rgba(245,198,66,0.3)`, fontWeight: 700, letterSpacing: "0.08em" }}>ACTIVE</span>
+                </div>
+                <p style={{ fontSize: 11, color: "#555" }}>Thank you for supporting Studenius. Enjoy unlimited credits and all Pro features.</p>
+              </>
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#F0F0F0", margin: "0 0 2px" }}>Free Plan</p>
+                    <p style={{ fontSize: 11, color: "#555", margin: 0 }}>
+                      {creditsLeft !== null ? `${creditsLeft} of ${FREE_CREDITS_TOTAL} credits remaining` : "Loading credits…"}
+                    </p>
+                  </div>
+                  <span style={{ fontSize: 9, padding: "2px 6px", background: "rgba(0,196,180,0.08)", color: TEAL, border: `0.5px solid rgba(0,196,180,0.25)`, fontWeight: 700, letterSpacing: "0.08em" }}>ACTIVE</span>
+                </div>
+                <div style={{ height: 4, background: "#1A1A1A", marginBottom: 10 }}>
+                  <div style={{ height: "100%", width: `${creditsLeft !== null ? Math.round((creditsLeft / FREE_CREDITS_TOTAL) * 100) : 0}%`, background: TEAL, transition: "width .4s" }} />
+                </div>
+                <p style={{ fontSize: 11, color: "#555", marginBottom: 12 }}>Upgrade to Pro for unlimited AI questions, Feynman Mode, and more.</p>
+                <Link to="/pricing">
+                  <button style={{ width: "100%", padding: "10px", background: `linear-gradient(135deg,${TEAL},#0097A7)`, border: "none", color: "#0A0A0A", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit", letterSpacing: "0.06em" }}>
+                    <CreditCard style={{ width: 14, height: 14 }} /> UPGRADE TO PRO
+                  </button>
+                </Link>
+              </>
+            )}
           </Section>
 
           {/* Account */}
