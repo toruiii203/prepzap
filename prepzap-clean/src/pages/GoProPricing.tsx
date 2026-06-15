@@ -7,6 +7,11 @@ const PAYMENT_LINKS = {
   Yearly:  "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/iL2OO3b",
 } as const;
 
+const PAYPAL_LINKS = {
+  Monthly: "https://www.paypal.com/ncp/payment/PUK26H6FCJZL2",
+  Yearly:  "https://www.paypal.com/ncp/payment/UU56A82ZUTHQ6",
+} as const;
+
 export default function GoProPricing() {
   const navigate = useNavigate();
   const { user, profile } = useAuth() as any;
@@ -15,18 +20,15 @@ export default function GoProPricing() {
 
   const handleUpgrade = () => {
     if (isAlreadyPro) return;
-
     setRedirecting(true);
+    const userId = user?.id ?? "";
+    window.location.href = `${PAYMENT_LINKS[billingCycle]}?user_id=${encodeURIComponent(userId)}`;
+  };
 
-    // Append user_id so the PayMongo webhook knows which profile to upgrade.
-    // Your Cloudflare Worker webhook handler should read ?user_id= from the
-    // success/redirect URL or from the PayMongo metadata field.
-    const baseUrl = PAYMENT_LINKS[billingCycle];
-    const userId  = user?.id ?? "";
-    const target  = `${baseUrl}?user_id=${encodeURIComponent(userId)}`;
-
-    // Hard redirect — leaves the app and goes to PayMongo hosted payment page.
-    window.location.href = target;
+  const handlePayPal = () => {
+    if (isAlreadyPro) return;
+    setRedirecting(true);
+    window.location.href = PAYPAL_LINKS[billingCycle];
   };
 
   const isAlreadyPro = profile?.is_pro === true;
@@ -184,26 +186,42 @@ export default function GoProPricing() {
               <span>You're already VIP!</span>
             </button>
           ) : (
-            <button
-              onClick={handleUpgrade}
-              disabled={redirecting}
-              className="w-full bg-[#FAF7F2] hover:bg-black hover:text-[#FAF7F2] disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-1 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all mt-1 cursor-pointer text-[15px]"
-            >
-              {redirecting ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                  <span>Redirecting to payment…</span>
-                </>
-              ) : (
-                <>
-                  <span>Upgrade to Studenius VIP</span>
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
-                </>
-              )}
-            </button>
+            <div className="w-full flex flex-col gap-3">
+              {/* PayMongo — GCash, Maya, cards, online banking */}
+              <button
+                onClick={handleUpgrade}
+                disabled={redirecting}
+                className="w-full bg-[#FAF7F2] hover:bg-black hover:text-[#FAF7F2] disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-1 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer text-[15px]"
+              >
+                {redirecting ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                    <span>Redirecting to payment…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Pay with GCash / Card</span>
+                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
+                  </>
+                )}
+              </button>
+
+              {/* PayPal — international users */}
+              <button
+                onClick={handlePayPal}
+                disabled={redirecting}
+                className="w-full bg-[#FFC439] hover:bg-[#f0b429] disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#003087] font-extrabold py-4 px-6 rounded-xl border-2 border-[#003087] text-center flex items-center justify-center gap-2 shadow-[3px_3px_rgba(0,0,48,0.3)] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer text-[15px]"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#003087" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.771.771 0 0 1 .76-.645h6.966c2.373 0 4.062.559 5.022 1.662.928 1.063 1.17 2.354.74 3.945-.028.108-.056.218-.087.33-.976 3.998-4.32 5.375-8.59 5.375H7.56a.77.77 0 0 0-.761.651l-.882 5.508a.64.64 0 0 1-.632.54l-.209.251z"/>
+                  <path d="M19.873 8.4c-.972 4.153-4.238 6.243-9.016 6.243H8.58l-1.18 7.34h3.504l.903-5.643h2.27c4.27 0 7.614-1.377 8.59-5.375.43-1.591.188-2.882-.794-3.565z" fill="#009cde"/>
+                </svg>
+                <span>Pay with PayPal</span>
+              </button>
+            </div>
           )}
           <p className="text-[12.5px] font-bold text-on-surface-variant mt-3 opacity-60">
-            Secure payment via PayMongo · Cancel anytime
+            GCash · Maya · Cards · PayPal · Cancel anytime
           </p>
         </section>
       </main>
