@@ -127,6 +127,7 @@ const StatCard = ({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+export default function StudentProfile() {
   const navigate = useNavigate();
   const { isPro } = usePlan();
 
