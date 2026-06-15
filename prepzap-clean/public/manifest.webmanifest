@@ -1,23 +1,46 @@
 {
-  "id": "/",
-  "name": "Studenius",
+  "name": "Studenius — AI-Powered Study Platform",
   "short_name": "Studenius",
-  "description": "AI-powered study tools – practice questions, flashcards, Feynman mode, math solver, focus timer, and more.",
+  "description": "Study smarter with AI. Cram Mode, AI Tutor, Flashcards, Math Solver, and more — built for serious students.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#160810",
-  "theme_color": "#160810",
   "orientation": "portrait",
+  "theme_color": "#fcf9f4",
+  "background_color": "#fcf9f4",
+  "categories": ["education", "productivity"],
+  "lang": "en-PH",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/fox_icon_final.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Tutor",
+      "short_name": "Tutor",
+      "url": "/ai-tutor",
+      "icons": [{ "src": "/fox_icon_final.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cram Mode",
+      "short_name": "Cram",
+      "url": "/cram",
+      "icons": [{ "src": "/fox_icon_final.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Flashcards",
+      "short_name": "Flashcards",
+      "url": "/flashcards",
+      "icons": [{ "src": "/fox_icon_final.png", "sizes": "192x192" }]
     }
   ]
 }
