@@ -12,7 +12,7 @@
   "icons": [
     {
       "src": "/fox_icon_final.png",
-      "sizes": "192x192",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
     },
@@ -28,19 +28,19 @@
       "name": "AI Tutor",
       "short_name": "Tutor",
       "url": "/ai-tutor",
-      "icons": [{ "src": "/fox_icon_final.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/fox_icon_final.png", "sizes": "1024x1024" }]
     },
     {
       "name": "Cram Mode",
       "short_name": "Cram",
       "url": "/cram",
-      "icons": [{ "src": "/fox_icon_final.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/fox_icon_final.png", "sizes": "1024x1024" }]
     },
     {
       "name": "Flashcards",
       "short_name": "Flashcards",
       "url": "/flashcards",
-      "icons": [{ "src": "/fox_icon_final.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/fox_icon_final.png", "sizes": "1024x1024" }]
     }
   ]
 }
