@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ToolPageShell } from "@/pages/ToolPageShell"
+import { SharedSidebar } from "@/components/SharedSidebar"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePlan } from "@/hooks/usePlan"
@@ -88,7 +88,8 @@ export default function Settings() {
   }
 
   return (
-    <ToolPageShell>
+    <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
+      <SharedSidebar active="/settings" />
       <main style={{ flex: 1, padding: "24px 16px", paddingBottom: 40, background: "#FAF7F2", minHeight: "100%" }}>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
 
@@ -306,6 +307,6 @@ export default function Settings() {
 
         </div>
       </main>
-    </ToolPageShell>
+    </div>
   )
 }
