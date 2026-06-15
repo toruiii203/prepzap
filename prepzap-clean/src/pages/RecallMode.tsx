@@ -108,7 +108,7 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"prompt":"Complete this / Explain / Define...","answer":"expected answer (2-3 sentences)","keywords":["key","terms","from","answer"]}]
 keywords: 4-6 essential words from the answer that a correct response would include.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const raw = await callGroq(prompt, "llama-3.3-70b-versatile", { feature: "recall_mode" });
       const parsed: RecallPrompt[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setPrompts(parsed);
       setCurrent(0); setTyped(""); setResults([]);

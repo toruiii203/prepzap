@@ -83,6 +83,7 @@ import Challenges from "./pages/Challenges";
 import TeachIt from "./pages/TeachIt";
 import QuickStudy from "./pages/QuickStudy";
 import GoProPricing from "./pages/GoProPricing";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import Pricing from "./pages/Pricing";
 import MathSolver from "./pages/MathSolver";
 import Settings from "./pages/Settings";
@@ -184,6 +185,7 @@ function AppRoutes() {
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
         <Route path="/onboarding" element={safe(<Onboarding />)} />
+        <Route path="/payment-success" element={safe(<PaymentSuccess />)} />
         <Route path="/invite/:code" element={safe(<ArenaInvite />)} />
 
         {/* Protected — inside shell layout */}

@@ -94,7 +94,7 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"concept":"string","whyTestable":"1 sentence","frequency":"very high"|"high"|"medium"}]
 Order by frequency descending.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const raw = await callGroq(prompt, "llama-3.3-70b-versatile", { feature: "high_yield_detector" });
       const parsed: HighYieldConcept[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setConcepts(parsed);
       setDrills({});
@@ -114,7 +114,7 @@ Order by frequency descending.`;
 ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"question":"string","answer":"concise answer in 1-2 sentences"}]`;
-      const raw = await callGroq(prompt, "meta-llama/llama-3.1-8b-instruct:free");
+      const raw = await callGroq(prompt, "meta-llama/llama-3.1-8b-instruct:free", { feature: "high_yield_detector" });
       const parsed: DrillQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setDrills(prev => ({
         ...prev,
@@ -150,7 +150,7 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"question":"string","answer":"concise answer in 1-2 sentences"}]
 Mix question types: definition, application, comparison.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile");
+      const raw = await callGroq(prompt, "llama-3.3-70b-versatile", { feature: "high_yield_detector" });
       const parsed: DrillQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setPracticeSet(parsed);
       setPracticeAnswers(parsed.map(() => ""));
