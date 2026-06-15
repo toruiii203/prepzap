@@ -1,32 +1,32 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
 
-interface GoProPricingProps {
-}
+const PAYMENT_LINKS = {
+  Monthly: "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/RhaIdBU",
+  Yearly:  "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/iL2OO3b",
+} as const;
 
 export default function GoProPricing() {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth() as any;
+  const { user, profile } = useAuth() as any;
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Yearly">("Monthly");
+  const [redirecting, setRedirecting] = useState(false);
 
-  const handleUpgrade = async () => {
-    if (user && profile) {
-      try {
-        await supabase
-          .from("profiles")
-          .update({ is_pro: true })
-          .eq("id", user.id);
-        if (typeof refreshProfile === "function") {
-          await refreshProfile();
-        }
-      } catch (err) {
-        console.error("Error setting pro status:", err);
-      }
-    }
-    
-    navigate("/dashboard");
+  const handleUpgrade = () => {
+    if (isAlreadyPro) return;
+
+    setRedirecting(true);
+
+    // Append user_id so the PayMongo webhook knows which profile to upgrade.
+    // Your Cloudflare Worker webhook handler should read ?user_id= from the
+    // success/redirect URL or from the PayMongo metadata field.
+    const baseUrl = PAYMENT_LINKS[billingCycle];
+    const userId  = user?.id ?? "";
+    const target  = `${baseUrl}?user_id=${encodeURIComponent(userId)}`;
+
+    // Hard redirect — leaves the app and goes to PayMongo hosted payment page.
+    window.location.href = target;
   };
 
   const isAlreadyPro = profile?.is_pro === true;
@@ -175,15 +175,35 @@ export default function GoProPricing() {
 
         {/* Action button */}
         <section className="mt-2 flex flex-col items-center">
-          <button 
-            onClick={handleUpgrade}
-            className="w-full bg-[#FAF7F2] hover:bg-black hover:text-[#FAF7F2] font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-1 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all mt-1 cursor-pointer text-[15px]"
-          >
-            <span>{isAlreadyPro ? "You are already PRO!" : "Upgrade to Studenius PRO"}</span>
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
-          </button>
+          {isAlreadyPro ? (
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="w-full bg-[#feae2c] font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-1 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all mt-1 cursor-pointer text-[15px]"
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <span>You're already VIP!</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleUpgrade}
+              disabled={redirecting}
+              className="w-full bg-[#FAF7F2] hover:bg-black hover:text-[#FAF7F2] disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-1 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all mt-1 cursor-pointer text-[15px]"
+            >
+              {redirecting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  <span>Redirecting to payment…</span>
+                </>
+              ) : (
+                <>
+                  <span>Upgrade to Studenius VIP</span>
+                  <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
+                </>
+              )}
+            </button>
+          )}
           <p className="text-[12.5px] font-bold text-on-surface-variant mt-3 opacity-60">
-            Secure, cancel anytime. Seamless trial integration.
+            Secure payment via PayMongo · Cancel anytime
           </p>
         </section>
       </main>
