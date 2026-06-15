@@ -1,0 +1,45 @@
+# Studenius
+
+> Studenius is an AI-powered student learning platform built for academic excellence. It combines intelligent study tools, spaced repetition, and real-time AI tutoring to help students study smarter, retain more, and perform better on exams.
+
+## What Studenius Does
+
+Studenius gives students a full AI-powered study suite:
+
+- **AI Tutor** — Real-time conversational AI tutor for any subject
+- **Cram Mode / Quick Study** — AI-generated high-yield study sheets for fast exam prep
+- **Flashcards** — Smart flashcard creator with AI-assisted generation
+- **Feynman Mode (TeachIt)** — Learn by teaching; AI evaluates your explanation
+- **Math Solver** — Step-by-step AI math problem solver
+- **High Yield Detector** — Identifies the most testable concepts from any topic
+- **Recall Mode** — Active recall quizzing powered by AI
+- **Mistake Journal** — Tracks your weak areas and resurfaces them for review
+- **Focus Timer** — Deep work sessions with productivity tracking
+- **Study DNA / Analytics** — Visualizes your learning patterns and subject mastery
+- **Source Library** — Upload PDFs and lecture notes; AI tools use them as context
+- **Arena** — Competitive quiz battles against other students
+- **Study Planner** — AI-assisted weekly study scheduling
+
+## Who It's For
+
+Students in high school, college, and university — especially those preparing for exams, board reviews, or competitive academics. Built with a focus on medical, science, and engineering students but supports all subjects.
+
+## Technology
+
+- Built with React, TypeScript, Vite
+- AI powered by Groq (llama3) via Cloudflare Worker proxy
+- Backend: Supabase (auth + database)
+- Deployed on Cloudflare Pages
+- Available at https://studenius.com
+
+## Pricing
+
+- **Free Plan** — Limited daily AI credits, core tools accessible
+- **Studenius VIP (Pro)** — ₱199/month or ₱1,499/year; unlimited AI, all tools, priority generation
+
+## Links
+
+- Homepage: https://studenius.com
+- Dashboard: https://studenius.com/dashboard
+- Pricing: https://studenius.com/pricing
+- Tools: https://studenius.com/tools

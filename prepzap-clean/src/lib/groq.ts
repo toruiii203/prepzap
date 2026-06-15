@@ -3,6 +3,8 @@
 // The API key lives in the Worker secret — not exposed in the frontend.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { supabase } from "@/lib/supabase";
+
 const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
 
 const DEFAULT_MODEL = "gemini-2.0-flash";
@@ -54,7 +56,8 @@ export async function callGroq(
   messages: GroqMessage[] | string,
   systemPromptOrModel?: string,
   model: string = DEFAULT_MODEL,
-  maxTokens: number = 1024
+  maxTokens: number = 1024,
+  feature?: string
 ): Promise<string> {
   // Normalise overloaded arguments
   let normMessages: GroqMessage[];
@@ -112,14 +115,21 @@ export async function callGroq(
     "first msg role:", fullMessages[0]?.role
   );
 
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token ?? "";
+
   const res = await fetch(GROQ_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({
       model: resolvedModel,
       max_tokens: maxTokens,
       messages: fullMessages,
       temperature: 0.7,
+      ...(feature ? { feature } : {}),
       ...(isOpenRouterModel ? { route: "openrouter" } : {}),
     }),
   });
@@ -179,9 +189,15 @@ export async function callGroqWithImages(
   // FIX: was incorrectly referencing `hasImages` and `model` from callGroq scope
   console.log("[groq] sending vision request, model:", VISION_MODEL, "messages count:", messages.length);
 
+  const { data: { session: visionSession } } = await supabase.auth.getSession();
+  const visionToken = visionSession?.access_token ?? "";
+
   const res = await fetch(GROQ_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(visionToken ? { "Authorization": `Bearer ${visionToken}` } : {}),
+    },
     body: JSON.stringify({
       model: VISION_MODEL,
       max_tokens: maxTokens,

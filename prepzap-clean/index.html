@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Studenius</title>
+    <title>Studenius — AI-Powered Study Platform</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -11,6 +11,8 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="alternate icon" href="/fox_icon_final.png" />
     <link rel="apple-touch-icon" href="/icon-512.png" />
+    <link rel="canonical" href="https://studenius.com" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
     <!-- PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -20,24 +22,78 @@
     <meta name="theme-color" content="#160810" />
 
     <!-- SEO -->
-    <meta name="description" content="AI-powered learning tools to help you study smarter, retain more, and level up faster." />
+    <meta name="description" content="Studenius is an AI-powered study platform with an AI Tutor, Cram Mode, Flashcards, Math Solver, Recall Mode, and more — built to help students study smarter and ace their exams." />
+    <meta name="keywords" content="AI study app, AI tutor, flashcards, cram mode, math solver, exam prep, spaced repetition, student app, study tools, Studenius" />
     <meta name="author" content="Studenius" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://studenius.com/" />
+    <meta property="og:url" content="https://studenius.com" />
     <meta property="og:site_name" content="Studenius" />
-    <meta property="og:title" content="You're invited to a quiz battle on Studenius Arena!" />
-    <meta property="og:description" content="Join the Studenius Arena — compete in live quiz rooms with your classmates." />
-    <meta property="og:image" content="https://studenius.com/fox/fox-excited.png" />
-    <meta property="og:image:width" content="512" />
-    <meta property="og:image:height" content="512" />
+    <meta property="og:title" content="Studenius — AI-Powered Study Platform" />
+    <meta property="og:description" content="Study smarter with AI. Studenius gives you an AI Tutor, Cram Mode, Flashcards, Math Solver, Recall Mode, and more — all in one platform built for serious students." />
+    <meta property="og:image" content="https://studenius.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_PH" />
 
     <!-- Twitter/X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="You're invited to a quiz battle on Studenius Arena!" />
-    <meta name="twitter:description" content="Join the Studenius Arena — compete in live quiz rooms with your classmates." />
-    <meta name="twitter:image" content="https://studenius.com/fox/fox-excited.png" />
+    <meta name="twitter:url" content="https://studenius.com" />
+    <meta name="twitter:title" content="Studenius — AI-Powered Study Platform" />
+    <meta name="twitter:description" content="Study smarter with AI. Cram Mode, AI Tutor, Flashcards, Math Solver and more — built for serious students." />
+    <meta name="twitter:image" content="https://studenius.com/og-image.png" />
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://studenius.com/#website",
+          "url": "https://studenius.com",
+          "name": "Studenius",
+          "description": "AI-powered student learning platform with tools for studying, exam prep, and academic performance.",
+          "publisher": { "@id": "https://studenius.com/#organization" },
+          "inLanguage": "en-PH"
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://studenius.com/#organization",
+          "name": "Studenius",
+          "url": "https://studenius.com",
+          "logo": { "@type": "ImageObject", "url": "https://studenius.com/fox_icon_final.png" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Studenius",
+          "url": "https://studenius.com",
+          "applicationCategory": "EducationApplication",
+          "operatingSystem": "Web",
+          "description": "Studenius is an AI-powered study platform with an AI Tutor, Cram Mode, Smart Flashcards, Math Solver, High Yield Detector, Recall Mode, Mistake Journal, Focus Timer, and competitive Arena quizzes.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Free Plan",
+              "price": "0",
+              "priceCurrency": "PHP"
+            },
+            {
+              "@type": "Offer",
+              "name": "Studenius VIP",
+              "price": "199",
+              "priceCurrency": "PHP",
+              "billingIncrement": "P1M"
+            }
+          ],
+          "featureList": ["AI Tutor", "Cram Mode", "Smart Flashcards", "Math Solver", "High Yield Detector", "Recall Mode", "Feynman Mode", "Mistake Journal", "Focus Timer", "Study DNA Analytics", "Source Library", "Arena Quiz Battles", "Study Planner"],
+          "audience": { "@type": "EducationalAudience", "educationalRole": "student" },
+          "publisher": { "@id": "https://studenius.com/#organization" }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
