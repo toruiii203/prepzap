@@ -28,6 +28,184 @@ interface MistakeItem {
 // even before the user added anything. Start with empty array.
 const INITIAL_MISTAKES: MistakeItem[] = [];
 
+// ─── MistakeCard lifted OUT of MistakeJournal to prevent remount-on-every-render ───
+// (defining components inside another component causes React to treat them as
+// new component types on each render, which unmounts/remounts and breaks inputs)
+interface MistakeCardProps {
+  item: MistakeItem;
+  activeQuizId: number | string | null;
+  selectedQuizOption: number | null;
+  quizFeedback: string | null;
+  loadingQuizId: number | string | null;
+  onDelete: (id: number | string) => void;
+  onMarkResolved: (id: number | string) => void;
+  onStartQuiz: (item: MistakeItem) => void;
+  onSubmitQuiz: (item: MistakeItem) => void;
+  onSelectOption: (idx: number) => void;
+  onCloseQuiz: () => void;
+}
+
+function MistakeCard({
+  item,
+  activeQuizId,
+  selectedQuizOption,
+  quizFeedback,
+  loadingQuizId,
+  onDelete,
+  onMarkResolved,
+  onStartQuiz,
+  onSubmitQuiz,
+  onSelectOption,
+  onCloseQuiz,
+}: MistakeCardProps) {
+  return (
+    <article className={`bg-white border-2 border-black flex flex-col overflow-hidden transition-all hover:-translate-y-0.5 ${
+      item.resolved ? "opacity-70" : ""
+    }`} style={{ boxShadow: "5px 5px 0px #000" }}>
+      {/* Card header */}
+      <div className="px-5 py-4 border-b-2 border-black bg-[#F0EDE0]">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span className="bg-black text-white px-3 py-0.5 text-[10px] font-black uppercase rounded-full tracking-widest">
+            {item.subject}
+          </span>
+          {item.resolved ? (
+            <span className="text-green-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+              <span>✓</span> Resolved
+            </span>
+          ) : (
+            <span className="text-[#FF4D2E] font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+              <span className="text-[8px]">●</span> To Review
+            </span>
+          )}
+          {item.overdue && !item.resolved && (
+            <span className="bg-[#FF4D2E] text-white text-[10px] font-black px-2 py-0.5 border border-black">
+              OVERDUE
+            </span>
+          )}
+        </div>
+        <div className="flex justify-between items-start">
+          <h3 className="font-black text-[17px] leading-tight pr-4">{item.title}</h3>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className="text-[12px] font-bold text-black/50">{item.date}</span>
+            <button
+              onClick={() => onDelete(item.id)}
+              title="Delete entry"
+              className="text-black/30 hover:text-[#FF4D2E] transition-colors">
+              <span className="material-symbols-outlined text-[18px]">delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Card body — hidden during quiz to prevent cheating */}
+      {activeQuizId === item.id ? (
+        <div className="px-5 py-4 flex items-center gap-2 text-black/30 border-b-2 border-black/10 bg-[#FAF7F2]">
+          <span className="material-symbols-outlined text-[16px]">lock</span>
+          <span className="text-[11px] font-black uppercase tracking-widest">Answer hidden during quiz</span>
+        </div>
+      ) : (
+        <div className="p-5 flex-1 flex flex-col gap-3">
+          <p className="text-[14px] text-black/70 font-medium leading-relaxed flex-1">{item.desc}</p>
+          {item.note && (
+            <div className="bg-[#FAF7F2] border-2 border-black p-3 italic text-[12px] font-medium text-black/70">
+              {item.note}
+            </div>
+          )}
+          {item.tags && item.tags.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {item.tags.map(tag => (
+                <span key={tag} className="bg-[#E2E2E2] border border-black/20 px-2 py-0.5 text-[11px] font-bold">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quiz section */}
+      {activeQuizId === item.id && item.quiz ? (
+        <div className="px-5 pb-5 flex flex-col gap-3">
+          <div className="bg-[#FAF7F2] border-2 border-black p-4 flex flex-col gap-3">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#FF4D2E]">AI Diagnostic Quiz</span>
+            <p className="font-black text-[14px] leading-snug">{item.quiz.q}</p>
+            <div className="flex flex-col gap-2">
+              {item.quiz.options.map((opt, oIdx) => (
+                <button key={oIdx} onClick={() => onSelectOption(oIdx)}
+                  className={`text-left p-3 border-2 text-[13px] font-bold transition-all cursor-pointer ${
+                    selectedQuizOption === oIdx ? "bg-black text-white border-black" : "bg-white text-black border-black/20 hover:border-black"
+                  }`}>
+                  {["A","B","C","D"][oIdx]}. {opt}
+                </button>
+              ))}
+            </div>
+            {quizFeedback && (
+              <p className={`p-3 border-2 text-[12px] font-bold ${
+                quizFeedback.startsWith("✓") ? "bg-green-50 border-green-400 text-green-800" : "bg-red-50 border-red-300 text-red-800"
+              }`}>{quizFeedback}</p>
+            )}
+            <div className="flex justify-between items-center">
+              <button onClick={onCloseQuiz}
+                className="text-black/40 font-bold text-[12px] underline cursor-pointer hover:text-black">
+                Close
+              </button>
+              <button disabled={selectedQuizOption === null} onClick={() => onSubmitQuiz(item)}
+                className={`px-5 py-2 border-2 border-black text-[12px] font-black cursor-pointer ${
+                  selectedQuizOption !== null ? "bg-black text-white hover:bg-[#FF4D2E]" : "bg-neutral-200 opacity-50"
+                }`}>
+                Submit Answer
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* CTA footer */
+        <div className="border-t-2 border-black flex">
+          {!item.resolved && (
+            <button
+              onClick={() => onMarkResolved(item.id)}
+              className="px-4 py-3 bg-white border-r-2 border-black text-black/40 hover:text-green-700 hover:bg-green-50 transition-colors text-[12px] font-black flex items-center gap-1 shrink-0"
+              title="Mark as resolved">
+              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+            </button>
+          )}
+          <button
+            onClick={() => onStartQuiz(item)}
+            disabled={loadingQuizId === item.id || item.resolved}
+            className={`flex-1 py-3 flex items-center justify-center gap-2 text-[13px] font-black transition-colors ${
+              item.resolved
+                ? "bg-[#E2E2E2] text-black/40 cursor-not-allowed"
+                : "bg-[#FF4D2E] text-white hover:bg-black cursor-pointer"
+            }`}>
+            {loadingQuizId === item.id ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                {item.resolved ? "Already Resolved" : "Generate Quiz"}
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </article>
+  );
+}
+
+// ─── EmptyState lifted OUT of MistakeJournal (same remount-fix reason) ───
+function EmptyState({ colSpan = false }: { colSpan?: boolean }) {
+  return (
+    <div className={`text-center py-16 border-2 border-dashed border-black/20 bg-white flex flex-col items-center gap-3 ${colSpan ? "col-span-full" : ""}`}>
+      <span className="material-symbols-outlined text-[48px] text-black/20">menu_book</span>
+      <p className="font-black text-[16px] text-black/40">No mistakes logged yet</p>
+      <p className="text-[13px] text-black/30 font-medium">Tap <strong>+ New Entry</strong> to log your first misconception</p>
+    </div>
+  );
+}
+
 export default function MistakeJournal() {
   const navigate = useNavigate();
   // FIX: pull profile from auth so avatar initial is dynamic, not hardcoded "R"
@@ -195,149 +373,8 @@ Return strictly a valid raw JSON object (no markdown):
     ? `You have multiple unresolved entries in ${topSubjects[0]}. Focus your next review session there.`
     : "Keep logging mistakes — patterns will appear here once you have 3 or more entries.";
 
-  // ─── Shared: mistake card ─────────────────────────────────────────────────
-  const MistakeCard = ({ item }: { item: MistakeItem }) => (
-    <article className={`bg-white border-2 border-black flex flex-col overflow-hidden transition-all hover:-translate-y-0.5 ${
-      item.resolved ? "opacity-70" : ""
-    }`} style={{ boxShadow: "5px 5px 0px #000" }}>
-      {/* Card header */}
-      <div className="px-5 py-4 border-b-2 border-black bg-[#F0EDE0]">
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="bg-black text-white px-3 py-0.5 text-[10px] font-black uppercase rounded-full tracking-widest">
-            {item.subject}
-          </span>
-          {item.resolved ? (
-            <span className="text-green-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
-              <span>✓</span> Resolved
-            </span>
-          ) : (
-            <span className="text-[#FF4D2E] font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
-              <span className="text-[8px]">●</span> To Review
-            </span>
-          )}
-          {item.overdue && !item.resolved && (
-            <span className="bg-[#FF4D2E] text-white text-[10px] font-black px-2 py-0.5 border border-black">
-              OVERDUE
-            </span>
-          )}
-        </div>
-        <div className="flex justify-between items-start">
-          <h3 className="font-black text-[17px] leading-tight pr-4">{item.title}</h3>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className="text-[12px] font-bold text-black/50">{item.date}</span>
-            {/* FIX: edit button was dead — replaced with delete for now */}
-            <button
-              onClick={() => handleDelete(item.id)}
-              title="Delete entry"
-              className="text-black/30 hover:text-[#FF4D2E] transition-colors">
-              <span className="material-symbols-outlined text-[18px]">delete</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Card body — hidden during quiz to prevent cheating */}
-      {activeQuizId === item.id ? (
-        <div className="px-5 py-4 flex items-center gap-2 text-black/30 border-b-2 border-black/10 bg-[#FAF7F2]">
-          <span className="material-symbols-outlined text-[16px]">lock</span>
-          <span className="text-[11px] font-black uppercase tracking-widest">Answer hidden during quiz</span>
-        </div>
-      ) : (
-        <div className="p-5 flex-1 flex flex-col gap-3">
-          <p className="text-[14px] text-black/70 font-medium leading-relaxed flex-1">{item.desc}</p>
-
-          {item.note && (
-            <div className="bg-[#FAF7F2] border-2 border-black p-3 italic text-[12px] font-medium text-black/70">
-              {item.note}
-            </div>
-          )}
-
-          {item.tags && item.tags.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              {item.tags.map(tag => (
-                <span key={tag} className="bg-[#E2E2E2] border border-black/20 px-2 py-0.5 text-[11px] font-bold">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Quiz section */}
-      {activeQuizId === item.id && item.quiz ? (
-        <div className="px-5 pb-5 flex flex-col gap-3">
-          <div className="bg-[#FAF7F2] border-2 border-black p-4 flex flex-col gap-3">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#FF4D2E]">AI Diagnostic Quiz</span>
-            <p className="font-black text-[14px] leading-snug">{item.quiz.q}</p>
-            <div className="flex flex-col gap-2">
-              {item.quiz.options.map((opt, oIdx) => (
-                <button key={oIdx} onClick={() => setSelectedOption(oIdx)}
-                  className={`text-left p-3 border-2 text-[13px] font-bold transition-all cursor-pointer ${
-                    selectedQuizOption === oIdx ? "bg-black text-white border-black" : "bg-white text-black border-black/20 hover:border-black"
-                  }`}>
-                  {["A","B","C","D"][oIdx]}. {opt}
-                </button>
-              ))}
-            </div>
-            {quizFeedback && (
-              <p className={`p-3 border-2 text-[12px] font-bold ${
-                quizFeedback.startsWith("✓") ? "bg-green-50 border-green-400 text-green-800" : "bg-red-50 border-red-300 text-red-800"
-              }`}>{quizFeedback}</p>
-            )}
-            <div className="flex justify-between items-center">
-              <button onClick={() => { setActiveQuizId(null); setSelectedOption(null); setQuizFeedback(null); }}
-                className="text-black/40 font-bold text-[12px] underline cursor-pointer hover:text-black">
-                Close
-              </button>
-              <button disabled={selectedQuizOption === null} onClick={() => handleSubmitQuiz(item)}
-                className={`px-5 py-2 border-2 border-black text-[12px] font-black cursor-pointer ${
-                  selectedQuizOption !== null ? "bg-black text-white hover:bg-[#FF4D2E]" : "bg-neutral-200 opacity-50"
-                }`}>
-                Submit Answer
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* CTA footer */
-        <div className="border-t-2 border-black flex">
-          {/* FIX: added Mark Resolved shortcut so users don't HAVE to take a quiz */}
-          {!item.resolved && (
-            <button
-              onClick={() => handleMarkResolved(item.id)}
-              className="px-4 py-3 bg-white border-r-2 border-black text-black/40 hover:text-green-700 hover:bg-green-50 transition-colors text-[12px] font-black flex items-center gap-1 shrink-0"
-              title="Mark as resolved">
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
-            </button>
-          )}
-          <button
-            onClick={() => handleStartQuiz(item)}
-            disabled={loadingQuizId === item.id || item.resolved}
-            className={`flex-1 py-3 flex items-center justify-center gap-2 text-[13px] font-black transition-colors ${
-              item.resolved
-                ? "bg-[#E2E2E2] text-black/40 cursor-not-allowed"
-                : "bg-[#FF4D2E] text-white hover:bg-black cursor-pointer"
-            }`}>
-            {loadingQuizId === item.id ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-                {item.resolved ? "Already Resolved" : "Generate Quiz"}
-              </>
-            )}
-          </button>
-        </div>
-      )}
-    </article>
-  );
-
-  // ─── New Entry Modal ──────────────────────────────────────────────────────
-  const NewEntryModal = () => (
+  // ─── New Entry Modal (inline JSX — NOT a nested component to avoid remount bug) ───
+  const newEntryModal = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
       onClick={e => { if (e.target === e.currentTarget) setNewEntryOpen(false); }}>
       <div className="bg-[#FAF7F2] border-2 border-black w-full max-w-md" style={{ boxShadow: "6px 6px 0px #000" }}>
@@ -392,15 +429,6 @@ Return strictly a valid raw JSON object (no markdown):
     </div>
   );
 
-  // ─── Empty state ──────────────────────────────────────────────────────────
-  const EmptyState = ({ colSpan = false }: { colSpan?: boolean }) => (
-    <div className={`text-center py-16 border-2 border-dashed border-black/20 bg-white flex flex-col items-center gap-3 ${colSpan ? "col-span-full" : ""}`}>
-      <span className="material-symbols-outlined text-[48px] text-black/20">menu_book</span>
-      <p className="font-black text-[16px] text-black/40">No mistakes logged yet</p>
-      <p className="text-[13px] text-black/30 font-medium">Tap <strong>+ New Entry</strong> to log your first misconception</p>
-    </div>
-  );
-
   return (
     // FIX: same root layout fix as TeachIt — height:100dvh + overflow:hidden
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
@@ -415,7 +443,7 @@ Return strictly a valid raw JSON object (no markdown):
         />
       )}
 
-      {newEntryOpen && <NewEntryModal />}
+      {newEntryOpen && newEntryModal}
 
       {/* ═══════════════════════════════════════════════════
           DESKTOP LAYOUT
@@ -510,7 +538,22 @@ Return strictly a valid raw JSON object (no markdown):
                 <EmptyState colSpan />
               ) : (
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredMistakes.map(item => <MistakeCard key={item.id} item={item} />)}
+                  {filteredMistakes.map(item => (
+                    <MistakeCard
+                      key={item.id}
+                      item={item}
+                      activeQuizId={activeQuizId}
+                      selectedQuizOption={selectedQuizOption}
+                      quizFeedback={quizFeedback}
+                      loadingQuizId={loadingQuizId}
+                      onDelete={handleDelete}
+                      onMarkResolved={handleMarkResolved}
+                      onStartQuiz={handleStartQuiz}
+                      onSubmitQuiz={handleSubmitQuiz}
+                      onSelectOption={setSelectedOption}
+                      onCloseQuiz={() => { setActiveQuizId(null); setSelectedOption(null); setQuizFeedback(null); }}
+                    />
+                  ))}
 
                   {/* FIX: AI Insight card in grid only shown when there's
                       real pattern data — not as hardcoded static content */}
@@ -703,7 +746,22 @@ Return strictly a valid raw JSON object (no markdown):
                 <p className="font-black text-[15px] text-black/40">No results for this filter.</p>
               </div>
             ) : (
-              filteredMistakes.map(item => <MistakeCard key={item.id} item={item} />)
+              filteredMistakes.map(item => (
+                <MistakeCard
+                  key={item.id}
+                  item={item}
+                  activeQuizId={activeQuizId}
+                  selectedQuizOption={selectedQuizOption}
+                  quizFeedback={quizFeedback}
+                  loadingQuizId={loadingQuizId}
+                  onDelete={handleDelete}
+                  onMarkResolved={handleMarkResolved}
+                  onStartQuiz={handleStartQuiz}
+                  onSubmitQuiz={handleSubmitQuiz}
+                  onSelectOption={setSelectedOption}
+                  onCloseQuiz={() => { setActiveQuizId(null); setSelectedOption(null); setQuizFeedback(null); }}
+                />
+              ))
             )}
           </div>
 
