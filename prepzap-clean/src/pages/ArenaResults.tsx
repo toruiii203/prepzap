@@ -58,18 +58,20 @@ export default function ArenaResults() {
       try {
         if (isDaily) {
           const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })).toISOString().split("T")[0];
-          const { data } = await supabase.from("daily_submissions").select("user_id, score, time_taken")
+          const { data } = await supabase.from("daily_submissions").select("user_id, score, time_taken, display_name")
             .eq("quiz_date", today).order("score", { ascending: false }).order("time_taken", { ascending: true }).limit(10);
-          const entries = (data ?? []).map((row, i) => ({ ...row, display_name: `Player ${i + 1}` }));
+          // FIX: use stored display_name; fall back only for legacy rows without it
+          const entries = (data ?? []).map((row, i) => ({ ...row, display_name: row.display_name ?? `Player ${i + 1}` }));
           setLeaderboard(entries);
           const rank = entries.findIndex((e) => e.user_id === user?.id);
           setMyRank(rank >= 0 ? rank + 1 : null);
         } else {
           const { data: roomData } = await supabase.from("exam_rooms").select("id").eq("code", code?.toUpperCase()).single();
           if (roomData) {
-            const { data } = await supabase.from("room_submissions").select("user_id, score, time_taken")
+            const { data } = await supabase.from("room_submissions").select("user_id, score, time_taken, display_name")
               .eq("room_id", roomData.id).order("score", { ascending: false }).order("time_taken", { ascending: true }).limit(10);
-            const entries = (data ?? []).map((row, i) => ({ ...row, display_name: `Player ${i + 1}` }));
+            // FIX: use stored display_name; fall back only for legacy rows without it
+            const entries = (data ?? []).map((row, i) => ({ ...row, display_name: row.display_name ?? `Player ${i + 1}` }));
             setLeaderboard(entries);
             const rank = entries.findIndex((e) => e.user_id === user?.id);
             setMyRank(rank >= 0 ? rank + 1 : null);

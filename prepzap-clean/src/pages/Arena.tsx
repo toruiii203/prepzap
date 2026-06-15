@@ -70,7 +70,7 @@ async function generateQuestions(topic: string, count: number, difficulty: strin
   const prompt = `Generate ${count} multiple choice questions about "${topic}" at ${difficulty} difficulty for university-level students.
 Return ONLY a JSON array, no markdown, no explanation:
 [{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct_answer":"A","explanation":"..."}]`;
-  const raw = await callGroq(prompt, undefined, "gemini-2.0-flash", 2048);
+  const raw = await callGroq(prompt, undefined, "llama-3.3-70b-versatile", 2048);
   return safeParseJSON<Question[]>(raw);
 }
 
@@ -442,11 +442,18 @@ export default function Arena() {
   useEffect(() => {
     const load = async () => {
       setLoadingLeaderboard(true);
-      let query = supabase.from("daily_submissions").select("user_id, score, time_taken")
+      let query = supabase.from("daily_submissions").select("user_id, score, time_taken, display_name")
         .order("score", { ascending: false }).order("time_taken", { ascending: true }).limit(10);
       if (leaderboardTab === "today") query = query.eq("quiz_date", todayPH());
       const { data } = await query;
-      setLeaderboard((data ?? []).map((row, i) => ({ ...row, display_name: `Player ${i + 1}` })));
+      // FIX: use stored display_name from the submission row; fall back to
+      // "Player N" only if the column is null (old rows before this fix).
+      setLeaderboard(
+        (data ?? []).map((row, i) => ({
+          ...row,
+          display_name: row.display_name ?? `Player ${i + 1}`,
+        }))
+      );
       setLoadingLeaderboard(false);
     };
     load();
