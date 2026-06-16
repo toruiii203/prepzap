@@ -460,11 +460,7 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     const { error: e } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // FIX: sign-in goes directly to /dashboard (no onboarding involvement)
-        // sign-up goes to /onboarding?step=nameInput to continue the flow
-        redirectTo: isSignIn
-          ? `${window.location.origin}/dashboard`
-          : `${window.location.origin}/onboarding?step=nameInput`,
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: { prompt: "select_account" },
       },
     })
@@ -482,17 +478,16 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
       if (e) {
         setError(e.message)
       } else {
-        // FIX: check onboarding_complete — handle edge case where user
-        // registered but never finished onboarding
         const { data: profile } = await supabase
           .from("profiles")
           .select("onboarding_complete")
           .eq("id", signInData.user!.id)
           .single()
-        if (!profile?.onboarding_complete) {
-          onNext() // send to nameInput to finish onboarding
-        } else {
+        if (profile?.onboarding_complete) {
           navigate("/dashboard", { replace: true })
+        } else {
+          // New user who signed up but never finished onboarding
+          onNext()
         }
       }
     } else {
@@ -500,18 +495,18 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
         email, password,
         options: {
           data: { onboarding_complete: false },
-          emailRedirectTo: `${window.location.origin}/onboarding?step=nameInput`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
       setLoading(false)
       if (e) {
         setError(e.message)
       } else if (data.session) {
-        // Email confirmation OFF — session is immediate, proceed normally
+        // Email confirmation OFF — session is immediate, go to nameInput
         onNext()
       } else {
-        // Email confirmation ON — show message, user must confirm first
-        setError("Check your email and click the confirmation link, then come back to sign in.")
+        // Email confirmation ON — user must confirm email first
+        setError("✉️ Check your email and click the confirmation link to continue.")
       }
     }
   }
@@ -625,7 +620,7 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
 // Stitch design: no fox row /// just headline + input + Go button
 function NameInput({ onNext, onBack }: { onNext: (name: string) => void; onBack: () => void }) {
   const [name, setName] = useState("")
-  const headlineText = name.length > 2 ? `${name}! Love it. ////` : "What should I call you?"
+  const headlineText = name.length > 2 ? `${name}! Love it.` : "What should I call you?"
 
   return (
     <div style={s.page}>
@@ -1022,7 +1017,7 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t14 = setTimeout(() => setChecklistVisible(false), 11200)
     const t15 = setTimeout(() => { setProgressWidth(100); setBgColor(YELLOW) }, 11600)
     const t16 = setTimeout(() => setBgColor(BG), 12200)
-    showLine("You're all set. ////", 11800, 0)
+    showLine("You're all set.", 11800, 0)
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
@@ -1137,16 +1132,13 @@ export default function Onboarding() {
       window.history.replaceState({}, "", "/onboarding")
     }
 
-    // If screen is already nameInput (OAuth sign-up return), nothing to do —
-    // the useState initializer already set the right screen.
-    // Do NOT run the session check because the user IS new and needs onboarding.
+    // If we're already at nameInput (OAuth/email callback return), skip the check
     if (screen === "nameInput") return
 
-    // For all other entry points: check if user is already fully logged in
-    // with onboarding complete → send to dashboard immediately.
-    // This handles: browser back, direct URL navigation, accidental revisit.
+    // One-time check on mount: if user is fully logged in and done with onboarding,
+    // send them to dashboard. Don't re-run this on screen changes.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return // not logged in — show intro normally
+      if (!session) return
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_complete")
@@ -1155,17 +1147,8 @@ export default function Onboarding() {
       if (profile?.onboarding_complete) {
         navigate("/dashboard", { replace: true })
       }
-      // onboarding_complete = false means they started but didn't finish —
-      // let them continue from accountGateway (they can sign in again)
     })
-
-    // NO onAuthStateChange listener here.
-    // Sign-in:  AccountGateway.handleGoogle redirects straight to /dashboard
-    //           AccountGateway.handleSubmit navigates to /dashboard on success
-    // Sign-up:  AccountGateway.handleGoogle redirects to /onboarding?step=nameInput
-    //           AccountGateway.handleSubmit calls onNext() → setScreen("nameInput")
-    // There is nothing for an auth listener to do in the main component.
-  }, [screen])
+  }, []) // ← run once on mount only, NOT on every screen change
 
   return (
     <>

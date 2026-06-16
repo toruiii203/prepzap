@@ -67,6 +67,7 @@ import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Onboarding from "./pages/OnboardingFlow";
+import AuthCallback from "./pages/AuthCallback";
 import Admin from "./pages/Admin";
 import SourceLibrary from "./pages/SourceLibrary";
 import { SourceBreadcrumb } from "./components/SourceBreadcrumb";
@@ -193,6 +194,7 @@ function AppRoutes() {
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
         <Route path="/onboarding" element={safe(<Onboarding />)} />
+        <Route path="/auth/callback" element={safe(<AuthCallback />)} />
         <Route path="/payment-success" element={safe(<PaymentSuccess />)} />
         <Route path="/invite/:code" element={safe(<ArenaInvite />)} />
 
