@@ -2,36 +2,45 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AnalyticsProps {
 }
 
 export default function Analytics() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
-  const [tasksCompletedPct, setTasksCompletedPct] = useState(88);
+  const [tasksCompletedPct, setTasksCompletedPct] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user?.id) return;
     const fetchAnalytics = async () => {
       try {
         const { data: sessionData, error: sessionErr } = await supabase
           .from("study_sessions")
           .select("*")
+          .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
         if (!sessionErr && sessionData) {
           setSessions(sessionData);
         }
 
-        const { data: taskData, error: taskErr } = await supabase
-          .from("activity_log")
-          .select("completed");
-
-        if (!taskErr && taskData && taskData.length > 0) {
-          const completedCount = taskData.filter(t => t.completed).length;
-          setTasksCompletedPct(Math.round((completedCount / taskData.length) * 100));
+        // Derive task completion rate from localStorage (same source as Dashboard)
+        try {
+          const stored = localStorage.getItem("pz_checklist");
+          const tasks = stored ? JSON.parse(stored) : [];
+          if (tasks.length > 0) {
+            const completedCount = tasks.filter((t: any) => t.completed).length;
+            setTasksCompletedPct(Math.round((completedCount / tasks.length) * 100));
+          } else {
+            setTasksCompletedPct(0);
+          }
+        } catch {
+          setTasksCompletedPct(0);
         }
       } catch (err) {
         console.error("Error loading analytics data:", err);
@@ -40,7 +49,7 @@ export default function Analytics() {
       }
     };
     fetchAnalytics();
-  }, []);
+  }, [user?.id]);
 
   // Compute Weekly Hours breakdown dynamically (Mon - Sun)
   const daysOfWeek = ["M", "T", "W", "T", "F", "S", "S"];
@@ -306,7 +315,7 @@ export default function Analytics() {
                               <div className="w-8 h-8 rounded-lg border-2 border-black bg-[#E2E2E2] flex items-center justify-center flex-shrink-0">
                                 <span className="material-symbols-outlined text-black text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>menu_book</span>
                               </div>
-                              <span className="text-[14px] font-extrabold truncate max-w-[180px]">{ses.subject}</span>
+                              <span className="text-[14px] font-extrabold truncate max-w-[180px]">{ses.title || ses.subject}</span>
                             </div>
                           </td>
                           <td className="py-3 text-[13px] font-bold text-black/50">{formatDateHelper(ses.created_at)}</td>
@@ -491,7 +500,7 @@ export default function Analytics() {
                         <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>menu_book</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-headline text-body-lg text-black font-extrabold truncate text-[15.5px]">{ses.subject}</h3>
+                        <h3 className="font-headline text-body-lg text-black font-extrabold truncate text-[15.5px]">{ses.title || ses.subject}</h3>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[12px] font-bold text-[#faf7f2] bg-primary px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_rgba(0,0,0,1)]">
                             {ses.duration} mins

@@ -92,7 +92,11 @@ export default function Dashboard() {
   const fetchSessions = async () => {
     setLoadingSessions(true);
     try {
-      const { data } = await supabase.from("study_sessions").select("*").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("study_sessions")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false });
       if (data && data.length > 0) {
         setSessions(data);
         calculateStatsAndCalendar(data);
@@ -149,7 +153,7 @@ export default function Dashboard() {
     if (!sessionSubject.trim()) return;
     setSavingSession(true);
     try {
-      const newSession = { title: sessionSubject, duration: Number(sessionDuration), created_at: new Date().toISOString() };
+      const newSession = { title: sessionSubject, duration: Number(sessionDuration), created_at: new Date().toISOString(), user_id: user?.id };
       await supabase.from("study_sessions").insert(newSession);
       const xpEarned = Math.round(sessionDuration * 1.5);
       try {
