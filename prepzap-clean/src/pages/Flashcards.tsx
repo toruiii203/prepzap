@@ -78,7 +78,7 @@ function DesktopFlashcard({ currentCard, isFlipped, setIsFlipped }: DesktopFlash
 export default function Flashcards() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth() as any;
-  const { save: saveHistory } = useToolHistory("flashcards");
+  const { save: saveHistory, history: deckHistory } = useToolHistory("flashcards");
   const { isPro, canUse, remaining, logUsage } = usePlan();
   const [view, setView] = useState<"setup" | "study" | "results">("setup");
   const [topic, setTopic] = useState("");
@@ -597,19 +597,19 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             </div>
 
             <div className="flex flex-col divide-y-2 divide-black/10 flex-1">
-              {libraryFiles.length === 0 ? (
+              {!deckHistory || deckHistory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-2 text-center opacity-40 flex-1">
                   <span className="material-symbols-outlined text-[32px]">history</span>
                   <p className="text-[12px] font-bold">No decks yet. Generate your first one!</p>
                 </div>
-              ) : libraryFiles.slice(0, 4).map((file: any) => (
-                <div key={file.id} className="p-4 hover:bg-[#FAF7F2] transition-colors cursor-pointer group"
-                  onClick={() => handleSelectSource(file)}>
+              ) : deckHistory.slice(0, 8).map((item: any) => (
+                <div key={item.id ?? item.timestamp} className="p-4 hover:bg-[#FAF7F2] transition-colors cursor-pointer group"
+                  onClick={() => setTopic(item.prompt ?? item.output ?? "")}>
                   <div className="flex justify-between items-start mb-1">
-                    <h4 className="text-[13px] font-extrabold leading-tight truncate">{file.name.replace(/\.[^.]+$/, "")}</h4>
+                    <h4 className="text-[13px] font-extrabold leading-tight truncate">{item.prompt ?? item.output ?? "Untitled Deck"}</h4>
                     <span className="material-symbols-outlined text-[16px] text-black/20 group-hover:text-black transition-colors">more_vert</span>
                   </div>
-                  <p className="text-[11px] font-bold text-black/40 mb-1">Source file</p>
+                  <p className="text-[11px] font-bold text-black/40 mb-1">{item.meta ?? item.preview ?? "Flashcard deck"}</p>
                 </div>
               ))}
             </div>

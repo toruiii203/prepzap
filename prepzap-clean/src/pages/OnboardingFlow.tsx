@@ -658,7 +658,7 @@ function SubjectSelection({ onNext, onBack }: { onNext: (selected: string[]) => 
     <div style={s.page}>
       <Header onBack={onBack} progress={60} />
       <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
+        <main style={{ flex: 1, padding: "0 24px 160px", overflowY: "auto" }}>
           <MascotRow src={foxSrc} dialogue={dialogue} />
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {subjects.map(subject => {
@@ -695,6 +695,8 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
   const [chipPhase, setChipPhase]       = useState<"hidden"|"in"|"visible">("hidden")
   const [visibleChips, setVisibleChips] = useState<number>(0)
   const [bgFlash, setBgFlash]           = useState(false)
+  const onNextRef = useRef(onNext)
+  useEffect(() => { onNextRef.current = onNext }, [onNext])
 
   useEffect(() => {
     // Fox slides up with spring overshoot
@@ -714,7 +716,7 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
     const t10 = setTimeout(() => setFoxSrc(FOX.excited), 3200)
     // Text fades out
     const t11 = setTimeout(() => setTextPhase("out"), 4200)
-    const t12 = setTimeout(() => { setFoxSrc(FOX.happy); onNext() }, 5200)
+    const t12 = setTimeout(() => { setFoxSrc(FOX.happy); onNextRef.current() }, 5200)
     return () => [t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12].forEach(clearTimeout)
   }, [])
 
@@ -826,6 +828,8 @@ function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   const [line3Phase, setLine3Phase] = useState<"hidden"|"in"|"out">("hidden")
   const [chipVisible, setChipVisible] = useState(false)
   const [bgFlash, setBgFlash]       = useState(false)
+  const onNextRef = useRef(onNext)
+  useEffect(() => { onNextRef.current = onNext }, [onNext])
 
   const goalName = goals.find(g => g.id === goal)?.name ?? "Your Goal"
 
@@ -847,7 +851,7 @@ function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
     const t9  = setTimeout(() => setLine2Phase("out"), 3600)
     const t10 = setTimeout(() => { setChipVisible(false); setLine3Phase("in") }, 4000)
     const t11 = setTimeout(() => setFoxSrc(FOX.excited), 4100)
-    const t12 = setTimeout(() => { setFoxSrc(FOX.happy); onNext() }, 5600)
+    const t12 = setTimeout(() => { setFoxSrc(FOX.happy); onNextRef.current() }, 5600)
     return () => [t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12].forEach(clearTimeout)
   }, [])
 
@@ -911,7 +915,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
     <div style={s.page}>
       <Header onBack={onBack} progress={100} />
       <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
+        <main style={{ flex: 1, padding: "0 24px 160px", overflowY: "auto" }}>
           <MascotRow src={foxSrc} dialogue={dialogue} subtitle="Select all that apply." />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 8 }}>
             {learningStyles.map(style => {
@@ -953,6 +957,16 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
   const [progressVisible, setProgressVisible] = useState(false)
   const [bgColor, setBgColor]             = useState(BG)
 
+  // Mark onboarding complete in Supabase so user never loops back
+  const markComplete = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    await supabase
+      .from("profiles")
+      .update({ onboarding_complete: true })
+      .eq("id", session.user.id)
+  }
+
   const showLine = (text: string, delay: number, outDelay: number) => {
     setTimeout(() => {
       setHeadline(text)
@@ -985,7 +999,7 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
-    const t20 = setTimeout(() => onDone(), 15500)
+    const t20 = setTimeout(() => markComplete().then(onDone), 15500)
     return () => [t1,t3,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
   }, [])
 
@@ -1107,11 +1121,25 @@ export default function Onboarding() {
       return
     }
 
+    // ── CRITICAL FIX: if user is already logged in and has completed onboarding,
+    //    skip straight to dashboard — prevents redirect loop for existing users.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_complete")
+        .eq("id", session.user.id)
+        .single()
+      if (profile?.onboarding_complete) {
+        navigate("/dashboard", { replace: true })
+      }
+    })
+
     // Fallback listener: handles edge cases where the Supabase PKCE session
     // token arrives AFTER the component mounts (e.g. slow network, token
     // exchange delay). Without this the user would be stuck on the intro screen.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (event !== "SIGNED_IN" || !session) return
 
         // If ?step=nameInput was already handled by the useState initializer,
@@ -1121,6 +1149,18 @@ export default function Onboarding() {
         const step = currentParams.get("step")
 
         if (step === "done") {
+          navigate("/dashboard", { replace: true })
+          return
+        }
+
+        // Check if this user already completed onboarding → skip to dashboard
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_complete")
+          .eq("id", session.user.id)
+          .single()
+
+        if (profile?.onboarding_complete) {
           navigate("/dashboard", { replace: true })
           return
         }
