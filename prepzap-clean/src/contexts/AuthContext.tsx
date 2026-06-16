@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, email, plan, credits_remaining, total_xp, streak_days, daily_goal_minutes, questions_answered, accuracy_percent, avatar_config, avatar_outfit"
+        "id, full_name, email, plan, credits_remaining, total_xp, streak_days, daily_goal_minutes, questions_answered, accuracy_percent, avatar_config, avatar_outfit, onboarding_complete"
       )
       .eq("id", u.id)
       .single()
@@ -119,6 +119,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           u.email?.split("@")[0] ||
           "there",
       })
+      // Only redirect to onboarding if explicitly not complete
+      setNeedsOnboarding(data.onboarding_complete !== true)
     }
   }, [])
 
