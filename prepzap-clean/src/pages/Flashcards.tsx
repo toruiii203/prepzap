@@ -18,12 +18,6 @@ interface Flashcard {
 interface FlashcardsProps {
 }
 
-interface FlashCard {
-  front: string;
-  back: string;
-  explanation: string;
-}
-
 interface DesktopFlashcardProps {
   currentCard: FlashCard;
   isFlipped: boolean;
@@ -91,7 +85,7 @@ export default function Flashcards() {
   const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
 
   // Freemium state
-  const [remainingUses, setRemainingUses] = useState<number>(3);
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
@@ -184,12 +178,13 @@ export default function Flashcards() {
     setCurrentCardIndex(0);
     setIsFlipped(false);
 
-    try {
-      const activeIdsCtx = loadContext();
-      const selectedIds = Array.isArray(activeIdsCtx) ? activeIdsCtx : (activeIdsCtx as any)?.selectedIds || [];
-      const sourceContextText = buildAIContext();
+    let generatedCards: Flashcard[] = [];
 
-      const promptText = `Generate ${cardCount} highly educational study flashcards about "${topic || "General Biology"}".
+    try {
+      const sourceContextText = buildAIContext();
+      const deckLabel = activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : (topic || "General Study");
+
+      const promptText = `Generate ${cardCount} highly educational study flashcards about "${deckLabel}".
 ${sourceContextText ? `Utilize the following material context to generate highly specific custom flashcards:\n${sourceContextText}` : ""}
 
 Return strictly a valid raw JSON array containing exactly ${cardCount} objects. Each object must have fields:
@@ -201,44 +196,56 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
       const systemPrompt = "You are an elite educational science system that outputs only raw JSON content arrays matching schemas. Do not write any markdown codeblocks or non-JSON text.";
 
-      const callGroqWithModel = async (promptText: string, systemPrompt: string) => {
-        const fn = callGroq as any;
-        const fnStr = fn.toString();
-        if (fnStr.includes("messages") || fnStr.includes("llama")) {
-          return await fn([{ role: "user", content: promptText }], systemPrompt, "llama-3.3-70b-versatile", 1000);
-        } else {
-          return await fn(promptText, systemPrompt, "application/json");
-        }
-      };
+      const aiResponse = await callGroq(
+        [{ role: "user", content: promptText }],
+        systemPrompt,
+        "llama-3.3-70b-versatile",
+        2048,
+        "flashcard_gen"
+      );
 
-      const aiResponse = await callGroqWithModel(promptText, systemPrompt);
       let sanitized = aiResponse.trim();
       if (sanitized.startsWith("```")) {
         sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
       }
 
-      const generated = JSON.parse(sanitized);
-      if (Array.isArray(generated) && generated.length > 0) {
-        setCards(generated);
+      const parsed = JSON.parse(sanitized);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        generatedCards = parsed;
       } else {
         throw new Error("Invalid format received");
       }
     } catch (err) {
-      console.warn("Dynamic flashcards generation failed, utilizing robust fallback deck:", err);
-      const subset = [];
+      console.warn("Flashcard generation failed, using fallback deck:", err);
+      generatedCards = [];
       for (let i = 0; i < cardCount; i++) {
-        subset.push(mockCards[i % mockCards.length]);
+        generatedCards.push(mockCards[i % mockCards.length]);
       }
-      setCards(subset);
-      // Log usage after successful generation
-      if (!isPro) {
-        await logUsage("flashcard_gen");
-        remaining("flashcard_gen").then(setRemainingUses);
-      }
-    } finally {
-      setIsLoading(false);
-      setView("study");
     }
+
+    // ── Log usage (once, after generation attempt succeeds or falls back) ───
+    if (!isPro) {
+      try {
+        await logUsage("flashcard_gen");
+      } catch (e) {
+        console.warn("Usage log failed:", e);
+      }
+      remaining("flashcard_gen").then(setRemainingUses);
+    }
+
+    // ── Save to history immediately so right panel shows it ─────────────────
+    const deckLabel2 = activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : (topic || "General Study");
+    saveHistory({
+      prompt: deckLabel2,
+      preview: `${generatedCards.length} cards`,
+      output: deckLabel2,
+      model: "rex-ai",
+      meta: `${generatedCards.length} cards generated`,
+    });
+
+    setCards(generatedCards);
+    setIsLoading(false);
+    setView("study");
   };
 
   const handleResponse = (type: "gotIt" | "unsure" | "forgot") => {
@@ -272,7 +279,8 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           }
         }
         setView("results");
-        saveHistory({ prompt: topic, preview: `${cards.length} cards studied`, output: topic, model: "rex-ai", meta: `${scores.gotIt + 1} got it / ${scores.forgot} forgot` });
+        const deckLabel = activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : (topic || "General Study");
+        saveHistory({ prompt: deckLabel, preview: `${cards.length} cards`, output: deckLabel, model: "rex-ai", meta: `${nextScores.gotIt} got it / ${nextScores.forgot} forgot` });
       }
     }, 200);
   };
@@ -369,12 +377,12 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </>
                 )}
               </button>
-              {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+              {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
                 <p className="text-center text-[12px] text-black/50 font-bold mt-1">
                   {remainingUses} generation{remainingUses !== 1 ? "s" : ""} left today
                 </p>
               )}
-              {!isPro && remainingUses <= 2 && remainingUses > 0 && (
+              {!isPro && remainingUses !== null && remainingUses <= 2 && remainingUses > 0 && (
                 <div className="flex justify-center mt-1">
                   <SoftWarning feature="flashcard_gen" remaining={remainingUses} />
                 </div>
@@ -604,7 +612,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
               ) : deckHistory.slice(0, 8).map((item: any) => (
                 <div key={item.id ?? item.timestamp} className="p-4 hover:bg-[#FAF7F2] transition-colors cursor-pointer group"
-                  onClick={() => setTopic(item.prompt ?? item.output ?? "")}>
+                  onClick={() => { setActiveSourceObj(null); setTopic(item.prompt ?? item.output ?? ""); }}>
                   <div className="flex justify-between items-start mb-1">
                     <h4 className="text-[13px] font-extrabold leading-tight truncate">{item.prompt ?? item.output ?? "Untitled Deck"}</h4>
                     <span className="material-symbols-outlined text-[16px] text-black/20 group-hover:text-black transition-colors">more_vert</span>
@@ -685,10 +693,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 <div className="absolute w-full h-[2px] bg-on-background/10 top-1/2 -translate-y-1/2"></div>
                 <span className="bg-[#FAF7F2] px-3 font-label-sm text-label-sm text-on-surface-variant relative z-10 uppercase tracking-widest font-bold">or</span>
                 <button
-                  onClick={() => {
-                    setTopic("Active Class Lecture Note: Cell Potentials");
-                    setCardCount(8);
-                  }}
+                  onClick={() => navigate("/sources")}
                   className="relative z-10 flex items-center gap-2 rounded-full border-2 border-on-background bg-white px-5 py-2 shadow-ink-sm hover:translate-y-0.5 hover:shadow-none transition-all active:scale-95"
                 >
                   <span className="material-symbols-outlined text-[20px] text-primary">attach_file</span>
@@ -755,7 +760,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               </div>
               <div className="w-full flex items-center gap-4 mb-4">
                 <span className="font-label-md text-label-md text-on-background w-12 text-right">
-                  {currentCardIndex + 1} / {cardCount}
+                  {currentCardIndex + 1} / {cards.length}
                 </span>
                 <div className="h-[12px] flex-1 border-2 border-on-background rounded-full bg-white overflow-hidden">
                   <div

@@ -1,67 +1,183 @@
 /**
- * useToolHistory /// auto-saves and retrieves generation history per tool.
- * Stored in localStorage under `studenius_history_<toolId>`.
+ * useToolHistory — saves and retrieves generation history per tool.
+ * Stored in Supabase `tool_history` table — persistent across devices and logins.
+ * Falls back to localStorage if user is not logged in.
  * Max 50 entries per tool.
  */
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { X, Clock, ChevronRight } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 const TEAL = "#8b1a2a"
 const MAX = 50
 
 export interface HistoryEntry {
   id: string
-  prompt: string       // what the user typed / topic
-  preview: string      // first 120 chars of output
-  output: string       // full output
+  prompt: string
+  preview: string
+  output: string
   model: string
-  createdAt: string    // ISO
-  meta?: string        // e.g. "12 cards" / "4 phases"
+  createdAt: string   // ISO
+  meta?: string
 }
 
-function storageKey(toolId: string) {
+// ── localStorage fallback key (used when logged out) ─────────────────────────
+function localKey(toolId: string) {
   return `studenius_history_${toolId}`
 }
 
+// ── Supabase helpers ──────────────────────────────────────────────────────────
+async function getUserId(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.user?.id ?? null
+}
+
+async function fetchFromSupabase(toolId: string): Promise<HistoryEntry[]> {
+  const userId = await getUserId()
+  if (!userId) return []
+  const { data, error } = await supabase
+    .from("tool_history")
+    .select("id, prompt, preview, output, model, meta, created_at")
+    .eq("user_id", userId)
+    .eq("tool_id", toolId)
+    .order("created_at", { ascending: false })
+    .limit(MAX)
+  if (error || !data) return []
+  return data.map(r => ({
+    id: r.id,
+    prompt: r.prompt ?? "",
+    preview: r.preview ?? "",
+    output: r.output ?? "",
+    model: r.model ?? "",
+    meta: r.meta ?? undefined,
+    createdAt: r.created_at,
+  }))
+}
+
+async function saveToSupabase(
+  toolId: string,
+  entry: Omit<HistoryEntry, "id" | "createdAt">
+): Promise<HistoryEntry | null> {
+  const userId = await getUserId()
+  if (!userId) return null
+  const { data, error } = await supabase
+    .from("tool_history")
+    .insert({
+      user_id: userId,
+      tool_id: toolId,
+      prompt: entry.prompt,
+      preview: entry.preview,
+      output: entry.output,
+      model: entry.model,
+      meta: entry.meta ?? null,
+    })
+    .select("id, created_at")
+    .single()
+  if (error || !data) return null
+  return { ...entry, id: data.id, createdAt: data.created_at }
+}
+
+async function deleteFromSupabase(id: string): Promise<void> {
+  await supabase.from("tool_history").delete().eq("id", id)
+}
+
+async function clearFromSupabase(toolId: string): Promise<void> {
+  const userId = await getUserId()
+  if (!userId) return
+  await supabase
+    .from("tool_history")
+    .delete()
+    .eq("user_id", userId)
+    .eq("tool_id", toolId)
+}
+
+// ── Main hook ─────────────────────────────────────────────────────────────────
 export function useToolHistory(toolId: string) {
-  const load = (): HistoryEntry[] => {
-    try { return JSON.parse(localStorage.getItem(storageKey(toolId)) || "[]") } catch { return [] }
-  }
+  const [entries, setEntries] = useState<HistoryEntry[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [entries, setEntries] = useState<HistoryEntry[]>(load)
-
-  const save = useCallback((entry: Omit<HistoryEntry, "id" | "createdAt">) => {
-    const newEntry: HistoryEntry = {
-      ...entry,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
+  // Load on mount — try Supabase first, fall back to localStorage
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      const userId = await getUserId()
+      if (userId) {
+        const remote = await fetchFromSupabase(toolId)
+        if (!cancelled) setEntries(remote)
+      } else {
+        // Not logged in — use localStorage
+        try {
+          const local = JSON.parse(localStorage.getItem(localKey(toolId)) || "[]")
+          if (!cancelled) setEntries(local)
+        } catch { if (!cancelled) setEntries([]) }
+      }
+      if (!cancelled) setLoading(false)
     }
-    setEntries(prev => {
-      const updated = [newEntry, ...prev].slice(0, MAX)
-      localStorage.setItem(storageKey(toolId), JSON.stringify(updated))
-      return updated
-    })
-    return newEntry
+    load()
+    return () => { cancelled = true }
   }, [toolId])
 
-  const remove = useCallback((id: string) => {
-    setEntries(prev => {
-      const updated = prev.filter(e => e.id !== id)
-      localStorage.setItem(storageKey(toolId), JSON.stringify(updated))
-      return updated
-    })
+  const save = useCallback(async (entry: Omit<HistoryEntry, "id" | "createdAt">) => {
+    const userId = await getUserId()
+    if (userId) {
+      const saved = await saveToSupabase(toolId, entry)
+      if (saved) {
+        setEntries(prev => [saved, ...prev].slice(0, MAX))
+        return saved
+      }
+    } else {
+      // localStorage fallback
+      const newEntry: HistoryEntry = {
+        ...entry,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      }
+      setEntries(prev => {
+        const updated = [newEntry, ...prev].slice(0, MAX)
+        localStorage.setItem(localKey(toolId), JSON.stringify(updated))
+        return updated
+      })
+      return newEntry
+    }
   }, [toolId])
 
-  const clear = useCallback(() => {
-    localStorage.removeItem(storageKey(toolId))
+  const remove = useCallback(async (id: string) => {
+    const userId = await getUserId()
+    if (userId) {
+      await deleteFromSupabase(id)
+    } else {
+      const updated = entries.filter(e => e.id !== id)
+      localStorage.setItem(localKey(toolId), JSON.stringify(updated))
+    }
+    setEntries(prev => prev.filter(e => e.id !== id))
+  }, [toolId, entries])
+
+  const clear = useCallback(async () => {
+    const userId = await getUserId()
+    if (userId) {
+      await clearFromSupabase(toolId)
+    } else {
+      localStorage.removeItem(localKey(toolId))
+    }
     setEntries([])
   }, [toolId])
 
-  return { entries, save, remove, clear }
+  // Alias: some tools use `history`, others use `entries`
+  return { entries, history: entries, save, remove, clear, loading }
 }
 
-// ///////// History Sidebar Panel ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ── Relative time helper ──────────────────────────────────────────────────────
+function relTime(iso: string) {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (d < 1) return "just now"
+  if (d < 60) return `${d}m ago`
+  if (d < 1440) return `${Math.floor(d / 60)}h ago`
+  return `${Math.floor(d / 1440)}d ago`
+}
+
+// ── History Sidebar Panel ─────────────────────────────────────────────────────
 interface ToolHistoryPanelProps {
   entries: HistoryEntry[]
   onSelect: (entry: HistoryEntry) => void
@@ -69,14 +185,6 @@ interface ToolHistoryPanelProps {
   onClear: () => void
   open: boolean
   onClose: () => void
-}
-
-function relTime(iso: string) {
-  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (d < 1) return "just now"
-  if (d < 60) return `${d}m ago`
-  if (d < 1440) return `${Math.floor(d / 60)}h ago`
-  return `${Math.floor(d / 1440)}d ago`
 }
 
 export function ToolHistoryPanel({
@@ -134,7 +242,7 @@ export function ToolHistoryPanel({
           ) : (
             entries.map(entry => (
               <div key={entry.id}
-                style={{ borderBottom: "0.5px solid #141414", transition: "background .15s", cursor: "pointer" }}
+                style={{ borderBottom: "0.5px solid #141414", transition: "background .15s", cursor: "pointer", position: "relative" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,196,180,0.03)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                 <div style={{ padding: "10px 12px", display: "flex", gap: 8, alignItems: "flex-start" }}
@@ -154,9 +262,6 @@ export function ToolHistoryPanel({
                   </div>
                   <ChevronRight size={12} color="#333" style={{ flexShrink: 0, marginTop: 2 }} />
                 </div>
-                <button
-                  onClick={e => { e.stopPropagation(); onRemove(entry.id) }}
-                  style={{ position: "absolute", display: "none" }}>�/</button>
               </div>
             ))
           )}
@@ -166,7 +271,7 @@ export function ToolHistoryPanel({
   )
 }
 
-// ///////// History Trigger Button /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ── History Trigger Button ────────────────────────────────────────────────────
 export function HistoryButton({ count, onClick }: { count: number; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "transparent", border: "0.5px solid #252525", color: "#555", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'Nunito',system-ui,sans-serif", letterSpacing: "0.06em", transition: "all .2s", position: "relative" }}
