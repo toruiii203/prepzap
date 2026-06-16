@@ -480,12 +480,23 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
       setLoading(false)
       if (e) { setError(e.message) } else { navigate("/dashboard", { replace: true }) }
     } else {
-      const { error: e } = await supabase.auth.signUp({
+      const { data, error: e } = await supabase.auth.signUp({
         email, password,
-        options: { data: { onboarding_complete: false } },
+        options: {
+          data: { onboarding_complete: false },
+          emailRedirectTo: `${window.location.origin}/onboarding?step=nameInput`,
+        },
       })
       setLoading(false)
-      if (e) { setError(e.message) } else { onNext() }
+      if (e) {
+        setError(e.message)
+      } else if (data.session) {
+        // Email confirmation OFF — session is immediate, proceed normally
+        onNext()
+      } else {
+        // Email confirmation ON — show message, user must confirm first
+        setError("Check your email and click the confirmation link, then come back to sign in.")
+      }
     }
   }
 
