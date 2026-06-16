@@ -31,7 +31,7 @@ export interface UserProfile {
   daily_goal_minutes: number
   questions_answered: number
   accuracy_percent: number
-  avatar_config?: any // Added for Avatar Studio
+  avatar_config?: any
   avatar_outfit?: any
   onboarding_complete?: boolean
 }
@@ -105,12 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single()
 
     if (error || !data) {
-      // Profile row doesn't exist yet — use defaults derived from auth metadata
+      // No profile row at all — brand new user, needs onboarding
       setProfile(defaultProfile(u))
       setNeedsOnboarding(true)
     } else {
       setProfile({
-        ...defaultProfile(u),          // fill any missing columns with defaults
+        ...defaultProfile(u),
         ...data,
         full_name:
           data.full_name ||
@@ -119,8 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           u.email?.split("@")[0] ||
           "there",
       })
-      // Only redirect to onboarding if explicitly not complete
-      setNeedsOnboarding(data.onboarding_complete !== true)
+      // Profile row exists = established account.
+      // Only force onboarding if onboarding_complete is explicitly FALSE.
+      // NULL or undefined (old accounts that predate the column) = let them in.
+      setNeedsOnboarding(data.onboarding_complete === false)
     }
   }, [])
 
@@ -129,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
       setUser(s?.user ?? null)
@@ -139,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
+    // Listen for auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
         setSession(s)
@@ -147,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fetchProfile(s.user)
         } else {
           setProfile(null)
+          setNeedsOnboarding(false)
         }
       }
     )

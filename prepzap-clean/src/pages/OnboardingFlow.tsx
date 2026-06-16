@@ -42,15 +42,17 @@ const CONTENT_MAX = 420
 
 // ///////// Shared styles ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const s = {
-  // Full-page wrapper /// centers content column, fills height
+  // Full-page wrapper — fixed to viewport so nothing bleeds outside on mobile
   page: {
-    width: "100%",
-    minHeight: "100dvh",
+    position: "fixed" as const,
+    inset: 0,
     background: BG,
     display: "flex",
     flexDirection: "column" as const,
     fontFamily: "'Quicksand', sans-serif",
     alignItems: "center",
+    overflowY: "auto" as const,
+    overflowX: "hidden" as const,
   },
   // Sticky header /// spans full width but inner flex row is capped at HEADER_MAX
   header: {
@@ -751,7 +753,7 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
   }
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.2s", background: bgFlash ? YELLOW : BG }}>
+    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.2s", background: bgFlash ? YELLOW : BG }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, zIndex: 10 }}>
         <h1 style={textStyle}>Good combo.</h1>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
@@ -878,7 +880,7 @@ function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   }, [])
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.25s", background: bgFlash ? "#FFF0D6" : BG }}>
+    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.25s", background: bgFlash ? "#FFF0D6" : BG }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, zIndex: 10, minHeight: 160, justifyContent: "center" }}>
 
         <div style={{ textAlign: "center", position: "relative", minHeight: 52 }}>
@@ -1008,7 +1010,8 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t6  = setTimeout(() => setBgColor(BG), 3900)
     showLine("Building your setup...", 5400, 0)
     const t7  = setTimeout(() => setFoxSrc(FOX.neutral), 5400)
-    const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true); setProgressWidth(85) }, 6800)
+    const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true) }, 6800)
+    const t8b = setTimeout(() => setProgressWidth(85), 6900)
     const t9  = setTimeout(() => setChecks(c => [true,...c.slice(1)]), 7300)
     const t10 = setTimeout(() => setChecks(c => [c[0],true,...c.slice(2)]), 8200)
     const t11 = setTimeout(() => { setChecks(c => [...c.slice(0,2),true,c[3]]); setFoxSrc(FOX.excited) }, 9100)
@@ -1022,13 +1025,13 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
     const t20 = setTimeout(() => markComplete().then(onDone), 15500)
-    return () => [t1,t3,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
+    return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
   }, [])
 
   const checkItems = ["Preparing AI Tutor", "Creating Practice Tests", "Building Study Roadmap", "Personalizing Recommendations"]
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>
+    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 10, gap: 32 }}>
 
         {/* Animated headline */}
@@ -1156,7 +1159,7 @@ export default function Onboarding() {
         @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&display=swap');
         * { box-sizing: border-box; }
-        body { margin: 0; background: ${BG}; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: ${BG}; }
         @keyframes pulse {
           0%   { box-shadow: 4px 4px 0px 0px #1A1A1A; }
           50%  { box-shadow: 6px 6px 0px 0px #FF4D2E; }
