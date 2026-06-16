@@ -10,6 +10,8 @@ import { TrendingUp, ChevronDown, ChevronUp, CheckCircle, XCircle } from "lucide
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -64,6 +66,16 @@ export default function HighYieldDetector() {
   const [practiceRevealed, setPracticeRevealed] = useState<boolean[]>([]);
   const [practiceScores, setPracticeScores] = useState<(boolean | null)[]>([]);
 
+  const { isPro, canUse, remaining, logUsage } = usePlan();
+
+  // FIX: freemium gate state
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    remaining("high_yield").then(setRemainingUses);
+  }, [remaining]);
+
   const ctx = buildAIContext();
   const activeSource = getActiveSource();
   const hasSource = ctx.length > 0;
@@ -86,6 +98,13 @@ export default function HighYieldDetector() {
   const handleGenerate = async () => {
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
     if (!effectiveSubject && !hasSource) { toast.error("Enter a subject or add a source first"); return; }
+
+    // FIX: freemium gate
+    if (!isPro) {
+      const allowed = await canUse("high_yield");
+      if (!allowed) { setShowUpgrade(true); return; }
+    }
+
     setLoading(true);
     setPracticeSet([]);
     try {
@@ -94,7 +113,14 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"concept":"string","whyTestable":"1 sentence","frequency":"very high"|"high"|"medium"}]
 Order by frequency descending.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile", { feature: "high_yield_detector" });
+      // FIX BUG 2: call callGroq directly with correct signature and feature key
+      const raw = await callGroq(
+        [{ role: "user", content: prompt }],
+        undefined,
+        "llama-3.3-70b-versatile",
+        1024,
+        "high_yield"
+      );
       const parsed: HighYieldConcept[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setConcepts(parsed);
       setDrills({});
@@ -102,6 +128,12 @@ Order by frequency descending.`;
       setDrillingIdx(null);
     } catch(err:any) { console.error("[HighYieldDetector] generate failed:", err); toast.error("Error: " + (err?.message ?? String(err))); }
     finally { setLoading(false); }
+
+    // FIX: always log usage after generation attempt
+    if (!isPro) {
+      try { await logUsage("high_yield"); } catch {}
+      remaining("high_yield").then(setRemainingUses);
+    }
   };
 
   const handleDrill = async (idx: number) => {
@@ -114,7 +146,14 @@ Order by frequency descending.`;
 ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"question":"string","answer":"concise answer in 1-2 sentences"}]`;
-      const raw = await callGroq(prompt, "meta-llama/llama-3.1-8b-instruct:free", { feature: "high_yield_detector" });
+      // FIX BUG 2: call callGroq directly with correct signature and feature key
+      const raw = await callGroq(
+        [{ role: "user", content: prompt }],
+        undefined,
+        "llama-3.3-70b-versatile",
+        512,
+        "high_yield"
+      );
       const parsed: DrillQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setDrills(prev => ({
         ...prev,
@@ -150,7 +189,14 @@ ${ctx ? `Study context:\n${ctx}\n` : ""}
 Return ONLY valid JSON array, no markdown:
 [{"question":"string","answer":"concise answer in 1-2 sentences"}]
 Mix question types: definition, application, comparison.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile", { feature: "high_yield_detector" });
+      // FIX BUG 2: call callGroq directly with correct signature and feature key
+      const raw = await callGroq(
+        [{ role: "user", content: prompt }],
+        undefined,
+        "llama-3.3-70b-versatile",
+        1024,
+        "high_yield"
+      );
       const parsed: DrillQuestion[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setPracticeSet(parsed);
       setPracticeAnswers(parsed.map(() => ""));
@@ -162,6 +208,13 @@ Mix question types: definition, application, comparison.`;
 
   return (
     <ToolPageShell>
+      {showUpgrade && (
+        <UpgradePrompt
+          feature="high_yield"
+          remaining={remainingUses ?? 0}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
       <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
@@ -201,6 +254,11 @@ Mix question types: definition, application, comparison.`;
           <div className="mt-4 text-right">
               <SuggestionChips onSelect={s => { setSubject(prev => prev ? prev + "\n\n" + s : s); }} suggestions={["USMLE Step 1", "AP Biology", "SAT Math", "Bar Exam Torts", "CPA Audit", "CompTIA Security+"]} />
           
+          {!isPro && remainingUses !== null && remainingUses <= 3 && remainingUses > 0 && (
+            <p className="text-xs font-bold mt-2" style={{ color: "var(--pz-text-muted)" }}>
+              {remainingUses} scan{remainingUses !== 1 ? "s" : ""} left today
+            </p>
+          )}
           <button onClick={() => handleGenerate()} className="px-6 py-3 font-semibold text-sm" style={{ background: "var(--pz-gold)", color: "#000", border: "none", borderRadius: 8, cursor: "pointer" }}>Generate Focus Areas</button>
           </div>
         </div>

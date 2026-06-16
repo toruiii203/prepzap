@@ -271,7 +271,8 @@ export default function MathSolver() {
   const [visualizerTab, setVisualizerTab] = useState<"2d" | "table">("2d");
 
   // Freemium state
-  const [remainingUses, setRemainingUses] = useState<number>(5);
+  // FIX BUG 4: initialize as null to avoid flicker
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
@@ -337,17 +338,14 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
 
       const systemPrompt = "You are a master advanced mathematics scientific reasoning system. You output solution steps strictly formatted as raw JSON arrays with no markdown formatting wraps.";
 
-      const callGroqWithModel = async (pText: string, sysPrompt: string) => {
-        const fn = callGroq as any;
-        const fnStr = fn.toString();
-        if (fnStr.includes("messages") || fnStr.includes("llama")) {
-          return await fn([{ role: "user", content: pText }], sysPrompt, "llama-3.3-70b-versatile", 1000);
-        } else {
-          return await fn(pText, sysPrompt, "application/json");
-        }
-      };
-
-      const aiResponse = await callGroqWithModel(promptText, systemPrompt);
+      // FIX BUG 2: removed callGroqWithModel hack — call callGroq directly with feature key
+      const aiResponse = await callGroq(
+        [{ role: "user", content: promptText }],
+        systemPrompt,
+        "llama-3.3-70b-versatile",
+        1024,
+        "math_solver"
+      );
       let sanitized = aiResponse.trim();
       if (sanitized.startsWith("```")) {
         sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
@@ -364,10 +362,6 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
           model: "rex-ai",
           meta: `${generated.length} steps`,
         });
-        if (!isPro) {
-          await logUsage("math_solver");
-          remaining("math_solver").then(setRemainingUses);
-        }
       } else {
         throw new Error("Invalid structure returned");
       }
@@ -382,6 +376,12 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
       setSolved(true);
     } finally {
       setLoading(false);
+    }
+
+    // FIX BUG 3: always log usage after generation (success or fallback)
+    if (!isPro) {
+      try { await logUsage("math_solver"); } catch {}
+      remaining("math_solver").then(setRemainingUses);
     }
   };
 
@@ -703,7 +703,7 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
             <div className="px-8 pb-4 text-[11px] font-bold text-black/30 text-center">
               AI Solver can make mistakes. Verify important results with your textbook.
             </div>
-            {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+            {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
               <div className="px-8 pb-3 flex flex-col items-center gap-2">
                 <p className="text-[12px] text-black/50 font-bold">{remainingUses} solve{remainingUses !== 1 ? "s" : ""} left today</p>
                 {remainingUses <= 2 && <SoftWarning feature="math_solver" remaining={remainingUses} />}

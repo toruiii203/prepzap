@@ -22,6 +22,12 @@ interface PlannerSession {
 const STORAGE_KEY = "studenius_planner_slots";
 const STREAK_KEY  = "studenius_streak";
 
+// FIX BUG 1: scope planner data to user ID
+const getPlannerKey = (userId?: string | null) =>
+  userId ? `${STORAGE_KEY}_${userId}` : STORAGE_KEY;
+const getStreakKey = (userId?: string | null) =>
+  userId ? `${STREAK_KEY}_${userId}` : STREAK_KEY;
+
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December",
@@ -450,7 +456,7 @@ function ProductivityCard({ productivityScore }: ProductivityCardProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function StudyPlanner() {
   const navigate   = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
 
   // ── Date state ──
   const todayDate  = useMemo(() => new Date(), []);
@@ -472,23 +478,26 @@ export default function StudyPlanner() {
   const [newHours,    setNewHours]    = useState("1.5");
 
   // ── Load from localStorage ──
+  // FIX BUG 1: reload sessions + streak when user changes (scoped keys)
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const plannerKey = getPlannerKey(user?.id);
+    const streakKey  = getStreakKey(user?.id);
+    const raw = localStorage.getItem(plannerKey);
     if (raw) {
       try { setSessions(JSON.parse(raw)); } catch { setSessions(getDefaultSessions()); }
     } else {
       const def = getDefaultSessions();
       setSessions(def);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(def));
+      localStorage.setItem(plannerKey, JSON.stringify(def));
     }
-    const streakRaw = localStorage.getItem(STREAK_KEY);
-    // FIX: was `parseInt(streakRaw) || 14` — this showed 14 even when streak was 0
+    const streakRaw = localStorage.getItem(streakKey);
     setStreak(streakRaw ? (parseInt(streakRaw) ?? 0) : 0);
-  }, []);
+  }, [user?.id]);
 
   const save = (updated: PlannerSession[]) => {
     setSessions(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    // FIX BUG 1: save to user-scoped key
+    localStorage.setItem(getPlannerKey(user?.id), JSON.stringify(updated));
   };
 
   // ── Calendar grid ──
@@ -735,7 +744,7 @@ export default function StudyPlanner() {
         </header>
 
         {/* Mobile scrollable body */}
-        <main className="flex-1 overflow-y-auto px-4 py-5 pb-24 flex flex-col gap-5">
+        <main className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5" style={{ paddingBottom: 160 }}>
 
           {/* Calendar */}
           <CalendarGrid {...calendarProps} compact />

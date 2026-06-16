@@ -189,10 +189,15 @@ export default function Practice() {
 Each object MUST match this schema exactly:
 {"q":"question text","options":["A","B","C","D"],"correct":0,"subject":"Subject","difficulty":"Easy, Medium or Hard"}`;
 
-      const fn = callGroq as any;
-      const aiResponse = fn.toString().includes("messages") || fn.toString().includes("llama")
-        ? await fn([{ role: "user", content: promptText }], systemPrompt, "llama-3.3-70b-versatile", 1000)
-        : await fn(promptText, systemPrompt, "application/json");
+      // FIX BUG 2: removed fn.toString() hack — call callGroq directly
+      // Note: "practice" is not in Worker LIMITS (unlimited) but key passed for logging
+      const aiResponse = await callGroq(
+        [{ role: "user", content: promptText }],
+        systemPrompt,
+        "llama-3.3-70b-versatile",
+        1024,
+        "practice"
+      );
 
       let sanitized = aiResponse.trim();
       if (sanitized.startsWith("```json")) sanitized = sanitized.substring(7);

@@ -24,7 +24,8 @@ interface StudySheet {
 export default function QuickStudy() {
   const navigate = useNavigate();
   const activeSource = getActiveSource();
-  const { save: saveHistory } = useToolHistory("quick-study");
+  // FIX BUG 8: destructure history from useToolHistory (was missing historyEntries)
+  const { save: saveHistory, history: deckHistory } = useToolHistory("quick-study");
   const { isPro, canUse, remaining, logUsage } = usePlan();
 
   const [activeTab, setActiveTab] = useState<"Cram" | "HighYield">("Cram");
@@ -32,8 +33,8 @@ export default function QuickStudy() {
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Freemium state
-  const [remainingUses, setRemainingUses] = useState<number>(3);
+  // FIX BUG 4: initialize remainingUses as null to avoid flicker
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
@@ -57,51 +58,22 @@ export default function QuickStudy() {
     setLoading(true);
     setGeneratedSheet(null);
 
+    let result: StudySheet | null = null;
+
     try {
       const sourceContext = buildAIContext();
-      const promptText = `Generate a robust high-yield academic study guide for the topic: "${topic}".
-Mode: "${activeTab === "Cram" ? "Cram Session (Fast Core Cheat Sheet Facts)" : "High Yield Summary (Clinical context / Advanced correlation)"}"
-${sourceContext ? `Incorporate source material detail:\n${sourceContext}` : ""}
-
-Return strictly a valid raw JSON object. Do not wrap in markdown tags or code blocks.
-Required JSON schema:
-{
-  "title": "${topic} (${activeTab === "Cram" ? "Cram Sheet" : "High Yield Study"})",
-  "tags": ["Subject Area", "Sub-topic", "Exam Category"],
-  "retentionScore": 72,
-  "goals": [
-    "Define the core terminology",
-    "Identify 3 high-yield mechanisms",
-    "Summarize key clinical correlations"
-  ],
-  "points": [
-    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition..." },
-    { "label": "Second Concept Name:", "value": "Detailed fact explanation..." },
-    { "label": "Third Concept Name:", "value": "Detailed fact explanation..." },
-    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation..." }
-  ]
-}
-
-Rules:
-- tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")
-- retentionScore: integer 0-100 reflecting topic complexity and how well these 4 points cover it
-- goals: exactly 3 short imperative study goals specific to this topic
-- points: exactly 4 rigorous study points
-Return raw JSON only, no wrapping!`;
+      const promptText = `Generate a robust high-yield academic study guide for the topic: "${topic}".\nMode: "${activeTab === "Cram" ? "Cram Session (Fast Core Cheat Sheet Facts)" : "High Yield Summary (Clinical context / Advanced correlation)"}"\n${sourceContext ? `Incorporate source material detail:\n${sourceContext}` : ""}\n\nReturn strictly a valid raw JSON object. Do not wrap in markdown tags or code blocks.\nRequired JSON schema:\n{\n  "title": "${topic} (${activeTab === "Cram" ? "Cram Sheet" : "High Yield Study"})",\n  "tags": ["Subject Area", "Sub-topic", "Exam Category"],\n  "retentionScore": 72,\n  "goals": [\n    "Define the core terminology",\n    "Identify 3 high-yield mechanisms",\n    "Summarize key clinical correlations"\n  ],\n  "points": [\n    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition..." },\n    { "label": "Second Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Third Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation..." }\n  ]\n}\n\nRules:\n- tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")\n- retentionScore: integer 0-100 reflecting topic complexity and how well these 4 points cover it\n- goals: exactly 3 short imperative study goals specific to this topic\n- points: exactly 4 rigorous study points\nReturn raw JSON only, no wrapping!`;
 
       const systemPrompt = "You are an elite medical and engineering tutor who publishes quick high-yield revision cards strictly in raw JSON formats.";
 
-      const callGroqWithModel = async (pText: string, sysPrompt: string) => {
-        const fn = callGroq as any;
-        const fnStr = fn.toString();
-        if (fnStr.includes("messages") || fnStr.includes("llama")) {
-          return await fn([{ role: "user", content: pText }], sysPrompt, "llama-3.3-70b-versatile", 1000);
-        } else {
-          return await fn(pText, sysPrompt, "application/json");
-        }
-      };
-
-      const aiResponse = await callGroqWithModel(promptText, systemPrompt);
+      // FIX BUG 2: removed callGroqWithModel hack — call callGroq directly with feature key
+      const aiResponse = await callGroq(
+        [{ role: "user", content: promptText }],
+        systemPrompt,
+        "llama-3.3-70b-versatile",
+        1024,
+        "quick_study"
+      );
       let sanitized = aiResponse.trim();
       if (sanitized.startsWith("```")) {
         sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
@@ -109,7 +81,7 @@ Return raw JSON only, no wrapping!`;
 
       const generated = JSON.parse(sanitized);
       if (generated.title && Array.isArray(generated.points)) {
-        const sheet: StudySheet = {
+        result = {
           title: generated.title,
           isNew: true,
           tags: Array.isArray(generated.tags) ? generated.tags : [activeTab === "Cram" ? "Cram" : "High Yield"],
@@ -117,25 +89,13 @@ Return raw JSON only, no wrapping!`;
           goals: Array.isArray(generated.goals) ? generated.goals : ["Review core concepts", "Identify key mechanisms", "Test recall"],
           points: generated.points,
         };
-        setGeneratedSheet(sheet);
-        saveHistory({
-          prompt: topic,
-          preview: generated.points[0]?.value?.slice(0, 120) || "",
-          output: JSON.stringify(generated),
-          model: "rex-ai",
-          meta: `${activeTab} · ${sheet.tags.join(", ")}`,
-        });
-        if (!isPro) {
-          await logUsage("quick_study");
-          remaining("quick_study").then(setRemainingUses);
-        }
       } else {
         throw new Error("Invalid structure");
       }
     } catch (err) {
       console.error("AI Quick Study failed, using fallback:", err);
       if (activeTab === "Cram") {
-        setGeneratedSheet({
+        result = {
           title: `${topic} (Cram Sheet)`,
           isNew: true,
           tags: ["Core Concepts", "Cram Mode"],
@@ -147,9 +107,9 @@ Return raw JSON only, no wrapping!`;
             { label: "Reset Phase:", value: "Sodium gates snap shut while potassium gated systems release intracellular channels." },
             { label: "Action Response:", value: "An all-or-none reaction threshold must be parsed to initiate muscular contractions." },
           ],
-        });
+        };
       } else {
-        setGeneratedSheet({
+        result = {
           title: `${topic} (High Yield Study)`,
           isNew: true,
           tags: ["High Yield", "Clinical Correlation", "Exam Prep"],
@@ -161,11 +121,28 @@ Return raw JSON only, no wrapping!`;
             { label: "Insulator Sheath:", value: "Myelination scales up signal transmission speeds exponentially via saltatory conduction." },
             { label: "Drug Interaction:", value: "Channel blockers modulate threshold potentials and are used in antiarrhythmic therapy." },
           ],
-        });
+        };
       }
-    } finally {
-      setLoading(false);
     }
+
+    // FIX BUG 3: always save history and log usage after generation (success or fallback)
+    if (result) {
+      setGeneratedSheet(result);
+      saveHistory({
+        prompt: topic,
+        preview: result.points[0]?.value?.slice(0, 120) || "",
+        output: JSON.stringify(result),
+        model: "rex-ai",
+        meta: `${activeTab} · ${result.tags.join(", ")}`,
+      });
+    }
+
+    if (!isPro) {
+      try { await logUsage("quick_study"); } catch {}
+      remaining("quick_study").then(setRemainingUses);
+    }
+
+    setLoading(false);
   };
 
   const handleSelectChip = (title: string) => {
@@ -326,7 +303,7 @@ Return raw JSON only, no wrapping!`;
       {showUpgrade && (
         <UpgradePrompt
           feature="quick_study"
-          remaining={remainingUses}
+          remaining={remainingUses ?? 0}
           onClose={() => setShowUpgrade(false)}
         />
       )}
@@ -445,7 +422,8 @@ Return raw JSON only, no wrapping!`;
                     </div>
                     <div className="absolute inset-0 bg-[#E8534A] translate-y-1 translate-x-1 group-active:translate-y-0 group-active:translate-x-0 transition-transform" />
                   </button>
-                  {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+                  {/* FIX BUG 4: guard remainingUses !== null before displaying */}
+                  {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
                     <div className="mt-2 flex flex-col items-center gap-1">
                       <p className="text-[12px] text-black/50 font-bold">
                         {remainingUses} session{remainingUses !== 1 ? "s" : ""} left today
@@ -485,20 +463,20 @@ Return raw JSON only, no wrapping!`;
 
             {/* History Panel + Suggestion Cards */}
             <div className="grid grid-cols-2 gap-6 mt-2">
-              {/* History Panel — from tool history hook */}
+              {/* FIX BUG 8: History Panel now uses deckHistory from useToolHistory, not libraryFiles */}
               <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
                 <div className="flex items-center justify-between px-5 py-3 border-b-2 border-black bg-[#FAF7F2]">
                   <h3 className="text-[11px] font-black uppercase tracking-widest">Study History</h3>
                   <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
                 </div>
-                {historyEntries.length === 0 ? (
+                {!deckHistory || deckHistory.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-40">
                     <span className="material-symbols-outlined text-[28px]">history</span>
                     <p className="text-[11px] font-bold">No history yet. Generate your first sheet!</p>
                   </div>
                 ) : (
                   <div className="flex flex-col divide-y divide-black/10">
-                    {historyEntries.slice(0, 4).map((entry: any, i: number) => (
+                    {(deckHistory as any[]).slice(0, 4).map((entry: any, i: number) => (
                       <button key={i} onClick={() => setTopic(entry.prompt || "")}
                         className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAF7F2] cursor-pointer group text-left w-full">
                         <div className="w-10 h-10 border-2 border-black bg-[#F0EDE0] flex items-center justify-center shrink-0">

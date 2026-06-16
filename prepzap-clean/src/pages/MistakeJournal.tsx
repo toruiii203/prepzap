@@ -24,6 +24,10 @@ interface MistakeItem {
   };
 }
 
+// FIX BUG 1: scope localStorage keys to user ID to prevent data leakage across accounts
+const getMistakesKey = (userId?: string | null) =>
+  userId ? `studenius_mistakes_${userId}` : "studenius_mistakes_anon";
+
 // FIX: INITIAL_MISTAKES removed — page was showing hardcoded fake data
 // even before the user added anything. Start with empty array.
 const INITIAL_MISTAKES: MistakeItem[] = [];
@@ -209,7 +213,7 @@ function EmptyState({ colSpan = false }: { colSpan?: boolean }) {
 export default function MistakeJournal() {
   const navigate = useNavigate();
   // FIX: pull profile from auth so avatar initial is dynamic, not hardcoded "R"
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { isPro, canUse, remaining, logUsage } = usePlan();
   const [activeSubject, setActiveSubject] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -217,19 +221,32 @@ export default function MistakeJournal() {
   const [selectedQuizOption, setSelectedOption] = useState<number | null>(null);
   const [quizFeedback, setQuizFeedback] = useState<string | null>(null);
   const [loadingQuizId, setLoadingQuizId] = useState<number | string | null>(null);
-  const [mistakes, setMistakes] = useState<MistakeItem[]>(INITIAL_MISTAKES);
+  // FIX BUG 1: load mistakes from user-scoped storage key
+  const [mistakes, setMistakes] = useState<MistakeItem[]>([]);
   const [newEntryOpen, setNewEntryOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newSubject, setNewSubject] = useState("Biology");
   const [newDesc, setNewDesc] = useState("");
 
   // Freemium state
-  const [remainingUses, setRemainingUses] = useState<number>(5);
+  // FIX BUG 4: initialize as null to avoid flicker
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
     remaining("mistake_journal").then(setRemainingUses);
   }, [remaining]);
+
+  // FIX BUG 1: load mistakes from user-scoped key; reload when user changes
+  useEffect(() => {
+    try {
+      const key = getMistakesKey(user?.id);
+      const saved = localStorage.getItem(key);
+      setMistakes(saved ? JSON.parse(saved) : []);
+    } catch {
+      setMistakes([]);
+    }
+  }, [user?.id]);
 
   const subjects = ["All", "Biology", "Physics", "Mathematics", "Chemistry", "History"];
 
@@ -270,7 +287,9 @@ Return strictly a valid raw JSON object (no markdown):
       const sanitized = aiResponse.trim().replace(/^```(json)?/, "").replace(/```$/, "").trim();
       const generated = JSON.parse(sanitized);
       if (generated.q && Array.isArray(generated.options)) {
-        setMistakes(prev => prev.map(m => m.id === item.id ? { ...m, quiz: generated } : m));
+        const quizAssignedMistakes = mistakes.map(m => m.id === item.id ? { ...m, quiz: generated } : m);
+        setMistakes(quizAssignedMistakes);
+        try { localStorage.setItem(getMistakesKey(user?.id), JSON.stringify(quizAssignedMistakes)); } catch {}
         setActiveQuizId(item.id);
       } else throw new Error("Invalid structure");
     } catch {
@@ -299,7 +318,9 @@ Return strictly a valid raw JSON object (no markdown):
     if (selectedQuizOption === item.quiz.correct) {
       setQuizFeedback("✓ Correct! You've mastered this item.");
       setTimeout(() => {
-        setMistakes(prev => prev.map(m => m.id === item.id ? { ...m, resolved: true } : m));
+        const quizResolvedMistakes = mistakes.map(m => m.id === item.id ? { ...m, resolved: true } : m);
+        setMistakes(quizResolvedMistakes);
+        try { localStorage.setItem(getMistakesKey(user?.id), JSON.stringify(quizResolvedMistakes)); } catch {}
         setActiveQuizId(null);
         setSelectedOption(null);
         setQuizFeedback(null);
@@ -331,7 +352,9 @@ Return strictly a valid raw JSON object (no markdown):
       title: newTitle,
       desc: newDesc || "Review this concept.",
     };
-    setMistakes(prev => [newItem, ...prev]);
+    const updatedMistakes = [newItem, ...mistakes];
+    setMistakes(updatedMistakes);
+    try { localStorage.setItem(getMistakesKey(user?.id), JSON.stringify(updatedMistakes)); } catch {}
     setNewTitle("");
     setNewDesc("");
     setNewSubject("Biology");
@@ -345,7 +368,9 @@ Return strictly a valid raw JSON object (no markdown):
 
   // FIX: mark a mistake resolved manually without needing quiz
   const handleMarkResolved = (id: number | string) => {
-    setMistakes(prev => prev.map(m => m.id === id ? { ...m, resolved: true } : m));
+    const resolvedMistakes = mistakes.map(m => m.id === id ? { ...m, resolved: true } : m);
+    setMistakes(resolvedMistakes);
+    try { localStorage.setItem(getMistakesKey(user?.id), JSON.stringify(resolvedMistakes)); } catch {}
     if (activeQuizId === id) {
       setActiveQuizId(null);
       setSelectedOption(null);
@@ -355,7 +380,9 @@ Return strictly a valid raw JSON object (no markdown):
 
   // FIX: delete a mistake entry
   const handleDelete = (id: number | string) => {
-    setMistakes(prev => prev.filter(m => m.id !== id));
+    const filteredMistakes = mistakes.filter(m => m.id !== id);
+    setMistakes(filteredMistakes);
+    try { localStorage.setItem(getMistakesKey(user?.id), JSON.stringify(filteredMistakes)); } catch {}
     if (activeQuizId === id) setActiveQuizId(null);
   };
 
@@ -514,7 +541,7 @@ Return strictly a valid raw JSON object (no markdown):
                   New Entry
                 </button>
               </div>
-              {!isPro && remainingUses <= 4 && remainingUses > 0 && (
+              {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
                 <div className="flex items-center justify-end gap-2 px-8 pt-1">
                   <span className="text-[12px] text-black/50 font-bold">
                     {remainingUses} entr{remainingUses !== 1 ? "ies" : "y"} left today

@@ -41,8 +41,6 @@ function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => v
 
 export default function CramMode() {
   const [subject, setSubject] = useState("")
-  const [timeHours, setTimeHours] = useState(2)
-  const [panicMode, setPanicMode] = useState(false);
   const [hoursAvailable, setHoursAvailable] = useState("2");
   const [loading, setLoading] = useState(false);
   const [topics, setTopics] = useState<CramTopic[]>([]);
@@ -82,7 +80,6 @@ export default function CramMode() {
   // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
-    const targetTool = sessionStorage.getItem("quicklaunch_tool");
     if (prefill && prefill.trim()) {
       setSubject(prefill);
       sessionStorage.removeItem("quicklaunch_prompt");
@@ -97,12 +94,16 @@ export default function CramMode() {
     setLoading(true);
     try {
       const totalMins = parseFloat(hoursAvailable) * 60;
-      const prompt = `Create a cram session for: "${effectiveSubject || "the study material below"}". Total time: ${totalMins} minutes.
-${ctx ? `Study context:\n${ctx}\n` : ""}
-Return ONLY valid JSON array, no markdown:
-[{"topic":"string","keyPoints":["string","string","string"],"timeMinutes":number}]
-Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints each, order by importance.`;
-      const raw = await callGroq(prompt, "meta-llama/llama-3.3-70b-instruct:free", { feature: "cram_mode" });
+      const prompt = `Create a cram session for: "${effectiveSubject || "the study material below"}". Total time: ${totalMins} minutes.\n${ctx ? `Study context:\n${ctx}\n` : ""}\nReturn ONLY valid JSON array, no markdown:\n[{"topic":"string","keyPoints":["string","string","string"],"timeMinutes":number}]\nRules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints each, order by importance.`;
+
+      // FIX BUG 2: removed callGroqWithModel hack — call callGroq directly with feature key
+      const raw = await callGroq(
+        [{ role: "user", content: prompt }],
+        undefined,
+        "llama-3.3-70b-versatile",
+        1024,
+        "cram_mode"
+      );
       const parsed: CramTopic[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setTopics(parsed);
       setCurrentIdx(0);
@@ -136,7 +137,8 @@ Rules: 4-6 topics, timeMinutes must total ~${totalMins}, exactly 3 keyPoints eac
   return (
     <ToolPageShell>
       <BuddyCompanion />
-      <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
+      {/* FIX BUG 7: increased pb to 160px so content isn't hidden behind fixed bottom bar */}
+      <main className="max-w-xl mx-auto px-4 pt-6" style={{ paddingBottom: 160 }}>
         <GlobalContextBar compact />
         <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "#ae2925" }} />} title="Cram Mode" subtitle="Guided timed session /// one topic at a time" />
 

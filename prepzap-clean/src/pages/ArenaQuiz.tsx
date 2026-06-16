@@ -62,6 +62,9 @@ export default function ArenaQuiz() {
   const startTimeRef = useRef<number>(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitCalledRef = useRef(false);
+  // FIX: keep a stable ref to answers so the timer useEffect never needs
+  // answers in its deps (which was restarting the interval on every selection)
+  const answersRef = useRef<Record<number, string>>({});
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
@@ -71,8 +74,10 @@ export default function ArenaQuiz() {
     if (timerRef.current) clearInterval(timerRef.current);
 
     const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    // FIX: read from ref so handleSubmit is stable (no answers in useCallback deps)
+    const latestAnswers = answersRef.current;
     const correctCount = questions.reduce(
-      (acc, q, i) => acc + (answers[i] === q.correct_answer ? 1 : 0),
+      (acc, q, i) => acc + (latestAnswers[i] === q.correct_answer ? 1 : 0),
       0
     );
     const score = calcScore(correctCount, elapsed, totalTime);
@@ -87,25 +92,25 @@ export default function ArenaQuiz() {
         await supabase.from("daily_submissions").insert({
           user_id: user.id,
           quiz_date: todayPH(),
-          answers,
+          answers: latestAnswers,
           score,
           time_taken: elapsed,
           display_name: displayName,
         });
         navigate("/arena/results/daily", {
-          state: { answers, score, elapsed, questions, isDaily: true },
+          state: { answers: latestAnswers, score, elapsed, questions, isDaily: true },
         });
       } else if (room) {
         await supabase.from("room_submissions").insert({
           room_id: room.id,
           user_id: user.id,
-          answers,
+          answers: latestAnswers,
           score,
           time_taken: elapsed,
           display_name: displayName,
         });
         navigate(`/arena/results/${code}`, {
-          state: { answers, score, elapsed, questions, isDaily: false },
+          state: { answers: latestAnswers, score, elapsed, questions, isDaily: false },
         });
       }
     } catch (e) {
@@ -113,7 +118,8 @@ export default function ArenaQuiz() {
       submitCalledRef.current = false;
       setSubmitting(false);
     }
-  }, [user, questions, answers, totalTime, isDaily, room, code, navigate]);
+  // FIX: answers removed from deps — read via answersRef instead
+  }, [user, questions, totalTime, isDaily, room, code, navigate]);
 
   // ── Load quiz data ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -181,8 +187,11 @@ export default function ArenaQuiz() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [loading, questions.length, handleSubmit]);
 
-  const selectAnswer = (letter: string) =>
-    setAnswers((prev) => ({ ...prev, [currentQ]: letter }));
+  const selectAnswer = (letter: string) => {
+    const next = { ...answersRef.current, [currentQ]: letter };
+    answersRef.current = next;
+    setAnswers(next);
+  };
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;

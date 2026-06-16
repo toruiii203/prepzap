@@ -70,7 +70,14 @@ async function generateQuestions(topic: string, count: number, difficulty: strin
   const prompt = `Generate ${count} multiple choice questions about "${topic}" at ${difficulty} difficulty for university-level students.
 Return ONLY a JSON array, no markdown, no explanation:
 [{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct_answer":"A","explanation":"..."}]`;
-  const raw = await callGroq(prompt, undefined, "llama-3.3-70b-versatile", 2048);
+  // FIX: added feature key for tracking; no limit gate (host pays per creation)
+  const raw = await callGroq(
+    [{ role: "user", content: prompt }],
+    undefined,
+    "llama-3.3-70b-versatile",
+    2048,
+    "arena_gen"
+  );
   return safeParseJSON<Question[]>(raw);
 }
 

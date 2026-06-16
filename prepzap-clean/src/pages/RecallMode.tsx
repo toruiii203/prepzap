@@ -10,14 +10,19 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { BottomNav } from "@/components/BottomNav";
 
 interface RecallPrompt { prompt: string; answer: string; keywords: string[]; }
 interface Result { prompt: string; typed: string; score: "correct" | "partial" | "wrong"; matched: string[]; }
 interface TopicRecord { topic: string; score: number; total: number; date: string; }
 
-const STORAGE_KEY = "pz_recall_history";
-function loadHistory(): TopicRecord[] { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
+// FIX BUG 4: remainingUses not relevant here (no usePlan), but STORAGE_KEY kept local
+// (RecallMode uses local history, not user-scoped usage — no BUG 1 since history is not sensitive)
+// FIX BUG 1: scope history to user ID
+const getHistoryKey = (userId?: string | null) =>
+  userId ? `pz_recall_history_${userId}` : "pz_recall_history_anon";
+function loadHistory(userId?: string | null): TopicRecord[] { try { return JSON.parse(localStorage.getItem(getHistoryKey(userId)) || "[]"); } catch { return []; } }
 
 // Fuzzy match: true if typed contains keyword or close variant (edit distance /// 2)
 function fuzzyMatch(typed: string, keyword: string): boolean {
@@ -66,6 +71,7 @@ function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => v
 }
 
 export default function RecallMode() {
+  const { user } = useAuth();
   const [subject, setSubject] = useState("");
   const [loading, setLoading] = useState(false);
   const [prompts, setPrompts] = useState<RecallPrompt[]>([]);
@@ -76,7 +82,7 @@ export default function RecallMode() {
   const [phase, setPhase] = useState<"setup" | "recall" | "results">("setup");
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
-  const [history, setHistory] = useState<TopicRecord[]>(loadHistory);
+  const [history, setHistory] = useState<TopicRecord[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const ctx = buildAIContext();
@@ -85,11 +91,15 @@ export default function RecallMode() {
 
   useEffect(() => { if (phase === "recall") inputRef.current?.focus(); }, [phase, current]);
 
+  // FIX BUG 1: load history from user-scoped key; reload when user changes
+  useEffect(() => {
+    setHistory(loadHistory(user?.id));
+  }, [user?.id]);
+
 
   // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
-    const targetTool = sessionStorage.getItem("quicklaunch_tool");
     if (prefill && prefill.trim()) {
       setSubject(prefill);
       sessionStorage.removeItem("quicklaunch_prompt");
@@ -103,12 +113,16 @@ export default function RecallMode() {
     if (!effectiveSubject && !hasSource) { toast.error("Enter a subject or add a source first"); return; }
     setLoading(true);
     try {
-      const prompt = `Create 8 recall prompts for: "${effectiveSubject || "the study material below"}".
-${ctx ? `Study context:\n${ctx}\n` : ""}
-Return ONLY valid JSON array, no markdown:
-[{"prompt":"Complete this / Explain / Define...","answer":"expected answer (2-3 sentences)","keywords":["key","terms","from","answer"]}]
-keywords: 4-6 essential words from the answer that a correct response would include.`;
-      const raw = await callGroq(prompt, "llama-3.3-70b-versatile", { feature: "recall_mode" });
+      const prompt = `Create 8 recall prompts for: "${effectiveSubject || "the study material below"}".\n${ctx ? `Study context:\n${ctx}\n` : ""}\nReturn ONLY valid JSON array, no markdown:\n[{"prompt":"Complete this / Explain / Define...","answer":"expected answer (2-3 sentences)","keywords":["key","terms","from","answer"]}]\nkeywords: 4-6 essential words from the answer that a correct response would include.`;
+
+      // FIX BUG 2: removed callGroqWithModel hack — call callGroq directly with feature key
+      const raw = await callGroq(
+        [{ role: "user", content: prompt }],
+        undefined,
+        "llama-3.3-70b-versatile",
+        1024,
+        "recall_mode"
+      );
       const parsed: RecallPrompt[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
       setPrompts(parsed);
       setCurrent(0); setTyped(""); setResults([]);
@@ -135,11 +149,10 @@ keywords: 4-6 essential words from the answer that a correct response would incl
       setTimeout(() => { setCurrent(c => c + 1); setTyped(""); setShowAnswer(false); }, 800);
     } else {
       const correct = newResults.filter(r => r.score === "correct").length;
-      const scoreVal = Math.round((correct / prompts.length) * 100);
       const record: TopicRecord = { topic: subject.trim() || "Source Library", score: correct, total: prompts.length, date: new Date().toISOString() };
       const newHistory = [record, ...history].slice(0, 15);
       setHistory(newHistory);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
+      localStorage.setItem(getHistoryKey(user?.id), JSON.stringify(newHistory));
       setTimeout(() => setPhase("results"), 800);
     }
   };

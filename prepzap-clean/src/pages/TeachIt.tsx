@@ -23,13 +23,15 @@ export default function TeachIt() {
   const [activeSource, setActiveSource] = useState<string | null>(() => getActiveSource()?.name ?? null);
   const [topic, setTopic] = useState("");
   const [explanation, setExplanation] = useState("");
+  // FIX BUG 5: messages array for conversation history
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
   const [feedback, setFeedback] = useState<FeynmanFeedback | null>(null);
   const [loading, setLoading] = useState(false);
   const [showXpToast, setShowXpToast] = useState(false);
   const [xpEarnedToast, setXpEarnedToast] = useState(0);
 
-  // Freemium state
-  const [remainingUses, setRemainingUses] = useState<number>(3);
+  // FIX BUG 4: initialize remainingUses as null to avoid flicker
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function TeachIt() {
     setTopic(title);
     setExplanation("");
     setFeedback(null);
+    setMessages([]);
   };
 
   const handleClearSource = () => {
@@ -63,36 +66,41 @@ export default function TeachIt() {
     setFeedback(null);
     const targetTopic = topic.trim() || "General Study Concept";
 
+    // FIX BUG 5: build full conversation history for chat memory
+    const newUserMessage = { role: "user" as const, text: explanation };
+    const updatedMessages = [...messages, newUserMessage];
+
+    let result: FeynmanFeedback | null = null;
+
     try {
       const sourceContext = buildAIContext();
-      const promptText = `Analyze this student's simple explanation of "${targetTopic}".
-Student draft: "${explanation}"
-${sourceContext ? `Source context:\n${sourceContext}` : ""}
-
-Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO markdown:
-{
-  "strengths": ["strength 1", "strength 2"],
-  "gaps": [{"title": "Gap Name", "detail": "Why it matters"}],
-  "hint": "A Feynman-style hint to deepen understanding",
-  "clarityScore": 82,
-  "xpAwarded": 45
-}`;
+      const promptText = `Analyze this student's simple explanation of "${targetTopic}".\nStudent draft: "${explanation}"\n${sourceContext ? `Source context:\n${sourceContext}` : ""}\n\nEvaluate using the Feynman technique. Return ONLY a raw JSON object with NO markdown:\n{\n  "strengths": ["strength 1", "strength 2"],\n  "gaps": [{"title": "Gap Name", "detail": "Why it matters"}],\n  "hint": "A Feynman-style hint to deepen understanding",\n  "clarityScore": 82,\n  "xpAwarded": 45\n}`;
 
       const systemPrompt = "You are a master Feynman technique evaluator. Return only raw JSON. No markdown.";
 
-      // FIX: removed fragile fn.toString() heuristic — call callGroq directly with messages array
+      // FIX BUG 2+5: call callGroq with full conversation history and feature key
+      const conversationMessages = [
+        ...updatedMessages.map(m => ({
+          role: m.role,
+          content: m.text,
+        })),
+      ];
+      // Replace last user message with the structured prompt
+      conversationMessages[conversationMessages.length - 1] = { role: "user", content: promptText };
+
       const aiResponse = await callGroq(
-        [{ role: "user", content: promptText }],
+        conversationMessages,
         systemPrompt,
         "llama-3.3-70b-versatile",
-        1000
+        1024,
+        "teach_it"
       );
 
       const sanitized = aiResponse.trim().replace(/^```(json)?/, "").replace(/```$/, "").trim();
       const generated: FeynmanFeedback = JSON.parse(sanitized);
 
       if (generated.strengths && generated.gaps) {
-        setFeedback(generated);
+        result = generated;
         const xp = generated.xpAwarded || 30;
         setXpEarnedToast(xp);
         setShowXpToast(true);
@@ -107,16 +115,11 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             await refreshProfile();
           } catch {}
         }
-
-        if (!isPro) {
-          await logUsage("teach_it");
-          remaining("teach_it").then(setRemainingUses);
-        }
       } else {
         throw new Error("Invalid structure");
       }
     } catch {
-      const fallback: FeynmanFeedback = {
+      result = {
         strengths: [
           `Good conversational approach to explaining ${targetTopic || "the topic"}.`,
           "Avoiding jargon shows solid comprehension potential.",
@@ -129,7 +132,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
         clarityScore: 65,
         xpAwarded: 30,
       };
-      setFeedback(fallback);
       setXpEarnedToast(30);
       setShowXpToast(true);
       setTimeout(() => setShowXpToast(false), 3000);
@@ -141,22 +143,32 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
           await refreshProfile();
         } catch {}
       }
-    } finally {
-      setLoading(false);
     }
+
+    // FIX BUG 3: always log usage after generation (success or fallback)
+    if (!isPro) {
+      try { await logUsage("teach_it"); } catch {}
+      remaining("teach_it").then(setRemainingUses);
+    }
+
+    if (result) {
+      setFeedback(result);
+      // Store conversation turn
+      setMessages([...updatedMessages, { role: "assistant", text: JSON.stringify(result) }]);
+    }
+
+    setLoading(false);
   };
 
   const wordCount = explanation.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    // FIX: root div uses height:100dvh + overflow:hidden so the desktop child
-    // doesn't fight for its own 100vh and cause layout collapse
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
 
       {showUpgrade && (
         <UpgradePrompt
           feature="teach_it"
-          remaining={remainingUses}
+          remaining={remainingUses ?? 0}
           onClose={() => setShowUpgrade(false)}
         />
       )}
@@ -173,8 +185,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
       {/* ═══════════════════════════════════════════════════
           DESKTOP LAYOUT
           ═══════════════════════════════════════════════════ */}
-      {/* FIX: removed style={{ height: "100vh" }} — now uses flex-1 to fill
-          the parent properly without overflowing */}
       <div className="hidden md:flex md:ml-64 flex-col flex-1 overflow-hidden">
 
         {/* Desktop Header */}
@@ -261,26 +271,14 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
 
             {/* Worksheet */}
             <div className="flex-1 flex flex-col overflow-hidden bg-white">
-              {/* Worksheet header bar */}
               <div className="border-b-2 border-black px-6 py-3 flex items-center justify-between bg-[#FAF7F2] shrink-0">
                 <span className="font-bold text-[11px] uppercase tracking-widest">The Feynman Worksheet</span>
                 <div className="flex gap-3">
-                  {/* FIX: history/format_paint buttons were non-functional dead icons;
-                      marked with title tooltips and opacity to indicate future feature */}
-                  <button
-                    title="View history (coming soon)"
-                    className="material-symbols-outlined text-[20px] text-black/30 cursor-not-allowed">
-                    history
-                  </button>
-                  <button
-                    title="Format (coming soon)"
-                    className="material-symbols-outlined text-[20px] text-black/30 cursor-not-allowed">
-                    format_paint
-                  </button>
+                  <button title="View history (coming soon)" className="material-symbols-outlined text-[20px] text-black/30 cursor-not-allowed">history</button>
+                  <button title="Format (coming soon)" className="material-symbols-outlined text-[20px] text-black/30 cursor-not-allowed">format_paint</button>
                 </div>
               </div>
 
-              {/* Textarea */}
               <div className="flex-1 flex flex-col p-8 overflow-y-auto">
                 <h3 className="font-bold text-[18px] italic mb-6" style={{ color: "rgba(0,0,0,0.25)" }}>
                   Explain this in your own words, as if teaching a beginner...
@@ -298,19 +296,11 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             {/* Action bar */}
             <div className="flex items-center justify-between px-8 py-4 border-t-2 border-black bg-[#FAF7F2] shrink-0">
               <div className="flex items-center gap-3">
-                {/* FIX: Record Voice + Add Sketch had no onClick — now disabled with
-                    clear visual treatment until feature is implemented */}
-                <button
-                  disabled
-                  title="Voice recording coming soon"
-                  className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed">
+                <button disabled title="Voice recording coming soon" className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed">
                   <span className="material-symbols-outlined text-[18px]">mic</span>
                   Record Voice
                 </button>
-                <button
-                  disabled
-                  title="Sketch coming soon"
-                  className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed">
+                <button disabled title="Sketch coming soon" className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed">
                   <span className="material-symbols-outlined text-[18px]">draw</span>
                   Add Sketch
                 </button>
@@ -318,41 +308,38 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                   {wordCount} words
                 </span>
               </div>
-              <button
-                onClick={handleAnalyze}
-                disabled={!explanation.trim() || loading}
-                className={`flex items-center gap-3 px-10 py-4 bg-[#FF4D2E] text-white border-2 border-black font-black text-[16px] shadow-[5px_5px_0px_#000] transition-all ${
-                  explanation.trim() && !loading
-                    ? "hover:bg-black cursor-pointer active:translate-y-1 active:shadow-none"
-                    : "opacity-50 pointer-events-none"
-                }`}>
-                <span
-                  className="material-symbols-outlined text-[20px]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}>
-                  bolt
-                </span>
-                {loading ? "Analyzing..." : "Analyze Explanation"}
-              </button>
-              {!isPro && remainingUses <= 4 && remainingUses > 0 && (
-                <div className="flex flex-col items-center gap-1 mt-1">
-                  <p className="text-[12px] text-black/50 font-bold">
-                    {remainingUses} session{remainingUses !== 1 ? "s" : ""} left today
-                  </p>
-                  {remainingUses <= 2 && <SoftWarning feature="teach_it" remaining={remainingUses} />}
-                </div>
-              )}
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  onClick={handleAnalyze}
+                  disabled={!explanation.trim() || loading}
+                  className={`flex items-center gap-3 px-10 py-4 bg-[#FF4D2E] text-white border-2 border-black font-black text-[16px] shadow-[5px_5px_0px_#000] transition-all ${
+                    explanation.trim() && !loading
+                      ? "hover:bg-black cursor-pointer active:translate-y-1 active:shadow-none"
+                      : "opacity-50 pointer-events-none"
+                  }`}>
+                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                  {loading ? "Analyzing..." : "Analyze Explanation"}
+                </button>
+                {/* FIX BUG 4: guard remainingUses !== null */}
+                {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
+                  <div className="flex flex-col items-end gap-1 mt-1">
+                    <p className="text-[12px] text-black/50 font-bold">
+                      {remainingUses} session{remainingUses !== 1 ? "s" : ""} left today
+                    </p>
+                    {remainingUses <= 2 && <SoftWarning feature="teach_it" remaining={remainingUses} />}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Right: Analysis panel */}
           <aside className="w-[380px] flex flex-col overflow-hidden bg-[#F0EDE0]">
-            {/* Panel header */}
             <div className="border-b-2 border-black px-5 py-4 bg-black text-white flex items-center gap-2 shrink-0">
               <span className="material-symbols-outlined text-[20px]">analytics</span>
               <span className="font-bold text-[13px] uppercase tracking-widest">Real-Time Analysis</span>
             </div>
 
-            {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6">
               {!feedback && !loading && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30 gap-3 py-12">
@@ -368,7 +355,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
               )}
               {feedback && (
                 <>
-                  {/* Strengths */}
                   <section>
                     <h4 className="font-bold text-[10px] uppercase tracking-widest text-black/40 mb-3">Strengths</h4>
                     <div className="flex flex-col gap-2">
@@ -381,7 +367,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                     </div>
                   </section>
 
-                  {/* Gaps */}
                   <section>
                     <h4 className="font-bold text-[10px] uppercase tracking-widest text-black/40 mb-3">Knowledge Gaps</h4>
                     <div className="flex flex-col gap-2">
@@ -397,45 +382,33 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                     </div>
                   </section>
 
-                  {/* Feynman Hint */}
                   <section>
                     <div className="bg-black text-white p-4 border-2 border-black shadow-[3px_3px_0px_#ae2925]">
                       <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className="material-symbols-outlined text-[#F5A623] text-[18px]"
-                          style={{ fontVariationSettings: "'FILL' 1" }}>
-                          lightbulb
-                        </span>
+                        <span className="material-symbols-outlined text-[#F5A623] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
                         <h4 className="font-bold text-[10px] uppercase tracking-widest">Feynman Hint</h4>
                       </div>
                       <p className="font-bold text-[13px] italic text-white/70 leading-relaxed">"{feedback.hint}"</p>
                     </div>
                   </section>
 
-                  {/* Clarity score */}
                   <section className="pt-2 border-t-2 border-black">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-bold text-[12px]">Clarity Score</span>
                       <span className="font-black text-[14px]">{feedback.clarityScore}/100</span>
                     </div>
                     <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black overflow-hidden">
-                      <div
-                        className="h-full bg-black transition-all duration-700"
-                        style={{ width: `${feedback.clarityScore}%` }}
-                      />
+                      <div className="h-full bg-black transition-all duration-700" style={{ width: `${feedback.clarityScore}%` }} />
                     </div>
                   </section>
                 </>
               )}
             </div>
 
-            {/* Panel footer */}
             <div className="p-4 border-t-2 border-black flex items-center justify-between shrink-0 bg-[#FAF7F2]">
               <div className="flex -space-x-2">
                 {[1, 2, 3].map(n => (
-                  <div key={n} className="w-6 h-6 border-2 border-black bg-white flex items-center justify-center text-[10px] font-black">
-                    {n}
-                  </div>
+                  <div key={n} className="w-6 h-6 border-2 border-black bg-white flex items-center justify-center text-[10px] font-black">{n}</div>
                 ))}
               </div>
               <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">AI Tutor: Active</span>
@@ -449,7 +422,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
           ═══════════════════════════════════════════════════ */}
       <div className="md:hidden w-full flex flex-col bg-[#FAF7F2] flex-1 overflow-hidden">
 
-        {/* Mobile header */}
         <header className="w-full bg-[#FAF7F2] border-b-2 border-black flex items-center justify-between px-5 h-16 z-10 shrink-0">
           <button
             onClick={() => navigate(-1)}
@@ -464,11 +436,9 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
           </button>
         </header>
 
-        {/* FIX: main scrolls freely, pb-24 ensures content isn't hidden behind
-            the fixed bottom bar that was previously missing on mobile */}
+        {/* FIX BUG 7: pb-28 ensures content isn't hidden behind fixed bottom bar */}
         <main className="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-6 pb-28">
 
-          {/* Header */}
           <div className="flex flex-col gap-1">
             <h2 className="font-extrabold text-[22px] leading-tight">Teach It (Feynman Learning)</h2>
             <p className="font-semibold text-[14px] text-black/50">
@@ -476,7 +446,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             </p>
           </div>
 
-          {/* Mode tabs */}
           <div className="flex gap-4 w-full border-b-2 border-black/20 pb-2.5">
             <button className="relative pb-2 flex-1 flex justify-center text-black font-extrabold text-[14px] border-b-2 border-black -mb-[2px]">
               Feynman Technique
@@ -488,17 +457,12 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             </button>
           </div>
 
-          {/* Source + Clarity Bar */}
           <div className="flex items-center gap-2">
             {activeSource ? (
               <div className="flex items-center gap-2 bg-[#F0EDE0] border-2 border-black rounded-full px-3 py-1.5 flex-1 min-w-0">
                 <span className="material-symbols-outlined text-[14px]">description</span>
                 <span className="text-[11px] font-bold truncate">{activeSource}</span>
-                <button
-                  onClick={handleClearSource}
-                  className="material-symbols-outlined text-[13px] hover:text-[#FF4D2E] shrink-0">
-                  close
-                </button>
+                <button onClick={handleClearSource} className="material-symbols-outlined text-[13px] hover:text-[#FF4D2E] shrink-0">close</button>
               </div>
             ) : (
               <button
@@ -514,7 +478,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             </div>
           </div>
 
-          {/* Topic input */}
           <div className="flex flex-col gap-2.5">
             <label className="font-bold text-[13.5px]">Topic to Explain</label>
             <input
@@ -542,7 +505,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             </div>
           </div>
 
-          {/* Explanation canvas */}
           <div className="flex flex-col gap-2.5 flex-1 min-h-[220px]">
             <div className="flex justify-between items-center">
               <label className="font-bold text-[13.5px]">Your Explanation</label>
@@ -558,7 +520,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
             />
           </div>
 
-          {/* Feedback results (mobile) */}
           {feedback && (
             <div className="flex flex-col gap-5 mt-2">
               <div className="flex justify-between items-center border-b-2 border-black pb-1.5">
@@ -568,7 +529,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                 </span>
               </div>
 
-              {/* Strengths */}
               <div className="bg-green-50 border-2 border-black rounded-[18px] p-5 flex flex-col gap-3 shadow-[2px_2px_rgba(0,0,0,1)]">
                 <div className="flex items-center gap-2 text-green-700 font-semibold">
                   <span className="material-symbols-outlined text-[18px]">check_circle</span>
@@ -579,7 +539,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                 ))}
               </div>
 
-              {/* Gaps */}
               <div className="bg-red-50 border-2 border-black rounded-[18px] p-5 flex flex-col gap-3 shadow-[2px_2px_rgba(0,0,0,1)]">
                 <div className="flex items-center gap-2 text-red-700 font-semibold">
                   <span className="material-symbols-outlined text-[18px]">warning</span>
@@ -593,7 +552,6 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                 ))}
               </div>
 
-              {/* Hint */}
               <div className="bg-white border-2 border-black rounded-[18px] p-5 flex flex-col gap-2 shadow-[2px_2px_rgba(0,0,0,1)]">
                 <div className="flex items-center gap-2 text-black/60 font-semibold">
                   <span className="material-symbols-outlined text-[18px]">lightbulb</span>
@@ -602,23 +560,18 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                 <p className="font-bold text-[14px] text-black/70 leading-relaxed italic">"{feedback.hint}"</p>
               </div>
 
-              {/* Clarity score */}
               <div className="flex flex-col gap-2 p-4 bg-white border-2 border-black shadow-[2px_2px_rgba(0,0,0,1)]">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-[13px]">Clarity Score</span>
                   <span className="font-black text-[15px]">{feedback.clarityScore}/100</span>
                 </div>
                 <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black overflow-hidden">
-                  <div
-                    className="h-full bg-black transition-all duration-700"
-                    style={{ width: `${feedback.clarityScore}%` }}
-                  />
+                  <div className="h-full bg-black transition-all duration-700" style={{ width: `${feedback.clarityScore}%` }} />
                 </div>
               </div>
             </div>
           )}
 
-          {/* History panel — only show when idle with no topic */}
           {!feedback && topic.length === 0 && (
             <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
               <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black bg-[#FAF7F2]">
@@ -634,21 +587,13 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
 
         </main>
 
-        {/* FIX: Mobile bottom action bar was completely missing — the pb-24 on
-            main was padding for a bar that didn't exist. Now properly rendered. */}
         <div className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-[#FAF7F2] border-t-2 border-black z-20 md:hidden">
           <div className="flex items-center gap-2">
-            <button
-              disabled
-              title="Voice recording coming soon"
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] opacity-40 cursor-not-allowed">
+            <button disabled title="Voice recording coming soon" className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] opacity-40 cursor-not-allowed">
               <span className="material-symbols-outlined text-[16px]">mic</span>
               Record Voice
             </button>
-            <button
-              disabled
-              title="Sketch coming soon"
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] opacity-40 cursor-not-allowed">
+            <button disabled title="Sketch coming soon" className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] opacity-40 cursor-not-allowed">
               <span className="material-symbols-outlined text-[16px]">draw</span>
               Add Sketch
             </button>
@@ -661,11 +606,7 @@ Evaluate using the Feynman technique. Return ONLY a raw JSON object with NO mark
                 ? "cursor-pointer active:translate-y-0.5 active:shadow-none"
                 : "opacity-50 pointer-events-none"
             }`}>
-            <span
-              className="material-symbols-outlined text-[16px]"
-              style={{ fontVariationSettings: "'FILL' 1" }}>
-              bolt
-            </span>
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
             {loading ? "Analyzing..." : "Analyze Explanation"}
           </button>
         </div>
