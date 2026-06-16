@@ -463,7 +463,9 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
         // Always land on /onboarding; ?step tells it where to resume.
         // Sign-up: ?step=nameInput  →  skip straight to nameInput screen
         // Sign-in: ?step=done      →  navigate to /dashboard immediately
-        redirectTo: `${window.location.origin}/onboarding?step=${isSignIn ? "done" : "nameInput"}`,
+        // FIX: sign-in uses ?mode=signin so startInSignIn is set synchronously
+        // before onAuthStateChange fires; sign-up uses ?step=nameInput to land on nameInput
+        redirectTo: `${window.location.origin}/onboarding?${isSignIn ? "mode=signin" : "step=nameInput"}`,
         queryParams: { prompt: "select_account" },
       },
     })
@@ -476,9 +478,25 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     setLoading(true); setError(null)
 
     if (isSignIn) {
-      const { error: e } = await supabase.auth.signInWithPassword({ email, password })
+      const { data: signInData, error: e } = await supabase.auth.signInWithPassword({ email, password })
       setLoading(false)
-      if (e) { setError(e.message) } else { navigate("/dashboard", { replace: true }) }
+      if (e) {
+        setError(e.message)
+      } else {
+        // FIX: check onboarding_complete — if false, let onboarding continue
+        // (new user who registered with email but hasn't finished onboarding)
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_complete")
+          .eq("id", signInData.user!.id)
+          .single()
+        if (profile?.onboarding_complete === false) {
+          // User hasn't finished onboarding — send them to nameInput
+          onNext()
+        } else {
+          navigate("/dashboard", { replace: true })
+        }
+      }
     } else {
       const { data, error: e } = await supabase.auth.signUp({
         email, password,
@@ -1110,6 +1128,10 @@ export default function Onboarding() {
     const params = new URLSearchParams(window.location.search)
     return params.get("mode") === "signin"
   })
+  // FIX BUG 4: keep a ref so the onAuthStateChange closure always reads
+  // the latest value even though the useEffect dep array is []
+  const startInSignInRef = useRef(false)
+  startInSignInRef.current = startInSignIn
 
   const [userName, setUserName]                 = useState("")
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
@@ -1121,15 +1143,17 @@ export default function Onboarding() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
 
+    // FIX: check action params BEFORE wiping them from the URL
+    // Google OAuth return (sign-in): ?step=done → go straight to dashboard
+    if (params.get("step") === "done") {
+      window.history.replaceState({}, "", "/onboarding")
+      navigate("/dashboard", { replace: true })
+      return
+    }
+
     // Clean the URL after reading params so they don't persist on refresh
     if (params.get("step") || params.get("mode")) {
       window.history.replaceState({}, "", "/onboarding")
-    }
-
-    // Google OAuth return (sign-in): ?step=done → go straight to dashboard
-    if (params.get("step") === "done") {
-      navigate("/dashboard", { replace: true })
-      return
     }
 
     // ── CRITICAL FIX: if user is already logged in and has completed onboarding,
@@ -1176,15 +1200,20 @@ export default function Onboarding() {
           return
         }
 
+        // FIX: if sign-in mode (startInSignIn=true), always go to dashboard
+        // once we've confirmed onboarding_complete above (which already returns
+        // if true). If we reach here with startInSignIn, user is new — but that
+        // shouldn't happen. Either way, respect startInSignIn → dashboard.
+        // FIX BUG 4: read from ref so we always get the current value
+        if (startInSignInRef.current) {
+          navigate("/dashboard", { replace: true })
+          return
+        }
+
         // Only act if we're still on the accountGateway / intro screens
         // (i.e. the user hasn't manually progressed past them yet)
         setScreen(prev => {
           if (prev === "accountGateway" || prev === "intro") {
-            // Returning user (sign-in flow) → dashboard
-            if (startInSignIn) {
-              navigate("/dashboard", { replace: true })
-              return prev
-            }
             // New Google user (sign-up flow) → continue onboarding
             return "nameInput"
           }
