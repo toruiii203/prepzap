@@ -967,7 +967,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
 }
 
 // ///////// SCREEN 10: Final Transition //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function FinalTransition({ onDone }: { onDone: () => void }) {
+function FinalTransition({ onDone, userName }: { onDone: () => void; userName: string }) {
   const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
   const [foxY, setFoxY]                   = useState(110)
   const [foxScale, setFoxScale]           = useState(0.85)
@@ -981,14 +981,18 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
   const [progressVisible, setProgressVisible] = useState(false)
   const [bgColor, setBgColor]             = useState(BG)
 
-  // Mark onboarding complete in Supabase so user never loops back
+  // Save name + mark onboarding complete — upsert so it works even if row is missing
   const markComplete = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     await supabase
       .from("profiles")
-      .update({ onboarding_complete: true })
-      .eq("id", session.user.id)
+      .upsert({
+        id: session.user.id,
+        email: session.user.email,
+        full_name: userName || session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
+        onboarding_complete: true,
+      }, { onConflict: "id" })
   }
 
   const showLine = (text: string, delay: number, outDelay: number) => {
@@ -1024,7 +1028,12 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
-    const t20 = setTimeout(() => markComplete().then(onDone), 15500)
+    // Start the DB write early, then navigate after it completes
+    const t20 = setTimeout(async () => {
+      await markComplete()
+      // Small buffer to let AuthContext re-fetch profile before we navigate
+      setTimeout(onDone, 300)
+    }, 14500)
     return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
   }, [])
 
@@ -1179,7 +1188,7 @@ export default function Onboarding() {
       {screen === "goalSelection"    && <GoalSelection onNext={g => { setSelectedGoal(g); go("goalReaction") }} onBack={() => go("subjectSelection")} />}
       {screen === "goalReaction"     && <GoalReaction goal={selectedGoal} onNext={() => go("learningStyle")} />}
       {screen === "learningStyle"    && <LearningStyle onNext={s => { setSelectedStyles(s); go("finalTransition") }} onBack={() => go("goalSelection")} />}
-      {screen === "finalTransition"  && <FinalTransition onDone={() => navigate("/dashboard", { replace: true })} />}
+      {screen === "finalTransition"  && <FinalTransition onDone={() => navigate("/dashboard", { replace: true })} userName={userName} />}
     </>
   )
 }

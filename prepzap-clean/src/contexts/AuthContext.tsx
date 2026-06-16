@@ -144,11 +144,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, s) => {
+      (event, s) => {
         setSession(s)
         setUser(s?.user ?? null)
         if (s?.user) {
-          fetchProfile(s.user)
+          // On TOKEN_REFRESHED we don't re-evaluate needsOnboarding —
+          // it causes a flicker where needsOnboarding briefly goes true
+          // right after markComplete writes to DB, bouncing the user back.
+          if (event !== "TOKEN_REFRESHED") {
+            fetchProfile(s.user)
+          }
         } else {
           setProfile(null)
           setNeedsOnboarding(false)
