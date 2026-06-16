@@ -480,16 +480,23 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
       if (e) {
         setError(e.message)
       } else {
-        const { data: profile } = await supabase
+        // Don't navigate manually — AuthContext.onAuthStateChange fires on SIGNED_IN,
+        // sets loading=true, fetches profile, then sets loading=false.
+        // ProtectedRoute will redirect to /dashboard automatically once profile loads.
+        // We only need to handle the "never finished onboarding" edge case.
+        const { data: prof } = await supabase
           .from("profiles")
           .select("onboarding_complete")
           .eq("id", signInData.user!.id)
           .single()
-        if (profile?.onboarding_complete) {
-          navigate("/dashboard", { replace: true })
-        } else {
-          // New user who signed up but never finished onboarding
+        if (prof && prof.onboarding_complete === false) {
+          // Started onboarding but never finished — continue from nameInput
           onNext()
+        }
+        // All other cases (onboarding_complete = true OR null) → navigate to dashboard
+        // This is handled by AuthContext + ProtectedRoute automatically
+        if (!prof || prof.onboarding_complete !== false) {
+          navigate("/dashboard", { replace: true })
         }
       }
     } else {
@@ -1156,11 +1163,15 @@ export default function Onboarding() {
         .select("onboarding_complete")
         .eq("id", session.user.id)
         .single()
-      if (profile?.onboarding_complete) {
+      // Redirect to dashboard if:
+      // - onboarding_complete is true (done)
+      // - onboarding_complete is null/undefined (old account, let them in)
+      // Only keep them on /onboarding if onboarding_complete is explicitly false
+      if (profile && profile.onboarding_complete !== false) {
         navigate("/dashboard", { replace: true })
       }
     })
-  }, []) // ← run once on mount only, NOT on every screen change
+  }, []) // ← run once on mount only
 
   return (
     <>

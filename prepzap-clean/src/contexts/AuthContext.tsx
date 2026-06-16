@@ -1,24 +1,14 @@
-/**
- * PrepZap — AuthContext
- * Single source of truth for the Supabase session, user identity, and
- * live profile data (plan, credits, xp, streak).
- *
- * Usage:
- *   const { user, profile, loading, refreshProfile, signOut } = useAuth()
- */
-
 import {
   createContext,
   useContext,
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react"
 import { type Session, type User } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UserProfile {
   id: string
@@ -44,11 +34,8 @@ interface AuthContextValue {
   needsOnboarding: boolean
   refreshProfile: () => Promise<void>
   signOut: () => Promise<void>
-  /** Per-user localStorage key prefix — use this instead of raw keys */
   lsKey: (base: string) => string
 }
-
-// ─── Context ──────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextValue>({
   session: null,
@@ -60,8 +47,6 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
   lsKey: (base) => `pz_anon_${base}`,
 })
-
-// ─── Default profile shape ────────────────────────────────────────────────────
 
 function defaultProfile(user: User): UserProfile {
   const meta = user.user_metadata ?? {}
@@ -81,21 +66,22 @@ function defaultProfile(user: User): UserProfile {
   }
 }
 
-// ─── Provider ────────────────────────────────────────────────────────────────
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser]       = useState<User | null>(null)
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [session, setSession]               = useState<Session | null>(null)
+  const [user, setUser]                     = useState<User | null>(null)
+  const [profile, setProfile]               = useState<UserProfile | null>(null)
+  const [loading, setLoading]               = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  // Track if we're mid-fetch so ProtectedRoute waits instead of redirecting
+  const fetchingRef = useRef(false)
 
   const lsKey = useCallback(
     (base: string) => `pz_${user?.id ?? "anon"}_${base}`,
     [user?.id]
   )
 
-  const fetchProfile = useCallback(async (u: User) => {
+  const fetchProfile = useCallback(async (u: User): Promise<boolean> => {
+    fetchingRef.current = true
     const { data, error } = await supabase
       .from("profiles")
       .select(
@@ -104,26 +90,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", u.id)
       .single()
 
+    fetchingRef.current = false
+
     if (error || !data) {
-      // No profile row at all — brand new user, needs onboarding
+      // No profile row — brand new user
       setProfile(defaultProfile(u))
       setNeedsOnboarding(true)
-    } else {
-      setProfile({
-        ...defaultProfile(u),
-        ...data,
-        full_name:
-          data.full_name ||
-          u.user_metadata?.full_name ||
-          u.user_metadata?.name ||
-          u.email?.split("@")[0] ||
-          "there",
-      })
-      // Profile row exists = established account.
-      // Only force onboarding if onboarding_complete is explicitly FALSE.
-      // NULL or undefined (old accounts that predate the column) = let them in.
-      setNeedsOnboarding(data.onboarding_complete === false)
+      return false
     }
+
+    setProfile({
+      ...defaultProfile(u),
+      ...data,
+      full_name:
+        data.full_name ||
+        u.user_metadata?.full_name ||
+        u.user_metadata?.name ||
+        u.email?.split("@")[0] ||
+        "there",
+    })
+
+    // Profile row exists = has an account.
+    // onboarding_complete === false means they explicitly started but didn't finish.
+    // null/undefined/true = let them through. Never loop existing users.
+    const needs = data.onboarding_complete === false
+    setNeedsOnboarding(needs)
+    return !needs
   }, [])
 
   const refreshProfile = useCallback(async () => {
@@ -131,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
-    // Initial session check
+    // Initial load
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
       setUser(s?.user ?? null)
@@ -142,21 +134,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    // Listen for auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, s) => {
+      async (event, s) => {
         setSession(s)
         setUser(s?.user ?? null)
+
         if (s?.user) {
-          // On TOKEN_REFRESHED we don't re-evaluate needsOnboarding —
-          // it causes a flicker where needsOnboarding briefly goes true
-          // right after markComplete writes to DB, bouncing the user back.
-          if (event !== "TOKEN_REFRESHED") {
-            fetchProfile(s.user)
-          }
+          // Show loading while we fetch so ProtectedRoute doesn't jump
+          if (event === "SIGNED_IN") setLoading(true)
+          await fetchProfile(s.user)
+          if (event === "SIGNED_IN") setLoading(false)
         } else {
           setProfile(null)
           setNeedsOnboarding(false)
+          setLoading(false)
         }
       }
     )
@@ -176,8 +167,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   )
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useAuth() {
   return useContext(AuthContext)
