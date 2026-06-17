@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 
-// ///////// Types ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 type Screen =
   | "intro"
   | "featureTeaser"
@@ -15,7 +14,6 @@ type Screen =
   | "learningStyle"
   | "finalTransition"
 
-// ///////// Fox image paths (from /public/fox/) ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const FOX = {
   neutral:   "/fox/fox-neutral.png",
   happy:     "/fox/fox-happy.png",
@@ -26,8 +24,7 @@ const FOX = {
   laughing:  "/fox/fox-laughing.png",
 }
 
-// ///////// Design tokens (from Stitch) //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Background: #FFFBEA (Stitch source of truth /// not #FAF7F2)
+// Background: #FFFBEA (Stitch source of truth, not #FAF7F2)
 const BG      = "#FFFBEA"
 const SURFACE = "#F0EDE0"
 const BLACK   = "#1A1A1A"
@@ -35,24 +32,24 @@ const CTA     = "#FF4D2E"
 const YELLOW  = "#FFE566"
 const WHITE   = "#FFFFFF"
 
-// ///////// Layout constants (from Stitch) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Header stretches to 800px on desktop; content column is 420px centered
 const HEADER_MAX  = 800
 const CONTENT_MAX = 420
 
-// ///////// Shared styles ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const s = {
-  // Full-page wrapper /// centers content column, fills height
+  // Full-page wrapper — fixed to viewport so nothing bleeds outside on mobile
   page: {
-    width: "100%",
-    minHeight: "100dvh",
+    position: "fixed" as const,
+    inset: 0,
     background: BG,
     display: "flex",
     flexDirection: "column" as const,
     fontFamily: "'Quicksand', sans-serif",
     alignItems: "center",
+    overflowY: "hidden" as const,
+    overflowX: "hidden" as const,
   },
-  // Sticky header /// spans full width but inner flex row is capped at HEADER_MAX
+  // Sticky header — spans full width but inner flex row is capped at HEADER_MAX
   header: {
     height: 52,
     background: BG,
@@ -114,7 +111,7 @@ const s = {
     fontFamily: "'Quicksand', sans-serif",
     flexShrink: 0,
   },
-  // Content column /// 420px max, centered
+  // Content column — 420px max, centered
   content: {
     maxWidth: CONTENT_MAX,
     width: "100%",
@@ -124,7 +121,7 @@ const s = {
     position: "relative" as const,
     background: BG,
   },
-  // Fixed bottom bar /// 420px max, centered
+  // Fixed bottom bar — 420px max, centered
   bottomBar: {
     position: "fixed" as const,
     bottom: 0,
@@ -228,7 +225,6 @@ const s = {
   }),
 }
 
-// ///////// Shared Header ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function Header({ progress, onBack }: { progress?: number; onBack?: () => void }) {
   return (
     <header style={s.header}>
@@ -247,7 +243,6 @@ function Header({ progress, onBack }: { progress?: number; onBack?: () => void }
   )
 }
 
-// ///////// Mascot Row /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function MascotRow({ src, dialogue, subtitle }: { src: string; dialogue: string; subtitle?: string }) {
   return (
     <div style={s.mascotBubble}>
@@ -269,7 +264,6 @@ function MascotRow({ src, dialogue, subtitle }: { src: string; dialogue: string;
   )
 }
 
-// ///////// Bottom Bar /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function BottomBar({ onSkip, onContinue, continueLabel = "Continue" }: {
   onSkip?: () => void
   onContinue?: () => void
@@ -289,7 +283,6 @@ function BottomBar({ onSkip, onContinue, continueLabel = "Continue" }: {
   )
 }
 
-// ///////// SCREEN 1: Intro Hook ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
   const [slide, setSlide] = useState(0)
   const sliderRef = useRef<HTMLDivElement>(null)
@@ -391,7 +384,7 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
             Create Free Account
           </button>
           <button onClick={onSignIn} style={{ display: "block", width: "100%", textAlign: "center", fontSize: 13, color: BLACK, marginTop: 12, textDecoration: "none", background: "none", border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif" }}>
-            I already have an account /// <strong>Log In</strong>
+            I already have an account — <strong>Log In</strong>
           </button>
           <p style={{ textAlign: "center", fontSize: 10, color: BLACK, opacity: 0.3, marginTop: 10 }}>By joining, you agree to our Terms</p>
         </div>
@@ -400,7 +393,6 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
   )
 }
 
-// ///////// SCREEN 2: Feature Teaser ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function FeatureTeaser({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const features = [
     { icon: "style",      label: "Flashcards",     desc: "Master concepts quickly",   bg: "#FEF9C3", rot: 2  },
@@ -443,7 +435,6 @@ function FeatureTeaser({ onNext, onBack }: { onNext: () => void; onBack: () => v
   )
 }
 
-// ///////// SCREEN 3: Account Gateway (Sign Up + Sign In) ////////////////////////////////////////////////////////////////////////////////////
 function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: () => void; onBack: () => void; initialMode?: "signup" | "signin" }) {
   const navigate = useNavigate()
   const [mode, setMode]         = useState<"signup" | "signin">(initialMode)
@@ -460,11 +451,7 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     const { error: e } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // FIX: sign-in goes directly to /dashboard (no onboarding involvement)
-        // sign-up goes to /onboarding?step=nameInput to continue the flow
-        redirectTo: isSignIn
-          ? `${window.location.origin}/dashboard`
-          : `${window.location.origin}/onboarding?step=nameInput`,
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: { prompt: "select_account" },
       },
     })
@@ -482,16 +469,22 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
       if (e) {
         setError(e.message)
       } else {
-        // FIX: check onboarding_complete — handle edge case where user
-        // registered but never finished onboarding
-        const { data: profile } = await supabase
+        // Don't navigate manually — AuthContext.onAuthStateChange fires on SIGNED_IN,
+        // sets loading=true, fetches profile, then sets loading=false.
+        // ProtectedRoute will redirect to /dashboard automatically once profile loads.
+        // We only need to handle the "never finished onboarding" edge case.
+        const { data: prof } = await supabase
           .from("profiles")
           .select("onboarding_complete")
           .eq("id", signInData.user!.id)
           .single()
-        if (!profile?.onboarding_complete) {
-          onNext() // send to nameInput to finish onboarding
-        } else {
+        if (prof && prof.onboarding_complete === false) {
+          // Started onboarding but never finished — continue from nameInput
+          onNext()
+        }
+        // All other cases (onboarding_complete = true OR null) → navigate to dashboard
+        // This is handled by AuthContext + ProtectedRoute automatically
+        if (!prof || prof.onboarding_complete !== false) {
           navigate("/dashboard", { replace: true })
         }
       }
@@ -500,18 +493,18 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
         email, password,
         options: {
           data: { onboarding_complete: false },
-          emailRedirectTo: `${window.location.origin}/onboarding?step=nameInput`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
       setLoading(false)
       if (e) {
         setError(e.message)
       } else if (data.session) {
-        // Email confirmation OFF — session is immediate, proceed normally
+        // Email confirmation OFF — session is immediate, go to nameInput
         onNext()
       } else {
-        // Email confirmation ON — show message, user must confirm first
-        setError("Check your email and click the confirmation link, then come back to sign in.")
+        // Email confirmation ON — user must confirm email first
+        setError("✉️ Check your email and click the confirmation link to continue.")
       }
     }
   }
@@ -621,11 +614,10 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
   )
 }
 
-// ///////// SCREEN 4: Name Input ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Stitch design: no fox row /// just headline + input + Go button
+// Stitch design: no fox row — just headline + input + Go button
 function NameInput({ onNext, onBack }: { onNext: (name: string) => void; onBack: () => void }) {
   const [name, setName] = useState("")
-  const headlineText = name.length > 2 ? `${name}! Love it. ////` : "What should I call you?"
+  const headlineText = name.length > 2 ? `${name}! Love it.` : "What should I call you?"
 
   return (
     <div style={s.page}>
@@ -653,7 +645,6 @@ function NameInput({ onNext, onBack }: { onNext: (name: string) => void; onBack:
   )
 }
 
-// ///////// SCREEN 5: Subject Selection //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const subjects = [
   { id: "math",        name: "Mathematics", icon: "calculate",       text: "Math? Number cruncher!" },
   { id: "science",     name: "Science",     icon: "science",         text: "Science rules!" },
@@ -713,7 +704,6 @@ function SubjectSelection({ onNext, onBack }: { onNext: (selected: string[]) => 
   )
 }
 
-// ///////// SCREEN 6: Subject Reaction /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () => void }) {
   const [foxSrc, setFoxSrc]             = useState(FOX.peeking)
   const [foxY, setFoxY]                 = useState(110)
@@ -756,7 +746,7 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
   }
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.2s", background: bgFlash ? YELLOW : BG }}>
+    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.2s", background: bgFlash ? YELLOW : BG }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, zIndex: 10 }}>
         <h1 style={textStyle}>Good combo.</h1>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
@@ -794,7 +784,6 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
   )
 }
 
-// ///////// SCREEN 7: Goal Selection ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const goals = [
   { id: "grades",  name: "Improve Grades",     icon: "trending_up", text: "Got it. Grades first." },
   { id: "faster",  name: "Study Faster",        icon: "bolt",        text: "Speed + retention. Let's go." },
@@ -845,7 +834,6 @@ function GoalSelection({ onNext, onBack }: { onNext: (goal: string) => void; onB
   )
 }
 
-// ///////// SCREEN 8: Goal Reaction //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   const [foxSrc, setFoxSrc]         = useState(FOX.peeking)
   const [foxY, setFoxY]             = useState(110)
@@ -883,7 +871,7 @@ function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   }, [])
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.25s", background: bgFlash ? "#FFF0D6" : BG }}>
+    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.25s", background: bgFlash ? "#FFF0D6" : BG }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, zIndex: 10, minHeight: 160, justifyContent: "center" }}>
 
         <div style={{ textAlign: "center", position: "relative", minHeight: 52 }}>
@@ -917,7 +905,6 @@ function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   )
 }
 
-// ///////// SCREEN 9: Learning Style ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const learningStyles = [
   { id: "visual",     label: "Visual",         icon: "visibility",    text: "I see what you mean!" },
   { id: "tests",      label: "Practice Tests", icon: "content_paste", text: "Practice makes perfect." },
@@ -969,8 +956,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
   )
 }
 
-// ///////// SCREEN 10: Final Transition //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function FinalTransition({ onDone }: { onDone: () => void }) {
+function FinalTransition({ onDone, userName }: { onDone: () => void; userName: string }) {
   const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
   const [foxY, setFoxY]                   = useState(110)
   const [foxScale, setFoxScale]           = useState(0.85)
@@ -984,14 +970,18 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
   const [progressVisible, setProgressVisible] = useState(false)
   const [bgColor, setBgColor]             = useState(BG)
 
-  // Mark onboarding complete in Supabase so user never loops back
+  // Save name + mark onboarding complete — upsert so it works even if row is missing
   const markComplete = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     await supabase
       .from("profiles")
-      .update({ onboarding_complete: true })
-      .eq("id", session.user.id)
+      .upsert({
+        id: session.user.id,
+        email: session.user.email,
+        full_name: userName || session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
+        onboarding_complete: true,
+      }, { onConflict: "id" })
   }
 
   const showLine = (text: string, delay: number, outDelay: number) => {
@@ -1013,7 +1003,8 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t6  = setTimeout(() => setBgColor(BG), 3900)
     showLine("Building your setup...", 5400, 0)
     const t7  = setTimeout(() => setFoxSrc(FOX.neutral), 5400)
-    const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true); setProgressWidth(85) }, 6800)
+    const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true) }, 6800)
+    const t8b = setTimeout(() => setProgressWidth(85), 6900)
     const t9  = setTimeout(() => setChecks(c => [true,...c.slice(1)]), 7300)
     const t10 = setTimeout(() => setChecks(c => [c[0],true,...c.slice(2)]), 8200)
     const t11 = setTimeout(() => { setChecks(c => [...c.slice(0,2),true,c[3]]); setFoxSrc(FOX.excited) }, 9100)
@@ -1022,18 +1013,23 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
     const t14 = setTimeout(() => setChecklistVisible(false), 11200)
     const t15 = setTimeout(() => { setProgressWidth(100); setBgColor(YELLOW) }, 11600)
     const t16 = setTimeout(() => setBgColor(BG), 12200)
-    showLine("You're all set. ////", 11800, 0)
+    showLine("You're all set.", 11800, 0)
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
-    const t20 = setTimeout(() => markComplete().then(onDone), 15500)
-    return () => [t1,t3,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
+    // Start the DB write early, then navigate after it completes
+    const t20 = setTimeout(async () => {
+      await markComplete()
+      // Small buffer to let AuthContext re-fetch profile before we navigate
+      setTimeout(onDone, 300)
+    }, 14500)
+    return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
   }, [])
 
   const checkItems = ["Preparing AI Tutor", "Creating Practice Tests", "Building Study Roadmap", "Personalizing Recommendations"]
 
   return (
-    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>
+    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 10, gap: 32 }}>
 
         {/* Animated headline */}
@@ -1086,12 +1082,7 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
                 width: `${progressWidth}%`, transition: "width 2.5s cubic-bezier(0.4,0,0.2,1)",
               }} />
             </div>
-            <div style={{
-              position: "absolute", right: 0, top: 14,
-              fontSize: 12, fontWeight: 700, color: BLACK, opacity: 0.4,
-              fontFamily: "'Quicksand', sans-serif",
-              transition: "opacity 0.3s",
-            }}>{progressWidth}%</div>
+
           </div>
         )}
       </div>
@@ -1109,13 +1100,12 @@ function FinalTransition({ onDone }: { onDone: () => void }) {
   )
 }
 
-// ///////// Main Onboarding Flow ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export default function Onboarding() {
   const navigate = useNavigate()
 
-  // Read ?step synchronously so the correct screen renders on frame 1.
-  // ?step=nameInput → AuthCallback sent a new OAuth user here to continue onboarding
-  // anything else   → fresh visit, show intro
+  // ── Read ?step synchronously so the correct screen renders on frame 1.
+  // ?step=nameInput  → OAuth sign-up just completed, user is new, go to nameInput
+  // anything else    → normal entry, show intro
   const [screen, setScreen] = useState<Screen>(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("step") === "nameInput") return "nameInput"
@@ -1131,34 +1121,33 @@ export default function Onboarding() {
   const go = (s: Screen) => setScreen(s)
 
   useEffect(() => {
-    // Clean URL params so refresh doesn't re-trigger the nameInput screen
+    // Clean URL params immediately so refresh doesn't re-trigger
     const params = new URLSearchParams(window.location.search)
     if (params.toString()) {
       window.history.replaceState({}, "", "/onboarding")
     }
 
-    // If we landed on nameInput (OAuth sign-up return via AuthCallback),
-    // do nothing — user is new and needs to complete onboarding.
+    // If we're already at nameInput (OAuth/email callback return), skip the check
     if (screen === "nameInput") return
 
-    // For fresh visits: if user is already logged in with completed onboarding
-    // (e.g. they navigated back manually), send them to dashboard.
-    // This is the ONLY navigation this component initiates — everything else
-    // is handled by AuthCallback (OAuth) or AccountGateway (email).
+    // One-time check on mount: if user is fully logged in and done with onboarding,
+    // send them to dashboard. Don't re-run this on screen changes.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
-      const { data: prof } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_complete")
         .eq("id", session.user.id)
         .single()
-      if (prof?.onboarding_complete) {
+      // Redirect to dashboard if:
+      // - onboarding_complete is true (done)
+      // - onboarding_complete is null/undefined (old account, let them in)
+      // Only keep them on /onboarding if onboarding_complete is explicitly false
+      if (profile && profile.onboarding_complete !== false) {
         navigate("/dashboard", { replace: true })
       }
     })
-
-    // NO onAuthStateChange here — AuthCallback owns all post-OAuth routing.
-  }, [screen])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // ← run once on mount only
 
   return (
     <>
@@ -1166,7 +1155,7 @@ export default function Onboarding() {
         @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&display=swap');
         * { box-sizing: border-box; }
-        body { margin: 0; background: ${BG}; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: ${BG}; }
         @keyframes pulse {
           0%   { box-shadow: 4px 4px 0px 0px #1A1A1A; }
           50%  { box-shadow: 6px 6px 0px 0px #FF4D2E; }
@@ -1186,7 +1175,7 @@ export default function Onboarding() {
       {screen === "goalSelection"    && <GoalSelection onNext={g => { setSelectedGoal(g); go("goalReaction") }} onBack={() => go("subjectSelection")} />}
       {screen === "goalReaction"     && <GoalReaction goal={selectedGoal} onNext={() => go("learningStyle")} />}
       {screen === "learningStyle"    && <LearningStyle onNext={s => { setSelectedStyles(s); go("finalTransition") }} onBack={() => go("goalSelection")} />}
-      {screen === "finalTransition"  && <FinalTransition onDone={() => navigate("/dashboard", { replace: true })} />}
+      {screen === "finalTransition"  && <FinalTransition onDone={() => navigate("/dashboard", { replace: true })} userName={userName} />}
     </>
   )
 }
