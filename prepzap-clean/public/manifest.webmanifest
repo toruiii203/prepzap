@@ -1,4 +1,5 @@
 {
+  "id": "com.studenius.app",
   "name": "Studenius",
   "short_name": "Studenius",
   "description": "AI-powered study platform — flashcards, quizzes, and Arena battles.",
@@ -8,6 +9,8 @@
   "orientation": "portrait",
   "scope": "/",
   "start_url": "/dashboard",
+  "categories": ["education", "productivity", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     { "src": "/icon-48.png",  "sizes": "48x48",   "type": "image/png" },
     { "src": "/icon-72.png",  "sizes": "72x72",   "type": "image/png" },
@@ -19,6 +22,57 @@
     { "src": "/icon-384.png", "sizes": "384x384", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
     { "src": "/fox_icon_final.png", "sizes": "1024x1024", "type": "image/png" }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Studenius Dashboard"
+    },
+    {
+      "src": "/screenshots/aitutor.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "AI Tutor"
+    },
+    {
+      "src": "/screenshots/flashcards.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Flashcards"
+    },
+    {
+      "src": "/screenshots/mathsolver.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Math Solver"
+    },
+    {
+      "src": "/screenshots/dashboard-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard on Mobile"
+    },
+    {
+      "src": "/screenshots/flashcards-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Flashcards on Mobile"
+    },
+    {
+      "src": "/screenshots/practice-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Practice on Mobile"
+    }
   ],
   "shortcuts": [
     {
