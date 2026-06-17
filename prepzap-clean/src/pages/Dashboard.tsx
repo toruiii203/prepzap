@@ -28,6 +28,155 @@ const TOOL_SLIDES = [
   ALL_TOOLS.slice(8, 12),
 ];
 
+// ─── Sub-components defined OUTSIDE Dashboard to prevent remount on every render ───
+
+interface QuestLogBodyProps {
+  tasks: { id: any; title: string; completed: boolean; time?: string }[];
+  loadingTasks: boolean;
+  newTaskTitle: string;
+  setNewTaskTitle: (v: string) => void;
+  handleAddTask: (e: React.FormEvent) => void;
+  handleToggleTask: (id: any, completed: boolean) => void;
+  handleDeleteTask: (id: any) => void;
+}
+
+function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, handleAddTask, handleToggleTask, handleDeleteTask }: QuestLogBodyProps) {
+  return (
+    <>
+      <div className="flex-1 p-4 overflow-y-auto">
+        {loadingTasks ? (
+          <div className="text-center py-4 text-xs font-bold text-slate-400">Loading checklist...</div>
+        ) : tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-40">
+            <span className="material-symbols-outlined text-[48px] mb-2">task_alt</span>
+            <p className="text-sm font-bold">No quests yet.<br />Add your first target below.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {tasks.map((task) => (
+              <div key={task.id} className="flex items-center gap-3 justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleToggleTask(task.id, task.completed)}
+                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
+                      task.completed ? "bg-[#E8534A]" : "bg-white hover:bg-[#ffdad6]"
+                    }`}
+                  >
+                    {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
+                  </button>
+                  <div className={`text-[14px] font-extrabold ${task.completed ? "line-through opacity-40" : ""}`}>
+                    {task.title}
+                    {task.time && (
+                      <span className="text-[11px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-black/10">
+                        {task.time}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteTask(task.id)}
+                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-black cursor-pointer transition-colors"
+                >
+                  delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="border-t-2 border-black p-3">
+        <form onSubmit={handleAddTask} className="flex gap-2">
+          <input
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Add a quest..."
+            className="flex-1 bg-transparent border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40"
+          />
+          <button
+            type="submit"
+            className="border-2 border-black bg-black text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+          </button>
+        </form>
+      </div>
+    </>
+  );
+}
+
+interface RecentSessionsRowsProps {
+  sessions: { id: any; title: string; duration: number; created_at: string }[];
+  loadingSessions: boolean;
+}
+
+function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsProps) {
+  return (
+    <div className="divide-y-2 divide-black">
+      {loadingSessions ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
+      ) : sessions.length === 0 ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">No sessions yet. Start studying!</div>
+      ) : (
+        sessions.slice(0, 3).map((session, sIdx) => {
+          const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          const icons = ["science", "calculate", "history_edu"];
+          const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
+          return (
+            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`w-11 h-11 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
+                  style={{ boxShadow: "2px 2px 0px #000" }}>
+                  <span className="material-symbols-outlined text-[20px]">{icons[sIdx % 3]}</span>
+                </div>
+                <div>
+                  <div className="text-[14px] font-extrabold text-black">{session.title}</div>
+                  <div className="text-[11px] font-bold text-black/50">{session.duration}m • {formattedDate}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round(session.duration * 1.5)} XP</div>
+                <div className="text-[11px] font-bold text-black/40">{session.duration}m studied</div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+interface WeeklyBarsProps {
+  daysOfWeek: string[];
+  dayMinutes: number[];
+  studiedDays: boolean[];
+}
+
+function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
+  const maxMins = Math.max(...dayMinutes, 1);
+  return (
+    <div className="h-48 flex items-end justify-between px-4 pb-2">
+      {daysOfWeek.map((day, idx) => {
+        const heightPct = Math.max(8, Math.round((dayMinutes[idx] / maxMins) * 100));
+        return (
+          <div key={day} className="flex flex-col items-center gap-2 group">
+            <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              {dayMinutes[idx] > 0 ? `${dayMinutes[idx]}m` : ""}
+            </span>
+            <div
+              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
+                studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
+              }`}
+              style={{ height: `${heightPct}%` }}
+            />
+            <span className="text-[10px] font-black uppercase text-black/60">{day.slice(0, 3)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
@@ -187,133 +336,6 @@ export default function Dashboard() {
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  // ─── Shared sub-components ────────────────────────────────────────────────
-
-  // Quest Log body (shared between mobile + desktop)
-  const QuestLogBody = () => (
-    <>
-      <div className="flex-1 p-4 overflow-y-auto">
-        {loadingTasks ? (
-          <div className="text-center py-4 text-xs font-bold text-slate-400">Loading checklist...</div>
-        ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-40">
-            <span className="material-symbols-outlined text-[48px] mb-2">task_alt</span>
-            <p className="text-sm font-bold">No quests yet.<br />Add your first target below.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {tasks.map((task) => (
-              <div key={task.id} className="flex items-center gap-3 justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => handleToggleTask(task.id, task.completed)}
-                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
-                      task.completed ? "bg-[#E8534A]" : "bg-white hover:bg-[#ffdad6]"
-                    }`}
-                  >
-                    {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
-                  </button>
-                  <div className={`text-[14px] font-extrabold ${task.completed ? "line-through opacity-40" : ""}`}>
-                    {task.title}
-                    {task.time && (
-                      <span className="text-[11px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-black/10">
-                        {task.time}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDeleteTask(task.id)}
-                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-black cursor-pointer transition-colors"
-                >
-                  delete
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="border-t-2 border-black p-3">
-        <form onSubmit={handleAddTask} className="flex gap-2">
-          <input
-            type="text"
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="Add a quest..."
-            className="flex-1 bg-transparent border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40"
-          />
-          <button
-            type="submit"
-            className="border-2 border-black bg-black text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
-          >
-            <span className="material-symbols-outlined text-[20px]">add</span>
-          </button>
-        </form>
-      </div>
-    </>
-  );
-
-  // Recent Sessions rows (shared)
-  const RecentSessionsRows = () => (
-    <div className="divide-y-2 divide-black">
-      {loadingSessions ? (
-        <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
-      ) : sessions.length === 0 ? (
-        <div className="p-4 text-center text-xs font-bold text-slate-400">No sessions yet. Start studying!</div>
-      ) : (
-        sessions.slice(0, 3).map((session, sIdx) => {
-          const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-          const icons = ["science", "calculate", "history_edu"];
-          const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
-          return (
-            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-11 h-11 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
-                  style={{ boxShadow: "2px 2px 0px #000" }}>
-                  <span className="material-symbols-outlined text-[20px]">{icons[sIdx % 3]}</span>
-                </div>
-                <div>
-                  <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{session.duration}m • {formattedDate}</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round(session.duration * 1.5)} XP</div>
-                <div className="text-[11px] font-bold text-black/40">{session.duration}m studied</div>
-              </div>
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-
-  // Weekly bar chart (shared, driven by studiedDays + real dayMinutes)
-  const WeeklyBars = () => {
-    const maxMins = Math.max(...dayMinutes, 1); // avoid divide-by-zero
-    return (
-      <div className="h-48 flex items-end justify-between px-4 pb-2">
-        {daysOfWeek.map((day, idx) => {
-          const heightPct = Math.max(8, Math.round((dayMinutes[idx] / maxMins) * 100));
-          return (
-            <div key={day} className="flex flex-col items-center gap-2 group">
-              <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                {dayMinutes[idx] > 0 ? `${dayMinutes[idx]}m` : ""}
-              </span>
-              <div
-                className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
-                  studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
-                }`}
-                style={{ height: `${heightPct}%` }}
-              />
-              <span className="text-[10px] font-black uppercase text-black/60">{day.slice(0, 3)}</span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
 
@@ -427,7 +449,15 @@ export default function Dashboard() {
               <h3 className="text-[13px] font-black uppercase tracking-wider">Quest Log</h3>
               <span className="material-symbols-outlined text-[20px]">history_edu</span>
             </div>
-            <QuestLogBody />
+            <QuestLogBody
+              tasks={tasks}
+              loadingTasks={loadingTasks}
+              newTaskTitle={newTaskTitle}
+              setNewTaskTitle={setNewTaskTitle}
+              handleAddTask={handleAddTask}
+              handleToggleTask={handleToggleTask}
+              handleDeleteTask={handleDeleteTask}
+            />
           </section>
 
           {/* Quick Tools — 4x3 grid */}
@@ -458,7 +488,7 @@ export default function Dashboard() {
                 <span className="px-3 py-1 border-[1.5px] border-black text-[11px] font-black uppercase tracking-wider">Goals Met</span>
               </div>
             </div>
-            <WeeklyBars />
+            <WeeklyBars daysOfWeek={daysOfWeek} dayMinutes={dayMinutes} studiedDays={studiedDays} />
           </section>
 
           {/* Academic Streak */}
@@ -481,7 +511,7 @@ export default function Dashboard() {
               <h3 className="text-[13px] font-black uppercase tracking-wider">Recent Sessions</h3>
               <button className="text-[13px] font-extrabold text-[#FF4D2E] hover:underline">View All</button>
             </div>
-            <RecentSessionsRows />
+            <RecentSessionsRows sessions={sessions} loadingSessions={loadingSessions} />
           </section>
 
         </div>
@@ -609,7 +639,15 @@ export default function Dashboard() {
             Quest Log
           </div>
           <div className="border-2 border-black rounded-xl bg-white overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
-            <QuestLogBody />
+            <QuestLogBody
+              tasks={tasks}
+              loadingTasks={loadingTasks}
+              newTaskTitle={newTaskTitle}
+              setNewTaskTitle={setNewTaskTitle}
+              handleAddTask={handleAddTask}
+              handleToggleTask={handleToggleTask}
+              handleDeleteTask={handleDeleteTask}
+            />
           </div>
         </section>
 
