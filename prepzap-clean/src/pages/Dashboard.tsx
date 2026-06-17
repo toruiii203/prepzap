@@ -65,6 +65,7 @@ export default function Dashboard() {
 
   const [stats, setStats] = useState({ totalSessions: 0, studyTimeHours: 0, avgScore: 0 });
   const [studiedDays, setStudiedDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
+  const [dayMinutes, setDayMinutes] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sessionSubject, setSessionSubject] = useState("");
@@ -73,8 +74,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTasks();
-    fetchSessions();
-  }, []);
+    if (user?.id) fetchSessions();
+  }, [user?.id]); // wait for auth to resolve before fetching
 
   const fetchTasks = () => {
     setLoadingTasks(true);
@@ -115,15 +116,21 @@ export default function Dashboard() {
     const totalSess = loadedSessions.length;
     const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration) || 0), 0);
     const hours = Math.round((totalMins / 60) * 10) / 10;
-    setStats({ totalSessions: totalSess, studyTimeHours: hours, avgScore: profile?.avg_score ?? 0 });
+    setStats({ totalSessions: totalSess, studyTimeHours: hours, avgScore: 0 });
 
+    // Build a map: dayIndex (Mon=0…Sun=6) → total minutes studied that day
+    const dayMins = new Array(7).fill(0);
     const daysStudied = new Array(7).fill(false);
     loadedSessions.forEach((session) => {
       let dayIdx = new Date(session.created_at).getDay() - 1;
       if (dayIdx === -1) dayIdx = 6;
-      if (dayIdx >= 0 && dayIdx < 7) daysStudied[dayIdx] = true;
+      if (dayIdx >= 0 && dayIdx < 7) {
+        daysStudied[dayIdx] = true;
+        dayMins[dayIdx] += Number(session.duration) || 0;
+      }
     });
     setStudiedDays(daysStudied);
+    setDayMinutes(dayMins);
   };
 
   const handleToggleTask = (id: any, currentCompleted: boolean) => {
@@ -281,22 +288,28 @@ export default function Dashboard() {
     </div>
   );
 
-  // Weekly bar chart (shared, driven by studiedDays)
+  // Weekly bar chart (shared, driven by studiedDays + real dayMinutes)
   const WeeklyBars = () => {
-    const heights = [45, 65, 90, 55, 100, 35, 25]; // fallback visual heights
+    const maxMins = Math.max(...dayMinutes, 1); // avoid divide-by-zero
     return (
       <div className="h-48 flex items-end justify-between px-4 pb-2">
-        {daysOfWeek.map((day, idx) => (
-          <div key={day} className="flex flex-col items-center gap-2 group">
-            <div
-              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
-                studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
-              }`}
-              style={{ height: `${heights[idx]}%` }}
-            />
-            <span className="text-[10px] font-black uppercase text-black/60">{day.slice(0, 3)}</span>
-          </div>
-        ))}
+        {daysOfWeek.map((day, idx) => {
+          const heightPct = Math.max(8, Math.round((dayMinutes[idx] / maxMins) * 100));
+          return (
+            <div key={day} className="flex flex-col items-center gap-2 group">
+              <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                {dayMinutes[idx] > 0 ? `${dayMinutes[idx]}m` : ""}
+              </span>
+              <div
+                className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
+                  studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
+                }`}
+                style={{ height: `${heightPct}%` }}
+              />
+              <span className="text-[10px] font-black uppercase text-black/60">{day.slice(0, 3)}</span>
+            </div>
+          );
+        })}
       </div>
     );
   };
