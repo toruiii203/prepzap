@@ -42,17 +42,15 @@ const CONTENT_MAX = 420
 
 // ///////// Shared styles ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const s = {
-  // Full-page wrapper — fixed to viewport so nothing bleeds outside on mobile
+  // Full-page wrapper /// centers content column, fills height
   page: {
-    position: "fixed" as const,
-    inset: 0,
+    width: "100%",
+    minHeight: "100dvh",
     background: BG,
     display: "flex",
     flexDirection: "column" as const,
     fontFamily: "'Quicksand', sans-serif",
     alignItems: "center",
-    overflowY: "auto" as const,
-    overflowX: "hidden" as const,
   },
   // Sticky header /// spans full width but inner flex row is capped at HEADER_MAX
   header: {
@@ -462,7 +460,11 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     const { error: e } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        // FIX: sign-in goes directly to /dashboard (no onboarding involvement)
+        // sign-up goes to /onboarding?step=nameInput to continue the flow
+        redirectTo: isSignIn
+          ? `${window.location.origin}/dashboard`
+          : `${window.location.origin}/onboarding?step=nameInput`,
         queryParams: { prompt: "select_account" },
       },
     })
@@ -480,22 +482,16 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
       if (e) {
         setError(e.message)
       } else {
-        // Don't navigate manually — AuthContext.onAuthStateChange fires on SIGNED_IN,
-        // sets loading=true, fetches profile, then sets loading=false.
-        // ProtectedRoute will redirect to /dashboard automatically once profile loads.
-        // We only need to handle the "never finished onboarding" edge case.
-        const { data: prof } = await supabase
+        // FIX: check onboarding_complete — handle edge case where user
+        // registered but never finished onboarding
+        const { data: profile } = await supabase
           .from("profiles")
           .select("onboarding_complete")
           .eq("id", signInData.user!.id)
           .single()
-        if (prof && prof.onboarding_complete === false) {
-          // Started onboarding but never finished — continue from nameInput
-          onNext()
-        }
-        // All other cases (onboarding_complete = true OR null) → navigate to dashboard
-        // This is handled by AuthContext + ProtectedRoute automatically
-        if (!prof || prof.onboarding_complete !== false) {
+        if (!profile?.onboarding_complete) {
+          onNext() // send to nameInput to finish onboarding
+        } else {
           navigate("/dashboard", { replace: true })
         }
       }
@@ -504,18 +500,18 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
         email, password,
         options: {
           data: { onboarding_complete: false },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/onboarding?step=nameInput`,
         },
       })
       setLoading(false)
       if (e) {
         setError(e.message)
       } else if (data.session) {
-        // Email confirmation OFF — session is immediate, go to nameInput
+        // Email confirmation OFF — session is immediate, proceed normally
         onNext()
       } else {
-        // Email confirmation ON — user must confirm email first
-        setError("✉️ Check your email and click the confirmation link to continue.")
+        // Email confirmation ON — show message, user must confirm first
+        setError("Check your email and click the confirmation link, then come back to sign in.")
       }
     }
   }
@@ -629,7 +625,7 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
 // Stitch design: no fox row /// just headline + input + Go button
 function NameInput({ onNext, onBack }: { onNext: (name: string) => void; onBack: () => void }) {
   const [name, setName] = useState("")
-  const headlineText = name.length > 2 ? `${name}! Love it.` : "What should I call you?"
+  const headlineText = name.length > 2 ? `${name}! Love it. ////` : "What should I call you?"
 
   return (
     <div style={s.page}>
@@ -760,7 +756,7 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
   }
 
   return (
-    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.2s", background: bgFlash ? YELLOW : BG }}>
+    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.2s", background: bgFlash ? YELLOW : BG }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, zIndex: 10 }}>
         <h1 style={textStyle}>Good combo.</h1>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
@@ -887,7 +883,7 @@ function GoalReaction({ goal, onNext }: { goal: string; onNext: () => void }) {
   }, [])
 
   return (
-    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.25s", background: bgFlash ? "#FFF0D6" : BG }}>
+    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.25s", background: bgFlash ? "#FFF0D6" : BG }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, zIndex: 10, minHeight: 160, justifyContent: "center" }}>
 
         <div style={{ textAlign: "center", position: "relative", minHeight: 52 }}>
@@ -974,7 +970,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
 }
 
 // ///////// SCREEN 10: Final Transition //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function FinalTransition({ onDone, userName }: { onDone: () => void; userName: string }) {
+function FinalTransition({ onDone }: { onDone: () => void }) {
   const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
   const [foxY, setFoxY]                   = useState(110)
   const [foxScale, setFoxScale]           = useState(0.85)
@@ -988,18 +984,14 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
   const [progressVisible, setProgressVisible] = useState(false)
   const [bgColor, setBgColor]             = useState(BG)
 
-  // Save name + mark onboarding complete — upsert so it works even if row is missing
+  // Mark onboarding complete in Supabase so user never loops back
   const markComplete = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     await supabase
       .from("profiles")
-      .upsert({
-        id: session.user.id,
-        email: session.user.email,
-        full_name: userName || session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
-        onboarding_complete: true,
-      }, { onConflict: "id" })
+      .update({ onboarding_complete: true })
+      .eq("id", session.user.id)
   }
 
   const showLine = (text: string, delay: number, outDelay: number) => {
@@ -1021,8 +1013,7 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
     const t6  = setTimeout(() => setBgColor(BG), 3900)
     showLine("Building your setup...", 5400, 0)
     const t7  = setTimeout(() => setFoxSrc(FOX.neutral), 5400)
-    const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true) }, 6800)
-    const t8b = setTimeout(() => setProgressWidth(85), 6900)
+    const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true); setProgressWidth(85) }, 6800)
     const t9  = setTimeout(() => setChecks(c => [true,...c.slice(1)]), 7300)
     const t10 = setTimeout(() => setChecks(c => [c[0],true,...c.slice(2)]), 8200)
     const t11 = setTimeout(() => { setChecks(c => [...c.slice(0,2),true,c[3]]); setFoxSrc(FOX.excited) }, 9100)
@@ -1031,23 +1022,18 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
     const t14 = setTimeout(() => setChecklistVisible(false), 11200)
     const t15 = setTimeout(() => { setProgressWidth(100); setBgColor(YELLOW) }, 11600)
     const t16 = setTimeout(() => setBgColor(BG), 12200)
-    showLine("You're all set.", 11800, 0)
+    showLine("You're all set. ////", 11800, 0)
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
-    // Start the DB write early, then navigate after it completes
-    const t20 = setTimeout(async () => {
-      await markComplete()
-      // Small buffer to let AuthContext re-fetch profile before we navigate
-      setTimeout(onDone, 300)
-    }, 14500)
-    return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
+    const t20 = setTimeout(() => markComplete().then(onDone), 15500)
+    return () => [t1,t3,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
   }, [])
 
   const checkItems = ["Preparing AI Tutor", "Creating Practice Tests", "Building Study Roadmap", "Personalizing Recommendations"]
 
   return (
-    <div style={{ ...s.page, justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>
+    <div style={{ ...s.page, overflow: "hidden", minHeight: "100dvh", justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>
       <div style={{ width: "100%", maxWidth: CONTENT_MAX, padding: "0 24px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 10, gap: 32 }}>
 
         {/* Animated headline */}
@@ -1127,9 +1113,9 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
 export default function Onboarding() {
   const navigate = useNavigate()
 
-  // ── Read ?step synchronously so the correct screen renders on frame 1.
-  // ?step=nameInput  → OAuth sign-up just completed, user is new, go to nameInput
-  // anything else    → normal entry, show intro
+  // Read ?step synchronously so the correct screen renders on frame 1.
+  // ?step=nameInput → AuthCallback sent a new OAuth user here to continue onboarding
+  // anything else   → fresh visit, show intro
   const [screen, setScreen] = useState<Screen>(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get("step") === "nameInput") return "nameInput"
@@ -1145,33 +1131,34 @@ export default function Onboarding() {
   const go = (s: Screen) => setScreen(s)
 
   useEffect(() => {
-    // Clean URL params immediately so refresh doesn't re-trigger
+    // Clean URL params so refresh doesn't re-trigger the nameInput screen
     const params = new URLSearchParams(window.location.search)
     if (params.toString()) {
       window.history.replaceState({}, "", "/onboarding")
     }
 
-    // If we're already at nameInput (OAuth/email callback return), skip the check
+    // If we landed on nameInput (OAuth sign-up return via AuthCallback),
+    // do nothing — user is new and needs to complete onboarding.
     if (screen === "nameInput") return
 
-    // One-time check on mount: if user is fully logged in and done with onboarding,
-    // send them to dashboard. Don't re-run this on screen changes.
+    // For fresh visits: if user is already logged in with completed onboarding
+    // (e.g. they navigated back manually), send them to dashboard.
+    // This is the ONLY navigation this component initiates — everything else
+    // is handled by AuthCallback (OAuth) or AccountGateway (email).
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
-      const { data: profile } = await supabase
+      const { data: prof } = await supabase
         .from("profiles")
         .select("onboarding_complete")
         .eq("id", session.user.id)
         .single()
-      // Redirect to dashboard if:
-      // - onboarding_complete is true (done)
-      // - onboarding_complete is null/undefined (old account, let them in)
-      // Only keep them on /onboarding if onboarding_complete is explicitly false
-      if (profile && profile.onboarding_complete !== false) {
+      if (prof?.onboarding_complete) {
         navigate("/dashboard", { replace: true })
       }
     })
-  }, []) // ← run once on mount only
+
+    // NO onAuthStateChange here — AuthCallback owns all post-OAuth routing.
+  }, [screen])  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -1179,7 +1166,7 @@ export default function Onboarding() {
         @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&display=swap');
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: ${BG}; }
+        body { margin: 0; background: ${BG}; }
         @keyframes pulse {
           0%   { box-shadow: 4px 4px 0px 0px #1A1A1A; }
           50%  { box-shadow: 6px 6px 0px 0px #FF4D2E; }
@@ -1199,7 +1186,7 @@ export default function Onboarding() {
       {screen === "goalSelection"    && <GoalSelection onNext={g => { setSelectedGoal(g); go("goalReaction") }} onBack={() => go("subjectSelection")} />}
       {screen === "goalReaction"     && <GoalReaction goal={selectedGoal} onNext={() => go("learningStyle")} />}
       {screen === "learningStyle"    && <LearningStyle onNext={s => { setSelectedStyles(s); go("finalTransition") }} onBack={() => go("goalSelection")} />}
-      {screen === "finalTransition"  && <FinalTransition onDone={() => navigate("/dashboard", { replace: true })} userName={userName} />}
+      {screen === "finalTransition"  && <FinalTransition onDone={() => navigate("/dashboard", { replace: true })} />}
     </>
   )
 }

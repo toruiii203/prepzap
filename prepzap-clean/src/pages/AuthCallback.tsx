@@ -10,33 +10,52 @@ export default function AuthCallback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const handle = async () => {
-      // Wait for Supabase to exchange the URL token for a session
-      const { data: { session }, error } = await supabase.auth.getSession()
+    // FIX: use onAuthStateChange instead of getSession() directly.
+    // After an OAuth redirect, Supabase needs a moment to exchange the
+    // PKCE code for a session. getSession() called immediately may return
+    // null before the exchange completes. The SIGNED_IN event fires reliably
+    // once the session is ready.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event !== "SIGNED_IN" || !session) return
 
-      if (error || !session) {
-        // Something went wrong — send back to onboarding to try again
-        navigate("/onboarding", { replace: true })
-        return
+        subscription.unsubscribe()
+
+        // Check if this user has completed onboarding
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_complete")
+          .eq("id", session.user.id)
+          .single()
+
+        if (profile?.onboarding_complete) {
+          // Returning user — go straight to dashboard
+          navigate("/dashboard", { replace: true })
+        } else {
+          // New user or incomplete onboarding — continue from nameInput
+          navigate("/onboarding?step=nameInput", { replace: true })
+        }
       }
+    )
 
-      // Check if this user has completed onboarding
+    // Fallback: if already have a session (rare: user navigated to /auth/callback
+    // manually while already logged in), handle immediately
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return
+      subscription.unsubscribe()
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_complete")
         .eq("id", session.user.id)
         .single()
-
       if (profile?.onboarding_complete) {
-        // Returning user — go straight to dashboard
         navigate("/dashboard", { replace: true })
       } else {
-        // New user or incomplete onboarding — continue from nameInput
         navigate("/onboarding?step=nameInput", { replace: true })
       }
-    }
+    })
 
-    handle()
+    return () => subscription.unsubscribe()
   }, [])
 
   return (

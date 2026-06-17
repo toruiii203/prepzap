@@ -93,9 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchingRef.current = false
 
     if (error || !data) {
-      // No profile row — brand new user
+      // No profile row — brand new OAuth user mid-onboarding.
+      // Do NOT set needsOnboarding=true here — that would cause ProtectedRoute
+      // to redirect them back to /onboarding while AuthCallback is routing them.
+      // AuthCallback and OnboardingFlow handle new-user routing themselves.
       setProfile(defaultProfile(u))
-      setNeedsOnboarding(true)
+      setNeedsOnboarding(false)
       return false
     }
 
@@ -124,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Initial load
+    // loading starts as true (useState default) — fetch session then profile
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
       setUser(s?.user ?? null)
@@ -136,15 +140,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, s) => {
-        setSession(s)
-        setUser(s?.user ?? null)
-
+        // FIX: set loading=true immediately so ProtectedRoute waits
+        // and doesn't fire a redirect before profile is ready
         if (s?.user) {
-          // Show loading while we fetch so ProtectedRoute doesn't jump
-          if (event === "SIGNED_IN") setLoading(true)
+          setLoading(true)
+          setSession(s)
+          setUser(s.user)
           await fetchProfile(s.user)
-          if (event === "SIGNED_IN") setLoading(false)
+          setLoading(false)
         } else {
+          // Signed out — clear everything atomically
+          setSession(null)
+          setUser(null)
           setProfile(null)
           setNeedsOnboarding(false)
           setLoading(false)
