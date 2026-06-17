@@ -6,6 +6,8 @@ import { getActiveSource, buildAIContext, loadContext, loadContext as loadCtx, l
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SolutionStep {
   stepNumber: number;
@@ -260,14 +262,21 @@ function ScientificCalculator({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function MathSolver() {
   const navigate = useNavigate();
-  const [problem, setProblem] = useState("");
+  const { user, profile, refreshProfile } = useAuth();
+
+  // Restore state from sessionStorage so tab switches don't wipe results
+  const [problem, setProblem] = useState(() => sessionStorage.getItem("math_problem") || "");
+  const [steps, setSteps] = useState<SolutionStep[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem("math_steps") || "[]"); } catch { return []; }
+  });
+  const [solved, setSolved] = useState(() => sessionStorage.getItem("math_solved") === "true");
+
   const [activeSource, setActiveSource] = useState<any>(getActiveSource());
-  const { save: saveHistory } = useToolHistory("math-solver");
+  const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("math-solver") as any;
   const { isPro, canUse, remaining, logUsage } = usePlan();
-  const [steps, setSteps] = useState<SolutionStep[]>([]);
-  const [solved, setSolved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [visualizerTab, setVisualizerTab] = useState<"2d" | "table">("2d");
 
   // Freemium state
@@ -289,6 +298,11 @@ export default function MathSolver() {
     window.addEventListener("focus", syncSource);
     return () => window.removeEventListener("focus", syncSource);
   }, []);
+
+  // Persist results to sessionStorage so tab switches don't wipe them
+  useEffect(() => { sessionStorage.setItem("math_problem", problem); }, [problem]);
+  useEffect(() => { sessionStorage.setItem("math_steps", JSON.stringify(steps)); }, [steps]);
+  useEffect(() => { sessionStorage.setItem("math_solved", String(solved)); }, [solved]);
 
   const symbols = ["+", "−", "×", "÷", "^", "√", "x²", "sin(", "cos(", "tan(", "log(", "ln(", "π", "e", "=", "(", ")", "x", "y"];
 
@@ -357,6 +371,30 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
         setSolved(true);
         saveHistory({
           prompt: problem,
+          preview: generated[0]?.description?.slice(0, 120) || "",
+          output: JSON.stringify(generated),
+          model: "rex-ai",
+          meta: `${generated.length} steps`,
+        });
+
+        // Write to study_sessions so Dashboard + Analytics pick it up
+        if (user?.id) {
+          const today = new Date().toISOString().split("T")[0];
+          await supabase.from("study_sessions").insert({
+            user_id: user.id,
+            title: problem.trim().slice(0, 80) || "Math & Science",
+            duration: 5,
+            created_at: new Date().toISOString(),
+          });
+          // Streak logic
+          const last = profile?.last_study_date;
+          const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+          const newStreak = last === today ? (profile?.streak ?? 0) : last === yesterday ? (profile?.streak ?? 0) + 1 : 1;
+          if (last !== today) {
+            await supabase.from("profiles").update({ streak: newStreak, last_study_date: today }).eq("id", user.id);
+          }
+          if (typeof refreshProfile === "function") refreshProfile();
+        }
           preview: generated[0]?.description?.slice(0, 120) || "",
           output: JSON.stringify(generated),
           model: "rex-ai",
@@ -519,6 +557,35 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
     </div>
   );
 
+  // ─── History Drawer ────────────────────────────────────────────────────────
+  const HistoryDrawer = ({ onClose }: { onClose: () => void }) => (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[20px]">history</span>
+          <h3 className="text-[16px] font-extrabold">Solve History</h3>
+        </div>
+        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+          <span className="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+        {(historyEntries as any[]).length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-center opacity-40">
+            <span className="material-symbols-outlined text-[32px]">functions</span>
+            <p className="text-[12px] font-bold">No solves yet.<br />Hit Solve Problem to start!</p>
+          </div>
+        ) : (historyEntries as any[]).slice(0, 20).map((entry: any, i: number) => (
+          <button key={i} onClick={() => { setProblem(entry.prompt || ""); setSolved(false); setSteps([]); onClose(); }}
+            className="text-left bg-white border-2 border-black shadow-[2px_2px_0px_#000] p-3 rounded-lg hover:bg-[#F0EDE0] transition-colors">
+            <p className="font-extrabold text-[13px] line-clamp-2 mb-1">{entry.prompt || "Problem"}</p>
+            <p className="text-[11px] text-black/40 font-bold">{entry.meta || ""} · {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : ""}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
@@ -529,6 +596,16 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
           remaining={remainingUses}
           onClose={() => setShowUpgrade(false)}
         />
+      )}
+
+      {/* History drawer — slide in from right, works on both mobile + desktop */}
+      {showHistory && (
+        <div className="fixed inset-0 z-50 flex">
+          <div className="flex-1 bg-black/40" onClick={() => setShowHistory(false)} />
+          <div className="w-[85vw] max-w-[360px] bg-white border-l-2 border-black flex flex-col h-full shadow-[-4px_0_0_#000]">
+            <HistoryDrawer onClose={() => setShowHistory(false)} />
+          </div>
+        </div>
       )}
 
       <SharedSidebar active="/math" />
@@ -669,13 +746,14 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
                   )}
                 </div>
                 <button
+                  onClick={() => setShowHistory(v => !v)}
                   className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000]"
                   title="History"
                 >
                   <span className="material-symbols-outlined text-[22px]">history</span>
                 </button>
                 <button
-                  onClick={() => { setProblem(""); setSolved(false); setSteps([]); }}
+                  onClick={() => { setProblem(""); setSolved(false); setSteps([]); sessionStorage.removeItem("math_problem"); sessionStorage.removeItem("math_steps"); sessionStorage.removeItem("math_solved"); }}
                   className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center hover:bg-[#ae2925] hover:text-white transition-colors shadow-[2px_2px_0px_#000]"
                   title="Clear"
                 >
@@ -846,7 +924,13 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
               )}
             </div>
             <button
-              onClick={() => { setProblem(""); setSolved(false); setSteps([]); }}
+              onClick={() => setShowHistory(true)}
+              className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000]"
+            >
+              <span className="material-symbols-outlined text-[22px]">history</span>
+            </button>
+            <button
+              onClick={() => { setProblem(""); setSolved(false); setSteps([]); sessionStorage.removeItem("math_problem"); sessionStorage.removeItem("math_steps"); sessionStorage.removeItem("math_solved"); }}
               className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000]"
             >
               <span className="material-symbols-outlined text-[22px]">delete</span>
@@ -865,6 +949,14 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
               <div className="absolute inset-0 bg-black translate-y-1 translate-x-1 group-active:translate-y-0 group-active:translate-x-0 transition-transform" />
             </button>
           </div>
+
+          {/* Free tier counter — mobile */}
+          {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
+            <div className="mb-3 flex flex-col items-center gap-1">
+              <p className="text-[12px] text-black/50 font-bold">{remainingUses} solve{remainingUses !== 1 ? "s" : ""} left today</p>
+              {remainingUses <= 2 && <SoftWarning feature="math_solver" remaining={remainingUses} />}
+            </div>
+          )}
 
           {/* Solution Steps — mobile */}
           {(solved || loading) && (
