@@ -1,0 +1,285 @@
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+
+interface Flashcard {
+  front: string;
+  back: string;
+  explanation: string;
+}
+
+interface SharedDeck {
+  id: string;
+  title: string;
+  cards: Flashcard[];
+  card_count: number;
+  created_at: string;
+}
+
+export default function FlashcardsShared() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const [deck, setDeck] = useState<SharedDeck | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [view, setView] = useState<"study" | "results">("study");
+  const [scores, setScores] = useState({ gotIt: 0, unsure: 0, forgot: 0 });
+
+  useEffect(() => {
+    if (!id) { setNotFound(true); setLoading(false); return; }
+    supabase
+      .from("shared_flashcard_decks")
+      .select("id, title, cards, card_count, created_at")
+      .eq("id", id)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) { setNotFound(true); }
+        else { setDeck(data as SharedDeck); }
+        setLoading(false);
+      });
+  }, [id]);
+
+  const cards: Flashcard[] = deck?.cards ?? [];
+  const currentCard = cards[currentIndex];
+  const total = cards.length;
+
+  const handleResponse = (type: "gotIt" | "unsure" | "forgot") => {
+    const next = { ...scores, [type]: scores[type] + 1 };
+    setScores(next);
+    setIsFlipped(false);
+    setTimeout(() => {
+      if (currentIndex + 1 < total) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        setView("results");
+      }
+    }, 180);
+  };
+
+  const handleRestart = () => {
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setScores({ gotIt: 0, unsure: 0, forgot: 0 });
+    setView("study");
+  };
+
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="w-full min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-4 border-black border-t-[#CC0000] rounded-full animate-spin" />
+        <p className="font-extrabold text-black/50 text-sm uppercase tracking-widest">Loading deck…</p>
+      </div>
+    );
+  }
+
+  // ── Not found ─────────────────────────────────────────────────────────────
+  if (notFound || !deck) {
+    return (
+      <div className="w-full min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center gap-6 px-6 text-center">
+        <span className="material-symbols-outlined text-[64px] text-[#CC0000]">sentiment_dissatisfied</span>
+        <h1 className="text-2xl font-black">Deck not found</h1>
+        <p className="text-black/50 font-bold text-sm max-w-xs">
+          This shared deck link may have expired or doesn't exist.
+        </p>
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-3 bg-[#CC0000] text-white font-black text-sm border-2 border-black shadow-[4px_4px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
+        >
+          Go to Studenius
+        </button>
+      </div>
+    );
+  }
+
+  // ── Results ───────────────────────────────────────────────────────────────
+  if (view === "results") {
+    const pct = Math.round((scores.gotIt / total) * 100);
+    return (
+      <div className="w-full min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md border-2 border-black shadow-[6px_6px_0px_#000] bg-white p-8 flex flex-col gap-6">
+          {/* Header */}
+          <div className="text-center">
+            <span className="material-symbols-outlined text-[48px] text-[#CC0000]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {pct >= 70 ? "emoji_events" : "school"}
+            </span>
+            <h2 className="text-2xl font-black mt-2">Session Complete!</h2>
+            <p className="text-black/50 font-bold text-sm mt-1">{deck.title}</p>
+          </div>
+
+          {/* Score bar */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between text-xs font-black uppercase tracking-wider text-black/40 mb-1">
+              <span>Score</span>
+              <span>{pct}%</span>
+            </div>
+            <div className="w-full h-3 bg-black/10 border border-black overflow-hidden">
+              <div
+                className="h-full bg-[#CC0000] transition-all duration-700"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Breakdown */}
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              { label: "Got It", key: "gotIt", icon: "check_circle", color: "#22c55e" },
+              { label: "Unsure", key: "unsure", icon: "help", color: "#f59e0b" },
+              { label: "Forgot", key: "forgot", icon: "cancel", color: "#CC0000" },
+            ] as const).map(({ label, key, icon, color }) => (
+              <div key={key} className="border-2 border-black bg-[#FAF7F2] p-3 flex flex-col items-center gap-1 shadow-[3px_3px_0px_#000]">
+                <span className="material-symbols-outlined text-[22px]" style={{ color, fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+                <span className="text-xl font-black">{scores[key]}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-black/40">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleRestart}
+              className="w-full py-3 bg-[#CC0000] text-white font-black text-sm border-2 border-black shadow-[4px_4px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
+            >
+              Study Again
+            </button>
+            <button
+              onClick={() => navigate("/signup")}
+              className="w-full py-3 bg-white text-black font-black text-sm border-2 border-black shadow-[4px_4px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
+            >
+              ✨ Create Your Own Decks on Studenius
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Study view ────────────────────────────────────────────────────────────
+  return (
+    <div className="w-full min-h-screen bg-[#FAF7F2] flex flex-col">
+
+      {/* Top bar */}
+      <div className="sticky top-0 z-10 bg-[#FAF7F2] border-b-2 border-black px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="material-symbols-outlined text-[20px] text-[#CC0000]" style={{ fontVariationSettings: "'FILL' 1" }}>style</span>
+          <span className="font-black text-sm truncate max-w-[180px] sm:max-w-xs">{deck.title}</span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs font-extrabold text-black/40 uppercase tracking-wider">
+            {currentIndex + 1} / {total}
+          </span>
+          <button
+            onClick={() => navigate("/signup")}
+            className="px-3 py-1.5 bg-[#CC0000] text-white font-black text-[11px] uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
+            Try Studenius
+          </button>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full h-1.5 bg-black/10">
+        <div
+          className="h-full bg-[#CC0000] transition-all duration-300"
+          style={{ width: `${((currentIndex) / total) * 100}%` }}
+        />
+      </div>
+
+      {/* Card area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 gap-6 max-w-2xl mx-auto w-full">
+
+        {/* Flip card */}
+        <div
+          onClick={() => setIsFlipped(f => !f)}
+          className="w-full cursor-pointer"
+          style={{ perspective: "1000px", height: "280px" }}
+        >
+          <div
+            className="relative w-full h-full transition-transform duration-500"
+            style={{
+              transformStyle: "preserve-3d",
+              transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            }}
+          >
+            {/* Front */}
+            <div
+              className="absolute inset-0 border-2 border-black bg-white shadow-[6px_6px_0px_#000] flex flex-col items-center justify-center p-8 text-center rounded-xl"
+              style={{ backfaceVisibility: "hidden" }}
+            >
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-black/30 mb-4">Question</p>
+              <h3 className="text-xl font-black leading-snug">{currentCard.front}</h3>
+              <div className="absolute bottom-5 flex items-center gap-1.5 text-black/25">
+                <span className="material-symbols-outlined text-[15px]">touch_app</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider">Tap to flip</span>
+              </div>
+            </div>
+
+            {/* Back */}
+            <div
+              className="absolute inset-0 border-2 border-black bg-[#F0EDE0] shadow-[6px_6px_0px_#000] flex flex-col items-center justify-center p-8 text-center rounded-xl"
+              style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+            >
+              <span className="material-symbols-outlined text-[36px] text-black mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+              <p className="text-xl font-black leading-snug mb-3">{currentCard.back}</p>
+              <p className="text-[13px] font-bold text-black/55 leading-relaxed max-w-sm">{currentCard.explanation}</p>
+              <div className="absolute bottom-5 flex items-center gap-1.5 text-black/25">
+                <span className="material-symbols-outlined text-[15px]">touch_app</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider">Tap to see question</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Response buttons — only show after flip */}
+        {isFlipped ? (
+          <div className="w-full grid grid-cols-3 gap-3">
+            {([
+              { type: "gotIt" as const, label: "Got It", icon: "check_circle", bg: "bg-[#22c55e]", text: "text-white" },
+              { type: "unsure" as const, label: "Unsure", icon: "help", bg: "bg-[#f59e0b]", text: "text-white" },
+              { type: "forgot" as const, label: "Forgot", icon: "cancel", bg: "bg-[#CC0000]", text: "text-white" },
+            ]).map(({ type, label, icon, bg, text }) => (
+              <button
+                key={type}
+                onClick={() => handleResponse(type)}
+                className={`flex flex-col items-center gap-1 py-3 border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black text-[11px] uppercase tracking-wider ${bg} ${text}`}
+              >
+                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs font-extrabold text-black/30 uppercase tracking-widest">
+            Tap the card to reveal the answer
+          </p>
+        )}
+
+        {/* Score tally */}
+        <div className="flex gap-4 text-xs font-extrabold uppercase tracking-wider text-black/35">
+          <span>✓ {scores.gotIt}</span>
+          <span>? {scores.unsure}</span>
+          <span>✗ {scores.forgot}</span>
+        </div>
+      </div>
+
+      {/* Footer CTA */}
+      <div className="border-t-2 border-black bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+        <p className="font-bold text-black/50 text-center sm:text-left">
+          Shared via <span className="text-[#CC0000] font-black">Studenius</span> — AI study tools for students
+        </p>
+        <button
+          onClick={() => navigate("/signup")}
+          className="px-5 py-2 bg-[#CC0000] text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[4px_4px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all shrink-0"
+        >
+          Create Free Account →
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -74,6 +74,7 @@ import { SourceBreadcrumb } from "./components/SourceBreadcrumb";
 import Dashboard from "./pages/Dashboard";
 import Practice from "./pages/Practice";
 import Flashcards from "./pages/Flashcards";
+import FlashcardsShared from "./pages/FlashcardsShared";
 import FocusTimer from "./pages/FocusTimer";
 import Analytics from "./pages/Analytics";
 import StudyPlanner from "./pages/StudyPlanner";
@@ -192,6 +193,7 @@ function AppRoutes() {
         <Route path="/auth/callback" element={safe(<AuthCallback />)} />
         <Route path="/payment-success" element={safe(<PaymentSuccess />)} />
         <Route path="/invite/:code" element={safe(<ArenaInvite />)} />
+        <Route path="/flashcards/shared/:id" element={safe(<FlashcardsShared />)} />
 
         {/* Protected — inside shell layout */}
         <Route element={safe(<ProtectedStudeniusLayout />)}>

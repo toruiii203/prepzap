@@ -89,6 +89,11 @@ export default function Flashcards() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Share state
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [showShareToast, setShowShareToast] = useState(false);
+
   useEffect(() => {
     remaining("flashcard_gen").then(setRemainingUses);
   }, [remaining]);
@@ -149,7 +154,6 @@ export default function Flashcards() {
       setTopic(`Active Source: ${active.name}`);
       setActiveSourceObj(active);
     }
-    // Load library files for desktop source picker
     const lib = loadLibrary();
     setLibraryFiles(lib || []);
   }, []);
@@ -162,6 +166,39 @@ export default function Flashcards() {
   const handleClearSource = () => {
     setActiveSourceObj(null);
     setTopic("");
+  };
+
+  // ── Share deck to Supabase ───────────────────────────────────────────────────
+  const handleShareDeck = async () => {
+    if (!cards.length) return;
+    setShareLoading(true);
+    try {
+      const deckLabel = activeSourceObj
+        ? activeSourceObj.name.replace(/\.[^.]+$/, "")
+        : (topic || "General Study");
+
+      const { data, error } = await supabase
+        .from("shared_flashcard_decks")
+        .insert({
+          title: deckLabel,
+          cards: cards,
+          created_by: user?.id ?? null,
+          card_count: cards.length,
+        })
+        .select("id")
+        .single();
+
+      if (error || !data) throw error;
+
+      const url = `${window.location.origin}/flashcards/shared/${data.id}`;
+      setShareUrl(url);
+      await navigator.clipboard.writeText(url).catch(() => {});
+      setShowShareToast(true);
+      setTimeout(() => setShowShareToast(false), 3000);
+    } catch (err) {
+      console.error("Share failed:", err);
+    }
+    setShareLoading(false);
   };
 
   const handleGenerate = async () => {
@@ -178,6 +215,7 @@ export default function Flashcards() {
     setScores({ gotIt: 0, unsure: 0, forgot: 0 });
     setCurrentCardIndex(0);
     setIsFlipped(false);
+    setShareUrl(null);
 
     let generatedCards: Flashcard[] = [];
 
@@ -224,7 +262,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       }
     }
 
-    // ── Log usage (once, after generation attempt succeeds or falls back) ───
+    // ── Log usage ───────────────────────────────────────────────────────────
     if (!isPro) {
       try {
         await logUsage("flashcard_gen");
@@ -234,8 +272,23 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       remaining("flashcard_gen").then(setRemainingUses);
     }
 
-    // ── Save to history immediately so right panel shows it ─────────────────
+    // ── Save to Supabase history (cross-device) ──────────────────────────────
     const deckLabel2 = activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : (topic || "General Study");
+    if (user) {
+      try {
+        await supabase.from("tool_history").insert({
+          user_id: user.id,
+          tool: "flashcards",
+          prompt: deckLabel2,
+          preview: `${generatedCards.length} cards`,
+          output: deckLabel2,
+          model: "rex-ai",
+          meta: `${generatedCards.length} cards generated`,
+        });
+      } catch (e) {
+        console.warn("History save failed:", e);
+      }
+    }
     saveHistory({
       prompt: deckLabel2,
       preview: `${generatedCards.length} cards`,
@@ -288,11 +341,16 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
   const currentCard = cards[currentCardIndex % cards.length] || mockCards[currentCardIndex % mockCards.length];
 
-  // ── Desktop: Shared flashcard flip area ─────────────────────────────────────
-
-
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+
+      {/* ── Share Toast ─────────────────────────────────────────────────────── */}
+      {showShareToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black text-white px-5 py-3 border-2 border-black shadow-[4px_4px_0px_#ae2925] font-bold text-[13px] flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px]">check_circle</span>
+          Link copied! Share it with anyone.
+        </div>
+      )}
 
       {/* ── Mobile History Drawer ──────────────────────────────────────── */}
       {showHistory && (
@@ -432,7 +490,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </>
                 )}
               </button>
-              {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
+              {!isPro && remainingUses !== null && (
                 <p className="text-center text-[12px] text-black/50 font-bold mt-1">
                   {remainingUses} generation{remainingUses !== 1 ? "s" : ""} left today
                 </p>
@@ -518,9 +576,17 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 <button className="p-2 border-2 border-black bg-white shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] transition-colors">
                   <span className="material-symbols-outlined text-[18px]">edit</span>
                 </button>
-                <button className="p-2 border-2 border-black bg-white shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] transition-colors">
-                  <span className="material-symbols-outlined text-[18px]">share</span>
-                </button>
+                {/* Share button — desktop */}
+                {view === "study" && cards.length > 0 && (
+                  <button
+                    onClick={handleShareDeck}
+                    disabled={shareLoading}
+                    className="p-2 border-2 border-black bg-white shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] transition-colors flex items-center gap-1.5 px-3"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">share</span>
+                    <span className="text-[12px] font-extrabold">{shareLoading ? "Sharing..." : "Share"}</span>
+                  </button>
+                )}
               </div>
             </header>
 
@@ -648,6 +714,15 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                     Dashboard
                   </button>
                 </div>
+                {/* Share from results */}
+                <button
+                  onClick={handleShareDeck}
+                  disabled={shareLoading}
+                  className="flex items-center gap-2 border-2 border-black bg-white px-5 py-3 font-extrabold text-[13px] shadow-[3px_3px_0px_#000] hover:bg-[#F0EDE0] transition-all"
+                >
+                  <span className="material-symbols-outlined text-[18px]">share</span>
+                  {shareLoading ? "Creating link..." : shareUrl ? "Copy link again" : "Share this deck"}
+                </button>
               </div>
             )}
           </div>
@@ -692,10 +767,11 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       </div>
 
       {/* ══════════════════════════════════════════════════
-          MOBILE LAYOUT — DO NOT TOUCH
+          MOBILE LAYOUT
           ══════════════════════════════════════════════════ */}
       <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ minHeight: "100dvh" }}>
         <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">
+
           {/* TopAppBar */}
           <header className="w-full top-0 sticky bg-background border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
             <button
@@ -706,19 +782,30 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               arrow_back
             </button>
             <h1 className="font-headline text-headline-md text-primary font-bold text-[21.5px]">Flashcards</h1>
-            <button
-              onClick={() => navigate("/sources")}
-              aria-label="Source Library"
-              title="Source Library"
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#ebe8e3] transition-colors border-2 border-[#1A1A1A] bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]"
-            >
-              <span className="material-symbols-outlined text-[#1A1A1A] text-[18px]">library_books</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* History button — mobile */}
+              <button
+                onClick={() => setShowHistory(true)}
+                aria-label="History"
+                className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#ebe8e3] transition-colors border-2 border-[#1A1A1A] bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+              >
+                <span className="material-symbols-outlined text-[#1A1A1A] text-[18px]">history</span>
+              </button>
+              {/* Source Library button */}
+              <button
+                onClick={() => navigate("/sources")}
+                aria-label="Source Library"
+                title="Source Library"
+                className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#ebe8e3] transition-colors border-2 border-[#1A1A1A] bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+              >
+                <span className="material-symbols-outlined text-[#1A1A1A] text-[18px]">library_books</span>
+              </button>
+            </div>
           </header>
 
           {/* VIEW 1: SETUP STATE */}
           {view === "setup" && (
-            <main className="flex-1 px-5 py-6 flex flex-col gap-6 overflow-y-auto pb-6">
+            <main className="flex-1 px-5 py-6 flex flex-col gap-6 overflow-y-auto pb-8">
               {/* Hero Graphic / Design Banner */}
               <div className="w-full h-32 rounded-[18px] border-2 border-on-background bg-surface-variant shadow-ink-md overflow-hidden relative flex items-center justify-center bg-white">
                 <div
@@ -776,16 +863,60 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
               </div>
 
-              {/* Generate Button */}
-              <div className="mt-auto pt-6">
-                <button
-                  onClick={handleGenerate}
-                  className="w-full rounded-[12px] border-2 border-on-background bg-primary text-on-primary font-headline text-headline-md h-16 shadow-ink-md hover:translate-y-0.5 active:scale-95 duration-100 active:shadow-none transition-all flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined">auto_awesome</span>
-                  Generate Cards
-                </button>
-              </div>
+              {/* Daily usage counter — mobile */}
+              {!isPro && remainingUses !== null && (
+                <div className="flex items-center justify-between bg-white border-2 border-black rounded-xl px-4 py-3 shadow-[2px_2px_0px_#000]">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-[#ae2925]">bolt</span>
+                    <span className="text-[13px] font-extrabold text-black">Daily Generations</span>
+                  </div>
+                  <span className={`text-[13px] font-black ${remainingUses <= 2 ? "text-[#ae2925]" : "text-black"}`}>
+                    {remainingUses} left today
+                  </span>
+                </div>
+              )}
+
+              {/* Generate Button — inside scroll, not fixed */}
+              <button
+                onClick={handleGenerate}
+                disabled={isLoading}
+                className="w-full rounded-[12px] border-2 border-on-background bg-primary text-on-primary font-headline text-headline-md h-16 shadow-ink-md hover:translate-y-0.5 active:scale-95 duration-100 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin">sync</span>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">auto_awesome</span>
+                    Generate Cards
+                  </>
+                )}
+              </button>
+
+              {/* Recent Sources — Mobile */}
+              {libraryFiles.length > 0 && (
+                <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black">
+                    <span className="material-symbols-outlined text-[18px]">history</span>
+                    <h3 className="text-[14px] font-extrabold">Your Sources</h3>
+                  </div>
+                  <div className="flex flex-col divide-y divide-black/10">
+                    {libraryFiles.slice(0, 3).map((file: any) => (
+                      <button key={file.id} onClick={() => handleSelectSource(file)}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAF7F2] transition-colors w-full text-left">
+                        <span className="material-symbols-outlined text-[18px] shrink-0">description</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-extrabold truncate">{file.name}</p>
+                          <p className="text-[11px] font-bold text-black/40">Tap to use as source</p>
+                        </div>
+                        <span className="material-symbols-outlined text-[16px] text-black/20">chevron_right</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </main>
           )}
 
@@ -807,10 +938,20 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   <span className="material-symbols-outlined text-[14px] text-[#ae2925]">style</span>
                   <span className="text-[12px] font-black">Card {currentCardIndex + 1} / {cards.length}</span>
                 </div>
-                <div className="flex gap-3 text-[12px] font-extrabold">
-                  <span className="text-green-600">✓ {scores.gotIt}</span>
-                  <span className="text-black/40">? {scores.unsure}</span>
-                  <span className="text-[#FF4D2E]">✗ {scores.forgot}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-3 text-[12px] font-extrabold">
+                    <span className="text-green-600">✓ {scores.gotIt}</span>
+                    <span className="text-black/40">? {scores.unsure}</span>
+                    <span className="text-[#FF4D2E]">✗ {scores.forgot}</span>
+                  </div>
+                  {/* Share button — mobile study */}
+                  <button
+                    onClick={handleShareDeck}
+                    disabled={shareLoading}
+                    className="flex items-center justify-center w-8 h-8 border-2 border-black bg-white shadow-[2px_2px_0px_#000] active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">share</span>
+                  </button>
                 </div>
               </div>
               <div className="w-full flex items-center gap-4 mb-4">
@@ -911,7 +1052,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               <p className="font-body-md text-on-surface-variant max-w-[280px] mb-6 text-[14.5px]">
                 Reviewing mistakes triggers spaced repetition logic in the platform automatically.
               </p>
-              <div className="w-full bg-white border-2 border-[#1c1c19] rounded-2xl p-5 shadow-ink-md flex flex-col gap-3.5 mb-8 text-left">
+              <div className="w-full bg-white border-2 border-[#1c1c19] rounded-2xl p-5 shadow-ink-md flex flex-col gap-3.5 mb-6 text-left">
                 <div className="flex justify-between border-b pb-2">
                   <span className="font-bold text-tertiary text-[14.5px]">Got It Perfectly:</span>
                   <span className="font-extrabold text-[15.5px]">{scores.gotIt}</span>
@@ -925,6 +1066,17 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   <span className="font-extrabold text-[15.5px]">{scores.forgot}</span>
                 </div>
               </div>
+
+              {/* Share deck button — mobile results */}
+              <button
+                onClick={handleShareDeck}
+                disabled={shareLoading}
+                className="w-full mb-4 flex items-center justify-center gap-2 border-2 border-[#1c1c19] bg-white py-3.5 rounded-xl font-bold text-[14px] shadow-ink-sm active:translate-y-0.5 active:shadow-none transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">share</span>
+                {shareLoading ? "Creating link..." : shareUrl ? "Copy link again" : "Share this deck"}
+              </button>
+
               <div className="flex gap-4 w-full">
                 <button
                   onClick={() => setView("setup")}
@@ -940,29 +1092,6 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </button>
               </div>
             </main>
-          )}
-
-          {/* Recent Sources — Mobile */}
-          {view === "setup" && libraryFiles.length > 0 && (
-            <div className="mt-4 border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
-              <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black">
-                <span className="material-symbols-outlined text-[18px]">history</span>
-                <h3 className="text-[14px] font-extrabold">Your Sources</h3>
-              </div>
-              <div className="flex flex-col divide-y divide-black/10">
-                {libraryFiles.slice(0, 3).map((file: any) => (
-                  <button key={file.id} onClick={() => handleSelectSource(file)}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAF7F2] transition-colors w-full text-left">
-                    <span className="material-symbols-outlined text-[18px] shrink-0">description</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-extrabold truncate">{file.name}</p>
-                      <p className="text-[11px] font-bold text-black/40">Tap to use as source</p>
-                    </div>
-                    <span className="material-symbols-outlined text-[16px] text-black/20">chevron_right</span>
-                  </button>
-                ))}
-              </div>
-            </div>
           )}
 
         </div>
