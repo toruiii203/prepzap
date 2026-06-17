@@ -395,11 +395,6 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
           }
           if (typeof refreshProfile === "function") refreshProfile();
         }
-          preview: generated[0]?.description?.slice(0, 120) || "",
-          output: JSON.stringify(generated),
-          model: "rex-ai",
-          meta: `${generated.length} steps`,
-        });
       } else {
         throw new Error("Invalid structure returned");
       }

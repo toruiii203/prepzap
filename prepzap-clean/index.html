@@ -5,47 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Studenius — AI-Powered Study Platform</title>
 
-    <!-- ═══ Favicons & App Icons — paste into <head> of index.html ═══ -->
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="icon" href="/fox_icon_final.png" type="image/png" />
+    <link rel="alternate icon" href="/fox_icon_final.png" />
 
-<!-- Standard favicons -->
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/icon-512.png" />
 
-<!-- Apple Touch Icon (iOS home screen) -->
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <!-- PWA manifest (single, no duplicate) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
 
-<!-- PWA manifest -->
-<link rel="manifest" href="/manifest.webmanifest" />
-
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-    <link rel="icon" href="/fox_icon_final.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="alternate icon" href="/fox_icon_final.png" />
-    <link rel="apple-touch-icon" href="/icon-512.png" />
+
+    <!-- Canonical & Sitemap -->
     <link rel="canonical" href="https://studenius.com" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
-    <!-- PWA -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Studenius" />
+    <!-- PWA meta -->
+    <meta name="theme-color" content="#ae2925" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#160810" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Studenius" />
 
     <!-- SEO -->
     <meta name="description" content="Studenius is an AI-powered study platform with an AI Tutor, Cram Mode, Flashcards, Math Solver, Recall Mode, and more — built to help students study smarter and ace their exams." />
     <meta name="keywords" content="AI study app, AI tutor, flashcards, cram mode, math solver, exam prep, spaced repetition, student app, study tools, Studenius" />
     <meta name="author" content="Studenius" />
-
-    
-<!-- Theme color (Android Chrome toolbar) -->
-<meta name="theme-color" content="#ae2925" />
-
-<!-- Apple PWA meta -->
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="Studenius" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -119,5 +110,16 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>
