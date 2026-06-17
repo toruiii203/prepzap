@@ -358,7 +358,7 @@ Each object MUST match this schema exactly:
                   </p>
                 </div>
 
-                {/* History moved to persistent right panel */
+                {/* History moved to persistent right panel */}
               </div>
             )}
 
