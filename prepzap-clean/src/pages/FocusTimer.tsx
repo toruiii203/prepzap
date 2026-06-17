@@ -76,6 +76,10 @@ export default function FocusTimer() {
   const [quoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length));
 
   const intervalRef = useRef<any>(null);
+  const startTimeRef = useRef<number | null>(null);   // wall-clock ms when timer last started
+  const savedTimeLeftRef = useRef<number>(settings.focusDuration * 60); // timeLeft at last start
+  const alarmCtxRef = useRef<AudioContext | null>(null);
+  const alarmNodesRef = useRef<{ osc: OscillatorNode; gain: GainNode }[]>([]);
 
   useEffect(() => {
     if (!isActive) {
@@ -118,27 +122,51 @@ export default function FocusTimer() {
     }
   };
 
+  const stopAlarm = () => {
+    alarmNodesRef.current.forEach(({ osc, gain }) => {
+      try { gain.gain.cancelScheduledValues(0); gain.gain.setValueAtTime(0, 0); osc.stop(); } catch {}
+    });
+    alarmNodesRef.current = [];
+  };
+
   const triggerCompletionFeedback = () => {
     if (settings.soundEnabled) {
       try {
+        stopAlarm();
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        [0, 150, 300].forEach((delay, i) => {
+        alarmCtxRef.current = ctx;
+        const vol = (settings.soundVolume / 100) * 0.35;
+
+        // Alarm: 3 rising beep triplets, each triplet 3 beeps
+        const pattern = [0, 180, 360, 700, 880, 1060, 1400, 1580, 1760]; // ms offsets
+        const freqs = [880, 988, 1047]; // A5, B5, C6 — bright alarm tones
+        pattern.forEach((delayMs, idx) => {
+          const freq = freqs[idx % freqs.length];
           setTimeout(() => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = 520 + i * 80;
-            gain.gain.setValueAtTime((settings.soundVolume / 100) * 0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.4);
-          }, delay);
+            try {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.type = "square";
+              osc.frequency.value = freq;
+              gain.gain.setValueAtTime(vol, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.15);
+              alarmNodesRef.current.push({ osc, gain });
+            } catch {}
+          }, delayMs);
         });
       } catch {}
     }
     if (settings.vibrate && "vibrate" in navigator) {
-      navigator.vibrate([200, 100, 200]);
+      navigator.vibrate([300, 100, 300, 100, 300]);
+    }
+    // Browser notification for background tab
+    if ("Notification" in window && Notification.permission === "granted") {
+      const label = phase === "focus" ? "Focus session complete! Time for a break 🎉" : "Break over! Back to focus 💪";
+      new Notification("Studenius Timer", { body: label, icon: "/favicon.ico", tag: "studenius-timer" });
     }
   };
 
@@ -164,23 +192,73 @@ export default function FocusTimer() {
     }
   };
 
+  // When timer starts (isActive goes true), snapshot the current timeLeft
   useEffect(() => {
     if (isActive) {
+      startTimeRef.current = Date.now();
+      savedTimeLeftRef.current = timeLeft;
+    }
+  }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track wall-clock start so timer survives tab switches
+  useEffect(() => {
+    if (isActive) {
+      startTimeRef.current = Date.now();
+      savedTimeLeftRef.current = timeLeft;
+
       intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            setIsActive(false);
-            advancePhase();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+        const elapsed = Math.floor((Date.now() - startTimeRef.current!) / 1000);
+        const next = savedTimeLeftRef.current - elapsed;
+        if (next <= 0) {
+          clearInterval(intervalRef.current);
+          setTimeLeft(0);
+          setIsActive(false);
+          advancePhase();
+        } else {
+          setTimeLeft(next);
+        }
+      }, 500); // poll at 500ms for responsiveness
     } else {
       clearInterval(intervalRef.current);
     }
     return () => clearInterval(intervalRef.current);
+  }, [isActive, phase, settings]);
+
+  // Update document title while timer runs (visible in background tab)
+  useEffect(() => {
+    if (isActive) {
+      document.title = `${formatTime(timeLeft)} · ${phase === "focus" ? "Focusing" : "Break"} — Studenius`;
+    } else {
+      document.title = "Focus Timer — Studenius";
+    }
+    return () => { document.title = "Studenius"; };
+  }, [isActive, timeLeft, phase]);
+
+  // Request notification permission once on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Re-sync time when tab becomes visible again
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && isActive && startTimeRef.current !== null) {
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        const next = savedTimeLeftRef.current - elapsed;
+        if (next <= 0) {
+          clearInterval(intervalRef.current);
+          setTimeLeft(0);
+          setIsActive(false);
+          advancePhase();
+        } else {
+          setTimeLeft(next);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [isActive, phase, settings]);
 
   const formatTime = (s: number) => {
