@@ -87,6 +87,7 @@ export default function Flashcards() {
   // Freemium state
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     remaining("flashcard_gen").then(setRemainingUses);
@@ -292,6 +293,60 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+
+      {/* ── Mobile History Drawer ──────────────────────────────────────── */}
+      {showHistory && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div className="flex-1 bg-black/40" onClick={() => setShowHistory(false)} />
+          <div className="w-[85vw] max-w-[340px] bg-white border-l-2 border-black flex flex-col h-full shadow-[-4px_0_0_#000]">
+            <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">history</span>
+                <h3 className="text-[16px] font-extrabold">Recent Decks</h3>
+              </div>
+              <button onClick={() => setShowHistory(false)} className="w-8 h-8 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto flex flex-col divide-y-2 divide-black/10">
+              {!deckHistory || deckHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-center opacity-40 px-4">
+                  <span className="material-symbols-outlined text-[32px]">style</span>
+                  <p className="text-[12px] font-bold">No decks yet.<br/>Generate your first one!</p>
+                </div>
+              ) : (deckHistory as any[]).slice(0, 20).map((item: any) => (
+                <button key={item.id ?? item.timestamp}
+                  onClick={() => { setActiveSourceObj(null); setTopic(item.prompt ?? ""); setShowHistory(false); }}
+                  className="w-full text-left p-4 hover:bg-[#FAF7F2] transition-colors">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h4 className="text-[13px] font-extrabold leading-tight line-clamp-2 flex-1">
+                      {item.prompt ?? item.output ?? "Untitled Deck"}
+                    </h4>
+                    <span className="material-symbols-outlined text-[#FF4D2E] text-[16px] shrink-0">style</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-black/40">{item.meta ?? item.preview ?? "Flashcard deck"}</p>
+                  {(item.createdAt || item.created_at) && (
+                    <p className="text-[10px] text-black/30 font-bold mt-0.5">
+                      {(() => {
+                        const d = Math.floor((Date.now() - new Date(item.createdAt || item.created_at).getTime()) / 86400000);
+                        return d === 0 ? "Today" : d === 1 ? "Yesterday" : d + "d ago";
+                      })()}
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
+            {deckHistory && deckHistory.length > 0 && (
+              <div className="px-4 py-3 border-t-2 border-black shrink-0">
+                <button onClick={() => { navigate("/analytics"); setShowHistory(false); }}
+                  className="w-full py-2 border-2 border-black bg-[#F0EDE0] text-[12px] font-extrabold hover:bg-black hover:text-white transition-colors">
+                  View All in Analytics →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showUpgrade && (
         <UpgradePrompt

@@ -159,6 +159,7 @@ export default function Practice() {
   const [topicInput, setTopicInput]         = useState("");
   const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
   const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     loadContext();
@@ -264,15 +265,60 @@ Each object MUST match this schema exactly:
   const currentQuestion  = questions.length > 0 ? questions[currentQIndex] : null;
 
   // ── RENDER ────────────────────────────────────────────────────────────────
+  // HistoryDrawer — slides in from right on mobile; always visible on desktop
+  const HistoryDrawerContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[20px]">history</span>
+          <h3 className="text-[16px] font-extrabold">Quiz History</h3>
+        </div>
+        <button onClick={() => setShowHistory(false)} className="md:hidden w-8 h-8 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+          <span className="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+        {historyEntries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2 text-center opacity-40">
+            <span className="material-symbols-outlined text-[32px]">quiz</span>
+            <p className="text-[12px] font-bold">No quizzes yet.<br/>Generate your first one!</p>
+          </div>
+        ) : (historyEntries as HistoryEntry[]).slice(0, 20).map((entry, i) => (
+          <HistoryCard key={i} entry={entry} onNavigate={navigate} />
+        ))}
+      </div>
+      {historyEntries.length > 0 && (
+        <div className="px-4 py-3 border-t-2 border-black shrink-0">
+          <button onClick={() => navigate("/analytics")} className="w-full py-2 border-2 border-black bg-[#F0EDE0] text-[12px] font-extrabold hover:bg-black hover:text-white transition-colors">
+            View All in Analytics →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+
+      {/* ── Mobile History Drawer overlay ──────────────────────────────── */}
+      {showHistory && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div className="flex-1 bg-black/40" onClick={() => setShowHistory(false)} />
+          <div className="w-[85vw] max-w-[340px] bg-white border-l-2 border-black flex flex-col h-full shadow-[-4px_0_0_#000]">
+            <HistoryDrawerContent />
+          </div>
+        </div>
+      )}
 
       {/* ══ DESKTOP ══════════════════════════════════════════════════════════ */}
       <SharedSidebar active="/practice" />
 
-      <div className="hidden md:flex md:ml-64 flex-col bg-[#FAF7F2] overflow-y-auto" style={{ minHeight: "100vh" }}>
+      <div className="hidden md:flex md:ml-64 bg-[#FAF7F2]" style={{ minHeight: "100vh" }}>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-y-auto">
         {view === "quiz" && (
-          <main className="flex-1 flex flex-col p-10 max-w-5xl mx-auto w-full">
+          <main className="flex-1 flex flex-col p-10 max-w-4xl mx-auto w-full">
 
             <DesktopBanner
               activeSource={activeSource}
@@ -312,18 +358,7 @@ Each object MUST match this schema exactly:
                   </p>
                 </div>
 
-                {/* Right: history panel */}
-                {historyEntries.length > 0 && (
-                  <aside className="w-[300px] shrink-0 flex flex-col gap-3 py-6">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
-                      <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
-                    </div>
-                    {(historyEntries as HistoryEntry[]).slice(0, 5).map((entry, i) => (
-                      <HistoryCard key={i} entry={entry} onNavigate={navigate} />
-                    ))}
-                  </aside>
-                )}
+                {/* History moved to persistent right panel */
               </div>
             )}
 
@@ -444,7 +479,13 @@ Each object MUST match this schema exactly:
           </div>
           </div>
         )}
-      </div>
+        </div>{/* end desktop main */}
+
+        {/* Persistent desktop history right panel */}
+        <aside className="w-[280px] border-l-2 border-black bg-white flex flex-col shrink-0" style={{ minHeight: "100vh" }}>
+          <HistoryDrawerContent />
+        </aside>
+      </div>{/* end desktop wrapper */}
 
       {/* ══ MOBILE ═══════════════════════════════════════════════════════════ */}
       <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
