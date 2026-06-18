@@ -291,7 +291,7 @@ export default function AITutor() {
     if (last.sender === "bot") setFoxImg(FOX.happy);
   }, [isLoading, messages]);
 
-  // Sync active source — runs on mount, window focus, and after every message
+  // Sync active source on mount and window focus only
   useEffect(() => {
     const syncSource = () => {
       const ctx = loadContext();
@@ -306,6 +306,19 @@ export default function AITutor() {
     syncSource();
     window.addEventListener("focus", syncSource);
     return () => window.removeEventListener("focus", syncSource);
+  }, []);
+
+  // Re-sync source label after each message without adding new listeners
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const ctx = loadContext();
+    const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
+    const libFiles = loadLibrary();
+    const activeFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
+    setActiveSourceCount(activeFiles.length);
+    if (activeFiles.length === 0) setActiveSource(null);
+    else if (activeFiles.length === 1) setActiveSource(activeFiles[0].name);
+    else setActiveSource(`${activeFiles[0].name} +${activeFiles.length - 1} more`);
   }, [messages]);
 
   // Auto-scroll
@@ -376,8 +389,8 @@ export default function AITutor() {
     if (desktopTextareaRef.current) desktopTextareaRef.current.style.height = "auto";
 
     try {
-      const perFileCap = isPro ? 4000 : 3000;
-      const totalCap = isPro ? 30000 : 9000;
+      const perFileCap = isPro ? 2000 : 1500;
+      const totalCap = isPro ? 15000 : 4500;
 
       const refContext = buildAIContext();
       let effectiveContext = refContext;
