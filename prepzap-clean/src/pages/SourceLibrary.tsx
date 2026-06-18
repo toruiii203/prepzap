@@ -13,8 +13,9 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 // ── PDF.js text extraction ────────────────────────────────────────────────────
 async function extractPdfText(file: File): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
-  // Disable the worker entirely — avoids CDN version mismatch issues in Vite/Cloudflare
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+  // Use the bundled worker from pdfjs-dist for Vite compatibility
+  const workerUrl = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
