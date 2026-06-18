@@ -385,7 +385,15 @@ export default function AITutor() {
               if (f.type === "image" || (f.content && f.content.startsWith("data:image"))) {
                 return `[Attached image: ${f.name}]\n(Image content was captured for visual analysis)`;
               }
-              return `=== ${f.name} ===\n${f.content || ""}`;
+              // Prefer fullText (clean text), fall back to content
+              const raw = f.fullText || f.content || "";
+              // Detect binary/corrupted content from PDF-read-as-binary
+              const garbage = (raw.match(/[\x00-\x08\x0E-\x1F\uFFFD]/g) || []).length;
+              const isGarbage = raw.length > 100 && garbage / raw.length > 0.1;
+              if (isGarbage) {
+                return `=== ${f.name} ===\n[File content is corrupted — this was likely a PDF uploaded incorrectly. Please delete this file and re-add the content using 'Paste text manually'.]`;
+              }
+              return `=== ${f.name} ===\n${raw}`;
             }).join("\n\n");
           }
         }
@@ -399,7 +407,18 @@ export default function AITutor() {
       else if (activeMode === "Summarize") systemInstruction = "You are Rex AI. Provide a high-yield bulleted cheat-sheet summary. Highlight vocabulary, main formulas, and key processes clearly.";
 
       if (effectiveContext) {
-        systemInstruction += `\n\nThe student has attached the following reference material. Base your answers on this content when relevant:\n\n${effectiveContext}`;
+        // Sanitize: strip control characters and replacement chars from the whole context
+        const sanitized = effectiveContext
+          .replace(/[\x00-\x08\x0E-\x1F]/g, "")
+          .replace(/\uFFFD/g, "")
+          .trim();
+
+        // Hard cap at 6000 chars to prevent 503s from oversized Worker payloads
+        const capped = sanitized.length > 6000
+          ? sanitized.slice(0, 6000) + "\n[...truncated for length]"
+          : sanitized;
+
+        systemInstruction += `\n\nThe student has attached the following reference material. Base your answers on this content when relevant:\n\n${capped}`;
       }
 
       const promptBody = messages.length > 0 ? `Given our study history, answer this: ${finalMsg}` : finalMsg;
