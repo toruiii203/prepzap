@@ -267,6 +267,7 @@ export default function AITutor() {
   const [inputVal, setInputVal] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeSource, setActiveSource] = useState<string | null>(null);
+  const [activeSourceCount, setActiveSourceCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [foxImg, setFoxImg] = useState(FOX.neutral);
 
@@ -296,8 +297,11 @@ export default function AITutor() {
       const ctx = loadContext();
       const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
       const libFiles = loadLibrary();
-      const active = libFiles.find((f: any) => selectedIds.includes(f.id));
-      setActiveSource(active ? active.name : null);
+      const activeFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
+      setActiveSourceCount(activeFiles.length);
+      if (activeFiles.length === 0) setActiveSource(null);
+      else if (activeFiles.length === 1) setActiveSource(activeFiles[0].name);
+      else setActiveSource(`${activeFiles[0].name} +${activeFiles.length - 1} more`);
     };
     syncSource();
     window.addEventListener("focus", syncSource);
@@ -413,9 +417,9 @@ export default function AITutor() {
           .replace(/\uFFFD/g, "")
           .trim();
 
-        // Hard cap at 6000 chars to prevent 503s from oversized Worker payloads
-        const capped = sanitized.length > 6000
-          ? sanitized.slice(0, 6000) + "\n[...truncated for length]"
+        // Cap at 20000 chars to support multiple files without hitting Worker limits
+        const capped = sanitized.length > 20000
+          ? sanitized.slice(0, 20000) + "\n[...truncated for length]"
           : sanitized;
 
         systemInstruction += `\n\nThe student has attached the following reference material. Base your answers on this content when relevant:\n\n${capped}`;

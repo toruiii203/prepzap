@@ -6,7 +6,7 @@ import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/source
 import { usePlan } from "@/hooks/usePlan";
 
 const FREE_FILE_LIMIT = 3;
-const PRO_FILE_LIMIT = 20;
+const PRO_FILE_LIMIT = 10;
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
