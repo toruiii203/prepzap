@@ -1,9 +1,8 @@
-const CACHE_NAME = "studenius-v1";
+const CACHE_NAME = "studenius-v" + Date.now(); // busts on every SW update
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
   "/",
-  "/dashboard",
   "/manifest.webmanifest",
   "/fox_icon_final.png",
   "/icon-512.png",
@@ -17,7 +16,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate — clean up old caches
+// Activate — clean up ALL old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -39,7 +38,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Skip Supabase, Groq, PayMongo, PayPal API calls — always go to network
+  // Skip all API calls — always go to network
   if (
     url.includes("supabase.co") ||
     url.includes("groq.com") ||
@@ -51,7 +50,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // For navigation requests (page loads) — network first, fall back to cache
+  // Navigation requests — NETWORK FIRST, no stale HTML ever
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(() =>
@@ -61,10 +60,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // For static assets (JS, CSS, images, fonts) — cache first, then network
+  // JS/CSS bundles — NETWORK FIRST so new deploys always get picked up
+  // Falls back to cache only if completely offline
   if (
     event.request.destination === "script" ||
-    event.request.destination === "style" ||
+    event.request.destination === "style"
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (!response || response.status !== 200 || response.type === "error") {
+            return response;
+          }
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Images and fonts — cache first (these don't change often)
+  if (
     event.request.destination === "image" ||
     event.request.destination === "font"
   ) {
@@ -72,7 +90,6 @@ self.addEventListener("fetch", (event) => {
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
         return fetch(event.request).then((response) => {
-          // Only cache valid responses
           if (!response || response.status !== 200 || response.type === "error") {
             return response;
           }
