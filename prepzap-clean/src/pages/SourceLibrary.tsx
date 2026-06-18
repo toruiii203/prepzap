@@ -3,10 +3,17 @@ import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Check, Image } from "lucide-react";
 import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";
+import { usePlan } from "@/hooks/usePlan";
+
+const FREE_FILE_LIMIT = 3;
+const PRO_FILE_LIMIT = 20;
 
 export default function SourceLibrary() {
   const navigate = useNavigate();
+  const { isPro } = usePlan();
+  const fileLimit = isPro ? PRO_FILE_LIMIT : FREE_FILE_LIMIT;
   const [activeQuickTool, setActiveTab] = useState("AI Tutor");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -65,21 +72,45 @@ export default function SourceLibrary() {
     saveContext(nextCtx);
   };
 
-  // Regular file upload (PDF / TXT)
+  // Regular file upload (TXT only — PDFs must use paste modal)
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadError(null);
+
+    // File limit check
+    if (files.length >= fileLimit) {
+      setUploadError(`You've reached the ${isPro ? "Pro" : "Free"} plan limit of ${fileLimit} files. ${!isPro ? "Upgrade to Pro for up to 20 files." : ""}`);
+      e.target.value = "";
+      return;
+    }
+
+    // Block PDF uploads — readAsText on PDFs produces binary garbage
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      setUploadError("PDF uploads aren't supported yet — copy and paste your PDF text using the 'Paste text manually' button instead.");
+      e.target.value = "";
+      return;
+    }
+
+    // Only allow text files
+    if (!file.type.includes("text") && !file.type.includes("image")) {
+      setUploadError("Only TXT files and images are supported. For PDFs, use 'Paste text manually'.");
+      e.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       const content = ev.target?.result as string || "";
       addFileToLibrary({
         id: "f_" + Date.now(),
         name: file.name,
-        type: file.type.includes("pdf") ? "pdf" : file.type.includes("image") ? "image" : "text",
+        type: file.type.includes("image") ? "image" : "text",
         content: content.length > 50000 ? content.slice(0, 50000) : content,
+        fullText: content.length > 50000 ? content.slice(0, 50000) : content,
         size: `${(file.size / 1024).toFixed(1)} KB`,
         created_at: new Date().toISOString(),
-        isPdf: file.name.toLowerCase().endsWith(".pdf"),
+        isPdf: false,
       });
     };
     if (file.type.includes("image")) reader.readAsDataURL(file);
@@ -153,6 +184,12 @@ export default function SourceLibrary() {
 
   const saveCapturedPhoto = () => {
     if (!cameraPreview) return;
+    if (files.length >= fileLimit) {
+      setUploadError(`You've reached the ${isPro ? "Pro" : "Free"} plan limit of ${fileLimit} files. ${!isPro ? "Upgrade to Pro for up to 20 files." : ""}`);
+      setCameraCapturing(false);
+      setCameraPreview(null);
+      return;
+    }
     const timestamp = new Date().toLocaleString("en-PH", { dateStyle: "short", timeStyle: "short" });
     const name = `Photo_${Date.now()}.jpg`;
     addFileToLibrary({
@@ -173,6 +210,11 @@ export default function SourceLibrary() {
 
   const handleUploadConfirm = () => {
     if (!uploadFileName.trim()) return;
+    if (files.length >= fileLimit) {
+      setUploadError(`You've reached the ${isPro ? "Pro" : "Free"} plan limit of ${fileLimit} files. ${!isPro ? "Upgrade to Pro for up to 20 files." : ""}`);
+      setShowUploadModal(false);
+      return;
+    }
     const fileContent = uploadContent.trim() || "No content provided.";
     addFileToLibrary({
       id: "f_" + Date.now(),
@@ -244,16 +286,18 @@ export default function SourceLibrary() {
         <div className="flex flex-col items-center gap-1.5">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+            disabled={files.length >= fileLimit}
+            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Paperclip className="w-7 h-7 text-[#ae2925]" />
           </button>
-          <span className="text-[11px] font-bold text-[#666]">PDF / TXT</span>
+          <span className="text-[11px] font-bold text-[#666]">TXT / Image</span>
         </div>
         <div className="flex flex-col items-center gap-1.5">
           <button
             onClick={openCamera}
-            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+            disabled={files.length >= fileLimit}
+            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Camera className="w-7 h-7 text-[#ae2925]" />
           </button>
@@ -264,7 +308,15 @@ export default function SourceLibrary() {
         Upload a file or capture your notes
       </p>
       <p className="font-bold text-[#888] text-center text-[12px]">
-        PDF, TXT • or point camera at textbook / whiteboard
+        TXT • or point camera at textbook / whiteboard
+      </p>
+      <p className="font-bold text-center text-[11px]">
+        <span className={files.length >= fileLimit ? "text-[#ae2925]" : "text-black/40"}>
+          {files.length}/{fileLimit} files used {!isPro && "· Free plan"}
+        </span>
+        {!isPro && files.length >= fileLimit && (
+          <button onClick={() => navigate("/go-pro")} className="ml-2 text-[#ae2925] underline font-black">Upgrade</button>
+        )}
       </p>
       <button
         onClick={() => setShowUploadModal(true)}
@@ -373,6 +425,17 @@ export default function SourceLibrary() {
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
       <SharedSidebar active="/sources" />
+
+      {/* ── Error Banner ── */}
+      {uploadError && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-sm w-full mx-4">
+          <div className="bg-[#ae2925] text-white border-2 border-black px-4 py-3 shadow-[3px_3px_0px_#000] flex items-start gap-3">
+            <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">error</span>
+            <p className="text-[13px] font-bold flex-1">{uploadError}</p>
+            <button onClick={() => setUploadError(null)} className="material-symbols-outlined text-[16px] shrink-0 opacity-70 hover:opacity-100">close</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Shared Modals ── */}
       {showUploadModal && (
@@ -697,18 +760,20 @@ export default function SourceLibrary() {
                 <div className="flex flex-col items-center gap-1.5">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+                    disabled={files.length >= fileLimit}
+                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Paperclip className="w-7 h-7 text-[#ae2925]" />
                   </button>
-                  <span className="text-[11px] font-bold text-[#666]">PDF / TXT</span>
+                  <span className="text-[11px] font-bold text-[#666]">TXT / Image</span>
                 </div>
 
                 {/* Camera Capture */}
                 <div className="flex flex-col items-center gap-1.5">
                   <button
                     onClick={openCamera}
-                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5"
+                    disabled={files.length >= fileLimit}
+                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Camera className="w-7 h-7 text-[#ae2925]" />
                   </button>
