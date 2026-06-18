@@ -1,12 +1,31 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Check, Image } from "lucide-react";
+import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Check, Image, Eye, AlertTriangle } from "lucide-react";
 import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
 
 const FREE_FILE_LIMIT = 3;
 const PRO_FILE_LIMIT = 20;
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+// ── PDF.js text extraction ────────────────────────────────────────────────────
+async function extractPdfText(file: File): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+  const maxPages = Math.min(pdf.numPages, 20);
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+  }
+  return fullText.trim();
+}
 
 export default function SourceLibrary() {
   const navigate = useNavigate();
@@ -25,18 +44,30 @@ export default function SourceLibrary() {
   const [cameraCapturing, setCameraCapturing] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraNote, setCameraNote] = useState("");
+  const [extractingPdf, setExtractingPdf] = useState(false);
+  const [previewFile, setPreviewFile] = useState<any | null>(null);
+  const [corruptedIds, setCorruptedIds] = useState<Set<string>>(new Set());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    setFiles(loadLibrary());
+    const lib = loadLibrary();
+    setFiles(lib);
     const ctx = loadContext();
     setSelectedIds(Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || []);
+
+    // Scan for corrupted files on load
+    const broken = new Set<string>();
+    lib.forEach((f: any) => {
+      if (!f.name || (!f.fullText && !f.content && f.type !== "image")) {
+        broken.add(f.id);
+      }
+    });
+    setCorruptedIds(broken);
   }, []);
 
-  // Cleanup camera stream on unmount
   useEffect(() => {
     return () => {
       cameraStream?.getTracks().forEach(t => t.stop());
@@ -61,6 +92,7 @@ export default function SourceLibrary() {
     const nextCtx = selectedIds.filter(x => x !== id);
     setSelectedIds(nextCtx);
     saveContext(nextCtx);
+    setCorruptedIds(prev => { const s = new Set(prev); s.delete(id); return s; });
   };
 
   const addFileToLibrary = (newFile: any) => {
@@ -72,29 +104,56 @@ export default function SourceLibrary() {
     saveContext(nextCtx);
   };
 
-  // Regular file upload (TXT only — PDFs must use paste modal)
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── File upload with PDF.js extraction ────────────────────────────────────
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError(null);
 
-    // File limit check
     if (files.length >= fileLimit) {
       setUploadError(`You've reached the ${isPro ? "Pro" : "Free"} plan limit of ${fileLimit} files. ${!isPro ? "Upgrade to Pro for up to 20 files." : ""}`);
       e.target.value = "";
       return;
     }
 
-    // Block PDF uploads — readAsText on PDFs produces binary garbage
-    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      setUploadError("PDF uploads aren't supported yet — copy and paste your PDF text using the 'Paste text manually' button instead.");
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setUploadError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max size is ${MAX_FILE_SIZE_MB} MB.`);
       e.target.value = "";
       return;
     }
 
-    // Only allow text files
+    const isPdfFile = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+    if (isPdfFile) {
+      setExtractingPdf(true);
+      try {
+        const fullText = await extractPdfText(file);
+        if (!fullText || fullText.length < 10) {
+          setUploadError("Couldn't extract text from this PDF — it may be scanned or image-only. Try copying the text manually instead.");
+        } else {
+          addFileToLibrary({
+            id: "f_" + Date.now(),
+            name: file.name,
+            type: "text",
+            content: fullText.length > 50000 ? fullText.slice(0, 50000) : fullText,
+            fullText: fullText.length > 50000 ? fullText.slice(0, 50000) : fullText,
+            preview: fullText.slice(0, 300),
+            size: `${(file.size / 1024).toFixed(1)} KB`,
+            created_at: new Date().toISOString(),
+            isPdf: true,
+          });
+        }
+      } catch {
+        setUploadError("Failed to read this PDF. It may be corrupted or password-protected.");
+      } finally {
+        setExtractingPdf(false);
+      }
+      e.target.value = "";
+      return;
+    }
+
     if (!file.type.includes("text") && !file.type.includes("image")) {
-      setUploadError("Only TXT files and images are supported. For PDFs, use 'Paste text manually'.");
+      setUploadError("Only PDF, TXT, and image files are supported.");
       e.target.value = "";
       return;
     }
@@ -102,12 +161,14 @@ export default function SourceLibrary() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const content = ev.target?.result as string || "";
+      const truncated = content.length > 50000 ? content.slice(0, 50000) : content;
       addFileToLibrary({
         id: "f_" + Date.now(),
         name: file.name,
         type: file.type.includes("image") ? "image" : "text",
-        content: content.length > 50000 ? content.slice(0, 50000) : content,
-        fullText: content.length > 50000 ? content.slice(0, 50000) : content,
+        content: truncated,
+        fullText: file.type.includes("image") ? undefined : truncated,
+        preview: file.type.includes("image") ? undefined : truncated.slice(0, 300),
         size: `${(file.size / 1024).toFixed(1)} KB`,
         created_at: new Date().toISOString(),
         isPdf: false,
@@ -118,7 +179,72 @@ export default function SourceLibrary() {
     e.target.value = "";
   };
 
-  // Open live camera view
+  // ── Drag-and-drop handler ──────────────────────────────────────────────────
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    (e.currentTarget as HTMLDivElement).classList.remove("bg-black", "!border-solid");
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    if (files.length >= fileLimit) {
+      setUploadError(`You've reached the ${isPro ? "Pro" : "Free"} plan limit of ${fileLimit} files.`);
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setUploadError(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max ${MAX_FILE_SIZE_MB} MB.`);
+      return;
+    }
+
+    const isPdfFile = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (isPdfFile) {
+      setExtractingPdf(true);
+      try {
+        const fullText = await extractPdfText(file);
+        if (!fullText || fullText.length < 10) {
+          setUploadError("Couldn't extract text from this PDF — it may be scanned or image-only.");
+        } else {
+          addFileToLibrary({
+            id: "f_" + Date.now(),
+            name: file.name,
+            type: "text",
+            content: fullText.length > 50000 ? fullText.slice(0, 50000) : fullText,
+            fullText: fullText.length > 50000 ? fullText.slice(0, 50000) : fullText,
+            preview: fullText.slice(0, 300),
+            size: `${(file.size / 1024).toFixed(1)} KB`,
+            created_at: new Date().toISOString(),
+            isPdf: true,
+          });
+        }
+      } catch {
+        setUploadError("Failed to read PDF.");
+      } finally {
+        setExtractingPdf(false);
+      }
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string || "";
+      const truncated = content.length > 50000 ? content.slice(0, 50000) : content;
+      addFileToLibrary({
+        id: "f_" + Date.now(),
+        name: file.name,
+        type: file.type.includes("image") ? "image" : "text",
+        content: truncated,
+        fullText: file.type.includes("image") ? undefined : truncated,
+        preview: file.type.includes("image") ? undefined : truncated.slice(0, 300),
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+        created_at: new Date().toISOString(),
+        isPdf: false,
+      });
+    };
+    if (file.type.includes("image")) reader.readAsDataURL(file);
+    else reader.readAsText(file);
+  };
+
+  // ── Camera ────────────────────────────────────────────────────────────────
   const openCamera = async () => {
     try {
       const constraints = [
@@ -141,7 +267,7 @@ export default function SourceLibrary() {
           videoRef.current.play().catch(() => {});
         }
       }, 100);
-    } catch (err) {
+    } catch {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "image/*";
@@ -191,10 +317,9 @@ export default function SourceLibrary() {
       return;
     }
     const timestamp = new Date().toLocaleString("en-PH", { dateStyle: "short", timeStyle: "short" });
-    const name = `Photo_${Date.now()}.jpg`;
     addFileToLibrary({
       id: "f_" + Date.now(),
-      name,
+      name: `Photo_${Date.now()}.jpg`,
       type: "image",
       content: cameraPreview,
       size: `${(cameraPreview.length * 0.75 / 1024).toFixed(1)} KB`,
@@ -221,6 +346,8 @@ export default function SourceLibrary() {
       name: uploadFileName.trim(),
       type: "text",
       content: fileContent,
+      fullText: fileContent,
+      preview: fileContent.slice(0, 300),
       size: `${Math.ceil(fileContent.length / 100) / 10} KB`,
       created_at: new Date().toISOString(),
       isPdf: uploadFileName.toLowerCase().endsWith(".pdf"),
@@ -238,7 +365,7 @@ export default function SourceLibrary() {
     else if (tool === "Quick Study") navigate("/quick-study");
   };
 
-  // ── Shared inner components ──────────────────────────────────────────────
+  // ── Shared inner components ───────────────────────────────────────────────
 
   const FileIcon = ({ file, isSelected }: { file: any; isSelected: boolean }) => {
     if (isSelected) return <Check className="w-6 h-6 text-[#ae2925] stroke-[3]" />;
@@ -251,31 +378,52 @@ export default function SourceLibrary() {
 
   const FileRow = ({ file }: { file: any }) => {
     const isSelected = selectedIds.includes(file.id);
+    const isCorrupted = corruptedIds.has(file.id);
     return (
       <div
-        key={file.id}
-        onClick={() => handleToggleSelect(file.id)}
-        className={`rounded-2xl border-2 p-4 flex items-center gap-4 transition-all cursor-pointer ${
-          isSelected
+        onClick={() => !isCorrupted && handleToggleSelect(file.id)}
+        className={`border-2 p-4 flex items-center gap-4 transition-all cursor-pointer ${
+          isCorrupted
+            ? "bg-red-50 border-red-400 shadow-[4px_4px_0px_0px_#f87171] opacity-80"
+            : isSelected
             ? "bg-[#fff0ef] border-[#ae2925] shadow-[4px_4px_0px_0px_#ae2925]"
             : "bg-white border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A]"
         } hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none`}
       >
-        <div className="w-12 h-12 rounded-lg bg-[#ebe8e3] flex items-center justify-center shrink-0 border-2 border-[#1A1A1A] overflow-hidden">
-          <FileIcon file={file} isSelected={isSelected} />
+        <div className="w-12 h-12 bg-[#ebe8e3] flex items-center justify-center shrink-0 border-2 border-[#1A1A1A] overflow-hidden">
+          {isCorrupted
+            ? <AlertTriangle className="w-5 h-5 text-red-500" />
+            : <FileIcon file={file} isSelected={isSelected} />
+          }
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-[15px] text-[#1A1A1A] truncate">{file.name}</h3>
-          <p className="text-[12px] font-semibold text-[#888] mt-0.5">
-            {file.note || file.size} • {isSelected ? "✓ Active context" : "Idle"}
-          </p>
+          {isCorrupted ? (
+            <p className="text-[12px] font-bold text-red-500 mt-0.5">Corrupted — delete and re-upload</p>
+          ) : (
+            <p className="text-[12px] font-semibold text-[#888] mt-0.5">
+              {file.note || file.size} • {isSelected ? "✓ Active context" : "Idle"}
+            </p>
+          )}
         </div>
-        <button
-          onClick={(e) => handleDeleteFile(file.id, e)}
-          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 hover:bg-red-50 text-[#888] hover:text-red-500 transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Preview button for text files */}
+          {!isCorrupted && file.type !== "image" && file.preview && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setPreviewFile(file); }}
+              className="w-9 h-9 flex items-center justify-center hover:bg-neutral-100 text-[#888] hover:text-[#ae2925] transition-colors"
+              title="Preview"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={(e) => handleDeleteFile(file.id, e)}
+            className="w-9 h-9 flex items-center justify-center hover:bg-red-50 text-[#888] hover:text-red-500 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -286,12 +434,12 @@ export default function SourceLibrary() {
         <div className="flex flex-col items-center gap-1.5">
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={files.length >= fileLimit}
+            disabled={files.length >= fileLimit || extractingPdf}
             className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Paperclip className="w-7 h-7 text-[#ae2925]" />
           </button>
-          <span className="text-[11px] font-bold text-[#666]">TXT / Image</span>
+          <span className="text-[11px] font-bold text-[#666]">PDF / TXT / Image</span>
         </div>
         <div className="flex flex-col items-center gap-1.5">
           <button
@@ -304,11 +452,17 @@ export default function SourceLibrary() {
           <span className="text-[11px] font-bold text-[#666]">Capture</span>
         </div>
       </div>
+      {extractingPdf && (
+        <div className="flex items-center gap-2 text-[#ae2925]">
+          <div className="w-4 h-4 border-2 border-[#ae2925] border-t-transparent rounded-full animate-spin" />
+          <span className="text-[13px] font-bold">Extracting text from PDF…</span>
+        </div>
+      )}
       <p className="font-bold text-[#1A1A1A] text-center text-[16px]">
         Upload a file or capture your notes
       </p>
       <p className="font-bold text-[#888] text-center text-[12px]">
-        TXT • or point camera at textbook / whiteboard
+        PDF · TXT · Image • Max {MAX_FILE_SIZE_MB} MB
       </p>
       <p className="font-bold text-center text-[11px]">
         <span className={files.length >= fileLimit ? "text-[#ae2925]" : "text-black/40"}>
@@ -327,9 +481,7 @@ export default function SourceLibrary() {
     </div>
   );
 
-  // ── Desktop Sidebar ──────────────────────────────────────────────────────
-
-  // ── Camera modal (fullscreen, layout-agnostic) ───────────────────────────
+  // ── Camera modal ─────────────────────────────────────────────────────────
 
   if (cameraCapturing) {
     return (
@@ -414,7 +566,7 @@ export default function SourceLibrary() {
     );
   }
 
-  // ── Filtered files ───────────────────────────────────────────────────────
+  // ── Filtered files ────────────────────────────────────────────────────────
 
   const filteredFiles = files.filter(
     f => !searchTerm || f.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -437,10 +589,49 @@ export default function SourceLibrary() {
         </div>
       )}
 
+      {/* ── PDF Extracting Overlay ── */}
+      {extractingPdf && (
+        <div className="fixed inset-0 z-[55] bg-black/30 flex items-center justify-center">
+          <div className="bg-[#FAF7F2] border-2 border-black px-8 py-6 shadow-[4px_4px_0px_#000] flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-4 border-[#ae2925] border-t-transparent rounded-full animate-spin" />
+            <p className="font-black text-[15px] uppercase tracking-wide">Extracting text from PDF…</p>
+            <p className="text-[12px] font-semibold text-black/50">This may take a few seconds</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── File Preview Modal ── */}
+      {previewFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
+          <div className="bg-[#FAF7F2] border-2 border-black w-full max-w-md shadow-[4px_4px_0px_0px_#000]">
+            <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black">
+              <h2 className="font-black text-[15px] truncate flex-1 mr-3">{previewFile.name}</h2>
+              <button onClick={() => setPreviewFile(null)} className="material-symbols-outlined text-[20px] shrink-0 hover:text-[#ae2925]">close</button>
+            </div>
+            <div className="px-5 py-4 max-h-64 overflow-y-auto">
+              <p className="text-[13px] font-semibold text-[#444] leading-relaxed whitespace-pre-wrap">
+                {previewFile.preview || previewFile.fullText?.slice(0, 300) || "No preview available."}
+              </p>
+              {(previewFile.fullText?.length || 0) > 300 && (
+                <p className="text-[11px] font-bold text-black/40 mt-3 uppercase tracking-widest">…and {((previewFile.fullText?.length || 0) - 300).toLocaleString()} more characters</p>
+              )}
+            </div>
+            <div className="px-5 pb-4">
+              <button
+                onClick={() => setPreviewFile(null)}
+                className="w-full py-3 border-2 border-black bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Shared Modals ── */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
-          <div className="bg-[#FAF7F2] border-2 border-black rounded-2xl p-6 w-full max-w-sm shadow-[4px_4px_0px_0px_#000]">
+          <div className="bg-[#FAF7F2] border-2 border-black p-6 w-full max-w-sm shadow-[4px_4px_0px_0px_#000]">
             <h2 className="font-extrabold text-[17px] mb-4">Paste Study Notes</h2>
             <input
               autoFocus
@@ -448,34 +639,34 @@ export default function SourceLibrary() {
               value={uploadFileName}
               onChange={e => setUploadFileName(e.target.value)}
               placeholder="File name (e.g. Science_Lab_Ch4.txt)"
-              className="w-full border-2 border-black rounded-xl px-4 py-3 text-[14px] font-semibold bg-white mb-3 outline-none"
+              className="w-full border-2 border-black px-4 py-3 text-[14px] font-semibold bg-white mb-3 outline-none"
             />
             <textarea
               value={uploadContent}
               onChange={e => setUploadContent(e.target.value)}
               placeholder="Paste study notes or flashcard material here..."
               rows={4}
-              className="w-full border-2 border-black rounded-xl px-4 py-3 text-[13px] font-semibold bg-white mb-4 outline-none resize-none"
+              className="w-full border-2 border-black px-4 py-3 text-[13px] font-semibold bg-white mb-4 outline-none resize-none"
             />
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowUploadModal(false); setUploadFileName(""); setUploadContent(""); }}
-                className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-[14px]"
+                className="flex-1 py-3 border-2 border-black font-bold text-[14px]"
               >Cancel</button>
               <button
                 onClick={handleUploadConfirm}
-                className="flex-1 py-3 bg-[#ae2925] text-white border-2 border-black rounded-xl font-bold text-[14px] shadow-[3px_3px_0px_0px_#000]"
+                className="flex-1 py-3 bg-[#ae2925] text-white border-2 border-black font-bold text-[14px] shadow-[3px_3px_0px_0px_#000]"
               >Save</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Hidden file input — shared */}
+      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.txt"
+        accept=".pdf,.txt,text/*,image/*"
         className="hidden"
         onChange={handleFileSelected}
       />
@@ -492,6 +683,12 @@ export default function SourceLibrary() {
             <span className="text-[22px] font-black tracking-tight">SOURCE LIBRARY</span>
             <div className="w-px h-6 bg-black/20" />
             <span className="text-[13px] font-bold text-black/50">{files.length} file{files.length !== 1 ? "s" : ""} • {selectedIds.length} active</span>
+            {corruptedIds.size > 0 && (
+              <span className="text-[12px] font-bold text-red-500 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                {corruptedIds.size} corrupted
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <button className="material-symbols-outlined text-black hover:text-[#FF4D2E] transition-colors">notifications</button>
@@ -511,7 +708,7 @@ export default function SourceLibrary() {
           {/* Left Pane — Library & Upload */}
           <div className="w-[60%] flex flex-col border-r-2 border-black overflow-y-auto">
 
-            {/* Search + view header */}
+            {/* Search + action bar */}
             <div className="px-8 py-5 border-b-2 border-black flex items-center gap-4 shrink-0">
               <div className="relative flex-1">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-black/40">search</span>
@@ -525,7 +722,8 @@ export default function SourceLibrary() {
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 bg-black text-white border-2 border-black text-[13px] font-extrabold shadow-[2px_2px_0px_#555] hover:opacity-90 shrink-0"
+                disabled={extractingPdf}
+                className="flex items-center gap-2 px-4 py-2 bg-black text-white border-2 border-black text-[13px] font-extrabold shadow-[2px_2px_0px_#555] hover:opacity-90 shrink-0 disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[18px]">upload</span>
                 Upload
@@ -553,31 +751,20 @@ export default function SourceLibrary() {
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLDivElement).classList.add("bg-black", "!border-solid"); }}
                 onDragLeave={e => { (e.currentTarget as HTMLDivElement).classList.remove("bg-black", "!border-solid"); }}
-                onDrop={e => {
-                  e.preventDefault();
-                  (e.currentTarget as HTMLDivElement).classList.remove("bg-black", "!border-solid");
-                  const file = e.dataTransfer.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    const content = ev.target?.result as string || "";
-                    addFileToLibrary({
-                      id: "f_" + Date.now(),
-                      name: file.name,
-                      type: file.type.includes("pdf") ? "pdf" : file.type.includes("image") ? "image" : "text",
-                      content: content.length > 50000 ? content.slice(0, 50000) : content,
-                      size: `${(file.size / 1024).toFixed(1)} KB`,
-                      created_at: new Date().toISOString(),
-                      isPdf: file.name.toLowerCase().endsWith(".pdf"),
-                    });
-                  };
-                  if (file.type.includes("image")) reader.readAsDataURL(file);
-                  else reader.readAsText(file);
-                }}
+                onDrop={handleDrop}
               >
-                <span className="material-symbols-outlined text-[36px] text-black/30">upload_file</span>
-                <span className="text-[13px] font-extrabold uppercase tracking-widest text-black/50">Drag & Drop PDF, TXT, or Image</span>
-                <span className="text-[11px] font-bold text-black/30">Max 50 MB</span>
+                {extractingPdf ? (
+                  <>
+                    <div className="w-8 h-8 border-4 border-[#ae2925] border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[13px] font-extrabold uppercase tracking-widest text-[#ae2925]">Extracting text…</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[36px] text-black/30">upload_file</span>
+                    <span className="text-[13px] font-extrabold uppercase tracking-widest text-black/50">Drag & Drop PDF, TXT, or Image</span>
+                    <span className="text-[11px] font-bold text-black/30">Max {MAX_FILE_SIZE_MB} MB</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -748,52 +935,13 @@ export default function SourceLibrary() {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search files..."
-              className="w-full border-2 border-black rounded-xl px-4 py-3 text-[14px] font-semibold bg-white outline-none"
+              className="w-full border-2 border-black px-4 py-3 text-[14px] font-semibold bg-white outline-none"
             />
           )}
 
           {/* Upload Area */}
           <section>
-            <div className="bg-white rounded-2xl border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[200px]">
-              <div className="flex gap-5 mb-1">
-                {/* File Upload */}
-                <div className="flex flex-col items-center gap-1.5">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={files.length >= fileLimit}
-                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Paperclip className="w-7 h-7 text-[#ae2925]" />
-                  </button>
-                  <span className="text-[11px] font-bold text-[#666]">TXT / Image</span>
-                </div>
-
-                {/* Camera Capture */}
-                <div className="flex flex-col items-center gap-1.5">
-                  <button
-                    onClick={openCamera}
-                    disabled={files.length >= fileLimit}
-                    className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Camera className="w-7 h-7 text-[#ae2925]" />
-                  </button>
-                  <span className="text-[11px] font-bold text-[#666]">Capture</span>
-                </div>
-              </div>
-
-              <p className="font-headline font-bold text-[#1A1A1A] text-center text-[16px]">
-                Upload a file or capture your notes
-              </p>
-              <p className="font-bold text-[#888] text-center text-[12px]">
-                PDF, TXT • or point camera at textbook / whiteboard
-              </p>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] rounded-xl bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
-              >
-                Or paste text manually
-              </button>
-            </div>
+            <UploadZone />
           </section>
 
           {/* Quick Launch */}
@@ -831,7 +979,7 @@ export default function SourceLibrary() {
                 ))}
 
               {files.length === 0 && (
-                <div className="text-center p-10 bg-white border-2 border-dashed border-[#1A1A1A] rounded-2xl opacity-60">
+                <div className="text-center p-10 bg-white border-2 border-dashed border-[#1A1A1A] opacity-60">
                   <p className="font-bold text-[16px]">No Files Present</p>
                   <p className="text-[13px] mt-1 font-semibold">Upload or capture notes to power AI generation.</p>
                 </div>
