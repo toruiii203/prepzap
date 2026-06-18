@@ -441,17 +441,10 @@ export default function AITutor() {
 
       const promptBody = messages.length > 0 ? `Given our study history, answer this: ${finalMsg}` : finalMsg;
 
-      const callGroqWithModel = async (promptText: string, systemPrompt: string) => {
-        const fn = callGroq as any;
-        const fnStr = fn.toString();
-        if (fnStr.includes("messages") || fnStr.includes("llama")) {
-          return await fn([{ role: "user", content: promptText }], systemPrompt, "llama-3.3-70b-versatile", 1000);
-        } else {
-          return await fn(promptText, systemPrompt, "application/json");
-        }
-      };
-
-      const reply = await callGroqWithModel(promptBody, systemInstruction);
+      const reply = await callGroq(
+        [{ role: "user", content: promptBody }],
+        systemInstruction
+      );
       const botText = reply || "I processed your request! Let me know if you need to go deeper.";
       setMessages((prev) => [...prev, { sender: "bot" as const, text: botText }]);
       saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: "rex-ai", meta: activeMode });
@@ -460,8 +453,9 @@ export default function AITutor() {
         remaining("ai_tutor").then(setRemainingUses);
       }
     } catch (err) {
-      console.error(err);
-      setMessages((prev) => [...prev, { sender: "bot" as const, text: "Couldn't reach the backend. Please check your connection and try again." }]);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[AITutor] callGroq failed:", msg);
+      setMessages((prev) => [...prev, { sender: "bot" as const, text: `Couldn't reach the backend: ${msg}` }]);
     } finally {
       setIsLoading(false);
     }

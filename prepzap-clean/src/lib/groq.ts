@@ -72,13 +72,10 @@ export async function callGroq(
       systemPrompt = systemPromptOrModel;
     }
   } else {
+    // messages is already an array — systemPromptOrModel is always a system prompt here.
+    // Model comes in as the explicit 3rd argument; no detection needed.
     normMessages = messages;
-    if (systemPromptOrModel && looksLikeModel(systemPromptOrModel) && model === DEFAULT_MODEL) {
-      model = systemPromptOrModel;
-      systemPrompt = undefined;
-    } else {
-      systemPrompt = systemPromptOrModel;
-    }
+    systemPrompt = systemPromptOrModel;
   }
 
   // Auto-detect active image sources and inject into the last user message
