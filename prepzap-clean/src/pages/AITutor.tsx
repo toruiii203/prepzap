@@ -376,6 +376,9 @@ export default function AITutor() {
     if (desktopTextareaRef.current) desktopTextareaRef.current.style.height = "auto";
 
     try {
+      const perFileCap = isPro ? 4000 : 3000;
+      const totalCap = isPro ? 30000 : 9000;
+
       const refContext = buildAIContext();
       let effectiveContext = refContext;
       if (!effectiveContext) {
@@ -384,10 +387,7 @@ export default function AITutor() {
         if (selectedIds.length > 0) {
           const libFiles = loadLibrary();
           const selectedFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
-      const perFileCap = isPro ? 4000 : 3000;
-      const totalCap = isPro ? 30000 : 9000;
-
-      if (selectedFiles.length > 0) {
+          if (selectedFiles.length > 0) {
             effectiveContext = selectedFiles.map((f: any) => {
               if (f.type === "image" || (f.content && f.content.startsWith("data:image"))) {
                 return `[Attached image: ${f.name}]\n(Image content was captured for visual analysis)`;
@@ -398,8 +398,8 @@ export default function AITutor() {
               if (isGarbage) {
                 return `=== ${f.name} ===\n[File content is corrupted — please delete and re-upload.]`;
               }
-              const capped = raw.length > perFileCap ? raw.slice(0, perFileCap) + "\n[...truncated]" : raw;
-              return `=== ${f.name} ===\n${capped}`;
+              const truncated = raw.length > perFileCap ? raw.slice(0, perFileCap) + "\n[...truncated]" : raw;
+              return `=== ${f.name} ===\n${truncated}`;
             }).join("\n\n");
           }
         }
