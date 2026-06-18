@@ -384,20 +384,22 @@ export default function AITutor() {
         if (selectedIds.length > 0) {
           const libFiles = loadLibrary();
           const selectedFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
-          if (selectedFiles.length > 0) {
+      const perFileCap = isPro ? 4000 : 3000;
+      const totalCap = isPro ? 30000 : 9000;
+
+      if (selectedFiles.length > 0) {
             effectiveContext = selectedFiles.map((f: any) => {
               if (f.type === "image" || (f.content && f.content.startsWith("data:image"))) {
                 return `[Attached image: ${f.name}]\n(Image content was captured for visual analysis)`;
               }
-              // Prefer fullText (clean text), fall back to content
               const raw = f.fullText || f.content || "";
-              // Detect binary/corrupted content from PDF-read-as-binary
               const garbage = (raw.match(/[\x00-\x08\x0E-\x1F\uFFFD]/g) || []).length;
               const isGarbage = raw.length > 100 && garbage / raw.length > 0.1;
               if (isGarbage) {
-                return `=== ${f.name} ===\n[File content is corrupted — this was likely a PDF uploaded incorrectly. Please delete this file and re-add the content using 'Paste text manually'.]`;
+                return `=== ${f.name} ===\n[File content is corrupted — please delete and re-upload.]`;
               }
-              return `=== ${f.name} ===\n${raw}`;
+              const capped = raw.length > perFileCap ? raw.slice(0, perFileCap) + "\n[...truncated]" : raw;
+              return `=== ${f.name} ===\n${capped}`;
             }).join("\n\n");
           }
         }
@@ -417,9 +419,8 @@ export default function AITutor() {
           .replace(/\uFFFD/g, "")
           .trim();
 
-        // Cap at 20000 chars to support multiple files without hitting Worker limits
-        const capped = sanitized.length > 20000
-          ? sanitized.slice(0, 20000) + "\n[...truncated for length]"
+        const capped = sanitized.length > totalCap
+          ? sanitized.slice(0, totalCap) + "\n[...truncated for length]"
           : sanitized;
 
         systemInstruction += `\n\nThe student has attached the following reference material. Base your answers on this content when relevant:\n\n${capped}`;
