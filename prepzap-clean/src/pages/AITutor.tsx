@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useRef, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext, loadContext, loadLibrary, saveContext } from "@/lib/sourceContext";
+import { loadContext, loadLibrary, saveContext } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
@@ -291,35 +291,35 @@ export default function AITutor() {
     if (last.sender === "bot") setFoxImg(FOX.happy);
   }, [isLoading, messages]);
 
-  // Sync active source on mount and window focus only
-  useEffect(() => {
-    const syncSource = () => {
-      const ctx = loadContext();
-      const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
-      const libFiles = loadLibrary();
-      const activeFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
-      setActiveSourceCount(activeFiles.length);
-      if (activeFiles.length === 0) setActiveSource(null);
-      else if (activeFiles.length === 1) setActiveSource(activeFiles[0].name);
-      else setActiveSource(`${activeFiles[0].name} +${activeFiles.length - 1} more`);
-    };
-    syncSource();
-    window.addEventListener("focus", syncSource);
-    return () => window.removeEventListener("focus", syncSource);
-  }, []);
-
-  // Re-sync source label after each message without adding new listeners
-  useEffect(() => {
-    if (messages.length === 0) return;
+  // Shared helper: resolve the active file list honouring mode="all"|"selected"|"none"
+  const resolveActiveFiles = () => {
     const ctx = loadContext();
-    const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
     const libFiles = loadLibrary();
-    const activeFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
+    if (ctx.mode === "none") return [];
+    if (ctx.mode === "all")  return libFiles;
+    return libFiles.filter((f: any) => (ctx.selectedIds ?? []).includes(f.id));
+  };
+
+  const applySourceLabel = (activeFiles: any[]) => {
     setActiveSourceCount(activeFiles.length);
     if (activeFiles.length === 0) setActiveSource(null);
     else if (activeFiles.length === 1) setActiveSource(activeFiles[0].name);
     else setActiveSource(`${activeFiles[0].name} +${activeFiles.length - 1} more`);
-  }, [messages]);
+  };
+
+  // Sync active source on mount and window focus only
+  useEffect(() => {
+    const syncSource = () => applySourceLabel(resolveActiveFiles());
+    syncSource();
+    window.addEventListener("focus", syncSource);
+    return () => window.removeEventListener("focus", syncSource);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-sync source label after each message without adding new listeners
+  useEffect(() => {
+    if (messages.length === 0) return;
+    applySourceLabel(resolveActiveFiles());
+  }, [messages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-scroll
   useEffect(() => {
@@ -392,30 +392,24 @@ export default function AITutor() {
       const perFileCap = isPro ? 2000 : 1500;
       const totalCap = isPro ? 15000 : 4500;
 
-      const refContext = buildAIContext();
-      let effectiveContext = refContext;
-      if (!effectiveContext) {
-        const ctx = loadContext();
-        const selectedIds = Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || [];
-        if (selectedIds.length > 0) {
-          const libFiles = loadLibrary();
-          const selectedFiles = libFiles.filter((f: any) => selectedIds.includes(f.id));
-          if (selectedFiles.length > 0) {
-            effectiveContext = selectedFiles.map((f: any) => {
-              if (f.type === "image" || (f.content && f.content.startsWith("data:image"))) {
-                return `[Attached image: ${f.name}]\n(Image content was captured for visual analysis)`;
-              }
-              const raw = f.fullText || f.content || "";
-              const garbage = (raw.match(/[\x00-\x08\x0E-\x1F\uFFFD]/g) || []).length;
-              const isGarbage = raw.length > 100 && garbage / raw.length > 0.1;
-              if (isGarbage) {
-                return `=== ${f.name} ===\n[File content is corrupted — please delete and re-upload.]`;
-              }
-              const truncated = raw.length > perFileCap ? raw.slice(0, perFileCap) + "\n[...truncated]" : raw;
-              return `=== ${f.name} ===\n${truncated}`;
-            }).join("\n\n");
+      // Build context from ALL active files, honouring mode="all"|"selected"|"none"
+      let effectiveContext: string | null = null;
+      const activeFiles = resolveActiveFiles();
+      if (activeFiles.length > 0) {
+        effectiveContext = activeFiles.map((f: any) => {
+          if (f.type === "image/jpeg" || f.type === "image/png" ||
+              f.type === "image" || (f.content && f.content.startsWith("data:image"))) {
+            return `[Attached image: ${f.name}]\n(Image content was captured for visual analysis)`;
           }
-        }
+          const raw = f.fullText || f.preview || f.content || "";
+          const garbage = (raw.match(/[\x00-\x08\x0E-\x1F\uFFFD]/g) || []).length;
+          const isGarbage = raw.length > 100 && garbage / raw.length > 0.1;
+          if (isGarbage) {
+            return `=== ${f.name} ===\n[File content is corrupted — please delete and re-upload.]`;
+          }
+          const truncated = raw.length > perFileCap ? raw.slice(0, perFileCap) + "\n[...truncated]" : raw;
+          return `=== ${f.name} ===\n${truncated}`;
+        }).join("\n\n");
       }
 
       let systemInstruction = "You are Rex AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. Speak clearly, concisely, and keep explanations elegant. Use markdown formatting (bold, bullet lists, headings) to structure your responses clearly.";
@@ -471,7 +465,7 @@ export default function AITutor() {
 
   const handleClearSource = () => {
     setActiveSource(null);
-    saveContext([]);
+    saveContext({ mode: "none", selectedIds: [] });
   };
 
   const suggestions = [
