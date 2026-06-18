@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useRef, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
-import { loadContext, loadLibrary, saveContext } from "@/lib/sourceContext";
+import { loadContext, loadLibrary, onSourceChange, saveContext } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
@@ -66,7 +66,7 @@ function RenderBotText({ text }: { text: string }) {
     }
 
     // Headings
-    const headingMatch = line.match(/^(#{1,3})\s+(.+)/);
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)/);
     if (headingMatch) {
       const level = headingMatch[1].length;
       const cls = level === 1 ? "text-[16px] font-black mt-3 mb-1"
@@ -77,12 +77,12 @@ function RenderBotText({ text }: { text: string }) {
       continue;
     }
 
-    // Bullet list
-    const bulletMatch = line.match(/^[\s]*[-•]\s+(.+)/);
+    // Bullet list (-, •, or + prefix — Gemini uses +)
+    const bulletMatch = line.match(/^[\s]*[-•+]\s+(.+)/);
     if (bulletMatch) {
       const items: React.ReactNode[] = [];
-      while (i < lines.length && lines[i].match(/^[\s]*[-•]\s+(.+)/)) {
-        const m = lines[i].match(/^[\s]*[-•]\s+(.+)/);
+      while (i < lines.length && lines[i].match(/^[\s]*[-•+]\s+(.+)/)) {
+        const m = lines[i].match(/^[\s]*[-•+]\s+(.+)/);
         if (m) items.push(<li key={i} className="ml-1">{renderInline(m[1], i)}</li>);
         i++;
       }
@@ -100,6 +100,40 @@ function RenderBotText({ text }: { text: string }) {
         i++;
       }
       elements.push(<ol key={`ol-${i}`} className="list-decimal list-inside space-y-0.5 my-1">{items}</ol>);
+      continue;
+    }
+
+    // Markdown table (| col | col |)
+    if (line.startsWith("|")) {
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].startsWith("|")) {
+        const cells = lines[i].split("|").slice(1, -1).map(c => c.trim());
+        // skip separator rows (| --- | --- |)
+        if (!cells.every(c => /^[-:]+$/.test(c))) rows.push(cells);
+        i++;
+      }
+      if (rows.length > 0) {
+        elements.push(
+          <div key={`tbl-${i}`} className="overflow-x-auto my-2">
+            <table className="w-full border-collapse text-[13px]">
+              <thead>
+                <tr>{rows[0].map((h, ci) => (
+                  <th key={ci} className="border-2 border-black px-2 py-1 bg-black text-white text-left font-bold">{renderInline(h, ci)}</th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {rows.slice(1).map((row, ri) => (
+                  <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-[#F0EDE0]"}>
+                    {row.map((cell, ci) => (
+                      <td key={ci} className="border border-black/30 px-2 py-1">{renderInline(cell, ci)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
       continue;
     }
 
@@ -307,12 +341,16 @@ export default function AITutor() {
     else setActiveSource(`${activeFiles[0].name} +${activeFiles.length - 1} more`);
   };
 
-  // Sync active source on mount and window focus only
+  // Sync active source on mount, window focus, AND when auth sets _uid (pz_source_changed fires then)
   useEffect(() => {
     const syncSource = () => applySourceLabel(resolveActiveFiles());
     syncSource();
     window.addEventListener("focus", syncSource);
-    return () => window.removeEventListener("focus", syncSource);
+    const unsub = onSourceChange(syncSource); // re-fires when setSourceContextUser() sets _uid
+    return () => {
+      window.removeEventListener("focus", syncSource);
+      unsub();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-sync source label after each message without adding new listeners
