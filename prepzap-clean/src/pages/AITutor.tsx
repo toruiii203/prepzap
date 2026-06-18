@@ -291,7 +291,7 @@ export default function AITutor() {
     if (last.sender === "bot") setFoxImg(FOX.happy);
   }, [isLoading, messages]);
 
-  // Sync active source
+  // Sync active source — runs on mount, window focus, and after every message
   useEffect(() => {
     const syncSource = () => {
       const ctx = loadContext();
@@ -306,7 +306,7 @@ export default function AITutor() {
     syncSource();
     window.addEventListener("focus", syncSource);
     return () => window.removeEventListener("focus", syncSource);
-  }, []);
+  }, [messages]);
 
   // Auto-scroll
   useEffect(() => {
