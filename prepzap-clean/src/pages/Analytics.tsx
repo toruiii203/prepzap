@@ -9,7 +9,7 @@ interface AnalyticsProps {
 
 export default function Analytics() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [tasksCompletedPct, setTasksCompletedPct] = useState(0);
@@ -120,7 +120,7 @@ export default function Analytics() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 bg-[#F0EDE0] px-3 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
                 <span className="material-symbols-outlined text-[#FF4D2E] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
-                <span className="text-[13px] font-extrabold">Streak: 12 Days</span>
+                <span className="text-[13px] font-extrabold">Streak: {profile?.streak ?? 0} Day{(profile?.streak ?? 0) !== 1 ? "s" : ""}</span>
               </div>
               <button
                 onClick={() => {

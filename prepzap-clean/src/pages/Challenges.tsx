@@ -246,7 +246,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
                     {!isDone && (
                       <button onClick={(e) => handleCompleteQuest(card.id, e)}
                         className="w-full bg-[#ae2925] text-white border-2 border-black py-2 mt-2 font-extrabold text-[12px] hover:opacity-90 shadow-[2px_2px_0px_#000] cursor-pointer">
-                        /// Double-Check & Complete Task
+                        Double-Check & Complete Task
                       </button>
                     )}
                     {isDone && (

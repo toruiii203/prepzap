@@ -144,7 +144,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function MobileRootRedirect() {
   const { session, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "#FAF7F2", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <img src="/icon-512.png" alt="Loading" style={{ width: 72, height: 72, opacity: 0.7 }} />
+    </div>
+  );
   if (session) return <Navigate to="/dashboard" replace />;
   return <Landing />;
 }

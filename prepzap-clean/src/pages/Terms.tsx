@@ -40,7 +40,7 @@ export default function Terms() {
           },
           {
             title: "7. Subscription and Payments",
-            content: `Studenius offers free and paid subscription tiers. Paid subscriptions are billed on a monthly or annual basis. All payments are processed securely. Subscriptions automatically renew unless cancelled before the renewal date. Refunds are handled on a case-by-case basis /// contact us at studeniusapp@gmail.com for refund requests.`
+            content: `Studenius offers free and paid subscription tiers. Paid subscriptions are billed on a monthly or annual basis. All payments are processed securely. Subscriptions automatically renew unless cancelled before the renewal date. Refunds are handled on a case-by-case basis. Contact us at studeniusapp@gmail.com for refund requests.`
           },
           {
             title: "8. Intellectual Property",
@@ -67,7 +67,7 @@ export default function Terms() {
 
         <div style={{ marginTop: 64, paddingTop: 24, borderTop: "0.5px solid rgba(240,232,212,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "rgba(240,232,212,0.3)" }}>Studenius Â/ All rights reserved</span>
-          <Link to="/privacy" style={{ fontSize: 12, color: "rgba(240,232,212,0.4)", textDecoration: "none" }}>Privacy Policy ///</Link>
+          <Link to="/privacy" style={{ fontSize: 12, color: "rgba(240,232,212,0.4)", textDecoration: "none" }}>Privacy Policy</Link>
         </div>
       </div>
     </div>

@@ -63,7 +63,7 @@ export default function Privacy() {
 
         <div style={{ marginTop: 64, paddingTop: 24, borderTop: "0.5px solid rgba(240,232,212,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "rgba(240,232,212,0.3)" }}>Studenius Â/ All rights reserved</span>
-          <Link to="/terms" style={{ fontSize: 12, color: "rgba(240,232,212,0.4)", textDecoration: "none" }}>Terms of Service ///</Link>
+          <Link to="/terms" style={{ fontSize: 12, color: "rgba(240,232,212,0.4)", textDecoration: "none" }}>Terms of Service</Link>
         </div>
       </div>
     </div>

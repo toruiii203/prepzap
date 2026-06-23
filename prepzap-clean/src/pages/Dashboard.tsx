@@ -131,12 +131,12 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{session.duration}m • {formattedDate}</div>
+                  <div className="text-[11px] font-bold text-black/50">{Math.round(Number(session.duration) || 0)}m • {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round(session.duration * 1.5)} XP</div>
-                <div className="text-[11px] font-bold text-black/40">{session.duration}m studied</div>
+                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round((Number(session.duration) || 0) * 1.5)} XP</div>
+                <div className="text-[11px] font-bold text-black/40">{Math.round(Number(session.duration) || 0)}m studied</div>
               </div>
             </div>
           );
@@ -690,7 +690,7 @@ export default function Dashboard() {
                   <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
                   <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
                   <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
-                    {session.duration}m / {formattedDate}
+                    {Math.round(Number(session.duration) || 0)}m / {formattedDate}
                   </div>
                 </div>
               );

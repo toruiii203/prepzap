@@ -325,13 +325,22 @@ export default function AITutor() {
     if (last.sender === "bot") setFoxImg(FOX.happy);
   }, [isLoading, messages]);
 
-  // Shared helper: resolve the active file list honouring mode="all"|"selected"|"none"
+  // Shared helper: resolve the active file list.
+  // loadContext() can return either the legacy plain array of selected IDs
+  // (what SourceLibrary actually saves via saveContext(idsArray)) or an
+  // object shape { mode, selectedIds } for forward-compat. Handle both.
   const resolveActiveFiles = () => {
-    const ctx = loadContext();
+    const ctx: any = loadContext();
     const libFiles = loadLibrary();
-    if (ctx.mode === "none") return [];
-    if (ctx.mode === "all")  return libFiles;
-    return libFiles.filter((f: any) => (ctx.selectedIds ?? []).includes(f.id));
+
+    if (Array.isArray(ctx)) {
+      // Current real shape: ctx IS the selectedIds array.
+      return libFiles.filter((f: any) => ctx.includes(f.id));
+    }
+
+    if (ctx?.mode === "none") return [];
+    if (ctx?.mode === "all") return libFiles;
+    return libFiles.filter((f: any) => (ctx?.selectedIds ?? []).includes(f.id));
   };
 
   const applySourceLabel = (activeFiles: any[]) => {
@@ -503,7 +512,9 @@ export default function AITutor() {
 
   const handleClearSource = () => {
     setActiveSource(null);
-    saveContext({ mode: "none", selectedIds: [] });
+    // Keep the same shape SourceLibrary uses (a plain array of selected IDs).
+    // Saving an object here previously left a mismatched shape in storage.
+    saveContext([]);
   };
 
   const suggestions = [
