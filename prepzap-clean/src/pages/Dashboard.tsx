@@ -199,7 +199,7 @@ export default function Dashboard() {
   };
 
   const toTitleCase = (s: string) =>
-    s.toLowerCase().replace(/\w/g, c => c.toUpperCase());
+    s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
   const rawName =
     user?.avatarConfig?.full_name ||
     (user as any)?.user_metadata?.full_name ||

@@ -57,7 +57,9 @@ export default function QuickStudy() {
   const chips = ["Cell Biology", "Anatomy", "Genetics", "Neuroscience", "Biochemistry", "Physiology"];
 
   const handleGenerate = async () => {
-    if (!topic.trim()) return;
+    const sourceContext = buildAIContext();
+    if (!topic.trim() && !sourceContext) return;
+    const effectiveTopic = topic.trim() || activeSource?.name?.replace(/\.[^.]+$/, "").replace(/-/g, " ") || "Study Material";
 
     // Freemium gate
     if (!isPro) {
@@ -74,8 +76,7 @@ export default function QuickStudy() {
     let result: StudySheet | null = null;
 
     try {
-      const sourceContext = buildAIContext();
-      const promptText = `Generate a robust high-yield academic study guide for the topic: "${topic}".\nMode: "${activeTab === "Cram" ? "Cram Session (Fast Core Cheat Sheet Facts)" : "High Yield Summary (Clinical context / Advanced correlation)"}"\n${sourceContext ? `Incorporate source material detail:\n${sourceContext}` : ""}\n\nReturn strictly a valid raw JSON object. Do not wrap in markdown tags or code blocks.\nRequired JSON schema:\n{\n  "title": "${topic} (${activeTab === "Cram" ? "Cram Sheet" : "High Yield Study"})",\n  "tags": ["Subject Area", "Sub-topic", "Exam Category"],\n  "retentionScore": 72,\n  "goals": [\n    "Define the core terminology",\n    "Identify 3 high-yield mechanisms",\n    "Summarize key clinical correlations"\n  ],\n  "points": [\n    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition..." },\n    { "label": "Second Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Third Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation..." }\n  ]\n}\n\nRules:\n- tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")\n- retentionScore: integer 0-100 reflecting topic complexity and how well these 4 points cover it\n- goals: exactly 3 short imperative study goals specific to this topic\n- points: exactly 4 rigorous study points\nReturn raw JSON only, no wrapping!`;
+      const promptText = `Generate a robust high-yield academic study guide for the topic: "${effectiveTopic}".\nMode: "${activeTab === "Cram" ? "Cram Session (Fast Core Cheat Sheet Facts)" : "High Yield Summary (Clinical context / Advanced correlation)"}"\n${sourceContext ? `Incorporate source material detail:\n${sourceContext}` : ""}\n\nReturn strictly a valid raw JSON object. Do not wrap in markdown tags or code blocks.\nRequired JSON schema:\n{\n  "title": "${effectiveTopic} (${activeTab === "Cram" ? "Cram Sheet" : "High Yield Study"})",\n  "tags": ["Subject Area", "Sub-topic", "Exam Category"],\n  "retentionScore": 72,\n  "goals": [\n    "Define the core terminology",\n    "Identify 3 high-yield mechanisms",\n    "Summarize key clinical correlations"\n  ],\n  "points": [\n    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition..." },\n    { "label": "Second Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Third Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation..." }\n  ]\n}\n\nRules:\n- tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")\n- retentionScore: integer 0-100 reflecting topic complexity and how well these 4 points cover it\n- goals: exactly 3 short imperative study goals specific to this topic\n- points: exactly 4 rigorous study points\nReturn raw JSON only, no wrapping!`;
 
       const systemPrompt = "You are an elite medical and engineering tutor who publishes quick high-yield revision cards strictly in raw JSON formats.";
 
@@ -403,12 +404,12 @@ export default function QuickStudy() {
                       {libraryFiles.map(f => (
                         <button
                           key={f.id}
-                          onClick={() => setTopic(prev => prev ? prev : f.name.replace(/\.[^.]+$/, ""))}
+                          onClick={() => setTopic(prev => prev ? prev : f.name.replace(/\.[^.]+$/, "").replace(/-/g, " "))}
                           className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-white text-[12px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000] max-w-[160px] truncate"
                           title={f.name}
                         >
                           <span className="material-symbols-outlined text-[14px]">description</span>
-                          <span className="truncate">{f.name.replace(/\.[^.]+$/, "").substring(0, 18)}</span>
+                          <span className="truncate">{f.name.replace(/\.[^.]+$/, "").replace(/-/g, " ").substring(0, 20)}</span>
                         </button>
                       ))}
                       <button
@@ -430,7 +431,7 @@ export default function QuickStudy() {
                   )}
 
                   {/* Tab toggles */}
-                  <div className="flex border-2 border-black overflow-hidden">
+                  <div className="flex border-2 border-black overflow-hidden min-w-0">
                     {(["Cram", "HighYield"] as const).map((tab) => (
                       <button
                         key={tab}
@@ -447,7 +448,7 @@ export default function QuickStudy() {
                   {/* Generate */}
                   <button
                     onClick={handleGenerate}
-                    disabled={!topic.trim() || loading}
+                    disabled={(!topic.trim() && libraryFiles.length === 0) || loading}
                     className="flex-1 relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <div className="w-full py-2.5 bg-black text-white border-2 border-black flex items-center justify-center gap-2 z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
@@ -631,7 +632,7 @@ export default function QuickStudy() {
 
           {/* Generate button */}
           <button
-            disabled={!topic.trim() || loading}
+            disabled={(!topic.trim() && libraryFiles.length === 0) || loading}
             onClick={handleGenerate}
             className="relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >

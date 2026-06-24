@@ -218,7 +218,7 @@ Mix question types: definition, application, comparison.`;
       <BuddyCompanion />
       <main className="max-w-xl mx-auto px-4 pt-6 pb-24">
         <GlobalContextBar compact />
-        <ToolHeader icon={<TrendingUp className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="High Yield Detector" subtitle="Find what's most testable — then drill it instantly" />
+        <ToolHeader icon={<TrendingUp className="h-5 w-5" style={{ color: "var(--pz-gold)" }} />} title="High Yield Detector" subtitle="Find what's most testable /// then drill it instantly" />
 
         
         <div className="space-y-3 mt-6">
@@ -241,13 +241,13 @@ Mix question types: definition, application, comparison.`;
           
           <ConceptChipSelector
             onSelect={(concept) => { setSubject(prev => prev ? prev + "\n\n" + concept : concept); }}
-            placeholder="e.g. Biochemistry, Calculus, WW2"
+            placeholder="e.g. Biochemistry, Calculus, WW2///"
             label="Add Topic Tags (optional)"
           />
           
           <div>
             <label className="text-xs font-medium mb-1.5 block uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>Exam Type (optional)</label>
-            <input value={examType} onChange={e => setExamType(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGenerate()} placeholder="e.g. USMLE, SAT—"
+            <input value={examType} onChange={e => setExamType(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGenerate()} placeholder="e.g. USMLE, SAT, Bar Exam"
               className="w-full px-3 py-2.5 text-sm outline-none" style={{ background: "var(--pz-surface2)", border: "1px solid var(--pz-border)", color: "var(--pz-text)", borderRadius: 8 }} />
           </div>
           

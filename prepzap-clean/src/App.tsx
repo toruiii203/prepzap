@@ -218,13 +218,13 @@ function AppRoutes() {
           <Route path="/math" element={<MathSolver />} />
           <Route path="/sources" element={<SourceLibrary />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/cram" element={<CramMode />} />
-          <Route path="/recall" element={<RecallMode />} />
+          <Route path="/cram" element={<Navigate to="/quick-study" replace />} />
+          <Route path="/recall" element={<Navigate to="/quick-study" replace />} />
           <Route path="/visual-learner" element={<VisualLearner />} />
           <Route path="/avatar" element={<Avatar />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/high-yield" element={<HighYieldDetector />} />
+          <Route path="/high-yield" element={<Navigate to="/quick-study" replace />} />
           <Route path="/mistakes" element={<MistakeJournal />} />
 
           {/* Arena */}
