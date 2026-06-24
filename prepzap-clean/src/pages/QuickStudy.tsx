@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource, onSourceChange, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
@@ -23,7 +23,8 @@ interface StudySheet {
 
 export default function QuickStudy() {
   const navigate = useNavigate();
-  const activeSource = getActiveSource();
+  const [activeSource, setActiveSourceState] = useState(() => getActiveSource());
+  const [libraryFiles, setLibraryFiles] = useState<any[]>(() => loadLibrary());
   // FIX BUG 8: destructure history from useToolHistory (was missing historyEntries)
   const { save: saveHistory, history: deckHistory } = useToolHistory("quick-study");
   const { isPro, canUse, remaining, logUsage } = usePlan();
@@ -32,6 +33,18 @@ export default function QuickStudy() {
   const [topic, setTopic] = useState("");
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Reactively sync source context when user/source changes
+  useEffect(() => {
+    const sync = () => {
+      setActiveSourceState(getActiveSource());
+      setLibraryFiles(loadLibrary());
+    };
+    sync();
+    const unsub = onSourceChange(sync);
+    window.addEventListener("focus", sync);
+    return () => { unsub(); window.removeEventListener("focus", sync); };
+  }, []);
 
   // FIX BUG 4: initialize remainingUses as null to avoid flicker
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
@@ -385,13 +398,36 @@ export default function QuickStudy() {
 
                 {/* Actions row */}
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => navigate("/sources")}
-                    className="flex items-center gap-2 px-4 py-2.5 border-2 border-black bg-white text-[13px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000]"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                    Upload PDF / Doc
-                  </button>
+                  {libraryFiles.length > 0 ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {libraryFiles.map(f => (
+                        <button
+                          key={f.id}
+                          onClick={() => setTopic(prev => prev ? prev : f.name.replace(/\.[^.]+$/, ""))}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-white text-[12px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000] max-w-[160px] truncate"
+                          title={f.name}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">description</span>
+                          <span className="truncate">{f.name.replace(/\.[^.]+$/, "").substring(0, 18)}</span>
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => navigate("/sources")}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-dashed border-black bg-transparent text-[12px] font-bold hover:bg-[#E2E2E2] transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">add</span>
+                        Add
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => navigate("/sources")}
+                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-black bg-white text-[13px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000]"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                      Upload PDF / Doc
+                    </button>
+                  )}
 
                   {/* Tab toggles */}
                   <div className="flex border-2 border-black overflow-hidden">

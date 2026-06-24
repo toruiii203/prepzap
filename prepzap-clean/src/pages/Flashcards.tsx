@@ -278,7 +278,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       try {
         await supabase.from("tool_history").insert({
           user_id: user.id,
-          tool: "flashcards",
+          tool_id: "flashcards",
           prompt: deckLabel2,
           preview: `${generatedCards.length} cards`,
           output: deckLabel2,

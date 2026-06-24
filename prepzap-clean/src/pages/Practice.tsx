@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { loadContext, buildAIContext, getActiveSource, loadLibrary } from "@/lib/sourceContext";
+import { loadContext, buildAIContext, getActiveSource, loadLibrary, onSourceChange } from "@/lib/sourceContext";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
@@ -162,9 +162,15 @@ export default function Practice() {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    loadContext();
-    setActiveSource(getActiveSource());
-    setLibraryFiles(loadLibrary());
+    const sync = () => {
+      loadContext();
+      setActiveSource(getActiveSource());
+      setLibraryFiles(loadLibrary());
+    };
+    sync();
+    const unsub = onSourceChange(sync);
+    window.addEventListener("focus", sync);
+    return () => { unsub(); window.removeEventListener("focus", sync); };
   }, []);
 
   useEffect(() => {

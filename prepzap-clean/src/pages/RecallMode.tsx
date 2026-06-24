@@ -9,7 +9,7 @@ import { MessageSquare, Flame, Trophy, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext, getActiveSource } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource, onSourceChange } from "@/lib/sourceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -85,9 +85,21 @@ export default function RecallMode() {
   const [history, setHistory] = useState<TopicRecord[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const ctx = buildAIContext();
-  const activeSource = getActiveSource();
+  const [ctx, setCtx] = useState(() => buildAIContext());
+  const [activeSource, setActiveSourceState] = useState(() => getActiveSource());
   const hasSource = ctx.length > 0;
+
+  // Re-read source context whenever user or source changes
+  useEffect(() => {
+    const sync = () => {
+      setCtx(buildAIContext());
+      setActiveSourceState(getActiveSource());
+    };
+    sync();
+    const unsub = onSourceChange(sync);
+    window.addEventListener("focus", sync);
+    return () => { unsub(); window.removeEventListener("focus", sync); };
+  }, []);
 
   useEffect(() => { if (phase === "recall") inputRef.current?.focus(); }, [phase, current]);
 
