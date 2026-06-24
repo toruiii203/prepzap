@@ -198,12 +198,15 @@ export default function Dashboard() {
     setToolsPage(page);
   };
 
-  const displayName =
+  const toTitleCase = (s: string) =>
+    s.toLowerCase().replace(/\w/g, c => c.toUpperCase());
+  const rawName =
     user?.avatarConfig?.full_name ||
     (user as any)?.user_metadata?.full_name ||
     user?.name ||
     user?.email?.split("@")[0] ||
     "Master";
+  const displayName = toTitleCase(rawName);
 
   const [tasks, setTasks] = useState<{ id: any; title: string; completed: boolean; time?: string }[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");

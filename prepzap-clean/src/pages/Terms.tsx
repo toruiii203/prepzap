@@ -66,7 +66,7 @@ export default function Terms() {
         ))}
 
         <div style={{ marginTop: 64, paddingTop: 24, borderTop: "0.5px solid rgba(240,232,212,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "rgba(240,232,212,0.3)" }}>Studenius Â/ All rights reserved</span>
+          <span style={{ fontSize: 12, color: "rgba(240,232,212,0.3)" }}>Â© 2026 Studenius. All rights reserved</span>
           <Link to="/privacy" style={{ fontSize: 12, color: "rgba(240,232,212,0.4)", textDecoration: "none" }}>Privacy Policy</Link>
         </div>
       </div>

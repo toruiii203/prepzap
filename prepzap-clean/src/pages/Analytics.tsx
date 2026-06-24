@@ -231,40 +231,31 @@ export default function Analytics() {
                   Knowledge Distribution
                 </h3>
               </div>
-              <div className="flex flex-col items-center">
-                <div className="relative w-56 h-56 flex items-center justify-center">
-                  <div className="absolute inset-0 border-2 border-black rotate-45 opacity-10 rounded" />
-                  <div className="absolute inset-4 border-2 border-black rotate-45 opacity-20 rounded" />
-                  <div className="absolute inset-8 border-2 border-black rotate-45 opacity-30 rounded" />
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-extrabold uppercase">Quantum</span>
-                    <div className="w-2 h-2 bg-[#FF4D2E] rounded-full border border-black" />
-                  </div>
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
-                    <div className="w-2 h-2 bg-[#FF4D2E] rounded-full border border-black" />
-                    <span className="text-[10px] font-extrabold uppercase">Logic</span>
-                  </div>
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <span className="text-[10px] font-extrabold uppercase">Bio</span>
-                    <div className="w-2 h-2 bg-[#FF4D2E] rounded-full border border-black" />
-                  </div>
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <div className="w-2 h-2 bg-[#FF4D2E] rounded-full border border-black" />
-                    <span className="text-[10px] font-extrabold uppercase">Hist</span>
-                  </div>
-                  <div className="w-28 h-28 bg-[#FF4D2E]/20 border-2 border-[#FF4D2E] rounded-full" />
+              {sessions.length < 5 ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <span className="material-symbols-outlined text-[40px] text-black/20">hexagon</span>
+                  <p className="text-[13px] font-bold text-black/40 text-center">Log {Math.max(0, 5 - sessions.length)} more session{5 - sessions.length !== 1 ? "s" : ""} across different subjects to unlock Knowledge Distribution.</p>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 w-full">
-                  <div className="p-3 border-2 border-black bg-[#F0EDE0] rounded-lg shadow-[2px_2px_0px_#000]">
-                    <p className="text-[11px] font-bold text-black/50 uppercase">Mastery</p>
-                    <p className="text-[22px] font-black">84%</p>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <div className="relative w-56 h-56 flex items-center justify-center">
+                    <div className="absolute inset-0 border-2 border-black rotate-45 opacity-10 rounded" />
+                    <div className="absolute inset-4 border-2 border-black rotate-45 opacity-20 rounded" />
+                    <div className="absolute inset-8 border-2 border-black rotate-45 opacity-30 rounded" />
+                    <div className="w-28 h-28 bg-[#FF4D2E]/20 border-2 border-[#FF4D2E] rounded-full" />
                   </div>
-                  <div className="p-3 border-2 border-black bg-[#F0EDE0] rounded-lg shadow-[2px_2px_0px_#000]">
-                    <p className="text-[11px] font-bold text-black/50 uppercase">Retention</p>
-                    <p className="text-[22px] font-black">92%</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3 w-full">
+                    <div className="p-3 border-2 border-black bg-[#F0EDE0] rounded-lg shadow-[2px_2px_0px_#000]">
+                      <p className="text-[11px] font-bold text-black/50 uppercase">Mastery</p>
+                      <p className="text-[22px] font-black">{Math.round(sessions.filter(s => s.score).reduce((sum, s) => sum + (s.score || 0), 0) / Math.max(1, sessions.filter(s => s.score).length))}%</p>
+                    </div>
+                    <div className="p-3 border-2 border-black bg-[#F0EDE0] rounded-lg shadow-[2px_2px_0px_#000]">
+                      <p className="text-[11px] font-bold text-black/50 uppercase">Sessions</p>
+                      <p className="text-[22px] font-black">{sessions.length}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </section>
 
             {/* Recent Sessions / Assessments */}
@@ -337,7 +328,7 @@ export default function Analytics() {
               <div className="flex-1">
                 <h4 className="text-[15px] font-extrabold text-[#FF4D2E] mb-2">AI Learning Insight</h4>
                 <p className="text-[14px] font-bold text-white/80 leading-relaxed">
-                  Your peak retention occurs between 8:00 AM and 10:30 AM. You are 24% more likely to master complex STEM concepts during this window. Consider shifting high-difficulty sessions to your morning block.
+                  {sessions.length >= 3 ? `You've logged ${sessions.length} sessions totaling ${Math.round(sessions.reduce((s, x) => s + (x.duration || 0), 0) / 60 * 10) / 10}h of study. Keep building your streak to unlock deeper AI insights into your learning patterns.` : "Log at least 3 study sessions to unlock your personalized AI Learning Insight."}
                 </p>
               </div>
               <div className="flex-shrink-0">
