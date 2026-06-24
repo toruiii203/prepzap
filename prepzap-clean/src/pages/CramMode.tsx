@@ -152,17 +152,17 @@ export default function CramMode() {
       {/* FIX BUG 7: increased pb to 160px so content isn't hidden behind fixed bottom bar */}
       <main className="max-w-xl mx-auto px-4 pt-6" style={{ paddingBottom: 160 }}>
         <GlobalContextBar compact />
-        <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "#ae2925" }} />} title="Cram Mode" subtitle="Guided timed session /// one topic at a time" />
+        <ToolHeader icon={<Zap className="h-5 w-5" style={{ color: "#ae2925" }} />} title="Cram Mode" subtitle="Guided timed session — one topic at a time" />
 
         {phase === "setup" && (
           <div className="space-y-4 mt-6">
             <div className="p-3 flex items-start gap-2" style={{ background: "rgba(232,64,64,0.06)", border: "1px solid rgba(232,64,64,0.2)" }}>
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#E8534A" }} />
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.65)" }}>Emergency mode /// walks you through each topic with a live timer. Stay focused.</p>
+              <p className="text-xs" style={{ color: "rgba(0,0,0,0.65)" }}>Emergency mode — walks you through each topic with a live timer. Stay focused.</p>
             </div>
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
-              placeholder="e.g. Organic Chemistry, WW2, Calculus///"
+              placeholder="e.g. Organic Chemistry, WW2, Calculus"
               label="Subject / Topic"
             />
             <SuggestionChips onSelect={s => { setSubject(s); setTimeout(() => handleGenerate(), 0); }} suggestions={["Organic Chemistry", "World War II", "Calculus Derivatives", "Human Anatomy", "Macroeconomics", "Cell Biology"]} />
@@ -215,7 +215,7 @@ export default function CramMode() {
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleGotIt} className="flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-2" style={{ background: "#2a9d8f", color: "#000" }}>
-                  <CheckCircle className="h-4 w-4" /> Got it ///
+                  <CheckCircle className="h-4 w-4" /> Got it
                 </Button>
                 <Button onClick={handleMoreTime} className="px-4 py-2.5 text-sm flex items-center gap-1.5" style={{ background: "#E8E4DC", border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)" }}>
                   <RotateCcw className="h-3.5 w-3.5" /> More time
