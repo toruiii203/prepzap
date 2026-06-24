@@ -227,7 +227,7 @@ export default function VisualLearner() {
       const restored: SceneWithPhoto[] = parsed.scenes.map(s => ({
         ...s,
         photoUrl: loremFlickrUrl(s),
-        photoAlt: `${parsed.concept} /// ${s.title}`,
+        photoAlt: `${parsed.concept} — ${s.title}`,
         photoLoading: false,
       }))
       setScenes(restored)
@@ -247,7 +247,7 @@ export default function VisualLearner() {
     const context = buildAIContext()
     const systemPrompt = `You are a visual memory expert trained in dual-coding theory.
 You create vivid, concrete scene associations that make abstract concepts memorable.
-Every scene must be grounded in a real, visual, photographable moment /// no abstract metaphors.
+Every scene must be grounded in a real, visual, photographable moment. No abstract metaphors.
 The scenes must be directly and accurately related to the concept and any source material provided.
 
 Return ONLY valid JSON (no markdown, no backticks):
@@ -265,7 +265,7 @@ Return ONLY valid JSON (no markdown, no backticks):
   ]
 }
 Generate 4 scenes. Make each scene visually distinct and directly tied to the concept.
-The exactWikipediaTitle is the most important field /// it should be the precise Wikipedia article title whose lead image best represents this scene. Think: what would you search on Wikipedia to find the perfect image?
+The exactWikipediaTitle is the most important field — it should be the precise Wikipedia article title whose lead image best represents this scene. Think: what would you search on Wikipedia to find the perfect image?
 If source material is provided, base the scenes on its actual content, not general knowledge.\${context}`
 
     try {
@@ -399,7 +399,7 @@ If source material is provided, base the scenes on its actual content, not gener
           )}
         </div>
         <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay ///</div>
+          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay</div>
         </div>
       </div>
       <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
@@ -415,14 +415,14 @@ If source material is provided, base the scenes on its actual content, not gener
         <HeaderRow />
 
         <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
-          Type any concept and get a 4-scene visual storyboard /// each scene is an AI-generated image paired with a memory anchor phrase you'll actually remember.
+          Type any concept and get a 4-scene visual storyboard — each scene is an AI-generated image paired with a memory anchor phrase you'll actually remember.
         </p>
 
         <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: "28px 24px" }}>
           {sourceChips.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
-                From "{activeSource?.name}" /// pick a concept:
+                From "{activeSource?.name}" — pick a concept:
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {sourceChips.map(chip => (
@@ -445,7 +445,7 @@ If source material is provided, base the scenes on its actual content, not gener
             value={conceptInput}
             onChange={e => setConceptInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleGenerate()}
-            placeholder="e.g. Mitosis, The French Revolution, Supply & Demand///"
+            placeholder="e.g. Mitosis, The French Revolution, Supply & Demand"
             style={{ width: "100%", padding: "12px 14px", background: "#141414", border: `0.5px solid ${BORDER}`, color: TEXT, fontSize: 14, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 20 }}
           />
 
@@ -504,7 +504,7 @@ If source material is provided, base the scenes on its actual content, not gener
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
-        <p style={{ fontSize: 15, color: TEXT, marginBottom: 8, fontWeight: 600 }}>Building your visual story///</p>
+        <p style={{ fontSize: 15, color: TEXT, marginBottom: 8, fontWeight: 600 }}>Building your visual story…</p>
         <p style={{ fontSize: 12, color: MUTED, marginBottom: 32 }}>Finding the perfect scenes for "{concept}"</p>
         <div style={{ width: 280, height: 2, background: "#1A1A1A" }}>
           <div style={{ height: "100%", width: `${progress}%`, background: TEAL, transition: "width 0.5s ease" }} />
@@ -591,7 +591,7 @@ If source material is provided, base the scenes on its actual content, not gener
         {savedImages.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
             <span className="material-symbols-outlined" style={{ fontSize: 32, display: "block", marginBottom: 12 }}>image_search</span>
-            <p style={{ fontSize: 14 }}>No saved images yet. Hit /// Save on any scene card.</p>
+            <p style={{ fontSize: 14 }}>No saved images yet. Hit Save on any scene card.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>

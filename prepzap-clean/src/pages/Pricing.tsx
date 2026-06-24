@@ -202,7 +202,7 @@ export default function Pricing() {
           <div style={{ marginBottom: 48 }}>
             <div style={{ textAlign: "center", marginBottom: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 900, color: "#F0F0F0", margin: "0 0 4px" }}>Need more credits?</h2>
-              <p style={{ fontSize: 12, color: "#555", margin: 0 }}>One-time top-ups /// no subscription required</p>
+              <p style={{ fontSize: 12, color: "#555", margin: 0 }}>One-time top-ups — no subscription required</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12, maxWidth: 600, margin: "0 auto" }}>
               {topUpCards.map(card => (
@@ -323,7 +323,7 @@ export default function Pricing() {
               </Link>
               <Link to="/dashboard">
                 <button style={{ padding: "12px 32px", background: "transparent", border: "0.5px solid #252525", color: "#C0C0C0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  See Dashboard ///
+                  See Dashboard
                 </button>
               </Link>
             </div>

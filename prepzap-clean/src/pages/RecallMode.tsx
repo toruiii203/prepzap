@@ -197,7 +197,7 @@ export default function RecallMode() {
             <GlobalContextBar compact />
             <ConceptChipSelector
               onSelect={(concept) => { setSubject(concept); setTimeout(() => handleGenerate(), 0); }}
-              placeholder="e.g. Photosynthesis, The Cold War///"
+              placeholder="e.g. Photosynthesis, The Cold War"
               label="Subject"
             />
             <SuggestionChips onSelect={s => { setSubject(s); setTimeout(() => handleGenerate(), 0); }} suggestions={["Photosynthesis", "French Revolution", "Newton's Laws", "DNA Replication", "Civil War", "Trigonometry"]} />
@@ -259,7 +259,7 @@ export default function RecallMode() {
 
               <div className="flex gap-2">
                 <Button onClick={handleSubmit} disabled={!typed.trim() && !showAnswer} className="flex-1 py-2.5 text-sm font-semibold" style={{ background: "#ae2925", color: "#000" }}>
-                  {typed.trim() ? "Submit ///" : "Show Answer"}
+                  {typed.trim() ? "Submit" : "Show Answer"}
                 </Button>
                 {!showAnswer && <button onClick={() => setShowAnswer(true)} className="px-3 py-2.5 text-xs" style={{ border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)", background: "transparent" }}>Peek</button>}
                 <button onClick={handleSkip} className="px-3 py-2.5" style={{ border: "1px solid rgba(0,0,0,0.12)", color: "rgba(0,0,0,0.4)", background: "transparent" }}>
