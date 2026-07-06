@@ -480,10 +480,16 @@ export default function AITutor() {
         systemInstruction += `\n\nThe student has attached the following reference material. Base your answers on this content when relevant:\n\n${capped}`;
       }
 
-      const promptBody = messages.length > 0 ? `Given our study history, answer this: ${finalMsg}` : finalMsg;
+      // Send real conversation history, not just the current turn.
+      // Cap at last 20 messages so the payload doesn't grow unbounded
+      // in very long chats.
+      const historyMessages = messages.slice(-20).map((m) => ({
+        role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.text,
+      }));
 
       const reply = await callGroq(
-        [{ role: "user", content: promptBody }],
+        [...historyMessages, { role: "user" as const, content: finalMsg }],
         systemInstruction
       );
       const botText = reply || "I processed your request! Let me know if you need to go deeper.";

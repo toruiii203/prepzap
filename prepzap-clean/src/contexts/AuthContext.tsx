@@ -66,6 +66,18 @@ function defaultProfile(user: User): UserProfile {
   }
 }
 
+// Wraps a promise so it can never hang forever. If `getSession()` stalls
+// (flaky network, cold token refresh on a returning user), this forces
+// resolution instead of leaving `loading` stuck true permanently.
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ])
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession]               = useState<Session | null>(null)
   const [user, setUser]                     = useState<User | null>(null)
@@ -82,43 +94,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (u: User): Promise<boolean> => {
     fetchingRef.current = true
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, email, plan, credits_remaining, total_xp, streak_days, daily_goal_minutes, questions_answered, accuracy_percent, avatar_config, avatar_outfit, onboarding_complete"
-      )
-      .eq("id", u.id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(
+          "id, full_name, email, plan, credits_remaining, total_xp, streak_days, daily_goal_minutes, questions_answered, accuracy_percent, avatar_config, avatar_outfit, onboarding_complete"
+        )
+        .eq("id", u.id)
+        .single()
 
-    fetchingRef.current = false
+      if (error || !data) {
+        // No profile row — brand new OAuth user mid-onboarding.
+        // Do NOT set needsOnboarding=true here — that would cause ProtectedRoute
+        // to redirect them back to /onboarding while AuthCallback is routing them.
+        // AuthCallback and OnboardingFlow handle new-user routing themselves.
+        setProfile(defaultProfile(u))
+        setNeedsOnboarding(false)
+        return false
+      }
 
-    if (error || !data) {
-      // No profile row — brand new OAuth user mid-onboarding.
-      // Do NOT set needsOnboarding=true here — that would cause ProtectedRoute
-      // to redirect them back to /onboarding while AuthCallback is routing them.
-      // AuthCallback and OnboardingFlow handle new-user routing themselves.
+      setProfile({
+        ...defaultProfile(u),
+        ...data,
+        full_name:
+          data.full_name ||
+          u.user_metadata?.full_name ||
+          u.user_metadata?.name ||
+          u.email?.split("@")[0] ||
+          "there",
+      })
+
+      // Profile row exists = has an account.
+      // onboarding_complete === false means they explicitly started but didn't finish.
+      // null/undefined/true = let them through. Never loop existing users.
+      const needs = data.onboarding_complete === false
+      setNeedsOnboarding(needs)
+      return !needs
+    } catch (err) {
+      console.error("fetchProfile failed:", err)
+      // Fall back to a usable default rather than leaving profile null forever.
       setProfile(defaultProfile(u))
       setNeedsOnboarding(false)
       return false
+    } finally {
+      fetchingRef.current = false
     }
-
-    setProfile({
-      ...defaultProfile(u),
-      ...data,
-      full_name:
-        data.full_name ||
-        u.user_metadata?.full_name ||
-        u.user_metadata?.name ||
-        u.email?.split("@")[0] ||
-        "there",
-    })
-
-    // Profile row exists = has an account.
-    // onboarding_complete === false means they explicitly started but didn't finish.
-    // null/undefined/true = let them through. Never loop existing users.
-    const needs = data.onboarding_complete === false
-    setNeedsOnboarding(needs)
-    return !needs
   }, [])
 
   const refreshProfile = useCallback(async () => {
@@ -126,40 +146,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
-    // Initial load
-    // loading starts as true (useState default) — fetch session then profile
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
-      setUser(s?.user ?? null)
+    let cancelled = false
+    // Guards against the initial getSession() path and the onAuthStateChange
+    // INITIAL_SESSION path both firing and double-fetching the profile.
+    let initialResolved = false
+
+    const initialize = async () => {
+      try {
+        const {
+          data: { session: s },
+          error,
+        } = await withTimeout(supabase.auth.getSession(), 8000, "getSession()")
+
+        if (error) throw error
+        if (cancelled) return
+
+        setSession(s)
+        setUser(s?.user ?? null)
+
+        if (s?.user) {
+          await fetchProfile(s.user)
+        }
+      } catch (err) {
+        // This is the critical fix: no matter what goes wrong above
+        // (rejected promise, timeout, thrown error), we still fall
+        // through to `finally` and unstick the loading state instead
+        // of leaving the dashboard hanging until a manual refresh.
+        console.error("Auth initialization failed:", err)
+      } finally {
+        initialResolved = true
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    initialize()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, s) => {
+      // Skip the redundant initial fire — `initialize()` above already
+      // handles first load. Without this, a fresh session on cold load
+      // triggers fetchProfile twice concurrently.
+      if (event === "INITIAL_SESSION" && !initialResolved) return
+      if (cancelled) return
+
       if (s?.user) {
-        fetchProfile(s.user).finally(() => setLoading(false))
+        setLoading(true)
+        setSession(s)
+        setUser(s.user)
+        try {
+          await fetchProfile(s.user)
+        } catch (err) {
+          console.error("Profile fetch on auth change failed:", err)
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
       } else {
+        // Signed out — clear everything atomically
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setNeedsOnboarding(false)
         setLoading(false)
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, s) => {
-        // FIX: set loading=true immediately so ProtectedRoute waits
-        // and doesn't fire a redirect before profile is ready
-        if (s?.user) {
-          setLoading(true)
-          setSession(s)
-          setUser(s.user)
-          await fetchProfile(s.user)
-          setLoading(false)
-        } else {
-          // Signed out — clear everything atomically
-          setSession(null)
-          setUser(null)
-          setProfile(null)
-          setNeedsOnboarding(false)
-          setLoading(false)
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [fetchProfile])
 
   const signOut = useCallback(async () => {
