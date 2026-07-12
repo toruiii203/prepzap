@@ -20,6 +20,10 @@ interface ExamRoom {
   time_limit: number;
   questions: Question[];
   mode: "live" | "open";
+  // FIX: server-stamped moment the room went "active" (set by a DB trigger,
+  // not by any single client's clock) — this is what makes every player's
+  // countdown anchored to the same real-world deadline.
+  started_at: string | null;
 }
 
 interface DailyQuiz {
@@ -59,7 +63,13 @@ export default function ArenaQuiz() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const startTimeRef = useRef<number>(Date.now());
+  // FIX: replaced startTimeRef (client-local, reset on every mount) with a
+  // deadlineRef holding an absolute epoch-ms timestamp. Every tick recomputes
+  // "time left" as deadline - Date.now(), so it's correct even if the tab was
+  // backgrounded/throttled, or the user left and came back — no more free
+  // extension on remount, and (in live mode) everyone counts down from the
+  // same real-world moment instead of whenever their own tab happened to load.
+  const deadlineRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitCalledRef = useRef(false);
   // FIX: keep a stable ref to answers so the timer useEffect never needs
@@ -73,7 +83,11 @@ export default function ArenaQuiz() {
     setSubmitting(true);
     if (timerRef.current) clearInterval(timerRef.current);
 
-    const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    // FIX: derive elapsed from the shared deadline rather than a local
+    // "when this tab mounted" timestamp — keeps scoring fair and accurate
+    // across players and across tab backgrounding/reopening.
+    const remainingNow = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+    const elapsed = Math.max(0, totalTime - remainingNow);
     // FIX: read from ref so handleSubmit is stable (no answers in useCallback deps)
     const latestAnswers = answersRef.current;
     const correctCount = questions.reduce(
@@ -148,6 +162,9 @@ export default function ArenaQuiz() {
         setDailyQuiz(data as DailyQuiz);
         setQuestions(data.questions);
         const secs = 15 * 60;
+        // Daily quiz is a solo attempt (no other players to sync with), so
+        // the deadline is simply "now + duration" for this user.
+        deadlineRef.current = Date.now() + secs * 1000;
         setTimeLeft(secs);
         setTotalTime(secs);
       } else {
@@ -160,31 +177,64 @@ export default function ArenaQuiz() {
         setRoom(data);
         setQuestions(data.questions);
         const secs = data.time_limit * 60;
-        setTimeLeft(secs);
+
+        // FIX: this is the actual bug fix. Previously this always did
+        // `setTimeLeft(secs)` — full duration — no matter how much real time
+        // had already passed since the room started, so leaving and
+        // reopening the tab (or just joining a couple seconds late) gave a
+        // free reset. Now:
+        //  - "live" mode rooms are synced: every player anchors to the same
+        //    `started_at`, stamped once by the database (via trigger) when
+        //    the host starts the room — not by any single client's clock.
+        //  - "open" mode has no shared start (each player begins on their
+        //    own), so it still anchors to this player's own "now".
+        const deadline =
+          data.mode === "live" && data.started_at
+            ? new Date(data.started_at).getTime() + secs * 1000
+            : Date.now() + secs * 1000;
+        deadlineRef.current = deadline;
+
+        const remainingNow = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+        setTimeLeft(remainingNow);
         setTotalTime(secs);
       }
-      // FIX: set startTime AFTER data is loaded, not at module init — otherwise
-      // elapsed time includes the loading spinner time.
-      startTimeRef.current = Date.now();
       setLoading(false);
     };
     load();
   }, [code, isDaily, user, navigate]);
 
   // ── Countdown timer ────────────────────────────────────────────────────────
+  // FIX: recompute remaining time from `deadlineRef` (an absolute timestamp)
+  // every tick, instead of decrementing a counter by 1 each second. This
+  // means: (a) throttled/backgrounded tabs don't drift — whenever the tick
+  // does fire, it shows the true remaining time, not "however many ticks
+  // fired"; (b) reopening the tab after leaving shows the real remaining
+  // time, not a reset; (c) in live mode, this is now synced to the same
+  // server-stamped deadline every other player is using.
   useEffect(() => {
     if (loading || questions.length === 0) return;
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(timerRef.current!);
-          handleSubmit();
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        handleSubmit();
+      }
+    };
+
+    tick(); // correct immediately on mount, don't wait a full second
+    timerRef.current = setInterval(tick, 1000);
+
+    // Extra correction the instant the tab regains focus — covers the case
+    // where the interval itself was fully suspended while backgrounded.
+    const onVisible = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [loading, questions.length, handleSubmit]);
 
   const selectAnswer = (letter: string) => {
@@ -311,8 +361,14 @@ export default function ArenaQuiz() {
         <p className="text-center text-[11px] font-bold text-black/40">{answeredCount}/{questions.length} answered</p>
       </div>
 
-      {/* Mobile bottom nav */}
-      <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 py-4 z-20">
+      {/* Mobile bottom nav
+          NOTE: z-[100] + explicit safe-area padding so this always sits above
+          any persistent app-level bottom tab bar (Home/AI Tutor/Flash/Arena/Profile),
+          which was overlapping and blocking taps on Next/Submit. */}
+      <div
+        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 pt-4 z-[100]"
+        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
+      >
         <div className="flex gap-3">
           <button
             onClick={() => setCurrentQ((q) => Math.max(0, q - 1))}

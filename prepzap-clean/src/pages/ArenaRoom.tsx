@@ -195,7 +195,11 @@ export default function ArenaRoom() {
       await new Promise((r) => setTimeout(r, 1000));
     }
     setCountdown(null);
-    // Update DB first so postgres_changes fires for any player who missed the broadcast
+    // Update DB first so postgres_changes fires for any player who missed the broadcast.
+    // NOTE: don't set started_at here — a DB trigger stamps it with the
+    // database's own now() the moment status flips to "active". That's what
+    // keeps every player's countdown anchored to one shared clock instead of
+    // whichever player's device happened to click Start (see ArenaQuiz.tsx).
     await supabase.from("exam_rooms").update({ status: "active" }).eq("id", room.id);
     // FIX: broadcast on the existing subscribed channel ref
     await channelRef.current.send({
@@ -401,8 +405,14 @@ export default function ArenaRoom() {
         />
       </div>
 
-      {/* Mobile bottom action bar */}
-      <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 py-4 z-20">
+      {/* Mobile bottom action bar
+          NOTE: z-[100] + explicit safe-area padding so this always sits above
+          any persistent app-level bottom tab bar, which was overlapping and
+          blocking taps on Start/Ready/Leave. */}
+      <div
+        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 pt-4 z-[100]"
+        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
+      >
         <ActionButtons />
       </div>
 

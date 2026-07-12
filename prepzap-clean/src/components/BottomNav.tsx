@@ -8,9 +8,20 @@ const NAV_ITEMS = [
   { icon: "person", label: "Profile", path: "/profile" },
 ];
 
+// Routes with their own full-screen fixed bottom bar (chat input, quiz
+// prev/next/submit controls, etc). Rendering the global nav on top of these
+// was covering the page's own button and blocking taps — this was the
+// mobile "stuck button" bug in AI Tutor and the Arena quiz screen.
+const HIDDEN_ON: RegExp[] = [
+  /^\/ai-tutor/,
+  /^\/arena\/quiz\//,
+];
+
 export function BottomNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  if (HIDDEN_ON.some((pattern) => pattern.test(pathname))) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#FAF7F2] border-t-[2px] border-black flex">
