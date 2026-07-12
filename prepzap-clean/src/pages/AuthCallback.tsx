@@ -10,6 +10,19 @@ export default function AuthCallback() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Where to send the user after auth completes. Login/Signup pages must
+    // store this BEFORE kicking off Google OAuth, since the OAuth redirect
+    // wipes out any query params — sessionStorage survives the round trip.
+    // e.g. in Login.tsx/Signup.tsx before calling signInWithOAuth:
+    //   const redirect = searchParams.get("redirect")
+    //   if (redirect) sessionStorage.setItem("post_auth_redirect", redirect)
+    const getDestination = (onboardingComplete: boolean) => {
+      const redirect = sessionStorage.getItem("post_auth_redirect")
+      sessionStorage.removeItem("post_auth_redirect")
+      if (!onboardingComplete) return "/onboarding?step=nameInput"
+      return redirect || "/dashboard"
+    }
+
     // FIX: use onAuthStateChange instead of getSession() directly.
     // After an OAuth redirect, Supabase needs a moment to exchange the
     // PKCE code for a session. getSession() called immediately may return
@@ -28,13 +41,7 @@ export default function AuthCallback() {
           .eq("id", session.user.id)
           .single()
 
-        if (profile?.onboarding_complete) {
-          // Returning user — go straight to dashboard
-          navigate("/dashboard", { replace: true })
-        } else {
-          // New user or incomplete onboarding — continue from nameInput
-          navigate("/onboarding?step=nameInput", { replace: true })
-        }
+        navigate(getDestination(!!profile?.onboarding_complete), { replace: true })
       }
     )
 
@@ -48,11 +55,7 @@ export default function AuthCallback() {
         .select("onboarding_complete")
         .eq("id", session.user.id)
         .single()
-      if (profile?.onboarding_complete) {
-        navigate("/dashboard", { replace: true })
-      } else {
-        navigate("/onboarding?step=nameInput", { replace: true })
-      }
+      navigate(getDestination(!!profile?.onboarding_complete), { replace: true })
     })
 
     return () => subscription.unsubscribe()

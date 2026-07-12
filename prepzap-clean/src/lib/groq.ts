@@ -52,13 +52,17 @@ function looksLikeModel(s: string): boolean {
 }
 
 // ─── Main callGroq ────────────────────────────────────────────────────────────
-export async function callGroq(
+// Internal core — does the actual normalization, fetch, and parsing.
+// Returns both the text AND which provider actually answered (Groq / Gemini /
+// Cloudflare AI / OpenRouter), since the Worker falls back silently between
+// providers and that fallback was invisible before this change.
+async function _callGroqCore(
   messages: GroqMessage[] | string,
   systemPromptOrModel?: string,
   model: string = DEFAULT_MODEL,
   maxTokens: number = 1024,
   feature?: string
-): Promise<string> {
+): Promise<{ text: string; provider?: string }> {
   // Normalise overloaded arguments
   let normMessages: GroqMessage[];
   let systemPrompt: string | undefined;
@@ -154,13 +158,43 @@ export async function callGroq(
     throw new Error("Empty or invalid response from AI model. Please try again.");
   }
 
-  console.log("[groq] response received, length:", result.length, result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓");
+  console.log(
+    "[groq] response received, length:", result.length,
+    result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓",
+    "provider:", data?._provider ?? "unknown"
+  );
 
   if (result.length === 0) {
     throw new Error("AI returned an empty response. Please try again.");
   }
 
-  return result;
+  return { text: result, provider: data?._provider };
+}
+
+// Public helper — same signature and return type as before (a plain string).
+// Every existing call site keeps working unchanged.
+export async function callGroq(
+  messages: GroqMessage[] | string,
+  systemPromptOrModel?: string,
+  model: string = DEFAULT_MODEL,
+  maxTokens: number = 1024,
+  feature?: string
+): Promise<string> {
+  const { text } = await _callGroqCore(messages, systemPromptOrModel, model, maxTokens, feature);
+  return text;
+}
+
+// Public helper for call sites that want to know which provider actually
+// answered (e.g. to log it for debugging quality issues like silent
+// fallback to a weaker model). Same args as callGroq.
+export async function callGroqWithMeta(
+  messages: GroqMessage[] | string,
+  systemPromptOrModel?: string,
+  model: string = DEFAULT_MODEL,
+  maxTokens: number = 1024,
+  feature?: string
+): Promise<{ text: string; provider?: string }> {
+  return _callGroqCore(messages, systemPromptOrModel, model, maxTokens, feature);
 }
 
 // ─── Vision-specific helper ───────────────────────────────────────────────────

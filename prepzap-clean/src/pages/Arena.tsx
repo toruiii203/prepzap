@@ -249,14 +249,29 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold uppercase tracking-wider">Time Limit (minutes)</label>
-            <div className="flex gap-2 flex-wrap">
-              {[5, 10, 15, 30, 45].map((t) => (
+            <div className="flex gap-2 flex-wrap items-center">
+              {[5, 10, 15, 30, 45, 60, 90, 120].map((t) => (
                 <button key={t} onClick={() => setTimeLimit(t)}
                   className={`px-4 py-2 border-2 border-black text-[13px] font-bold transition-all ${timeLimit === t ? "bg-black text-white shadow-[2px_2px_0px_0px_#f0a040]" : "bg-white text-black shadow-[2px_2px_0px_0px_#000]"}`}>
                   {t}m
                 </button>
               ))}
+              <div className="flex items-center gap-1 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000]">
+                <input
+                  type="number"
+                  min={1}
+                  max={480}
+                  value={timeLimit}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v)) setTimeLimit(Math.min(480, Math.max(1, v)));
+                  }}
+                  className="w-14 text-[13px] font-bold text-black text-center outline-none"
+                />
+                <span className="text-[11px] font-bold text-black/50">min custom</span>
+              </div>
             </div>
+            <p className="text-[10px] text-black/40 font-medium">Up to 8 hours — pick a preset or type your own.</p>
           </div>
 
           <div className="flex items-center justify-between border-2 border-black px-3 py-3 bg-white shadow-[2px_2px_0px_0px_#000]">

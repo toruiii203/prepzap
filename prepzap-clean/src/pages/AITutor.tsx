@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useRef, useEffect } from "react";
-import { callGroq } from "@/lib/groq";
+import { callGroq, callGroqWithMeta } from "@/lib/groq";
 import { loadContext, loadLibrary, onSourceChange, saveContext } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
@@ -459,7 +459,7 @@ export default function AITutor() {
         }).join("\n\n");
       }
 
-      let systemInstruction = "You are Rex AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. Speak clearly, concisely, and keep explanations elegant. Use markdown formatting (bold, bullet lists, headings) to structure your responses clearly.";
+      let systemInstruction = "You are Rex AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. When explaining a concept: (1) start with the core idea in one plain sentence before any formatting, (2) explain WHY it works or matters, not just what it is, (3) give one concrete example or walk through a mini-scenario, (4) if source material is attached, use it as raw material to teach from — do not restate its structure, headers, or bullet points back to the student. Reserve heavy bullet-point formatting for lists of distinct items, not for explaining a single concept. End with a short question checking whether the explanation landed, or what part to go deeper on. Use markdown sparingly and only where it aids clarity.";
       if (activeMode === "ELI5") systemInstruction = "You are Rex AI. Explain concepts to a 5-year old. Use simple analogies, short sentences, and a warm tone. Avoid jargon entirely.";
       else if (activeMode === "Analogy") systemInstruction = "You are Rex AI. Explain the topic by creating a vivid, memorable analogy (e.g. comparing it to a factory, kitchen, or engine).";
       else if (activeMode === "Quiz Me") systemInstruction = "You are Rex AI. Ask a challenging single-question multiple-choice quiz related to the user's prompt. Provide options A, B, C, D and wait for them to answer.";
@@ -488,13 +488,17 @@ export default function AITutor() {
         content: m.text,
       }));
 
-      const reply = await callGroq(
+      const { text: reply, provider } = await callGroqWithMeta(
         [...historyMessages, { role: "user" as const, content: finalMsg }],
         systemInstruction
       );
       const botText = reply || "I processed your request! Let me know if you need to go deeper.";
       setMessages((prev) => [...prev, { sender: "bot" as const, text: botText }]);
-      saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: "rex-ai", meta: activeMode });
+      // model now records which provider actually answered (Groq / Gemini /
+      // Cloudflare AI / OpenRouter) so you can tell whether an unsatisfying
+      // reply came from the strong 70B Groq model or a silent fallback to a
+      // weaker one.
+      saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: `rex-ai (${provider ?? "unknown"})`, meta: activeMode });
       if (!isPro) {
         await logUsage("ai_tutor");
         remaining("ai_tutor").then(setRemainingUses);
