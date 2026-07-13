@@ -106,7 +106,9 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
 }
 
 interface RecentSessionsRowsProps {
-  sessions: { id: any; title: string; duration: number; created_at: string }[];
+  // FIX: DB column is `duration_minutes`, not `duration` — this mismatch was
+  // why every duration/XP calculation silently rendered as 0.
+  sessions: { id: any; title: string; duration_minutes: number; created_at: string }[];
   loadingSessions: boolean;
 }
 
@@ -131,12 +133,12 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{Math.round(Number(session.duration) || 0)}m • {formattedDate}</div>
+                  <div className="text-[11px] font-bold text-black/50">{Math.round(Number(session.duration_minutes) || 0)}m • {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round((Number(session.duration) || 0) * 1.5)} XP</div>
-                <div className="text-[11px] font-bold text-black/40">{Math.round(Number(session.duration) || 0)}m studied</div>
+                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round((Number(session.duration_minutes) || 0) * 1.5)} XP</div>
+                <div className="text-[11px] font-bold text-black/40">{Math.round(Number(session.duration_minutes) || 0)}m studied</div>
               </div>
             </div>
           );
@@ -212,7 +214,7 @@ export default function Dashboard() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [loadingTasks, setLoadingTasks] = useState(true);
 
-  const [sessions, setSessions] = useState<{ id: any; title: string; duration: number; created_at: string }[]>([]);
+  const [sessions, setSessions] = useState<{ id: any; title: string; duration_minutes: number; created_at: string }[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
 
   const [stats, setStats] = useState({ totalSessions: 0, studyTimeHours: 0, avgScore: 0 });
@@ -266,7 +268,9 @@ export default function Dashboard() {
 
   const calculateStatsAndCalendar = (loadedSessions: any[]) => {
     const totalSess = loadedSessions.length;
-    const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration) || 0), 0);
+    // FIX: was reading curr.duration (doesn't exist on the row → always 0).
+    // Real column is duration_minutes.
+    const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration_minutes) || 0), 0);
     const hours = Math.round((totalMins / 60) * 10) / 10;
     setStats({ totalSessions: totalSess, studyTimeHours: hours, avgScore: 0 });
 
@@ -278,7 +282,8 @@ export default function Dashboard() {
       if (dayIdx === -1) dayIdx = 6;
       if (dayIdx >= 0 && dayIdx < 7) {
         daysStudied[dayIdx] = true;
-        dayMins[dayIdx] += Number(session.duration) || 0;
+        // FIX: same duration → duration_minutes correction as above.
+        dayMins[dayIdx] += Number(session.duration_minutes) || 0;
       }
     });
     setStudiedDays(daysStudied);
@@ -306,18 +311,32 @@ export default function Dashboard() {
     try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
   };
 
-  const handleOpenModal = () => { setSessionSubject(""); setSessionDuration(30); setIsModalOpen(true); };
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleOpenModal = () => { setSessionSubject(""); setSessionDuration(30); setSaveError(null); setIsModalOpen(true); };
 
   const handleSaveSession = async () => {
     if (!sessionSubject.trim()) return;
     setSavingSession(true);
+    setSaveError(null);
     try {
-      const newSession = { title: sessionSubject, duration: Number(sessionDuration), created_at: new Date().toISOString(), user_id: user?.id };
-      await supabase.from("study_sessions").insert(newSession);
+      // FIX: this was writing `duration`, which isn't a real column on
+      // study_sessions — every insert was silently rejected by Postgres
+      // because the error was never checked. Real column: duration_minutes.
+      const newSession = { title: sessionSubject, duration_minutes: Number(sessionDuration), created_at: new Date().toISOString(), user_id: user?.id };
+      const { error: insertError } = await supabase.from("study_sessions").insert(newSession);
+      if (insertError) {
+        // FIX: surface this instead of swallowing it — a failed insert
+        // should never look like a successful save to the user.
+        console.error("Error saving session:", insertError);
+        setSaveError(`Couldn't save session: ${insertError.message}`);
+        return;
+      }
       const xpEarned = Math.round(sessionDuration * 1.5);
       try {
         const currentXp = profile?.total_xp || profile?.xp || 0;
-        await supabase.from("profiles").update({ total_xp: currentXp + xpEarned }).eq("id", user?.id ?? "");
+        const { error: xpError } = await supabase.from("profiles").update({ total_xp: currentXp + xpEarned }).eq("id", user?.id ?? "");
+        if (xpError) console.error("Error updating XP:", xpError);
         if (typeof refreshProfile === "function") await refreshProfile();
       } catch (err) {
         console.error("Error updating XP:", err);
@@ -326,6 +345,7 @@ export default function Dashboard() {
       fetchSessions();
     } catch (err) {
       console.error("Error saving session:", err);
+      setSaveError("Something went wrong saving your session. Please try again.");
     } finally {
       setSavingSession(false);
     }
@@ -501,10 +521,16 @@ export default function Dashboard() {
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
             </div>
             <div className="flex items-baseline gap-2 my-2">
-              <span className="text-[64px] font-black leading-none">{profile?.streak ?? 0}</span>
+              {/* FIX: your profiles table column is `streak_days`, but this
+                  read `.streak` which doesn't exist on the raw row — matches
+                  the "0 Days" you're seeing live. Checking both in case
+                  AuthContext renames the field before exposing `profile`;
+                  worth confirming against AuthContext.tsx and removing
+                  whichever branch turns out to be dead. */}
+              <span className="text-[64px] font-black leading-none">{profile?.streak_days ?? profile?.streak ?? 0}</span>
               <span className="text-[24px] font-black uppercase">Days</span>
             </div>
-            <p className="text-[12px] font-bold opacity-90">{(profile?.streak ?? 0) > 0 ? `${profile?.streak} day streak — keep it going!` : "Start your first session to build your streak."}</p>
+            <p className="text-[12px] font-bold opacity-90">{((profile?.streak_days ?? profile?.streak) ?? 0) > 0 ? `${profile?.streak_days ?? profile?.streak} day streak — keep it going!` : "Start your first session to build your streak."}</p>
 
           </section>
 
@@ -693,7 +719,7 @@ export default function Dashboard() {
                   <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
                   <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
                   <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
-                    {Math.round(Number(session.duration) || 0)}m / {formattedDate}
+                    {Math.round(Number(session.duration_minutes) || 0)}m / {formattedDate}
                   </div>
                 </div>
               );
@@ -744,6 +770,11 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+            {saveError && (
+              <div className="mt-3 text-[12px] font-bold text-[#ba1a1a] bg-[#ffdad6] border-2 border-[#ba1a1a] px-3 py-2">
+                {saveError}
+              </div>
+            )}
             <div className="flex gap-3 mt-6">
               <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-white border-2 border-black py-2.5 font-bold text-[13px] hover:bg-neutral-50 cursor-pointer">
                 Cancel
