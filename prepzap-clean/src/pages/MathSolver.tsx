@@ -43,7 +43,6 @@ function FunctionVisualizer({ expression }: { expression: string }) {
           .replace(/pi/g, "Math.PI")
           .replace(/e(?![a-z])/g, "Math.E")
           .replace(/abs\(/g, "Math.abs(");
-
         // Extract y = ... or f(x) = ...
         const rhs = e.includes("=") ? e.split("=").pop()! : e;
         // Replace bare x references (not inside function names)
@@ -60,7 +59,6 @@ function FunctionVisualizer({ expression }: { expression: string }) {
     const xMin = -cx / scale;
     const xMax = (width - cx) / scale;
     const dx = (xMax - xMin) / steps;
-
     let d = "";
     let penDown = false;
     for (let i = 0; i <= steps; i++) {
@@ -135,7 +133,6 @@ function ScientificCalculator({
   const append = (val: string) => {
     setDisplay((prev) => (prev === "0" && ![".", "(", ")"].includes(val) ? val : prev + val));
   };
-
   const clear = () => setDisplay("0");
   const backspace = () => setDisplay((prev) => (prev.length > 1 ? prev.slice(0, -1) : "0"));
 
@@ -161,11 +158,7 @@ function ScientificCalculator({
     }
   };
 
-  const btn = (
-    label: string,
-    action: () => void,
-    className = ""
-  ) => (
+  const btn = (label: string, action: () => void, className = "") => (
     <button
       key={label}
       onClick={action}
@@ -184,13 +177,11 @@ function ScientificCalculator({
           <span className="material-symbols-outlined text-[18px]">close</span>
         </button>
       </div>
-
       {/* Display */}
       <div className="px-3 py-3 border-b-2 border-black bg-white">
         <div className="text-[10px] font-bold text-black/30 uppercase tracking-wider mb-1 h-4 truncate">{memory}</div>
         <div className="text-right text-[22px] font-black truncate leading-tight">{display}</div>
       </div>
-
       {/* Insert to problem */}
       <button
         onClick={() => onInsert(display === "Error" ? "" : display)}
@@ -198,7 +189,6 @@ function ScientificCalculator({
       >
         Insert into Problem ↑
       </button>
-
       {/* Keys */}
       <div className="p-2 grid grid-cols-5 gap-1">
         {/* Row 1: functions */}
@@ -248,7 +238,6 @@ function ScientificCalculator({
         {btn("+", () => append("+"), "bg-[#1a1a1a] text-white")}
         {btn("=", evaluate, "bg-black text-white")}
       </div>
-
       {/* Memory row */}
       <div className="grid grid-cols-3 gap-1 px-2 pb-2">
         {btn("MS", () => setMemory(display), "bg-[#F0EDE0] text-[11px]")}
@@ -267,10 +256,13 @@ export default function MathSolver() {
   // Restore state from sessionStorage so tab switches don't wipe results
   const [problem, setProblem] = useState(() => sessionStorage.getItem("math_problem") || "");
   const [steps, setSteps] = useState<SolutionStep[]>(() => {
-    try { return JSON.parse(sessionStorage.getItem("math_steps") || "[]"); } catch { return []; }
+    try {
+      return JSON.parse(sessionStorage.getItem("math_steps") || "[]");
+    } catch {
+      return [];
+    }
   });
   const [solved, setSolved] = useState(() => sessionStorage.getItem("math_solved") === "true");
-
   const [activeSource, setActiveSource] = useState<any>(getActiveSource());
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("math-solver") as any;
   const { isPro, canUse, remaining, logUsage } = usePlan();
@@ -340,15 +332,10 @@ export default function MathSolver() {
     try {
       const sourceCtx = buildAIContext();
       const sourceNote = sourceCtx ? `\n\nAdditional context from student's source material:\n${sourceCtx}` : "";
-      const promptText = `Solve the following mathematical or scientific problem and provide a detailed, educationally robust step-by-step breakdown:
-"${problem}"${sourceNote}
 
-Return strictly a valid raw JSON array containing solution steps. Every element must be an object with:
-"stepNumber" (integer starting at 1),
-"description" (text explanation of the step),
-"mathBlock" (optional short string of formula or simplified state for this step).
+      const promptText = `Solve the following mathematical or scientific problem and provide a detailed, educationally robust step-by-step breakdown: "${problem}"${sourceNote}
 
-Only return the raw JSON array. No markdown codeblocks, no explanations, no formatting wrap!`;
+Return strictly a valid raw JSON array containing solution steps. Every element must be an object with: "stepNumber" (integer starting at 1), "description" (text explanation of the step), "mathBlock" (optional short string of formula or simplified state for this step). Only return the raw JSON array. No markdown codeblocks, no explanations, no formatting wrap!`;
 
       const systemPrompt = "You are a master advanced mathematics scientific reasoning system. You output solution steps strictly formatted as raw JSON arrays with no markdown formatting wraps.";
 
@@ -360,12 +347,13 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
         1024,
         "math_solver"
       );
+
       let sanitized = aiResponse.trim();
       if (sanitized.startsWith("```")) {
         sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
       }
-
       const generated = JSON.parse(sanitized);
+
       if (Array.isArray(generated) && generated.length > 0) {
         setSteps(generated);
         setSolved(true);
@@ -380,19 +368,37 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
         // Write to study_sessions so Dashboard + Analytics pick it up
         if (user?.id) {
           const today = new Date().toISOString().split("T")[0];
-          await supabase.from("study_sessions").insert({
+
+          // FIX: DB column is `duration_minutes`, not `duration` — this insert
+          // was silently rejected by Postgres every time (400: "Could not find
+          // the 'duration' column"), so Math Solver sessions never actually
+          // reached the Dashboard/Analytics stats.
+          const { error: sessionError } = await supabase.from("study_sessions").insert({
             user_id: user.id,
             title: problem.trim().slice(0, 80) || "Math & Science",
-            duration: 5,
+            duration_minutes: 5,
             created_at: new Date().toISOString(),
           });
+          if (sessionError) console.error("Error logging study session:", sessionError);
+
           // Streak logic
+          // FIX: `profile.streak` doesn't exist (real column is `streak_days`),
+          // and `last_study_date` didn't exist on `profiles` at all until the
+          // migration — both silently failed every update (400 errors), which
+          // is why Academic Streak was permanently stuck at 0.
           const last = profile?.last_study_date;
           const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-          const newStreak = last === today ? (profile?.streak ?? 0) : last === yesterday ? (profile?.streak ?? 0) + 1 : 1;
+          const currentStreak = profile?.streak_days ?? 0;
+          const newStreak = last === today ? currentStreak : last === yesterday ? currentStreak + 1 : 1;
+
           if (last !== today) {
-            await supabase.from("profiles").update({ streak: newStreak, last_study_date: today }).eq("id", user.id);
+            const { error: streakError } = await supabase
+              .from("profiles")
+              .update({ streak_days: newStreak, last_study_date: today })
+              .eq("id", user.id);
+            if (streakError) console.error("Error updating streak:", streakError);
           }
+
           if (typeof refreshProfile === "function") refreshProfile();
         }
       } else {
@@ -413,7 +419,9 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
 
     // FIX BUG 3: always log usage after generation (success or fallback)
     if (!isPro) {
-      try { await logUsage("math_solver"); } catch {}
+      try {
+        await logUsage("math_solver");
+      } catch {}
       remaining("math_solver").then(setRemainingUses);
     }
   };
@@ -466,7 +474,6 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
         return "—";
       }
     };
-
     return (
       <div className="overflow-x-auto">
         <table className="w-full border-2 border-black text-[13px]">
@@ -489,10 +496,9 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
     );
   };
 
-  // ─── Right panel ──────────────────────────────────────────────────────────
+  // ─── Right panel ───────────────────────────────────────────────────────────
   const RightPanel = () => (
     <div className="w-full flex flex-col gap-5 overflow-y-auto">
-
       {/* Solution Steps */}
       <div>
         <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Solution Steps</h3>
@@ -552,7 +558,7 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
     </div>
   );
 
-  // ─── History Drawer ────────────────────────────────────────────────────────
+  // ─── History Drawer ─────────────────────────────────────────────────────────
   const HistoryDrawer = ({ onClose }: { onClose: () => void }) => (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black shrink-0">
@@ -571,8 +577,16 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
             <p className="text-[12px] font-bold">No solves yet.<br />Hit Solve Problem to start!</p>
           </div>
         ) : (historyEntries as any[]).slice(0, 20).map((entry: any, i: number) => (
-          <button key={i} onClick={() => { setProblem(entry.prompt || ""); setSolved(false); setSteps([]); onClose(); }}
-            className="text-left bg-white border-2 border-black shadow-[2px_2px_0px_#000] p-3 rounded-lg hover:bg-[#F0EDE0] transition-colors">
+          <button
+            key={i}
+            onClick={() => {
+              setProblem(entry.prompt || "");
+              setSolved(false);
+              setSteps([]);
+              onClose();
+            }}
+            className="text-left bg-white border-2 border-black shadow-[2px_2px_0px_#000] p-3 rounded-lg hover:bg-[#F0EDE0] transition-colors"
+          >
             <p className="font-extrabold text-[13px] line-clamp-2 mb-1">{entry.prompt || "Problem"}</p>
             <p className="text-[11px] text-black/40 font-bold">{entry.meta || ""} · {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : ""}</p>
           </button>
@@ -584,13 +598,8 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
-
       {showUpgrade && (
-        <UpgradePrompt
-          feature="math_solver"
-          remaining={remainingUses}
-          onClose={() => setShowUpgrade(false)}
-        />
+        <UpgradePrompt feature="math_solver" remaining={remainingUses} onClose={() => setShowUpgrade(false)} />
       )}
 
       {/* History drawer — slide in from right, works on both mobile + desktop */}
@@ -609,7 +618,6 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
           DESKTOP LAYOUT
           ═══════════════════════════════════════════════════ */}
       <div className="hidden md:flex md:ml-64 flex-col" style={{ height: "100vh" }}>
-
         {/* Desktop Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
           <div className="flex items-center gap-4">
@@ -645,10 +653,8 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
 
         {/* Desktop Dual Pane */}
         <div className="flex flex-1 overflow-hidden relative">
-
           {/* Left Pane — ~58% — input */}
           <div className="w-[58%] flex flex-col border-r-2 border-black overflow-y-auto">
-
             {/* Symbol bar */}
             <div className="px-8 pt-5 pb-3 border-b-2 border-black/10 shrink-0">
               <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Quick Symbols</h3>
@@ -733,22 +739,28 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
                   </button>
                   {showCalc && (
                     <div className="absolute top-14 left-0 z-50">
-                      <ScientificCalculator
-                        onInsert={(val) => setProblem((prev) => prev + val)}
-                        onClose={() => setShowCalc(false)}
-                      />
+                      <ScientificCalculator onInsert={(val) => setProblem((prev) => prev + val)} onClose={() => setShowCalc(false)} />
                     </div>
                   )}
                 </div>
+
                 <button
-                  onClick={() => setShowHistory(v => !v)}
+                  onClick={() => setShowHistory((v) => !v)}
                   className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000]"
                   title="History"
                 >
                   <span className="material-symbols-outlined text-[22px]">history</span>
                 </button>
+
                 <button
-                  onClick={() => { setProblem(""); setSolved(false); setSteps([]); sessionStorage.removeItem("math_problem"); sessionStorage.removeItem("math_steps"); sessionStorage.removeItem("math_solved"); }}
+                  onClick={() => {
+                    setProblem("");
+                    setSolved(false);
+                    setSteps([]);
+                    sessionStorage.removeItem("math_problem");
+                    sessionStorage.removeItem("math_steps");
+                    sessionStorage.removeItem("math_solved");
+                  }}
                   className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center hover:bg-[#ae2925] hover:text-white transition-colors shadow-[2px_2px_0px_#000]"
                   title="Clear"
                 >
@@ -756,11 +768,7 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
                 </button>
 
                 {/* Solve button */}
-                <button
-                  onClick={handleSolve}
-                  disabled={loading}
-                  className="flex-1 relative group cursor-pointer"
-                >
+                <button onClick={handleSolve} disabled={loading} className="flex-1 relative group cursor-pointer">
                   <div className="w-full py-3 bg-[#E8534A] text-white border-2 border-black flex items-center justify-center gap-3 z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
                     <span className="material-symbols-outlined text-[22px]">functions</span>
                     <span className="font-black text-[14px] uppercase tracking-wider">
@@ -776,6 +784,7 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
             <div className="px-8 pb-4 text-[11px] font-bold text-black/30 text-center">
               AI Solver can make mistakes. Verify important results with your textbook.
             </div>
+
             {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (
               <div className="px-8 pb-3 flex flex-col items-center gap-2">
                 <p className="text-[12px] text-black/50 font-bold">{remainingUses} solve{remainingUses !== 1 ? "s" : ""} left today</p>
@@ -804,9 +813,9 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-black/50">Chars</span>
               </div>
             </div>
+
             <RightPanel />
           </div>
-
         </div>
       </div>
 
@@ -814,7 +823,6 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
           MOBILE LAYOUT — DO NOT TOUCH (preserved + enhanced)
           ═══════════════════════════════════════════════════ */}
       <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
-
         {/* Mobile TopAppBar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">
           <button
@@ -834,7 +842,6 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
 
         {/* Mobile scrollable content */}
         <main className="flex-1 overflow-y-auto px-4 py-4 pb-6 bg-[#FAF7F2]">
-
           {/* Header + sample buttons */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[20px] font-black">Math & Science</h2>
@@ -911,30 +918,33 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
               </button>
               {showCalc && (
                 <div className="absolute top-14 left-0 z-50">
-                  <ScientificCalculator
-                    onInsert={(val) => setProblem((prev) => prev + val)}
-                    onClose={() => setShowCalc(false)}
-                  />
+                  <ScientificCalculator onInsert={(val) => setProblem((prev) => prev + val)} onClose={() => setShowCalc(false)} />
                 </div>
               )}
             </div>
+
             <button
               onClick={() => setShowHistory(true)}
               className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000]"
             >
               <span className="material-symbols-outlined text-[22px]">history</span>
             </button>
+
             <button
-              onClick={() => { setProblem(""); setSolved(false); setSteps([]); sessionStorage.removeItem("math_problem"); sessionStorage.removeItem("math_steps"); sessionStorage.removeItem("math_solved"); }}
+              onClick={() => {
+                setProblem("");
+                setSolved(false);
+                setSteps([]);
+                sessionStorage.removeItem("math_problem");
+                sessionStorage.removeItem("math_steps");
+                sessionStorage.removeItem("math_solved");
+              }}
               className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000]"
             >
               <span className="material-symbols-outlined text-[22px]">delete</span>
             </button>
-            <button
-              onClick={handleSolve}
-              disabled={loading}
-              className="flex-1 relative group cursor-pointer"
-            >
+
+            <button onClick={handleSolve} disabled={loading} className="flex-1 relative group cursor-pointer">
               <div className="w-full py-3 bg-[#E8534A] text-white border-2 border-black flex items-center justify-center gap-2 z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
                 <span className="material-symbols-outlined text-[18px]">functions</span>
                 <span className="font-black text-[13px] uppercase tracking-wide">
@@ -1002,10 +1012,8 @@ Only return the raw JSON array. No markdown codeblocks, no explanations, no form
               </div>
             </div>
           )}
-
         </main>
       </div>
-
     </div>
   );
 }
