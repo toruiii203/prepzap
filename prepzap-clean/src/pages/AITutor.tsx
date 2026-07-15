@@ -509,6 +509,16 @@ export default function AITutor() {
       else if (activeMode === "Devil's Advocate") systemInstruction = "You are Rex AI. Challenge the user's view Socratically. Politely expose logical gaps or steel-man the opposing side to deepen their understanding.";
       else if (activeMode === "Summarize") systemInstruction = "You are Rex AI. Provide a high-yield bulleted cheat-sheet summary. Highlight vocabulary, main formulas, and key processes clearly.";
 
+      // Explicit "make me a reviewer" style requests are a stronger signal
+      // than whichever mode pill happens to be selected — most students type
+      // this without first clicking "Summarize", and the default Explain
+      // prompt actively forbids giving back structure/headers, which is the
+      // opposite of what a reviewer needs. Override regardless of active mode.
+      const wantsReviewer = /\b(reviewers?|review\s*sheet|cheat\s*sheet|study\s*guide|cram\s*sheet|study\s*sheet)\b/i.test(finalMsg);
+      if (wantsReviewer) {
+        systemInstruction = "You are Rex AI. The student wants a REVIEWER: a comprehensive, structured study document, not a conversational explanation. Cover ALL major topics/sections in the attached source material, not just one concept — use the source's own scope as your outline. Organize with clear headings per topic, bullet points for facts and lists, and bold key terms with brief definitions. Include a short 'likely to be asked' section at the end if the material supports it. Do not end with a check-in question — this is a reference document the student will study from, not a back-and-forth turn.";
+      }
+
       if (effectiveContext) {
         // Sanitize: strip control characters and replacement chars from the whole context
         const sanitized = effectiveContext
