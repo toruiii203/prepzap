@@ -5,6 +5,8 @@ import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource, onSourceChange, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
+import { useStudySession } from "@/hooks/useStudySession";
+import { useAuth } from "@/contexts/AuthContext";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface StudyPoint {
@@ -21,14 +23,25 @@ interface StudySheet {
   points: StudyPoint[];
 }
 
+// FIX: hard cap on how long a single point's value is allowed to be. This is
+// the actual root cause of the "wall of raw text" bug — the prompt asked for
+// 4 short points, but nothing stopped the model from dumping the entire
+// source document into one point's `value` field, and the code accepted it
+// as long as `points` was *an array* (never checked each entry was actually
+// short). A point this long almost certainly means the model copied source
+// text verbatim instead of summarizing, so we treat it as a failed
+// generation and fall back rather than rendering an unreadable wall of text.
+const MAX_POINT_VALUE_LENGTH = 400;
+
 export default function QuickStudy() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { logSession } = useStudySession();
   const [activeSource, setActiveSourceState] = useState(() => getActiveSource());
   const [libraryFiles, setLibraryFiles] = useState<any[]>(() => loadLibrary());
   // FIX BUG 8: destructure history from useToolHistory (was missing historyEntries)
   const { save: saveHistory, history: deckHistory } = useToolHistory("quick-study");
   const { isPro, canUse, remaining, logUsage } = usePlan();
-
   const [activeTab, setActiveTab] = useState<"Cram" | "HighYield">("Cram");
   const [topic, setTopic] = useState("");
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
@@ -43,7 +56,10 @@ export default function QuickStudy() {
     sync();
     const unsub = onSourceChange(sync);
     window.addEventListener("focus", sync);
-    return () => { unsub(); window.removeEventListener("focus", sync); };
+    return () => {
+      unsub();
+      window.removeEventListener("focus", sync);
+    };
   }, []);
 
   // FIX BUG 4: initialize remainingUses as null to avoid flicker
@@ -59,7 +75,8 @@ export default function QuickStudy() {
   const handleGenerate = async () => {
     const sourceContext = buildAIContext();
     if (!topic.trim() && !sourceContext) return;
-    const effectiveTopic = topic.trim() || activeSource?.name?.replace(/\.[^.]+$/, "").replace(/-/g, " ") || "Study Material";
+    const effectiveTopic =
+      topic.trim() || activeSource?.name?.replace(/\.[^.]+$/, "").replace(/-/g, " ") || "Study Material";
 
     // Freemium gate
     if (!isPro) {
@@ -72,13 +89,45 @@ export default function QuickStudy() {
 
     setLoading(true);
     setGeneratedSheet(null);
-
     let result: StudySheet | null = null;
 
     try {
-      const promptText = `Generate a robust high-yield academic study guide for the topic: "${effectiveTopic}".\nMode: "${activeTab === "Cram" ? "Cram Session (Fast Core Cheat Sheet Facts)" : "High Yield Summary (Clinical context / Advanced correlation)"}"\n${sourceContext ? `Incorporate source material detail:\n${sourceContext}` : ""}\n\nReturn strictly a valid raw JSON object. Do not wrap in markdown tags or code blocks.\nRequired JSON schema:\n{\n  "title": "${effectiveTopic} (${activeTab === "Cram" ? "Cram Sheet" : "High Yield Study"})",\n  "tags": ["Subject Area", "Sub-topic", "Exam Category"],\n  "retentionScore": 72,\n  "goals": [\n    "Define the core terminology",\n    "Identify 3 high-yield mechanisms",\n    "Summarize key clinical correlations"\n  ],\n  "points": [\n    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition..." },\n    { "label": "Second Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Third Concept Name:", "value": "Detailed fact explanation..." },\n    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation..." }\n  ]\n}\n\nRules:\n- tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")\n- retentionScore: integer 0-100 reflecting topic complexity and how well these 4 points cover it\n- goals: exactly 3 short imperative study goals specific to this topic\n- points: exactly 4 rigorous study points\nReturn raw JSON only, no wrapping!`;
+      const promptText = `Generate a robust high-yield academic study guide for the topic: "${effectiveTopic}".
+Mode: "${activeTab === "Cram" ? "Cram Session (Fast Core Cheat Sheet Facts)" : "High Yield Summary (Clinical context / Advanced correlation)"}"
+${sourceContext ? `Incorporate source material detail:\n${sourceContext}` : ""}
 
-      const systemPrompt = "You are an elite medical and engineering tutor who publishes quick high-yield revision cards strictly in raw JSON formats.";
+Return strictly a valid raw JSON object. Do not wrap in markdown tags or code blocks.
+Required JSON schema:
+{
+  "title": "${effectiveTopic} (${activeTab === "Cram" ? "Cram Sheet" : "High Yield Study"})",
+  "tags": ["Subject Area", "Sub-topic", "Exam Category"],
+  "retentionScore": 72,
+  "goals": [
+    "Define the core terminology",
+    "Identify 3 high-yield mechanisms",
+    "Summarize key clinical correlations"
+  ],
+  "points": [
+    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition..." },
+    { "label": "Second Concept Name:", "value": "Detailed fact explanation..." },
+    { "label": "Third Concept Name:", "value": "Detailed fact explanation..." },
+    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation..." }
+  ]
+}
+
+Rules:
+- tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")
+- retentionScore: integer 0-100 reflecting topic complexity and how well these 4 points cover it
+- goals: exactly 3 short imperative study goals specific to this topic
+- points: exactly 4 rigorous study points
+- FIX: each point's "value" MUST be a concise paraphrase of no more than 40 words.
+  Never copy sentences from the source material verbatim, no matter how
+  detailed the source context is — always condense and rephrase in your own
+  words. A point that just restates source text at length is not high-yield.
+Return raw JSON only, no wrapping!`;
+
+      const systemPrompt =
+        "You are an elite medical and engineering tutor who publishes quick high-yield revision cards strictly in raw JSON formats. You always condense and paraphrase — you never copy source text verbatim.";
 
       // FIX BUG 2: removed callGroqWithModel hack — call callGroq directly with feature key
       const aiResponse = await callGroq(
@@ -88,19 +137,32 @@ export default function QuickStudy() {
         1024,
         "quick_study"
       );
+
       let sanitized = aiResponse.trim();
       if (sanitized.startsWith("```")) {
         sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
       }
-
       const generated = JSON.parse(sanitized);
+
       if (generated.title && Array.isArray(generated.points)) {
+        // FIX: reject (and fall back) if any point looks like a verbatim
+        // source dump rather than an actual condensed study point — this is
+        // what was rendering as a giant unreadable wall of text.
+        const hasOversizedPoint = generated.points.some(
+          (p: any) => typeof p?.value === "string" && p.value.length > MAX_POINT_VALUE_LENGTH
+        );
+        if (hasOversizedPoint) {
+          throw new Error("Generated point exceeded max length — likely a verbatim source dump, falling back");
+        }
+
         result = {
           title: generated.title,
           isNew: true,
           tags: Array.isArray(generated.tags) ? generated.tags : [activeTab === "Cram" ? "Cram" : "High Yield"],
           retentionScore: typeof generated.retentionScore === "number" ? generated.retentionScore : 65,
-          goals: Array.isArray(generated.goals) ? generated.goals : ["Review core concepts", "Identify key mechanisms", "Test recall"],
+          goals: Array.isArray(generated.goals)
+            ? generated.goals
+            : ["Review core concepts", "Identify key mechanisms", "Test recall"],
           points: generated.points,
         };
       } else {
@@ -128,7 +190,11 @@ export default function QuickStudy() {
           isNew: true,
           tags: ["High Yield", "Clinical Correlation", "Exam Prep"],
           retentionScore: 74,
-          goals: ["Correlate with clinical presentations", "Identify pharmacological targets", "Map pathway inhibition points"],
+          goals: [
+            "Correlate with clinical presentations",
+            "Identify pharmacological targets",
+            "Map pathway inhibition points",
+          ],
           points: [
             { label: "Clinical Target:", value: "Crucial for diagnostics involving neuropathy and signal conduction delays." },
             { label: "Safety Margin:", value: "Refractory periods prevent backward firing, enforcing unidirectional electrical propagation." },
@@ -149,13 +215,25 @@ export default function QuickStudy() {
         model: "rex-ai",
         meta: `${activeTab} · ${result.tags.join(", ")}`,
       });
+
+      // FIX: Quick Study never wrote to study_sessions or updated the streak
+      // at all before this — every generation was completely invisible to
+      // Dashboard/Analytics/Streak. Now uses the same shared hook as
+      // Math Solver so this only has to be correct in one place.
+      if (user?.id) {
+        await logSession({
+          title: result.title || effectiveTopic,
+          durationMinutes: 8,
+        });
+      }
     }
 
     if (!isPro) {
-      try { await logUsage("quick_study"); } catch {}
+      try {
+        await logUsage("quick_study");
+      } catch {}
       remaining("quick_study").then(setRemainingUses);
     }
-
     setLoading(false);
   };
 
@@ -204,11 +282,7 @@ export default function QuickStudy() {
                     </span>
                   )}
                 </div>
-                <span
-                  className={`text-[13px] font-semibold leading-snug ${
-                    i === 0 ? "line-through text-black/40" : "text-black"
-                  }`}
-                >
+                <span className={`text-[13px] font-semibold leading-snug ${i === 0 ? "line-through text-black/40" : "text-black"}`}>
                   {goal}
                 </span>
               </li>
@@ -216,7 +290,6 @@ export default function QuickStudy() {
           </ul>
         )}
       </div>
-
       {/* Retention bar */}
       <div className="mt-6 pt-4 border-t-2 border-black/10">
         <div className="h-2 w-full bg-[#E8E4DC] border-2 border-black overflow-hidden mb-2">
@@ -232,7 +305,7 @@ export default function QuickStudy() {
     </div>
   );
 
-  // ─── Output Card (shared) ────────────────────────────────────────────────
+  // ─── Output Card (shared) ─────────────────────────────────────────────────
   const OutputCard = ({ compact = false }: { compact?: boolean }) => {
     if (!generatedSheet && !loading) {
       return (
@@ -252,7 +325,6 @@ export default function QuickStudy() {
       );
     }
     if (!generatedSheet) return null;
-
     return (
       <div className={`border-2 border-black bg-white flex flex-col relative shadow-[4px_4px_0px_#000] ${compact ? "" : "min-h-[400px]"}`}>
         {/* Card header — tags + actions */}
@@ -281,21 +353,17 @@ export default function QuickStudy() {
             </button>
           </div>
         </div>
-
         {/* Card body */}
         <div className="p-6 flex flex-col gap-5">
           {/* Active badge */}
           <div className="flex items-start justify-between gap-4">
-            <h2 className="font-black text-[20px] uppercase leading-tight tracking-tight">
-              {generatedSheet.title}
-            </h2>
+            <h2 className="font-black text-[20px] uppercase leading-tight tracking-tight">{generatedSheet.title}</h2>
             {generatedSheet.isNew && (
               <span className="shrink-0 bg-[#E8534A] text-white text-[11px] font-black px-3 py-1 border-2 border-black rotate-2 shadow-[2px_2px_0px_#000]">
                 Active
               </span>
             )}
           </div>
-
           {/* Points */}
           <ul className="flex flex-col gap-4 list-disc pl-5 marker:text-[#E8534A]">
             {generatedSheet.points.map((pt, idx) => (
@@ -313,13 +381,8 @@ export default function QuickStudy() {
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
-
       {showUpgrade && (
-        <UpgradePrompt
-          feature="quick_study"
-          remaining={remainingUses ?? 0}
-          onClose={() => setShowUpgrade(false)}
-        />
+        <UpgradePrompt feature="quick_study" remaining={remainingUses ?? 0} onClose={() => setShowUpgrade(false)} />
       )}
 
       <SharedSidebar active="/quick-study" />
@@ -328,7 +391,6 @@ export default function QuickStudy() {
           DESKTOP LAYOUT
           ═══════════════════════════════════════════════════ */}
       <div className="hidden md:flex md:ml-64 flex-col" style={{ height: "100vh" }}>
-
         {/* Desktop Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
           <div className="flex items-center gap-4">
@@ -354,10 +416,8 @@ export default function QuickStudy() {
         {/* Desktop body — scrollable */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-8 max-w-6xl mx-auto space-y-8">
-
             {/* Top section: Input (2/3) + Session Goals (1/3) */}
             <div className="grid grid-cols-3 gap-6">
-
               {/* Concept Generator — 2/3 */}
               <div className="col-span-2 border-2 border-black bg-white shadow-[5px_5px_0px_#000] p-6 flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b-2 border-black pb-4">
@@ -366,7 +426,6 @@ export default function QuickStudy() {
                     Retention Capacity: {generatedSheet ? `${generatedSheet.retentionScore}%` : "—"}
                   </span>
                 </div>
-
                 {/* Textarea */}
                 <div>
                   <label className="block text-[11px] font-black uppercase tracking-widest text-black/50 mb-2">
@@ -381,7 +440,6 @@ export default function QuickStudy() {
                     placeholder="Paste complex lecture notes or enter a topic (e.g., 'Cellular Mitosis Mechanics')..."
                   />
                 </div>
-
                 {/* Chips */}
                 <div className="flex flex-wrap gap-2">
                   {chips.map((chip, idx) => (
@@ -396,15 +454,14 @@ export default function QuickStudy() {
                     </button>
                   ))}
                 </div>
-
                 {/* Actions row */}
                 <div className="flex gap-3">
                   {libraryFiles.length > 0 ? (
                     <div className="flex items-center gap-2 flex-wrap">
-                      {libraryFiles.map(f => (
+                      {libraryFiles.map((f) => (
                         <button
                           key={f.id}
-                          onClick={() => setTopic(prev => prev ? prev : f.name.replace(/\.[^.]+$/, "").replace(/-/g, " "))}
+                          onClick={() => setTopic((prev) => prev || f.name.replace(/\.[^.]+$/, "").replace(/-/g, " "))}
                           className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-white text-[12px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000] max-w-[160px] truncate"
                           title={f.name}
                         >
@@ -429,7 +486,6 @@ export default function QuickStudy() {
                       Upload PDF / Doc
                     </button>
                   )}
-
                   {/* Tab toggles */}
                   <div className="flex border-2 border-black overflow-hidden min-w-0">
                     {(["Cram", "HighYield"] as const).map((tab) => (
@@ -444,7 +500,6 @@ export default function QuickStudy() {
                       </button>
                     ))}
                   </div>
-
                   {/* Generate */}
                   <button
                     onClick={handleGenerate}
@@ -470,7 +525,6 @@ export default function QuickStudy() {
                   )}
                 </div>
               </div>
-
               {/* Session Goals — 1/3 */}
               <div className="col-span-1">
                 <SessionGoalsPanel />
@@ -493,7 +547,6 @@ export default function QuickStudy() {
                   </button>
                 ))}
               </div>
-
               {/* Output card */}
               <OutputCard />
             </div>
@@ -514,8 +567,11 @@ export default function QuickStudy() {
                 ) : (
                   <div className="flex flex-col divide-y divide-black/10">
                     {(deckHistory as any[]).slice(0, 4).map((entry: any, i: number) => (
-                      <button key={i} onClick={() => setTopic(entry.prompt || "")}
-                        className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAF7F2] cursor-pointer group text-left w-full">
+                      <button
+                        key={i}
+                        onClick={() => setTopic(entry.prompt || "")}
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAF7F2] cursor-pointer group text-left w-full"
+                      >
                         <div className="w-10 h-10 border-2 border-black bg-[#F0EDE0] flex items-center justify-center shrink-0">
                           <span className="material-symbols-outlined text-[18px]">article</span>
                         </div>
@@ -529,7 +585,6 @@ export default function QuickStudy() {
                   </div>
                 )}
               </div>
-
               {/* Suggestion Cards — use existing chips array */}
               <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
                 <div className="px-5 py-3 border-b-2 border-black bg-[#FAF7F2]">
@@ -537,9 +592,7 @@ export default function QuickStudy() {
                 </div>
                 <div className="grid grid-cols-2 gap-0 divide-x-2 divide-y-2 divide-black">
                   {chips.slice(0, 4).map((chip, idx) => (
-                    <button key={idx}
-                      onClick={() => setTopic(chip)}
-                      className="flex flex-col items-start gap-2 p-4 hover:bg-[#FAF7F2] transition-colors text-left group">
+                    <button key={idx} onClick={() => setTopic(chip)} className="flex flex-col items-start gap-2 p-4 hover:bg-[#FAF7F2] transition-colors text-left group">
                       <span className="material-symbols-outlined text-[#ae2925] text-[22px]">bolt</span>
                       <span className="text-[13px] font-extrabold group-hover:underline">{chip}</span>
                     </button>
@@ -547,7 +600,6 @@ export default function QuickStudy() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -556,7 +608,6 @@ export default function QuickStudy() {
           MOBILE LAYOUT — preserved + enhanced
           ═══════════════════════════════════════════════════ */}
       <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
-
         {/* Mobile TopAppBar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">
           <button
@@ -577,7 +628,6 @@ export default function QuickStudy() {
 
         {/* Mobile scrollable body */}
         <main className="flex-1 overflow-y-auto px-4 py-5 pb-10 flex flex-col gap-5">
-
           {/* Tab toggle */}
           <div className="flex border-2 border-black overflow-hidden bg-white shrink-0">
             {(["Cram", "HighYield"] as const).map((tab, i) => (
@@ -605,7 +655,6 @@ export default function QuickStudy() {
               className="bg-white border-2 border-black px-4 py-3 text-[15px] font-medium placeholder:text-black/30 resize-none focus:outline-none shadow-[2px_2px_0px_#000]"
               placeholder="e.g. Action Potentials, Mitosis, Krebs Cycle..."
             />
-
             {/* Chips */}
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
               {chips.map((chip, idx) => (
@@ -620,7 +669,6 @@ export default function QuickStudy() {
                 </button>
               ))}
             </div>
-
             <button
               onClick={() => navigate("/sources")}
               className="w-full bg-[#FAF7F2] border-2 border-black border-dashed py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] hover:bg-[#E2E2E2] transition-colors"
@@ -679,10 +727,8 @@ export default function QuickStudy() {
 
           {/* Output card */}
           <OutputCard compact />
-
         </main>
       </div>
-
     </div>
   );
 }

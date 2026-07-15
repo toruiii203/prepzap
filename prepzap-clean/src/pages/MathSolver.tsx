@@ -5,6 +5,7 @@ import { callGroq } from "@/lib/groq";
 import { getActiveSource, buildAIContext, loadContext, loadContext as loadCtx, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
+import { useStudySession } from "@/hooks/useStudySession";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -251,7 +252,8 @@ function ScientificCalculator({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function MathSolver() {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user } = useAuth();
+  const { logSession } = useStudySession();
 
   // Restore state from sessionStorage so tab switches don't wipe results
   const [problem, setProblem] = useState(() => sessionStorage.getItem("math_problem") || "");
@@ -365,41 +367,15 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
           meta: `${generated.length} steps`,
         });
 
-        // Write to study_sessions so Dashboard + Analytics pick it up
+        // Write to study_sessions so Dashboard + Analytics pick it up, and
+        // update the streak — both now handled in one place by the shared
+        // hook (see src/hooks/useStudySession.ts) instead of duplicated,
+        // independently-buggy inline code.
         if (user?.id) {
-          const today = new Date().toISOString().split("T")[0];
-
-          // FIX: DB column is `duration_minutes`, not `duration` — this insert
-          // was silently rejected by Postgres every time (400: "Could not find
-          // the 'duration' column"), so Math Solver sessions never actually
-          // reached the Dashboard/Analytics stats.
-          const { error: sessionError } = await supabase.from("study_sessions").insert({
-            user_id: user.id,
+          await logSession({
             title: problem.trim().slice(0, 80) || "Math & Science",
-            duration_minutes: 5,
-            created_at: new Date().toISOString(),
+            durationMinutes: 5,
           });
-          if (sessionError) console.error("Error logging study session:", sessionError);
-
-          // Streak logic
-          // FIX: `profile.streak` doesn't exist (real column is `streak_days`),
-          // and `last_study_date` didn't exist on `profiles` at all until the
-          // migration — both silently failed every update (400 errors), which
-          // is why Academic Streak was permanently stuck at 0.
-          const last = profile?.last_study_date;
-          const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-          const currentStreak = profile?.streak_days ?? 0;
-          const newStreak = last === today ? currentStreak : last === yesterday ? currentStreak + 1 : 1;
-
-          if (last !== today) {
-            const { error: streakError } = await supabase
-              .from("profiles")
-              .update({ streak_days: newStreak, last_study_date: today })
-              .eq("id", user.id);
-            if (streakError) console.error("Error updating streak:", streakError);
-          }
-
-          if (typeof refreshProfile === "function") refreshProfile();
         }
       } else {
         throw new Error("Invalid structure returned");

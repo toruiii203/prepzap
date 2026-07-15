@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext, getActiveSource, saveContext } from "@/lib/sourceContext";
+import { buildAIContext, getActiveSource, saveContext, onSourceChange } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
+import { useStudySession } from "@/hooks/useStudySession";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface FeynmanFeedback {
@@ -20,6 +21,7 @@ export default function TeachIt() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const { isPro, canUse, remaining, logUsage } = usePlan();
+  const { logSession } = useStudySession();
   const [activeSource, setActiveSource] = useState<string | null>(() => getActiveSource()?.name ?? null);
   const [topic, setTopic] = useState("");
   const [explanation, setExplanation] = useState("");
@@ -37,6 +39,21 @@ export default function TeachIt() {
   useEffect(() => {
     remaining("teach_it").then(setRemainingUses);
   }, [remaining]);
+
+  // FIX: activeSource was only ever read once at mount, so attaching a
+  // source on /sources and coming back here never showed it — the chip
+  // stayed on "no source" until a full page reload. Now re-syncs whenever
+  // the source changes or the tab regains focus, same fix as QuickStudy.tsx.
+  useEffect(() => {
+    const sync = () => setActiveSource(getActiveSource()?.name ?? null);
+    sync();
+    const unsub = onSourceChange(sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      unsub();
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
 
   const selectTopicTemplate = (title: string) => {
     setTopic(title);
@@ -107,13 +124,21 @@ export default function TeachIt() {
         setTimeout(() => setShowXpToast(false), 3000);
 
         if (user && profile) {
-          try {
-            await supabase.from("profiles").update({
-              total_xp: (profile.total_xp || 0) + xp,
-              coins: (profile.coins || 0) + 15,
-            }).eq("id", user.id);
-            await refreshProfile();
-          } catch {}
+          // FIX: `coins` isn't a real column on profiles — bundling it into
+          // this update meant Postgres rejected the WHOLE request (invalid
+          // column), so total_xp never updated either, silently, since the
+          // error was never checked (just an empty catch block).
+          const { error: xpError } = await supabase
+            .from("profiles")
+            .update({ total_xp: (profile.total_xp || 0) + xp })
+            .eq("id", user.id);
+          if (xpError) console.error("Error awarding XP:", xpError);
+          await refreshProfile();
+
+          // FIX: Teach It never logged to study_sessions or updated the
+          // streak at all — invisible to Dashboard/Analytics/Streak. Now
+          // uses the same shared hook as Math Solver and Quick Study.
+          await logSession({ title: targetTopic, durationMinutes: 6 });
         }
       } else {
         throw new Error("Invalid structure");
@@ -136,12 +161,13 @@ export default function TeachIt() {
       setShowXpToast(true);
       setTimeout(() => setShowXpToast(false), 3000);
       if (user && profile) {
-        try {
-          await supabase.from("profiles").update({
-            total_xp: (profile.total_xp || 0) + 30,
-          }).eq("id", user.id);
-          await refreshProfile();
-        } catch {}
+        const { error: xpError } = await supabase
+          .from("profiles")
+          .update({ total_xp: (profile.total_xp || 0) + 30 })
+          .eq("id", user.id);
+        if (xpError) console.error("Error awarding XP:", xpError);
+        await refreshProfile();
+        await logSession({ title: targetTopic, durationMinutes: 6 });
       }
     }
 
