@@ -291,7 +291,7 @@ const generateTitle = (msgs: Message[]): string => {
 export default function AITutor() {
   const navigate = useNavigate();
   const { save: saveHistory } = useToolHistory("ai-tutor");
-  const { isPro, canUse, remaining, logUsage } = usePlan();
+  const { isPro, canUse, remaining, logUsage, loading: planLoading } = usePlan();
   const [remainingUses, setRemainingUses] = useState<number>(20);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
@@ -315,8 +315,11 @@ export default function AITutor() {
 
   // Fox mood
   useEffect(() => {
-    remaining("ai_tutor").then(setRemainingUses);
-  }, [remaining]);
+    remaining("ai_tutor").then(setRemainingUses).catch((err) => {
+      console.error("[AITutor] failed to load remaining uses:", err);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (isLoading) { setFoxImg(FOX.thinking); return; }
@@ -423,9 +426,20 @@ export default function AITutor() {
     const finalMsg = textToSend || inputVal;
     if (!finalMsg.trim() || isLoading) return;
 
-    if (!isPro) {
-      const allowed = await canUse("ai_tutor");
-      if (!allowed) { setShowUpgrade(true); return; }
+    // NOTE: this used to be a bare `await canUse(...)` with no try/catch.
+    // If canUse() ever rejected (network hiccup, usePlan not finished
+    // initializing, etc.) the whole handleSend call threw before the user's
+    // message was ever appended — Send looked like it did nothing at all.
+    // Now any failure here surfaces as a visible bot message instead.
+    if (!isPro && !planLoading) {
+      try {
+        const allowed = await canUse("ai_tutor");
+        if (!allowed) { setShowUpgrade(true); return; }
+      } catch (err) {
+        console.error("[AITutor] canUse check failed:", err);
+        setMessages((prev) => [...prev, { sender: "bot" as const, text: "Couldn't verify your plan status just now — please try again in a moment." }]);
+        return;
+      }
     }
 
     setMessages((prev) => [...prev, { sender: "user" as const, text: finalMsg }]);
@@ -444,9 +458,38 @@ export default function AITutor() {
       const activeFiles = resolveActiveFiles();
       if (activeFiles.length > 0) {
         effectiveContext = activeFiles.map((f: any) => {
-          if (f.type === "image/jpeg" || f.type === "image/png" ||
-              f.type === "image" || (f.content && f.content.startsWith("data:image"))) {
-            return `[Attached image: ${f.name}]\n(Image content was captured for visual analysis)`;
+          const isImage = f.type === "image/jpeg" || f.type === "image/png" ||
+            f.type === "image" || (f.content && f.content.startsWith("data:image"));
+
+          if (isImage) {
+            const raw = f.fullText || f.preview || "";
+
+            // buildImageMessages() in sourceContext.ts only actually attaches
+            // real vision content when f.type is exactly "image/jpeg" or
+            // "image/png" AND fullText contains a "DATA:data:image/...;base64,..."
+            // capture blob. That blob is pure base64 and must never be treated
+            // as readable text here — dumping it into the prompt would blow
+            // the context budget and feed the model garbage.
+            const isRawCaptureBlob = raw.startsWith("DATA:");
+            const willGetVisionAnalysis =
+              (f.type === "image/jpeg" || f.type === "image/png") && isRawCaptureBlob;
+
+            if (willGetVisionAnalysis) {
+              // Real bytes are attached separately and automatically by
+              // callGroqWithMeta -> buildImageMessages(). Nothing to add here.
+              return null;
+            }
+
+            // Anything else that looks like an image (e.g. a generic "image"
+            // type, or missing the capture blob) falls outside
+            // buildImageMessages()'s narrower filter and would otherwise
+            // silently contribute nothing at all. Use real OCR text if we
+            // have it, or an honest placeholder if we don't.
+            if (!isRawCaptureBlob && raw.trim().length > 0) {
+              const truncated = raw.length > perFileCap ? raw.slice(0, perFileCap) + "\n[...truncated]" : raw;
+              return `=== ${f.name} (text extracted from image) ===\n${truncated}`;
+            }
+            return `=== ${f.name} ===\n[Image file — visual content unavailable for this file. If the student's question depends on what's in it, ask them to describe it.]`;
           }
           const raw = f.fullText || f.preview || f.content || "";
           const garbage = (raw.match(/[\x00-\x08\x0E-\x1F\uFFFD]/g) || []).length;
@@ -456,7 +499,7 @@ export default function AITutor() {
           }
           const truncated = raw.length > perFileCap ? raw.slice(0, perFileCap) + "\n[...truncated]" : raw;
           return `=== ${f.name} ===\n${truncated}`;
-        }).join("\n\n");
+        }).filter((entry: string | null) => entry !== null).join("\n\n");
       }
 
       let systemInstruction = "You are Rex AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. When explaining a concept: (1) start with the core idea in one plain sentence before any formatting, (2) explain WHY it works or matters, not just what it is, (3) give one concrete example or walk through a mini-scenario, (4) if source material is attached, use it as raw material to teach from — do not restate its structure, headers, or bullet points back to the student. Reserve heavy bullet-point formatting for lists of distinct items, not for explaining a single concept. End with a short question checking whether the explanation landed, or what part to go deeper on. Use markdown sparingly and only where it aids clarity.";
@@ -500,8 +543,14 @@ export default function AITutor() {
       // weaker one.
       saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: `rex-ai (${provider ?? "unknown"})`, meta: activeMode });
       if (!isPro) {
-        await logUsage("ai_tutor");
-        remaining("ai_tutor").then(setRemainingUses);
+        try {
+          await logUsage("ai_tutor");
+          const r = await remaining("ai_tutor");
+          setRemainingUses(r);
+        } catch (usageErr) {
+          // Usage tracking failing shouldn't blow up a reply the user already got.
+          console.error("[AITutor] usage logging failed:", usageErr);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

@@ -45,7 +45,7 @@ export function safeParseJSON<T = unknown>(raw: string): T {
 }
 
 // ─── Model detection helpers ──────────────────────────────────────────────────
-const MODEL_PREFIXES = ["llama", "gemma", "mixtral", "mistral", "deepseek", "qwen", "meta-llama", "google", "anthropic", "openai"];
+const MODEL_PREFIXES = ["llama", "gemma", "gemini", "mixtral", "mistral", "deepseek", "qwen", "meta-llama", "google", "anthropic", "openai"];
 
 function looksLikeModel(s: string): boolean {
   return MODEL_PREFIXES.some(p => s.toLowerCase().startsWith(p));
@@ -150,6 +150,15 @@ async function _callGroqCore(
   if (data?.candidates?.length) {
     // Gemini format
     result = data.candidates[0]?.content?.parts?.[0]?.text ?? "";
+    const finishReason = data.candidates[0]?.finishReason;
+    if (result.length === 0 && finishReason && finishReason !== "STOP") {
+      console.error("[groq] Gemini returned no text, finishReason:", finishReason);
+      throw new Error(
+        finishReason === "SAFETY" || finishReason === "RECITATION"
+          ? "Rex couldn't answer that one — it may have tripped a content filter. Try rephrasing your question."
+          : `Rex couldn't finish that response (${finishReason}). Please try again.`
+      );
+    }
   } else if (data?.choices?.length) {
     // OpenAI/OpenRouter format
     result = data.choices[0]?.message?.content ?? "";
