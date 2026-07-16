@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudyTimeTracker } from "@/hooks/useStudyTimeTracker";
 
 const NAV_SECTIONS = [
   {
@@ -33,6 +34,13 @@ const NAV_SECTIONS = [
   },
 ];
 
+// Flat lookup so we can turn the current route into a human-readable tool
+// name for logging. Routes not listed here (settings, profile, go-pro, etc.)
+// intentionally aren't "study tools", so time tracking no-ops on those pages.
+const ROUTE_TO_TOOL_NAME: Record<string, string> = Object.fromEntries(
+  NAV_SECTIONS.flatMap((section) => section.items).map((item) => [item.route, item.label])
+);
+
 interface SharedSidebarProps {
   active: string;
 }
@@ -40,6 +48,10 @@ interface SharedSidebarProps {
 export function SharedSidebar({ active }: SharedSidebarProps) {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
+
+  // Centralized time tracking: this one hook instance covers every route that
+  // renders SharedSidebar (i.e. the whole app), so no per-page wiring needed.
+  useStudyTimeTracker(ROUTE_TO_TOOL_NAME[active] ?? null, user?.id);
 
   const displayName =
     (user as any)?.user_metadata?.full_name ||

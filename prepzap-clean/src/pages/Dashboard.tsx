@@ -181,7 +181,7 @@ function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const { isPro } = usePlan();
   const [toolsPage, setToolsPage] = useState(0);
   const toolsScrollRef = useRef<HTMLDivElement>(null);
@@ -221,15 +221,20 @@ export default function Dashboard() {
   const [studiedDays, setStudiedDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
   const [dayMinutes, setDayMinutes] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [sessionSubject, setSessionSubject] = useState("");
-  const [sessionDuration, setSessionDuration] = useState(30);
-  const [savingSession, setSavingSession] = useState(false);
-
   useEffect(() => {
     fetchTasks();
     if (user?.id) fetchSessions();
   }, [user?.id]); // wait for auth to resolve before fetching
+
+  // Time tracking itself lives centrally in SharedSidebar (mounted on every
+  // route), so Dashboard doesn't call useStudyTimeTracker directly — doing so
+  // here too would double-count time. Instead, just listen for the event it
+  // fires after each successful flush so Recent Sessions/stats update live.
+  useEffect(() => {
+    const handleSessionLogged = () => fetchSessions();
+    window.addEventListener("studenius:session-logged", handleSessionLogged);
+    return () => window.removeEventListener("studenius:session-logged", handleSessionLogged);
+  }, [user?.id]);
 
   const fetchTasks = () => {
     setLoadingTasks(true);
@@ -311,46 +316,6 @@ export default function Dashboard() {
     try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
   };
 
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  const handleOpenModal = () => { setSessionSubject(""); setSessionDuration(30); setSaveError(null); setIsModalOpen(true); };
-
-  const handleSaveSession = async () => {
-    if (!sessionSubject.trim()) return;
-    setSavingSession(true);
-    setSaveError(null);
-    try {
-      // FIX: this was writing `duration`, which isn't a real column on
-      // study_sessions — every insert was silently rejected by Postgres
-      // because the error was never checked. Real column: duration_minutes.
-      const newSession = { title: sessionSubject, duration_minutes: Number(sessionDuration), created_at: new Date().toISOString(), user_id: user?.id };
-      const { error: insertError } = await supabase.from("study_sessions").insert(newSession);
-      if (insertError) {
-        // FIX: surface this instead of swallowing it — a failed insert
-        // should never look like a successful save to the user.
-        console.error("Error saving session:", insertError);
-        setSaveError(`Couldn't save session: ${insertError.message}`);
-        return;
-      }
-      const xpEarned = Math.round(sessionDuration * 1.5);
-      try {
-        const currentXp = profile?.total_xp || profile?.xp || 0;
-        const { error: xpError } = await supabase.from("profiles").update({ total_xp: currentXp + xpEarned }).eq("id", user?.id ?? "");
-        if (xpError) console.error("Error updating XP:", xpError);
-        if (typeof refreshProfile === "function") await refreshProfile();
-      } catch (err) {
-        console.error("Error updating XP:", err);
-      }
-      setIsModalOpen(false);
-      fetchSessions();
-    } catch (err) {
-      console.error("Error saving session:", err);
-      setSaveError("Something went wrong saving your session. Please try again.");
-    } finally {
-      setSavingSession(false);
-    }
-  };
-
   const completedCount = tasks.filter((t) => t.completed).length;
   const goalCount = tasks.length > 5 ? tasks.length : 5;
   const progressPercent = Math.min(100, Math.round((completedCount / goalCount) * 100));
@@ -408,15 +373,16 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Desktop Start Study Session CTA */}
-        <button
-          onClick={handleOpenModal}
-          className="w-full border-2 border-black bg-black text-white flex items-center justify-center gap-3 py-4 mb-8 font-extrabold text-[18px] hover:bg-[#222] transition-colors"
-          style={{ boxShadow: "4px 4px 0px #000" }}
-        >
-          <span className="material-symbols-outlined text-[24px]">play_circle</span>
-          Start Study Session
-        </button>
+        {/* Live tracking indicator — replaces the old manual "Start Session" CTA.
+            Time studied accrues automatically just by being on this page or any tool page. */}
+        <div className="w-full border-2 border-black bg-[#FAF7F2] flex items-center gap-3 py-3 px-4 mb-8 font-extrabold text-[13px] uppercase tracking-wider text-black/60"
+          style={{ boxShadow: "4px 4px 0px #000" }}>
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D2E] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4D2E]" />
+          </span>
+          Recording session time automatically
+        </div>
 
         {/* Desktop Bento Grid */}
         <div className="grid grid-cols-12 gap-6">
@@ -578,14 +544,14 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Start Study Session */}
-        <button
-          onClick={handleOpenModal}
-          className="w-full py-3.5 rounded-xl border-2 border-black bg-black text-white font-extrabold flex items-center justify-center gap-2 cursor-pointer active:translate-y-0.5 shadow-[3px_3px_0px_rgba(0,0,0,1)] text-[14.5px] transition-transform"
-        >
-          <span className="material-symbols-outlined text-[18px]">play_circle</span>
-          Start Study Session
-        </button>
+        {/* Live tracking indicator — replaces the old manual "Start Session" button */}
+        <div className="w-full py-3 rounded-xl border-2 border-black bg-[#FAF7F2] flex items-center justify-center gap-2 shadow-[3px_3px_0px_rgba(0,0,0,1)] text-[12px] font-extrabold uppercase tracking-wider text-black/60">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D2E] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF4D2E]" />
+          </span>
+          Recording session time automatically
+        </div>
 
         {/* Weekly Calendar (mobile only) */}
         <section className="border-2 border-black rounded-2xl bg-white p-5" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
@@ -731,61 +697,6 @@ export default function Dashboard() {
         </section>
       </main>
 
-      {/* ═══════════════════════════════════════════════════
-          STUDY SESSION MODAL — shared, works on both
-          ═══════════════════════════════════════════════════ */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-5 z-50">
-          <div className="w-full max-w-[380px] bg-[#FAF7F2] border-2 border-black p-5 shadow-[4px_4px_0px_#1A1A1A]">
-            <div className="flex items-center gap-2 mb-3.5">
-              <span className="material-symbols-outlined text-[20px]">history</span>
-              <h3 className="font-black text-[18px]">Log Study Session</h3>
-            </div>
-            <p className="text-[12px] text-slate-500 font-bold mb-4 leading-normal">
-              Empower your checklist goal with custom registered study hours!
-            </p>
-            <div className="flex flex-col gap-3.5">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Study Topic / Subject</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Cellular Biology, Trigonometry"
-                  value={sessionSubject}
-                  onChange={(e) => setSessionSubject(e.target.value)}
-                  className="w-full border-2 border-black bg-white px-3 py-2 text-[13.5px] font-bold outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">
-                  Duration: {sessionDuration} min
-                </label>
-                <input
-                  type="range" min="15" max="120" step="15"
-                  value={sessionDuration}
-                  onChange={(e) => setSessionDuration(Number(e.target.value))}
-                  className="w-full accent-black"
-                />
-                <div className="flex justify-between text-[10px] font-black text-slate-400">
-                  <span>15m</span><span>45m</span><span>90m</span><span>120m</span>
-                </div>
-              </div>
-            </div>
-            {saveError && (
-              <div className="mt-3 text-[12px] font-bold text-[#ba1a1a] bg-[#ffdad6] border-2 border-[#ba1a1a] px-3 py-2">
-                {saveError}
-              </div>
-            )}
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-white border-2 border-black py-2.5 font-bold text-[13px] hover:bg-neutral-50 cursor-pointer">
-                Cancel
-              </button>
-              <button disabled={savingSession} onClick={handleSaveSession} className="flex-1 bg-black border-2 border-black text-white py-2.5 font-bold text-[13px] hover:opacity-90 cursor-pointer disabled:opacity-50">
-                {savingSession ? "Saving..." : "Save Log"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
