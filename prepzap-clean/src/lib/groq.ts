@@ -10,6 +10,29 @@ const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
 const DEFAULT_MODEL = "gemini-2.0-flash";
 const VISION_MODEL  = "gemini-2.0-flash";
 
+// supabase.auth.getSession() has a known deadlock failure mode (usually
+// navigator.locks contention across tabs) where the promise just never
+// resolves. AuthContext already guards its own getSession() call at app
+// init with an 8s timeout - this does the same here, since this file was
+// calling getSession() completely unguarded, which is why a Send could hang
+// forever on "Rex is thinking..." with the request never even reaching
+// fetch(). On timeout we proceed without an auth token rather than hanging
+// the whole request; the Worker can decide how to handle a missing token.
+async function getAccessTokenSafely(timeoutMs = 5000): Promise<string> {
+  try {
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`getSession() timed out after ${timeoutMs}ms`)), timeoutMs)
+      ),
+    ]);
+    return result.data.session?.access_token ?? "";
+  } catch (err) {
+    console.error("[groq] getSession() failed or timed out, proceeding without auth token:", err);
+    return "";
+  }
+}
+
 export interface GroqMessage {
   role: "system" | "user" | "assistant";
   content: string | Array<{ type: string; [key: string]: unknown }>;
@@ -116,24 +139,40 @@ async function _callGroqCore(
     "first msg role:", fullMessages[0]?.role
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token ?? "";
+  const token = await getAccessTokenSafely();
 
-  const res = await fetch(GROQ_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      model: resolvedModel,
-      max_tokens: maxTokens,
-      messages: fullMessages,
-      temperature: 0.7,
-      ...(feature ? { feature } : {}),
-      ...(isOpenRouterModel ? { route: "openrouter" } : {}),
-    }),
-  });
+  // Guard against a hung Worker/upstream request the same way we now guard
+  // getSession() - without this, a stuck fetch produces the exact same
+  // silent-forever "Rex is thinking..." symptom, just one step later.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+  let res: Response;
+  try {
+    res = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        model: resolvedModel,
+        max_tokens: maxTokens,
+        messages: fullMessages,
+        temperature: 0.7,
+        ...(feature ? { feature } : {}),
+        ...(isOpenRouterModel ? { route: "openrouter" } : {}),
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") {
+      throw new Error("Rex took too long to respond (request timed out). Please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -229,22 +268,35 @@ export async function callGroqWithImages(
   // FIX: was incorrectly referencing `hasImages` and `model` from callGroq scope
   console.log("[groq] sending vision request, model:", VISION_MODEL, "messages count:", messages.length);
 
-  const { data: { session: visionSession } } = await supabase.auth.getSession();
-  const visionToken = visionSession?.access_token ?? "";
+  const visionToken = await getAccessTokenSafely();
 
-  const res = await fetch(GROQ_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(visionToken ? { "Authorization": `Bearer ${visionToken}` } : {}),
-    },
-    body: JSON.stringify({
-      model: VISION_MODEL,
-      max_tokens: maxTokens,
-      messages,
-      temperature: 0.7,
-    }),
-  });
+  const visionController = new AbortController();
+  const visionTimeoutId = setTimeout(() => visionController.abort(), 45000);
+
+  let res: Response;
+  try {
+    res = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(visionToken ? { "Authorization": `Bearer ${visionToken}` } : {}),
+      },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        max_tokens: maxTokens,
+        messages,
+        temperature: 0.7,
+      }),
+      signal: visionController.signal,
+    });
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") {
+      throw new Error("Rex took too long to respond (request timed out). Please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(visionTimeoutId);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

@@ -65,24 +65,38 @@ export default function QuickStudy() {
   // FIX BUG 4: initialize remainingUses as null to avoid flicker
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [copyFlash, setCopyFlash] = useState<"copy" | "share" | null>(null);
 
   useEffect(() => {
-    remaining("quick_study").then(setRemainingUses);
+    remaining("quick_study").then(setRemainingUses).catch((err) => {
+      console.error("[QuickStudy] failed to load remaining uses:", err);
+    });
   }, [remaining]);
 
   const chips = ["Cell Biology", "Anatomy", "Genetics", "Neuroscience", "Biochemistry", "Physiology"];
 
   const handleGenerate = async () => {
+    setGenError(null);
     const sourceContext = buildAIContext();
-    if (!topic.trim() && !sourceContext) return;
+    if (!topic.trim() && !sourceContext) {
+      setGenError("Enter a topic, or select an active source from your Source Library first.");
+      return;
+    }
     const effectiveTopic =
       topic.trim() || activeSource?.name?.replace(/\.[^.]+$/, "").replace(/-/g, " ") || "Study Material";
 
     // Freemium gate
     if (!isPro) {
-      const allowed = await canUse("quick_study");
-      if (!allowed) {
-        setShowUpgrade(true);
+      try {
+        const allowed = await canUse("quick_study");
+        if (!allowed) {
+          setShowUpgrade(true);
+          return;
+        }
+      } catch (err) {
+        console.error("[QuickStudy] canUse check failed:", err);
+        setGenError("Couldn't verify your plan status just now — please try again in a moment.");
         return;
       }
     }
@@ -232,7 +246,9 @@ Return raw JSON only, no wrapping!`;
       try {
         await logUsage("quick_study");
       } catch {}
-      remaining("quick_study").then(setRemainingUses);
+      remaining("quick_study").then(setRemainingUses).catch((err) => {
+        console.error("[QuickStudy] failed to refresh remaining uses:", err);
+      });
     }
     setLoading(false);
   };
@@ -242,10 +258,40 @@ Return raw JSON only, no wrapping!`;
     setGeneratedSheet(null);
   };
 
-  const handleCopySheet = () => {
+  const handleCopySheet = async () => {
     if (!generatedSheet) return;
     const text = `${generatedSheet.title}\n\n${generatedSheet.points.map((p) => `${p.label} ${p.value}`).join("\n\n")}`;
-    navigator.clipboard.writeText(text).catch(() => {});
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFlash("copy");
+      setTimeout(() => setCopyFlash(null), 1500);
+    } catch (err) {
+      console.error("[QuickStudy] copy to clipboard failed:", err);
+      setGenError("Couldn't copy to clipboard. Try selecting the text manually.");
+    }
+  };
+
+  // Previously this button was labeled/iconed as "Share" but just called
+  // handleCopySheet - identical to the Copy button next to it, with no
+  // native share sheet and no feedback either way. Uses the real Web Share
+  // API when available (mobile browsers, most modern desktop browsers),
+  // falling back to the same clipboard copy on unsupported browsers.
+  const handleShareSheet = async () => {
+    if (!generatedSheet) return;
+    const text = `${generatedSheet.title}\n\n${generatedSheet.points.map((p) => `${p.label} ${p.value}`).join("\n\n")}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: generatedSheet.title, text });
+      } catch (err) {
+        // AbortError just means the user closed the share sheet - not an error.
+        if ((err as Error)?.name !== "AbortError") {
+          console.error("[QuickStudy] share failed:", err);
+        }
+      }
+      return;
+    }
+    await handleCopySheet();
+    setCopyFlash("share");
   };
 
   // ─── Session Goals Panel (desktop right column) ──────────────────────────
@@ -342,14 +388,14 @@ Return raw JSON only, no wrapping!`;
             ))}
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={handleCopySheet} title="Copy" className="material-symbols-outlined text-[20px] text-black hover:text-[#E8534A] transition-colors">
-              content_copy
+            <button onClick={handleCopySheet} title={copyFlash === "copy" ? "Copied!" : "Copy"} className={`material-symbols-outlined text-[20px] transition-colors ${copyFlash === "copy" ? "text-green-600" : "text-black hover:text-[#E8534A]"}`}>
+              {copyFlash === "copy" ? "check" : "content_copy"}
             </button>
             <button onClick={() => window.print()} title="Print" className="material-symbols-outlined text-[20px] text-black hover:text-[#E8534A] transition-colors">
               print
             </button>
-            <button onClick={handleCopySheet} title="Share" className="material-symbols-outlined text-[20px] text-black hover:text-[#E8534A] transition-colors">
-              share
+            <button onClick={handleShareSheet} title={copyFlash === "share" ? "Copied for sharing!" : "Share"} className={`material-symbols-outlined text-[20px] transition-colors ${copyFlash === "share" ? "text-green-600" : "text-black hover:text-[#E8534A]"}`}>
+              {copyFlash === "share" ? "check" : "share"}
             </button>
           </div>
         </div>
@@ -503,7 +549,7 @@ Return raw JSON only, no wrapping!`;
                   {/* Generate */}
                   <button
                     onClick={handleGenerate}
-                    disabled={(!topic.trim() && libraryFiles.length === 0) || loading}
+                    disabled={(!topic.trim() && !activeSource) || loading}
                     className="flex-1 relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <div className="w-full py-2.5 bg-black text-white border-2 border-black flex items-center justify-center gap-2 z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
@@ -524,6 +570,9 @@ Return raw JSON only, no wrapping!`;
                     </div>
                   )}
                 </div>
+                {genError && (
+                  <p className="text-[12px] font-bold text-[#ae2925]">{genError}</p>
+                )}
               </div>
               {/* Session Goals — 1/3 */}
               <div className="col-span-1">
@@ -680,7 +729,7 @@ Return raw JSON only, no wrapping!`;
 
           {/* Generate button */}
           <button
-            disabled={(!topic.trim() && libraryFiles.length === 0) || loading}
+            disabled={(!topic.trim() && !activeSource) || loading}
             onClick={handleGenerate}
             className="relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
@@ -692,6 +741,9 @@ Return raw JSON only, no wrapping!`;
             </div>
             <div className="absolute inset-0 bg-[#E8534A] translate-y-1 translate-x-1 group-active:translate-y-0 group-active:translate-x-0 transition-transform" />
           </button>
+          {genError && (
+            <p className="text-[12px] font-bold text-[#ae2925] -mt-3">{genError}</p>
+          )}
 
           {/* Session Goals — mobile (shown after generate) */}
           {(generatedSheet || loading) && (

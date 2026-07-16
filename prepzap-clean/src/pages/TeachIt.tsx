@@ -35,9 +35,12 @@ export default function TeachIt() {
   // FIX BUG 4: initialize remainingUses as null to avoid flicker
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   useEffect(() => {
-    remaining("teach_it").then(setRemainingUses);
+    remaining("teach_it").then(setRemainingUses).catch((err) => {
+      console.error("[TeachIt] failed to load remaining uses:", err);
+    });
   }, [remaining]);
 
   // FIX: activeSource was only ever read once at mount, so attaching a
@@ -64,17 +67,24 @@ export default function TeachIt() {
 
   const handleClearSource = () => {
     setActiveSource(null);
-    saveContext([]);
+    saveContext({ mode: "none", selectedIds: [] });
   };
 
   const handleAnalyze = async () => {
     if (!explanation.trim()) return;
+    setGenError(null);
 
     // Freemium gate
     if (!isPro) {
-      const allowed = await canUse("teach_it");
-      if (!allowed) {
-        setShowUpgrade(true);
+      try {
+        const allowed = await canUse("teach_it");
+        if (!allowed) {
+          setShowUpgrade(true);
+          return;
+        }
+      } catch (err) {
+        console.error("[TeachIt] canUse check failed:", err);
+        setGenError("Couldn't verify your plan status just now — please try again in a moment.");
         return;
       }
     }
@@ -143,7 +153,8 @@ export default function TeachIt() {
       } else {
         throw new Error("Invalid structure");
       }
-    } catch {
+    } catch (err) {
+      console.error("[TeachIt] AI analysis failed, using fallback:", err);
       result = {
         strengths: [
           `Good conversational approach to explaining ${targetTopic || "the topic"}.`,
@@ -174,7 +185,9 @@ export default function TeachIt() {
     // FIX BUG 3: always log usage after generation (success or fallback)
     if (!isPro) {
       try { await logUsage("teach_it"); } catch {}
-      remaining("teach_it").then(setRemainingUses);
+      remaining("teach_it").then(setRemainingUses).catch((err) => {
+        console.error("[TeachIt] failed to refresh remaining uses:", err);
+      });
     }
 
     if (result) {
@@ -354,6 +367,9 @@ export default function TeachIt() {
                     </p>
                     {remainingUses <= 2 && <SoftWarning feature="teach_it" remaining={remainingUses} />}
                   </div>
+                )}
+                {genError && (
+                  <p className="text-[12px] font-bold text-[#ae2925] mt-1 text-right">{genError}</p>
                 )}
               </div>
             </div>
@@ -609,6 +625,10 @@ export default function TeachIt() {
                 <p className="text-[12px] font-bold">Your past explanations will appear here</p>
               </div>
             </div>
+          )}
+
+          {genError && (
+            <p className="text-[12px] font-bold text-[#ae2925]">{genError}</p>
           )}
 
         </main>

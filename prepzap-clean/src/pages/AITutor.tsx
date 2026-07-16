@@ -294,6 +294,8 @@ export default function AITutor() {
   const { isPro, canUse, remaining, logUsage, loading: planLoading } = usePlan();
   const [remainingUses, setRemainingUses] = useState<number>(20);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const [activeMode, setActiveMode] = useState("Explain");
   const modes = ["Explain", "ELI5", "Analogy", "Quiz Me", "Devil's Advocate", "Summarize"];
@@ -403,6 +405,68 @@ export default function AITutor() {
     setFoxImg(FOX.neutral);
     setShowMobileHistory(false);
   };
+
+  // The mic button previously had no onClick at all - just an icon, no
+  // functionality behind it. This wires up real voice input using the
+  // browser's native SpeechRecognition API (Chrome/Edge support it well;
+  // Safari and Firefox support is inconsistent, hence the feature-detect
+  // with a friendly fallback instead of a silently dead button).
+  const handleMicClick = () => {
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
+      setMessages((prev) => [...prev, { sender: "bot" as const, text: "Voice input isn't supported in this browser. Try Chrome or Edge, or just type your question." }]);
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript ?? "";
+      if (transcript) {
+        setInputVal((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript));
+      }
+    };
+    recognition.onerror = (event: any) => {
+      console.error("[AITutor] speech recognition error:", event.error);
+      setIsRecording(false);
+    };
+    recognition.onend = () => setIsRecording(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop?.(); };
+  }, []);
+
+  // Start a fresh chat the moment the user switches away from this browser
+  // tab. Navigating to a different in-app route already resets state
+  // naturally (the component unmounts and remounts with fresh useState
+  // defaults) - this covers the other case, where the tab is just hidden
+  // (alt-tabbed, minimized, switched tabs) and the component stays mounted
+  // with the old conversation still sitting in state. Whatever was said so
+  // far is already saved to session history, so nothing is lost - coming
+  // back just starts clean instead of silently continuing the old thread.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) handleNewChat();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLoadSession = (session: ChatSession) => {
     setMessages(session.messages);
@@ -704,8 +768,10 @@ export default function AITutor() {
                   placeholder="Ask Rex anything about your studies..."
                   style={{ maxHeight: 120, overflowY: "auto" }}
                 />
-                <button className="w-10 h-10 flex items-center justify-center text-black/30 hover:text-black transition-colors flex-shrink-0">
-                  <span className="material-symbols-outlined">mic</span>
+                <button onClick={handleMicClick}
+                  title={isRecording ? "Stop recording" : "Voice input"}
+                  className={`w-10 h-10 flex items-center justify-center transition-colors flex-shrink-0 ${isRecording ? "text-[#ae2925] animate-pulse" : "text-black/30 hover:text-black"}`}>
+                  <span className="material-symbols-outlined">{isRecording ? "stop_circle" : "mic"}</span>
                 </button>
                 <button onClick={() => handleSend()}
                   className="w-11 h-11 bg-black text-white flex items-center justify-center border-2 border-black hover:bg-[#FF4D2E] transition-colors flex-shrink-0">
