@@ -84,7 +84,16 @@ self.addEventListener("fetch", (event) => {
           // into a hard crash instead of a graceful miss. Falling back to a
           // real network fetch (letting it fail on its own if it must) keeps
           // this a normal failed request instead of an uncaught SW exception.
-          caches.match(event.request).then((cached) => cached || fetch(event.request))
+          //
+          // FIX 2: that retry fetch can ALSO get blocked (e.g. still no CSP
+          // allowance), rejecting again — and with nothing left to catch it,
+          // that surfaces as its own "Uncaught (in promise)" error. This final
+          // catch guarantees respondWith always resolves to a real Response,
+          // never a rejected promise, no matter how many fallbacks fail.
+          caches
+            .match(event.request)
+            .then((cached) => cached || fetch(event.request))
+            .catch(() => new Response("", { status: 504, statusText: "Network error" }))
         )
     );
     return;
@@ -107,14 +116,18 @@ self.addEventListener("fetch", (event) => {
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
             return response;
           })
-          .catch(() => fetch(event.request));
+          .catch(() =>
+            fetch(event.request).catch(
+              () => new Response("", { status: 504, statusText: "Network error" })
+            )
+          );
           // FIX: this branch previously had NO .catch() at all — if a font
           // request was blocked (CSP, offline, ad-blocker) the returned
           // promise just rejected with nothing handling it, which is the
-          // other failure mode seen alongside the CSS one above. Not
-          // "recoverable" here since there's nothing cached to fall back to,
-          // but this at least keeps it a normal rejected fetch instead of an
-          // unhandled promise rejection inside the SW.
+          // other failure mode seen alongside the CSS one above. Now it
+          // always resolves to a real Response, even when there's nothing
+          // cached to fall back to, so it can never surface as an uncaught
+          // rejection inside the SW.
       })
     );
     return;
