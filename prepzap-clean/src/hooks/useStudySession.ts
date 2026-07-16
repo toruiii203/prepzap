@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { bumpStreakIfNeeded } from "@/lib/streak";
 
 interface LogSessionInput {
   /** What shows up in Recent Sessions / Study History, e.g. the problem text or note title */
@@ -28,23 +29,24 @@ interface LogSessionResult {
  *      column at all until the 002 migration) — every streak update also
  *      silently failed.
  *
- * Fixing it once here means it only needs to be correct in one place. Any
- * tool that wants to log a session + update the streak should call this
- * instead of writing its own insert/update pair.
+ * FIX: streak math now lives in lib/streak.ts (`bumpStreakIfNeeded`), shared
+ * with useStudyTimeTracker.ts's passive auto-tracking flush. Previously this
+ * hook was the ONLY place with correct streak logic, but nothing on the
+ * always-running passive-tracking path called it — so the streak never
+ * actually moved in practice. Delegating to the shared helper here means both
+ * logging paths (manual + passive) stay correct without re-drifting apart.
  *
  * Usage:
  *   const { logSession } = useStudySession();
  *   await logSession({ title: "Cell Biology notes", durationMinutes: 12 });
  */
 export function useStudySession() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, refreshProfile } = useAuth();
 
   const logSession = useCallback(
     async ({ title, durationMinutes }: LogSessionInput): Promise<LogSessionResult> => {
       const result: LogSessionResult = { sessionError: null, streakError: null };
       if (!user?.id) return result;
-
-      const today = new Date().toISOString().split("T")[0];
 
       const { error: sessionError } = await supabase.from("study_sessions").insert({
         user_id: user.id,
@@ -57,29 +59,14 @@ export function useStudySession() {
         result.sessionError = sessionError;
       }
 
-      // Streak logic: increment if last studied yesterday, reset to 1 if the
-      // gap is bigger than a day, leave unchanged if already logged today.
-      const last = profile?.last_study_date;
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-      const currentStreak = profile?.streak_days ?? 0;
-      const newStreak = last === today ? currentStreak : last === yesterday ? currentStreak + 1 : 1;
-
-      if (last !== today) {
-        const { error: streakError } = await supabase
-          .from("profiles")
-          .update({ streak_days: newStreak, last_study_date: today })
-          .eq("id", user.id);
-        if (streakError) {
-          console.error("Error updating streak:", streakError);
-          result.streakError = streakError;
-        }
-      }
+      const { streakError } = await bumpStreakIfNeeded(user.id);
+      result.streakError = streakError;
 
       if (typeof refreshProfile === "function") await refreshProfile();
 
       return result;
     },
-    [user, profile, refreshProfile]
+    [user, refreshProfile]
   );
 
   return { logSession };

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { bumpStreakIfNeeded } from "@/lib/streak";
 
 const FLUSH_INTERVAL_MS = 20_000; // push accumulated time to the server every 20s
 const TICK_MS = 1_000;
@@ -26,6 +27,15 @@ const MIN_SECONDS_TO_FLUSH = 3; // don't bother the DB for a stray 1-2s blip
  *     window.addEventListener("studenius:session-logged", handler);
  *     return () => window.removeEventListener("studenius:session-logged", handler);
  *   }, []);
+ *
+ * FIX: this was the only always-running logging path (SharedSidebar mounts it
+ * on every route), but it only called `increment_study_time` and never
+ * touched the streak — that logic lived exclusively in useStudySession.ts,
+ * which nothing on the passive-tracking path ever calls. Result: Total
+ * Sessions/Time Studied climbed correctly while Academic Streak sat at 0
+ * forever. Now shares `bumpStreakIfNeeded` with useStudySession so both
+ * logging paths keep the streak correct instead of duplicating (and
+ * re-drifting) the math.
  *
  * @param toolName   Human-readable name to log this time under, e.g. "AI Tutor",
  *                   "Practice", "Dashboard". Matches the `title` shown in Recent Sessions.
@@ -67,6 +77,14 @@ export function useStudyTimeTracker(
           accumulatedSeconds.current += seconds; // don't lose the time, retry next flush
           return;
         }
+
+        // Fire-and-forget: don't block the flush (or hold up onFlush/the
+        // dispatched event) on the streak write. A failure here shouldn't
+        // undo the session time we already successfully logged above.
+        bumpStreakIfNeeded(userId).catch((err) =>
+          console.error("Streak update failed:", err)
+        );
+
         onFlush?.();
         window.dispatchEvent(
           new CustomEvent("studenius:session-logged", { detail: { tool: toolName, seconds } })
