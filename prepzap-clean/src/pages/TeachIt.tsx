@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";
@@ -8,6 +8,7 @@ import { buildAIContext, getActiveSource, saveContext, onSourceChange } from "@/
 import { usePlan } from "@/hooks/usePlan";
 import { useStudySession } from "@/hooks/useStudySession";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
+import { useToolHistory } from "@/pages/ToolHistory";
 
 interface FeynmanFeedback {
   strengths: string[];
@@ -22,9 +23,11 @@ export default function TeachIt() {
   const { user, profile, refreshProfile } = useAuth();
   const { isPro, canUse, remaining, logUsage } = usePlan();
   const { logSession } = useStudySession();
+  const { save: saveHistory, history: teachHistory } = useToolHistory("teach-it");
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const [activeSource, setActiveSource] = useState<string | null>(() => getActiveSource()?.name ?? null);
-  const [topic, setTopic] = useState("");
-  const [explanation, setExplanation] = useState("");
+  const [topic, setTopic] = useState(() => localStorage.getItem("pz_teachit_draft_topic") || "");
+  const [explanation, setExplanation] = useState(() => localStorage.getItem("pz_teachit_draft_explanation") || "");
   // FIX BUG 5: messages array for conversation history
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
   const [feedback, setFeedback] = useState<FeynmanFeedback | null>(null);
@@ -36,12 +39,22 @@ export default function TeachIt() {
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     remaining("teach_it").then(setRemainingUses).catch((err) => {
       console.error("[TeachIt] failed to load remaining uses:", err);
     });
   }, [remaining]);
+
+  useEffect(() => {
+    localStorage.setItem("pz_teachit_draft_topic", topic);
+  }, [topic]);
+
+  useEffect(() => {
+    localStorage.setItem("pz_teachit_draft_explanation", explanation);
+  }, [explanation]);
 
   // FIX: activeSource was only ever read once at mount, so attaching a
   // source on /sources and coming back here never showed it — the chip
@@ -69,6 +82,49 @@ export default function TeachIt() {
     setActiveSource(null);
     saveContext({ mode: "none", selectedIds: [] });
   };
+
+  // Same pattern as AITutor's mic fix - browser-native SpeechRecognition,
+  // no backend needed. Appends to whatever's already in the explanation box
+  // rather than replacing it, since students often pause mid-explanation.
+  const handleMicClick = () => {
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
+      setGenError("Voice input isn't supported in this browser. Try Chrome or Edge, or just type your explanation.");
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript ?? "";
+      if (transcript) {
+        setExplanation((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript));
+      }
+    };
+    recognition.onerror = (event: any) => {
+      console.error("[TeachIt] speech recognition error:", event.error);
+      setIsRecording(false);
+    };
+    recognition.onend = () => setIsRecording(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop?.(); };
+  }, []);
 
   const handleAnalyze = async () => {
     if (!explanation.trim()) return;
@@ -194,6 +250,13 @@ export default function TeachIt() {
       setFeedback(result);
       // Store conversation turn
       setMessages([...updatedMessages, { role: "assistant", text: JSON.stringify(result) }]);
+      saveHistory({
+        prompt: explanation,
+        preview: result.hint || result.strengths[0] || "",
+        output: JSON.stringify(result),
+        model: "rex-ai",
+        meta: targetTopic,
+      });
     }
 
     setLoading(false);
@@ -310,12 +373,54 @@ export default function TeachIt() {
 
             {/* Worksheet */}
             <div className="flex-1 flex flex-col overflow-hidden bg-white">
-              <div className="border-b-2 border-black px-6 py-3 flex items-center justify-between bg-[#FAF7F2] shrink-0">
+              <div className="border-b-2 border-black px-6 py-3 flex items-center justify-between bg-[#FAF7F2] shrink-0 relative">
                 <span className="font-bold text-[11px] uppercase tracking-widest">The Feynman Worksheet</span>
                 <div className="flex gap-3">
-                  <button title="View history (coming soon)" className="material-symbols-outlined text-[20px] text-black/30 cursor-not-allowed">history</button>
+                  <button
+                    onClick={() => setShowHistoryDropdown((v) => !v)}
+                    title="View past explanations"
+                    className={`material-symbols-outlined text-[20px] transition-colors ${showHistoryDropdown ? "text-[#FF4D2E]" : "text-black/50 hover:text-black"}`}>
+                    history
+                  </button>
                   <button title="Format (coming soon)" className="material-symbols-outlined text-[20px] text-black/30 cursor-not-allowed">format_paint</button>
                 </div>
+                {showHistoryDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setShowHistoryDropdown(false)} />
+                    <div className="absolute top-full right-6 mt-1 w-80 max-h-96 overflow-y-auto bg-white border-2 border-black shadow-[4px_4px_0px_#000] z-30">
+                    <div className="px-4 py-2 border-b-2 border-black bg-[#F0EDE0]">
+                      <h4 className="text-[11px] font-black uppercase tracking-widest">Past Explanations</h4>
+                    </div>
+                    {!teachHistory || (teachHistory as any[]).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-2 text-center opacity-40">
+                        <span className="material-symbols-outlined text-[28px]">auto_stories</span>
+                        <p className="text-[11px] font-bold px-4">Your past explanations will appear here</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col divide-y divide-black/10">
+                        {(teachHistory as any[]).slice(0, 8).map((entry: any, i: number) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setTopic(entry.meta || "");
+                              setExplanation(entry.prompt || "");
+                              setFeedback(null);
+                              setShowHistoryDropdown(false);
+                            }}
+                            className="flex items-start gap-2 px-4 py-3 hover:bg-[#FAF7F2] text-left w-full"
+                          >
+                            <span className="material-symbols-outlined text-[16px] text-black/30 shrink-0 mt-0.5">history_edu</span>
+                            <div className="min-w-0">
+                              <p className="text-[12px] font-black truncate">{entry.meta || "Study Concept"}</p>
+                              <p className="text-[11px] font-bold text-black/40 truncate">{entry.preview || entry.prompt || ""}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex-1 flex flex-col p-8 overflow-y-auto">
@@ -335,9 +440,9 @@ export default function TeachIt() {
             {/* Action bar */}
             <div className="flex items-center justify-between px-8 py-4 border-t-2 border-black bg-[#FAF7F2] shrink-0">
               <div className="flex items-center gap-3">
-                <button disabled title="Voice recording coming soon" className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed">
-                  <span className="material-symbols-outlined text-[18px]">mic</span>
-                  Record Voice
+                <button onClick={handleMicClick} title={isRecording ? "Stop recording" : "Record voice"} className={`flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] transition-colors ${isRecording ? "text-[#ae2925]" : ""}`}>
+                  <span className={`material-symbols-outlined text-[18px] ${isRecording ? "animate-pulse" : ""}`}>{isRecording ? "stop_circle" : "mic"}</span>
+                  {isRecording ? "Listening..." : "Record Voice"}
                 </button>
                 <button disabled title="Sketch coming soon" className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed">
                   <span className="material-symbols-outlined text-[18px]">draw</span>
@@ -620,10 +725,32 @@ export default function TeachIt() {
                 <span className="material-symbols-outlined text-[18px]">history_edu</span>
                 <h3 className="text-[13px] font-extrabold">Past Explanations</h3>
               </div>
-              <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-40">
-                <span className="material-symbols-outlined text-[32px]">auto_stories</span>
-                <p className="text-[12px] font-bold">Your past explanations will appear here</p>
-              </div>
+              {!teachHistory || (teachHistory as any[]).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-40">
+                  <span className="material-symbols-outlined text-[32px]">auto_stories</span>
+                  <p className="text-[12px] font-bold">Your past explanations will appear here</p>
+                </div>
+              ) : (
+                <div className="flex flex-col divide-y divide-black/10">
+                  {(teachHistory as any[]).slice(0, 6).map((entry: any, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setTopic(entry.meta || "");
+                        setExplanation(entry.prompt || "");
+                        setFeedback(null);
+                      }}
+                      className="flex items-start gap-3 px-4 py-3 hover:bg-[#FAF7F2] text-left w-full"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-black/30 shrink-0 mt-0.5">history_edu</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-black truncate">{entry.meta || "Study Concept"}</p>
+                        <p className="text-[11px] font-bold text-black/40 truncate">{entry.preview || entry.prompt || ""}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -635,9 +762,9 @@ export default function TeachIt() {
 
         <div className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-[#FAF7F2] border-t-2 border-black z-20 md:hidden">
           <div className="flex items-center gap-2">
-            <button disabled title="Voice recording coming soon" className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] opacity-40 cursor-not-allowed">
-              <span className="material-symbols-outlined text-[16px]">mic</span>
-              Record Voice
+            <button onClick={handleMicClick} title={isRecording ? "Stop recording" : "Record voice"} className={`flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] transition-colors ${isRecording ? "text-[#ae2925]" : ""}`}>
+              <span className={`material-symbols-outlined text-[16px] ${isRecording ? "animate-pulse" : ""}`}>{isRecording ? "stop_circle" : "mic"}</span>
+              {isRecording ? "Listening..." : "Record Voice"}
             </button>
             <button disabled title="Sketch coming soon" className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] opacity-40 cursor-not-allowed">
               <span className="material-symbols-outlined text-[16px]">draw</span>

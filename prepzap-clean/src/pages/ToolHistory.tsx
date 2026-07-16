@@ -28,9 +28,23 @@ function localKey(toolId: string) {
 }
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
-async function getUserId(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.user?.id ?? null
+// supabase.auth.getSession() has a known deadlock failure mode (confirmed
+// live in this app - see groq.ts's getAccessTokenSafely()). Unguarded here,
+// a hang on this call would silently prevent history from ever loading or
+// saving, indistinguishable from "you have no history yet."
+async function getUserId(timeoutMs = 5000): Promise<string | null> {
+  try {
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`getSession() timed out after ${timeoutMs}ms`)), timeoutMs)
+      ),
+    ])
+    return result.data.session?.user?.id ?? null
+  } catch (err) {
+    console.error("[useToolHistory] getSession() failed or timed out:", err)
+    return null
+  }
 }
 
 async function fetchFromSupabase(toolId: string): Promise<HistoryEntry[]> {
@@ -43,7 +57,10 @@ async function fetchFromSupabase(toolId: string): Promise<HistoryEntry[]> {
     .eq("tool_id", toolId)
     .order("created_at", { ascending: false })
     .limit(MAX)
-  if (error || !data) return []
+  if (error || !data) {
+    console.error("[useToolHistory] fetch failed:", error);
+    return []
+  }
   return data.map(r => ({
     id: r.id,
     prompt: r.prompt ?? "",
@@ -74,22 +91,27 @@ async function saveToSupabase(
     })
     .select("id, created_at")
     .single()
-  if (error || !data) return null
+  if (error || !data) {
+    console.error("[useToolHistory] save to Supabase failed:", error);
+    return null
+  }
   return { ...entry, id: data.id, createdAt: data.created_at }
 }
 
 async function deleteFromSupabase(id: string): Promise<void> {
-  await supabase.from("tool_history").delete().eq("id", id)
+  const { error } = await supabase.from("tool_history").delete().eq("id", id)
+  if (error) console.error("[useToolHistory] delete failed:", error);
 }
 
 async function clearFromSupabase(toolId: string): Promise<void> {
   const userId = await getUserId()
   if (!userId) return
-  await supabase
+  const { error } = await supabase
     .from("tool_history")
     .delete()
     .eq("user_id", userId)
     .eq("tool_id", toolId)
+  if (error) console.error("[useToolHistory] clear failed:", error);
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
@@ -127,6 +149,22 @@ export function useToolHistory(toolId: string) {
         setEntries(prev => [saved, ...prev].slice(0, MAX))
         return saved
       }
+      // Supabase insert failed for a logged-in user - previously this just
+      // silently dropped the entry with no trace at all. Fall back to the
+      // local cache so the entry isn't lost outright; it just won't sync
+      // to other devices until the next successful save.
+      console.error("[useToolHistory] Supabase save failed, falling back to local cache for this entry");
+      const fallbackEntry: HistoryEntry = {
+        ...entry,
+        id: `local_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+      };
+      setEntries(prev => {
+        const updated = [fallbackEntry, ...prev].slice(0, MAX)
+        try { localStorage.setItem(localKey(toolId), JSON.stringify(updated)) } catch {}
+        return updated
+      })
+      return fallbackEntry
     } else {
       // localStorage fallback
       const newEntry: HistoryEntry = {
