@@ -76,7 +76,16 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() =>
+          // FIX: previously this could resolve to `undefined` when nothing was
+          // cached yet (e.g. a CSP-blocked font stylesheet on first load),
+          // and event.respondWith(undefined) throws "Failed to convert value
+          // to 'Response'" — which is what turned a single blocked request
+          // into a hard crash instead of a graceful miss. Falling back to a
+          // real network fetch (letting it fail on its own if it must) keeps
+          // this a normal failed request instead of an uncaught SW exception.
+          caches.match(event.request).then((cached) => cached || fetch(event.request))
+        )
     );
     return;
   }
@@ -89,14 +98,23 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type === "error") {
+        return fetch(event.request)
+          .then((response) => {
+            if (!response || response.status !== 200 || response.type === "error") {
+              return response;
+            }
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
             return response;
-          }
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        });
+          })
+          .catch(() => fetch(event.request));
+          // FIX: this branch previously had NO .catch() at all — if a font
+          // request was blocked (CSP, offline, ad-blocker) the returned
+          // promise just rejected with nothing handling it, which is the
+          // other failure mode seen alongside the CSS one above. Not
+          // "recoverable" here since there's nothing cached to fall back to,
+          // but this at least keeps it a normal rejected fetch instead of an
+          // unhandled promise rejection inside the SW.
       })
     );
     return;
