@@ -58,6 +58,8 @@ export default function SourceLibrary() {
     const lib = loadLibrary();
     setFiles(lib);
     const ctx = loadContext();
+    // Handles both the correct shape and any already-corrupted localStorage
+    // data written by the old buggy saveContext(array) calls below.
     setSelectedIds(Array.isArray(ctx) ? ctx : (ctx as any)?.selectedIds || []);
 
     // Scan for corrupted files on load
@@ -83,7 +85,7 @@ export default function SourceLibrary() {
       ? selectedIds.filter(x => x !== id)
       : [...selectedIds, id];
     setSelectedIds(next);
-    saveContext(next);
+    saveContext({ mode: "selected", selectedIds: next });
   };
 
   const handleDeleteFile = (id: string, e: React.MouseEvent) => {
@@ -93,7 +95,7 @@ export default function SourceLibrary() {
     saveLibrary(nextFiles);
     const nextCtx = selectedIds.filter(x => x !== id);
     setSelectedIds(nextCtx);
-    saveContext(nextCtx);
+    saveContext({ mode: "selected", selectedIds: nextCtx });
     setCorruptedIds(prev => { const s = new Set(prev); s.delete(id); return s; });
   };
 
@@ -103,7 +105,7 @@ export default function SourceLibrary() {
     saveLibrary(nextFiles);
     const nextCtx = [...selectedIds, newFile.id];
     setSelectedIds(nextCtx);
-    saveContext(nextCtx);
+    saveContext({ mode: "selected", selectedIds: nextCtx });
   };
 
   // ── File upload with PDF.js extraction ────────────────────────────────────
