@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { loadContext, buildAIContext, getActiveSource, loadLibrary, onSourceChange } from "@/lib/sourceContext";
+import { loadLibrary, onSourceChange } from "@/lib/sourceContext";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
@@ -48,19 +48,14 @@ function parseHistoryEntry(entry: HistoryEntry) {
 // ─── Sub-components (outside — React never remounts them on re-render) ────────
 
 interface BannerProps {
-  activeSource: any;
   isGenerating: boolean;
   topicInput: string;
   setTopicInput: (v: string) => void;
-  setActiveSource: (v: any) => void;
   onGenerate: () => void;
   onNavigate: (r: string) => void;
-  onPickSource: () => void;
   libraryFiles: any[];
-  showSourcePicker: boolean;
-  setShowSourcePicker: (v: boolean) => void;
 }
-function DesktopBanner({ activeSource, isGenerating, topicInput, setTopicInput, setActiveSource, onGenerate, onNavigate, onPickSource, libraryFiles, showSourcePicker, setShowSourcePicker }: BannerProps) {
+function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles }: BannerProps) {
   return (
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -72,40 +67,19 @@ function DesktopBanner({ activeSource, isGenerating, topicInput, setTopicInput, 
           <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            {activeSource ? (
-              <div className="flex items-center gap-2 border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0]">
-                <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">description</span>
-                <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource.name}</span>
-                <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
-              </div>
-            ) : (
-              <button onClick={() => setShowSourcePicker(!showSourcePicker)}
-                className="flex items-center gap-2 border-[1.5px] border-dashed border-black px-4 py-2 text-[13px] font-bold hover:bg-[#F0EDE0] transition-colors">
-                <span className="material-symbols-outlined text-[18px]">attach_file</span>
-                Attach source
-              </button>
-            )}
-            {showSourcePicker && !activeSource && (
-              <div className="absolute top-full mt-1 left-0 z-50 border-2 border-black bg-white shadow-[3px_3px_0px_#000] min-w-[260px] max-h-52 overflow-y-auto">
-                {libraryFiles.length === 0 ? (
-                  <div className="p-4 text-[12px] font-bold text-black/40 text-center">
-                    No files in Source Library yet.
-                    <button onClick={() => onNavigate("/sources")} className="block mt-1 text-[#FF4D2E] underline font-extrabold">Upload one →</button>
-                  </div>
-                ) : libraryFiles.map((file: any) => (
-                  <button key={file.id} onClick={() => { setActiveSource(file); setShowSourcePicker(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 border-b border-black/10 hover:bg-[#F0EDE0] text-left transition-colors">
-                    <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">description</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold truncate">{file.name}</p>
-                      <p className="text-[10px] font-bold text-black/40 uppercase">{file.type || "Document"}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* FIX: this used to be a dropdown picker for a single "active"
+              Source Library file. It now automatically reads every file in
+              the Source Library — no per-file selection needed — and just
+              shows a read-only count with a link to manage sources. */}
+          <button
+            onClick={() => onNavigate("/sources")}
+            className="flex items-center gap-2 border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0] text-[12px] font-bold hover:bg-black hover:text-white transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">description</span>
+            {libraryFiles.length > 0
+              ? `Using all ${libraryFiles.length} source${libraryFiles.length > 1 ? "s" : ""}`
+              : "No sources — tap to add"}
+          </button>
           <button onClick={onGenerate} disabled={isGenerating}
             className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg disabled:opacity-60">
             <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
@@ -154,19 +128,13 @@ export default function Practice() {
   const [score, setScore]                   = useState(0);
   const [answers, setAnswers]               = useState<number[]>([]);
   const [isGenerating, setIsGenerating]     = useState(false);
-  const [activeSource, setActiveSource]     = useState<any>(null);
   const [questions, setQuestions]           = useState<Question[]>([]);
   const [topicInput, setTopicInput]         = useState("");
   const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
-  const [showSourcePicker, setShowSourcePicker] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    const sync = () => {
-      loadContext();
-      setActiveSource(getActiveSource());
-      setLibraryFiles(loadLibrary());
-    };
+    const sync = () => setLibraryFiles(loadLibrary());
     sync();
     const unsub = onSourceChange(sync);
     window.addEventListener("focus", sync);
@@ -181,10 +149,33 @@ export default function Practice() {
     return () => clearInterval(interval);
   }, [view, questions.length]);
 
+  // FIX: Practice used to rely on a single manually-picked "active source"
+  // file via getActiveSource()/buildAIContext() — the student had to open a
+  // dropdown and choose one file from the Source Library before every quiz.
+  // This now reads every file currently in the Source Library automatically,
+  // same as Quick Study, so there's nothing to pick.
+  const MAX_CHARS_PER_SOURCE = 5000;
+  const MAX_SOURCES = 5;
+  const buildAllSourcesContext = (files: any[]): string => {
+    const usable = files.filter((f) => f.fullText || f.preview);
+    if (usable.length === 0) return "";
+    const parts = usable.slice(0, MAX_SOURCES).map((f) => {
+      if (f.type === "image/jpeg" || f.type === "image/png") {
+        return `=== SOURCE: ${f.name} ===\n[Camera capture image — text not available]`;
+      }
+      const raw = f.fullText || f.preview || "";
+      const text =
+        raw.length > MAX_CHARS_PER_SOURCE ? raw.slice(0, MAX_CHARS_PER_SOURCE) + "\n[…truncated]" : raw;
+      return `=== SOURCE: ${f.name} ===\n${text}`;
+    });
+    if (parts.length === 0) return "";
+    return `\n\n--- STUDY SOURCES (base your questions on this material) ---\n${parts.join("\n\n")}\n--- END SOURCES ---`;
+  };
+
   const handleGenerateQuiz = async () => {
     setIsGenerating(true);
     try {
-      const sourceText = buildAIContext();
+      const sourceText = buildAllSourcesContext(libraryFiles);
       const topicHint  = topicInput.trim();
       const promptText = sourceText
         ? `Generate a set of 3 interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
@@ -327,17 +318,12 @@ Each object MUST match this schema exactly:
           <main className="flex-1 flex flex-col p-10 max-w-4xl mx-auto w-full">
 
             <DesktopBanner
-              activeSource={activeSource}
               isGenerating={isGenerating}
               topicInput={topicInput}
               setTopicInput={setTopicInput}
-              setActiveSource={setActiveSource}
               onGenerate={handleGenerateQuiz}
               onNavigate={navigate}
-              onPickSource={() => setShowSourcePicker(true)}
               libraryFiles={libraryFiles}
-              showSourcePicker={showSourcePicker}
-              setShowSourcePicker={setShowSourcePicker}
             />
 
             {/* Loading */}
@@ -358,8 +344,8 @@ Each object MUST match this schema exactly:
                   </div>
                   <h2 className="font-extrabold text-[24px]">No quiz yet</h2>
                   <p className="text-black/50 font-bold text-[14px] max-w-[280px] leading-relaxed">
-                    {activeSource
-                      ? `"${activeSource.name}" is attached — hit Generate!`
+                    {libraryFiles.length > 0
+                      ? `${libraryFiles.length} source${libraryFiles.length > 1 ? "s" : ""} in your library — hit Generate!`
                       : "Paste your notes, type a topic, or just hit Generate for a random quiz."}
                   </p>
                 </div>
@@ -382,11 +368,10 @@ Each object MUST match this schema exactly:
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    {activeSource && (
+                    {libraryFiles.length > 0 && (
                       <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1 bg-[#F0EDE0] text-[12px] font-bold">
                         <span className="material-symbols-outlined text-[16px]">description</span>
-                        <span className="truncate max-w-[160px]">{activeSource.name}</span>
-                        <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[16px] hover:text-[#FF4D2E]">close</button>
+                        <span>{libraryFiles.length} source{libraryFiles.length > 1 ? "s" : ""} used</span>
                       </div>
                     )}
                     <div className="flex items-center gap-3 px-5 py-2 bg-[#F0EDE0] border-[1.5px] border-black shadow-[3px_3px_0px_#000]">
@@ -526,18 +511,14 @@ Each object MUST match this schema exactly:
                   placeholder="Paste notes or type a topic..."
                 />
                 <div className="flex gap-2 z-10">
-                  {activeSource ? (
-                    <div className="flex-1 flex items-center gap-2 bg-[#F0EDE0] border-[1.5px] border-black rounded-full px-3 py-2">
-                      <span className="material-symbols-outlined text-[#FF4D2E] text-[14px]">description</span>
-                      <span className="text-[11px] font-bold truncate flex-1">{activeSource.name}</span>
-                      <button onClick={() => setActiveSource(null)} className="material-symbols-outlined text-[14px]">close</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setShowSourcePicker(!showSourcePicker)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-[1.5px] border-dashed border-black rounded-lg text-[12px] font-bold hover:bg-[#F0EDE0] transition-colors">
-                      <span className="material-symbols-outlined text-[16px]">attach_file</span>Attach source
-                    </button>
-                  )}
+                  {/* FIX: this used to be a dropdown to pick a single Source
+                      Library file. It now just shows how many files will be
+                      read automatically, with a tap-through to manage them. */}
+                  <button onClick={() => navigate("/sources")}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-[1.5px] border-black rounded-lg text-[12px] font-bold bg-[#F0EDE0] hover:bg-black hover:text-white transition-colors">
+                    <span className="material-symbols-outlined text-[16px]">description</span>
+                    {libraryFiles.length > 0 ? `Using all ${libraryFiles.length}` : "No sources"}
+                  </button>
                   <button onClick={handleGenerateQuiz} disabled={isGenerating}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-[1.5px] border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
@@ -545,26 +526,6 @@ Each object MUST match this schema exactly:
                   </button>
                 </div>
               </section>
-
-              {showSourcePicker && !activeSource && (
-                <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000] max-h-44 overflow-y-auto">
-                  {libraryFiles.length === 0 ? (
-                    <div className="p-4 text-center text-[12px] font-bold text-black/40">
-                      No files yet.
-                      <button onClick={() => navigate("/sources")} className="block mt-1 text-[#FF4D2E] underline font-extrabold mx-auto">Upload to Source Library →</button>
-                    </div>
-                  ) : libraryFiles.map((file: any) => (
-                    <button key={file.id} onClick={() => { setActiveSource(file); setShowSourcePicker(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 border-b border-black/10 hover:bg-[#F0EDE0] text-left transition-colors">
-                      <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">description</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold truncate">{file.name}</p>
-                        <p className="text-[10px] font-bold text-black/40 uppercase">{file.type || "Document"}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
 
               {isGenerating && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
@@ -581,7 +542,7 @@ Each object MUST match this schema exactly:
                     </div>
                     <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
                     <p className="font-bold text-[13px] text-black/50 max-w-[260px]">
-                      {activeSource ? `"${activeSource.name}" is ready — hit Generate!` : "Paste notes, type a topic, or just hit Generate."}
+                      {libraryFiles.length > 0 ? `${libraryFiles.length} source${libraryFiles.length > 1 ? "s" : ""} in your library — hit Generate!` : "Paste notes, type a topic, or just hit Generate."}
                     </p>
                   </div>
                   {historyEntries.length > 0 && (

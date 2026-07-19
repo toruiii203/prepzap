@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
-import { buildAIContext, getActiveSource, onSourceChange, loadLibrary } from "@/lib/sourceContext";
+import { onSourceChange, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import { useStudySession } from "@/hooks/useStudySession";
@@ -17,27 +17,38 @@ interface StudyPoint {
 interface StudySheet {
   title: string;
   isNew: boolean;
+  isFailure?: boolean;
   tags: string[];
-  retentionScore: number;
+  // FIX: renamed from retentionScore. This number is invented fresh by the
+  // AI on every generation and has no link to real mastery/spaced-repetition
+  // data or to any other session — calling it "retention" implied a tracked,
+  // persistent metric it never was. "coverageScore" honestly describes what
+  // it actually is: a one-off estimate of how well these 4 points cover the
+  // topic, for this generation only.
+  coverageScore: number;
   goals: string[];
   points: StudyPoint[];
 }
 
-// FIX: hard cap on how long a single point's value is allowed to be. This is
-// the actual root cause of the "wall of raw text" bug — the prompt asked for
-// 4 short points, but nothing stopped the model from dumping the entire
-// source document into one point's `value` field, and the code accepted it
-// as long as `points` was *an array* (never checked each entry was actually
-// short). A point this long almost certainly means the model copied source
-// text verbatim instead of summarizing, so we treat it as a failed
-// generation and fall back rather than rendering an unreadable wall of text.
-const MAX_POINT_VALUE_LENGTH = 400;
+// FIX: two thresholds now instead of one hard cutoff.
+// - SOFT_TRIM_LENGTH: a point this long is probably just a wordy sentence,
+//   not a failure — trim it cleanly instead of discarding the entire
+//   generation (which is what used to happen for ANY oversized point, even
+//   one 20 characters over the limit).
+// - MAX_POINT_VALUE_LENGTH: a point this long is almost certainly a
+//   verbatim source dump, not a real study point — this is a genuine
+//   failure and still triggers a retry/fallback.
+const SOFT_TRIM_LENGTH = 260;
+const MAX_POINT_VALUE_LENGTH = 900;
 
 export default function QuickStudy() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { logSession } = useStudySession();
-  const [activeSource, setActiveSourceState] = useState(() => getActiveSource());
+  // Quick Study reads every file currently in the Source Library — no
+  // per-file selection needed here. (Other tools like AI Tutor/Flashcards
+  // use the shared selected/all mode in sourceContext.ts; this page just
+  // pulls loadLibrary() directly so it's independent of that global state.)
   const [libraryFiles, setLibraryFiles] = useState<any[]>(() => loadLibrary());
   // FIX BUG 8: destructure history from useToolHistory (was missing historyEntries)
   const { save: saveHistory, history: deckHistory } = useToolHistory("quick-study");
@@ -47,12 +58,9 @@ export default function QuickStudy() {
   const [generatedSheet, setGeneratedSheet] = useState<StudySheet | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Reactively sync source context when user/source changes
+  // Reactively sync source library when files are uploaded/deleted elsewhere
   useEffect(() => {
-    const sync = () => {
-      setActiveSourceState(getActiveSource());
-      setLibraryFiles(loadLibrary());
-    };
+    const sync = () => setLibraryFiles(loadLibrary());
     sync();
     const unsub = onSourceChange(sync);
     window.addEventListener("focus", sync);
@@ -61,6 +69,28 @@ export default function QuickStudy() {
       window.removeEventListener("focus", sync);
     };
   }, []);
+
+  const MAX_CHARS_PER_SOURCE = 5000;
+  const MAX_SOURCES = 5;
+
+  // Builds AI context from every library file (not just a "selected"
+  // subset) — same format as sourceContext.ts's buildAIContext() but
+  // unconditional, since this tool doesn't use the select/toggle model.
+  const buildAllSourcesContext = (files: any[]): string => {
+    const usable = files.filter((f) => f.fullText || f.preview);
+    if (usable.length === 0) return "";
+    const parts = usable.slice(0, MAX_SOURCES).map((f) => {
+      if (f.type === "image/jpeg" || f.type === "image/png") {
+        return `=== SOURCE: ${f.name} ===\n[Camera capture image — text not available]`;
+      }
+      const raw = f.fullText || f.preview || "";
+      const text =
+        raw.length > MAX_CHARS_PER_SOURCE ? raw.slice(0, MAX_CHARS_PER_SOURCE) + "\n[…truncated]" : raw;
+      return `=== SOURCE: ${f.name} ===\n${text}`;
+    });
+    if (parts.length === 0) return "";
+    return `\n\n--- STUDY SOURCES (base your answer on this material) ---\n${parts.join("\n\n")}\n--- END SOURCES ---`;
+  };
 
   // FIX BUG 4: initialize remainingUses as null to avoid flicker
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
@@ -74,17 +104,51 @@ export default function QuickStudy() {
     });
   }, [remaining]);
 
-  const chips = ["Cell Biology", "Anatomy", "Genetics", "Neuroscience", "Biochemistry", "Physiology"];
+  // FIX: these used to be hardcoded pre-med subjects (Cell Biology, Anatomy,
+  // Genetics, Neuroscience, Biochemistry, Physiology), which made no sense
+  // for the general student base (e.g. an Art Appreciation or Calculus
+  // student would see none of these apply). These are now subject-agnostic
+  // "focus" prompts that work as the topic for any course, especially when
+  // combined with Source Library files — the AI condenses whatever material
+  // is provided through that lens instead of assuming a specific subject.
+  const chips = [
+    "Key Terms & Definitions",
+    "Compare & Contrast",
+    "Cause & Effect",
+    "Step-by-Step Process",
+    "Formulas & Rules to Memorize",
+    "Timeline of Events",
+  ];
+
+  // FIX: a "topic" longer than this is almost certainly pasted lecture
+  // notes/raw text, not a topic name. Feeding an entire pasted document into
+  // the prompt as `for the topic: "<huge text>"` is what produced the
+  // giant raw-text wall — the model had no clear "summarize this" framing,
+  // it just had a confusing instruction with a topic string thousands of
+  // words long. Long pastes now get routed the same way as Source Library
+  // material: as content to condense, not as the topic name.
+  const RAW_PASTE_THRESHOLD = 220;
 
   const handleGenerate = async () => {
     setGenError(null);
-    const sourceContext = buildAIContext();
-    if (!topic.trim() && !sourceContext) {
-      setGenError("Enter a topic, or select an active source from your Source Library first.");
+    const sourceContext = buildAllSourcesContext(libraryFiles);
+    const trimmedTopic = topic.trim();
+    const isRawPaste = trimmedTopic.length > RAW_PASTE_THRESHOLD;
+    const shortTopic = isRawPaste ? "" : trimmedTopic;
+    const rawPastedMaterial = isRawPaste ? trimmedTopic.slice(0, 6000) : "";
+
+    if (!shortTopic && !sourceContext && !rawPastedMaterial) {
+      setGenError("Enter a topic, paste your notes, or add a file to your Source Library first.");
       return;
     }
+
+    const libraryNames = libraryFiles
+      .map((f) => f.name?.replace(/\.[^.]+$/, "").replace(/-/g, " "))
+      .filter(Boolean);
     const effectiveTopic =
-      topic.trim() || activeSource?.name?.replace(/\.[^.]+$/, "").replace(/-/g, " ") || "Study Material";
+      shortTopic ||
+      (libraryNames.length > 0 ? libraryNames.join(" + ") : "") ||
+      (isRawPaste ? "Pasted Study Notes" : "Study Material");
 
     // Freemium gate
     if (!isPro) {
@@ -104,18 +168,19 @@ export default function QuickStudy() {
     setLoading(true);
     setGeneratedSheet(null);
     let result: StudySheet | null = null;
+    let generationFailed = false;
 
-    try {
-      const promptText = `Generate a robust high-yield academic study guide for the topic: "${effectiveTopic}".
+    const buildPrompt = (retry: boolean) => `Generate a robust high-yield academic study guide for the topic: "${effectiveTopic}".
 Mode: "${activeTab === "Cram" ? "Cram Session (Fast Core Cheat Sheet Facts)" : "High Yield Summary (Clinical context / Advanced correlation)"}"
-${sourceContext ? `Incorporate source material detail:\n${sourceContext}` : ""}
+${sourceContext ? `Incorporate source material detail (this is reference material to condense — never copy it verbatim):\n${sourceContext}` : ""}
+${rawPastedMaterial ? `The student pasted the following raw notes. Treat this purely as source material to condense and paraphrase — it is NOT the topic name, and must never be echoed back verbatim:\n${rawPastedMaterial}` : ""}
 
 Return strictly a valid raw JSON object. Do not wrap in markdown tags or code blocks.
 Required JSON schema:
 {
   "title": "${effectiveTopic} (${activeTab === "Cram" ? "Cram Sheet" : "High Yield Study"})",
   "tags": ["Subject Area", "Sub-topic", "Exam Category"],
-  "retentionScore": 72,
+  "coverageScore": 72,
   "goals": [
     "Define the core terminology",
     "Identify 3 high-yield mechanisms",
@@ -131,24 +196,39 @@ Required JSON schema:
 
 Rules:
 - tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")
-- retentionScore: integer 0-100 reflecting topic complexity and how well these 4 points cover it
+- coverageScore: integer 0-100 reflecting how well these 4 points cover the topic (this is a one-off
+  estimate for this generation only, not a tracked retention/mastery metric)
 - goals: exactly 3 short imperative study goals specific to this topic
-- points: exactly 4 rigorous study points
-- FIX: each point's "value" MUST be a concise paraphrase of no more than 40 words.
-  Never copy sentences from the source material verbatim, no matter how
-  detailed the source context is — always condense and rephrase in your own
-  words. A point that just restates source text at length is not high-yield.
+- points: exactly 4 rigorous, SPECIFIC, exam-ready study points — real facts, named mechanisms,
+  concrete examples, or numbers relevant to "${effectiveTopic}". Avoid vague filler sentences
+  that could apply to any topic (e.g. "this concept is important for exams") — every point must
+  contain an actual piece of knowledge a student could be tested on.
+- Each point's "value" should be a concise paraphrase, ideally under 40 words and never over 55.
+  Never copy sentences from the source material verbatim, no matter how detailed the source
+  context is — always condense and rephrase in your own words.${retry ? "\n- Your previous response was invalid JSON or malformed. Return ONLY the raw JSON object below and nothing else — no preamble, no explanation, no markdown fences." : ""}
 Return raw JSON only, no wrapping!`;
 
-      const systemPrompt =
-        "You are an elite medical and engineering tutor who publishes quick high-yield revision cards strictly in raw JSON formats. You always condense and paraphrase — you never copy source text verbatim.";
+    const systemPrompt =
+      "You are an elite academic tutor who publishes quick high-yield revision cards strictly in raw JSON format. You always condense and paraphrase with specific, concrete facts — you never copy source text verbatim and never pad with vague filler.";
 
-      // FIX BUG 2: removed callGroqWithModel hack — call callGroq directly with feature key
+    // Trims an overly long point down to a clean sentence/word boundary
+    // instead of discarding the whole generation over one wordy point.
+    const trimPointValue = (value: string): string => {
+      if (value.length <= SOFT_TRIM_LENGTH) return value;
+      const cut = value.slice(0, SOFT_TRIM_LENGTH);
+      const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(", "), cut.lastIndexOf(" "));
+      return (lastStop > SOFT_TRIM_LENGTH * 0.5 ? cut.slice(0, lastStop) : cut).trim().replace(/[,.]?$/, "") + "…";
+    };
+
+    // One full attempt: call the model, parse (with a repair fallback for
+    // stray text around the JSON), validate shape, and trim-not-nuke
+    // oversized points. Throws if the response is unusable.
+    const attemptGenerate = async (retry: boolean): Promise<StudySheet> => {
       const aiResponse = await callGroq(
-        [{ role: "user", content: promptText }],
+        [{ role: "user", content: buildPrompt(retry) }],
         systemPrompt,
         "llama-3.3-70b-versatile",
-        1024,
+        1600,
         "quick_study"
       );
 
@@ -156,93 +236,113 @@ Return raw JSON only, no wrapping!`;
       if (sanitized.startsWith("```")) {
         sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
       }
-      const generated = JSON.parse(sanitized);
 
-      if (generated.title && Array.isArray(generated.points)) {
-        // FIX: reject (and fall back) if any point looks like a verbatim
-        // source dump rather than an actual condensed study point — this is
-        // what was rendering as a giant unreadable wall of text.
-        const hasOversizedPoint = generated.points.some(
-          (p: any) => typeof p?.value === "string" && p.value.length > MAX_POINT_VALUE_LENGTH
-        );
-        if (hasOversizedPoint) {
-          throw new Error("Generated point exceeded max length — likely a verbatim source dump, falling back");
-        }
+      let generated: any;
+      try {
+        generated = JSON.parse(sanitized);
+      } catch {
+        // FIX: repair step — some completions add a stray sentence before
+        // or after the JSON despite instructions. Try to pull just the
+        // {...} object out instead of immediately giving up.
+        const match = sanitized.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("No JSON object found in AI response");
+        generated = JSON.parse(match[0]);
+      }
 
-        result = {
-          title: generated.title,
-          isNew: true,
-          tags: Array.isArray(generated.tags) ? generated.tags : [activeTab === "Cram" ? "Cram" : "High Yield"],
-          retentionScore: typeof generated.retentionScore === "number" ? generated.retentionScore : 65,
-          goals: Array.isArray(generated.goals)
-            ? generated.goals
-            : ["Review core concepts", "Identify key mechanisms", "Test recall"],
-          points: generated.points,
-        };
-      } else {
+      if (!generated?.title || !Array.isArray(generated.points) || generated.points.length < 3) {
         throw new Error("Invalid structure");
       }
-    } catch (err) {
-      console.error("AI Quick Study failed, using fallback:", err);
-      if (activeTab === "Cram") {
+
+      // Reject only if truly malformed or a genuine verbatim-dump (well
+      // beyond a wordy sentence); trim anything merely a bit long instead
+      // of discarding a perfectly good, on-topic generation.
+      const cleanedPoints: StudyPoint[] = [];
+      for (const p of generated.points) {
+        if (typeof p?.label !== "string" || !p.label.trim() || typeof p?.value !== "string" || !p.value.trim()) {
+          throw new Error("Malformed point — missing label or value");
+        }
+        if (p.value.length > MAX_POINT_VALUE_LENGTH) {
+          throw new Error("Point far exceeds max length — likely a verbatim source dump");
+        }
+        cleanedPoints.push({ label: p.label.trim(), value: trimPointValue(p.value.trim()) });
+      }
+
+      return {
+        title: generated.title,
+        isNew: true,
+        tags: Array.isArray(generated.tags) && generated.tags.length > 0 ? generated.tags : [activeTab === "Cram" ? "Cram" : "High Yield"],
+        coverageScore: typeof generated.coverageScore === "number" ? generated.coverageScore : 65,
+        goals: Array.isArray(generated.goals) && generated.goals.length > 0
+          ? generated.goals
+          : ["Review core concepts", "Identify key mechanisms", "Test recall"],
+        points: cleanedPoints,
+      };
+    };
+
+    try {
+      result = await attemptGenerate(false);
+    } catch (firstErr) {
+      console.warn("[QuickStudy] first generation attempt failed, retrying once:", firstErr);
+      try {
+        result = await attemptGenerate(true);
+      } catch (secondErr) {
+        // FIX: this used to silently swap in hardcoded, topic-irrelevant
+        // fake facts (literally sodium-channel/action-potential content
+        // for ANY subject, including e.g. Art History) and present them as
+        // a real study sheet — actively misleading, not just low quality.
+        // If the model genuinely can't produce a usable sheet twice in a
+        // row, tell the student honestly instead of inventing facts.
+        console.error("[QuickStudy] generation failed twice, showing honest failure state:", secondErr);
+        generationFailed = true;
         result = {
-          title: `${topic} (Cram Sheet)`,
-          isNew: true,
-          tags: ["Core Concepts", "Cram Mode"],
-          retentionScore: 58,
-          goals: ["Define core terminology", "Memorize key sequences", "Review trigger mechanisms"],
-          points: [
-            { label: "Core Feature:", value: "Primary features are maintained actively by Na+/K+ ATP-driven pump steps." },
-            { label: "Trigger Bounds:", value: "Sodium channels open rapidly, allowing sodium ions to rush inside the cell membrane." },
-            { label: "Reset Phase:", value: "Sodium gates snap shut while potassium gated systems release intracellular channels." },
-            { label: "Action Response:", value: "An all-or-none reaction threshold must be parsed to initiate muscular contractions." },
-          ],
-        };
-      } else {
-        result = {
-          title: `${topic} (High Yield Study)`,
-          isNew: true,
-          tags: ["High Yield", "Clinical Correlation", "Exam Prep"],
-          retentionScore: 74,
+          title: `${effectiveTopic} — Generation Failed`,
+          isNew: false,
+          isFailure: true,
+          tags: ["Retry Needed"],
+          coverageScore: 0,
           goals: [
-            "Correlate with clinical presentations",
-            "Identify pharmacological targets",
-            "Map pathway inhibition points",
+            "Tap Generate again to retry",
+            "Try a shorter or narrower topic",
+            "If pasting notes, try a shorter excerpt",
           ],
           points: [
-            { label: "Clinical Target:", value: "Crucial for diagnostics involving neuropathy and signal conduction delays." },
-            { label: "Safety Margin:", value: "Refractory periods prevent backward firing, enforcing unidirectional electrical propagation." },
-            { label: "Insulator Sheath:", value: "Myelination scales up signal transmission speeds exponentially via saltatory conduction." },
-            { label: "Drug Interaction:", value: "Channel blockers modulate threshold potentials and are used in antiarrhythmic therapy." },
+            {
+              label: "Couldn't generate this sheet:",
+              value: `The AI wasn't able to produce valid study notes for "${effectiveTopic}" just now. This can happen with a very broad topic, very long pasted text, or a temporary connection issue. Nothing was invented in its place — please try again.`,
+            },
           ],
         };
       }
     }
 
-    // FIX BUG 3: always save history and log usage after generation (success or fallback)
+    // FIX BUG 3: always save history and log usage after a real generation
+    // — but a genuine failure card (see above) isn't a study session and
+    // shouldn't burn quota, pollute history, or count toward the streak.
     if (result) {
       setGeneratedSheet(result);
-      saveHistory({
-        prompt: topic,
-        preview: result.points[0]?.value?.slice(0, 120) || "",
-        output: JSON.stringify(result),
-        model: "rex-ai",
-        meta: `${activeTab} · ${result.tags.join(", ")}`,
-      });
-
-      // FIX: Quick Study never wrote to study_sessions or updated the streak
-      // at all before this — every generation was completely invisible to
-      // Dashboard/Analytics/Streak. Now uses the same shared hook as
-      // Math Solver so this only has to be correct in one place.
-      if (user?.id) {
-        await logSession({
-          title: result.title || effectiveTopic,
-          durationMinutes: 8,
+      if (!generationFailed) {
+        saveHistory({
+          prompt: effectiveTopic,
+          preview: result.points[0]?.value?.slice(0, 120) || "",
+          output: JSON.stringify(result),
+          model: "rex-ai",
+          meta: `${activeTab} · ${result.tags.join(", ")}`,
         });
+
+        // FIX: Quick Study never wrote to study_sessions or updated the streak
+        // at all before this — every generation was completely invisible to
+        // Dashboard/Analytics/Streak. Now uses the same shared hook as
+        // Math Solver so this only has to be correct in one place.
+        if (user?.id) {
+          await logSession({
+            title: result.title || effectiveTopic,
+            durationMinutes: 8,
+          });
+        }
       }
     }
 
-    if (!isPro) {
+    if (!isPro && !generationFailed) {
       try {
         await logUsage("quick_study");
       } catch {}
@@ -255,6 +355,33 @@ Return raw JSON only, no wrapping!`;
 
   const handleSelectChip = (title: string) => {
     setTopic(title);
+    setGeneratedSheet(null);
+  };
+
+  // FIX: Study History was saving the full generated output (`entry.output`)
+  // but clicking a history item only ever refilled the topic box — it never
+  // restored the saved sheet, so every "history" click silently forced a
+  // brand new AI generation (and burned another quota use) instead of
+  // instantly showing what was already generated.
+  const handleRestoreHistory = (entry: any) => {
+    setGenError(null);
+    try {
+      const restored = JSON.parse(entry.output);
+      if (restored?.title && Array.isArray(restored.points)) {
+        setGeneratedSheet({ ...restored, isNew: false, isFailure: false });
+        setTopic(entry.prompt || "");
+        if (typeof entry.meta === "string") {
+          if (entry.meta.startsWith("Cram")) setActiveTab("Cram");
+          else if (entry.meta.startsWith("HighYield")) setActiveTab("HighYield");
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn("[QuickStudy] couldn't restore saved history output, falling back to topic only:", err);
+    }
+    // Corrupt/missing saved output — fall back to the old behavior rather
+    // than silently doing nothing.
+    setTopic(entry.prompt || "");
     setGeneratedSheet(null);
   };
 
@@ -315,37 +442,47 @@ Return raw JSON only, no wrapping!`;
         )}
         {generatedSheet && (
           <ul className="flex flex-col gap-3">
-            {generatedSheet.goals.map((goal, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <div
-                  className={`w-5 h-5 shrink-0 border-2 border-black rounded-full flex items-center justify-center mt-0.5 ${
-                    i === 0 ? "bg-[#E8534A]" : "bg-white"
-                  }`}
-                >
-                  {i === 0 && (
-                    <span className="material-symbols-outlined text-white text-[12px]" style={{ fontVariationSettings: "'wght' 700" }}>
-                      check
-                    </span>
-                  )}
-                </div>
-                <span className={`text-[13px] font-semibold leading-snug ${i === 0 ? "line-through text-black/40" : "text-black"}`}>
-                  {goal}
-                </span>
-              </li>
-            ))}
+            {generatedSheet.goals.map((goal, i) => {
+              const showChecked = i === 0 && !generatedSheet.isFailure;
+              return (
+                <li key={i} className="flex items-start gap-3">
+                  <div
+                    className={`w-5 h-5 shrink-0 border-2 border-black rounded-full flex items-center justify-center mt-0.5 ${
+                      showChecked ? "bg-[#E8534A]" : "bg-white"
+                    }`}
+                  >
+                    {showChecked && (
+                      <span className="material-symbols-outlined text-white text-[12px]" style={{ fontVariationSettings: "'wght' 700" }}>
+                        check
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-[13px] font-semibold leading-snug ${showChecked ? "line-through text-black/40" : "text-black"}`}>
+                    {goal}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
-      {/* Retention bar */}
+      {/* Coverage score bar — FIX: relabeled from "Retention Capacity"/
+          retentionScore. This is an AI-invented estimate for THIS generation
+          only; it isn't tracked against past sessions and doesn't reflect
+          actual mastery or spaced-repetition data, so it shouldn't be framed
+          as "retention". */}
       <div className="mt-6 pt-4 border-t-2 border-black/10">
         <div className="h-2 w-full bg-[#E8E4DC] border-2 border-black overflow-hidden mb-2">
           <div
             className="h-full bg-black transition-all duration-700"
-            style={{ width: generatedSheet ? `${generatedSheet.retentionScore}%` : "0%" }}
+            style={{ width: generatedSheet ? `${generatedSheet.coverageScore}%` : "0%" }}
           />
         </div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-black/50">
-          Retention Capacity: {generatedSheet ? `${generatedSheet.retentionScore}%` : "—"}
+        <p
+          className="text-[10px] font-black uppercase tracking-widest text-black/50"
+          title="AI estimate of how well this sheet covers the topic — specific to this generation, not tracked over time"
+        >
+          Coverage Score: {generatedSheet ? `${generatedSheet.coverageScore}%` : "—"}
         </p>
       </div>
     </div>
@@ -372,7 +509,7 @@ Return raw JSON only, no wrapping!`;
     }
     if (!generatedSheet) return null;
     return (
-      <div className={`border-2 border-black bg-white flex flex-col relative shadow-[4px_4px_0px_#000] ${compact ? "" : "min-h-[400px]"}`}>
+      <div className={`qs-print-area border-2 border-black bg-white flex flex-col relative shadow-[4px_4px_0px_#000] ${compact ? "" : "min-h-[400px]"}`}>
         {/* Card header — tags + actions */}
         <div className="px-6 py-3 border-b-2 border-black bg-[#F0EDE0] flex items-center justify-between flex-wrap gap-2">
           <div className="flex flex-wrap gap-2">
@@ -387,7 +524,7 @@ Return raw JSON only, no wrapping!`;
               </span>
             ))}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="qs-no-print flex items-center gap-3">
             <button onClick={handleCopySheet} title={copyFlash === "copy" ? "Copied!" : "Copy"} className={`material-symbols-outlined text-[20px] transition-colors ${copyFlash === "copy" ? "text-green-600" : "text-black hover:text-[#E8534A]"}`}>
               {copyFlash === "copy" ? "check" : "content_copy"}
             </button>
@@ -404,7 +541,11 @@ Return raw JSON only, no wrapping!`;
           {/* Active badge */}
           <div className="flex items-start justify-between gap-4">
             <h2 className="font-black text-[20px] uppercase leading-tight tracking-tight">{generatedSheet.title}</h2>
-            {generatedSheet.isNew && (
+            {generatedSheet.isFailure ? (
+              <span className="shrink-0 bg-white text-[#ae2925] text-[11px] font-black px-3 py-1 border-2 border-[#ae2925] shadow-[2px_2px_0px_#000]">
+                Retry Needed
+              </span>
+            ) : generatedSheet.isNew && (
               <span className="shrink-0 bg-[#E8534A] text-white text-[11px] font-black px-3 py-1 border-2 border-black rotate-2 shadow-[2px_2px_0px_#000]">
                 Active
               </span>
@@ -427,6 +568,25 @@ Return raw JSON only, no wrapping!`;
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+      {/* FIX: window.print() used to print the entire page (sidebar, header,
+          input panel, history, etc). This scopes printing to just the
+          generated study sheet card by hiding everything else in the DOM
+          during the print media query. */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .qs-print-area, .qs-print-area * { visibility: visible !important; }
+          .qs-print-area {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+          }
+          .qs-no-print { display: none !important; }
+        }
+      `}</style>
       {showUpgrade && (
         <UpgradePrompt feature="quick_study" remaining={remainingUses ?? 0} onClose={() => setShowUpgrade(false)} />
       )}
@@ -468,8 +628,11 @@ Return raw JSON only, no wrapping!`;
               <div className="col-span-2 border-2 border-black bg-white shadow-[5px_5px_0px_#000] p-6 flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b-2 border-black pb-4">
                   <h3 className="text-[20px] font-black">Concept Generator</h3>
-                  <span className="text-[11px] font-black uppercase tracking-widest bg-black text-white px-3 py-1">
-                    Retention Capacity: {generatedSheet ? `${generatedSheet.retentionScore}%` : "—"}
+                  <span
+                    className="text-[11px] font-black uppercase tracking-widest bg-black text-white px-3 py-1"
+                    title="AI estimate of how well this sheet covers the topic — specific to this generation, not tracked over time"
+                  >
+                    Coverage Score: {generatedSheet ? `${generatedSheet.coverageScore}%` : "—"}
                   </span>
                 </div>
                 {/* Textarea */}
@@ -500,15 +663,27 @@ Return raw JSON only, no wrapping!`;
                     </button>
                   ))}
                 </div>
-                {/* Actions row */}
-                <div className="flex gap-3">
+                {/* Source Library — every file here is automatically used
+                    as context, no per-file selection needed. Clicking a
+                    pill jumps to /sources to manage/preview that file. */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black uppercase tracking-widest text-black/50">
+                      Source Library
+                    </label>
+                    <span className="text-[11px] font-bold text-black/40">
+                      {libraryFiles.length > 0
+                        ? `Using all ${libraryFiles.length} file${libraryFiles.length !== 1 ? "s" : ""}`
+                        : "No files in library"}
+                    </span>
+                  </div>
                   {libraryFiles.length > 0 ? (
                     <div className="flex items-center gap-2 flex-wrap">
                       {libraryFiles.map((f) => (
                         <button
                           key={f.id}
-                          onClick={() => setTopic((prev) => prev || f.name.replace(/\.[^.]+$/, "").replace(/-/g, " "))}
-                          className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-white text-[12px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000] max-w-[160px] truncate"
+                          onClick={() => navigate("/sources")}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-black text-white text-[12px] font-bold transition-colors max-w-[180px] hover:bg-[#1a1a1a]"
                           title={f.name}
                         >
                           <span className="material-symbols-outlined text-[14px]">description</span>
@@ -526,12 +701,15 @@ Return raw JSON only, no wrapping!`;
                   ) : (
                     <button
                       onClick={() => navigate("/sources")}
-                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-black bg-white text-[13px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000]"
+                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-black bg-white text-[13px] font-bold hover:bg-[#E2E2E2] transition-colors shadow-[2px_2px_0px_#000] w-fit"
                     >
                       <span className="material-symbols-outlined text-[18px]">upload_file</span>
                       Upload PDF / Doc
                     </button>
                   )}
+                </div>
+                {/* Actions row */}
+                <div className="flex gap-3">
                   {/* Tab toggles */}
                   <div className="flex border-2 border-black overflow-hidden min-w-0">
                     {(["Cram", "HighYield"] as const).map((tab) => (
@@ -549,7 +727,7 @@ Return raw JSON only, no wrapping!`;
                   {/* Generate */}
                   <button
                     onClick={handleGenerate}
-                    disabled={(!topic.trim() && !activeSource) || loading}
+                    disabled={(!topic.trim() && libraryFiles.length === 0) || loading}
                     className="flex-1 relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <div className="w-full py-2.5 bg-black text-white border-2 border-black flex items-center justify-center gap-2 z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
@@ -618,7 +796,7 @@ Return raw JSON only, no wrapping!`;
                     {(deckHistory as any[]).slice(0, 4).map((entry: any, i: number) => (
                       <button
                         key={i}
-                        onClick={() => setTopic(entry.prompt || "")}
+                        onClick={() => handleRestoreHistory(entry)}
                         className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAF7F2] cursor-pointer group text-left w-full"
                       >
                         <div className="w-10 h-10 border-2 border-black bg-[#F0EDE0] flex items-center justify-center shrink-0">
@@ -718,18 +896,41 @@ Return raw JSON only, no wrapping!`;
                 </button>
               ))}
             </div>
+            {libraryFiles.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-black/50">Source Library</span>
+                  <span className="text-[11px] font-bold text-black/40">
+                    Using all {libraryFiles.length}
+                  </span>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                  {libraryFiles.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => navigate("/sources")}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-black text-white text-[12px] font-bold whitespace-nowrap transition-colors max-w-[160px]"
+                      title={f.name}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">description</span>
+                      <span className="truncate">{f.name.replace(/\.[^.]+$/, "").replace(/-/g, " ").substring(0, 18)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <button
               onClick={() => navigate("/sources")}
               className="w-full bg-[#FAF7F2] border-2 border-black border-dashed py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] hover:bg-[#E2E2E2] transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">attach_file</span>
-              Read from Source Library
+              {libraryFiles.length > 0 ? "Manage / Upload Sources" : "Read from Source Library"}
             </button>
           </div>
 
           {/* Generate button */}
           <button
-            disabled={(!topic.trim() && !activeSource) || loading}
+            disabled={(!topic.trim() && libraryFiles.length === 0) || loading}
             onClick={handleGenerate}
             className="relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
@@ -757,20 +958,26 @@ Return raw JSON only, no wrapping!`;
               ) : generatedSheet ? (
                 <>
                   <ul className="flex flex-col gap-2 mb-4">
-                    {generatedSheet.goals.map((goal, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <div className={`w-4 h-4 shrink-0 border-2 border-black rounded-full flex items-center justify-center mt-0.5 ${i === 0 ? "bg-[#E8534A]" : "bg-white"}`}>
-                          {i === 0 && <span className="material-symbols-outlined text-white text-[10px]" style={{ fontVariationSettings: "'wght' 700" }}>check</span>}
-                        </div>
-                        <span className={`text-[12px] font-semibold ${i === 0 ? "line-through text-black/40" : "text-black"}`}>{goal}</span>
-                      </li>
-                    ))}
+                    {generatedSheet.goals.map((goal, i) => {
+                      const showChecked = i === 0 && !generatedSheet.isFailure;
+                      return (
+                        <li key={i} className="flex items-start gap-2">
+                          <div className={`w-4 h-4 shrink-0 border-2 border-black rounded-full flex items-center justify-center mt-0.5 ${showChecked ? "bg-[#E8534A]" : "bg-white"}`}>
+                            {showChecked && <span className="material-symbols-outlined text-white text-[10px]" style={{ fontVariationSettings: "'wght' 700" }}>check</span>}
+                          </div>
+                          <span className={`text-[12px] font-semibold ${showChecked ? "line-through text-black/40" : "text-black"}`}>{goal}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                   <div className="h-1.5 w-full bg-[#E8E4DC] border border-black overflow-hidden mb-1">
-                    <div className="h-full bg-black transition-all duration-700" style={{ width: `${generatedSheet.retentionScore}%` }} />
+                    <div className="h-full bg-black transition-all duration-700" style={{ width: `${generatedSheet.coverageScore}%` }} />
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
-                    Retention Capacity: {generatedSheet.retentionScore}%
+                  <p
+                    className="text-[10px] font-black uppercase tracking-widest text-black/40"
+                    title="AI estimate for this generation only, not tracked over time"
+                  >
+                    Coverage Score: {generatedSheet.coverageScore}%
                   </p>
                 </>
               ) : null}
