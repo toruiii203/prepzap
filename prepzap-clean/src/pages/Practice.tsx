@@ -20,8 +20,32 @@ interface HistoryEntry {
   prompt?: string;
   preview?: string;
   meta?: string;
+  output?: string;
   createdAt?: string;
   created_at?: string;
+}
+
+// FIX: history entries previously only stored the raw selected-answer
+// indices in `output` (e.g. "[1,0,2]") with no question text, options, or
+// correct answers alongside them — there was no way to reconstruct a
+// review even if a detail view existed. `output` now stores the full
+// question set together with the student's answers so history can show
+// a real question-by-question breakdown.
+interface ReviewData {
+  questions: Question[];
+  answers: number[];
+}
+function parseReviewData(entry: HistoryEntry): ReviewData | null {
+  if (!entry.output) return null;
+  try {
+    const parsed = JSON.parse(entry.output);
+    if (parsed && Array.isArray(parsed.questions) && Array.isArray(parsed.answers)) {
+      return parsed as ReviewData;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Helpers (outside component — stable, never recreated) ───────────────────
@@ -54,8 +78,11 @@ interface BannerProps {
   onGenerate: () => void;
   onNavigate: (r: string) => void;
   libraryFiles: any[];
+  questionCount: number;
+  setQuestionCount: (v: number) => void;
 }
-function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles }: BannerProps) {
+const QUESTION_COUNT_OPTIONS = [3, 5, 10, 15];
+function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount }: BannerProps) {
   return (
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -93,14 +120,35 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
         className="w-full h-[100px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
         placeholder="Paste your notes or type a topic to generate a custom quiz..."
       />
+      {/* FIX: question count was hardcoded to 3 with no way to change it.
+          This lets the student pick how many questions to generate. */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Questions</span>
+        <div className="flex border-[1.5px] border-black rounded-lg overflow-hidden">
+          {QUESTION_COUNT_OPTIONS.map((n, i) => (
+            <button
+              key={n}
+              onClick={() => setQuestionCount(n)}
+              className={`px-4 py-1.5 text-[13px] font-extrabold transition-colors ${i > 0 ? "border-l-[1.5px] border-black" : ""} ${
+                questionCount === n ? "bg-black text-white" : "bg-white text-black hover:bg-[#F0EDE0]"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-function HistoryCard({ entry, onNavigate }: { entry: HistoryEntry; onNavigate: (r: string) => void }) {
+function HistoryCard({ entry, onOpenReview }: { entry: HistoryEntry; onOpenReview: (entry: HistoryEntry) => void }) {
   const { pct, ringColor, ringBg, timeAgo, title, correct, total } = parseHistoryEntry(entry);
   return (
-    <div className="bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5">
+    <button
+      onClick={() => onOpenReview(entry)}
+      className="w-full bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5 text-left"
+    >
       <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
         style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
         {pct}%
@@ -110,7 +158,7 @@ function HistoryCard({ entry, onNavigate }: { entry: HistoryEntry; onNavigate: (
         <p className="text-[11px] text-black/40 font-bold">{correct}/{total} correct{timeAgo ? ` · ${timeAgo}` : ""}</p>
       </div>
       <span className="material-symbols-outlined text-[18px] text-black/20 self-center shrink-0">chevron_right</span>
-    </div>
+    </button>
   );
 }
 
@@ -130,8 +178,10 @@ export default function Practice() {
   const [isGenerating, setIsGenerating]     = useState(false);
   const [questions, setQuestions]           = useState<Question[]>([]);
   const [topicInput, setTopicInput]         = useState("");
+  const [questionCount, setQuestionCount]   = useState(3);
   const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
 
   useEffect(() => {
     const sync = () => setLibraryFiles(loadLibrary());
@@ -177,23 +227,29 @@ export default function Practice() {
     try {
       const sourceText = buildAllSourcesContext(libraryFiles);
       const topicHint  = topicInput.trim();
+      // FIX: question count was hardcoded to 3 everywhere (prompt text,
+      // schema instructions, and the results screen). questionCount is now
+      // plumbed through so the selector actually controls how many
+      // questions get generated.
       const promptText = sourceText
-        ? `Generate a set of 3 interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
+        ? `Generate a set of ${questionCount} interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
         : topicHint
-          ? `Generate 3 high-quality educational quiz questions about: ${topicHint}`
-          : `Generate 3 high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
+          ? `Generate ${questionCount} high-quality educational quiz questions about: ${topicHint}`
+          : `Generate ${questionCount} high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
 
-      const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly 3 questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
+      const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount} questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
 Each object MUST match this schema exactly:
 {"q":"question text","options":["A","B","C","D"],"correct":0,"subject":"Subject","difficulty":"Easy, Medium or Hard"}`;
 
       // FIX BUG 2: removed fn.toString() hack — call callGroq directly
       // Note: "practice" is not in Worker LIMITS (unlimited) but key passed for logging
+      // Token budget now scales with question count instead of a flat 1024,
+      // which used to truncate/malform responses for larger sets.
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
         "llama-3.3-70b-versatile",
-        1024,
+        Math.min(4096, 300 + questionCount * 300),
         "practice"
       );
 
@@ -209,7 +265,9 @@ Each object MUST match this schema exactly:
         setSelectedOption(null);
         setAnswers([]);
         setScore(0);
-        setTimeLeft(450);
+        // Timer scales with question count instead of a flat 450s regardless
+        // of whether it's a 3-question or 15-question quiz.
+        setTimeLeft(Math.max(300, parsed.length * 90));
       } else throw new Error("Invalid structure");
     } catch (err) {
       console.error("Quiz generation error:", err);
@@ -247,10 +305,18 @@ Each object MUST match this schema exactly:
           if (typeof refreshProfile === "function") refreshProfile();
         });
       }
+      // FIX: preview used to be "Score: X/Y", which became the history
+      // card's title (parseHistoryEntry falls back to preview → prompt).
+      // That meant every history card's title line just repeated the score
+      // that's already shown in the ring + "correct/total" line, and gave
+      // no indication of what the quiz was actually about. preview now
+      // holds the actual topic/subject so history is scannable by content.
+      const quizSubjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
+      const historyTitle = topicInput.trim() || quizSubjects.join(", ") || "Practice Quiz";
       saveHistory({
         prompt:  questions.map(q => q.q).join(" | ").slice(0, 120),
-        preview: `Score: ${nextScore}/${questions.length}`,
-        output:  JSON.stringify(nextAnswers),
+        preview: historyTitle,
+        output:  JSON.stringify({ questions, answers: nextAnswers } as ReviewData),
         model:   "rex-ai",
         meta:    `${nextScore}/${questions.length}`,
       });
@@ -281,7 +347,7 @@ Each object MUST match this schema exactly:
             <p className="text-[12px] font-bold">No quizzes yet.<br/>Generate your first one!</p>
           </div>
         ) : (historyEntries as HistoryEntry[]).slice(0, 20).map((entry, i) => (
-          <HistoryCard key={i} entry={entry} onNavigate={navigate} />
+          <HistoryCard key={i} entry={entry} onOpenReview={setReviewEntry} />
         ))}
       </div>
       {historyEntries.length > 0 && (
@@ -295,8 +361,78 @@ Each object MUST match this schema exactly:
   );
 
 
+  // FIX: history cards previously had no way to view the actual questions
+  // and answers from a past attempt. This renders each question with the
+  // student's chosen answer and the correct one, back-to-back.
+  const ReviewModal = () => {
+    if (!reviewEntry) return null;
+    const { pct, title, correct, total, timeAgo } = parseHistoryEntry(reviewEntry);
+    const review = parseReviewData(reviewEntry);
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/50" onClick={() => setReviewEntry(null)} />
+        <div className="relative bg-[#FAF7F2] border-2 border-black shadow-[6px_6px_0px_#000] w-full max-w-2xl max-h-[85vh] flex flex-col">
+          <div className="flex items-start justify-between gap-4 px-6 py-4 border-b-2 border-black bg-white shrink-0">
+            <div>
+              <p className="font-extrabold text-[16px] leading-snug">{title}</p>
+              <p className="text-[12px] font-bold text-black/50">{correct}/{total} correct ({pct}%){timeAgo ? ` · ${timeAgo}` : ""}</p>
+            </div>
+            <button onClick={() => setReviewEntry(null)} className="material-symbols-outlined text-[22px] shrink-0 hover:text-[#FF4D2E] transition-colors">close</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+            {!review ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-50">
+                <span className="material-symbols-outlined text-[32px]">quiz</span>
+                <p className="text-[12px] font-bold max-w-[280px]">
+                  Detailed answers aren't available for this attempt — it was saved before question-by-question review existed. New quizzes will show the full breakdown here.
+                </p>
+              </div>
+            ) : (
+              review.questions.map((q, i) => {
+                const userAnswer = review.answers[i];
+                const isCorrect  = userAnswer === q.correct;
+                return (
+                  <div key={i} className="flex flex-col gap-2">
+                    <div className="flex items-start gap-2">
+                      <span className={`material-symbols-outlined text-[18px] shrink-0 mt-0.5 ${isCorrect ? "text-green-600" : "text-[#ae2925]"}`}>
+                        {isCorrect ? "check_circle" : "cancel"}
+                      </span>
+                      <p className="font-extrabold text-[14px] leading-snug">{i + 1}. {q.q}</p>
+                    </div>
+                    <div className="flex flex-col gap-1.5 pl-7">
+                      {q.options.map((opt, oi) => {
+                        const isTheCorrectOne = oi === q.correct;
+                        const isUserPick      = oi === userAnswer;
+                        const style = isTheCorrectOne
+                          ? "border-green-600 bg-green-50 text-green-800"
+                          : isUserPick
+                            ? "border-[#ae2925] bg-[#fee2e2] text-[#ae2925]"
+                            : "border-black/10 bg-white text-black/60";
+                        return (
+                          <div key={oi} className={`flex items-center gap-2 px-3 py-1.5 border-[1.5px] rounded-lg text-[12px] font-semibold ${style}`}>
+                            <span className="font-extrabold">{["A", "B", "C", "D"][oi]}</span>
+                            <span className="flex-1">{opt}</span>
+                            {isTheCorrectOne && <span className="text-[10px] font-black uppercase tracking-wider">Correct</span>}
+                            {isUserPick && !isTheCorrectOne && <span className="text-[10px] font-black uppercase tracking-wider">Your pick</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+
+      <ReviewModal />
 
       {/* ── Mobile History Drawer overlay ──────────────────────────────── */}
       {showHistory && (
@@ -324,6 +460,8 @@ Each object MUST match this schema exactly:
               onGenerate={handleGenerateQuiz}
               onNavigate={navigate}
               libraryFiles={libraryFiles}
+              questionCount={questionCount}
+              setQuestionCount={setQuestionCount}
             />
 
             {/* Loading */}
@@ -510,6 +648,23 @@ Each object MUST match this schema exactly:
                   className="w-full h-24 bg-[#FAF7F2] border-[1.5px] border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none z-10"
                   placeholder="Paste notes or type a topic..."
                 />
+                {/* FIX: question count was hardcoded to 3, no way to change it */}
+                <div className="flex items-center gap-2 z-10">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0">Questions</span>
+                  <div className="flex border-[1.5px] border-black rounded-lg overflow-hidden">
+                    {QUESTION_COUNT_OPTIONS.map((n, i) => (
+                      <button
+                        key={n}
+                        onClick={() => setQuestionCount(n)}
+                        className={`px-3 py-1 text-[12px] font-extrabold transition-colors ${i > 0 ? "border-l-[1.5px] border-black" : ""} ${
+                          questionCount === n ? "bg-black text-white" : "bg-white text-black"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex gap-2 z-10">
                   {/* FIX: this used to be a dropdown to pick a single Source
                       Library file. It now just shows how many files will be
@@ -552,7 +707,7 @@ Each object MUST match this schema exactly:
                         <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
                       </div>
                       {(historyEntries as HistoryEntry[]).slice(0, 5).map((entry, i) => (
-                        <HistoryCard key={i} entry={entry} onNavigate={navigate} />
+                        <HistoryCard key={i} entry={entry} onOpenReview={setReviewEntry} />
                       ))}
                     </div>
                   )}
