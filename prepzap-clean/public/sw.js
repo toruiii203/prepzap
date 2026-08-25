@@ -137,11 +137,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // JS/CSS bundles — NETWORK FIRST so new deploys always get picked up
-  // Falls back to cache only if completely offline
+  // JS/CSS bundles, and worker scripts (e.g. PDF.js's pdf.worker.min.mjs) —
+  // NETWORK FIRST so new deploys always get picked up. Falls back to cache
+  // only if completely offline.
+  //
+  // "worker" was missing from this list entirely. PDF.js loads its parsing
+  // engine as a separate Worker script, which has destination "worker" —
+  // not "script". That request fell into the final catch-all bucket below,
+  // which has zero caching AND no catch, so it was never cached during a
+  // normal online PDF upload, and rejected uncaught the moment you tried a
+  // PDF offline. That's what "Failed to read this PDF" actually was — not
+  // a corrupted file, just the worker script never having a cached copy
+  // to fall back to.
   if (
     event.request.destination === "script" ||
-    event.request.destination === "style"
+    event.request.destination === "style" ||
+    event.request.destination === "worker" ||
+    event.request.destination === "sharedworker"
   ) {
     event.respondWith(
       fetch(event.request)
@@ -210,6 +222,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else — network only
-  event.respondWith(fetch(event.request));
+  // Everything else — network only, but still catch so an offline failure
+  // here can't ALSO surface as an uncaught rejection inside the SW itself
+  // (same fix as the API-passthrough branch above).
+  event.respondWith(
+    fetch(event.request).catch((err) => {
+      throw err;
+    })
+  );
 });
