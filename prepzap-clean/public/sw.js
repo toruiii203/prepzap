@@ -1,4 +1,13 @@
-const CACHE_NAME = "studenius-v" + Date.now(); // busts on every SW update
+// Static, manually-bumped version instead of Date.now(). Date.now() re-runs
+// every time the browser restarts this (idle) service worker — which
+// happens routinely, not just on real deploys — so CACHE_NAME was drifting
+// on every restart. That fragmented storage into many orphaned caches that
+// only the ONE-TIME activate cleanup (tied to whatever CACHE_NAME existed
+// at that specific activation) would ever clean up. Bump SW_VERSION when
+// you actually change what's precached; the browser's own update algorithm
+// (byte-diffing this file) still handles detecting real deploys on its own.
+const SW_VERSION = "v1";
+const CACHE_NAME = "studenius-" + SW_VERSION;
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
@@ -11,7 +20,22 @@ const PRECACHE_ASSETS = [
 // Install — precache core assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      // Previously cache.addAll(PRECACHE_ASSETS). addAll() is atomic — if
+      // ANY single asset in the list 404s or fails to fetch, the WHOLE
+      // install rejects and NOTHING gets precached, including "/". That's
+      // how the offline app shell (the "/" entry the navigate handler
+      // below depends on) could silently never get cached at all, just
+      // because one icon path was wrong. Caching each asset independently
+      // means "/" still gets cached even if another asset fails.
+      Promise.all(
+        PRECACHE_ASSETS.map((asset) =>
+          cache.add(asset).catch((err) => {
+            console.error("[sw] failed to precache", asset, err);
+          })
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -74,9 +98,28 @@ self.addEventListener("fetch", (event) => {
   // Navigation requests — NETWORK FIRST, no stale HTML ever
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() =>
-        caches.match("/").then((cached) => cached || fetch(event.request))
-      )
+      fetch(event.request).catch(async () => {
+        const cached = await caches.match("/");
+        if (cached) return cached;
+
+        // FIX: this used to fall back to fetch(event.request) here — but
+        // we only reach this branch because the network fetch ABOVE just
+        // failed (we're offline), so retrying fetch() rejects again, this
+        // time uncaught. An uncaught rejection reaching respondWith() is
+        // exactly what makes Chrome show its own native "You're offline"
+        // interstitial instead of anything from this app — the app's JS
+        // never even gets a chance to run. This always resolves to a real
+        // Response instead, even in the worst case where "/" somehow isn't
+        // cached yet (e.g. right after install, before it's finished).
+        return new Response(
+          "<!doctype html><html><head><meta charset='utf-8'><title>Studenius — Offline</title></head>" +
+          "<body style='font-family:sans-serif;text-align:center;padding:60px 20px;'>" +
+          "<h1>You're offline</h1>" +
+          "<p>This page hasn't been cached yet. Connect once and reload — after that it'll work offline.</p>" +
+          "</body></html>",
+          { status: 200, headers: { "Content-Type": "text/html" } }
+        );
+      })
     );
     return;
   }
