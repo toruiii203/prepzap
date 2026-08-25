@@ -29,6 +29,165 @@ async function extractPdfText(file: File): Promise<string> {
   return fullText.trim();
 }
 
+// ── Shared components (module scope, not inside SourceLibrary) ─────────────
+// These used to be defined inside SourceLibrary()'s function body. That
+// meant React saw a brand-new component type on every single render of
+// SourceLibrary, so it fully unmounted and remounted every file row instead
+// of updating them — the exact "remount/freeze" pattern from past bugs.
+// Typing in the search box, toggling a file, or any other state change up
+// top caused the whole file list (and this upload zone) to flicker and
+// rebuild from scratch. Defining them here, taking explicit props instead of
+// closing over SourceLibrary's state, keeps them as stable component
+// identities that React can just update in place.
+
+function FileIcon({ file, isSelected }: { file: any; isSelected: boolean }) {
+  if (isSelected) return <Check className="w-6 h-6 text-[#ae2925] stroke-[3]" />;
+  if (file.isPhoto && file.content?.startsWith("data:image"))
+    return <img src={file.content} alt={file.name} className="w-full h-full object-cover" />;
+  if (file.isPdf) return <FileText className="w-6 h-6 text-[#ae2925]" />;
+  if (file.type === "image") return <Image className="w-6 h-6 text-[#ae2925]" />;
+  return <File className="w-6 h-6 text-[#666]" />;
+}
+
+function FileRow({
+  file,
+  selectedIds,
+  corruptedIds,
+  onToggleSelect,
+  onPreview,
+  onDelete,
+}: {
+  file: any;
+  selectedIds: string[];
+  corruptedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onPreview: (file: any) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+}) {
+  const isSelected = selectedIds.includes(file.id);
+  const isCorrupted = corruptedIds.has(file.id);
+  return (
+    <div
+      onClick={() => !isCorrupted && onToggleSelect(file.id)}
+      className={`border-2 p-4 flex items-center gap-4 transition-all cursor-pointer ${
+        isCorrupted
+          ? "bg-red-50 border-red-400 shadow-[4px_4px_0px_0px_#f87171] opacity-80"
+          : isSelected
+          ? "bg-[#fff0ef] border-[#ae2925] shadow-[4px_4px_0px_0px_#ae2925]"
+          : "bg-white border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A]"
+      } hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none`}
+    >
+      <div className="w-12 h-12 bg-[#ebe8e3] flex items-center justify-center shrink-0 border-2 border-[#1A1A1A] overflow-hidden">
+        {isCorrupted
+          ? <AlertTriangle className="w-5 h-5 text-red-500" />
+          : <FileIcon file={file} isSelected={isSelected} />
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-[15px] text-[#1A1A1A] truncate">{file.name}</h3>
+        {isCorrupted ? (
+          <p className="text-[12px] font-bold text-red-500 mt-0.5">Corrupted — delete and re-upload</p>
+        ) : (
+          <p className="text-[12px] font-semibold text-[#888] mt-0.5">
+            {file.note || file.size} • {isSelected ? "✓ Active context" : "Idle"}
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        {/* Preview button for text files */}
+        {!isCorrupted && file.type !== "image" && file.preview && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPreview(file); }}
+            className="w-9 h-9 flex items-center justify-center hover:bg-neutral-100 text-[#888] hover:text-[#ae2925] transition-colors"
+            title="Preview"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          onClick={(e) => onDelete(file.id, e)}
+          className="w-9 h-9 flex items-center justify-center hover:bg-red-50 text-[#888] hover:text-red-500 transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UploadZone({
+  fileInputRef,
+  files,
+  fileLimit,
+  extractingPdf,
+  isPro,
+  onOpenCamera,
+  onUpgrade,
+  onPasteManually,
+}: {
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  files: any[];
+  fileLimit: number;
+  extractingPdf: boolean;
+  isPro: boolean;
+  onOpenCamera: () => void;
+  onUpgrade: () => void;
+  onPasteManually: () => void;
+}) {
+  return (
+    <div className="bg-white border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[180px]">
+      <div className="flex gap-5 mb-1">
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={files.length >= fileLimit || extractingPdf}
+            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Paperclip className="w-7 h-7 text-[#ae2925]" />
+          </button>
+          <span className="text-[11px] font-bold text-[#666]">PDF / TXT / Image</span>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={onOpenCamera}
+            disabled={files.length >= fileLimit}
+            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Camera className="w-7 h-7 text-[#ae2925]" />
+          </button>
+          <span className="text-[11px] font-bold text-[#666]">Capture</span>
+        </div>
+      </div>
+      {extractingPdf && (
+        <div className="flex items-center gap-2 text-[#ae2925]">
+          <div className="w-4 h-4 border-2 border-[#ae2925] border-t-transparent rounded-full animate-spin" />
+          <span className="text-[13px] font-bold">Extracting text from PDF…</span>
+        </div>
+      )}
+      <p className="font-bold text-[#1A1A1A] text-center text-[16px]">
+        Upload a file or capture your notes
+      </p>
+      <p className="font-bold text-[#888] text-center text-[12px]">
+        PDF · TXT · Image • Max {MAX_FILE_SIZE_MB} MB
+      </p>
+      <p className="font-bold text-center text-[11px]">
+        <span className={files.length >= fileLimit ? "text-[#ae2925]" : "text-black/40"}>
+          {files.length}/{fileLimit} files used {!isPro && "· Free plan"}
+        </span>
+        {!isPro && files.length >= fileLimit && (
+          <button onClick={onUpgrade} className="ml-2 text-[#ae2925] underline font-black">Upgrade</button>
+        )}
+      </p>
+      <button
+        onClick={onPasteManually}
+        className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
+      >
+        Or paste text manually
+      </button>
+    </div>
+  );
+}
+
 export default function SourceLibrary() {
   const navigate = useNavigate();
   const { isPro } = usePlan();
@@ -369,122 +528,6 @@ export default function SourceLibrary() {
     else if (tool === "Quick Study") navigate("/quick-study");
   };
 
-  // ── Shared inner components ───────────────────────────────────────────────
-
-  const FileIcon = ({ file, isSelected }: { file: any; isSelected: boolean }) => {
-    if (isSelected) return <Check className="w-6 h-6 text-[#ae2925] stroke-[3]" />;
-    if (file.isPhoto && file.content?.startsWith("data:image"))
-      return <img src={file.content} alt={file.name} className="w-full h-full object-cover" />;
-    if (file.isPdf) return <FileText className="w-6 h-6 text-[#ae2925]" />;
-    if (file.type === "image") return <Image className="w-6 h-6 text-[#ae2925]" />;
-    return <File className="w-6 h-6 text-[#666]" />;
-  };
-
-  const FileRow = ({ file }: { file: any }) => {
-    const isSelected = selectedIds.includes(file.id);
-    const isCorrupted = corruptedIds.has(file.id);
-    return (
-      <div
-        onClick={() => !isCorrupted && handleToggleSelect(file.id)}
-        className={`border-2 p-4 flex items-center gap-4 transition-all cursor-pointer ${
-          isCorrupted
-            ? "bg-red-50 border-red-400 shadow-[4px_4px_0px_0px_#f87171] opacity-80"
-            : isSelected
-            ? "bg-[#fff0ef] border-[#ae2925] shadow-[4px_4px_0px_0px_#ae2925]"
-            : "bg-white border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A]"
-        } hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none`}
-      >
-        <div className="w-12 h-12 bg-[#ebe8e3] flex items-center justify-center shrink-0 border-2 border-[#1A1A1A] overflow-hidden">
-          {isCorrupted
-            ? <AlertTriangle className="w-5 h-5 text-red-500" />
-            : <FileIcon file={file} isSelected={isSelected} />
-          }
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-[15px] text-[#1A1A1A] truncate">{file.name}</h3>
-          {isCorrupted ? (
-            <p className="text-[12px] font-bold text-red-500 mt-0.5">Corrupted — delete and re-upload</p>
-          ) : (
-            <p className="text-[12px] font-semibold text-[#888] mt-0.5">
-              {file.note || file.size} • {isSelected ? "✓ Active context" : "Idle"}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Preview button for text files */}
-          {!isCorrupted && file.type !== "image" && file.preview && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setPreviewFile(file); }}
-              className="w-9 h-9 flex items-center justify-center hover:bg-neutral-100 text-[#888] hover:text-[#ae2925] transition-colors"
-              title="Preview"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            onClick={(e) => handleDeleteFile(file.id, e)}
-            className="w-9 h-9 flex items-center justify-center hover:bg-red-50 text-[#888] hover:text-red-500 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const UploadZone = () => (
-    <div className="bg-white border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[180px]">
-      <div className="flex gap-5 mb-1">
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={files.length >= fileLimit || extractingPdf}
-            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Paperclip className="w-7 h-7 text-[#ae2925]" />
-          </button>
-          <span className="text-[11px] font-bold text-[#666]">PDF / TXT / Image</span>
-        </div>
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            onClick={openCamera}
-            disabled={files.length >= fileLimit}
-            className="w-16 h-16 rounded-full bg-[#ebe8e3] flex items-center justify-center border-2 border-[#1A1A1A] shadow-[3px_3px_0px_0px_#1A1A1A] hover:bg-neutral-200 transition-colors active:translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Camera className="w-7 h-7 text-[#ae2925]" />
-          </button>
-          <span className="text-[11px] font-bold text-[#666]">Capture</span>
-        </div>
-      </div>
-      {extractingPdf && (
-        <div className="flex items-center gap-2 text-[#ae2925]">
-          <div className="w-4 h-4 border-2 border-[#ae2925] border-t-transparent rounded-full animate-spin" />
-          <span className="text-[13px] font-bold">Extracting text from PDF…</span>
-        </div>
-      )}
-      <p className="font-bold text-[#1A1A1A] text-center text-[16px]">
-        Upload a file or capture your notes
-      </p>
-      <p className="font-bold text-[#888] text-center text-[12px]">
-        PDF · TXT · Image • Max {MAX_FILE_SIZE_MB} MB
-      </p>
-      <p className="font-bold text-center text-[11px]">
-        <span className={files.length >= fileLimit ? "text-[#ae2925]" : "text-black/40"}>
-          {files.length}/{fileLimit} files used {!isPro && "· Free plan"}
-        </span>
-        {!isPro && files.length >= fileLimit && (
-          <button onClick={() => navigate("/go-pro")} className="ml-2 text-[#ae2925] underline font-black">Upgrade</button>
-        )}
-      </p>
-      <button
-        onClick={() => setShowUploadModal(true)}
-        className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
-      >
-        Or paste text manually
-      </button>
-    </div>
-  );
-
   // ── Camera modal ─────────────────────────────────────────────────────────
 
   if (cameraCapturing) {
@@ -778,7 +821,7 @@ export default function SourceLibrary() {
                 <h2 className="text-[11px] font-black uppercase tracking-widest text-black/50">My Files ({filteredFiles.length})</h2>
                 {selectedIds.length > 0 && (
                   <button
-                    onClick={() => { setSelectedIds([]); saveContext([]); }}
+                    onClick={() => { setSelectedIds([]); saveContext({ mode: "selected", selectedIds: [] }); }}
                     className="text-[11px] font-extrabold text-[#ae2925] uppercase tracking-widest hover:underline"
                   >
                     Clear All Active
@@ -787,7 +830,15 @@ export default function SourceLibrary() {
               </div>
 
               {filteredFiles.map(file => (
-                <FileRow key={file.id} file={file} />
+                <FileRow
+                  key={file.id}
+                  file={file}
+                  selectedIds={selectedIds}
+                  corruptedIds={corruptedIds}
+                  onToggleSelect={handleToggleSelect}
+                  onPreview={setPreviewFile}
+                  onDelete={handleDeleteFile}
+                />
               ))}
 
               {filteredFiles.length === 0 && (
@@ -945,7 +996,16 @@ export default function SourceLibrary() {
 
           {/* Upload Area */}
           <section>
-            <UploadZone />
+            <UploadZone
+              fileInputRef={fileInputRef}
+              files={files}
+              fileLimit={fileLimit}
+              extractingPdf={extractingPdf}
+              isPro={isPro}
+              onOpenCamera={openCamera}
+              onUpgrade={() => navigate("/go-pro")}
+              onPasteManually={() => setShowUploadModal(true)}
+            />
           </section>
 
           {/* Quick Launch */}
@@ -979,7 +1039,15 @@ export default function SourceLibrary() {
               {files
                 .filter(f => !searchTerm || f.name.toLowerCase().includes(searchTerm.toLowerCase()))
                 .map((file) => (
-                  <FileRow key={file.id} file={file} />
+                  <FileRow
+                    key={file.id}
+                    file={file}
+                    selectedIds={selectedIds}
+                    corruptedIds={corruptedIds}
+                    onToggleSelect={handleToggleSelect}
+                    onPreview={setPreviewFile}
+                    onDelete={handleDeleteFile}
+                  />
                 ))}
 
               {files.length === 0 && (

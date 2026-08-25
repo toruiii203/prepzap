@@ -78,12 +78,67 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ])
 }
 
+// --- Offline auth cache ------------------------------------------------------
+// getSession() can throw or time out while offline, since it may try to
+// refresh the token over the network. When that happens, we fall back to
+// the last known-good session/user/profile instead of leaving state null
+// and getting bounced to the login screen. This is a UI convenience only —
+// it doesn't grant real access to anything; actual data reads/writes go
+// through the offline data layer (Dexie), and the real Supabase session
+// still gets re-validated the moment we're back online.
+const AUTH_CACHE_KEY = "pz_auth_cache"
+
+// In-memory mirror of the current session, kept in sync by AuthProvider
+// below. Lets plain (non-React) modules like groq.ts and ToolHistory.tsx
+// read the access token / user id synchronously, without ever calling
+// supabase.auth.getSession() themselves — that call has a confirmed
+// deadlock failure mode (Web Locks contention across tabs) which was the
+// actual cause of both the AI Tutor 401s and the "stuck thinking" hangs.
+// This is always at least as fresh as what those direct calls would have
+// returned, since it's updated on every auth state change including
+// background token refreshes.
+let cachedSession: Session | null = null
+export function getCachedSession(): Session | null {
+  return cachedSession
+}
+export function getCachedAccessToken(): string | null {
+  return cachedSession?.access_token ?? null
+}
+export function getCachedUserId(): string | null {
+  return cachedSession?.user?.id ?? null
+}
+
+function cacheAuthState(session: Session, user: User, profile: UserProfile) {
+  try {
+    localStorage.setItem(
+      AUTH_CACHE_KEY,
+      JSON.stringify({ session, user, profile, cachedAt: Date.now() })
+    )
+  } catch (err) {
+    console.error("Failed to write auth cache:", err)
+  }
+}
+
+function readAuthCache(): { session: Session; user: User; profile: UserProfile } | null {
+  try {
+    const raw = localStorage.getItem(AUTH_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.session || !parsed?.user || !parsed?.profile) return null
+    return parsed
+  } catch (err) {
+    console.error("Failed to read auth cache:", err)
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession]               = useState<Session | null>(null)
-  const [user, setUser]                     = useState<User | null>(null)
-  const [profile, setProfile]               = useState<UserProfile | null>(null)
-  const [loading, setLoading]               = useState(true)
+  const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+
   // Track if we're mid-fetch so ProtectedRoute waits instead of redirecting
   const fetchingRef = useRef(false)
 
@@ -92,7 +147,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user?.id]
   )
 
-  const fetchProfile = useCallback(async (u: User): Promise<boolean> => {
+  // Accepts the session alongside the user so successful fetches can be
+  // cached together for the offline fallback above.
+  const fetchProfile = useCallback(async (u: User, s: Session): Promise<boolean> => {
     fetchingRef.current = true
     try {
       const { data, error } = await supabase
@@ -108,12 +165,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Do NOT set needsOnboarding=true here — that would cause ProtectedRoute
         // to redirect them back to /onboarding while AuthCallback is routing them.
         // AuthCallback and OnboardingFlow handle new-user routing themselves.
-        setProfile(defaultProfile(u))
+        const fallback = defaultProfile(u)
+        setProfile(fallback)
         setNeedsOnboarding(false)
+        cacheAuthState(s, u, fallback)
         return false
       }
 
-      setProfile({
+      const merged: UserProfile = {
         ...defaultProfile(u),
         ...data,
         full_name:
@@ -122,18 +181,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           u.user_metadata?.name ||
           u.email?.split("@")[0] ||
           "there",
-      })
+      }
+      setProfile(merged)
 
       // Profile row exists = has an account.
       // onboarding_complete === false means they explicitly started but didn't finish.
       // null/undefined/true = let them through. Never loop existing users.
       const needs = data.onboarding_complete === false
       setNeedsOnboarding(needs)
+      cacheAuthState(s, u, merged)
       return !needs
     } catch (err) {
       console.error("fetchProfile failed:", err)
       // Fall back to a usable default rather than leaving profile null forever.
-      setProfile(defaultProfile(u))
+      const fallback = defaultProfile(u)
+      setProfile(fallback)
       setNeedsOnboarding(false)
       return false
     } finally {
@@ -142,8 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user)
-  }, [user, fetchProfile])
+    if (user && session) await fetchProfile(user, session)
+  }, [user, session, fetchProfile])
 
   useEffect(() => {
     let cancelled = false
@@ -162,10 +224,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
 
         setSession(s)
+        cachedSession = s
         setUser(s?.user ?? null)
-
         if (s?.user) {
-          await fetchProfile(s.user)
+          await fetchProfile(s.user, s)
         }
       } catch (err) {
         // This is the critical fix: no matter what goes wrong above
@@ -173,6 +235,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // through to `finally` and unstick the loading state instead
         // of leaving the dashboard hanging until a manual refresh.
         console.error("Auth initialization failed:", err)
+
+        // Specifically: if we're offline, getSession() likely failed or
+        // timed out trying to refresh the token over the network, not
+        // because the session is actually invalid. Fall back to the last
+        // known-good auth state instead of leaving the user logged out.
+        if (!cancelled && !navigator.onLine) {
+          const cached = readAuthCache()
+          if (cached) {
+            setSession(cached.session)
+            cachedSession = cached.session
+            setUser(cached.user)
+            setProfile(cached.profile)
+            setNeedsOnboarding(false) // trust last known state; don't loop into onboarding offline
+          }
+        }
       } finally {
         initialResolved = true
         if (!cancelled) setLoading(false)
@@ -193,21 +270,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s?.user) {
         setLoading(true)
         setSession(s)
+        cachedSession = s
         setUser(s.user)
         try {
-          await fetchProfile(s.user)
+          await fetchProfile(s.user, s)
         } catch (err) {
           console.error("Profile fetch on auth change failed:", err)
         } finally {
           if (!cancelled) setLoading(false)
         }
       } else {
-        // Signed out — clear everything atomically
+        // Signed out — clear everything atomically. This only fires on a
+        // genuine sign-out event from Supabase, not on a failed network
+        // refresh, so it's safe to trust as a real logout.
         setSession(null)
+        cachedSession = null
         setUser(null)
         setProfile(null)
         setNeedsOnboarding(false)
         setLoading(false)
+        try {
+          localStorage.removeItem(AUTH_CACHE_KEY)
+        } catch {}
       }
     })
 
@@ -219,6 +303,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
+    try {
+      localStorage.removeItem(AUTH_CACHE_KEY)
+    } catch {}
   }, [])
 
   return (

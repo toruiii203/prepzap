@@ -2,35 +2,25 @@
 // Requests are proxied through a Cloudflare Worker to avoid CORS issues.
 // The API key lives in the Worker secret — not exposed in the frontend.
 // ─────────────────────────────────────────────────────────────────────────────
-
-import { supabase } from "@/lib/supabase";
+import { getCachedAccessToken } from "@/contexts/AuthContext";
 
 const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
-
 const DEFAULT_MODEL = "gemini-2.0-flash";
-const VISION_MODEL  = "gemini-2.0-flash";
+const VISION_MODEL = "gemini-2.0-flash";
 
-// supabase.auth.getSession() has a known deadlock failure mode (usually
-// navigator.locks contention across tabs) where the promise just never
-// resolves. AuthContext already guards its own getSession() call at app
-// init with an 8s timeout - this does the same here, since this file was
-// calling getSession() completely unguarded, which is why a Send could hang
-// forever on "Rex is thinking..." with the request never even reaching
-// fetch(). On timeout we proceed without an auth token rather than hanging
-// the whole request; the Worker can decide how to handle a missing token.
-async function getAccessTokenSafely(timeoutMs = 5000): Promise<string> {
-  try {
-    const result = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`getSession() timed out after ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ]);
-    return result.data.session?.access_token ?? "";
-  } catch (err) {
-    console.error("[groq] getSession() failed or timed out, proceeding without auth token:", err);
-    return "";
-  }
+// Previously this called supabase.auth.getSession() directly with a 5s race
+// timeout. That call has a confirmed deadlock failure mode (Web Locks
+// contention across tabs), and on timeout the old code silently proceeded
+// with NO auth token — which the Worker correctly rejects with 401. That's
+// the exact "Groq API error 401" you were seeing; the token was never being
+// sent, not invalid.
+//
+// Fix: read the access token from AuthContext's in-memory cache instead.
+// It's synchronous, can't deadlock, and can't time out — it's just whatever
+// AuthProvider last set, which is kept fresh on every auth state change
+// including background token refreshes.
+async function getAccessTokenSafely(): Promise<string> {
+  return getCachedAccessToken() ?? "";
 }
 
 export interface GroqMessage {
@@ -67,14 +57,14 @@ export function safeParseJSON<T = unknown>(raw: string): T {
   }
 }
 
-// ─── Model detection helpers ──────────────────────────────────────────────────
+// ─── Model detection helpers ───────────────────────────────────────────────────
 const MODEL_PREFIXES = ["llama", "gemma", "gemini", "mixtral", "mistral", "deepseek", "qwen", "meta-llama", "google", "anthropic", "openai"];
 
 function looksLikeModel(s: string): boolean {
   return MODEL_PREFIXES.some(p => s.toLowerCase().startsWith(p));
 }
 
-// ─── Main callGroq ────────────────────────────────────────────────────────────
+// ─── Main callGroq ─────────────────────────────────────────────────────────────
 // Internal core — does the actual normalization, fetch, and parsing.
 // Returns both the text AND which provider actually answered (Groq / Gemini /
 // Cloudflare AI / OpenRouter), since the Worker falls back silently between
@@ -86,6 +76,14 @@ async function _callGroqCore(
   maxTokens: number = 1024,
   feature?: string
 ): Promise<{ text: string; provider?: string }> {
+  // Fail fast and clearly when there's genuinely no connection, instead of
+  // sending a doomed request that surfaces as a confusing error later.
+  // AI features fundamentally need the network — there's no local model to
+  // fall back to — so this is the correct behavior, not a workaround.
+  if (!navigator.onLine) {
+    throw new Error("You're offline — Rex needs an internet connection to respond. Your other tools (Flashcards, Practice, Mistake Journal) still work offline.");
+  }
+
   // Normalise overloaded arguments
   let normMessages: GroqMessage[];
   let systemPrompt: string | undefined;
@@ -245,13 +243,17 @@ export async function callGroqWithMeta(
   return _callGroqCore(messages, systemPromptOrModel, model, maxTokens, feature);
 }
 
-// ─── Vision-specific helper ───────────────────────────────────────────────────
+// ─── Vision-specific helper ─────────────────────────────────────────────────────
 export async function callGroqWithImages(
   textPrompt: string,
   imageBlocks: Array<{ type: string; source: { type: string; media_type: string; data: string } }>,
   systemPrompt?: string,
   maxTokens: number = 1024
 ): Promise<string> {
+  if (!navigator.onLine) {
+    throw new Error("You're offline — Rex needs an internet connection to respond.");
+  }
+
   const userContent: Array<{ type: string; [key: string]: unknown }> = [
     ...imageBlocks.map(img => ({
       type: "image_url",
@@ -265,11 +267,9 @@ export async function callGroqWithImages(
     { role: "user" as const, content: userContent },
   ];
 
-  // FIX: was incorrectly referencing `hasImages` and `model` from callGroq scope
   console.log("[groq] sending vision request, model:", VISION_MODEL, "messages count:", messages.length);
 
   const visionToken = await getAccessTokenSafely();
-
   const visionController = new AbortController();
   const visionTimeoutId = setTimeout(() => visionController.abort(), 45000);
 
