@@ -70,7 +70,20 @@ self.addEventListener("fetch", (event) => {
     url.includes("paypal.com") ||
     url.includes("workers.dev")
   ) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch((err) => {
+        // Re-throw so calling code still sees a normal failed fetch,
+        // exactly as if there were no service worker involved at all —
+        // your own code (e.g. the study-time tracker) already handles
+        // this failure gracefully. The only change is attaching this
+        // .catch() explicitly, so Chrome stops ALSO flagging the same
+        // rejection as an uncaught error inside the service worker's own
+        // scope — that's what was spamming the console every time an API
+        // call failed while offline, even though nothing was actually
+        // broken.
+        throw err;
+      })
+    );
     return;
   }
 
