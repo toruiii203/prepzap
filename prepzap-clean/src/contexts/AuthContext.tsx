@@ -138,7 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
-
   // Track if we're mid-fetch so ProtectedRoute waits instead of redirecting
   const fetchingRef = useRef(false)
 
@@ -219,7 +218,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: { session: s },
           error,
         } = await withTimeout(supabase.auth.getSession(), 8000, "getSession()")
-
         if (error) throw error
         if (cancelled) return
 
@@ -236,11 +234,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // of leaving the dashboard hanging until a manual refresh.
         console.error("Auth initialization failed:", err)
 
-        // Specifically: if we're offline, getSession() likely failed or
-        // timed out trying to refresh the token over the network, not
-        // because the session is actually invalid. Fall back to the last
+        // If getSession() itself failed, that's most likely a network
+        // problem (flaky connection, or genuinely offline) — not proof
+        // the session is actually invalid. Fall back to the last
         // known-good auth state instead of leaving the user logged out.
-        if (!cancelled && !navigator.onLine) {
+        //
+        // FIX: this used to also require `!navigator.onLine` here.
+        // Removed that condition — navigator.onLine is unreliable
+        // (Android/Chrome, and PWAs resuming from background after being
+        // backgrounded/closed, routinely report `true` with no real
+        // connectivity). Requiring it meant this fallback silently never
+        // ran on exactly the case it exists for: the browser insisted it
+        // was online while getSession() kept failing, so the cache never
+        // got read, `session` stayed null, and ProtectedRoute bounced the
+        // user through /login -> /onboarding instead of back into the
+        // app. This fallback is explicitly a UI convenience only (see
+        // comment above readAuthCache) — no real access is granted by
+        // trusting it — so it's safe to always attempt it whenever
+        // getSession() itself failed, regardless of what navigator.onLine
+        // claims.
+        if (!cancelled) {
           const cached = readAuthCache()
           if (cached) {
             setSession(cached.session)
