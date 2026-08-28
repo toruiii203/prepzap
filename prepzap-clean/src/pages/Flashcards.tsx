@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudySession } from "@/hooks/useStudySession";
 import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";
 import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
@@ -72,6 +73,7 @@ function DesktopFlashcard({ currentCard, isFlipped, setIsFlipped }: DesktopFlash
 export default function Flashcards() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth() as any;
+  const { logSession } = useStudySession();
   const { save: saveHistory, history: deckHistory } = useToolHistory("flashcards");
   const { isPro, canUse, remaining, logUsage } = usePlan();
   const [view, setView] = useState<"setup" | "study" | "results">("setup");
@@ -244,8 +246,15 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       );
 
       let sanitized = aiResponse.trim();
-      if (sanitized.startsWith("```")) {
-        sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
+      
+      // Robust extraction of JSON array
+      const match = sanitized.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (match) {
+        sanitized = match[0];
+      } else {
+        if (sanitized.startsWith("```")) {
+          sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
+        }
       }
 
       const parsed = JSON.parse(sanitized);
@@ -256,6 +265,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       }
     } catch (err) {
       console.warn("Flashcard generation failed, using fallback deck:", err);
+      alert("Failed to generate flashcards from your material. The AI returned an invalid format or timed out. Falling back to example deck.");
       generatedCards = [];
       for (let i = 0; i < cardCount; i++) {
         generatedCards.push(mockCards[i % mockCards.length]);

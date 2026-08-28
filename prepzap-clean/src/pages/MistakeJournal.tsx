@@ -494,8 +494,8 @@ Return strictly a valid raw JSON object (no markdown):
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="material-symbols-outlined text-black hover:text-[#FF4D2E] transition-colors">notifications</button>
-            <button onClick={() => navigate("/go-pro")} className="material-symbols-outlined text-black hover:text-[#F5A623] transition-colors">workspace_premium</button>
+            
+            
             {/* FIX: avatar was hardcoded "R" — now uses profile initial */}
             <div
               onClick={() => navigate("/profile")}

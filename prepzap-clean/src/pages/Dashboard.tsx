@@ -133,11 +133,10 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{Math.round(Number(session.duration_minutes) || 0)}m • {formattedDate}</div>
+                  <div className="text-[11px] font-bold text-black/50">{Math.round(Number(session.duration_minutes) || 0)}m � {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[13px] font-extrabold text-[#FF4D2E]">+{Math.round((Number(session.duration_minutes) || 0) * 1.5)} XP</div>
                 <div className="text-[11px] font-bold text-black/40">{Math.round(Number(session.duration_minutes) || 0)}m studied</div>
               </div>
             </div>
@@ -155,15 +154,15 @@ interface WeeklyBarsProps {
 }
 
 function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
-  const maxMins = Math.max(...dayMinutes, 1);
+  // 10 hours = 600 minutes
   return (
     <div className="h-48 flex items-end justify-between px-4 pb-2">
       {daysOfWeek.map((day, idx) => {
-        const heightPct = Math.max(8, Math.round((dayMinutes[idx] / maxMins) * 100));
+        const heightPct = dayMinutes[idx] === 0 ? 8 : Math.min(100, Math.max(8, Math.round((dayMinutes[idx] / 600) * 100)));
         return (
-          <div key={day} className="flex flex-col items-center gap-2 group">
+          <div key={day} className="flex flex-col items-center justify-end gap-2 group h-full">
             <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-              {dayMinutes[idx] > 0 ? `${dayMinutes[idx]}m` : ""}
+              {dayMinutes[idx] > 0 ? `${Math.round(dayMinutes[idx])}m` : ""}
             </span>
             <div
               className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
@@ -171,7 +170,7 @@ function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
               }`}
               style={{ height: `${heightPct}%` }}
             />
-            <span className="text-[10px] font-black uppercase text-black/60">{day.slice(0, 3)}</span>
+            <span className="text-[10px] font-black uppercase text-black/40 mt-1">{day}</span>
           </div>
         );
       })}
@@ -252,18 +251,33 @@ export default function Dashboard() {
   const fetchSessions = async () => {
     setLoadingSessions(true);
     try {
+      let combinedData: any[] = [];
+      try {
+        const local = localStorage.getItem("pz_study_sessions");
+        if (local) {
+          combinedData = JSON.parse(local);
+        }
+      } catch (err) {}
+      
       const { data } = await supabase
         .from("study_sessions")
         .select("*")
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
+        
       if (data && data.length > 0) {
-        setSessions(data);
-        calculateStatsAndCalendar(data);
-      } else {
-        setSessions([]);
-        calculateStatsAndCalendar([]);
+        // Merge without duplicates (using titles and dates)
+        data.forEach(dbSess => {
+          if (!combinedData.find(s => s.id === dbSess.id)) {
+            combinedData.push(dbSess);
+          }
+        });
       }
+      
+      combinedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      setSessions(combinedData);
+      calculateStatsAndCalendar(combinedData);
     } catch (err) {
       console.error("Error loading sessions:", err);
     } finally {
@@ -343,7 +357,6 @@ export default function Dashboard() {
               <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">Go Pro</span>
             )}
           </div>
-          <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75">notifications</span>
           <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-2 border-black flex items-center justify-center font-black text-[13px] cursor-pointer" onClick={() => navigate("/profile")}>
             {displayName.slice(0, 1).toUpperCase()}
           </div>
@@ -364,25 +377,10 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="border-2 border-black bg-[#FAF7F2] p-2 flex items-center justify-center hover:bg-[#E2E2E2] transition-colors" style={{ boxShadow: "3px 3px 0px #000" }}>
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <button onClick={() => navigate("/go-pro")} className="border-2 border-black bg-[#FAF7F2] p-2 flex items-center justify-center hover:bg-[#E2E2E2] transition-colors" style={{ boxShadow: "3px 3px 0px #000" }}>
-              <span className="material-symbols-outlined">workspace_premium</span>
-            </button>
           </div>
         </header>
 
-        {/* Live tracking indicator — replaces the old manual "Start Session" CTA.
-            Time studied accrues automatically just by being on this page or any tool page. */}
-        <div className="w-full border-2 border-black bg-[#FAF7F2] flex items-center gap-3 py-3 px-4 mb-8 font-extrabold text-[13px] uppercase tracking-wider text-black/60"
-          style={{ boxShadow: "4px 4px 0px #000" }}>
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D2E] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4D2E]" />
-          </span>
-          Recording session time automatically
-        </div>
+        
 
         {/* Desktop Bento Grid */}
         <div className="grid grid-cols-12 gap-6">
@@ -544,14 +542,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Live tracking indicator — replaces the old manual "Start Session" button */}
-        <div className="w-full py-3 rounded-xl border-2 border-black bg-[#FAF7F2] flex items-center justify-center gap-2 shadow-[3px_3px_0px_rgba(0,0,0,1)] text-[12px] font-extrabold uppercase tracking-wider text-black/60">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D2E] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF4D2E]" />
-          </span>
-          Recording session time automatically
-        </div>
+        
 
         {/* Weekly Calendar (mobile only) */}
         <section className="border-2 border-black rounded-2xl bg-white p-5" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>

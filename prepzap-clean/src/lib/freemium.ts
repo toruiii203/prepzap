@@ -7,9 +7,14 @@ export type FeatureKey =
   | "math_solver"
   | "quick_study"
   | "teach_it"
-  | "mistake_journal";
+  | "mistake_journal"
+  | "cram"
+  | "practice"
+  | "recall"
+  | "visual"
+  | "high_yield";
 
-// ─── Daily limits for free users ─────────────────────────────────────────────
+// 🔵 Daily limits for free users 🔵
 export const LIMITS: Record<FeatureKey, number> = {
   ai_tutor:        20,
   flashcard_gen:   3,
@@ -17,6 +22,11 @@ export const LIMITS: Record<FeatureKey, number> = {
   quick_study:     3,
   teach_it:        3,
   mistake_journal: 5,
+  cram:            3,
+  practice:        3,
+  recall:          3,
+  visual:          3,
+  high_yield:      3,
 };
 
 // ─── Philippines timezone helper ─────────────────────────────────────────────

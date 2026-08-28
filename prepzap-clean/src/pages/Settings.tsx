@@ -160,7 +160,7 @@ export default function Settings() {
               {[
                 { label: "XP",     value: String(profile?.total_xp ?? 0),        icon: "bolt" },
                 { label: "Streak", value: String(profile?.streak_days ?? 0),      icon: "local_fire_department" },
-                { label: "Level",  value: String(profile?.level ?? 1),            icon: "military_tech" },
+                
               ].map(s => (
                 <div key={s.label} style={{ padding: "12px 8px", background: "#fff", border: "2px solid #1c1c19", textAlign: "center", boxShadow: "2px 2px 0 #1c1c19" }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 18, color: RED, display: "block", marginBottom: 4 }}>{s.icon}</span>
@@ -250,7 +250,7 @@ export default function Settings() {
                 <p style={{ fontSize: 11, color: "#6b6b6b", marginBottom: 12, fontFamily: "'Quicksand', sans-serif" }}>Upgrade to Pro for unlimited AI questions and all premium features.</p>
                 <Link to="/pricing">
                   <button style={{ width: "100%", padding: "12px", background: RED, border: "2px solid #1c1c19", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", boxShadow: "3px 3px 0 #1c1c19", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>workspace_premium</span>
+                    
                     UPGRADE TO PRO
                   </button>
                 </Link>

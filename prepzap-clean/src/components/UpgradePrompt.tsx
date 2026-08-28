@@ -10,10 +10,16 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   quick_study:     "QuickStudy session",
   teach_it:        "TeachIt session",
   mistake_journal: "journal entry",
+  cram:            "cram session",
+  practice:        "practice quiz",
+  recall:          "recall prompt",
+  visual:          "visual storyboard",
+  high_yield:      "high-yield scan",
 };
 
 function pluralLabel(feature: FeatureKey, count: number): string {
   const label = FEATURE_LABELS[feature];
+  if (!label) return "action";
   // Simple pluralisation: add 's' unless it ends in a word we know
   if (count === 1) return label;
   return label.endsWith("s") ? label : `${label}s`;
@@ -62,7 +68,7 @@ export default function UpgradePrompt({ feature, remaining, onClose }: UpgradePr
 
   const handleGoPro = () => {
     onClose();
-    navigate("/pricing");
+    alert("Pro upgrades are currently disabled. You can implement your payment provider (like Stripe) here later!");
   };
 
   return (

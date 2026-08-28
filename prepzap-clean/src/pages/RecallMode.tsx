@@ -8,6 +8,8 @@ import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { MessageSquare, Flame, Trophy, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { usePlan } from "@/hooks/usePlan";
+import { useStudySession } from "@/hooks/useStudySession";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource, onSourceChange } from "@/lib/sourceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,6 +73,8 @@ function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => v
 }
 
 export default function RecallMode() {
+  const { isPro, canUse, logUsage } = usePlan();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const { user } = useAuth();
   const [subject, setSubject] = useState("");
   const [loading, setLoading] = useState(false);
@@ -121,6 +125,15 @@ export default function RecallMode() {
   }, []);
 
   const handleGenerate = async () => {
+
+    if (!isPro) {
+      const allowed = await canUse("recall");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
     if (!effectiveSubject && !hasSource) { toast.error("Enter a subject or add a source first"); return; }
     setLoading(true);
@@ -141,6 +154,7 @@ export default function RecallMode() {
       setStreak(0); setBestStreak(0);
       setShowAnswer(false);
       setPhase("recall");
+      logSession({ title: "Recall Mode: " + (effectiveSubject || "Custom Topic"), durationMinutes: 5 }); try { await logUsage("recall"); } catch {};
     } catch(err:any) { console.error("[RecallMode] generate failed:", err); toast.error("Error: " + (err?.message ?? String(err))); }
     finally { setLoading(false); }
   };
@@ -313,6 +327,7 @@ export default function RecallMode() {
         )}
       </main>
           <BottomNav />
-    </ToolPageShell>
+      {showUpgrade && <UpgradePrompt feature="recall" remaining={0} onClose={() => setShowUpgrade(false)} />}
+      </ToolPageShell>
   );
 }

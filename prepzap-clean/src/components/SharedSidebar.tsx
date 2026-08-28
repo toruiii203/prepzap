@@ -67,9 +67,6 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         <h1 className="text-[24px] font-black tracking-tight text-black cursor-pointer" onClick={() => navigate("/dashboard")}>
           Studenius
         </h1>
-        <p className="text-[11px] font-bold text-black/50 mt-0.5">
-          Academic Level: {profile?.plan === "pro" ? "Pro" : "Free"}
-        </p>
       </div>
 
       {/* Nav */}
@@ -99,12 +96,6 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
       {/* Footer */}
       <div className="mt-auto border-t-[1.5px] border-black pt-4 flex flex-col gap-2">
         <button
-          onClick={() => navigate("/go-pro")}
-          className="w-full bg-[#FF4D2E] text-white border-[1.5px] border-black py-2.5 text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:opacity-90 transition-opacity"
-        >
-          Upgrade to Pro
-        </button>
-        <button
           onClick={() => navigate("/settings")}
           className="flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-black hover:bg-[#E2E2E2] w-full transition-colors"
         >
@@ -119,7 +110,6 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
           </div>
           <div className="flex flex-col text-left">
             <span className="text-[13px] font-bold text-black truncate max-w-[130px]">{displayName}</span>
-            <span className="text-[11px] font-bold text-black/50">Level {profile?.level ?? 1}</span>
           </div>
         </button>
       </div>

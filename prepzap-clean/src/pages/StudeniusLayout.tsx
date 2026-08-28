@@ -81,9 +81,7 @@ export function StudeniusLayout() {
             onClick={(e) => { e.preventDefault(); navigate("/go-pro"); }}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[13.5px] text-[#ae2925] hover:bg-[#ae2925]/10 transition-all"
           >
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              workspace_premium
-            </span>
+            
             Go Pro
           </a>
         </div>

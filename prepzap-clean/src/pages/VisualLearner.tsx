@@ -9,6 +9,9 @@ import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyS
  */
 
 import { useState, useEffect } from "react"
+import { useStudySession } from "@/hooks/useStudySession"
+import { usePlan } from "@/hooks/usePlan"
+import UpgradePrompt from "@/components/UpgradePrompt"
 import { callGroq } from "@/lib/groq"
 import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
 import { ToolPageShell, useModel } from "@/components/ToolPageShell"
@@ -161,6 +164,9 @@ The SVG must have viewBox="0 0 400 300" and width="100%" height="100%".`;
 }
 
 export default function VisualLearner() {
+  const { isPro, canUse, logUsage } = usePlan();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const { logSession } = useStudySession()
   const { model, setModel } = useModel()
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -237,6 +243,15 @@ export default function VisualLearner() {
 
   // ////// Generate storyboard ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleGenerate = async (conceptToUse?: string) => {
+
+    if (!isPro) {
+      const allowed = await canUse("visual");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     const target = (conceptToUse ?? conceptInput).trim()
     if (!target) return
 
@@ -280,6 +295,7 @@ If source material is provided, base the scenes on its actual content, not gener
 
       setScenes(parsed.scenes.map(s => ({ ...s, photoLoading: true })))
       setProgress(90)
+      logSession({ title: "Visual Learner: " + parsed.concept, durationMinutes: 6 }); try { await logUsage("visual"); } catch {}
       setPhase("result")
       setProgress(100)
 
@@ -481,7 +497,8 @@ If source material is provided, base the scenes on its actual content, not gener
           </button>
         </div>
       </main>
-    </ToolPageShell>
+      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
+      </ToolPageShell>
   )
 
   // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -510,7 +527,8 @@ If source material is provided, base the scenes on its actual content, not gener
           <div style={{ height: "100%", width: `${progress}%`, background: TEAL, transition: "width 0.5s ease" }} />
         </div>
       </main>
-    </ToolPageShell>
+      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
+      </ToolPageShell>
   )
 
   // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -560,7 +578,8 @@ If source material is provided, base the scenes on its actual content, not gener
           )}
         </div>
       </main>
-    </ToolPageShell>
+      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
+      </ToolPageShell>
   )
 
   // Gallery phase
@@ -617,7 +636,8 @@ If source material is provided, base the scenes on its actual content, not gener
           </div>
         )}
       </main>
-    </ToolPageShell>
+      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
+      </ToolPageShell>
   )
 
   return null

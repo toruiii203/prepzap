@@ -619,8 +619,8 @@ export default function StudyPlanner() {
               <span className="material-symbols-outlined text-[#E8534A] text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
               <span className="text-[12px] font-black uppercase tracking-widest">{streak} Day Streak</span>
             </div>
-            <button className="material-symbols-outlined text-black hover:text-[#FF4D2E] transition-colors">notifications</button>
-            <button onClick={() => navigate("/go-pro")} className="material-symbols-outlined text-black hover:text-[#F5A623] transition-colors">workspace_premium</button>
+            
+            
             {/* FIX: was hardcoded "S" — now uses profile initial */}
             <div onClick={() => navigate("/profile")} className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer">
               {avatarLetter}

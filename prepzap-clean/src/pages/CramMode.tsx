@@ -9,6 +9,8 @@ import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { Zap, Clock, CheckCircle, RotateCcw, Trophy, ChevronRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { usePlan } from "@/hooks/usePlan";
+import { useStudySession } from "@/hooks/useStudySession";
 import { callGroq } from "@/lib/groq";
 import { buildAIContext, getActiveSource, onSourceChange } from "@/lib/sourceContext";
 import { BottomNav } from "@/components/BottomNav";
@@ -40,6 +42,8 @@ function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => v
 }
 
 export default function CramMode() {
+  const { isPro, canUse, logUsage } = usePlan();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [subject, setSubject] = useState("")
   const [hoursAvailable, setHoursAvailable] = useState("2");
   const [loading, setLoading] = useState(false);
@@ -88,19 +92,16 @@ export default function CramMode() {
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-
-  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  useEffect(() => {
-    const prefill = sessionStorage.getItem("quicklaunch_prompt");
-    if (prefill && prefill.trim()) {
-      setSubject(prefill);
-      sessionStorage.removeItem("quicklaunch_prompt");
-      sessionStorage.removeItem("quicklaunch_tool");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleGenerate = async () => {
+
+    if (!isPro) {
+      const allowed = await canUse("cram");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     const effectiveSubject = subject.trim() || activeSource?.name?.replace(/\.\w+$/, "") || "";
     if (!effectiveSubject && !hasSource) { toast.error("Enter a subject or add a source first"); return; }
     setLoading(true);
@@ -114,15 +115,17 @@ export default function CramMode() {
         undefined,
         "llama-3.3-70b-versatile",
         1024,
-        "cram_mode"
+        "cram"
       );
-      const parsed: CramTopic[] = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      let clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+      const parsed: CramTopic[] = JSON.parse(clean);
       setTopics(parsed);
       setCurrentIdx(0);
       setCompleted([]);
       setTotalUsed(0);
       startTopicTimer(parsed[0].timeMinutes);
       setPhase("session");
+      logSession({ title: "Cram Mode: " + effectiveSubject, durationMinutes: Math.round(totalMins) }); try { await logUsage("cram"); } catch {};
       localStorage.setItem("pz_cram_last", JSON.stringify({ subject: effectiveSubject, date: new Date().toISOString() }));
     } catch(err:any) { console.error("[CramMode] generate failed:", err); toast.error("Error: " + (err?.message ?? String(err))); }
     finally { setLoading(false); }
@@ -260,6 +263,7 @@ export default function CramMode() {
         )}
       </main>
           <BottomNav />
-    </ToolPageShell>
+      {showUpgrade && <UpgradePrompt feature="cram" remaining={0} onClose={() => setShowUpgrade(false)} />}
+      </ToolPageShell>
   );
 }

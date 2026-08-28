@@ -3,6 +3,9 @@ import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { loadLibrary, onSourceChange } from "@/lib/sourceContext";
+import { usePlan } from "@/hooks/usePlan";
+import { useStudySession } from "@/hooks/useStudySession";
+import UpgradePrompt from "@/components/UpgradePrompt";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
@@ -165,6 +168,8 @@ function HistoryCard({ entry, onOpenReview }: { entry: HistoryEntry; onOpenRevie
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Practice() {
+  const { isPro, canUse, logUsage } = usePlan();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
@@ -223,6 +228,15 @@ export default function Practice() {
   };
 
   const handleGenerateQuiz = async () => {
+
+    if (!isPro) {
+      const allowed = await canUse("practice");
+      if (!allowed) {
+        setShowUpgrade(true);
+        return;
+      }
+    }
+
     setIsGenerating(true);
     try {
       const sourceText = buildAllSourcesContext(libraryFiles);
@@ -230,7 +244,7 @@ export default function Practice() {
       // FIX: question count was hardcoded to 3 everywhere (prompt text,
       // schema instructions, and the results screen). questionCount is now
       // plumbed through so the selector actually controls how many
-      // questions get generated.
+      
       const promptText = sourceText
         ? `Generate a set of ${questionCount} interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
         : topicHint
@@ -241,10 +255,6 @@ export default function Practice() {
 Each object MUST match this schema exactly:
 {"q":"question text","options":["A","B","C","D"],"correct":0,"subject":"Subject","difficulty":"Easy, Medium or Hard"}`;
 
-      // FIX BUG 2: removed fn.toString() hack — call callGroq directly
-      // Note: "practice" is not in Worker LIMITS (unlimited) but key passed for logging
-      // Token budget now scales with question count instead of a flat 1024,
-      // which used to truncate/malform responses for larger sets.
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
@@ -261,11 +271,11 @@ Each object MUST match this schema exactly:
       const parsed = JSON.parse(sanitized);
       if (Array.isArray(parsed) && parsed.length > 0) {
         setQuestions(parsed);
+        logSession({ title: `Practice: ${topicHint || "General Quiz"}`, durationMinutes: Math.ceil(questionCount * 1.5) }); try { await logUsage("practice"); } catch {};
         setCurrentQIndex(0);
         setSelectedOption(null);
         setAnswers([]);
         setScore(0);
-        // Timer scales with question count instead of a flat 450s regardless
         // of whether it's a 3-question or 15-question quiz.
         setTimeLeft(Math.max(300, parsed.length * 90));
       } else throw new Error("Invalid structure");

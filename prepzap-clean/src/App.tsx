@@ -84,9 +84,9 @@ import StudentProfile from "./pages/StudentProfile";
 import Challenges from "./pages/Challenges";
 import TeachIt from "./pages/TeachIt";
 import QuickStudy from "./pages/QuickStudy";
-import GoProPricing from "./pages/GoProPricing";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import Pricing from "./pages/Pricing";
+
+
+
 import MathSolver from "./pages/MathSolver";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -190,12 +190,12 @@ function AppRoutes() {
         <Route path="/landing" element={safe(<Landing />)} />
         <Route path="/login" element={safe(<Navigate to="/onboarding" replace />)} />
         <Route path="/signup" element={<Navigate to="/onboarding" replace />} />
-        <Route path="/pricing" element={safe(<Pricing />)} />
+        
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
         <Route path="/onboarding" element={safe(<Onboarding />)} />
         <Route path="/auth/callback" element={safe(<AuthCallback />)} />
-        <Route path="/payment-success" element={safe(<PaymentSuccess />)} />
+        
         <Route path="/invite/:code" element={safe(<ArenaInvite />)} />
         <Route path="/flashcards/shared/:id" element={safe(<FlashcardsShared />)} />
 
@@ -214,7 +214,7 @@ function AppRoutes() {
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/teach-it" element={<TeachIt />} />
           <Route path="/quick-study" element={<QuickStudy />} />
-          <Route path="/go-pro" element={<GoProPricing />} />
+          
           <Route path="/math" element={<MathSolver />} />
           <Route path="/sources" element={<SourceLibrary />} />
           <Route path="/settings" element={<Settings />} />

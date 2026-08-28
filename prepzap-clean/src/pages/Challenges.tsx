@@ -1,30 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { callGroq } from "@/lib/groq";
-import { buildAIContext } from "@/lib/sourceContext";
-
-interface QuestCard {
-  id: number;
-  q: string;
-  answer: string;
-  hint: string;
-  completed?: boolean;
-}
 
 export default function Challenges() {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<"Daily5" | "BossRound">("Daily5");
-  const [activeFocus, setActiveFocus] = useState("Anatomy");
-  const [expandedCard, setExpandedCard] = useState<number | null>(1);
-  const [loading, setLoading] = useState(false);
-  const [quests, setQuests] = useState<QuestCard[]>([]);
-  const [completedQuestIds, setCompletedQuestIds] = useState<number[]>([]);
+  const { profile } = useAuth();
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Daily seed logic to rotate challenges
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
 
   const streakDays = [
     { day: "M", completed: true },
@@ -36,9 +23,7 @@ export default function Challenges() {
     { day: "S", completed: false },
   ];
 
-  const focusAreas = ["Anatomy", "Microbiology", "Ethics", "Cell Biology"];
-
-  const staticChallenges = [
+  const allChallenges = [
     {
       id: "perfect-recall",
       tag: "Daily 5",
@@ -47,11 +32,6 @@ export default function Challenges() {
       iconStyle: "text-[#F5A623]",
       title: "Perfect Recall",
       desc: "Complete 5 sets of flashcards without a single mistake.",
-      progress: 3,
-      total: 5,
-      progressLabel: "3/5",
-      barColor: "bg-black",
-      barWidth: "60%",
       cta: "START ATTEMPT",
       ctaAction: () => navigate("/flashcards?challenge=true"),
     },
@@ -62,12 +42,7 @@ export default function Challenges() {
       icon: "skull",
       iconStyle: "text-black",
       title: "Deep Work Titan",
-      desc: "Log 4 consecutive hours of focus timer today.",
-      progress: 1.5,
-      total: 4,
-      progressLabel: "1.5/4h",
-      barColor: "bg-[#FF4D2E]",
-      barWidth: "37.5%",
+      desc: "Log 2 hours of focus timer today.",
       cta: "RESUME FOCUS",
       ctaAction: () => navigate("/timer"),
     },
@@ -78,10 +53,32 @@ export default function Challenges() {
       icon: "psychology",
       iconStyle: "text-[#F5A623]",
       title: "Morning Sprint",
-      desc: "Quick 10-question AI-generated review of yesterday's notes.",
+      desc: "Quick 10-question AI-generated review of your notes.",
       expiry: "EXPIRES IN 4H",
       cta: "TAKE QUIZ",
       ctaAction: () => navigate("/arena"),
+    },
+    {
+      id: "quick-study-champ",
+      tag: "Daily 5",
+      tagStyle: "bg-black text-white",
+      icon: "bolt",
+      iconStyle: "text-[#F5A623]",
+      title: "Quick Study Champ",
+      desc: "Upload a document and extract 15 key points.",
+      cta: "UPLOAD DOC",
+      ctaAction: () => navigate("/sources"),
+    },
+    {
+      id: "ai-tutor-session",
+      tag: "Learning",
+      tagStyle: "bg-blue-600 text-white",
+      icon: "robot_2",
+      iconStyle: "text-white",
+      title: "Tutor Me",
+      desc: "Spend 20 minutes conversing with your AI Tutor.",
+      cta: "OPEN TUTOR",
+      ctaAction: () => navigate("/tutor"),
     },
     {
       id: "knowledge-share",
@@ -96,87 +93,13 @@ export default function Challenges() {
     },
   ];
 
-  const generateQuests = async (subject: string) => {
-    setLoading(true);
-    try {
-      const sourceContext = buildAIContext();
-      const promptText = `Generate 2 highly engaging study questions/quests for medical or engineering students about "${subject}".
-${sourceContext ? `Incorporate details from the loaded source document context:\n${sourceContext}` : ""}
-
-Return strictly a valid raw JSON array containing exactly 2 objects. Format:
-[
-  {
-    "id": 1,
-    "q": "What is the primary function...?",
-    "answer": "Detailed answer matching standard textbook solutions...",
-    "hint": "Think of oxygen demands..."
-  },
-  {
-    "id": 2,
-    "q": "Why is...",
-    "answer": "Explanation of biological or chemical rationale...",
-    "hint": "Also is known for..."
-  }
-]
-
-No markdown formatting, no explanations! Output strictly a valid raw JSON string array.`;
-
-      const systemPrompt = "You are a master academic educator returning raw JSON arrays only.";
-
-      const callGroqWithModel = async (pText: string, sysPrompt: string) => {
-        const fn = callGroq as any;
-        const fnStr = fn.toString();
-        if (fnStr.includes("messages") || fnStr.includes("llama")) {
-          return await fn([{ role: "user", content: pText }], sysPrompt, "llama-3.3-70b-versatile", 1000);
-        } else {
-          return await fn(pText, sysPrompt, "application/json");
-        }
-      };
-
-      const aiResponse = await callGroqWithModel(promptText, systemPrompt);
-      let sanitized = aiResponse.trim();
-      if (sanitized.startsWith("```")) {
-        sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
-      }
-
-      const generated = JSON.parse(sanitized);
-      if (Array.isArray(generated) && generated.length > 0) {
-        setQuests(generated.map((q: any, idx: number) => ({ ...q, id: idx + 1, completed: false })));
-        setExpandedCard(1);
-      } else throw new Error("Invalid format");
-    } catch (err) {
-      console.warn("Dynamic challenges failed, using fallback:", err);
-      setQuests([
-        { id: 1, q: `Core concept inquiry: ${subject} primary factors`, answer: `The primary features of ${subject} focus on cell structures, biological assays, and safe molecular protocols.`, hint: "Focus on early research breakthroughs.", completed: false },
-        { id: 2, q: `Describe structural challenges involving ${subject}`, answer: `Modern research resolves ${subject} constraints by deploying targeted enzyme vectors and CRISPR models.`, hint: "Involves nucleic sequencing steps.", completed: false },
-      ]);
-      setExpandedCard(1);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { generateQuests(activeFocus); }, [activeFocus]);
-
-  const handleCompleteQuest = async (questId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (completedQuestIds.includes(questId)) return;
-    const xpAwarded = 25;
-    const coinsAwarded = 10;
-    if (user && profile) {
-      try {
-        await supabase.from("profiles").update({
-          total_xp: (profile.total_xp || profile.xp || 0) + xpAwarded,
-          coins: (profile.coins || 0) + coinsAwarded,
-        }).eq("id", user.id);
-        if (typeof refreshProfile === "function") await refreshProfile();
-      } catch (err) {
-        console.error("Error rewarding challenge:", err);
-      }
-    }
-    setCompletedQuestIds(prev => [...prev, questId]);
-    setQuests(prev => prev.map(q => q.id === questId ? { ...q, completed: true } : q));
-  };
+  // Rotate based on dayOfYear
+  const dailyChallenges = [
+    allChallenges[dayOfYear % allChallenges.length],
+    allChallenges[(dayOfYear + 1) % allChallenges.length],
+    allChallenges[(dayOfYear + 2) % allChallenges.length],
+    allChallenges[(dayOfYear + 3) % allChallenges.length],
+  ];
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.origin + "/share/guide");
@@ -184,7 +107,6 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // ─── Streak dots (shared) ─────────────────────────────────────────────────
   const StreakBar = () => (
     <div className="flex justify-between items-center gap-2">
       {streakDays.map((st, idx) => (
@@ -199,102 +121,15 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
     </div>
   );
 
-  // ─── Focus area chips (shared) ────────────────────────────────────────────
-  const FocusChips = () => (
-    <div className="flex flex-wrap gap-2">
-      {focusAreas.map((area) => (
-        <button key={area} onClick={() => setActiveFocus(area)}
-          className={`px-4 py-1.5 rounded-full border-2 border-black text-[13px] font-bold transition-all cursor-pointer ${
-            activeFocus === area ? "bg-black text-white shadow-[2px_2px_rgba(0,0,0,1)]" : "bg-white text-black hover:bg-[#ebe8e3]"
-          }`}>
-          {area}
-        </button>
-      ))}
-    </div>
-  );
-
-  // ─── Quest accordion list (shared) ───────────────────────────────────────
-  const QuestList = () => (
-    <div className="flex flex-col gap-4">
-      {loading ? (
-        <div className="text-center py-10 flex flex-col items-center gap-2">
-          <div className="w-8 h-8 rounded-full border-2 border-black border-t-transparent animate-spin" />
-          <span className="text-[13px] font-bold text-black/50">Generating study tasks with AI...</span>
-        </div>
-      ) : (
-        <>
-          {quests.map((card) => {
-            const isOpen = expandedCard === card.id;
-            const isDone = completedQuestIds.includes(card.id) || card.completed;
-            return (
-              <div key={card.id} onClick={() => setExpandedCard(isOpen ? null : card.id)}
-                className={`bg-white border-2 border-black p-5 shadow-[3px_3px_0px_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer relative ${isDone ? "opacity-75 bg-slate-50" : ""}`}>
-                <div className="absolute -top-3 -left-3 w-8 h-8 border-2 border-black bg-[#FAF7F2] text-black flex items-center justify-center font-black text-[13px] shadow-[2px_2px_0px_#000]">
-                  {card.id}
-                </div>
-                <div className="flex justify-between items-start pt-2 pl-2">
-                  <h4 className={`font-black text-[15px] text-black leading-tight pr-4 ${isDone ? "line-through opacity-60" : ""}`}>{card.q}</h4>
-                  <span className="material-symbols-outlined text-[#ae2925]">{isOpen ? "expand_less" : "expand_more"}</span>
-                </div>
-                {isOpen && (
-                  <div className="mt-4 pl-2 border-t pt-4 border-black/10 flex flex-col gap-3">
-                    <p className="text-[14px] text-black leading-relaxed">
-                      <span className="bg-black/10 text-black font-bold px-2 py-0.5 rounded mr-1">Answer</span>
-                      {card.answer}
-                    </p>
-                    <p className="text-[12px] text-[#ae2925] font-bold italic">💡 Hint: {card.hint}</p>
-                    {!isDone && (
-                      <button onClick={(e) => handleCompleteQuest(card.id, e)}
-                        className="w-full bg-[#ae2925] text-white border-2 border-black py-2 mt-2 font-extrabold text-[12px] hover:opacity-90 shadow-[2px_2px_0px_#000] cursor-pointer">
-                        Double-Check & Complete Task
-                      </button>
-                    )}
-                    {isDone && (
-                      <div className="flex items-center justify-end gap-1 text-[12px] text-green-600 font-bold mt-1">
-                        <span className="material-symbols-outlined text-[15px]">verified</span>
-                        Awarded +25 XP
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <div className="bg-[#f6f3ee] border-2 border-black border-dashed p-5 flex items-center justify-center min-h-[72px] opacity-60 cursor-not-allowed">
-            <span className="material-symbols-outlined text-black/30 mr-2">lock</span>
-            <span className="font-black text-black/40 text-[14px]">Level 3 (Locked)</span>
-          </div>
-        </>
-      )}
-    </div>
-  );
-
-  // ─── Static challenge card (desktop grid) ────────────────────────────────
-  const StaticCard = ({ ch }: { ch: typeof staticChallenges[0] }) => (
-    <div className="group bg-[#FAF7F2] border-2 border-black flex flex-col" style={{ boxShadow: "5px 5px 0px #000" }}>
+  const StaticCard = ({ ch }: { ch: any }) => (
+    <div className="group bg-[#FAF7F2] border-2 border-black flex flex-col h-[200px]" style={{ boxShadow: "5px 5px 0px #000" }}>
       <div className="px-4 py-3 border-b-2 border-black flex justify-between items-center">
         <span className={`text-[12px] font-black px-2 py-1 uppercase ${ch.tagStyle}`}>{ch.tag}</span>
         <span className={`material-symbols-outlined ${ch.iconStyle}`} style={{ fontVariationSettings: "'FILL' 1" }}>{ch.icon}</span>
       </div>
-      <div className="p-4 flex-1">
+      <div className="p-4 flex-1 flex flex-col justify-center">
         <p className="font-black text-[18px] mb-1">{ch.title}</p>
-        <p className="text-[13px] text-black/60 font-medium mb-4 leading-relaxed">{ch.desc}</p>
-        {ch.progress !== undefined && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-[12px] font-black">
-              <span>Progress</span><span>{ch.progressLabel}</span>
-            </div>
-            <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black">
-              <div className={`h-full ${ch.barColor}`} style={{ width: ch.barWidth }} />
-            </div>
-          </div>
-        )}
-        {ch.expiry && (
-          <div className="flex items-center gap-1 mt-2">
-            <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">history</span>
-            <span className="text-[12px] font-black text-[#FF4D2E]">{ch.expiry}</span>
-          </div>
-        )}
+        <p className="text-[13px] text-black/60 font-medium leading-relaxed">{ch.desc}</p>
       </div>
       <button
         onClick={ch.isShare ? () => setShareModalOpen(true) : ch.ctaAction}
@@ -305,9 +140,8 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
     </div>
   );
 
-  // ─── Locked card ─────────────────────────────────────────────────────────
   const LockedCard = ({ title, hint }: { title: string; hint: string }) => (
-    <div className="relative bg-[#f3f3f3] border-2 border-black opacity-60 select-none">
+    <div className="relative bg-[#f3f3f3] border-2 border-black opacity-60 select-none flex flex-col justify-center h-[200px]">
       <div className="absolute inset-0 flex items-center justify-center z-10">
         <div className="bg-black text-white p-3 shadow-[2px_2px_0px_#000]">
           <span className="material-symbols-outlined text-[28px]">lock</span>
@@ -316,15 +150,13 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
       <div className="px-4 py-3 border-b-2 border-black">
         <span className="text-[12px] font-black px-2 py-1 bg-black/30 text-white uppercase">Mystery</span>
       </div>
-      <div className="p-4 blur-sm">
+      <div className="p-4 blur-sm flex-1">
         <p className="font-black text-[18px] mb-1">{title}</p>
         <p className="text-[13px] text-black/60 mb-4">{hint}</p>
-        <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black" />
       </div>
     </div>
   );
 
-  // ─── Share modal (shared) ─────────────────────────────────────────────────
   const ShareModal = () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="bg-[#FAF7F2] border-2 border-black w-full max-w-md" style={{ boxShadow: "6px 6px 0px #000" }}>
@@ -363,15 +195,11 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
 
       {shareModalOpen && <ShareModal />}
 
-      {/* ═══════════════════════════════════════════════════
-          DESKTOP LAYOUT
-          ═══════════════════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT */}
       <div className="hidden md:flex md:ml-64 flex-col min-h-screen">
-
-        {/* Desktop Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
           <div className="flex items-center gap-4">
-            <span className="text-[22px] font-black tracking-tight">CHALLENGES & QUESTS</span>
+            <span className="text-[22px] font-black tracking-tight">DAILY CHALLENGES</span>
             <div className="w-px h-6 bg-black/20" />
             <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
               <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
@@ -379,113 +207,38 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button className="material-symbols-outlined text-black hover:text-[#FF4D2E] transition-colors">notifications</button>
-            <button onClick={() => navigate("/go-pro")} className="material-symbols-outlined text-black hover:text-[#F5A623] transition-colors">workspace_premium</button>
             <div onClick={() => navigate("/profile")}
               className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer hover:opacity-90">
-              R
+              {profile?.display_name?.charAt(0)?.toUpperCase() ?? "S"}
             </div>
           </div>
         </header>
 
-        {/* Desktop Dual Pane */}
-        <div className="flex flex-1 overflow-hidden">
-
-          {/* Left Pane — Static challenges grid */}
-          <div className="w-[60%] flex flex-col border-r-2 border-black overflow-y-auto">
-
-            {/* Streak + heatmap */}
-            <div className="px-8 pt-6 pb-5 border-b-2 border-black/10 shrink-0">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Weekly Activity</h3>
+        <div className="flex flex-1 overflow-hidden p-8">
+          <div className="w-full max-w-4xl mx-auto flex flex-col">
+            
+            <div className="mb-8">
+              <h3 className="text-[14px] font-black uppercase tracking-widest text-black/50 mb-3">Your Weekly Activity</h3>
               <StreakBar />
             </div>
 
-            {/* Tab toggle */}
-            <div className="px-8 pt-5 pb-4 shrink-0">
-              <div className="flex w-full border-2 border-black overflow-hidden">
-                <button onClick={() => setActiveTab("Daily5")}
-                  className={`flex-1 py-3 text-[13px] font-black transition-colors cursor-pointer ${activeTab === "Daily5" ? "bg-black text-white" : "bg-white text-black hover:bg-[#ebe8e3]"}`}>
-                  Daily 5 Challenges
-                </button>
-                <div className="w-[2px] bg-black" />
-                <button onClick={() => setActiveTab("BossRound")}
-                  className={`flex-1 py-3 text-[13px] font-black transition-colors cursor-pointer ${activeTab === "BossRound" ? "bg-black text-white" : "bg-white text-black hover:bg-[#ebe8e3]"}`}>
-                  Boss Round
-                </button>
-              </div>
+            <div className="mb-6">
+              <h3 className="text-[18px] font-black uppercase tracking-widest">Today's Quests</h3>
+              <p className="text-[14px] text-black/60 font-medium">Complete these daily challenges to boost your study streak and earn rewards.</p>
             </div>
 
-            {/* Active Quests section title */}
-            <div className="px-8 pb-2 shrink-0">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50">Active Quests</h3>
-            </div>
-
-            {/* Challenge cards grid */}
-            <div className="px-8 pb-8">
-              <div className="grid grid-cols-2 gap-5">
-                {staticChallenges.map((ch) => <StaticCard key={ch.id} ch={ch} />)}
-                <LockedCard title="The Archivist" hint="Unlocked after 14-day streak. Keep pushing to reveal." />
-                <LockedCard title="Grandmaster" hint="Complete all monthly challenges to unlock the vault." />
-              </div>
-            </div>
-          </div>
-
-          {/* Right Pane — AI Daily Quests */}
-          <div className="w-[40%] flex flex-col overflow-y-auto bg-[#FAF7F2]">
-
-            {/* Topic selector */}
-            <div className="px-8 pt-6 pb-4 border-b-2 border-black/10 shrink-0">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Choose Topic</h3>
-              <FocusChips />
-              <button onClick={() => navigate("/sources")}
-                className="mt-3 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-black bg-white text-black font-black text-[13px] hover:bg-[#ebe8e3] transition-colors cursor-pointer">
-                <span className="material-symbols-outlined text-[18px]">attach_file</span>
-                Extract from Source Library
-              </button>
-            </div>
-
-            {/* AI Quest list */}
-            <div className="px-8 py-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50">AI Daily Quests</h3>
-                <button onClick={() => generateQuests(activeFocus)}
-                  className="flex items-center gap-1 text-[11px] font-black text-black/40 hover:text-black transition-colors">
-                  <span className="material-symbols-outlined text-[14px]">refresh</span>Regenerate
-                </button>
-              </div>
-              <QuestList />
-            </div>
-
-            {/* Streak widget */}
-            <div className="px-8 pb-8 shrink-0 mt-auto">
-              <div className="border-2 border-black bg-[#F0EDE0] p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
-                <div className="absolute top-3 right-3">
-                  <span className="material-symbols-outlined text-black/15 text-[40px]">military_tech</span>
-                </div>
-                <h4 className="text-[18px] font-black mb-2">Daily Progress</h4>
-                <div className="flex items-end gap-1 mb-3">
-                  <span className="text-[40px] font-black text-[#FF4D2E] leading-none">
-                    {completedQuestIds.length}
-                  </span>
-                  <span className="text-[14px] font-black uppercase tracking-widest mb-1">/ 5 Done</span>
-                </div>
-                <div className="h-3 w-full bg-[#E8E4DC] border-2 border-black rounded-full overflow-hidden">
-                  <div className="h-full bg-black transition-all" style={{ width: `${(completedQuestIds.length / 5) * 100}%` }} />
-                </div>
-                <p className="mt-2 text-[11px] font-bold text-black/50">Keep going — complete all 5 for max XP</p>
-              </div>
+            <div className="grid grid-cols-3 gap-6">
+              {dailyChallenges.map((ch) => <StaticCard key={ch.id} ch={ch} />)}
+              <LockedCard title="The Archivist" hint="Unlocked after 14-day streak. Keep pushing to reveal." />
+              <LockedCard title="Grandmaster" hint="Complete all monthly challenges to unlock the vault." />
             </div>
 
           </div>
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════
-          MOBILE LAYOUT
-          ═══════════════════════════════════════════════════ */}
+      {/* MOBILE LAYOUT */}
       <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]">
-
-        {/* Mobile TopAppBar */}
         <header className="w-full top-0 sticky bg-[#FAF7F2] border-b-2 border-black z-50">
           <div className="flex items-center justify-between px-5 h-14">
             <button onClick={() => navigate(-1)}
@@ -500,23 +253,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
           </div>
         </header>
 
-        {/* Mobile Scroll Content */}
         <main className="flex-1 flex flex-col px-5 pb-24 pt-6 gap-6">
-
-          {/* Tab toggle */}
-          <div className="flex w-full border-2 border-black overflow-hidden bg-white shrink-0">
-            <button onClick={() => setActiveTab("Daily5")}
-              className={`flex-1 py-3.5 text-center font-black transition-colors text-[13px] cursor-pointer ${activeTab === "Daily5" ? "bg-black text-white" : "bg-white text-black hover:bg-[#ebe8e3]"}`}>
-              Daily 5 Challenges
-            </button>
-            <div className="w-[2px] bg-black" />
-            <button onClick={() => setActiveTab("BossRound")}
-              className={`flex-1 py-3.5 text-center font-black transition-colors text-[13px] cursor-pointer ${activeTab === "BossRound" ? "bg-black text-white" : "bg-white text-black hover:bg-[#ebe8e3]"}`}>
-              Boss Round
-            </button>
-          </div>
-
-          {/* Streak */}
           <section className="flex flex-col gap-3">
             <div className="flex justify-between items-end mb-1">
               <h2 className="font-black text-[16px]">Streak Log</h2>
@@ -525,21 +262,10 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
             <StreakBar />
           </section>
 
-          {/* Focus chips */}
-          <section className="flex flex-col gap-3">
-            <h3 className="text-[#ae2925] font-black text-[11px] uppercase tracking-wider">Choose Topic</h3>
-            <FocusChips />
-            <button onClick={() => navigate("/sources")}
-              className="mt-2 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-black bg-white text-black font-black text-[13px] hover:bg-[#ebe8e3] transition-colors cursor-pointer">
-              <span className="material-symbols-outlined text-[18px]">attach_file</span>
-              Extract from Source Library
-            </button>
-          </section>
-
-          {/* Static challenges on mobile */}
-          <section className="flex flex-col gap-4">
-            <h3 className="font-black text-[16px]">Active Quests</h3>
-            {staticChallenges.map((ch) => (
+          <section className="flex flex-col gap-4 mt-2">
+            <h3 className="font-black text-[16px]">Today's Quests</h3>
+            <p className="text-[13px] text-black/60 font-medium -mt-2">Complete these daily challenges to boost your study streak.</p>
+            {dailyChallenges.map((ch) => (
               <div key={ch.id} className="group bg-white border-2 border-black flex flex-col overflow-hidden shadow-[3px_3px_0px_#000]">
                 <div className="px-4 py-3 border-b-2 border-black flex justify-between items-center">
                   <span className={`text-[11px] font-black px-2 py-1 uppercase tracking-wider ${ch.tagStyle}`}>{ch.tag}</span>
@@ -548,22 +274,6 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
                 <div className="p-4 flex-1">
                   <p className="font-black text-[16px] mb-1">{ch.title}</p>
                   <p className="text-[13px] text-black/60 font-bold mb-3 leading-relaxed">{ch.desc}</p>
-                  {ch.progress !== undefined && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-[12px] font-black">
-                        <span>Progress</span><span>{ch.progressLabel}</span>
-                      </div>
-                      <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black overflow-hidden">
-                        <div className={`h-full ${ch.barColor}`} style={{ width: ch.barWidth }} />
-                      </div>
-                    </div>
-                  )}
-                  {ch.expiry && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]">history</span>
-                      <span className="text-[12px] font-black text-[#FF4D2E]">{ch.expiry}</span>
-                    </div>
-                  )}
                 </div>
                 <button
                   onClick={ch.isShare ? () => setShareModalOpen(true) : ch.ctaAction}
@@ -572,7 +282,7 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
                 </button>
               </div>
             ))}
-            {/* Locked mobile x2 */}
+            
             {[
               { title: "The Archivist", hint: "Unlocked after 14-day streak." },
               { title: "Grandmaster", hint: "Complete all monthly challenges." },
@@ -590,40 +300,8 @@ No markdown formatting, no explanations! Output strictly a valid raw JSON string
               </div>
             ))}
           </section>
-
-          {/* AI Daily Quests */}
-          <section className="flex flex-col gap-4 mt-2">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-[16px]">AI Daily Quests</h3>
-              <button onClick={() => generateQuests(activeFocus)}
-                className="flex items-center gap-1 text-[12px] font-black text-black/40 hover:text-black transition-colors">
-                <span className="material-symbols-outlined text-[16px]">refresh</span>Regenerate
-              </button>
-            </div>
-            <QuestList />
-          </section>
-
-          {/* Daily Progress widget */}
-          <section>
-            <div className="border-2 border-black bg-[#F0EDE0] p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
-              <div className="absolute top-3 right-3">
-                <span className="material-symbols-outlined text-black/15 text-[40px]">military_tech</span>
-              </div>
-              <h4 className="text-[18px] font-black mb-2">Daily Progress</h4>
-              <div className="flex items-end gap-1 mb-3">
-                <span className="text-[40px] font-black text-[#FF4D2E] leading-none">{completedQuestIds.length}</span>
-                <span className="text-[14px] font-black uppercase tracking-widest mb-1">/ 5 Done</span>
-              </div>
-              <div className="h-3 w-full bg-[#E8E4DC] border-2 border-black rounded-full overflow-hidden">
-                <div className="h-full bg-black transition-all" style={{ width: `${(completedQuestIds.length / 5) * 100}%` }} />
-              </div>
-              <p className="mt-2 text-[11px] font-bold text-black/50">Keep going — complete all 5 for max XP</p>
-            </div>
-          </section>
-
         </main>
       </div>
-
     </div>
   );
 }

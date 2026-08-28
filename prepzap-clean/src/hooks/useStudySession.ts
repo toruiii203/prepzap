@@ -48,14 +48,35 @@ export function useStudySession() {
       const result: LogSessionResult = { sessionError: null, streakError: null };
       if (!user?.id) return result;
 
-      const { error: sessionError } = await supabase.from("study_sessions").insert({
+      const sessionRecord = {
+        id: Date.now().toString(),
         user_id: user.id,
         title: (title || "Study Session").slice(0, 80),
         duration_minutes: durationMinutes,
         created_at: new Date().toISOString(),
+      };
+
+      // Offline support: save to localStorage first
+      try {
+        const localSessionsStr = localStorage.getItem("pz_study_sessions");
+        let localSessions = localSessionsStr ? JSON.parse(localSessionsStr) : [];
+        localSessions.unshift(sessionRecord);
+        localStorage.setItem("pz_study_sessions", JSON.stringify(localSessions));
+        window.dispatchEvent(
+          new CustomEvent("studenius:session-logged", { detail: sessionRecord })
+        );
+      } catch (e) {
+        console.error("Local session storage failed", e);
+      }
+
+      const { error: sessionError } = await supabase.from("study_sessions").insert({
+        user_id: sessionRecord.user_id,
+        title: sessionRecord.title,
+        duration_minutes: sessionRecord.duration_minutes,
+        created_at: sessionRecord.created_at,
       });
       if (sessionError) {
-        console.error("Error logging study session:", sessionError);
+        console.error("Error logging study session to Supabase:", sessionError);
         result.sessionError = sessionError;
       }
 

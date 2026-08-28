@@ -601,15 +601,8 @@ Return raw JSON only, no wrapping!`;
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
           <div className="flex items-center gap-4">
             <span className="text-[22px] font-black tracking-tight">QUICK STUDY</span>
-            <div className="w-px h-6 bg-black/20" />
-            <div className="flex items-center gap-2 border-2 border-black px-3 py-1 bg-[#F0EDE0] shadow-[2px_2px_0px_#000]">
-              <span className="material-symbols-outlined text-[16px]">bolt</span>
-              <span className="text-[11px] font-black uppercase tracking-widest">PC Mode: High Throughput</span>
-            </div>
           </div>
           <div className="flex items-center gap-4">
-            <button className="material-symbols-outlined text-black hover:text-[#FF4D2E] transition-colors">notifications</button>
-            <button onClick={() => navigate("/go-pro")} className="material-symbols-outlined text-black hover:text-[#F5A623] transition-colors">workspace_premium</button>
             <div
               onClick={() => navigate("/profile")}
               className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer hover:opacity-90"

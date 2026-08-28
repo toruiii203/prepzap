@@ -19,6 +19,14 @@ export default function Analytics() {
     if (!user?.id) return;
     const fetchAnalytics = async () => {
       try {
+        let combinedData: any[] = [];
+        try {
+          const local = localStorage.getItem("pz_study_sessions");
+          if (local) {
+            combinedData = JSON.parse(local);
+          }
+        } catch (err) {}
+
         const { data: sessionData, error: sessionErr } = await supabase
           .from("study_sessions")
           .select("*")
@@ -26,8 +34,15 @@ export default function Analytics() {
           .order("created_at", { ascending: false });
 
         if (!sessionErr && sessionData) {
-          setSessions(sessionData);
+          sessionData.forEach(dbSess => {
+            if (!combinedData.find(s => s.id === dbSess.id)) {
+              combinedData.push(dbSess);
+            }
+          });
         }
+        
+        combinedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setSessions(combinedData);
 
         // Derive task completion rate from localStorage (same source as Dashboard)
         try {
@@ -119,8 +134,8 @@ export default function Analytics() {
             </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 bg-[#F0EDE0] px-3 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
-                <span className="material-symbols-outlined text-[#FF4D2E] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
-                <span className="text-[13px] font-extrabold">Streak: {profile?.streak ?? 0} Day{(profile?.streak ?? 0) !== 1 ? "s" : ""}</span>
+                
+                <span className="text-[13px] font-extrabold">Streak: {profile?.streak_days ?? 0} Day{(profile?.streak_days ?? 0) !== 1 ? "s" : ""}</span>
               </div>
               <button
                 onClick={() => {

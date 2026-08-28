@@ -62,20 +62,38 @@ export function useStudyTimeTracker(
       if (isActive.current) accumulatedSeconds.current += TICK_MS / 1000;
     }, TICK_MS);
 
-    const flush = async () => {
+      const flush = async () => {
       const seconds = Math.round(accumulatedSeconds.current);
       if (seconds < MIN_SECONDS_TO_FLUSH) return;
       accumulatedSeconds.current = 0;
+      
       try {
+        // Always log locally for offline support
+        const localSessionsStr = localStorage.getItem("pz_study_sessions");
+        let localSessions = localSessionsStr ? JSON.parse(localSessionsStr) : [];
+        const todayStr = new Date().toISOString().split("T")[0];
+        
+        let existingSession = localSessions.find((s: any) => s.title === toolName && s.created_at.startsWith(todayStr));
+        if (existingSession) {
+          existingSession.duration_minutes = (existingSession.duration_minutes || 0) + (seconds / 60);
+        } else {
+          localSessions.unshift({
+            id: Date.now().toString(),
+            title: toolName,
+            duration_minutes: seconds / 60,
+            created_at: new Date().toISOString()
+          });
+        }
+        localStorage.setItem("pz_study_sessions", JSON.stringify(localSessions));
+        
         const { error } = await supabase.rpc("increment_study_time", {
           p_user_id: userId,
           p_tool: toolName,
           p_seconds: seconds,
         });
+        
         if (error) {
-          console.error("Auto study-time log failed:", error);
-          accumulatedSeconds.current += seconds; // don't lose the time, retry next flush
-          return;
+          console.error("Auto study-time log to supabase failed (saved locally):", error);
         }
 
         // Fire-and-forget: don't block the flush (or hold up onFlush/the
@@ -91,7 +109,6 @@ export function useStudyTimeTracker(
         );
       } catch (err) {
         console.error("Auto study-time log failed:", err);
-        accumulatedSeconds.current += seconds;
       }
     };
 

@@ -31,14 +31,38 @@ export default function FlashcardsShared() {
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
+    
+    // 1. Try to load from localStorage first (Offline support)
+    const cachedDeck = localStorage.getItem(`shared_deck_${id}`);
+    if (cachedDeck) {
+      try {
+        setDeck(JSON.parse(cachedDeck));
+        setLoading(false); // We have data, so stop loading visually
+      } catch (e) {}
+    }
+
+    // 2. Try to fetch fresh data from Supabase (if online)
     supabase
       .from("shared_flashcard_decks")
       .select("id, title, cards, card_count, created_at")
       .eq("id", id)
       .single()
       .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); }
-        else { setDeck(data as SharedDeck); }
+        if (data && !error) {
+          // Success: update state and cache it
+          setDeck(data as SharedDeck);
+          localStorage.setItem(`shared_deck_${id}`, JSON.stringify(data));
+          setNotFound(false);
+        } else if (!cachedDeck) {
+          // Failure AND no cache: show Not Found
+          setNotFound(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cachedDeck) {
+          setNotFound(true);
+        }
         setLoading(false);
       });
   }, [id]);
