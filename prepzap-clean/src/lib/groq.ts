@@ -4,9 +4,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { getCachedAccessToken } from "@/contexts/AuthContext";
 
-const GROQ_API_URL = "https://groq-proxy.alfonsomigs03.workers.dev";
-const DEFAULT_MODEL = "gemini-2.0-flash";
-const VISION_MODEL = "gemini-2.0-flash";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_API_KEY = "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";
+const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const VISION_MODEL = "llama-3.2-90b-vision-preview";
 
 // Previously this called supabase.auth.getSession() directly with a 5s race
 // timeout. That call has a confirmed deadlock failure mode (Web Locks
@@ -151,7 +152,7 @@ async function _callGroqCore(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
         model: resolvedModel,
@@ -159,7 +160,7 @@ async function _callGroqCore(
         messages: fullMessages,
         temperature: 0.7,
         ...(feature ? { feature } : {}),
-        ...(isOpenRouterModel ? { route: "openrouter" } : {}),
+        
       }),
       signal: controller.signal,
     });
@@ -279,7 +280,7 @@ export async function callGroqWithImages(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(visionToken ? { "Authorization": `Bearer ${visionToken}` } : {}),
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
         model: VISION_MODEL,
