@@ -543,7 +543,7 @@ export default function Arena() {
       ) : (
         <div className="p-6 text-center">
           <p className="font-bold text-[14px] text-black/50">No quiz today yet.</p>
-          <p className="text-[11px] text-black/30 mt-1">Generated at midnight PH time.</p>
+          
         </div>
       )}
     </div>
@@ -715,3 +715,4 @@ export default function Arena() {
     </div>
   );
 }
+

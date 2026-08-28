@@ -497,7 +497,7 @@ Each object MUST match this schema exactly:
 
       {/* ══ DESKTOP ══════════════════════════════════════════════════════════ */}
       <SharedSidebar active="/practice" />
-      <UpgradePrompt isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      {showUpgrade && <UpgradePrompt feature="practice" remaining={0} onClose={() => setShowUpgrade(false)} />}
 
       <div className="hidden md:flex md:ml-64 bg-[#FAF7F2]" style={{ minHeight: "100vh" }}>
         {/* Main content */}

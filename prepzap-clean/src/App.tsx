@@ -4,6 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Suspense, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import { PageTransition } from "@/components/PageTransition";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { setSourceContextUser } from "@/lib/sourceContext";
 import { setHistoryUser } from "@/lib/historyStore";
@@ -185,7 +188,8 @@ function AppRoutes() {
     <>
       <SourceBreadcrumb />
       <PWAInstallBanner />
-      <Routes>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
         {/* Public */}
         <Route path="/" element={safe(<MobileRootRedirect />)} />
         <Route path="/landing" element={safe(<Landing />)} />
@@ -239,6 +243,7 @@ function AppRoutes() {
         {/* Catch-all */}
         <Route path="*" element={safe(<NotFound />)} />
       </Routes>
+        </AnimatePresence>
     </>
   );
 }

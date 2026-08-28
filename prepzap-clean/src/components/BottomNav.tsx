@@ -24,7 +24,7 @@ export function BottomNav() {
   if (HIDDEN_ON.some((pattern) => pattern.test(pathname))) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#FAF7F2] border-t-[2px] border-black flex">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden flex ios-blur safe-pb">
       {NAV_ITEMS.map(({ icon, label, path }) => {
         const active = pathname === path || (path !== "/dashboard" && pathname.startsWith(path));
         return (

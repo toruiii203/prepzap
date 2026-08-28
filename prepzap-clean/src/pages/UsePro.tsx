@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 const PAYMENT_LINKS = {
   Monthly: "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/RhaIdBU",
@@ -73,9 +74,7 @@ export default function UsePro() {
             className="w-36 h-36 object-cover rounded-full z-10 border-2 border-on-surface shadow-xl bg-white p-1 select-none" 
             src="/fox_icon_final.png"
           />
-          <div className="absolute top-2 right-1/4 text-secondary-container z-20 animate-pulse">
-            <span className="material-symbols-outlined text-[20px] text-yellow-600" style={{ fontVariationSettings: "'FILL' 1" }}>sparkle</span>
-          </div>
+          
           <div className="absolute bottom-6 left-1/4 text-primary z-20 animate-pulse">
             <span className="material-symbols-outlined text-[20px] text-[#E8534A]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
           </div>
@@ -206,18 +205,45 @@ export default function UsePro() {
                 )}
               </button>
 
-              {/* PayPal — international users */}
-              <button
-                onClick={handlePayPal}
-                disabled={redirecting}
-                className="w-full bg-[#FFC439] hover:bg-[#f0b429] disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#003087] font-extrabold py-4 px-6 rounded-xl border-2 border-[#003087] text-center flex items-center justify-center gap-2 shadow-[3px_3px_rgba(0,0,48,0.3)] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer text-[15px]"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#003087" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.771.771 0 0 1 .76-.645h6.966c2.373 0 4.062.559 5.022 1.662.928 1.063 1.17 2.354.74 3.945-.028.108-.056.218-.087.33-.976 3.998-4.32 5.375-8.59 5.375H7.56a.77.77 0 0 0-.761.651l-.882 5.508a.64.64 0 0 1-.632.54l-.209.251z"/>
-                  <path d="M19.873 8.4c-.972 4.153-4.238 6.243-9.016 6.243H8.58l-1.18 7.34h3.504l.903-5.643h2.27c4.27 0 7.614-1.377 8.59-5.375.43-1.591.188-2.882-.794-3.565z" fill="#009cde"/>
-                </svg>
-                <span>Pay with PayPal</span>
-              </button>
+              {/* PayPal */}
+<div className="w-full relative z-0 mt-3">
+  <PayPalScriptProvider options={{ "clientId": import.meta.env.VITE_PAYPAL_CLIENT_ID || "test", currency: "PHP", intent: "capture" }}>
+    <PayPalButtons
+      style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay" }}
+      createOrder={(data, actions) => {
+        const amount = billingCycle === "Monthly" ? "199.00" : "1499.00";
+        return actions.order.create({
+          intent: "CAPTURE",
+          purchase_units: [
+            {
+              reference_id: user?.id,
+              custom_id: user?.id,
+              description: `Studenius VIP (${billingCycle})`,
+              amount: {
+                currency_code: "PHP",
+                value: amount,
+              },
+            },
+          ],
+        });
+      }}
+      onApprove={async (data, actions) => {
+        setRedirecting(true);
+        try {
+          const order = await actions.order?.capture();
+          console.log("Payment successful!", order);
+          setTimeout(() => window.location.reload(), 2000);
+        } catch (err) {
+          console.error("Capture error", err);
+          setRedirecting(false);
+        }
+      }}
+      onError={(err) => {
+        console.error("PayPal Error:", err);
+        setRedirecting(false);
+      }}
+    />
+  </PayPalScriptProvider></div>
             </div>
           )}
           <p className="text-[12.5px] font-bold text-on-surface-variant mt-3 opacity-60">
@@ -228,4 +254,8 @@ export default function UsePro() {
     </div>
   );
 }
+
+
+
+
 

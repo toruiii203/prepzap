@@ -159,7 +159,7 @@ export default function Studenius() {
             </p>
             <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
               <button className="neo-btn-primary" onClick={() => navigate("/onboarding")} style={{ padding:"14px 32px", fontSize:18 }}>Start Your Journey</button>
-              <button className="neo-btn-secondary" onClick={() => document.getElementById("features")?.scrollIntoView({ behavior:"smooth" })} style={{ padding:"14px 32px", fontSize:18, display:"flex", alignItems:"center", gap:8 }}>
+              <button className="neo-btn-secondary" onClick={() => navigate("/onboarding")} style={{ padding:"14px 32px", fontSize:18, display:"flex", alignItems:"center", gap:8 }}>
                 <span className="ms">play_circle</span> See How It Works
               </button>
             </div>

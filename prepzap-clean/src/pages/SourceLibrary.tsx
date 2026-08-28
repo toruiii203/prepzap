@@ -14,8 +14,7 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 async function extractPdfText(file: File): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
   // Use the bundled worker from pdfjs-dist for Vite compatibility
-  const workerUrl = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).href;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -285,7 +284,7 @@ export default function SourceLibrary() {
       return;
     }
 
-    const isPdfFile = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isPdfFile = file.type === "application/pdf" || file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
 
     if (isPdfFile) {
       setExtractingPdf(true);
@@ -306,8 +305,8 @@ export default function SourceLibrary() {
             isPdf: true,
           });
         }
-      } catch {
-        setUploadError("Failed to read this PDF. It may be corrupted or password-protected.");
+      } catch (err) {
+        setUploadError("Failed to read PDF: " + (err instanceof Error ? err.message : String(err)));
       } finally {
         setExtractingPdf(false);
       }
@@ -315,7 +314,7 @@ export default function SourceLibrary() {
       return;
     }
 
-    if (!file.type.includes("text") && !file.type.includes("image")) {
+    if (!file.type.includes("text") && !file.type.includes("image") && !isPdfFile) {
       setUploadError("Only PDF, TXT, and image files are supported.");
       e.target.value = "";
       return;
@@ -359,7 +358,7 @@ export default function SourceLibrary() {
       return;
     }
 
-    const isPdfFile = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isPdfFile = file.type === "application/pdf" || file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
     if (isPdfFile) {
       setExtractingPdf(true);
       try {
@@ -379,8 +378,8 @@ export default function SourceLibrary() {
             isPdf: true,
           });
         }
-      } catch {
-        setUploadError("Failed to read PDF.");
+      } catch (err) {
+        setUploadError("Failed to read PDF: " + (err instanceof Error ? err.message : String(err)));
       } finally {
         setExtractingPdf(false);
       }
@@ -417,7 +416,7 @@ export default function SourceLibrary() {
       ];
       let stream: MediaStream | null = null;
       for (const c of constraints) {
-        try { stream = await navigator.mediaDevices.getUserMedia(c); break; } catch {}
+        try { stream = await navigator.mediaDevices.getUserMedia(c); break; } catch (err) {}
       }
       if (!stream) throw new Error("No camera");
       setCameraStream(stream);
@@ -430,7 +429,7 @@ export default function SourceLibrary() {
           videoRef.current.play().catch(() => {});
         }
       }, 100);
-    } catch {
+    } catch (err) {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "image/*";
@@ -1064,5 +1063,8 @@ export default function SourceLibrary() {
     </div>
   );
 }
+
+
+
 
 

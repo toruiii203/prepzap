@@ -188,7 +188,7 @@ Required JSON schema:
     "Summarize key clinical correlations"
   ],
   "points": [
-    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition...", "question": "What is the core definition of...?" },
+    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition...", "question": "Write a specific question testing this fact (REQUIRED)?" },
     { "label": "Second Concept Name:", "value": "Detailed fact explanation...", "question": "Why does...?" },
     { "label": "Third Concept Name:", "value": "Detailed fact explanation...", "question": "How does...?" },
     { "label": "Fourth Concept Name:", "value": "Detailed fact explanation...", "question": "What is the result of...?" }
@@ -1024,3 +1024,5 @@ Return raw JSON only, no wrapping!`;
     </div>
   );
 }
+
+

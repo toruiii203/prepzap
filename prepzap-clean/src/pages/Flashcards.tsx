@@ -10,8 +10,17 @@ import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
+import { db, type Card as SM2Card } from "@/lib/db";
+import { calculateSM2, type Grade } from "@/lib/sm2";
+import { useLiveQuery } from "dexie-react-hooks";
 
 interface Flashcard {
+  id?: string;
+  deckId?: string;
+  interval?: number;
+  repetitions?: number;
+  easeFactor?: number;
+  nextReviewDate?: number;
   front: string;
   back: string;
   explanation: string;
@@ -662,7 +671,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 <DesktopFlashcard currentCard={currentCard} isFlipped={isFlipped} setIsFlipped={setIsFlipped} />
 
                 {/* Response buttons */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <button
                     onClick={() => handleResponse("forgot")}
                     className="py-5 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-red-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex flex-col items-center gap-2"
@@ -785,7 +794,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">
 
           {/* TopAppBar */}
-          <header className="w-full top-0 sticky bg-background border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
+          <header className="w-full top-0 sticky ios-blur safe-pt border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
             <button
               onClick={() => view === "study" ? setView("setup") : navigate(-1)}
               aria-label="Go Back"
@@ -941,7 +950,41 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             </main>
           )}
 
-          {/* VIEW 2: STUDY STATE */}
+          
+                {/* SAVED DECKS DASHBOARD */}
+                {decks.length > 0 && (
+                  <div className="mt-8 border-t-2 border-black pt-6 pb-12 w-full max-w-[480px] mx-auto">
+                    <h2 className="font-headline text-[18px] font-black mb-4 uppercase tracking-widest text-black/40">Your Saved Decks</h2>
+                    <div className="flex flex-col gap-3">
+                      {decks.map(deck => (
+                        <div key={deck.id} className="w-full border-2 border-black bg-white shadow-[3px_3px_0px_#000] p-4 flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="font-extrabold text-[15px]">{deck.title}</span>
+                            <span className="text-[12px] font-bold text-black/50">
+                              {new Date(deck.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-end">
+                              <span className="text-[11px] font-black uppercase text-black/40">Due Today</span>
+                              <span className={`text-[16px] font-black ${dueCounts[deck.id] > 0 ? "text-error" : "text-green-600"}`}>
+                                {dueCounts[deck.id] || 0}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleLoadDeck(deck.id)}
+                              className="w-10 h-10 border-2 border-black bg-[#F0EDE0] hover:bg-primary hover:text-white transition-colors flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                            >
+                              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+            {/* VIEW 2: STUDY STATE */}
           {view === "study" && !isLoading && (
             <main className="flex-1 px-5 py-6 flex flex-col items-center">
               {/* Progress Bar + Question Counter */}
