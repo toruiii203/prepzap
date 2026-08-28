@@ -144,7 +144,7 @@ export default function RecallMode() {
       const raw = await callGroq(
         [{ role: "user", content: prompt }],
         undefined,
-        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-20b",
         1024,
         "recall_mode"
       );

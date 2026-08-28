@@ -6,8 +6,8 @@ import { getCachedAccessToken } from "@/contexts/AuthContext";
 
 const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.alfonsomigs03.workers.dev";
 // API key removed for security; requests are routed through Cloudflare Worker
-const DEFAULT_MODEL = "llama-3.3-70b-versatile";
-const VISION_MODEL = "llama-3.2-90b-vision-preview";
+const DEFAULT_MODEL = "openai/gpt-oss-20b";
+const VISION_MODEL = "openai/gpt-oss-20b";
 
 // Previously this called supabase.auth.getSession() directly with a 5s race
 // timeout. That call has a confirmed deadlock failure mode (Web Locks

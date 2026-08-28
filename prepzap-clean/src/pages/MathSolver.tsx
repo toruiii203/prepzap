@@ -345,7 +345,7 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
-        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-20b",
         1024,
         "math_solver"
       );

@@ -174,7 +174,7 @@ export default function TeachIt() {
       const aiResponse = await callGroq(
         conversationMessages,
         systemPrompt,
-        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-20b",
         1024,
         "teach_it"
       );
