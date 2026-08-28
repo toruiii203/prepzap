@@ -214,6 +214,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initialize = async () => {
       try {
+        if (import.meta.env.DEV) {
+          console.log("DEV MODE: Injecting mock user");
+          const mockUser = {
+            id: "mock-user-123",
+            email: "mock@example.com",
+            user_metadata: { full_name: "Mock User (Offline PRO)" },
+            app_metadata: {},
+            aud: "authenticated",
+            created_at: new Date().toISOString()
+          } as User;
+          const mockSession = {
+            access_token: "mock-token",
+            user: mockUser,
+            expires_at: Date.now() + 9999999
+          } as Session;
+          
+          setSession(mockSession);
+          cachedSession = mockSession;
+          setUser(mockUser);
+          setProfile({
+            id: "mock-user-123",
+            full_name: "Mock User (Offline PRO)",
+            email: "mock@example.com",
+            plan: "pro",
+            credits_remaining: 9999,
+            total_xp: 5000,
+            streak_days: 0,
+            daily_goal_minutes: 60,
+            questions_answered: 100,
+            accuracy_percent: 85,
+          });
+          setNeedsOnboarding(false);
+          setLoading(false);
+          return;
+        }
+
         const {
           data: { session: s },
           error,
@@ -274,6 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
+      if (import.meta.env.DEV) return;
       // Skip the redundant initial fire — `initialize()` above already
       // handles first load. Without this, a fresh session on cold load
       // triggers fetchProfile twice concurrently.

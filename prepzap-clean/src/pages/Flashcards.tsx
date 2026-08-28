@@ -204,16 +204,17 @@ export default function Flashcards() {
   };
 
   const handleGenerate = async () => {
+    setIsLoading(true);
     // Freemium gate
     if (!isPro) {
       const allowed = await canUse("flashcard_gen");
       if (!allowed) {
         setShowUpgrade(true);
+        setIsLoading(false);
         return;
       }
     }
 
-    setIsLoading(true);
     setScores({ gotIt: 0, unsure: 0, forgot: 0 });
     setCurrentCardIndex(0);
     setIsFlipped(false);

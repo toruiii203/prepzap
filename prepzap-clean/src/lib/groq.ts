@@ -4,8 +4,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { getCachedAccessToken } from "@/contexts/AuthContext";
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_API_KEY = "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";
+const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.alfonsomigs03.workers.dev";
+// API key removed for security; requests are routed through Cloudflare Worker
 const DEFAULT_MODEL = "llama-3.3-70b-versatile";
 const VISION_MODEL = "llama-3.2-90b-vision-preview";
 
@@ -152,15 +152,14 @@ async function _callGroqCore(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Authorization": `Bearer ${await getAccessTokenSafely()}`,
       },
       body: JSON.stringify({
-        model: resolvedModel.includes("3.3") || resolvedModel.includes("llama") || resolvedModel.startsWith("gemini") ? "openai/gpt-oss-20b" : resolvedModel,
+        model: resolvedModel,
         max_tokens: maxTokens,
         messages: fullMessages,
         temperature: 0.7,
         ...(feature ? { feature } : {}),
-        
       }),
       signal: controller.signal,
     });
@@ -280,7 +279,7 @@ export async function callGroqWithImages(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Authorization": `Bearer ${await getAccessTokenSafely()}`,
       },
       body: JSON.stringify({
         model: VISION_MODEL,

@@ -281,7 +281,11 @@ Return raw JSON only, no wrapping!`;
 
     try {
       result = await attemptGenerate(false);
-    } catch (firstErr) {
+    } catch (firstErr: any) {
+      if (firstErr?.message?.includes("API error")) {
+        console.error("[QuickStudy] API error on first attempt, skipping retry:", firstErr);
+        throw firstErr; // Skip retry on network/auth/rate-limit errors
+      }
       console.warn("[QuickStudy] first generation attempt failed, retrying once:", firstErr);
       try {
         result = await attemptGenerate(true);

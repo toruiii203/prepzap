@@ -3,32 +3,171 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Studenius</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <title>Studenius — AI-Powered Study Platform</title>
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="icon" href="/fox_icon_final.png" type="image/png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="alternate icon" href="/fox_icon_final.png" />
 
-    <!-- PWA: hide address bar on iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Studenius" />
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" href="/icon-512.png" />
 
-    <!-- PWA: hide address bar on Android -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#160810" />
+    <!-- PWA manifest (single, no duplicate) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
 
-    <meta name="description" content="AI-powered learning tools to help you study smarter, retain more, and level up faster ." />
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FIXED: Material Symbols axis tags must be alphabetical (FILL, GRAD, opsz, wght)
+         and each range must line up positionally with its tag. The old URL had
+         "wght,FILL@100..700,0..1" which is out of order and fails to parse on some
+         browsers (this is why it broke on mobile but a stale desktop cache still worked). -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+    <!-- Canonical & Sitemap -->
+    <link rel="canonical" href="https://studenius.com" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
+    <!-- PWA meta -->
+    <meta name="theme-color" content="#ae2925" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Studenius" />
+
+    <!-- SEO -->
+    <meta name="description" content="Studenius is an AI-powered study platform with an AI Tutor, Cram Mode, Flashcards, Math Solver, Recall Mode, and more — built to help students study smarter and ace their exams." />
+    <meta name="keywords" content="AI study app, AI tutor, flashcards, cram mode, math solver, exam prep, spaced repetition, student app, study tools, Studenius" />
     <meta name="author" content="Studenius" />
-    <meta property="og:title" content="Studenius" />
-    <meta property="og:description" content="AI-powered study companion" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <script type="module" crossorigin src="/assets/index-D4IngE_b.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BOD1ikF3.css">
+    <meta property="og:url" content="https://studenius.com" />
+    <meta property="og:site_name" content="Studenius" />
+    <meta property="og:title" content="Studenius — AI-Powered Study Platform" />
+    <meta property="og:description" content="Study smarter with AI. Studenius gives you an AI Tutor, Cram Mode, Flashcards, Math Solver, Recall Mode, and more — all in one platform built for serious students." />
+    <meta property="og:image" content="https://studenius.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_PH" />
+
+    <!-- Twitter/X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://studenius.com" />
+    <meta name="twitter:title" content="Studenius — AI-Powered Study Platform" />
+    <meta name="twitter:description" content="Study smarter with AI. Cram Mode, AI Tutor, Flashcards, Math Solver and more — built for serious students." />
+    <meta name="twitter:image" content="https://studenius.com/og-image.png" />
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://studenius.com/#website",
+          "url": "https://studenius.com",
+          "name": "Studenius",
+          "description": "AI-powered student learning platform with tools for studying, exam prep, and academic performance.",
+          "publisher": { "@id": "https://studenius.com/#organization" },
+          "inLanguage": "en-PH"
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://studenius.com/#organization",
+          "name": "Studenius",
+          "url": "https://studenius.com",
+          "logo": { "@type": "ImageObject", "url": "https://studenius.com/fox_icon_final.png" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Studenius",
+          "url": "https://studenius.com",
+          "applicationCategory": "EducationApplication",
+          "operatingSystem": "Web",
+          "description": "Studenius is an AI-powered study platform with an AI Tutor, Cram Mode, Smart Flashcards, Math Solver, High Yield Detector, Recall Mode, Mistake Journal, Focus Timer, and competitive Arena quizzes.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Free Plan",
+              "price": "0",
+              "priceCurrency": "PHP"
+            },
+            {
+              "@type": "Offer",
+              "name": "Studenius VIP",
+              "price": "199",
+              "priceCurrency": "PHP",
+              "billingIncrement": "P1M"
+            }
+          ],
+          "featureList": ["AI Tutor", "Cram Mode", "Smart Flashcards", "Math Solver", "High Yield Detector", "Recall Mode", "Feynman Mode", "Mistake Journal", "Focus Timer", "Study DNA Analytics", "Source Library", "Arena Quiz Battles", "Study Planner"],
+          "audience": { "@type": "EducationalAudience", "educationalRole": "student" },
+          "publisher": { "@id": "https://studenius.com/#organization" }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Material Symbols fallback: hide icon glyphs until the font actually loads,
+         so a failed/slow font request shows nothing instead of raw text like
+         "home", "play_circle", "school". Falls back to visible after 2s max
+         so icons never stay hidden forever if the Fonts API is unsupported. -->
+    <style>
+      .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+        visibility: hidden;
+      }
+      .fonts-loaded .material-symbols-outlined {
+        visibility: visible;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-BkOTVgos.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B9vzQ5tr.css">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      }
+    </script>
+
+    <!-- Reveal icons once the Material Symbols font is actually ready -->
+    <script>
+      (function () {
+        function reveal() {
+          document.documentElement.classList.add('fonts-loaded');
+        }
+        if ('fonts' in document) {
+          document.fonts.load('24px "Material Symbols Outlined"').finally(reveal);
+          // Safety net: never leave icons hidden more than 2s even if load() hangs
+          setTimeout(reveal, 2000);
+        } else {
+          // Fonts API unsupported (old browsers) — just show icons immediately
+          reveal();
+        }
+      })();
+    </script>
   </body>
 </html>
