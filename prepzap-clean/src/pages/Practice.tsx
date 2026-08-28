@@ -172,6 +172,7 @@ export default function Practice() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const { logSession } = useStudySession();
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
 
   const [view, setView]                     = useState<"quiz" | "results">("quiz");
@@ -187,6 +188,22 @@ export default function Practice() {
   const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
+
+  // Handle export from Quick Study
+  useEffect(() => {
+    const exportedData = localStorage.getItem("qs_practice_export");
+    if (exportedData) {
+      try {
+        const material = JSON.parse(exportedData);
+        setTopicInput(material);
+        setQuestionCount(5);
+        localStorage.removeItem("qs_practice_export");
+      } catch (err) {
+        console.error("Failed to parse QS practice export", err);
+      }
+    }
+  }, []);
+
 
   useEffect(() => {
     const sync = () => setLibraryFiles(loadLibrary());
@@ -330,7 +347,31 @@ Each object MUST match this schema exactly:
         model:   "rex-ai",
         meta:    `${nextScore}/${questions.length}`,
       });
-      setView("results");
+      
+        const mistakesLog = questions.filter((q, i) => nextAnswers[i] !== q.correct);
+        if (mistakesLog.length > 0) {
+          const key = user?.id ? `studenius_mistakes_${user.id}` : "studenius_mistakes_anon";
+          try {
+            const existing = JSON.parse(localStorage.getItem(key) || "[]");
+            const newMistakes = mistakesLog.map(q => ({
+              id: crypto.randomUUID(),
+              subject: q.subject || "Practice Quiz",
+              date: new Date().toISOString(),
+              overdue: true, // Mark as overdue to encourage immediate review
+              title: q.q.slice(0, 50) + (q.q.length > 50 ? "..." : ""),
+              desc: "Logged automatically from your recent Practice Quiz.",
+              tags: [q.difficulty || "medium", "quiz-mistake"],
+              quiz: {
+                q: q.q,
+                options: q.options,
+                correct: q.correct,
+                explanation: "You missed this during a practice quiz. Review the concept!"
+              }
+            }));
+            localStorage.setItem(key, JSON.stringify([...newMistakes, ...existing]));
+          } catch (e) {}
+        }
+        setView("results");
     }
   };
 
@@ -456,6 +497,7 @@ Each object MUST match this schema exactly:
 
       {/* ══ DESKTOP ══════════════════════════════════════════════════════════ */}
       <SharedSidebar active="/practice" />
+      <UpgradePrompt isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
 
       <div className="hidden md:flex md:ml-64 bg-[#FAF7F2]" style={{ minHeight: "100vh" }}>
         {/* Main content */}

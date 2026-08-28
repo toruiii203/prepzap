@@ -112,11 +112,21 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
       const effectiveTopic = selectedSource
         ? `${topic.trim() || selectedSource.name}\n\nSource Material:\n${(selectedSource.fullText || selectedSource.preview || selectedSource.name).slice(0, 3000)}`
         : topic.trim();
-      const questions = await generateQuestions(effectiveTopic, questionCount, difficulty);
+      let questions;
+        try {
+          questions = await generateQuestions(effectiveTopic, questionCount, difficulty);
+        } catch (err: any) {
+          console.error("AI Generation failed:", err);
+          throw new Error("AI Generation failed: " + (err.message || "Unknown error"));
+        }
       setLoadingMsg("Creating room...");
       let code = generateCode();
       for (let i = 0; i < 10; i++) {
-        const { data: ex } = await supabase.from("exam_rooms").select("id").eq("code", code).single();
+        const { data: ex, error: checkErr } = await supabase.from("exam_rooms").select("id").eq("code", code).single();
+          if (checkErr && checkErr.code !== "PGRST116") {
+            console.error("Supabase code check failed:", checkErr);
+            throw new Error("Database error during code check: " + checkErr.message);
+          }
         if (!ex) break;
         code = generateCode();
       }
@@ -125,7 +135,10 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
         code, host_id: user.id, room_name: roomName.trim(), topic: topicLabel,
         questions, mode, difficulty, question_count: questionCount, time_limit: timeLimit, status: "waiting", is_public: isPublic,
       });
-      if (insertError) throw insertError;
+      if (insertError) {
+          console.error("Supabase insert failed:", insertError);
+          throw new Error("Database error during room creation: " + insertError.message);
+        }
       onCreated(code);
     } catch (e: any) {
       setError(e.message ?? "Failed to create room. Try again.");
@@ -450,10 +463,10 @@ export default function Arena() {
     const load = async () => {
       setLoadingQuiz(true);
       const today = todayPH();
-      const { data } = await supabase.from("daily_quiz").select("*").eq("date", today).single();
+      const { data } = await supabase.from("daily_challenges").select("*").eq("challenge_date", today).single();
       setDailyQuiz(data ?? null);
       if (data && user) {
-        const { data: sub } = await supabase.from("daily_submissions").select("id").eq("quiz_date", today).eq("user_id", user.id).single();
+        const { data: sub } = await supabase.from("daily_challenge_submissions").select("id").eq("challenge_date", today).eq("user_id", user.id).single();
         setAlreadySubmitted(!!sub);
       }
       setLoadingQuiz(false);
@@ -464,15 +477,16 @@ export default function Arena() {
   useEffect(() => {
     const load = async () => {
       setLoadingLeaderboard(true);
-      let query = supabase.from("daily_submissions").select("user_id, score, time_taken, display_name")
-        .order("score", { ascending: false }).order("time_taken", { ascending: true }).limit(10);
-      if (leaderboardTab === "today") query = query.eq("quiz_date", todayPH());
+      let query = supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, auth.users(raw_user_meta_data)")
+        .order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(10);
+      if (leaderboardTab === "today") query = query.eq("challenge_date", todayPH());
       const { data } = await query;
       // FIX: use stored display_name from the submission row; fall back to
       // "Player N" only if the column is null (old rows before this fix).
       setLeaderboard(
         (data ?? []).map((row, i) => ({
           ...row,
+            time_taken: row.time_taken_seconds,
           display_name: row.display_name ?? `Player ${i + 1}`,
         }))
       );
@@ -496,7 +510,7 @@ export default function Arena() {
   }, []);
 
   // ── Shared sub-components ──────────────────────────────────────────────────
-  const DailyCard = () => (
+  const renderDailyCard = () => (
     <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] overflow-hidden">
       <div className="bg-[#f0a040] border-b-2 border-black px-4 py-2 flex justify-between items-center">
         <span className="font-bold text-[11px] uppercase tracking-widest">Daily Challenge</span>
@@ -535,7 +549,7 @@ export default function Arena() {
     </div>
   );
 
-  const LeaderboardCard = () => (
+  const renderLeaderboardCard = () => (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="font-black text-[16px] text-black tracking-tight">Rankings</h3>
@@ -575,7 +589,7 @@ export default function Arena() {
     </div>
   );
 
-  const RoomsCard = () => (
+  const renderRoomsCard = () => (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="font-black text-[16px] text-black tracking-tight">Exam Rooms</h3>
@@ -678,21 +692,21 @@ export default function Arena() {
 
       {/* ── Mobile layout ── */}
       <div className="md:hidden flex flex-col gap-6 px-4 pt-5 pb-24">
-        <DailyCard />
-        <LeaderboardCard />
-        <RoomsCard />
+        {renderDailyCard()}
+        {renderLeaderboardCard()}
+        {renderRoomsCard()}
       </div>
 
       {/* ── Desktop layout — bento grid ── */}
       <div className="hidden md:grid grid-cols-12 gap-6 px-8 py-6">
         {/* Left col — Daily + Leaderboard */}
         <div className="col-span-4 flex flex-col gap-6">
-          <DailyCard />
-          <LeaderboardCard />
+          {renderDailyCard()}
+          {renderLeaderboardCard()}
         </div>
         {/* Right col — Rooms */}
         <div className="col-span-8">
-          <RoomsCard />
+          {renderRoomsCard()}
         </div>
       </div>
 

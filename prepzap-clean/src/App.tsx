@@ -95,6 +95,7 @@ import RecallMode from "./pages/RecallMode";
 import VisualLearner from "./pages/VisualLearner";
 import Avatar from "./pages/Avatar";
 import Shop from "./pages/Shop";
+import UsePro from "./pages/UsePro";
 import HighYieldDetector from "./pages/HighYieldDetector";
 import MistakeJournal from "./pages/MistakeJournal";
 
@@ -223,6 +224,7 @@ function AppRoutes() {
           <Route path="/visual-learner" element={<VisualLearner />} />
           <Route path="/avatar" element={<Avatar />} />
           <Route path="/shop" element={<Shop />} />
+          <Route path="/pro" element={<UsePro />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/high-yield" element={<Navigate to="/quick-study" replace />} />
           <Route path="/mistakes" element={<MistakeJournal />} />
@@ -256,3 +258,4 @@ const App = () => (
 );
 
 export default App;
+

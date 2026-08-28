@@ -2,10 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuests } from "@/hooks/useQuests";
 
 export default function Challenges() {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { completedQuestIds, weeklyActivity, loading } = useQuests();
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -13,15 +15,26 @@ export default function Challenges() {
   const today = new Date();
   const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
 
-  const streakDays = [
-    { day: "M", completed: true },
-    { day: "T", completed: true },
-    { day: "W", completed: true },
-    { day: "T", completed: true, activeToday: true },
-    { day: "F", completed: false },
-    { day: "S", completed: false },
-    { day: "S", completed: false },
-  ];
+  // Dynamic streak days (last 7 days ending today)
+  const streakDays = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    
+    // Manually format to 'YYYY-MM-DD' in Asia/Manila 
+    const dateStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(d);
+    
+    const count = weeklyActivity[dateStr] || 0;
+    const isToday = i === 6;
+    
+    return {
+      day: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()],
+      completed: count >= 2,
+      activeToday: isToday && count < 2
+    };
+  });
 
   const allChallenges = [
     {
@@ -121,24 +134,33 @@ export default function Challenges() {
     </div>
   );
 
-  const StaticCard = ({ ch }: { ch: any }) => (
-    <div className="group bg-[#FAF7F2] border-2 border-black flex flex-col h-[200px]" style={{ boxShadow: "5px 5px 0px #000" }}>
-      <div className="px-4 py-3 border-b-2 border-black flex justify-between items-center">
-        <span className={`text-[12px] font-black px-2 py-1 uppercase ${ch.tagStyle}`}>{ch.tag}</span>
-        <span className={`material-symbols-outlined ${ch.iconStyle}`} style={{ fontVariationSettings: "'FILL' 1" }}>{ch.icon}</span>
+  
+  const QuestCard = ({ ch }: { ch: any }) => {
+    const isCompleted = completedQuestIds.has(ch.id);
+    
+    return (
+      <div className="group bg-[#FAF7F2] border-2 border-black flex flex-col h-[200px]" style={{ boxShadow: "5px 5px 0px #000" }}>
+        <div className={`px-4 py-3 border-b-2 border-black flex justify-between items-center ${isCompleted ? 'bg-black' : ''}`}>
+          <span className={`text-[12px] font-black px-2 py-1 uppercase ${isCompleted ? 'bg-white text-black' : ch.tagStyle}`}>
+            {isCompleted ? '? DONE' : ch.tag}
+          </span>
+          <span className={`material-symbols-outlined ${isCompleted ? 'text-[#F5A623]' : ch.iconStyle}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+            {ch.icon}
+          </span>
+        </div>
+        <div className="p-4 flex-1 flex flex-col justify-center">
+          <p className="font-black text-[18px] mb-2">{ch.title}</p>
+          <p className="text-[14px] text-black/60 font-bold mb-4 leading-relaxed">{ch.desc}</p>
+        </div>
+        <button
+          disabled={isCompleted}
+          onClick={ch.isShare ? () => setShareModalOpen(true) : ch.ctaAction}
+          className={`w-full py-4 border-t-2 border-black text-[14px] font-black transition-colors ${isCompleted ? 'bg-[#ebe8e3] text-black/50 cursor-not-allowed' : 'bg-white hover:bg-black hover:text-white cursor-pointer'}`}>
+          {isCompleted ? "COMPLETED" : ch.cta}
+        </button>
       </div>
-      <div className="p-4 flex-1 flex flex-col justify-center">
-        <p className="font-black text-[18px] mb-1">{ch.title}</p>
-        <p className="text-[13px] text-black/60 font-medium leading-relaxed">{ch.desc}</p>
-      </div>
-      <button
-        onClick={ch.isShare ? () => setShareModalOpen(true) : ch.ctaAction}
-        className="w-full py-3 border-t-2 border-black text-[13px] font-black bg-[#FAF7F2] group-hover:bg-black group-hover:text-white transition-colors active:translate-x-0.5 active:translate-y-0.5"
-      >
-        {ch.cta}
-      </button>
-    </div>
-  );
+    );
+  };
 
   const LockedCard = ({ title, hint }: { title: string; hint: string }) => (
     <div className="relative bg-[#f3f3f3] border-2 border-black opacity-60 select-none flex flex-col justify-center h-[200px]">
@@ -227,11 +249,21 @@ export default function Challenges() {
               <p className="text-[14px] text-black/60 font-medium">Complete these daily challenges to boost your study streak and earn rewards.</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-6">
-              {dailyChallenges.map((ch) => <StaticCard key={ch.id} ch={ch} />)}
-              <LockedCard title="The Archivist" hint="Unlocked after 14-day streak. Keep pushing to reveal." />
-              <LockedCard title="Grandmaster" hint="Complete all monthly challenges to unlock the vault." />
-            </div>
+            
+    <div className="flex items-center gap-2 mb-6">
+      <span className="font-black text-[14px] uppercase">Today's Progress: {completedQuestIds.size}/5 completed</span>
+      <div className="flex gap-1 ml-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className={`w-3 h-3 rounded-full border-2 border-black ${i < completedQuestIds.size ? 'bg-black' : 'bg-transparent'}`} />
+        ))}
+      </div>
+    </div>
+    <div className="grid grid-cols-3 gap-6">
+      {dailyChallenges.map((ch) => <QuestCard key={ch.id} ch={ch} />)}
+      <LockedCard title="The Archivist" hint="Mystery Card" index={0} />
+      <LockedCard title="Grandmaster" hint="Mystery Card" index={1} />
+    </div>
+  
 
           </div>
         </div>
@@ -265,40 +297,10 @@ export default function Challenges() {
           <section className="flex flex-col gap-4 mt-2">
             <h3 className="font-black text-[16px]">Today's Quests</h3>
             <p className="text-[13px] text-black/60 font-medium -mt-2">Complete these daily challenges to boost your study streak.</p>
-            {dailyChallenges.map((ch) => (
-              <div key={ch.id} className="group bg-white border-2 border-black flex flex-col overflow-hidden shadow-[3px_3px_0px_#000]">
-                <div className="px-4 py-3 border-b-2 border-black flex justify-between items-center">
-                  <span className={`text-[11px] font-black px-2 py-1 uppercase tracking-wider ${ch.tagStyle}`}>{ch.tag}</span>
-                  <span className={`material-symbols-outlined ${ch.iconStyle}`} style={{ fontVariationSettings: "'FILL' 1" }}>{ch.icon}</span>
-                </div>
-                <div className="p-4 flex-1">
-                  <p className="font-black text-[16px] mb-1">{ch.title}</p>
-                  <p className="text-[13px] text-black/60 font-bold mb-3 leading-relaxed">{ch.desc}</p>
-                </div>
-                <button
-                  onClick={ch.isShare ? () => setShareModalOpen(true) : ch.ctaAction}
-                  className="w-full py-3.5 border-t-2 border-black text-[13px] font-black bg-white hover:bg-black hover:text-white transition-colors cursor-pointer">
-                  {ch.cta}
-                </button>
-              </div>
-            ))}
+            {dailyChallenges.map((ch) => <QuestCard key={ch.id} ch={ch} />)}
             
-            {[
-              { title: "The Archivist", hint: "Unlocked after 14-day streak." },
-              { title: "Grandmaster", hint: "Complete all monthly challenges." },
-            ].map((lc) => (
-              <div key={lc.title} className="relative bg-[#f3f3f3] border-2 border-black opacity-60 select-none overflow-hidden min-h-[100px] flex items-center justify-center shadow-[3px_3px_0px_#000]">
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="bg-black text-white p-3">
-                    <span className="material-symbols-outlined text-[24px]">lock</span>
-                  </div>
-                </div>
-                <div className="blur-sm p-4 w-full">
-                  <p className="font-black text-[16px]">{lc.title}</p>
-                  <p className="text-[13px] text-black/60">{lc.hint}</p>
-                </div>
-              </div>
-            ))}
+            <LockedCard title="The Archivist" hint="Mystery Card" index={0} />
+            <LockedCard title="Grandmaster" hint="Mystery Card" index={1} />
           </section>
         </main>
       </div>

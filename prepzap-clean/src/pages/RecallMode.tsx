@@ -74,6 +74,7 @@ function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => v
 
 export default function RecallMode() {
   const { isPro, canUse, logUsage } = usePlan();
+  const { logSession } = useStudySession();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const { user } = useAuth();
   const [subject, setSubject] = useState("");
@@ -331,3 +332,5 @@ export default function RecallMode() {
       </ToolPageShell>
   );
 }
+
+

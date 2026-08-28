@@ -7,6 +7,7 @@ import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import { useStudySession } from "@/hooks/useStudySession";
 import { useAuth } from "@/contexts/AuthContext";
+import { logQuestCompletion } from "@/lib/quests";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
 interface StudyPoint {
@@ -187,15 +188,17 @@ Required JSON schema:
     "Summarize key clinical correlations"
   ],
   "points": [
-    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition..." },
-    { "label": "Second Concept Name:", "value": "Detailed fact explanation..." },
-    { "label": "Third Concept Name:", "value": "Detailed fact explanation..." },
-    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation..." }
+    { "label": "Key Concept Name:", "value": "A complete deeply explanatory educational definition...", "question": "What is the core definition of...?" },
+    { "label": "Second Concept Name:", "value": "Detailed fact explanation...", "question": "Why does...?" },
+    { "label": "Third Concept Name:", "value": "Detailed fact explanation...", "question": "How does...?" },
+    { "label": "Fourth Concept Name:", "value": "Detailed fact explanation...", "question": "What is the result of...?" }
   ]
 }
 
 Rules:
-- tags: 2-4 short title-cased topic labels (e.g. "Cell Biology", "Exam Prep")
+- tags: 2-4 short title-cased topic labels
+- question: a specific retrieval-practice question to test the user's memory on this point
+- BOLDING: Wrap key terms in the 'value' field with **asterisks** so they can be bolded in the UI. (e.g. "Cell Biology", "Exam Prep")
 - coverageScore: integer 0-100 reflecting how well these 4 points cover the topic (this is a one-off
   estimate for this generation only, not a tracked retention/mastery metric)
 - goals: exactly 3 short imperative study goals specific to this topic
@@ -258,7 +261,7 @@ Return raw JSON only, no wrapping!`;
       // of discarding a perfectly good, on-topic generation.
       const cleanedPoints: StudyPoint[] = [];
       for (const p of generated.points) {
-        if (typeof p?.label !== "string" || !p.label.trim() || typeof p?.value !== "string" || !p.value.trim()) {
+        if (typeof p?.label !== "string" || !p.label.trim() || typeof p?.value !== "string" || !p.value.trim() || typeof p?.question !== "string") {
           throw new Error("Malformed point — missing label or value");
         }
         if (p.value.length > MAX_POINT_VALUE_LENGTH) {
@@ -387,6 +390,28 @@ Return raw JSON only, no wrapping!`;
     // than silently doing nothing.
     setTopic(entry.prompt || "");
     setGeneratedSheet(null);
+  };
+
+
+  const handleExportFlashcards = () => {
+    if (!generatedSheet) return;
+    const deck = {
+      title: generatedSheet.title,
+      cards: generatedSheet.points.map(p => ({
+        front: p.question || p.label,
+        back: p.label.replace(":", ""),
+        explanation: p.value
+      }))
+    };
+    localStorage.setItem("qs_flashcards_export", JSON.stringify(deck));
+    navigate("/flashcards");
+  };
+
+  const handleTestRecall = () => {
+    if (!generatedSheet) return;
+    const material = generatedSheet.title + "\n\n" + generatedSheet.points.map(p => p.label + " " + p.value).join("\n\n");
+    localStorage.setItem("qs_practice_export", JSON.stringify(material));
+    navigate("/practice");
   };
 
   const handleCopySheet = async () => {
@@ -558,11 +583,22 @@ Return raw JSON only, no wrapping!`;
           {/* Points */}
           <ul className="flex flex-col gap-4 list-disc pl-5 marker:text-[#E8534A]">
             {generatedSheet.points.map((pt, idx) => (
-              <li key={idx} className="leading-relaxed text-[14.5px] text-black/80">
-                <span className="font-extrabold text-black mr-1">{pt.label}</span>
-                {pt.value}
-              </li>
-            ))}
+                <li key={idx} className="leading-relaxed text-[14.5px] text-black/80 mb-3">
+                  <span className="font-extrabold text-black mr-1">{pt.label}</span>
+                  <span dangerouslySetInnerHTML={{ __html: pt.value.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                  {pt.question && (
+                    <details className="mt-2 bg-yellow-500/10 rounded-md border border-yellow-500/30 p-2 cursor-pointer group">
+                      <summary className="font-semibold text-yellow-900 text-[13px] list-none select-none flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px] transition-transform group-open:rotate-90">chevron_right</span>
+                        Quick check: {pt.question}
+                      </summary>
+                      <div className="mt-1.5 pl-5 text-[13.5px] text-yellow-950 font-medium border-l-2 border-yellow-500/30 ml-1">
+                        <span dangerouslySetInnerHTML={{ __html: pt.value.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                      </div>
+                    </details>
+                  )}
+                </li>
+              ))}
           </ul>
         </div>
       </div>

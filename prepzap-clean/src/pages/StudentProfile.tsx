@@ -5,6 +5,7 @@ import { ArrowLeft, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { loadLibrary } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -130,6 +131,7 @@ const StatCard = ({
 export default function StudentProfile() {
   const navigate = useNavigate();
   const { isPro } = usePlan();
+  const { user, profile } = useAuth();
 
   const [userName, setUserName] = useState("Student");
   const [userEmail, setUserEmail] = useState("");
@@ -140,17 +142,13 @@ export default function StudentProfile() {
 
   useEffect(() => {
     // Auth
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const meta = session.user.user_metadata;
-        const name =
-          meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "Student";
-        setUserName(name);
-        setUserEmail(session.user.email || "");
-        setUserInitial(name.charAt(0).toUpperCase());
-        setJoinDate(getJoinDate(session.user.created_at));
-      }
-    });
+    if (user) {
+      const name = profile?.full_name || (user as any)?.user_metadata?.full_name || user.email?.split("@")[0] || "Student";
+      setUserName(name);
+      setUserEmail(user.email || "");
+      setUserInitial(name.charAt(0).toUpperCase());
+      setJoinDate(getJoinDate(user.created_at));
+    }
 
     // Stats from localStorage
     setStats(deriveStats());
@@ -463,3 +461,4 @@ export default function StudentProfile() {
     </div>
   );
 }
+

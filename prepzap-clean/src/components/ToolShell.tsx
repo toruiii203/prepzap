@@ -321,7 +321,7 @@ export function useFileAttach() {
 
   const FileAttachButton = useCallback(({ className }: { className?: string }) => (
     <>
-      <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.gif,.webp" className="hidden" onChange={handleFileSelect} />
+      <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.gif,.webp" style={{ opacity: 0, position: "absolute", zIndex: -1, width: 1, height: 1 }} onChange={handleFileSelect} />
       {showCamera && <CameraModal onCapture={handleCameraCapture} onClose={() => setShowCamera(false)} />}
       <div className="flex items-center gap-1">
         <button onClick={() => fileInputRef.current?.click()}

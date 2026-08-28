@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToolHistory } from "@/pages/ToolHistory";
+import { loadLibrary } from "@/lib/sourceContext";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface PlannerSession {
@@ -536,10 +538,9 @@ export default function StudyPlanner() {
     : 0;
 
   const completedHours = nonDue.filter(s => s.completed).reduce((acc, s) => acc + (s.estimatedHours ?? 1.5), 0);
-  const quizSessions   = nonDue.filter(s => s.topic?.toLowerCase().includes("quiz") || s.subject.toLowerCase().includes("quiz"));
-  const doneQuizzes    = quizSessions.filter(s => s.completed).length;
-  const totalQuizzes   = Math.max(quizSessions.length, 6);
-  const libCitations   = sessions.filter(s => s.topic?.toLowerCase().includes("library") || s.topic?.toLowerCase().includes("source")).length;
+  const doneQuizzes    = practiceHistory.length;
+  const totalQuizzes   = Math.max(practiceHistory.length, 6);
+  const libCitations   = libraryCount;
 
   // ── CRUD ──
   const handleToggle = (id: string | number) => {

@@ -43,6 +43,7 @@ function SuggestionChips({ onSelect, suggestions }: { onSelect: (s: string) => v
 
 export default function CramMode() {
   const { isPro, canUse, logUsage } = usePlan();
+  const { logSession } = useStudySession();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [subject, setSubject] = useState("")
   const [hoursAvailable, setHoursAvailable] = useState("2");
@@ -267,3 +268,5 @@ export default function CramMode() {
       </ToolPageShell>
   );
 }
+
+

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import { Link, useNavigate } from "react-router-dom"
 import { SharedSidebar } from "@/components/SharedSidebar"
 import { supabase } from "@/lib/supabase"
@@ -97,6 +98,7 @@ export default function Settings() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     navigate("/")
+    toast.info("Signed out", { description: "You have been successfully signed out." })
   }
 
   const handleChangePassword = async () => {
@@ -105,22 +107,24 @@ export default function Settings() {
       redirectTo: `${window.location.origin}/reset-password`,
     })
     if (!error) setPwResetSent(true)
+      toast.success("Reset link sent!", { description: "Check your email for instructions to reset your password." })
     setTimeout(() => setPwResetSent(false), 4000)
   }
 
   const handleDeleteAccount = async () => {
     if (!user) return
-    // Sign out first, then delete via edge function or RPC
     await supabase.auth.signOut()
     navigate("/")
+    toast.error("Account Deleted", { description: "Your account data has been queued for deletion." })
     // Note: actual account deletion requires a Supabase Edge Function with admin key
     // Add: supabase.functions.invoke('delete-account', { body: { user_id: user.id } })
   }
 
   const handleRequestNotifPermission = async () => {
-    if (!("Notification" in window)) return alert("Notifications not supported on this device.")
+    if (!("Notification" in window)) return toast.error("Not supported", { description: "Push notifications are not supported on this device/browser." })
     const perm = await Notification.requestPermission()
     if (perm === "granted") {
+        toast.success("Notifications Enabled", { description: "We will send you reminders to keep your streak alive!" });
       new Notification("Studenius", { body: "🔔 Notifications enabled! We'll remind you to keep your streak alive.", icon: "/fox_icon_final.png" })
     }
   }
@@ -214,7 +218,13 @@ export default function Settings() {
                     <p style={{ fontSize: 13, fontWeight: 700, color: "#1c1c19", margin: "0 0 2px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{label}</p>
                     <p style={{ fontSize: 11, color: "#6b6b6b", margin: 0, fontFamily: "'Quicksand', sans-serif" }}>{sub}</p>
                   </div>
-                  <Toggle on={notifs[key]} onChange={() => setNotifs(prev => ({ ...prev, [key]: !prev[key] }))} />
+                  <Toggle on={notifs[key]} onChange={() => {
+                    const willBeOn = !notifs[key];
+                    setNotifs(prev => ({ ...prev, [key]: willBeOn }));
+                    toast.success(`${willBeOn ? "Enabled" : "Disabled"} ${label.toLowerCase()}`, {
+                      description: willBeOn ? sub : `You will no longer receive ${label.toLowerCase()}.`,
+                    });
+                  }} />
                 </div>
               ))}
             </div>
@@ -248,7 +258,7 @@ export default function Settings() {
                   <div style={{ height: "100%", width: `${creditsLeft !== null ? Math.round((creditsLeft / FREE_CREDITS_TOTAL) * 100) : 0}%`, background: RED, transition: "width .4s" }} />
                 </div>
                 <p style={{ fontSize: 11, color: "#6b6b6b", marginBottom: 12, fontFamily: "'Quicksand', sans-serif" }}>Upgrade to Pro for unlimited AI questions and all premium features.</p>
-                <Link to="/pricing">
+                <Link to="/pro">
                   <button style={{ width: "100%", padding: "12px", background: RED, border: "2px solid #1c1c19", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", boxShadow: "3px 3px 0 #1c1c19", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                     
                     UPGRADE TO PRO
@@ -330,3 +340,5 @@ export default function Settings() {
     </div>
   )
 }
+
+

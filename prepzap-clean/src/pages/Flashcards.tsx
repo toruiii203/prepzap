@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { logQuestCompletion } from "@/lib/quests";
 import { useStudySession } from "@/hooks/useStudySession";
 import { supabase } from "@/lib/supabase";
 import { callGroq } from "@/lib/groq";

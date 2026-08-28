@@ -68,6 +68,7 @@ export default function HighYieldDetector() {
   const [practiceScores, setPracticeScores] = useState<(boolean | null)[]>([]);
 
   const { isPro, canUse, remaining, logUsage } = usePlan();
+  const { logSession } = useStudySession();
 
   // FIX: freemium gate state
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
@@ -380,3 +381,6 @@ Mix question types: definition, application, comparison.`;
     </ToolPageShell>
   );
 }
+
+
+

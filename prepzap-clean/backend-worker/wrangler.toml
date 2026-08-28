@@ -1,0 +1,8 @@
+name = "studenius-backend"
+main = "src/index.ts"
+compatibility_date = "2024-08-28"
+
+# Triggers for scheduled tasks
+[triggers]
+# Run at the top of every hour (midnight PH time is handled in code)
+crons = ["0 * * * *"]

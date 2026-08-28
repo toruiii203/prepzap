@@ -77,8 +77,8 @@ export function StudeniusLayout() {
         {/* Divider + Go Pro */}
         <div className="mt-auto pt-4 border-t-2 border-[#1A1A1A]/10">
           <a
-            href="/go-pro"
-            onClick={(e) => { e.preventDefault(); navigate("/go-pro"); }}
+            href="/pro"
+            onClick={(e) => { e.preventDefault(); navigate("/pro"); }}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-[13.5px] text-[#ae2925] hover:bg-[#ae2925]/10 transition-all"
           >
             
@@ -100,3 +100,5 @@ export function StudeniusLayout() {
     </div>
   );
 }
+
+

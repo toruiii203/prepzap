@@ -714,7 +714,7 @@ export default function SourceLibrary() {
         ref={fileInputRef}
         type="file"
         accept=".pdf,.txt,text/*,image/*"
-        className="hidden"
+        style={{ opacity: 0, position: "absolute", zIndex: -1, width: 1, height: 1 }}
         onChange={handleFileSelected}
       />
       <canvas ref={canvasRef} className="hidden" />
@@ -1003,7 +1003,7 @@ export default function SourceLibrary() {
               extractingPdf={extractingPdf}
               isPro={isPro}
               onOpenCamera={openCamera}
-              onUpgrade={() => navigate("/go-pro")}
+              onUpgrade={() => navigate("/pro")}
               onPasteManually={() => setShowUploadModal(true)}
             />
           </section>
@@ -1064,3 +1064,5 @@ export default function SourceLibrary() {
     </div>
   );
 }
+
+

@@ -15,7 +15,7 @@ import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { supabase } from "@/lib/supabase";
 
 const navLinks = [
-  { href: "/pricing",     label: "Pricing"     },
+  { href: "/pro",     label: "Pricing"     },
   { href: "/suggestions", label: "Suggestions" },
 ];
 
@@ -272,3 +272,5 @@ export function Navbar({ isLoggedIn = false, user, extraRight }: NavbarProps) {
     </header>
   );
 }
+
+

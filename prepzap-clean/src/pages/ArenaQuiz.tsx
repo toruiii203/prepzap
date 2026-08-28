@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { logQuestCompletion } from "@/lib/quests";
 import { supabase } from "@/lib/supabase";
 
 interface Question {
@@ -103,12 +104,12 @@ export default function ArenaQuiz() {
 
     try {
       if (isDaily) {
-        await supabase.from("daily_submissions").insert({
+        await supabase.from("daily_challenge_submissions").insert({
           user_id: user.id,
-          quiz_date: todayPH(),
+          challenge_date: todayPH(),
           answers: latestAnswers,
           score,
-          time_taken: elapsed,
+          time_taken_seconds: elapsed,
           display_name: displayName,
         });
         navigate("/arena/results/daily", {

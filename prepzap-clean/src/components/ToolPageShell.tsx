@@ -182,7 +182,7 @@ export function ToolPageShell({ children }: ToolPageShellProps) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <SourceSelectorPill />
-          <Link to="/pricing" style={{ color: TEXT2, textDecoration: "none", fontSize: 11, fontWeight: 700 }}>Pricing</Link>
+          <Link to="/pro" style={{ color: TEXT2, textDecoration: "none", fontSize: 11, fontWeight: 700 }}>Pricing</Link>
           <div onClick={() => navigate("/settings")} style={{ width: 28, height: 28, borderRadius: "50%", background: "#8b1a2a", border: `2px solid ${GOLD}`, color: GOLD, fontWeight: 800, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             {displayName}
           </div>
@@ -192,3 +192,5 @@ export function ToolPageShell({ children }: ToolPageShellProps) {
     </div>
   );
 }
+
+
