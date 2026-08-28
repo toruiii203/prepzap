@@ -155,7 +155,7 @@ async function _callGroqCore(
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: resolvedModel,
+        model: resolvedModel.includes("3.3") || resolvedModel.includes("llama") || resolvedModel.startsWith("gemini") ? "openai/gpt-oss-20b" : resolvedModel,
         max_tokens: maxTokens,
         messages: fullMessages,
         temperature: 0.7,
