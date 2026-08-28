@@ -265,7 +265,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       }
     } catch (err) {
       console.warn("Flashcard generation failed, using fallback deck:", err);
-      alert("Failed to generate flashcards from your material. The AI returned an invalid format or timed out. Falling back to example deck.");
+      alert("Failed to generate flashcards. Error: " + String((err && err.message) ? err.message : err));
       generatedCards = [];
       for (let i = 0; i < cardCount; i++) {
         generatedCards.push(mockCards[i % mockCards.length]);
