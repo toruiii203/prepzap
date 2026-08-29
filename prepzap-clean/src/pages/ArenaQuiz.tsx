@@ -142,18 +142,18 @@ export default function ArenaQuiz() {
       setLoading(true);
       if (isDaily) {
         const { data } = await supabase
-          .from("daily_quiz")
+          .from("daily_challenges")
           .select("*")
-          .eq("date", todayPH())
+          .eq("challenge_date", todayPH())
           .single();
         if (!data) { navigate("/arena"); return; }
 
         // Redirect if already submitted
         if (user) {
           const { data: sub } = await supabase
-            .from("daily_submissions")
+            .from("daily_challenge_submissions")
             .select("id")
-            .eq("quiz_date", todayPH())
+            .eq("challenge_date", todayPH())
             .eq("user_id", user.id)
             .single();
           if (sub) { navigate("/arena"); return; }
