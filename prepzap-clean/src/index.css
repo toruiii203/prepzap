@@ -324,3 +324,53 @@
     transform: translateX(100%);
   }
 }
+
+/* =========================================
+   Print Styles (Export to PDF)
+   ========================================= */
+@media print {
+  /* Hide sidebar and navigation */
+  nav, header, button, .neo-btn, .sidebar, .fab, .cmdk-overlay {
+    display: none !important;
+  }
+  
+  /* Reset background and text for print */
+  body, html, #root {
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Main content area expands to full page */
+  main, .page-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure flashcards and practice questions print nicely */
+  .flashcard-print {
+    page-break-inside: avoid;
+    border: 2px solid black !important;
+    margin-bottom: 20px;
+    padding: 20px;
+  }
+
+  /* Avoid cutting questions in half */
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+}
+
+/* =========================================
+   Dark Mode Hack
+   ========================================= */
+html.dark {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #000;
+}
+html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
+  filter: invert(1) hue-rotate(180deg);
+}

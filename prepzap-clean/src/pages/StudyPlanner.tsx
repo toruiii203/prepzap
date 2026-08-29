@@ -15,6 +15,8 @@ interface PlannerSession {
   color?: string;
   completed: boolean;
   dayNum?: number;
+  month?: number;
+  year?: number;
   dueDate?: string;
   isDue?: boolean;
   estimatedHours?: number;
@@ -141,7 +143,7 @@ function AddEventForm({
         value={newTime}
         onChange={e => setNewTime(e.target.value)}
         className="border-2 border-black px-3 py-2.5 text-[13px] font-bold focus:outline-none"
-        required
+        required={!newIsDue}
       />
       <input
         type="text"
@@ -236,7 +238,7 @@ function CalendarGrid({
           const isOtherMonth = cell !== null && cell <= 0;
           const day = isOtherMonth ? Math.abs(cell ?? 0) % 100 : cell;
           const isToday    = isCurrentMonth && day === todayDate.getDate() && !isOtherMonth;
-          const isSelected = !isOtherMonth && day === selectedDayNum && isCurrentMonth;
+          const isSelected = !isOtherMonth && day === selectedDayNum;
           const hasSession = !isOtherMonth && day !== null && daysWithSessions.has(day as number);
           return (
             <div
@@ -459,6 +461,13 @@ function ProductivityCard({ productivityScore }: ProductivityCardProps) {
 export default function StudyPlanner() {
   const navigate   = useNavigate();
   const { profile, user } = useAuth();
+  
+  const { history: practiceHistory } = useToolHistory("practice");
+  const [libraryCount, setLibraryCount] = useState(0);
+
+  useEffect(() => {
+    setLibraryCount(loadLibrary().length);
+  }, []);
 
   // ── Date state ──
   const todayDate  = useMemo(() => new Date(), []);
@@ -507,13 +516,21 @@ export default function StudyPlanner() {
 
   const isCurrentMonth = viewYear === todayDate.getFullYear() && viewMonth === todayDate.getMonth();
 
+  const validateDay = (y, m, d) => {
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    if (d > maxDays) setSelectedDayNum(maxDays);
+  };
   const prevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-    else setViewMonth(m => m - 1);
+    let y = viewYear, m = viewMonth - 1;
+    if (m < 0) { m = 11; y -= 1; }
+    setViewMonth(m); setViewYear(y);
+    validateDay(y, m, selectedDayNum);
   };
   const nextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-    else setViewMonth(m => m + 1);
+    let y = viewYear, m = viewMonth + 1;
+    if (m > 11) { m = 0; y += 1; }
+    setViewMonth(m); setViewYear(y);
+    validateDay(y, m, selectedDayNum);
   };
 
   // ── Derived data ──
@@ -551,7 +568,7 @@ export default function StudyPlanner() {
   };
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSubj || !newTime) return;
+    if (!newSubj || (!newIsDue && !newTime)) return;
     const colors = ["bg-blue-500","bg-green-500","bg-purple-500","bg-amber-600","bg-rose-500","bg-yellow-500"];
     const color  = colors[Math.floor(Math.random() * colors.length)];
     const hour   = parseTimeHour(newTime);

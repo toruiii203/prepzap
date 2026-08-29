@@ -10,7 +10,8 @@ import {
   Shield, Bell, Settings2, UserX, RefreshCw
 } from "lucide-react"
 
-const ADMIN_PASSWORD = "prepzap-admin-2025"
+// In production, if this isn't set, it falls back to an unguessable UUID.
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || crypto.randomUUID()
 
 const mockUsers = [
   { email: "migs@example.com",    plan: "Pro",     credits: 342, joined: "2024-11-03" },

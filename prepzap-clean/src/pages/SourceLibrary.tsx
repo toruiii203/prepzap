@@ -123,6 +123,7 @@ function UploadZone({
   onOpenCamera,
   onUpgrade,
   onPasteManually,
+  onDrop,
 }: {
   fileInputRef: React.RefObject<HTMLInputElement>;
   files: any[];
@@ -132,9 +133,14 @@ function UploadZone({
   onOpenCamera: () => void;
   onUpgrade: () => void;
   onPasteManually: () => void;
+  onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <div className="bg-white border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[180px]">
+    <div
+      onDragOver={e => e.preventDefault()}
+      onDrop={onDrop}
+      className="bg-white border-2 border-dashed border-[#1A1A1A] p-8 flex flex-col items-center justify-center gap-4 min-h-[180px]"
+    >
       <div className="flex gap-5 mb-1">
         <div className="flex flex-col items-center gap-1.5">
           <button
@@ -405,6 +411,74 @@ export default function SourceLibrary() {
     if (file.type.includes("image")) reader.readAsDataURL(file);
     else reader.readAsText(file);
   };
+
+  // ── Global paste handler ───────────────────────────────────────────────────
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const file = e.clipboardData?.files?.[0];
+      if (!file) return;
+
+      if (files.length >= fileLimit) {
+        setUploadError(`You've reached the ${isPro ? "Pro" : "Free"} plan limit of ${fileLimit} files.`);
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setUploadError(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max ${MAX_FILE_SIZE_MB} MB.`);
+        return;
+      }
+
+      const isPdfFile = file.type === "application/pdf" || file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+      if (isPdfFile) {
+        setExtractingPdf(true);
+        try {
+          const fullText = await extractPdfText(file);
+          if (!fullText || fullText.length < 10) {
+            setUploadError("Couldn't extract text from this PDF — it may be scanned or image-only.");
+          } else {
+            addFileToLibrary({
+              id: "f_" + Date.now(),
+              name: file.name,
+              type: "text",
+              content: fullText.length > 50000 ? fullText.slice(0, 50000) : fullText,
+              fullText: fullText.length > 50000 ? fullText.slice(0, 50000) : fullText,
+              preview: fullText.slice(0, 300),
+              size: `${(file.size / 1024).toFixed(1)} KB`,
+              created_at: new Date().toISOString(),
+              isPdf: true,
+            });
+          }
+        } catch (err) {
+          setUploadError("Failed to read PDF: " + (err instanceof Error ? err.message : String(err)));
+        } finally {
+          setExtractingPdf(false);
+        }
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const content = ev.target?.result as string || "";
+        const truncated = content.length > 50000 ? content.slice(0, 50000) : content;
+        addFileToLibrary({
+          id: "f_" + Date.now(),
+          name: file.name || `Pasted_Image_${Date.now()}.png`,
+          type: file.type.includes("image") ? "image" : "text",
+          content: truncated,
+          fullText: file.type.includes("image") ? undefined : truncated,
+          preview: file.type.includes("image") ? undefined : truncated.slice(0, 300),
+          size: `${(file.size / 1024).toFixed(1)} KB`,
+          created_at: new Date().toISOString(),
+          isPdf: false,
+        });
+      };
+      if (file.type.includes("image")) reader.readAsDataURL(file);
+      else reader.readAsText(file);
+    };
+
+    window.addEventListener("paste", handlePaste as any);
+    return () => window.removeEventListener("paste", handlePaste as any);
+  }, [files, fileLimit, isPro, selectedIds]);
 
   // ── Camera ────────────────────────────────────────────────────────────────
   const openCamera = async () => {
@@ -1004,6 +1078,7 @@ export default function SourceLibrary() {
               onOpenCamera={openCamera}
               onUpgrade={() => navigate("/pro")}
               onPasteManually={() => setShowUploadModal(true)}
+              onDrop={handleDrop}
             />
           </section>
 

@@ -227,7 +227,7 @@ function ScientificCalculator({
         {btn("2", () => append("2"), "bg-white")}
         {btn("3", () => append("3"), "bg-white")}
         {btn("−", () => append("-"), "bg-[#1a1a1a] text-white")}
-        {btn("1/x", () => setDisplay(`1/(${display})`), "bg-[#F0EDE0]")}
+        {btn("|x|", () => append("abs("), "bg-[#F0EDE0]")}
         {/* Row 7 */}
         <button
           onClick={() => append("0")}

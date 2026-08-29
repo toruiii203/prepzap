@@ -1130,6 +1130,12 @@ export default function Onboarding() {
     // If we're already at nameInput (OAuth/email callback return), skip the check
     if (screen === "nameInput") return
 
+    // Dev mode escape hatch
+    if (import.meta.env.DEV && (import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+
     // One-time check on mount: if user is fully logged in and done with onboarding,
     // send them to dashboard. Don't re-run this on screen changes.
     supabase.auth.getSession().then(async ({ data: { session } }) => {

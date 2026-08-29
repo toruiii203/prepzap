@@ -481,7 +481,7 @@ export default function Arena() {
   useEffect(() => {
     const load = async () => {
       setLoadingLeaderboard(true);
-      let query = supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, auth.users(raw_user_meta_data)")
+      let query = supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, display_name")
         .order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(10);
       if (leaderboardTab === "today") query = query.eq("challenge_date", todayPH());
       const { data } = await query;

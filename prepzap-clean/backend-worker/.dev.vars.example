@@ -1,0 +1,4 @@
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJyour.service.role.key
+GROQ_API_KEY=gsk_your_groq_api_key
+PAYPAL_WEBHOOK_ID=your-paypal-webhook-id

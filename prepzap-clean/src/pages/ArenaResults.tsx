@@ -36,6 +36,9 @@ export default function ArenaResults() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  useEffect(() => {
+    fireConfetti();
+  }, []);
   const state = location.state as LocationState | null;
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -44,22 +47,46 @@ export default function ArenaResults() {
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
 
   const isDaily = code === "daily" || state?.isDaily;
-  const answers = state?.answers ?? {};
-  const score = state?.score ?? 0;
-  const elapsed = state?.elapsed ?? 0;
-  const questions = state?.questions ?? [];
-  const correctCount = questions.filter((q, i) => answers[i] === q.correct_answer).length;
-  const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
-  const speedBonus = Math.max(0, score - correctCount * 1000);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        if (isDaily) {
-          const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })).toISOString().split("T")[0];
-          const { data } = await supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, auth.users(raw_user_meta_data)")
-            .eq("challenge_date", today).order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(10);
+    const [restoredState, setRestoredState] = useState<LocationState | null>(null);
+    const activeState = state || restoredState;
+    const answers = activeState?.answers ?? {};
+    const score = activeState?.score ?? 0;
+    const elapsed = activeState?.elapsed ?? 0;
+    const questions = activeState?.questions ?? [];
+    const correctCount = questions.filter((q, i) => answers[i] === q.correct_answer).length;
+    const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+    const speedBonus = Math.max(0, score - correctCount * 1000);
+
+    useEffect(() => {
+      const load = async () => {
+        setLoading(true);
+        try {
+          const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+          
+          // State recovery if missing
+          if (!state && user) {
+            if (isDaily) {
+               const [subRes, chalRes] = await Promise.all([
+                 supabase.from("daily_challenge_submissions").select("*").eq("challenge_date", today).eq("user_id", user.id).single(),
+                 supabase.from("daily_challenges").select("questions").eq("challenge_date", today).single()
+               ]);
+               if (subRes.data && chalRes.data) {
+                 setRestoredState({
+                   answers: subRes.data.answers,
+                   score: subRes.data.score,
+                   elapsed: subRes.data.time_taken_seconds,
+                   questions: chalRes.data.questions,
+                   isDaily: true
+                 });
+               }
+            }
+          }
+
+          if (isDaily) {
+            const { data } = await supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, auth.users(raw_user_meta_data)")
+              .eq("challenge_date", today).order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(10);
+
           // FIX: use stored display_name; fall back only for legacy rows without it
           const entries = (data ?? []).map((row, i) => ({ ...row,
               time_taken: row.time_taken_seconds || row.time_taken, display_name: row.display_name ?? `Player ${i + 1}` }));

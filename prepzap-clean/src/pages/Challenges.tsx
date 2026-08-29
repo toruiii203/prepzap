@@ -10,6 +10,7 @@ export default function Challenges() {
   const { completedQuestIds, weeklyActivity, loading } = useQuests();
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [shareToastOpen, setShareToastOpen] = useState(false);
 
   // Daily seed logic to rotate challenges
   const today = new Date();
@@ -91,7 +92,7 @@ export default function Challenges() {
       title: "Tutor Me",
       desc: "Spend 20 minutes conversing with your AI Tutor.",
       cta: "OPEN TUTOR",
-      ctaAction: () => navigate("/tutor"),
+      ctaAction: () => navigate("/ai-tutor"),
     },
     {
       id: "knowledge-share",
@@ -102,7 +103,12 @@ export default function Challenges() {
       title: "Knowledge Share",
       desc: "Share one study guide with your class peer group.",
       cta: "SHARE GUIDE",
-      isShare: true,
+      ctaAction: () => {
+        setShareToastOpen(true);
+        setTimeout(() => {
+          navigate("/flashcards");
+        }, 2000);
+      },
     },
   ];
 
@@ -113,6 +119,33 @@ export default function Challenges() {
     allChallenges[(dayOfYear + 2) % allChallenges.length],
     allChallenges[(dayOfYear + 3) % allChallenges.length],
   ];
+
+  const archivistUnlocked = profile && (profile.streak >= 7 || parseInt(localStorage.getItem(`studenius_sources_${profile.id}`) || '0') >= 5);
+  const grandmasterUnlocked = profile && profile.total_xp >= 500;
+
+  const archivistQuest = {
+    id: "the-archivist",
+    tag: "Milestone",
+    tagStyle: "bg-purple-600 text-white",
+    icon: "inventory_2",
+    iconStyle: "text-purple-600",
+    title: "The Archivist",
+    desc: "Upload 3 study sources today.",
+    cta: "UPLOAD SOURCE",
+    ctaAction: () => navigate("/sources"),
+  };
+
+  const grandmasterQuest = {
+    id: "grandmaster",
+    tag: "Milestone",
+    tagStyle: "bg-[#FF4D2E] text-white",
+    icon: "military_tech",
+    iconStyle: "text-[#FF4D2E]",
+    title: "Grandmaster",
+    desc: "Score 80%+ on a practice quiz.",
+    cta: "PRACTICE NOW",
+    ctaAction: () => navigate("/practice"),
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.origin + "/share/guide");
@@ -215,7 +248,12 @@ export default function Challenges() {
 
       <SharedSidebar active="/challenges" />
 
-      {shareModalOpen && <ShareModal />}
+      {shareToastOpen && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black text-white px-5 py-3 border-2 border-black shadow-[4px_4px_0px_#ae2925] font-bold text-[13px] flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px]">info</span>
+          Generate and share a deck to complete this quest!
+        </div>
+      )}
 
       {/* DESKTOP LAYOUT */}
       <div className="hidden md:flex md:ml-64 flex-col min-h-screen">
@@ -260,8 +298,8 @@ export default function Challenges() {
     </div>
     <div className="grid grid-cols-3 gap-6">
       {dailyChallenges.map((ch) => <QuestCard key={ch.id} ch={ch} />)}
-      <LockedCard title="The Archivist" hint="Mystery Card" index={0} />
-      <LockedCard title="Grandmaster" hint="Mystery Card" index={1} />
+      {archivistUnlocked ? <QuestCard ch={archivistQuest} /> : <LockedCard title="The Archivist" hint="Mystery Card" index={0} />}
+      {grandmasterUnlocked ? <QuestCard ch={grandmasterQuest} /> : <LockedCard title="Grandmaster" hint="Mystery Card" index={1} />}
     </div>
   
 
@@ -299,8 +337,8 @@ export default function Challenges() {
             <p className="text-[13px] text-black/60 font-medium -mt-2">Complete these daily challenges to boost your study streak.</p>
             {dailyChallenges.map((ch) => <QuestCard key={ch.id} ch={ch} />)}
             
-            <LockedCard title="The Archivist" hint="Mystery Card" index={0} />
-            <LockedCard title="Grandmaster" hint="Mystery Card" index={1} />
+            {archivistUnlocked ? <QuestCard ch={archivistQuest} /> : <LockedCard title="The Archivist" hint="Mystery Card" index={0} />}
+            {grandmasterUnlocked ? <QuestCard ch={grandmasterQuest} /> : <LockedCard title="Grandmaster" hint="Mystery Card" index={1} />}
           </section>
         </main>
       </div>

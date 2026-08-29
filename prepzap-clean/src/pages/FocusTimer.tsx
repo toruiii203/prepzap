@@ -176,9 +176,14 @@ export default function FocusTimer() {
     setSessionCount(nextSessionCount);
 
     if (phase === "focus") {
-      setCompletedToday(d => d + 1);
+      const nextCompletedToday = completedToday + 1;
+      setCompletedToday(nextCompletedToday);
       awardStudyRewards(settings.focusDuration);
       triggerCompletionFeedback();
+
+      if (user && nextCompletedToday * settings.focusDuration >= 120) {
+        logQuestCompletion(user.id, "deep-work-titan");
+      }
 
       const nextPhase: Phase = nextSessionCount % settings.sessionsUntilLongBreak === 0
         ? "long-break"

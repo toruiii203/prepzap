@@ -8,6 +8,7 @@
 import { useState, useCallback, useEffect } from "react"
 import { X, Clock, ChevronRight } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getCachedUserId } from "@/contexts/AuthContext"
 
 const TEAL = "#8b1a2a"
 const MAX = 50
@@ -29,22 +30,11 @@ function localKey(toolId: string) {
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 // supabase.auth.getSession() has a known deadlock failure mode (confirmed
-// live in this app - see groq.ts's getAccessTokenSafely()). Unguarded here,
-// a hang on this call would silently prevent history from ever loading or
-// saving, indistinguishable from "you have no history yet."
-async function getUserId(timeoutMs = 5000): Promise<string | null> {
-  try {
-    const result = await Promise.race([
-      supabase.auth.getSession(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`getSession() timed out after ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ])
-    return result.data.session?.user?.id ?? null
-  } catch (err) {
-    console.error("[useToolHistory] getSession() failed or timed out:", err)
-    return null
-  }
+// live in this app - see groq.ts's getAccessTokenSafely()). We now use the
+// synchronous cached ID from AuthContext which is strictly kept up to date
+// without risking Web Locks contention.
+async function getUserId(): Promise<string | null> {
+  return getCachedUserId();
 }
 
 async function fetchFromSupabase(toolId: string): Promise<HistoryEntry[]> {

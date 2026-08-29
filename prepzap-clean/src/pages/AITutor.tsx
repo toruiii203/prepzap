@@ -301,7 +301,15 @@ export default function AITutor() {
   const modes = ["Explain", "ELI5", "Analogy", "Quiz Me", "Devil's Advocate", "Summarize"];
 
   const [inputVal, setInputVal] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('tutor_chat');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [activeSource, setActiveSource] = useState<string | null>(null);
   const [activeSourceCount, setActiveSourceCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -396,6 +404,7 @@ export default function AITutor() {
       saveSessions(updated);
       return updated;
     });
+    sessionStorage.setItem('tutor_chat', JSON.stringify(messages));
   }, [messages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNewChat = () => {

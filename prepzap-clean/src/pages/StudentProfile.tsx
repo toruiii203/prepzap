@@ -22,31 +22,6 @@ function getLocalNumber(key: string, fallback = 0): number {
   }
 }
 
-function deriveStats() {
-  // Sessions = number of focus timer sessions completed
-  const sessions = getLocalNumber("studenius_timer_sessions");
-
-  // Study time in hours from focus timer total minutes
-  const totalMinutes = getLocalNumber("studenius_timer_total_minutes");
-  const studyHrs = Math.round(totalMinutes / 60);
-
-  // Avg score from practice results array: [{ score, total }]
-  let avgScore = 0;
-  try {
-    const results: { score: number; total: number }[] =
-      JSON.parse(localStorage.getItem("studenius_practice_results") || "[]");
-    if (results.length > 0) {
-      const pct = results.map(r => (r.score / Math.max(r.total, 1)) * 100);
-      avgScore = Math.round(pct.reduce((a, b) => a + b, 0) / pct.length);
-    }
-  } catch {}
-
-  // Streak from mistake journal or focus timer streak key
-  const streak = getLocalNumber("studenius_streak_days");
-
-  return { sessions, studyHrs, avgScore, streak };
-}
-
 function getJoinDate(isoString?: string): string {
   if (!isoString) return "—";
   const d = new Date(isoString);

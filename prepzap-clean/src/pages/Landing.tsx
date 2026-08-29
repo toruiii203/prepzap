@@ -15,7 +15,7 @@ const TESTIMONIALS = [
     avatarBg: "#baeaff",
   },
   {
-    name: "Miguel T.",
+    name: "Michael T.",
     role: "Pre-Med Student",
     quote: "The leaderboard keeps me competitive. I've studied 40% more than I used to just to stay in the top 10%!",
     rotate: "-rotate-1",
@@ -33,12 +33,12 @@ const TESTIMONIALS = [
 ];
 
 const FEATURES = [
-  { bg: "#FFE566", icon: "bolt", title: "AI Flashcards", desc: "Instantly turn your messy notes into structured, high-retention flashcards powered by GPT-4." },
-  { bg: "#baeaff", icon: "psychology", title: "Smart Tutor", desc: "Stuck on a concept? Our AI tutor explains complex topics like you're five. Truly legendary." },
-  { bg: "#fafdff", icon: "timer", title: "Focus Flow", desc: "The most satisfying Pomodoro timer you've ever used. Sync with Lo-Fi beats automatically." },
-  { bg: "#ffdad3", icon: "military_tech", title: "Leaderboards", desc: "Compete with friends or students globally. Climbing the ranks has never felt this good." },
-  { bg: "#db3417", icon: "analytics", title: "Visual Insights", desc: "Detailed analytics on your knowledge gaps. See exactly where you need to focus today.", dark: true },
-  { bg: "#fce264", icon: "group", title: "Study Squads", desc: "Join real-time study rooms. Accountability is the secret sauce to finishing your syllabus." },
+  { bg: "#FFE566", icon: "bolt", title: "AI Flashcards", desc: "Instantly turn your messy notes into structured, high-retention flashcards with spaced repetition built in." },
+  { bg: "#baeaff", icon: "psychology", title: "Smart Tutor", desc: "Stuck on a concept? Rex the AI tutor explains complex topics like you're five. Truly legendary." },
+  { bg: "#fafdff", icon: "timer", title: "Focus Timer", desc: "The most satisfying Pomodoro timer you've ever used. Ambient sounds keep you locked in." },
+  { bg: "#ffdad3", icon: "military_tech", title: "Arena Battles", desc: "Challenge friends to real-time quiz battles. Climbing the ranks has never felt this good." },
+  { bg: "#db3417", icon: "analytics", title: "Study Analytics", desc: "Track your study hours, streak, and session history. See exactly where you need to focus today.", dark: true },
+  { bg: "#fce264", icon: "calculate", title: "Math Solver", desc: "Snap a photo or type an equation. Get step-by-step solutions with graphs and tables instantly." },
 ];
 
 const LEADERBOARD = [
@@ -331,10 +331,10 @@ export default function Studenius() {
               <div className="font-display" style={{ fontSize:48, fontWeight:900, marginBottom:24 }}>$0<span style={{ fontSize:16, fontWeight:400 }}>/month</span></div>
               <ul style={{ listStyle:"none", padding:0, marginBottom:32, display:"flex", flexDirection:"column", gap:10 }}>
                 {[
-                  { ok:true, text:"Unlimited basic flashcards" },
-                  { ok:true, text:"Focus timer (No music)" },
-                  { ok:true, text:"1 AI Tutor query per day" },
-                  { ok:false, text:"No custom Study Squads" },
+                  { ok:true, text:"3 flashcard decks per day" },
+                  { ok:true, text:"Focus timer with ambient sounds" },
+                  { ok:true, text:"20 AI Tutor queries per day" },
+                  { ok:false, text:"Basic AI model only" },
                 ].map(({ ok, text }) => (
                   <li key={text} style={{ display:"flex", alignItems:"center", gap:8, fontSize:15, opacity: ok ? 1 : 0.45 }}>
                     <span className="ms" style={{ color: ok ? "#16a34a" : "#999", fontSize:20 }}>{ok ? "check_circle" : "cancel"}</span>
@@ -350,14 +350,14 @@ export default function Studenius() {
               <div className="neo-btn-secondary" style={{ position:"absolute", top:-20, left:"50%", transform:"translateX(-50%)", padding:"6px 20px", fontSize:13, whiteSpace:"nowrap" }}>MOST LEGENDARY</div>
               <h3 className="font-display" style={{ fontSize:28, fontWeight:800, marginBottom:4 }}>Pro</h3>
               <p style={{ opacity:.9, marginBottom:20, fontSize:15 }}>Unlock the full power of your brain.</p>
-              <div className="font-display" style={{ fontSize:48, fontWeight:900, marginBottom:24 }}>$3<span style={{ fontSize:16, fontWeight:400 }}>/month</span></div>
+              <div className="font-display" style={{ fontSize:48, fontWeight:900, marginBottom:24 }}>₱199<span style={{ fontSize:16, fontWeight:400 }}>/month</span></div>
               <ul style={{ listStyle:"none", padding:0, marginBottom:32, display:"flex", flexDirection:"column", gap:10 }}>
                 {[
                   "Everything in Free",
                   "Unlimited AI Tutor queries",
-                  "Advanced analytics & knowledge gap map",
-                  "Priority leaderboard badges",
-                  "Early access to new features",
+                  "Premium AI model (70B intelligence)",
+                  "Unlimited flashcard generation",
+                  "Priority support & early access",
                 ].map((text) => (
                   <li key={text} style={{ display:"flex", alignItems:"center", gap:8, fontSize:15 }}>
                     <span className="ms" style={{ color:"#f9e061", fontSize:20 }}>grade</span>

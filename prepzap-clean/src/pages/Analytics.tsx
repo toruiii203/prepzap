@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
+import { StatsCardExport } from "@/components/StatsCardExport";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +15,7 @@ export default function Analytics() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [tasksCompletedPct, setTasksCompletedPct] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [subjectAccuracy, setSubjectAccuracy] = useState<{subject: string, correct: number, total: number, pct: number}[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -79,7 +81,7 @@ export default function Analytics() {
       const diffTime = Math.abs(new Date().getTime() - date.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       if (diffDays <= 7) {
-        weeklyHours[idx] += (s.duration || 0) / 60;
+        weeklyHours[idx] += (s.duration_minutes || s.duration || 0) / 60;
       }
     } catch {}
   });
@@ -99,7 +101,7 @@ export default function Analytics() {
   });
 
   // Calculate dynamic stats
-  const totalMins = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+  const totalMins = sessions.reduce((sum, s) => sum + (s.duration_minutes || s.duration || 0), 0);
   const activeHoursStr = (totalMins / 60).toFixed(1) + "h";
   const totalSessionsCount = sessions.length;
 
@@ -135,7 +137,7 @@ export default function Analytics() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 bg-[#F0EDE0] px-3 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000]">
                 
-                <span className="text-[13px] font-extrabold">Streak: {profile?.streak_days ?? 0} Day{(profile?.streak_days ?? 0) !== 1 ? "s" : ""}</span>
+                <span className="text-[13px] font-extrabold">Streak: {profile?.streak_days ?? profile?.streak ?? 0} Day{(profile?.streak_days ?? profile?.streak ?? 0) !== 1 ? "s" : ""}</span>
               </div>
               <button
                 onClick={() => {
@@ -327,7 +329,7 @@ export default function Analytics() {
                           <td className="py-3 text-[13px] font-bold text-black/50">{formatDateHelper(ses.created_at)}</td>
                           <td className="py-3">
                             <span className="text-[12px] font-extrabold bg-black text-white px-2 py-0.5 rounded-full border border-black">
-                              {ses.duration} mins
+                              {ses.duration_minutes || ses.duration || 0} mins
                             </span>
                           </td>
                         </tr>
@@ -343,7 +345,7 @@ export default function Analytics() {
               <div className="flex-1">
                 <h4 className="text-[15px] font-extrabold text-[#FF4D2E] mb-2">AI Learning Insight</h4>
                 <p className="text-[14px] font-bold text-white/80 leading-relaxed">
-                  {sessions.length >= 3 ? `You've logged ${sessions.length} sessions totaling ${Math.round(sessions.reduce((s, x) => s + (x.duration || 0), 0) / 60 * 10) / 10}h of study. Keep building your streak to unlock deeper AI insights into your learning patterns.` : "Log at least 3 study sessions to unlock your personalized AI Learning Insight."}
+                  {sessions.length >= 3 ? `You've logged ${sessions.length} sessions totaling ${Math.round(sessions.reduce((s, x) => s + (x.duration_minutes || x.duration || 0), 0) / 60 * 10) / 10}h of study. Keep building your streak to unlock deeper AI insights into your learning patterns.` : "Log at least 3 study sessions to unlock your personalized AI Learning Insight."}
                 </p>
               </div>
               <div className="flex-shrink-0">
@@ -509,7 +511,7 @@ export default function Analytics() {
                         <h3 className="font-headline text-body-lg text-black font-extrabold truncate text-[15.5px]">{ses.title || ses.subject}</h3>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[12px] font-bold text-[#faf7f2] bg-primary px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_rgba(0,0,0,1)]">
-                            {ses.duration} mins
+                            {ses.duration_minutes || ses.duration || 0} mins
                           </span>
                           <span className="text-[12px] text-on-surface-variant font-bold opacity-60">{formatDateHelper(ses.created_at)}</span>
                         </div>

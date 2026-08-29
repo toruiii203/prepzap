@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
+import { fireConfetti } from "@/lib/confetti";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { logQuestCompletion } from "@/lib/quests";
@@ -82,6 +83,18 @@ function DesktopFlashcard({ currentCard, isFlipped, setIsFlipped }: DesktopFlash
 
 export default function Flashcards() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isChallenge = searchParams.get('challenge') === 'true';
+  const [showChallengeToast, setShowChallengeToast] = useState(false);
+
+  useEffect(() => {
+    if (isChallenge) {
+      setCardCount(16); // max count
+      setShowChallengeToast(true);
+      setTimeout(() => setShowChallengeToast(false), 3000);
+    }
+  }, [isChallenge]);
+
   const { user, profile, refreshProfile } = useAuth() as any;
   const { logSession } = useStudySession();
   const { save: saveHistory, history: deckHistory } = useToolHistory("flashcards");
@@ -105,6 +118,42 @@ export default function Flashcards() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+
+  // SRS: Live queries from Dexie
+  const decks = useLiveQuery(() => db.decks.toArray()) ?? [];
+  const [dueCounts, setDueCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const computeDue = async () => {
+      const now = Date.now();
+      const counts: Record<string, number> = {};
+      for (const deck of decks) {
+        if (!deck.id) continue;
+        const due = await db.cards.where('deckId').equals(deck.id)
+          .filter(c => c.nextReviewDate <= now).count();
+        counts[deck.id!] = due;
+      }
+      setDueCounts(counts);
+    };
+    if (decks.length > 0) computeDue();
+  }, [decks]);
+
+  const handleLoadDeck = async (deckId: string) => {
+    const now = Date.now();
+    const dueCards = await db.cards.where('deckId').equals(deckId)
+      .filter(c => c.nextReviewDate <= now).toArray();
+    if (dueCards.length === 0) {
+      // All cards reviewed, load all cards for re-study
+      const allCards = await db.cards.where('deckId').equals(deckId).toArray();
+      setCards(allCards.map(c => ({ front: c.front, back: c.back, explanation: c.explanation || '', deckId: c.deckId, dexieId: c.id })));
+    } else {
+      setCards(dueCards.map(c => ({ front: c.front, back: c.back, explanation: c.explanation || '', deckId: c.deckId, dexieId: c.id })));
+    }
+    setCurrentCardIndex(0);
+    setScores({ gotIt: 0, unsure: 0, forgot: 0 });
+    setIsFlipped(false);
+    setView('study');
+  };
 
   useEffect(() => {
     remaining("flashcard_gen").then(setRemainingUses);
@@ -318,6 +367,27 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       meta: `${generatedCards.length} cards generated`,
     });
 
+    // Save deck to Dexie for SRS
+    const deckId = crypto.randomUUID();
+    await db.decks.add({ id: deckId, title: deckLabel2, createdAt: Date.now() });
+    const now = Date.now();
+    for (const card of generatedCards) {
+      const dexieId = crypto.randomUUID();
+      card.deckId = deckId;
+      card.dexieId = dexieId;
+      await db.cards.add({
+        id: dexieId,
+        deckId,
+        front: card.front,
+        back: card.back,
+        explanation: card.explanation || '',
+        interval: 0,
+        repetitions: 0,
+        easeFactor: 2.5,
+        nextReviewDate: now, // due immediately for first review
+      });
+    }
+
     setCards(generatedCards);
     setIsLoading(false);
     setView("study");
@@ -329,6 +399,27 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
     setIsFlipped(false);
 
     setTimeout(async () => {
+      // SRS: Update card scheduling in Dexie
+      const currentCardData = cards[currentCardIndex];
+      if (currentCardData?.dexieId) {
+        const gradeMap: Record<string, Grade> = { forgot: 0, unsure: 1, gotIt: 3 };
+        const grade = gradeMap[type];
+        const existing = await db.cards.get(currentCardData.dexieId);
+        if (existing) {
+          const result = calculateSM2(grade, {
+            interval: existing.interval,
+            repetitions: existing.repetitions,
+            easeFactor: existing.easeFactor,
+          });
+          await db.cards.update(currentCardData.dexieId, {
+            interval: result.interval,
+            repetitions: result.repetitions,
+            easeFactor: result.easeFactor,
+            nextReviewDate: Date.now() + result.interval * 24 * 60 * 60 * 1000,
+          });
+        }
+      }
+
       if (currentCardIndex + 1 < cards.length) {
         setCurrentCardIndex(prev => prev + 1);
       } else {
@@ -349,6 +440,11 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             if (typeof refreshProfile === "function") {
               await refreshProfile();
             }
+
+            // Check perfect recall
+            if (nextScores.forgot === 0 && nextScores.unsure === 0) {
+              await logQuestCompletion(user.id, "perfect-recall");
+            }
           } catch (err) {
             console.error("Error rewarding flashcard completion:", err);
           }
@@ -358,6 +454,62 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         saveHistory({ prompt: deckLabel, preview: `${cards.length} cards`, output: deckLabel, model: "rex-ai", meta: `${nextScores.gotIt} got it / ${nextScores.forgot} forgot` });
       }
     }, 200);
+  };
+
+  const handleRate = (rating: "again" | "hard" | "good" | "easy") => {
+    if (rating === "again") handleResponse("forgot");
+    else if (rating === "hard") handleResponse("unsure");
+    else if (rating === "good") handleResponse("gotIt");
+    else if (rating === "easy") handleResponse("gotIt");
+  };
+
+  useEffect(() => {
+    if (view !== 'study') return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        setIsFlipped(prev => !prev);
+      } else if (isFlipped) {
+        if (e.key === '1') handleRate('again');
+        else if (e.key === '2') handleRate('hard');
+        else if (e.key === '3') handleRate('good');
+        else if (e.key === '4') handleRate('easy');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [view, isFlipped]);
+
+  const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
+  const [touchDelta, setTouchDelta] = useState<{x: number, y: number}>({x: 0, y: 0});
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    setTouchDelta({
+      x: e.touches[0].clientX - touchStart.x,
+      y: e.touches[0].clientY - touchStart.y
+    });
+  };
+  const handleTouchEnd = () => {
+    if (!touchStart) return;
+    const { x, y } = touchDelta;
+    if (isFlipped) {
+      if (Math.abs(x) > Math.abs(y)) {
+        if (x > 50) handleRate('good');
+        else if (x < -50) handleRate('again');
+      } else {
+        if (y < -50) handleRate('easy');
+      }
+    }
+    setTouchStart(null);
+    setTouchDelta({x: 0, y: 0});
   };
 
   const currentCard = cards[currentCardIndex % cards.length] || mockCards[currentCardIndex % mockCards.length];
@@ -370,6 +522,12 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black text-white px-5 py-3 border-2 border-black shadow-[4px_4px_0px_#ae2925] font-bold text-[13px] flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px]">check_circle</span>
           Link copied! Share it with anyone.
+        </div>
+      )}
+      {showChallengeToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black text-[#F5A623] px-5 py-3 border-2 border-black shadow-[4px_4px_0px_#ae2925] font-bold text-[13px] flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px]">bolt</span>
+          Perfect Recall Challenge: 16 Cards Selected!
         </div>
       )}
 
@@ -1024,8 +1182,15 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               {/* Flashcard Container (3D Flip) */}
               <div
                 onClick={() => setIsFlipped(!isFlipped)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 className="relative w-full flex-1 max-h-[400px] cursor-pointer mt-6"
-                style={{ perspective: "1000px" }}
+                style={{
+                  perspective: "1000px",
+                  transform: touchStart ? `translate(${touchDelta.x}px, ${touchDelta.y}px) rotate(${touchDelta.x * 0.05}deg)` : 'none',
+                  transition: touchStart ? 'none' : 'transform 0.3s ease-out'
+                }}
               >
                 <div
                   className="transition-transform duration-500 w-full h-full relative"

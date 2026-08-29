@@ -104,6 +104,17 @@ export function getCachedSession(): Session | null {
 export function getCachedAccessToken(): string | null {
   return cachedSession?.access_token ?? null
 }
+export function getCachedProfile() {
+  try {
+    const raw = localStorage.getItem("pz_auth_cache");
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p.profile) return p.profile;
+    }
+  } catch {}
+  return null;
+}
+
 export function getCachedUserId(): string | null {
   return cachedSession?.user?.id ?? null
 }
@@ -214,8 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initialize = async () => {
       try {
-        if (import.meta.env.DEV) {
-          console.log("DEV MODE: Injecting mock user");
+        if (import.meta.env.DEV && (import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
+          console.log("DEV MODE: Missing real keys, injecting mock user");
           const mockUser = {
             id: "mock-user-123",
             email: "mock@example.com",
@@ -239,11 +250,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: "mock@example.com",
             plan: "pro",
             credits_remaining: 9999,
-            total_xp: 5000,
-            streak_days: 0,
+            total_xp: 5600,
+            streak_days: 12,
             daily_goal_minutes: 60,
             questions_answered: 100,
             accuracy_percent: 85,
+            onboarding_complete: true
           });
           setNeedsOnboarding(false);
           setLoading(false);
@@ -310,7 +322,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
-      if (import.meta.env.DEV) return;
+      if (import.meta.env.DEV && (import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) return;
+      
       // Skip the redundant initial fire — `initialize()` above already
       // handles first load. Without this, a fresh session on cold load
       // triggers fetchProfile twice concurrently.
