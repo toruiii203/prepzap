@@ -73,7 +73,6 @@ import Onboarding from "./pages/OnboardingFlow";
 import AuthCallback from "./pages/AuthCallback";
 import Admin from "./pages/Admin";
 import SourceLibrary from "./pages/SourceLibrary";
-import { SourceBreadcrumb } from "./components/SourceBreadcrumb";
 import Dashboard from "./pages/Dashboard";
 import Practice from "./pages/Practice";
 import Flashcards from "./pages/Flashcards";
@@ -186,7 +185,6 @@ function AppRoutes() {
 
   return (
     <>
-      <SourceBreadcrumb />
       <PWAInstallBanner />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
