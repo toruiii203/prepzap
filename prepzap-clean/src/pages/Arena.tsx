@@ -54,8 +54,12 @@ function formatTime(seconds: number): string {
 }
 
 function todayPH(): string {
-  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }))
-    .toISOString().split("T")[0];
+  return new Intl.DateTimeFormat('en-CA', { 
+    timeZone: 'Asia/Manila', 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  }).format(new Date());
 }
 
 function generateCode(): string {
@@ -523,7 +527,7 @@ export default function Arena() {
           <div>
             <h2 className="font-black text-[20px] text-black leading-tight">{dailyQuiz.topic}</h2>
             <div className="flex gap-2 mt-2">
-              <span className="text-[10px] font-bold border-2 border-black px-2 py-0.5 capitalize">{dailyQuiz.difficulty}</span>
+              {dailyQuiz.difficulty && <span className="text-[10px] font-bold border-2 border-black px-2 py-0.5 capitalize">{dailyQuiz.difficulty}</span>}
               <span className="text-[10px] font-bold border-2 border-black px-2 py-0.5">{dailyQuiz.questions.length} Questions</span>
             </div>
           </div>

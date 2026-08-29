@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+
 
 const PAYMENT_LINKS = {
   Monthly: "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/RhaIdBU",
@@ -206,44 +206,23 @@ export default function UsePro() {
               </button>
 
               {/* PayPal */}
-<div className="w-full relative z-0 mt-3">
-  <PayPalScriptProvider options={{ "clientId": import.meta.env.VITE_PAYPAL_CLIENT_ID || "test", currency: "PHP", intent: "capture" }}>
-    <PayPalButtons
-      style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay" }}
-      createOrder={(data, actions) => {
-        const amount = billingCycle === "Monthly" ? "199.00" : "1499.00";
-        return actions.order.create({
-          intent: "CAPTURE",
-          purchase_units: [
-            {
-              reference_id: user?.id,
-              custom_id: user?.id,
-              description: `Studenius VIP (${billingCycle})`,
-              amount: {
-                currency_code: "PHP",
-                value: amount,
-              },
-            },
-          ],
-        });
-      }}
-      onApprove={async (data, actions) => {
-        setRedirecting(true);
-        try {
-          const order = await actions.order?.capture();
-          console.log("Payment successful!", order);
-          setTimeout(() => window.location.reload(), 2000);
-        } catch (err) {
-          console.error("Capture error", err);
-          setRedirecting(false);
-        }
-      }}
-      onError={(err) => {
-        console.error("PayPal Error:", err);
-        setRedirecting(false);
-      }}
-    />
-  </PayPalScriptProvider></div>
+              <button
+                onClick={handlePayPal}
+                disabled={redirecting}
+                className="w-full bg-[#ffc439] hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-2 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer text-[15px]"
+              >
+                {redirecting ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                    <span>Redirecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Pay with PayPal</span>
+                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
+                  </>
+                )}
+              </button>
             </div>
           )}
           <p className="text-[12.5px] font-bold text-on-surface-variant mt-3 opacity-60">
