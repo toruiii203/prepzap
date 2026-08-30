@@ -214,9 +214,8 @@ export default function ArenaQuiz() {
       if (isDaily) {
         try {
           const { error } = await supabase.from("daily_challenge_submissions").insert({
-            user_id: user.id,
-            challenge_date: todayPH(),
-            answers: latestAnswers,
+              user_id: user.id,
+              challenge_date: todayPH(),
             score,
             time_taken_seconds: elapsed,
             display_name: displayName,
@@ -226,7 +225,6 @@ export default function ArenaQuiz() {
             await supabase.from("daily_challenge_submissions").insert({
               user_id: user.id,
               challenge_date: todayPH(),
-              answers: latestAnswers,
               score,
               time_taken_seconds: elapsed,
             });
