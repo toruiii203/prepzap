@@ -210,6 +210,26 @@ export default function Practice() {
     localStorage.setItem('pz_practice_topic', topicInput);
     localStorage.setItem('pz_practice_count', questionCount.toString());
   }, [view, currentQIndex, selectedOption, timeLeft, score, answers, questions, topicInput, questionCount]);
+  const [isReviewLoop, setIsReviewLoop] = useState(false);
+  const [missedQuestions, setMissedQuestions] = useState<number[]>([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [hasAnsweredCurrent, setHasAnsweredCurrent] = useState(false);
+  const [isCurrentCorrect, setIsCurrentCorrect] = useState<boolean | null>(null);
+  const [showReviewTransition, setShowReviewTransition] = useState(false);
+  const [showProUpsell, setShowProUpsell] = useState(false);
+  const [textAnswers, setTextAnswers] = useState<string[]>([]);
+  const [textInput, setTextInput] = useState("");
+  const [mascotState, setMascotState] = useState<"idle" | "attention" | "wrong">("idle");
+  const [isReviewLoop, setIsReviewLoop] = useState(false);
+  const [missedQuestions, setMissedQuestions] = useState<number[]>([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [hasAnsweredCurrent, setHasAnsweredCurrent] = useState(false);
+  const [isCurrentCorrect, setIsCurrentCorrect] = useState<boolean | null>(null);
+  const [showReviewTransition, setShowReviewTransition] = useState(false);
+  const [showProUpsell, setShowProUpsell] = useState(false);
+  const [textAnswers, setTextAnswers] = useState<string[]>([]);
+  const [textInput, setTextInput] = useState("");
+  const [mascotState, setMascotState] = useState<"idle" | "attention" | "wrong">("idle");
   const [showHistory, setShowHistory] = useState(false);
   const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
 
