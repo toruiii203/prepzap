@@ -3,6 +3,7 @@
 // The API key lives in the Worker secret — not exposed in the frontend.
 // ─────────────────────────────────────────────────────────────────────────────
 import { getCachedAccessToken } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.YOUR_DOMAIN.workers.dev";
 // API key removed for security; requests are routed through Cloudflare Worker
@@ -24,8 +25,36 @@ function getTieredModel(model: string): string {
 // It's synchronous, can't deadlock, and can't time out — it's just whatever
 // AuthProvider last set, which is kept fresh on every auth state change
 // including background token refreshes.
+
 async function getAccessTokenSafely(): Promise<string> {
-  return getCachedAccessToken() ?? "";
+  try {
+    const { data, error } = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<{data: any, error: any}>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+    ]);
+    if (!error && data?.session?.access_token) {
+      return data.session.access_token;
+    }
+  } catch (err) {
+    console.warn("getSession timeout/error in Groq helper:", err);
+  }
+
+  // Fallback to in-memory cache
+  const token = getCachedAccessToken();
+  if (token) return token;
+
+  // Fallback to local storage
+  try {
+    const raw = localStorage.getItem("pz_auth_cache");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.session?.access_token) {
+        return parsed.session.access_token;
+      }
+    }
+  } catch (e) {}
+
+  return "";
 }
 
 export interface GroqMessage {

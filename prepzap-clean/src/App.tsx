@@ -172,7 +172,10 @@ function AppRoutes() {
     location.pathname.startsWith('/landing') ||
     location.pathname.startsWith('/login') ||
     location.pathname.startsWith('/signup') ||
-    location.pathname.startsWith('/arena/quiz/');
+    location.pathname.startsWith('/arena/quiz/') ||
+    location.pathname.startsWith('/ai-tutor') ||
+    location.pathname.startsWith('/timer') ||
+    location.pathname.startsWith('/pomodoro-area');
 
   useEffect(() => {
     if (user?.id) {
