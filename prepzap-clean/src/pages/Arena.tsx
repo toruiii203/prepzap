@@ -637,10 +637,10 @@ export default function Arena() {
             <div key={entry.user_id + i}
               className={`flex items-center gap-3 px-4 py-3 ${i < leaderboard.length - 1 ? "border-b-2 border-black" : ""} ${isMe ? "bg-[#f0a040]/15" : ""}`}>
               <span className="w-6 text-center font-black text-[14px]">{medal ?? `${i + 1}`}</span>
-              <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-bold text-[11px] ${isMe ? "bg-black text-white" : "bg-black/10"}`}>
-                {isMe ? "YOU" : entry.display_name.charAt(0)}
+              <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-black text-[12px] ${isMe ? "bg-[#f0a040] text-black" : "bg-black/10 text-black"}`}>
+                {entry.display_name.charAt(0).toUpperCase()}
               </div>
-              <span className="flex-1 font-bold text-[14px] text-black truncate">{isMe ? "You" : entry.display_name}</span>
+              <span className={`flex-1 text-[14px] truncate ${isMe ? "font-black text-black" : "font-bold text-black"}`}>{entry.display_name}</span>
               <div className="text-right">
                 <p className={`font-black text-[14px] ${isMe ? "text-[#f0a040]" : "text-black"}`}>{entry.score.toLocaleString()}</p>
                 <p className="text-[10px] text-black/40">{formatTime(entry.time_taken)}</p>

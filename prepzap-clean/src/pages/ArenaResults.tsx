@@ -301,7 +301,7 @@ export default function ArenaResults() {
     <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
       {/* Confetti */}
       <div className="fixed top-8 left-[30%] w-4 h-4 bg-[#f0a040] border-2 border-black rounded-full pointer-events-none" />
-      <div className="fixed top-16 right-[20%] w-5 h-5 bg-black rotate-12 pointer-events-none" />
+      <div className="fixed top-16 right-[20%] w-5 h-5 bg-[#FF4D2E] rotate-12 pointer-events-none border-2 border-black" />
       <div className="fixed top-32 left-[15%] w-3 h-3 bg-[#f0a040] border border-black pointer-events-none" />
 
       {/* Header */}

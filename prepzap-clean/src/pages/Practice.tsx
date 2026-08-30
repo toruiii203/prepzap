@@ -92,12 +92,12 @@ interface BannerProps {
 const QUESTION_COUNT_OPTIONS = [3, 5, 10, 15];
 function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount }: BannerProps) {
   return (
-    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
+    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
-            <h2 className="font-extrabold text-[20px]">Rex AI Quiz Builder</h2>
+            <h2 className="font-extrabold text-[20px]">AI Quiz Builder</h2>
           </div>
           <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
         </div>
@@ -155,7 +155,7 @@ function HistoryCard({ entry, onOpenReview }: { entry: HistoryEntry; onOpenRevie
   return (
     <button
       onClick={() => onOpenReview(entry)}
-      className="w-full bg-white border-[1.5px] border-black shadow-[2px_2px_0px_#000] p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5 text-left"
+      className="w-full bg-white border-[1.5px] border-black p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5 text-left"
     >
       <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
         style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
@@ -639,7 +639,7 @@ Each object MUST match this schema exactly:
             {isGenerating && (
               <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4">
                 <div className="w-16 h-16 border-4 border-[#FF4D2E] border-t-transparent rounded-full animate-spin" />
-                <p className="font-bold text-[14px] text-black/50">Rex AI is building your quiz...</p>
+                <p className="font-bold text-[14px] text-black/50">Building your quiz...</p>
               </div>
             )}
 
@@ -788,9 +788,9 @@ Each object MUST match this schema exactly:
       </div>{/* end desktop wrapper */}
 
       {/* ══ MOBILE ═══════════════════════════════════════════════════════════ */}
-      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2] pb-20" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full min-h-screen bg-[#FAF7F2] flex flex-col pb-28">
 
-        <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[3px] border-black flex items-center justify-between px-4 h-16">
+        <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[3px] border-black flex items-center justify-between px-4 h-16 shrink-0">
           <button onClick={() => navigate(-1)}
             className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5">
             <span className="material-symbols-outlined text-[22px]">arrow_back</span>
@@ -821,30 +821,29 @@ Each object MUST match this schema exactly:
 
         {view === "quiz" && !showReviewTransition && (
           <>
-            <main className="flex-1 w-full px-4 py-5 flex flex-col gap-5 overflow-y-auto pb-28 relative">
+            <main className="w-full px-4 py-5 flex flex-col gap-5">
 
               {/* Mobile Banner */}
-              <section className="bg-white rounded-xl border-[1.5px] border-black shadow-[3px_3px_0px_#000] p-4 flex flex-col gap-3 relative overflow-hidden">
-                <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#FF4D2E] rounded-full opacity-10 blur-xl pointer-events-none" />
-                <div className="flex items-center gap-2 z-10">
+              <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0">
+                <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
-                  <span className="font-extrabold text-[13px] uppercase tracking-wider text-[#FF4D2E]">Rex AI Quiz Builder</span>
+                  <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">AI Quiz Builder</span>
                 </div>
                 <textarea
                   value={topicInput}
                   onChange={e => setTopicInput(e.target.value)}
-                  className="w-full h-24 bg-[#FAF7F2] border-[1.5px] border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none z-10"
+                  className="w-full h-24 bg-[#FAF7F2] border-2 border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none"
                   placeholder="Paste notes or type a topic..."
                 />
-                {/* FIX: question count was hardcoded to 3, no way to change it */}
-                <div className="flex items-center gap-2 z-10">
+                {/* Question count options */}
+                <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0">Questions</span>
-                  <div className="flex border-[1.5px] border-black rounded-lg overflow-hidden">
+                  <div className="flex border-2 border-black rounded-lg overflow-hidden">
                     {QUESTION_COUNT_OPTIONS.map((n, i) => (
                       <button
                         key={n}
                         onClick={() => setQuestionCount(n)}
-                        className={`px-3 py-1 text-[12px] font-extrabold transition-colors ${i > 0 ? "border-l-[1.5px] border-black" : ""} ${
+                        className={`px-3 py-1 text-[12px] font-extrabold transition-colors ${i > 0 ? "border-l-2 border-black" : ""} ${
                           questionCount === n ? "bg-black text-white" : "bg-white text-black"
                         }`}
                       >
@@ -853,17 +852,14 @@ Each object MUST match this schema exactly:
                     ))}
                   </div>
                 </div>
-                <div className="flex gap-2 z-10">
-                  {/* FIX: this used to be a dropdown to pick a single Source
-                      Library file. It now just shows how many files will be
-                      read automatically, with a tap-through to manage them. */}
+                <div className="flex gap-2">
                   <button onClick={() => navigate("/sources")}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-[1.5px] border-black rounded-lg text-[12px] font-bold bg-[#F0EDE0] hover:bg-black hover:text-white transition-colors">
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-2 border-black rounded-lg text-[12px] font-bold bg-[#F0EDE0] hover:bg-black hover:text-white transition-colors">
                     <span className="material-symbols-outlined text-[16px]">description</span>
                     {libraryFiles.length > 0 ? `Using all ${libraryFiles.length}` : "No sources"}
                   </button>
                   <button onClick={handleGenerateQuiz} disabled={isGenerating}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-[1.5px] border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                     {isGenerating ? "Loading..." : "Generate"}
                   </button>
@@ -873,14 +869,14 @@ Each object MUST match this schema exactly:
               {isGenerating && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <div className="w-14 h-14 rounded-full border-4 border-[#FF4D2E] border-t-transparent animate-spin" />
-                  <p className="font-bold text-[13px] text-black/50">Rex AI is building your quiz...</p>
+                  <p className="font-bold text-[13px] text-black/50">Building your quiz...</p>
                 </div>
               )}
 
               {questions.length === 0 && !isGenerating && (
                 <>
                   <div className="flex flex-col items-center text-center gap-3 py-8">
-                    <div className="w-24 h-24 bg-[#E2E2E2] border-[1.5px] border-black shadow-[3px_3px_0px_#000] rounded-full flex items-center justify-center">
+                    <div className="w-24 h-24 bg-[#E2E2E2] border-[1.5px] border-black rounded-full flex items-center justify-center">
                       <span className="material-symbols-outlined text-[48px] text-black opacity-40" style={{ fontVariationSettings: "'FILL' 1" }}>extension_off</span>
                     </div>
                     <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
