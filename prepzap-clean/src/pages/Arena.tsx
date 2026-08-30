@@ -567,7 +567,7 @@ export default function Arena() {
   const renderLeaderboardCard = () => (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-black text-[16px] text-black tracking-tight">Rankings</h3>
+        <h3 className="font-black text-[16px] text-black tracking-tight">Global XP League</h3>
         <div className="flex gap-1.5">
           {(["today", "alltime"] as const).map((tab) => (
             <button key={tab} onClick={() => setLeaderboardTab(tab)}
@@ -584,7 +584,7 @@ export default function Arena() {
           <div className="p-6 text-center"><p className="font-bold text-[13px] text-black/40">No submissions yet — be first!</p></div>
         ) : leaderboard.map((entry, i) => {
           const isMe = entry.user_id === user?.id;
-          const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+          const medal = i === 0 ? <span className="material-symbols-outlined text-[#eab308]" style={{ fontVariationSettings: "'FILL' 1" }}>military_tech</span> : i === 1 ? <span className="material-symbols-outlined text-[#9ca3af]" style={{ fontVariationSettings: "'FILL' 1" }}>military_tech</span> : i === 2 ? <span className="material-symbols-outlined text-[#b45309]" style={{ fontVariationSettings: "'FILL' 1" }}>military_tech</span> : null;
           return (
             <div key={entry.user_id + i}
               className={`flex items-center gap-3 px-4 py-3 ${i < leaderboard.length - 1 ? "border-b-2 border-black" : ""} ${isMe ? "bg-[#f0a040]/15" : ""}`}>

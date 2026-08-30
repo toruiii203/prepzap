@@ -176,7 +176,7 @@ export default function Practice() {
   const { isPro, canUse, logUsage } = usePlan();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, addXP } = useAuth();
   const { logSession } = useStudySession();
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
 

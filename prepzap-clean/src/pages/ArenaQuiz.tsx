@@ -77,7 +77,7 @@ const QTimerRing = ({ qTimeLeft }: { qTimeLeft: number }) => {
 export default function ArenaQuiz() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, addXP } = useAuth();
   const isDaily = code === "daily";
 
   const getStorageKey = useCallback(() => {

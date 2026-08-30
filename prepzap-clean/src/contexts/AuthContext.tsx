@@ -400,6 +400,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchProfile])
 
+
+  const addXP = useCallback(async (amount: number) => {
+    if (!user) return;
+    
+    // Optimistic UI update
+    setProfile(prev => {
+      if (!prev) return prev;
+      const newTotal = (prev.total_xp || 0) + amount;
+      const updated = { ...prev, total_xp: newTotal };
+      try {
+        const stored = localStorage.getItem("pz_auth_cache");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.profile = updated;
+          localStorage.setItem("pz_auth_cache", JSON.stringify(parsed));
+        }
+      } catch {}
+      return updated;
+    });
+
+    try {
+      // Fetch current to avoid race conditions if possible, then upsert
+      const { data: existing } = await supabase.from("profiles").select("total_xp").eq("id", user.id).maybeSingle();
+      const newXp = (existing?.total_xp || 0) + amount;
+      
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        total_xp: newXp
+      }, { onConflict: "id" });
+      
+      if (error) console.error("Failed to add XP to DB:", error.message);
+    } catch (e) {
+      console.error("XP error:", e);
+    }
+  }, [user]);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
     try {
@@ -409,7 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user, profile, loading, needsOnboarding, refreshProfile, signOut, lsKey }}
+      value={{ session, user, profile, loading, needsOnboarding, refreshProfile, signOut, addXP, lsKey }}
     >
       {children}
     </AuthContext.Provider>
