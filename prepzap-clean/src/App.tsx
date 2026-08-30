@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Suspense, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -12,6 +12,7 @@ import { setSourceContextUser } from "@/lib/sourceContext";
 import { setHistoryUser } from "@/lib/historyStore";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { StudeniusLayout } from "@/components/StudeniusLayout";
+import { App as CapApp } from "@capacitor/app";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 function SplashScreen({ onDone }: { onDone: () => void }) {
@@ -161,6 +162,7 @@ function AppRoutes() {
   const { user } = useAuth();
   const [showSplash, setShowSplash] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const hideBottomNav = 
     location.pathname.startsWith('/onboarding') ||
@@ -176,6 +178,21 @@ function AppRoutes() {
       setHistoryUser(user.id);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    // Handle Android/iOS deep links (OAuth callback)
+    const sub = CapApp.addListener("appUrlOpen", (event) => {
+      const url = event.url;
+      // studenius://auth/callback#access_token=...
+      if (url.includes("studenius://")) {
+        const path = url.split("studenius://")[1];
+        // e.g. "auth/callback#access_token=..."
+        // Use navigate to manually trigger the React Router transition inside the SPA
+        navigate("/" + path, { replace: true });
+      }
+    });
+    return () => { sub.then(listener => listener.remove()); };
+  }, [navigate]);
 
   if (showSplash) return <SplashScreen onDone={() => setShowSplash(false)} />;
 
