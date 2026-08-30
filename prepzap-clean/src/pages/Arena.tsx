@@ -544,6 +544,10 @@ export default function Arena() {
       setLoadingLeaderboard(false);
     };
     load();
+    const ch = supabase.channel("arena-daily-leaderboard")
+      .on("postgres_changes", { event: "*", schema: "public", table: "daily_challenge_submissions" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [leaderboardTab]);
 
   useEffect(() => {
@@ -561,6 +565,16 @@ export default function Arena() {
   }, []);
 
   // ── Shared sub-components ──────────────────────────────────────────────────
+  const handleViewBreakdown = () => {
+    const today = todayPH();
+    let savedState = null;
+    try {
+      const raw = (user?.id ? localStorage.getItem(`pz_daily_breakdown_${today}_${user.id}`) : null) || localStorage.getItem(`pz_daily_breakdown_${today}`);
+      if (raw) savedState = JSON.parse(raw);
+    } catch {}
+    navigate("/arena/results/daily", { state: savedState });
+  };
+
   const renderDailyCard = () => (
     <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] overflow-hidden">
       <div className="bg-[#f0a040] border-b-2 border-black px-4 py-2 flex justify-between items-center">
@@ -588,7 +602,7 @@ export default function Arena() {
                 You've completed your 1 daily challenge attempt. Check your rank on the leaderboard below!
               </p>
               <button
-                onClick={() => navigate("/arena/results/daily")}
+                onClick={handleViewBreakdown}
                 className="mt-1 w-full bg-white text-black font-bold text-[13px] py-2 border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 hover:bg-black hover:text-white transition-colors"
               >
                 View Today's Breakdown →

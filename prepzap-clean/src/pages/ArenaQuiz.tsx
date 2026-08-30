@@ -34,8 +34,12 @@ interface DailyQuiz {
 }
 
 function todayPH(): string {
-  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }))
-    .toISOString().split("T")[0];
+  return new Intl.DateTimeFormat('en-CA', { 
+    timeZone: 'Asia/Manila', 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  }).format(new Date());
 }
 
 function calcScore(correctCount: number, elapsed: number, totalQuestions: number, isDaily: boolean = false): number {
@@ -122,6 +126,7 @@ export default function ArenaQuiz() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [qTimeLeft, setQTimeLeft] = useState(15);
   const qTimesRef = useRef<number[]>(initialSaved?.qTimes || []);
@@ -182,6 +187,7 @@ export default function ArenaQuiz() {
     if (submitCalledRef.current || !user) return;
     submitCalledRef.current = true;
     setSubmitting(true);
+    setSubmitError(null);
     if (timerRef.current) clearInterval(timerRef.current);
 
     let elapsed = 0;
@@ -213,61 +219,81 @@ export default function ArenaQuiz() {
 
     try {
       const storageKey = getStorageKey();
-      try { localStorage.removeItem(storageKey); } catch {}
 
       if (isDaily) {
         const today = todayPH();
-        // 1. Mark user done locally
-        try {
-          localStorage.setItem(`pz_daily_done_${today}_${user.id}`, "true");
-          localStorage.setItem(`pz_daily_done_${today}`, "true");
-        } catch {}
+        const breakdownData = { answers: latestAnswers, score, elapsed, questions, isDaily: true };
 
-        // 2. Append to local submissions list for instant leaderboard reflection
-        try {
-          const localKey = `pz_daily_submissions_${today}`;
-          const existing = JSON.parse(localStorage.getItem(localKey) || "[]");
-          const myEntry = {
-            user_id: user.id,
-            challenge_date: today,
-            score,
-            time_taken_seconds: elapsed,
-            display_name: displayName,
-          };
-          const filtered = existing.filter((e: any) => e.user_id !== user.id);
-          filtered.push(myEntry);
-          localStorage.setItem(localKey, JSON.stringify(filtered));
-        } catch {}
+        // 1. Write to Supabase FIRST — this is the source of truth for "already submitted"
+        //    and for the leaderboard, so we must know whether it actually landed before
+        //    we tell the user (or any other device) that today's attempt is used up.
+        let saved = false;
 
-        // 3. Insert into Supabase
+        const attemptInsert = async (payload: Record<string, any>) =>
+          supabase.from("daily_challenge_submissions").insert(payload).select().maybeSingle();
+
         try {
-          const { error } = await supabase.from("daily_challenge_submissions").insert({
+          let { error } = await attemptInsert({
             user_id: user.id,
             challenge_date: today,
             score,
             time_taken_seconds: elapsed,
             display_name: displayName,
           });
-          if (error) {
-            console.warn("Retrying insert with minimal columns:", error.message);
-            await supabase.from("daily_challenge_submissions").insert({
+
+          if (error && error.code !== "23505") {
+            console.warn("Insert failed, retrying with minimal columns:", error.message);
+            ({ error } = await attemptInsert({
               user_id: user.id,
               challenge_date: today,
               score,
               time_taken_seconds: elapsed,
-            });
+            }));
           }
-        } catch (subErr) {
-          console.warn("Supabase submission failed (saved locally):", subErr);
+
+          if (error && error.code === "23505") {
+            // Unique violation on (user_id, challenge_date): a submission already exists
+            // (race condition, retry, or another device). Today's row is safely in the DB
+            // either way, so treat this as a successful save, not a failure.
+            console.warn("Already submitted today (unique constraint hit):", error.message);
+            saved = true;
+          } else if (error) {
+            throw error;
+          } else {
+            saved = true;
+          }
+        } catch (subErr: any) {
+          console.error("Supabase daily submission failed:", subErr);
+          saved = false;
         }
+
+        if (!saved) {
+          // Do NOT mark the day as done and do NOT navigate away — the DB never got the
+          // row, so silently proceeding here is exactly what caused retakes on other
+          // devices and a leaderboard rank that never showed up. Let the user retry.
+          setSubmitError(
+            "Couldn't save your submission — check your connection and try again. Your answers are still here."
+          );
+          submitCalledRef.current = false;
+          setSubmitting(false);
+          return;
+        }
+
+        // 2. Only now that Supabase has confirmed the row exists, clear in-progress state
+        //    and cache the breakdown for instant local viewing.
+        try {
+          localStorage.removeItem(storageKey);
+          localStorage.setItem(`pz_daily_done_${today}_${user.id}`, "true");
+          localStorage.setItem(`pz_daily_done_${today}`, "true");
+          localStorage.setItem(`pz_daily_breakdown_${today}_${user.id}`, JSON.stringify(breakdownData));
+          localStorage.setItem(`pz_daily_breakdown_${today}`, JSON.stringify(breakdownData));
+        } catch {}
 
         if (addXP) {
           try { await addXP(score); } catch {}
         }
 
-        navigate("/arena/results/daily", {
-          state: { answers: latestAnswers, score, elapsed, questions, isDaily: true },
-        });
+        navigate("/arena/results/daily", { state: breakdownData });
       } else if (room) {
         try {
           const { error } = await supabase.from("room_submissions").insert({
@@ -291,16 +317,19 @@ export default function ArenaQuiz() {
           console.warn("Supabase room submission failed:", subErr);
         }
 
+        try { localStorage.removeItem(storageKey); } catch {}
+
         navigate(`/arena/results/${code}`, {
           state: { answers: latestAnswers, score, elapsed, questions, isDaily: false },
         });
       }
     } catch (e) {
       console.error("Submit error:", e);
+      setSubmitError("Something went wrong submitting your quiz. Please try again.");
       submitCalledRef.current = false;
       setSubmitting(false);
     }
-  }, [user, questions, totalTime, isDaily, room, code, navigate, getStorageKey]);
+  }, [user, questions, totalTime, isDaily, room, code, navigate, getStorageKey, profile, addXP]);
 
   // -- Load quiz data ---------------------------------------------------------
   useEffect(() => {
@@ -506,6 +535,13 @@ export default function ArenaQuiz() {
           />
         </div>
       </header>
+
+      {submitError && (
+        <div className="mx-4 md:mx-8 mt-4 border-2 border-[#E8534A] bg-red-50 px-4 py-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-[#E8534A]">error</span>
+          <p className="text-[13px] font-bold text-[#E8534A] flex-1">{submitError}</p>
+        </div>
+      )}
 
       {/* ------------ MOBILE ------------ */}
       <div className="md:hidden flex flex-col gap-5 px-4 pt-5 pb-28">

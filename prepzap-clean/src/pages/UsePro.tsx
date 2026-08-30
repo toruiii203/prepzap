@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-
 const PAYMENT_LINKS = {
   Monthly: "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/RhaIdBU",
   Yearly:  "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/iL2OO3b",
@@ -72,7 +71,7 @@ export default function UsePro() {
           <img 
             alt="Mascot graduation cap" 
             className="w-36 h-36 object-cover rounded-full z-10 border-2 border-on-surface shadow-xl bg-white p-1 select-none" 
-            src="/fox_icon_final.png"
+            src="/fox_scholar.jpg"
           />
           
           <div className="absolute bottom-6 left-1/4 text-primary z-20 animate-pulse">
@@ -233,8 +232,4 @@ export default function UsePro() {
     </div>
   );
 }
-
-
-
-
 

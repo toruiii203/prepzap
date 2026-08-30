@@ -1,11 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
 
 const NAV_ITEMS = [
+  { icon: "smart_toy", label: "Tutor", path: "/ai-tutor" },
+  { icon: "style", label: "Cards", path: "/flashcards" },
   { icon: "home", label: "Home", path: "/dashboard" },
-  { icon: "psychology", label: "AI Tutor", path: "/ai-tutor" },
-  { icon: "style", label: "Flash", path: "/flashcards" },
-  { icon: "military_tech", label: "Arena", path: "/arena" },
-  { icon: "person", label: "Profile", path: "/profile" },
+  { icon: "calendar_month", label: "Planner", path: "/planner" },
+  { icon: "sports_esports", label: "Arena", path: "/arena" },
 ];
 
 // Routes with their own full-screen fixed bottom bar (chat input, quiz

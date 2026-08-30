@@ -101,13 +101,21 @@ export async function getOrCreateDailyChallenge(): Promise<DailyQuiz | null> {
       try {
         const { data: inserted } = await supabase
           .from("daily_challenges")
-          .insert(newQuiz)
+          .insert({
+            challenge_date: today,
+            topic,
+            questions,
+          })
           .select()
           .maybeSingle();
 
         if (inserted) {
-          try { localStorage.setItem(cacheKey, JSON.stringify(inserted)); } catch {}
-          return inserted as DailyQuiz;
+          const quizWithDiff: DailyQuiz = {
+            ...inserted,
+            difficulty,
+          };
+          try { localStorage.setItem(cacheKey, JSON.stringify(quizWithDiff)); } catch {}
+          return quizWithDiff;
         }
       } catch (insertErr) {
         console.warn("Failed to persist daily challenge to Supabase (using local):", insertErr);

@@ -51,16 +51,28 @@ export default function ArenaResults() {
 
   const isDaily = code === "daily" || state?.isDaily;
 
-    const [restoredState, setRestoredState] = useState<LocationState | null>(null);
+    const [restoredState, setRestoredState] = useState<LocationState | null>(() => {
+      if (state) return state;
+      try {
+        const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const raw = (user?.id ? localStorage.getItem(`pz_daily_breakdown_${today}_${user.id}`) : null) || localStorage.getItem(`pz_daily_breakdown_${today}`);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    });
     const activeState = state || restoredState;
     const answers = activeState?.answers ?? {};
     const score = activeState?.score ?? 0;
     const elapsed = activeState?.elapsed ?? 0;
     const questions = activeState?.questions ?? [];
-    const correctCount = questions.filter((q, i) => isAnswerCorrect(q, answers[i])).length;
+    const calculatedCorrect = questions.filter((q, i) => isAnswerCorrect(q, answers[i])).length;
+    const correctCount = Object.keys(answers).length > 0 
+      ? calculatedCorrect 
+      : (score > 0 ? Math.round(score / 100) : 0);
     const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
     
-    // New formula: speed bonus is 5 points per unused second (Room only)
+    // Speed bonus is 5 points per unused second (Room only)
     const totalSecondsRemaining = Math.max(0, questions.length * 15 - elapsed);
     const speedBonus = isDaily ? 0 : (totalSecondsRemaining * 5);
 
@@ -70,8 +82,8 @@ export default function ArenaResults() {
         try {
           const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
           
-          // State recovery if missing
-          if (!state && user) {
+          // State recovery if missing from state & localStorage
+          if (!activeState && user) {
             if (isDaily) {
                const [subRes, chalRes] = await Promise.all([
                  supabase.from("daily_challenge_submissions").select("*").eq("challenge_date", today).eq("user_id", user.id).maybeSingle(),
@@ -79,10 +91,10 @@ export default function ArenaResults() {
                ]);
                if (subRes.data && chalRes.data) {
                  setRestoredState({
-                   answers: subRes.data.answers,
-                   score: subRes.data.score,
-                   elapsed: subRes.data.time_taken_seconds,
-                   questions: chalRes.data.questions,
+                   answers: subRes.data.answers || {},
+                   score: subRes.data.score || 0,
+                   elapsed: subRes.data.time_taken_seconds || 0,
+                   questions: chalRes.data.questions || [],
                    isDaily: true
                  });
                }
@@ -113,14 +125,14 @@ export default function ArenaResults() {
             }
 
             // If user's own result is not yet in the list (e.g. fresh submission or local), inject it
-            if (user && state?.score !== undefined) {
+            if (user && (activeState?.score !== undefined || score > 0)) {
               const myEntryIdx = entries.findIndex((e) => e.user_id === user.id);
               const myDisplayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "You";
               if (myEntryIdx === -1) {
                 entries.push({
                   user_id: user.id,
-                  score: state.score,
-                  time_taken: state.elapsed ?? 0,
+                  score: activeState?.score ?? score,
+                  time_taken: activeState?.elapsed ?? elapsed ?? 0,
                   display_name: `${myDisplayName} (You)`,
                 });
                 // Sort by score desc, time_taken asc
@@ -299,11 +311,6 @@ export default function ArenaResults() {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
-      {/* Confetti */}
-      <div className="fixed top-8 left-[30%] w-4 h-4 bg-[#f0a040] border-2 border-black rounded-full pointer-events-none" />
-      <div className="fixed top-16 right-[20%] w-5 h-5 bg-[#FF4D2E] rotate-12 pointer-events-none border-2 border-black" />
-      <div className="fixed top-32 left-[15%] w-3 h-3 bg-[#f0a040] border border-black pointer-events-none" />
-
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black px-4 md:px-8 py-3 flex justify-between items-center">
         <button onClick={() => navigate("/arena")} className="flex items-center gap-1 font-bold text-[13px] text-black/50">

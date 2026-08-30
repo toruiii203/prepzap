@@ -12,10 +12,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
   if (hide) return null;
 
   const tabs = [
-    { name: 'Home', path: '/dashboard', icon: 'home' },
-    { name: 'Practice', path: '/practice', icon: 'assignment' },
     { name: 'Tutor', path: '/ai-tutor', icon: 'smart_toy' },
     { name: 'Cards', path: '/flashcards', icon: 'style' },
+    { name: 'Home', path: '/dashboard', icon: 'home' },
+    { name: 'Planner', path: '/planner', icon: 'calendar_month' },
     { name: 'Arena', path: '/arena', icon: 'sports_esports' },
   ];
 
@@ -25,13 +25,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
     >
       {tabs.map((tab) => {
-        const isActive = location.pathname.startsWith(tab.path) || (location.pathname === '/' && tab.path === '/dashboard');
+        const isActive = tab.path === '/dashboard'
+          ? location.pathname === '/dashboard' || location.pathname === '/'
+          : location.pathname.startsWith(tab.path);
         return (
           <button
             key={tab.name}
             onClick={() => navigate(tab.path)}
             className={`flex flex-col items-center justify-center w-16 pt-3 pb-2 transition-colors ${
-              isActive ? 'text-[#ae2925]' : 'text-[#1A1A1A] opacity-70'
+              isActive ? 'text-[#ae2925]' : 'text-[#1A1A1A] opacity-70 hover:opacity-100'
             }`}
           >
             <span className="material-symbols-outlined text-2xl mb-1">
