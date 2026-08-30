@@ -83,6 +83,7 @@ export default function ArenaQuiz() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isDaily = code === "daily";
+  const isRestoredRef = useRef(false);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [room, setRoom] = useState<ExamRoom | null>(null);
