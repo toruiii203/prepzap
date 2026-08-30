@@ -523,18 +523,22 @@ export default function ArenaQuiz() {
 
       {/* -- Header (shared) -- */}
       <header className="sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black shadow-[0_2px_0px_rgba(0,0,0,0.05)]">
-        <div className="flex justify-between items-center px-4 md:px-8 py-3">
-          <button
-            onClick={() => navigate("/arena")}
-            className="flex items-center gap-1 font-bold text-[13px] text-black/50 hover:text-black transition-colors"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
-          <h1 className="font-black text-[15px] text-black truncate max-w-[200px]">
+        <div className="grid grid-cols-3 items-center px-4 md:px-8 py-3">
+          <div className="flex justify-start">
+            <button
+              onClick={() => navigate("/arena")}
+              className="flex items-center gap-1 font-bold text-[13px] text-black/50 hover:text-black transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+          <h1 className="font-black text-[15px] text-black truncate justify-self-center text-center max-w-[200px]">
             {isDaily ? "Daily Challenge" : room?.room_name}
           </h1>
-          <div className={`border-2 border-black px-3 py-1 font-mono font-black text-[14px] shadow-[2px_2px_0px_0px_#000] ${isLow ? "bg-[#E8534A] text-white" : "bg-white text-black"}`}>
-            {formatTime(timeLeft)}
+          <div className="flex justify-end">
+            <div className={`md:hidden border-2 border-black px-3 py-1 font-mono font-black text-[14px] shadow-[2px_2px_0px_0px_#000] ${isLow ? "bg-[#E8534A] text-white" : "bg-white text-black"}`}>
+              {formatTime(timeLeft)}
+            </div>
           </div>
         </div>
         {/* Progress bar */}

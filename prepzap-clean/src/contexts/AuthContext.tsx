@@ -367,7 +367,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return
 
       if (s?.user) {
-        setLoading(true)
+        // Fix: Only block UI with loading state if the user actually changed
+        // (e.g. initial login, switching accounts).
+        // If it's just a background token refresh (same user ID), do NOT
+        // set loading=true, as that forces ProtectedRoute to unmount the entire
+        // app and destroys active quiz timers!
+        const userChanged = !cachedSession?.user || cachedSession.user.id !== s.user.id;
+        
+        if (userChanged) {
+          setLoading(true)
+        }
+        
         setSession(s)
         cachedSession = s
         setUser(s.user)
@@ -376,7 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           console.error("Profile fetch on auth change failed:", err)
         } finally {
-          if (!cancelled) setLoading(false)
+          if (!cancelled && userChanged) setLoading(false)
         }
       } else {
         // Signed out — clear everything atomically. This only fires on a

@@ -13,7 +13,7 @@ async function run() {
     const res = await supabase.from("daily_challenge_submissions").insert({
         user_id: "00000000-0000-0000-0000-000000000000",
         challenge_date: "2026-08-30",
-        answers: {},
+        
         score: 100,
         time_taken_seconds: 10,
         display_name: "Test"
