@@ -321,6 +321,7 @@ export default function ArenaQuiz() {
         setTimeLeft(remainingNow);
         setTotalTime(secs);
       }
+      isRestoredRef.current = true;
       setLoading(false);
     };
     load();
@@ -374,7 +375,7 @@ export default function ArenaQuiz() {
   }, [loading, questions.length, handleSubmit]);
 
   const selectAnswer = (letter: string) => {
-    if (qTimesRef.current[currentQ] === 0) return; // Prevent changing if timed out
+    if (!isDaily && qTimesRef.current[currentQ] === 0) return; // Prevent changing if timed out
     const next = { ...answersRef.current, [currentQ]: letter };
     answersRef.current = next;
     setAnswers(next);
