@@ -489,7 +489,7 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
           .from("profiles")
           .select("onboarding_complete")
           .eq("id", signInData.user!.id)
-          .single()
+          .maybeSingle()
         if (prof && prof.onboarding_complete === false) {
           // Started onboarding but never finished — continue from nameInput
           onNext()
@@ -1153,7 +1153,7 @@ export default function Onboarding() {
         .from("profiles")
         .select("onboarding_complete")
         .eq("id", session.user.id)
-        .single()
+        .maybeSingle()
       // Redirect to dashboard if:
       // - onboarding_complete is true (done)
       // - onboarding_complete is null/undefined (old account, let them in)

@@ -39,7 +39,7 @@ export default function AuthCallback() {
           .from("profiles")
           .select("onboarding_complete")
           .eq("id", session.user.id)
-          .single()
+          .maybeSingle()
 
         navigate(getDestination(!!profile?.onboarding_complete), { replace: true })
       }
@@ -54,7 +54,7 @@ export default function AuthCallback() {
         .from("profiles")
         .select("onboarding_complete")
         .eq("id", session.user.id)
-        .single()
+        .maybeSingle()
       navigate(getDestination(!!profile?.onboarding_complete), { replace: true })
     })
 

@@ -13,11 +13,15 @@ import { logQuestCompletion } from "@/lib/quests";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface Question {
+  type?: "multiple-choice" | "identification" | "fill-in-the-blank";
   q: string;
-  options: string[];
-  correct: number;
+  options?: string[];
+  correct?: number;
+  answerText?: string;
   subject: string;
   difficulty: string;
+  hint?: string;
+  explanation?: string;
 }
 
 interface HistoryEntry {
@@ -88,6 +92,8 @@ interface BannerProps {
 const QUESTION_COUNT_OPTIONS = [3, 5, 10, 15];
 function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount }: BannerProps) {
   return (
+    <>
+      {showProUpsell && <ProUpsellModal onClose={() => setShowProUpsell(false)} />}
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -289,8 +295,19 @@ export default function Practice() {
           : `Generate ${questionCount} high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
 
       const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount} questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
+We support three question types: "multiple-choice", "identification", and "fill-in-the-blank".
 Each object MUST match this schema exactly:
-{"q":"question text","options":["A","B","C","D"],"correct":0,"subject":"Subject","difficulty":"Easy, Medium or Hard"}`;
+{
+  "type": "multiple-choice" | "identification" | "fill-in-the-blank",
+  "q": "Question text or sentence with a ______ for blanks.",
+  "options": ["A","B","C","D"], // ONLY for multiple-choice, otherwise null
+  "correct": 0, // For multiple-choice, index of correct option.
+  "answerText": "Exact word", // For identification or fill-in-the-blank
+  "subject": "Subject",
+  "difficulty": "Easy, Medium or Hard",
+  "hint": "A short helpful hint.",
+  "explanation": "Why the answer is correct."
+}`;
 
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
@@ -312,7 +329,14 @@ Each object MUST match this schema exactly:
         setCurrentQIndex(0);
         setSelectedOption(null);
         setAnswers([]);
+        setTextAnswers([]);
         setScore(0);
+        setMissedQuestions([]);
+        setIsReviewLoop(false);
+        setReviewIndex(0);
+        setTextInput("");
+        setHasAnsweredCurrent(false);
+        setIsCurrentCorrect(null);
         // of whether it's a 3-question or 15-question quiz.
         setTimeLeft(Math.max(300, parsed.length * 90));
       } else throw new Error("Invalid structure");
@@ -329,74 +353,120 @@ Each object MUST match this schema exactly:
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const handleNext = () => {
-    if (selectedOption === null) return;
-    const isCorrect   = selectedOption === questions[currentQIndex].correct;
-    const nextAnswers = [...answers, selectedOption];
-    setAnswers(nextAnswers);
-    let nextScore = score;
-    if (isCorrect) { nextScore = score + 1; setScore(nextScore); }
+  const validateText = (input: string, expected: string) => {
+    if (!input || !expected) return false;
+    const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return clean(input) === clean(expected);
+  };
 
-    if (currentQIndex + 1 < questions.length) {
-      setCurrentQIndex(prev => prev + 1);
-      setSelectedOption(null);
+  const handleCheck = () => {
+    if (hasAnsweredCurrent) return; // Prevent double check
+
+    const actualQIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
+    const question = questions[actualQIndex];
+    
+    let isCorrect = false;
+    let savedAnswer: any = null;
+
+    if (question.type === "identification" || question.type === "fill-in-the-blank") {
+      if (!textInput.trim()) return;
+      isCorrect = validateText(textInput, question.answerText || "");
+      savedAnswer = textInput;
     } else {
-      const xpAwarded    = nextScore * 30 + 10;
-      const coinsAwarded = nextScore * 15 + 5;
-      if (user && profile) {
-        supabase.from("profiles").update({
-          total_xp: (profile.total_xp || profile.xp || 0) + xpAwarded,
-          coins:    (profile.coins || 0) + coinsAwarded,
-        }).eq("id", user.id).then(({ error }: { error: unknown }) => {
-          if (error) console.error(error);
-          if (typeof refreshProfile === "function") refreshProfile();
-        });
+      if (selectedOption === null) return;
+      isCorrect = selectedOption === question.correct;
+      savedAnswer = selectedOption;
+    }
+
+    setIsCurrentCorrect(isCorrect);
+    setHasAnsweredCurrent(true);
+
+    if (!isReviewLoop) {
+      setAnswers(prev => [...prev, typeof savedAnswer === "number" ? savedAnswer : -1]);
+      setTextAnswers(prev => [...prev, typeof savedAnswer === "string" ? savedAnswer : ""]);
+      if (isCorrect) {
+        setScore(prev => prev + 1);
       }
-      // FIX: preview used to be "Score: X/Y", which became the history
-      // card's title (parseHistoryEntry falls back to preview → prompt).
-      // That meant every history card's title line just repeated the score
-      // that's already shown in the ring + "correct/total" line, and gave
-      // no indication of what the quiz was actually about. preview now
-      // holds the actual topic/subject so history is scannable by content.
-      const quizSubjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
-      const historyTitle = topicInput.trim() || quizSubjects.join(", ") || "Practice Quiz";
-      saveHistory({
-        prompt:  questions.map(q => q.q).join(" | ").slice(0, 120),
-        preview: historyTitle,
-        output:  JSON.stringify({ questions, answers: nextAnswers } as ReviewData),
-        model:   "rex-ai",
-        meta:    `${nextScore}/${questions.length}`,
-      });
-      
-        const mistakesLog = questions.filter((q, i) => nextAnswers[i] !== q.correct);
-        if (mistakesLog.length > 0) {
-          const key = user?.id ? `studenius_mistakes_${user.id}` : "studenius_mistakes_anon";
-          try {
-            const existing = JSON.parse(localStorage.getItem(key) || "[]");
-            const newMistakes = mistakesLog.map(q => ({
-              id: crypto.randomUUID(),
-              subject: q.subject || "Practice Quiz",
-              date: new Date().toISOString(),
-              overdue: true, // Mark as overdue to encourage immediate review
-              title: q.q.slice(0, 50) + (q.q.length > 50 ? "..." : ""),
-              desc: "Logged automatically from your recent Practice Quiz.",
-              tags: [q.difficulty || "medium", "quiz-mistake"],
-              quiz: {
-                q: q.q,
-                options: q.options,
-                correct: q.correct,
-                explanation: "You missed this during a practice quiz. Review the concept!"
-              }
-            }));
-            localStorage.setItem(key, JSON.stringify([...newMistakes, ...existing]));
-          } catch (e) {}
-        }
-        setView("results");
+    }
+
+    if (isCorrect) {
+      setMascotState("success");
+    } else {
+      setMascotState("wrong");
     }
   };
 
+  const handleContinue = () => {
+    const actualQIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
+    let newMissed = [...missedQuestions];
+    
+    if (isCurrentCorrect) {
+      if (isReviewLoop) {
+        newMissed = newMissed.filter(idx => idx !== actualQIndex);
+      }
+    } else {
+      if (!isReviewLoop) {
+        newMissed.push(actualQIndex);
+      }
+    }
+    setMissedQuestions(newMissed);
+
+    setMascotState("idle");
+    setShowHint(false);
+    setShowExplanation(false);
+    setHasAnsweredCurrent(false);
+    setIsCurrentCorrect(null);
+    
+    if (!isReviewLoop) {
+      if (currentQIndex + 1 < questions.length) {
+        setCurrentQIndex(prev => prev + 1);
+        setSelectedOption(null);
+        setTextInput("");
+      } else {
+        if (newMissed.length > 0) {
+          setShowReviewTransition(true);
+        } else {
+          finalizeQuiz(score + (isCurrentCorrect ? 1 : 0));
+        }
+      }
+    } else {
+      if (newMissed.length > 0) {
+        setReviewIndex(prev => prev % newMissed.length);
+        setSelectedOption(null);
+        setTextInput("");
+      } else {
+        finalizeQuiz(score);
+      }
+    }
+  };
+
+  const finalizeQuiz = (finalScore: number) => {
+    const xpAwarded    = finalScore * 30 + 10;
+    const coinsAwarded = finalScore * 15 + 5;
+    if (user && profile) {
+      supabase.from("profiles").update({
+        total_xp: (profile.total_xp || profile.xp || 0) + xpAwarded,
+        coins:    (profile.coins || 0) + coinsAwarded,
+      }).eq("id", user.id).then(({ error }: { error: unknown }) => {
+        if (error) console.error(error);
+        if (typeof refreshProfile === "function") refreshProfile();
+      });
+    }
+    const quizSubjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
+    const historyTitle = topicInput.trim() || quizSubjects.join(", ") || "Practice Quiz";
+    saveHistory({
+      prompt:  questions.map(q => q.q).join(" | ").slice(0, 120),
+      preview: historyTitle,
+      output:  JSON.stringify({ questions, answers } as ReviewData),
+      model:   "rex-ai",
+      meta:    `${finalScore}/${questions.length}`,
+    });
+    setView("results");
+  };
+
   const progressPercent  = questions.length > 0 ? Math.round(((currentQIndex + 1) / questions.length) * 100) : 0;
-  const currentQuestion  = questions.length > 0 ? questions[currentQIndex] : null;
+  const actualRenderIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
+  const currentQuestion  = questions.length > 0 && actualRenderIndex < questions.length ? questions[actualRenderIndex] : null;
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   // HistoryDrawer — slides in from right on mobile; always visible on desktop
@@ -522,7 +592,24 @@ Each object MUST match this schema exactly:
       <div className="hidden md:flex md:ml-64 bg-[#FAF7F2]" style={{ minHeight: "100vh" }}>
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-y-auto">
-        {view === "quiz" && (
+        
+        {view === "quiz" && showReviewTransition && (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-50 bg-[#FAF7F2]">
+            <div className="w-24 h-24 mb-6">
+              <video src="/src/assets/mascot/rex_idle.mp4" autoPlay loop muted playsInline style={{ mixBlendMode: 'screen' }} className="w-full h-full object-cover" />
+            </div>
+            <h2 className="text-2xl font-black mb-2">Let's correct what you missed!</h2>
+            <p className="text-black/60 font-bold mb-8">You missed {missedQuestions.length} question(s). Let's review them until you master them.</p>
+            <button 
+              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); setMascotState("idle"); }}
+              className="bg-[#FF4D2E] text-white font-extrabold px-8 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1 active:shadow-none"
+            >
+              Start Review ?
+            </button>
+          </div>
+        )}
+
+        {view === "quiz" && !showReviewTransition && (
           <main className="flex-1 flex flex-col p-10 max-w-4xl mx-auto w-full">
 
             <DesktopBanner
@@ -634,7 +721,7 @@ Each object MUST match this schema exactly:
                     ))}
                   </div>
                   <div className="flex justify-end">
-                    <button disabled={selectedOption === null} onClick={handleNext}
+                    <button disabled={(currentQuestion.type === 'multiple-choice' || !currentQuestion.type) ? selectedOption === null : !textInput.trim()} onClick={handleNext}
                       className={`bg-[#FF4D2E] text-white text-[18px] font-bold px-12 py-4 border-[3px] border-black shadow-[5px_5px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] flex items-center gap-4 transition-all ${selectedOption === null ? "opacity-40 pointer-events-none" : "hover:opacity-90"}`}>
                       Next Question <span className="material-symbols-outlined text-2xl">arrow_forward</span>
                     </button>
@@ -703,9 +790,32 @@ Each object MUST match this schema exactly:
           </button>
         </header>
 
-        {view === "quiz" && (
+        
+        {view === "quiz" && showReviewTransition && (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-50 bg-[#FAF7F2]">
+            <div className="w-24 h-24 mb-6">
+              <video src="/src/assets/mascot/rex_idle.mp4" autoPlay loop muted playsInline style={{ mixBlendMode: 'screen' }} className="w-full h-full object-cover" />
+            </div>
+            <h2 className="text-2xl font-black mb-2">Let's correct what you missed!</h2>
+            <p className="text-black/60 font-bold mb-8">You missed {missedQuestions.length} question(s). Let's review them until you master them.</p>
+            <button 
+              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); setMascotState("idle"); }}
+              className="bg-[#FF4D2E] text-white font-extrabold px-8 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1 active:shadow-none"
+            >
+              Start Review ?
+            </button>
+          </div>
+        )}
+
+        {view === "quiz" && !showReviewTransition && (
           <>
-            <main className="flex-1 w-full px-4 py-5 flex flex-col gap-5 overflow-y-auto pb-28">
+            <Mascot state={mascotState} hintVisible={showHint} onHintClick={() => {
+              if (currentQuestion?.hint) {
+                setShowHint(true);
+                setMascotState("attention");
+              }
+            }} />
+            <main className="flex-1 w-full px-4 py-5 flex flex-col gap-5 overflow-y-auto pb-28 relative">
 
               {/* Mobile Banner */}
               <section className="bg-white rounded-xl border-[1.5px] border-black shadow-[3px_3px_0px_#000] p-4 flex flex-col gap-3 relative overflow-hidden">
@@ -794,7 +904,7 @@ Each object MUST match this schema exactly:
                       {formatTime(timeLeft)}
                     </div>
                     <div className="font-extrabold text-[15px]">
-                      Question {currentQIndex + 1} <span className="text-black/40 font-bold text-[13px]">/ {questions.length}</span>
+                      {isReviewLoop ? "Review Mode" : `Question ${currentQIndex + 1}`} <span className="text-black/40 font-bold text-[13px]">/ {questions.length}</span>
                     </div>
                   </div>
                   <div className="w-full h-3 bg-white border-2 border-black rounded-full overflow-hidden">
@@ -804,7 +914,20 @@ Each object MUST match this schema exactly:
                     <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#85f5eb] rounded-full border-2 border-black flex items-center justify-center rotate-12 z-10">
                       <span className="material-symbols-outlined text-[16px]">psychology_alt</span>
                     </div>
+
                     <h2 className="font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
+                    {showHint && currentQuestion.hint && (
+                      <div className="mb-4 bg-yellow-100 border-[1.5px] border-black p-3 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
+                        <span className="text-[#FF4D2E] uppercase tracking-widest text-[10px] font-black block mb-1">Rex's Hint</span>
+                        {currentQuestion.hint}
+                      </div>
+                    )}
+                    {showExplanation && currentQuestion.explanation && (
+                      <div className="mb-4 bg-blue-50 border-[1.5px] border-black p-3 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
+                        <span className="text-blue-600 uppercase tracking-widest text-[10px] font-black block mb-1">Explanation</span>
+                        {currentQuestion.explanation}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
                         <span className="material-symbols-outlined text-[12px] mr-1">folder</span>{currentQuestion.subject}
@@ -815,7 +938,16 @@ Each object MUST match this schema exactly:
                     </div>
                   </div>
                   <div className="flex flex-col gap-3">
-                    {currentQuestion.options.map((option, idx) => {
+                    {currentQuestion.type === "identification" || currentQuestion.type === "fill-in-the-blank" ? (
+                      <input 
+                        type="text" 
+                        value={textInput} 
+                        onChange={e => setTextInput(e.target.value)} 
+                        placeholder="Type your answer here..."
+                        className="w-full bg-white border-2 border-black rounded-xl p-4 text-[15px] font-bold shadow-[3px_3px_0px_#000] focus:outline-none focus:shadow-[1px_1px_0px_#000] focus:translate-y-[2px]"
+                      />
+                    ) : (
+                      currentQuestion.options && currentQuestion.options.map((option, idx) => {
                       const label      = ["A", "B", "C", "D"][idx];
                       const isSelected = selectedOption === idx;
                       return (
@@ -825,18 +957,41 @@ Each object MUST match this schema exactly:
                           <span className={`text-[14px] leading-tight ${isSelected ? "font-extrabold" : "font-bold"}`}>{option}</span>
                         </button>
                       );
-                    })}
+                    })
+                    )}
                   </div>
                 </>
               )}
             </main>
 
-            {questions.length > 0 && !isGenerating && (
-              <div className="sticky bottom-0 w-full bg-[#FAF7F2] border-t-2 border-black px-4 py-4 pb-6 z-30">
-                <button disabled={selectedOption === null} onClick={handleNext}
-                  className={`w-full text-white py-3.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${selectedOption !== null ? "bg-[#FF4D2E] cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"}`}>
-                  Next Question <span className="material-symbols-outlined">arrow_forward</span>
-                </button>
+            {questions.length > 0 && !isGenerating && !showReviewTransition && (
+              <div className={`sticky bottom-0 w-full border-t-2 border-black px-4 py-4 pb-6 z-30 transition-colors ${hasAnsweredCurrent ? (isCurrentCorrect ? "bg-[#dcfce7]" : "bg-[#ffdad6]") : "bg-[#FAF7F2]"}`}>
+                
+                {hasAnsweredCurrent ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className={`font-black text-[18px] flex items-center gap-2 ${isCurrentCorrect ? "text-[#16a34a]" : "text-[#dc2626]"}`}>
+                        <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          {isCurrentCorrect ? "check_circle" : "cancel"}
+                        </span>
+                        {isCurrentCorrect ? "Excellent!" : "Incorrect"}
+                      </div>
+                      {!isCurrentCorrect && (
+                        <button onClick={() => setShowProUpsell(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#dc2626] rounded-xl text-[#dc2626] font-bold text-[12px] shadow-[2px_2px_0px_#dc2626] active:translate-y-[2px] active:shadow-none">
+                          <span className="material-symbols-outlined text-[14px]">help</span> Why?
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={handleContinue} className={`w-full text-white py-3.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${isCurrentCorrect ? "bg-[#16a34a]" : "bg-[#dc2626]"}`}>
+                      Continue
+                    </button>
+                  </div>
+                ) : (
+                  <button disabled={(currentQuestion?.type === 'multiple-choice' || !currentQuestion?.type) ? selectedOption === null : !textInput.trim()} onClick={handleCheck}
+                    className={`w-full text-white py-3.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${((currentQuestion?.type === 'multiple-choice' || !currentQuestion?.type) ? selectedOption !== null : textInput.trim()) ? "bg-[#FF4D2E] cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"}`}>
+                    Check Answer
+                  </button>
+                )}
               </div>
             )}
           </>

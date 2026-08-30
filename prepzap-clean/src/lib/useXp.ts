@@ -74,7 +74,7 @@ export function useXp() {
             .from("profiles")
             .select("total_xp")
             .eq("id", user.id)
-            .single()
+            .maybeSingle()
             .then(r => (r.data?.total_xp ?? 0) + amount)
           )})
           .eq("id", user.id)

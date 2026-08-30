@@ -78,7 +78,7 @@ export function usePlan(): PlanState {
       .from("profiles")
       .select("plan, pro_expires_at")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       console.error("[usePlan] fetch error:", error?.message);

@@ -74,7 +74,7 @@ export default function ArenaResults() {
           if (!state && user) {
             if (isDaily) {
                const [subRes, chalRes] = await Promise.all([
-                 supabase.from("daily_challenge_submissions").select("*").eq("challenge_date", today).eq("user_id", user.id).single(),
+                 supabase.from("daily_challenge_submissions").select("*").eq("challenge_date", today).eq("user_id", user.id).maybeSingle(),
                  getOrCreateDailyChallenge().then(q => ({ data: q, error: null }))
                ]);
                if (subRes.data && chalRes.data) {

@@ -59,7 +59,7 @@ export default function Settings() {
     setUserInitial(name.charAt(0).toUpperCase())
 
     // Load saved preferences from profiles table
-    supabase.from("profiles").select("daily_goal_minutes, subjects, notif_streak, notif_reminders, notif_community, notif_weekly").eq("id", user.id).single().then(({ data }) => {
+    supabase.from("profiles").select("daily_goal_minutes, subjects, notif_streak, notif_reminders, notif_community, notif_weekly").eq("id", user.id).maybeSingle().then(({ data }) => {
       if (!data) return
       if (data.daily_goal_minutes) setDailyGoal(data.daily_goal_minutes as DailyGoal)
       if (data.subjects?.length) setSubjects(new Set(data.subjects))

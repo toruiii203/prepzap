@@ -83,7 +83,7 @@ export default function ArenaRoom() {
       .from("exam_rooms")
       .select("*")
       .eq("code", code.toUpperCase())
-      .single();
+      .maybeSingle();
     if (!data) { navigate("/arena"); return; }
     setRoom(data);
     setIsHost(data.host_id === user?.id);

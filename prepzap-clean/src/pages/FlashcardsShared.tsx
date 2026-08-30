@@ -51,7 +51,7 @@ export default function FlashcardsShared() {
       .from("shared_flashcard_decks")
       .select("id, title, cards, card_count, created_at")
       .eq("id", id)
-      .single()
+      .maybeSingle()
       .then(({ data, error }) => {
         if (data && !error) {
           setDeck(data as SharedDeck);

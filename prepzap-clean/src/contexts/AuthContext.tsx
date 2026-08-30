@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "id, full_name, email, plan, credits_remaining, total_xp, streak_days, daily_goal_minutes, questions_answered, accuracy_percent, avatar_config, avatar_outfit, onboarding_complete"
         )
         .eq("id", u.id)
-        .single()
+        .maybeSingle()
 
       if (error || !data) {
         // No profile row — brand new OAuth user mid-onboarding.

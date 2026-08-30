@@ -284,7 +284,7 @@ export default function Flashcards() {
           card_count: cards.length,
         })
         .select("id")
-        .single();
+        .maybeSingle();
 
       if (error || !data) throw error;
 

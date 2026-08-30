@@ -48,7 +48,7 @@ export default function ArenaInvite() {
         .select("room_name, topic, difficulty, question_count, mode, status")
         .eq("code", code.toUpperCase())
         .neq("status", "finished")
-        .single();
+        .maybeSingle();
       if (error || !data) {
         setFetchError("Room not found or has already ended.");
       } else {

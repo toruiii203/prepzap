@@ -127,7 +127,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
       setLoadingMsg("Creating room...");
       let code = generateCode();
       for (let i = 0; i < 10; i++) {
-        const { data: ex, error: checkErr } = await supabase.from("exam_rooms").select("id").eq("code", code).single();
+        const { data: ex, error: checkErr } = await supabase.from("exam_rooms").select("id").eq("code", code).maybeSingle();
           if (checkErr && checkErr.code !== "PGRST116") {
             console.error("Supabase code check failed:", checkErr);
             throw new Error("Database error during code check: " + checkErr.message);
@@ -335,7 +335,7 @@ function JoinRoomModal({ onClose, onJoined }: { onClose: () => void; onJoined: (
     if (normalized.length !== 7) { setRoom(null); setError(""); return; }
     const lookup = async () => {
       setChecking(true); setError("");
-      const { data } = await supabase.from("exam_rooms").select("*").eq("code", normalized).neq("status", "finished").single();
+      const { data } = await supabase.from("exam_rooms").select("*").eq("code", normalized).neq("status", "finished").maybeSingle();
       setRoom(data ?? null);
       if (!data) setError("Room not found or already finished.");
       setChecking(false);

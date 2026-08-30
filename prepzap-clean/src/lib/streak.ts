@@ -25,7 +25,7 @@ export async function bumpStreakIfNeeded(userId: string): Promise<StreakUpdateRe
     .from("profiles")
     .select("streak_days, last_study_date")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
   if (fetchError) {
     console.error("Error reading streak state:", fetchError);

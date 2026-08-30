@@ -80,7 +80,7 @@ async function saveToSupabase(
       meta: entry.meta ?? null,
     })
     .select("id, created_at")
-    .single()
+    .maybeSingle()
   if (error || !data) {
     console.error("[useToolHistory] save to Supabase failed:", error);
     return null
