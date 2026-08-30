@@ -1222,17 +1222,17 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
               </div>
 
-              {/* Flashcard Container (3D Flip) */}
+                            {/* Flashcard Container (3D Flip) */}
               <div
                 onClick={() => setIsFlipped(!isFlipped)}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className="relative w-full flex-1 max-h-[400px] cursor-pointer mt-6"
+                className="relative w-full flex-1 min-h-[300px] max-h-[380px] cursor-pointer mt-3 mb-2 select-none"
                 style={{
                   perspective: "1000px",
-                  transform: touchStart ? `translate(${touchDelta.x}px, ${touchDelta.y}px) rotate(${touchDelta.x * 0.05}deg)` : 'none',
-                  transition: touchStart ? 'none' : 'transform 0.3s ease-out'
+                  transform: touchStart ? `translate(${touchDelta.x}px, ${touchDelta.y}px) rotate(${touchDelta.x * 0.05}deg)` : "none",
+                  transition: touchStart ? "none" : "transform 0.3s ease-out"
                 }}
               >
                 <div
@@ -1243,35 +1243,46 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   }}
                 >
                   {/* Front of Card (Question) */}
-                  <div className="absolute inset-0 rounded-[18px] border-2 border-on-background bg-white shadow-ink-lg flex flex-col items-center justify-center p-8 text-center"
-                    style={{ backfaceVisibility: "hidden" }}>
-                    <div className="absolute top-5 left-5 right-5 flex justify-between items-start opacity-30">
-                      <span className="material-symbols-outlined">format_quote</span>
+                  <div
+                    className="absolute inset-0 rounded-[18px] border-2 border-black bg-white shadow-[5px_5px_0px_#000] flex flex-col overflow-hidden"
+                    style={{ backfaceVisibility: "hidden" }}
+                  >
+                    <div className="w-full h-full overflow-y-auto px-5 pt-6 pb-14 flex flex-col items-center text-center">
+                      <div className="m-auto flex flex-col items-center w-full max-w-[300px]">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-[#ae2925] mb-2">Question</span>
+                        <h3 className="font-headline font-black text-black text-[17px] sm:text-[18px] leading-snug">
+                          {currentCard.front}
+                        </h3>
+                      </div>
                     </div>
-                    <h3 className="font-headline text-[13.5px] uppercase tracking-wider text-primary font-bold mb-3">Question</h3>
-                    <p className="font-headline text-headline-md text-on-background max-w-[280px] text-[20px] leading-snug">
-                      {currentCard.front}
-                    </p>
-                    <div className="absolute bottom-6 w-full flex justify-center">
-                      <span className="bg-surface-container-high px-4 py-1.5 rounded-full border border-on-background/20 font-label-sm text-label-sm text-on-background/60 flex items-center gap-1.5 text-[12px]">
-                        <span className="material-symbols-outlined text-[15px]">touch_app</span> Tap to flip
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center pointer-events-none">
+                      <span className="bg-[#FAF7F2] border border-black/20 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider text-black/60 flex items-center gap-1 shadow-sm">
+                        <span className="material-symbols-outlined text-[14px]">touch_app</span> Tap to flip
                       </span>
                     </div>
                   </div>
 
                   {/* Back of Card (Answer) */}
-                  <div className="absolute inset-0 rounded-[18px] border-2 border-on-background bg-primary-fixed text-on-primary-fixed shadow-ink-lg flex flex-col items-center justify-center p-8 text-center"
-                    style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                    <span className="material-symbols-outlined text-primary mb-3 text-[52px]">lightbulb</span>
-                    <p className="font-headline text-headline-lg text-[#1c1c19] text-[22.5px] leading-snug">
-                      {currentCard.back}
-                    </p>
-                    <p className="font-body-md text-[14.5px] mt-3 text-on-surface-variant max-w-[260px] leading-relaxed">
-                      {currentCard.explanation}
-                    </p>
-                    <div className="absolute bottom-6 w-full flex justify-center">
-                      <span className="bg-white/40 px-4 py-1.5 rounded-full border border-on-background/20 font-label-sm text-label-sm text-on-background/60 flex items-center gap-1.5 text-[12px]">
-                        <span className="material-symbols-outlined text-[15px]">touch_app</span> Tap to see question
+                  <div
+                    className="absolute inset-0 rounded-[18px] border-2 border-black bg-[#F0EDE0] shadow-[5px_5px_0px_#000] flex flex-col overflow-hidden"
+                    style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                  >
+                    <div className="w-full h-full overflow-y-auto px-5 pt-6 pb-14 flex flex-col items-center text-center">
+                      <div className="m-auto flex flex-col items-center w-full max-w-[300px]">
+                        <span className="material-symbols-outlined text-black mb-1.5 text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+                        <h3 className="font-headline font-black text-black text-[16px] sm:text-[17px] leading-snug mb-2">
+                          {currentCard.back}
+                        </h3>
+                        {currentCard.explanation && (
+                          <p className="text-[12.5px] font-bold text-black/70 leading-relaxed">
+                            {currentCard.explanation}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center pointer-events-none">
+                      <span className="bg-white/80 border border-black/20 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider text-black/60 flex items-center gap-1 shadow-sm">
+                        <span className="material-symbols-outlined text-[14px]">touch_app</span> Tap to see question
                       </span>
                     </div>
                   </div>
