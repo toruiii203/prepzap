@@ -569,7 +569,9 @@ Each object MUST match this schema exactly:
 
 
   return (
-    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+    <>
+      {showProUpsell && <ProUpsellModal onClose={() => setShowProUpsell(false)} />}
+      <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
       <ReviewModal />
 
