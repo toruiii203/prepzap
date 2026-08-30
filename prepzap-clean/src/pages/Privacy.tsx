@@ -1,71 +1,116 @@
 import { Link } from "react-router-dom"
-import { ChevronLeft } from "lucide-react"
+
+const SECTIONS = [
+  {
+    title: "1. Information We Collect",
+    content: "When you create an account on Studenius, we collect your name and email address. If you authenticate using Google OAuth, we receive your name, verified email address, and avatar image. We also store your study progress data (such as flashcard reviews, SM-2 retention intervals, quiz scores, Total XP, streaks, and mistake journals) to personalize your learning experience."
+  },
+  {
+    title: "2. How We Use Your Information",
+    content: "We use your data solely to deliver, maintain, and optimize Studenius study tools. This includes generating adaptive quizzes, calculating spaced repetition intervals, populating Global XP leaderboards, and maintaining active study streaks. We do NOT sell, rent, or monetize your personal information to third-party data brokers or advertisers."
+  },
+  {
+    title: "3. AI Processing & Study Materials",
+    content: "When you upload lecture slides, notes, or prompts to our AI study features, the extracted text is processed strictly to generate flashcards, practice questions, and AI Tutor explanations. Study sources stored in your Source Library remain tied to your account and are not shared publicly or used to train global public AI models."
+  },
+  {
+    title: "4. Data Storage and Security",
+    content: "Your account credentials and database records are securely hosted with Supabase using industry-standard encryption in transit (HTTPS/TLS) and at rest. Local study cache and preferences are safely preserved on your device via browser local storage."
+  },
+  {
+    title: "5. Third-Party Integrations",
+    content: "Studenius integrates with trusted infrastructure providers: Supabase for authentication and database management, OpenRouter/Groq for high-speed AI inference, Google OAuth for authentication, and PayMongo/PayPal for secure subscription processing. Each third-party provider processes data strictly according to their respective privacy standards."
+  },
+  {
+    title: "6. Data Retention & Account Deletion",
+    content: "We keep your account information as long as your account remains active. You can permanently delete your account and all associated study materials, XP, and history at any time from the Settings page or by emailing studeniusapp@gmail.com. Account deletion requests are permanently finalized within 30 days."
+  },
+  {
+    title: "7. Children's Privacy",
+    content: "Studenius is intended for students and learners aged 13 and older. We do not knowingly collect personal information from children under 13. If you believe a child under 13 has registered without parental consent, please contact us immediately."
+  },
+  {
+    title: "8. Your Data Rights",
+    content: "You retain the right to access, inspect, export, or correct any personal data stored on Studenius. You may also revoke authentication permissions or request complete data deletion by reaching out to studeniusapp@gmail.com."
+  },
+  {
+    title: "9. Policy Updates",
+    content: "We may update this Privacy Policy from time to time to reflect new features or regulatory requirements. Any notable updates will be reflected on this page with an updated modification date."
+  },
+  {
+    title: "10. Contact Information",
+    content: "For privacy questions, data requests, or support, please contact our team directly at studeniusapp@gmail.com."
+  }
+]
 
 export default function Privacy() {
   return (
-    <div style={{ minHeight: "100vh", background: "#000", color: "#F0E8D4", fontFamily: "'Geist', sans-serif" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px" }}>
-
-        <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(240,232,212,0.4)", fontSize: 13, marginBottom: 40, textDecoration: "none" }}>
-          <ChevronLeft size={14} /> Back to Studenius
-        </Link>
-
-        <h1 style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-0.02em", marginBottom: 8 }}>Privacy Policy</h1>
-        <p style={{ color: "rgba(240,232,212,0.4)", fontSize: 13, marginBottom: 48 }}>Last updated: April 2026</p>
-
-        {[
-          {
-            title: "1. Information We Collect",
-            content: `When you create an account on Studenius, we collect your name and email address. If you sign in with Google, we receive your name, email, and profile picture from Google. We also collect usage data such as study sessions, flashcard progress, quiz results, and feature interactions to improve your experience.`
-          },
-          {
-            title: "2. How We Use Your Information",
-            content: `We use your information to provide and improve Studenius's study tools, personalize your learning experience, track your progress and streaks, send important account notifications, and respond to your support requests. We do not sell your personal information to third parties.`
-          },
-          {
-            title: "3. Data Storage",
-            content: `Your account data is securely stored using Supabase, a trusted database provider. Study materials you upload are stored locally in your browser and are not transmitted to our servers unless explicitly used with AI features. AI interactions are processed through our AI API and are not permanently stored.`
-          },
-          {
-            title: "4. Cookies and Local Storage",
-            content: `Studenius uses browser local storage to save your theme preferences, study events, flashcards, and session data. This data stays on your device and is not shared with us unless you are logged in. We do not use tracking cookies or advertising cookies.`
-          },
-          {
-            title: "5. Third-Party Services",
-            content: `Studenius uses the following third-party services: Supabase for authentication and database storage, AI services for study features, and Google OAuth for sign-in. Each of these services has their own privacy policy and data handling practices.`
-          },
-          {
-            title: "6. Data Retention",
-            content: `We retain your account data for as long as your account is active. You may request deletion of your account and associated data at any time by contacting us at studeniusapp@gmail.com. Upon deletion, your data will be permanently removed within 30 days.`
-          },
-          {
-            title: "7. Children's Privacy",
-            content: `Studenius is intended for users aged 13 and older. We do not knowingly collect personal information from children under 13. If you believe a child under 13 has provided us with personal information, please contact us immediately.`
-          },
-          {
-            title: "8. Your Rights",
-            content: `You have the right to access, correct, or delete your personal data at any time. You may also withdraw consent for data processing, request a copy of your data, or opt out of non-essential communications. To exercise these rights, contact us at studeniusapp@gmail.com.`
-          },
-          {
-            title: "9. Changes to This Policy",
-            content: `We may update this Privacy Policy from time to time. We will notify you of significant changes by email or through the app. Continued use of Studenius after changes constitutes acceptance of the updated policy.`
-          },
-          {
-            title: "10. Contact Us",
-            content: `If you have any questions about this Privacy Policy, please contact us at studeniusapp@gmail.com.`
-          },
-        ].map(section => (
-          <div key={section.title} style={{ marginBottom: 36 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 12, color: "#F0E8D4" }}>{section.title}</h2>
-            <p style={{ fontSize: 14, lineHeight: 1.8, color: "rgba(240,232,212,0.6)", fontWeight: 300 }}>{section.content}</p>
+    <div className="min-h-screen bg-[#FAF7F2] text-[#1A1A1A] font-sans antialiased selection:bg-[#ae2925] selection:text-white">
+      {/* Top Header */}
+      <header className="border-b-2 border-black bg-white px-4 py-4 sticky top-0 z-30 shadow-[0_2px_0_0_#000]">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 font-black text-[13px] uppercase tracking-wider text-black bg-[#FAF7F2] hover:bg-black hover:text-white px-3 py-1.5 border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Back
+          </Link>
+          <div className="flex items-center gap-2">
+            <span className="font-black tracking-tight text-[17px]">Studenius</span>
+            <span className="text-[10px] font-black uppercase bg-[#22c55e] text-black px-2 py-0.5 rounded border border-black">
+              Privacy
+            </span>
           </div>
-        ))}
-
-        <div style={{ marginTop: 64, paddingTop: 24, borderTop: "0.5px solid rgba(240,232,212,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "rgba(240,232,212,0.3)" }}>© 2026 Studenius. All rights reserved</span>
-          <Link to="/terms" style={{ fontSize: 12, color: "rgba(240,232,212,0.4)", textDecoration: "none" }}>Terms of Service</Link>
         </div>
-      </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="max-w-3xl mx-auto px-4 py-10 pb-24">
+        {/* Title Banner */}
+        <div className="border-2 border-black bg-white p-6 sm:p-8 rounded-lg shadow-[4px_4px_0px_0px_#000] mb-8">
+          <div className="inline-flex items-center gap-1.5 bg-[#FAF7F2] border-2 border-black px-2.5 py-1 rounded text-[11px] font-black uppercase tracking-wider text-[#22c55e] mb-4 shadow-[2px_2px_0px_0px_#000]">
+            <span className="material-symbols-outlined text-[14px]">verified_user</span>
+            Data Protection
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-2">Privacy Policy</h1>
+          <p className="text-[13px] font-bold text-black/60">
+            Last modified: August 2026 • Your privacy and study data security are our top priorities.
+          </p>
+        </div>
+
+        {/* Sections */}
+        <div className="flex flex-col gap-5">
+          {SECTIONS.map((sec) => (
+            <div
+              key={sec.title}
+              className="border-2 border-black bg-white p-6 rounded-lg shadow-[3px_3px_0px_0px_#000] transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_#000]"
+            >
+              <h2 className="text-[16px] sm:text-[17px] font-black mb-3 text-black flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-[#22c55e] border border-black rounded-full inline-block"></span>
+                {sec.title}
+              </h2>
+              <p className="text-[14px] leading-relaxed font-medium text-black/80">
+                {sec.content}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer info */}
+        <div className="mt-12 pt-6 border-t-2 border-black/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] font-bold text-black/60">
+          <span>© 2026 Studenius. All rights reserved.</span>
+          <div className="flex items-center gap-4">
+            <Link to="/terms" className="hover:text-black underline underline-offset-2">
+              Terms of Service
+            </Link>
+            <span>•</span>
+            <a href="mailto:studeniusapp@gmail.com" className="hover:text-black underline underline-offset-2">
+              studeniusapp@gmail.com
+            </a>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }
