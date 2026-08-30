@@ -281,7 +281,7 @@ Return strictly a valid raw JSON object (no markdown):
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
-        "openai/gpt-oss-20b",
+        "meta-llama/llama-3.1-8b-instruct",
         1000
       );
       const sanitized = aiResponse.trim().replace(/^```(json)?/, "").replace(/```$/, "").trim();

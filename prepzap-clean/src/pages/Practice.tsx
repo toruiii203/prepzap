@@ -9,6 +9,7 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
+import { Mascot } from "@/components/Mascot";
 import { logQuestCompletion } from "@/lib/quests";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -220,16 +221,6 @@ export default function Practice() {
   const [textAnswers, setTextAnswers] = useState<string[]>([]);
   const [textInput, setTextInput] = useState("");
   const [mascotState, setMascotState] = useState<"idle" | "attention" | "wrong">("idle");
-  const [isReviewLoop, setIsReviewLoop] = useState(false);
-  const [missedQuestions, setMissedQuestions] = useState<number[]>([]);
-  const [reviewIndex, setReviewIndex] = useState(0);
-  const [hasAnsweredCurrent, setHasAnsweredCurrent] = useState(false);
-  const [isCurrentCorrect, setIsCurrentCorrect] = useState<boolean | null>(null);
-  const [showReviewTransition, setShowReviewTransition] = useState(false);
-  const [showProUpsell, setShowProUpsell] = useState(false);
-  const [textAnswers, setTextAnswers] = useState<string[]>([]);
-  const [textInput, setTextInput] = useState("");
-  const [mascotState, setMascotState] = useState<"idle" | "attention" | "wrong">("idle");
   const [showHistory, setShowHistory] = useState(false);
   const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
 
@@ -330,7 +321,7 @@ Each object MUST match this schema exactly:
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
-        "openai/gpt-oss-20b",
+        "meta-llama/llama-3.1-8b-instruct",
         Math.min(4096, 300 + questionCount * 300),
         "practice"
       );

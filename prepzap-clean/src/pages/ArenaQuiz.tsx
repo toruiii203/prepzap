@@ -77,7 +77,7 @@ const QTimerRing = ({ qTimeLeft }: { qTimeLeft: number }) => {
 export default function ArenaQuiz() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
-  const { user, addXP } = useAuth();
+  const { user, profile, addXP } = useAuth();
   const isDaily = code === "daily";
 
   const getStorageKey = useCallback(() => {
@@ -205,7 +205,11 @@ export default function ArenaQuiz() {
     const score = calcScore(correctCount, elapsed, questions.length, isDaily);
 
     const displayName =
-      user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Player";
+      profile?.full_name ||
+      user?.user_metadata?.full_name ||
+      user?.name ||
+      user?.email?.split("@")[0] ||
+      "Player";
 
     try {
       const storageKey = getStorageKey();

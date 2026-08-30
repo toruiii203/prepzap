@@ -12,20 +12,38 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // ── PDF.js text extraction ────────────────────────────────────────────────────
 async function extractPdfText(file: File): Promise<string> {
-  const pdfjsLib = await import("pdfjs-dist");
-  const workerUrl = await import("pdfjs-dist/build/pdf.worker.mjs?url");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl.default;
+  try {
+    const pdfjsLib = await import("pdfjs-dist");
+    try {
+      const workerUrl = await import("pdfjs-dist/build/pdf.worker.mjs?url");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl.default;
+    } catch {
+      // Safe fallback if worker url fails
+    }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let fullText = "";
-  const maxPages = Math.min(pdf.numPages, 20);
-  for (let i = 1; i <= maxPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+    const maxPages = Math.min(pdf.numPages, 30);
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+    }
+    return fullText.trim();
+  } catch (err) {
+    console.warn("PDF extraction fallback:", err);
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const res = (e.target?.result as string) || "";
+        const printable = res.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s+/g, " ");
+        resolve(printable.slice(0, 30000));
+      };
+      reader.onerror = () => resolve("");
+      reader.readAsText(file);
+    });
   }
-  return fullText.trim();
 }
 
 // ── Shared components (module scope, not inside SourceLibrary) ─────────────
@@ -290,13 +308,20 @@ export default function SourceLibrary() {
       return;
     }
 
-    const isPdfFile = file.type === "application/pdf" || file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+    const nameLower = file.name.toLowerCase();
+    const isPdfFile = file.type === "application/pdf" || file.type.includes("pdf") || nameLower.endsWith(".pdf");
+    const isImageFile = file.type.includes("image") || 
+      nameLower.endsWith(".png") || 
+      nameLower.endsWith(".jpg") || 
+      nameLower.endsWith(".jpeg") || 
+      nameLower.endsWith(".webp") || 
+      nameLower.endsWith(".gif");
 
     if (isPdfFile) {
       setExtractingPdf(true);
       try {
         const fullText = await extractPdfText(file);
-        if (!fullText || fullText.length < 10) {
+        if (!fullText || fullText.length < 5) {
           setUploadError("Couldn't extract text from this PDF — it may be scanned or image-only. Try copying the text manually instead.");
         } else {
           addFileToLibrary({
@@ -320,29 +345,24 @@ export default function SourceLibrary() {
       return;
     }
 
-    if (!file.type.includes("text") && !file.type.includes("image") && !isPdfFile) {
-      setUploadError("Only PDF, TXT, and image files are supported.");
-      e.target.value = "";
-      return;
-    }
-
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const content = ev.target?.result as string || "";
+      const content = (ev.target?.result as string) || "";
       const truncated = content.length > 50000 ? content.slice(0, 50000) : content;
       addFileToLibrary({
         id: "f_" + Date.now(),
         name: file.name,
-        type: file.type.includes("image") ? "image" : "text",
+        type: isImageFile ? "image" : "text",
         content: truncated,
-        fullText: file.type.includes("image") ? undefined : truncated,
-        preview: file.type.includes("image") ? undefined : truncated.slice(0, 300),
+        fullText: isImageFile ? undefined : truncated,
+        preview: isImageFile ? undefined : truncated.slice(0, 300),
         size: `${(file.size / 1024).toFixed(1)} KB`,
         created_at: new Date().toISOString(),
         isPdf: false,
+        isPhoto: isImageFile,
       });
     };
-    if (file.type.includes("image")) reader.readAsDataURL(file);
+    if (isImageFile) reader.readAsDataURL(file);
     else reader.readAsText(file);
     e.target.value = "";
   };
@@ -786,7 +806,7 @@ export default function SourceLibrary() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf,text/plain,image/*"
+        accept="*/*"
         style={{ display: "none" }}
         onChange={handleFileSelected}
       />

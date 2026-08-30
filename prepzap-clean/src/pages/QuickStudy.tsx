@@ -230,7 +230,7 @@ Return raw JSON only, no wrapping!`;
       const aiResponse = await callGroq(
         [{ role: "user", content: buildPrompt(retry) }],
         systemPrompt,
-        "openai/gpt-oss-20b",
+        "meta-llama/llama-3.1-8b-instruct",
         1600,
         "quick_study"
       );

@@ -79,7 +79,7 @@ Return ONLY a JSON array, no markdown, no explanation:
   const raw = await callGroq(
     [{ role: "user", content: prompt }],
     undefined,
-    "openai/gpt-oss-20b",
+    "meta-llama/llama-3.1-8b-instruct",
     2048,
     "arena_gen"
   );
@@ -567,7 +567,7 @@ export default function Arena() {
   const renderLeaderboardCard = () => (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-black text-[16px] text-black tracking-tight">Global XP League</h3>
+        <h3 className="font-black text-[16px] text-black tracking-tight">Daily Challenge Leaderboard</h3>
         <div className="flex gap-1.5">
           {(["today", "alltime"] as const).map((tab) => (
             <button key={tab} onClick={() => setLeaderboardTab(tab)}

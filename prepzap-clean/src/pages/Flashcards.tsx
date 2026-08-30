@@ -15,6 +15,7 @@ import { db, type Card as SM2Card } from "@/lib/db";
 import { calculateSM2, type Grade } from "@/lib/sm2";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDueCount as getSRDueCount, getOrCreateSRCard, reviewCard, getDueCards, loadSRData } from "@/lib/spacedRepetition";
+import { Mascot } from "@/components/Mascot";
 
 interface Flashcard {
   id?: string;
@@ -337,7 +338,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
-        "openai/gpt-oss-20b",
+        "meta-llama/llama-3.1-8b-instruct",
         2048,
         "flashcard_gen"
       );
@@ -1187,7 +1188,12 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
             {/* VIEW 2: STUDY STATE */}
           {view === "study" && !isLoading && (
-            <main className="flex-1 px-5 py-6 flex flex-col items-center">
+            <main className="flex-1 px-5 py-6 flex flex-col items-center relative">
+              <Mascot
+                variant="floating"
+                state={isFlipped ? "happy" : "thinking"}
+                dialogue={isFlipped ? "Did you remember it?" : "Think before flipping!"}
+              />
               {/* Progress Bar + Question Counter */}
               <div className="w-full flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-1 shadow-[2px_2px_0px_#000]">
