@@ -2,7 +2,6 @@ import { getOrCreateDailyChallenge } from "@/lib/dailyChallenge";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { logQuestCompletion } from "@/lib/quests";
 import { supabase } from "@/lib/supabase";
 import { isAnswerCorrect } from "@/lib/quizUtils";
 
@@ -23,9 +22,6 @@ interface ExamRoom {
   time_limit: number;
   questions: Question[];
   mode: "live" | "open";
-  // FIX: server-stamped moment the room went "active" (set by a DB trigger,
-  // not by any single client's clock) — this is what makes every player's
-  // countdown anchored to the same real-world deadline.
   started_at: string | null;
 }
 
@@ -44,7 +40,7 @@ function todayPH(): string {
 
 function calcScore(correctCount: number, elapsed: number, totalQuestions: number, isDaily: boolean = false): number {
   const base = correctCount * 100;
-  if (isDaily) return base; // Daily just sorts by time if tied
+  if (isDaily) return base;
   const totalSecondsRemaining = Math.max(0, totalQuestions * 15 - elapsed);
   const speedBonus = totalSecondsRemaining * 5;
   return base + speedBonus;
@@ -54,9 +50,9 @@ const QTimerRing = ({ qTimeLeft }: { qTimeLeft: number }) => {
   const radius = 26;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (qTimeLeft / 15) * circumference;
-  let color = "#22c55e"; // green
-  if (qTimeLeft <= 7) color = "#eab308"; // yellow
-  if (qTimeLeft <= 3) color = "#ef4444"; // red
+  let color = "#22c55e";
+  if (qTimeLeft <= 7) color = "#eab308";
+  if (qTimeLeft <= 3) color = "#ef4444";
 
   return (
     <div className="relative w-[60px] h-[60px] bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_0px_#000] flex items-center justify-center">
@@ -83,73 +79,116 @@ export default function ArenaQuiz() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isDaily = code === "daily";
-  const isRestoredRef = useRef(false);
+
+  const getStorageKey = useCallback(() => {
+    return isDaily
+      ? `pz_arena_active_quiz_daily_${todayPH()}`
+      : `pz_arena_active_quiz_room_${code?.toUpperCase()}`;
+  }, [isDaily, code]);
+
+  // Synchronous restoration from localStorage on component mount
+  const initialSaved = (() => {
+    try {
+      const key = isDaily ? `pz_arena_active_quiz_daily_${todayPH()}` : `pz_arena_active_quiz_room_${code?.toUpperCase()}`;
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })();
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [room, setRoom] = useState<ExamRoom | null>(null);
-  // FIX: store daily quiz so we can read its actual difficulty field
   const [dailyQuiz, setDailyQuiz] = useState<DailyQuiz | null>(null);
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [totalTime, setTotalTime] = useState(0);
+
+  const [currentQ, setCurrentQ] = useState<number>(() => {
+    return (initialSaved && typeof initialSaved.currentQ === "number") ? initialSaved.currentQ : 0;
+  });
+
+  const [answers, setAnswers] = useState<Record<number, string>>(() => {
+    return (initialSaved && initialSaved.answers) ? initialSaved.answers : {};
+  });
+
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    if (initialSaved && initialSaved.deadline && initialSaved.deadline > Date.now()) {
+      return Math.max(0, Math.round((initialSaved.deadline - Date.now()) / 1000));
+    }
+    return 15 * 60;
+  });
+
+  const [totalTime, setTotalTime] = useState<number>(() => {
+    return (initialSaved && initialSaved.totalTime) ? initialSaved.totalTime : 15 * 60;
+  });
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [qTimeLeft, setQTimeLeft] = useState(15);
-  const qTimesRef = useRef<number[]>([]);
-  const currentQRef = useRef(0);
+  const qTimesRef = useRef<number[]>(initialSaved?.qTimes || []);
+  const currentQRef = useRef(currentQ);
   const handleTimeUpRef = useRef<(qIndex: number) => void>();
 
-  // FIX: replaced startTimeRef (client-local, reset on every mount) with a
-  // deadlineRef holding an absolute epoch-ms timestamp. Every tick recomputes
-  // "time left" as deadline - Date.now(), so it's correct even if the tab was
-  // backgrounded/throttled, or the user left and came back — no more free
-  // extension on remount, and (in live mode) everyone counts down from the
-  // same real-world moment instead of whenever their own tab happened to load.
-  const deadlineRef = useRef<number>(0);
+  const deadlineRef = useRef<number>(
+    (initialSaved && initialSaved.deadline && initialSaved.deadline > Date.now())
+      ? initialSaved.deadline
+      : Date.now() + 15 * 60 * 1000
+  );
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitCalledRef = useRef(false);
-  // FIX: keep a stable ref to answers so the timer useEffect never needs
-  // answers in its deps (which was restarting the interval on every selection)
-  const answersRef = useRef<Record<number, string>>({});
+  const answersRef = useRef<Record<number, string>>(answers);
 
+  // Sync ref with currentQ
   useEffect(() => {
     currentQRef.current = currentQ;
-    if (qTimesRef.current.length > 0) {
-      setQTimeLeft(qTimesRef.current[currentQ]);
+    if (!isDaily && qTimesRef.current.length > 0) {
+      setQTimeLeft(qTimesRef.current[currentQ] ?? 15);
     }
-  }, [currentQ]);
+  }, [currentQ, isDaily]);
+
+  // Persist state to localStorage on any state update
+  const persistState = useCallback((newCurrentQ: number, newAnswers: Record<number, string>) => {
+    try {
+      const key = getStorageKey();
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          currentQ: newCurrentQ,
+          answers: newAnswers,
+          deadline: deadlineRef.current,
+          totalTime,
+          qTimes: qTimesRef.current,
+        })
+      );
+    } catch {}
+  }, [getStorageKey, totalTime]);
 
   handleTimeUpRef.current = (qIndex: number) => {
-    // Mark as wrong implicitly by recording empty string if not answered
     if (answersRef.current[qIndex] === undefined) {
       const nextAns = { ...answersRef.current, [qIndex]: "" };
       answersRef.current = nextAns;
       setAnswers(nextAns);
+      persistState(qIndex, nextAns);
     }
     
-    // Auto move to next question if not the last
     if (qIndex < questions.length - 1) {
       setCurrentQ(qIndex + 1);
+      persistState(qIndex + 1, answersRef.current);
     }
   };
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // -- Submit -----------------------------------------------------------------
   const handleSubmit = useCallback(async () => {
     if (submitCalledRef.current || !user) return;
     submitCalledRef.current = true;
     setSubmitting(true);
     if (timerRef.current) clearInterval(timerRef.current);
 
-    // Elapsed time calculation
     let elapsed = 0;
     if (isDaily) {
-      // For daily, use the overall timer (10 mins)
       const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
       elapsed = totalTime - remaining;
     } else {
-      // Sum elapsed time per question
       let sumElapsed = 0;
       for (let i = 0; i < questions.length; i++) {
         const left = qTimesRef.current[i] ?? 15;
@@ -158,7 +197,6 @@ export default function ArenaQuiz() {
       elapsed = sumElapsed;
     }
 
-    // FIX: read from ref so handleSubmit is stable (no answers in useCallback deps)
     const latestAnswers = answersRef.current;
     const correctCount = questions.reduce(
       (acc, q, i) => acc + (isAnswerCorrect(q, latestAnswers[i]) ? 1 : 0),
@@ -166,13 +204,11 @@ export default function ArenaQuiz() {
     );
     const score = calcScore(correctCount, elapsed, questions.length, isDaily);
 
-    // FIX: include display_name in the submission row so the leaderboard can
-    // show real names instead of "Player 1", "Player 2", etc.
     const displayName =
       user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Player";
 
     try {
-      const storageKey = isDaily ? `pz_arena_active_quiz_daily_${todayPH()}` : `pz_arena_active_quiz_room_${code?.toUpperCase()}`;
+      const storageKey = getStorageKey();
       try { localStorage.removeItem(storageKey); } catch {}
 
       if (isDaily) {
@@ -234,32 +270,39 @@ export default function ArenaQuiz() {
       submitCalledRef.current = false;
       setSubmitting(false);
     }
-  // FIX: answers removed from deps — read via answersRef instead
-  }, [user, questions, totalTime, isDaily, room, code, navigate]);
+  }, [user, questions, totalTime, isDaily, room, code, navigate, getStorageKey]);
 
-  // ── Load quiz data ─────────────────────────────────────────────────────────
+  // -- Load quiz data ---------------------------------------------------------
   useEffect(() => {
+    let mounted = true;
+
     const load = async () => {
       setLoading(true);
       if (isDaily) {
         const data = await getOrCreateDailyChallenge();
+        if (!mounted) return;
         if (!data) { navigate("/arena"); return; }
 
-        // Redirect if already submitted
         if (user) {
-          const { data: sub } = await supabase
-            .from("daily_challenge_submissions")
-            .select("id")
-            .eq("challenge_date", todayPH())
-            .eq("user_id", user.id)
-            .single();
-          if (sub) { navigate("/arena"); return; }
+          try {
+            const { data: sub } = await supabase
+              .from("daily_challenge_submissions")
+              .select("id")
+              .eq("challenge_date", todayPH())
+              .eq("user_id", user.id)
+              .maybeSingle();
+            if (sub && mounted) { navigate("/arena"); return; }
+          } catch (e) {
+            console.warn("Submissions query warning:", e);
+          }
         }
 
-        // FIX: store the full daily quiz object so we can read difficulty
+        if (!mounted) return;
         setDailyQuiz(data as DailyQuiz);
         setQuestions(data.questions);
-        qTimesRef.current = new Array(data.questions.length).fill(15);
+        if (qTimesRef.current.length === 0) {
+          qTimesRef.current = new Array(data.questions.length).fill(15);
+        }
         
         const secs = 15 * 60;
         const storageKey = `pz_arena_active_quiz_daily_${todayPH()}`;
@@ -294,24 +337,16 @@ export default function ArenaQuiz() {
           .from("exam_rooms")
           .select("*")
           .eq("code", code?.toUpperCase())
-          .single();
+          .maybeSingle();
+        if (!mounted) return;
         if (!data) { navigate("/arena"); return; }
         setRoom(data);
         setQuestions(data.questions);
-        qTimesRef.current = new Array(data.questions.length).fill(15);
+        if (qTimesRef.current.length === 0) {
+          qTimesRef.current = new Array(data.questions.length).fill(15);
+        }
         
         const secs = data.time_limit * 60;
-
-        // FIX: this is the actual bug fix. Previously this always did
-        // `setTimeLeft(secs)` — full duration — no matter how much real time
-        // had already passed since the room started, so leaving and
-        // reopening the tab (or just joining a couple seconds late) gave a
-        // free reset. Now:
-        //  - "live" mode rooms are synced: every player anchors to the same
-        //    `started_at`, stamped once by the database (via trigger) when
-        //    the host starts the room — not by any single client's clock.
-        //  - "open" mode has no shared start (each player begins on their
-        //    own), so it still anchors to this player's own "now".
         const deadline =
           data.mode === "live" && data.started_at
             ? new Date(data.started_at).getTime() + secs * 1000
@@ -322,20 +357,14 @@ export default function ArenaQuiz() {
         setTimeLeft(remainingNow);
         setTotalTime(secs);
       }
-      isRestoredRef.current = true;
-      setLoading(false);
+      if (mounted) setLoading(false);
     };
+
     load();
+    return () => { mounted = false; };
   }, [code, isDaily, user, navigate]);
 
-  // ── Countdown timer ────────────────────────────────────────────────────────
-  // FIX: recompute remaining time from `deadlineRef` (an absolute timestamp)
-  // every tick, instead of decrementing a counter by 1 each second. This
-  // means: (a) throttled/backgrounded tabs don't drift — whenever the tick
-  // does fire, it shows the true remaining time, not "however many ticks
-  // fired"; (b) reopening the tab after leaving shows the real remaining
-  // time, not a reset; (c) in live mode, this is now synced to the same
-  // server-stamped deadline every other player is using.
+  // -- Countdown timer --------------------------------------------------------
   useEffect(() => {
     if (loading || questions.length === 0) return;
 
@@ -348,11 +377,11 @@ export default function ArenaQuiz() {
         return;
       }
       
-      // Per-question timer tick (ONLY for room mode, Daily is untimed per-question)
+      // Per-question timer tick (ONLY for live multiplayer room mode)
       if (!isDaily) {
         const cQ = currentQRef.current;
-        if (answersRef.current[cQ] === undefined && qTimesRef.current[cQ] > 0) {
-          qTimesRef.current[cQ] -= 1;
+        if (answersRef.current[cQ] === undefined && (qTimesRef.current[cQ] ?? 15) > 0) {
+          qTimesRef.current[cQ] = (qTimesRef.current[cQ] ?? 15) - 1;
           setQTimeLeft(qTimesRef.current[cQ]);
           if (qTimesRef.current[cQ] === 0 && handleTimeUpRef.current) {
             handleTimeUpRef.current(cQ);
@@ -361,11 +390,9 @@ export default function ArenaQuiz() {
       }
     };
 
-    tick(); // correct immediately on mount, don't wait a full second
+    tick();
     timerRef.current = setInterval(tick, 1000);
 
-    // Extra correction the instant the tab regains focus — covers the case
-    // where the interval itself was fully suspended while backgrounded.
     const onVisible = () => { if (document.visibilityState === "visible") tick(); };
     document.addEventListener("visibilitychange", onVisible);
 
@@ -373,13 +400,19 @@ export default function ArenaQuiz() {
       if (timerRef.current) clearInterval(timerRef.current);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [loading, questions.length, handleSubmit]);
+  }, [loading, questions.length, handleSubmit, isDaily]);
 
   const selectAnswer = (letter: string) => {
-    if (!isDaily && qTimesRef.current[currentQ] === 0) return; // Prevent changing if timed out
+    if (!isDaily && (qTimesRef.current[currentQ] ?? 15) === 0) return;
     const next = { ...answersRef.current, [currentQ]: letter };
     answersRef.current = next;
     setAnswers(next);
+    persistState(currentQ, next);
+  };
+
+  const handleNavQ = (newQ: number) => {
+    setCurrentQ(newQ);
+    persistState(newQ, answersRef.current);
   };
 
   const formatTime = (s: number) =>
@@ -391,12 +424,11 @@ export default function ArenaQuiz() {
   const optionLetters = ["A", "B", "C", "D"];
   const answeredCount = Object.keys(answers).length;
 
-  // FIX: derive difficulty label properly for both daily and room
   const difficultyLabel = isDaily
-    ? `Daily Quiz · ${dailyQuiz?.difficulty ?? "Hard"}`
-    : `${room?.topic} · ${room?.difficulty}`;
+    ? `Daily Quiz � ${dailyQuiz?.difficulty ?? "Medium"}`
+    : `${room?.topic} � ${room?.difficulty}`;
 
-  // ── Loading ────────────────────────────────────────────────────────────────
+  // -- Loading ----------------------------------------------------------------
   if (loading) return (
     <div className="min-h-[100dvh] bg-[#f5f0e8] flex flex-col items-center justify-center gap-3">
       <span className="material-symbols-outlined animate-spin text-[36px]">progress_activity</span>
@@ -405,16 +437,16 @@ export default function ArenaQuiz() {
   );
   if (!q) return null;
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // -- Render -----------------------------------------------------------------
   return (
     <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
 
-      {/* ── Header (shared) ── */}
+      {/* -- Header (shared) -- */}
       <header className="sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black shadow-[0_2px_0px_rgba(0,0,0,0.05)]">
         <div className="flex justify-between items-center px-4 md:px-8 py-3">
           <button
             onClick={() => navigate("/arena")}
-            className="flex items-center gap-1 font-bold text-[13px] text-black/50"
+            className="flex items-center gap-1 font-bold text-[13px] text-black/50 hover:text-black transition-colors"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -434,19 +466,18 @@ export default function ArenaQuiz() {
         </div>
       </header>
 
-      {/* ════════════ MOBILE ════════════ */}
+      {/* ------------ MOBILE ------------ */}
       <div className="md:hidden flex flex-col gap-5 px-4 pt-5 pb-28">
 
-        {/* Timer + progress indicator */}
+        {/* Question Counter Header */}
         <div className="flex flex-col items-center gap-2">
           {!isDaily && <QTimerRing qTimeLeft={qTimeLeft} />}
-          <p className="text-[13px] font-black text-black/60 mt-1">{currentQ + 1} of {questions.length}</p>
+          <p className="text-[13px] font-black text-black/60">{currentQ + 1} of {questions.length}</p>
         </div>
 
         {/* Question card */}
         <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-5 relative">
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 bg-[#f5f0e8] border-2 border-black rounded-full" />
-          {/* FIX: use difficultyLabel instead of hardcoded "Daily Quiz · Hard" */}
           <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#f5f0e8] mb-3">
             {difficultyLabel}
           </span>
@@ -482,7 +513,7 @@ export default function ArenaQuiz() {
           {questions.map((_, i) => (
             <button
               key={i}
-              onClick={() => setCurrentQ(i)}
+              onClick={() => handleNavQ(i)}
               className={`rounded-full transition-all ${
                 i === currentQ
                   ? "w-4 h-3 bg-[#f0a040] border-2 border-black"
@@ -498,17 +529,14 @@ export default function ArenaQuiz() {
         <p className="text-center text-[11px] font-bold text-black/40">{answeredCount}/{questions.length} answered</p>
       </div>
 
-      {/* Mobile bottom nav
-          NOTE: z-[100] + explicit safe-area padding so this always sits above
-          any persistent app-level bottom tab bar (Home/AI Tutor/Flash/Arena/Profile),
-          which was overlapping and blocking taps on Next/Submit. */}
+      {/* Mobile bottom nav */}
       <div
         className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 pt-4 z-[100]"
         style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
       >
         <div className="flex gap-3">
           <button
-            onClick={() => setCurrentQ((q) => Math.max(0, q - 1))}
+            onClick={() => handleNavQ(Math.max(0, currentQ - 1))}
             disabled={currentQ === 0}
             className="flex-1 bg-[#f5f0e8] border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-30"
           >
@@ -516,7 +544,7 @@ export default function ArenaQuiz() {
           </button>
           {currentQ < questions.length - 1 ? (
             <button
-              onClick={() => setCurrentQ((q) => Math.min(questions.length - 1, q + 1))}
+              onClick={() => handleNavQ(Math.min(questions.length - 1, currentQ + 1))}
               className="flex-1 bg-black text-white border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
             >
               Next<span className="material-symbols-outlined text-[18px]">arrow_forward</span>
@@ -535,23 +563,22 @@ export default function ArenaQuiz() {
         </div>
       </div>
 
-      {/* ════════════ DESKTOP ════════════ */}
+      {/* ------------ DESKTOP ------------ */}
       <div className="hidden md:flex flex-1 overflow-hidden">
 
-        {/* Center — question + options */}
+        {/* Center � question + options */}
         <div className="flex-1 p-8 overflow-y-auto flex flex-col gap-6 justify-between">
           <div className="flex flex-col gap-6">
 
             {/* Question card */}
             <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-6">
-              {/* FIX: real difficulty label */}
               <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#f5f0e8] mb-4">
                 {difficultyLabel}
               </span>
               <p className="font-black text-[22px] text-black leading-snug">{q.question}</p>
             </div>
 
-            {/* Options — 2×2 grid */}
+            {/* Answer options */}
             <div className="grid grid-cols-2 gap-4">
               {q.options.map((opt, i) => {
                 const letter = optionLetters[i];
@@ -560,13 +587,13 @@ export default function ArenaQuiz() {
                   <button
                     key={letter}
                     onClick={() => selectAnswer(letter)}
-                    className={`border-2 border-black p-5 flex items-start gap-4 text-left transition-all hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] ${
+                    className={`border-2 border-black p-5 flex items-start gap-4 text-left transition-all active:translate-x-[2px] active:translate-y-[2px] ${
                       selected
                         ? "bg-black text-white shadow-[4px_4px_0px_0px_#f0a040]"
-                        : "bg-white text-black shadow-[4px_4px_0px_0px_#000]"
+                        : "bg-white text-black shadow-[4px_4px_0px_0px_#000] hover:bg-[#f5f0e8]"
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center font-black text-[14px] flex-shrink-0 ${selected ? "border-white bg-white text-black" : "border-black"}`}>
+                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black text-[14px] flex-shrink-0 mt-0.5 ${selected ? "border-white bg-white text-black" : "border-black bg-white text-black"}`}>
                       {letter}
                     </div>
                     <p className={`font-medium text-[15px] flex-1 leading-snug mt-1 ${selected ? "font-bold" : ""}`}>{opt}</p>
@@ -579,7 +606,7 @@ export default function ArenaQuiz() {
           {/* Desktop bottom controls */}
           <div className="flex items-center justify-between pt-4 border-t-2 border-black">
             <button
-              onClick={() => setCurrentQ((q) => Math.max(0, q - 1))}
+              onClick={() => handleNavQ(Math.max(0, currentQ - 1))}
               disabled={currentQ === 0}
               className="px-6 py-3 border-2 border-black font-bold text-[14px] bg-white shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-30 flex items-center gap-2"
             >
@@ -590,7 +617,7 @@ export default function ArenaQuiz() {
               {questions.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => setCurrentQ(i)}
+                  onClick={() => handleNavQ(i)}
                   className={`rounded-full transition-all ${
                     i === currentQ
                       ? "w-4 h-3 bg-[#f0a040] border-2 border-black"
@@ -603,7 +630,7 @@ export default function ArenaQuiz() {
             </div>
             {currentQ < questions.length - 1 ? (
               <button
-                onClick={() => setCurrentQ((q) => Math.min(questions.length - 1, q + 1))}
+                onClick={() => handleNavQ(Math.min(questions.length - 1, currentQ + 1))}
                 className="px-6 py-3 border-2 border-black font-bold text-[14px] bg-black text-white shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-2"
               >
                 Next<span className="material-symbols-outlined text-[18px]">arrow_forward</span>
@@ -622,7 +649,7 @@ export default function ArenaQuiz() {
           </div>
         </div>
 
-        {/* Right panel — question map + timer */}
+        {/* Right panel � question map + timer */}
         <aside className="w-[260px] border-l-2 border-black bg-white flex flex-col overflow-y-auto">
 
           {/* Question map */}
@@ -634,7 +661,7 @@ export default function ArenaQuiz() {
               {questions.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => setCurrentQ(i)}
+                  onClick={() => handleNavQ(i)}
                   className={`aspect-square border-2 border-black text-[12px] font-black flex items-center justify-center transition-all ${
                     i === currentQ
                       ? "bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] -translate-x-0.5 -translate-y-0.5"
@@ -662,7 +689,7 @@ export default function ArenaQuiz() {
             </button>
           </div>
 
-          {/* Question Timer */}
+          {/* Question Timer (multiplayer only) */}
           {!isDaily && (
             <div className="p-4 border-b-2 border-black flex flex-col items-center justify-center bg-[#f5f0e8]">
               <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Question Time</p>
