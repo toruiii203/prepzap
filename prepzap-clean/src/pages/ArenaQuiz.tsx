@@ -141,6 +141,7 @@ export default function ArenaQuiz() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitCalledRef = useRef(false);
+  const loadedForRef = useRef<string | null>(null);
   const answersRef = useRef<Record<number, string>>(answers);
 
   // Sync ref with currentQ
@@ -335,7 +336,15 @@ export default function ArenaQuiz() {
   useEffect(() => {
     let mounted = true;
 
+    const loadKey = isDaily ? "daily" : (code?.toUpperCase() ?? "");
+
     const load = async () => {
+      // Guards against re-initializing (and resetting the timer/progress) when this
+      // effect fires again for a reason unrelated to actually switching quizzes —
+      // e.g. Supabase issuing a new `user` object reference on a session refresh,
+      // which used to happen every time you left and came back to the tab.
+      if (loadedForRef.current === loadKey) return;
+
       setLoading(true);
       if (isDaily) {
         const data = await getOrCreateDailyChallenge();
@@ -427,12 +436,13 @@ export default function ArenaQuiz() {
         setTimeLeft(remainingNow);
         setTotalTime(secs);
       }
+      loadedForRef.current = loadKey;
       if (mounted) setLoading(false);
     };
 
     load();
     return () => { mounted = false; };
-  }, [code, isDaily, user, navigate]);
+  }, [code, isDaily, user?.id, navigate]);
 
   // -- Countdown timer --------------------------------------------------------
   useEffect(() => {
