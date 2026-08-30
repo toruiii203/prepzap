@@ -180,17 +180,26 @@ function AppRoutes() {
   }, [user?.id]);
 
   useEffect(() => {
-    // Handle Android/iOS deep links (OAuth callback)
-    const sub = CapApp.addListener("appUrlOpen", (event) => {
-      const url = event.url;
-      // studenius://auth/callback#access_token=...
+    const handleUrl = (url: string) => {
+      if (!url) return;
       if (url.includes("studenius://")) {
         const path = url.split("studenius://")[1];
-        // e.g. "auth/callback#access_token=..."
-        // Use navigate to manually trigger the React Router transition inside the SPA
-        navigate("/" + path, { replace: true });
+        window.location.href = "/" + path;
+      }
+    };
+
+    // Check if app was launched via deep link
+    CapApp.getLaunchUrl().then((launchUrl) => {
+      if (launchUrl && launchUrl.url) {
+        handleUrl(launchUrl.url);
       }
     });
+
+    // Handle Android/iOS deep links while app is running
+    const sub = CapApp.addListener("appUrlOpen", (event) => {
+      handleUrl(event.url);
+    });
+
     return () => { sub.then(listener => listener.remove()); };
   }, [navigate]);
 
