@@ -1,3 +1,4 @@
+import { getOrCreateDailyChallenge } from "@/lib/dailyChallenge";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -74,7 +75,7 @@ export default function ArenaResults() {
             if (isDaily) {
                const [subRes, chalRes] = await Promise.all([
                  supabase.from("daily_challenge_submissions").select("*").eq("challenge_date", today).eq("user_id", user.id).single(),
-                 supabase.from("daily_challenges").select("questions").eq("challenge_date", today).single()
+                 getOrCreateDailyChallenge().then(q => ({ data: q, error: null }))
                ]);
                if (subRes.data && chalRes.data) {
                  setRestoredState({

@@ -1,3 +1,4 @@
+import { getOrCreateDailyChallenge } from "@/lib/dailyChallenge";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -208,11 +209,7 @@ export default function ArenaQuiz() {
     const load = async () => {
       setLoading(true);
       if (isDaily) {
-        const { data } = await supabase
-          .from("daily_challenges")
-          .select("*")
-          .eq("challenge_date", todayPH())
-          .single();
+        const data = await getOrCreateDailyChallenge();
         if (!data) { navigate("/arena"); return; }
 
         // Redirect if already submitted

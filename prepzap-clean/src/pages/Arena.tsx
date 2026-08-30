@@ -1,3 +1,4 @@
+import { getOrCreateDailyChallenge } from "@/lib/dailyChallenge";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -467,13 +468,23 @@ export default function Arena() {
     const load = async () => {
       setLoadingQuiz(true);
       const today = todayPH();
-      const { data } = await supabase.from("daily_challenges").select("*").eq("challenge_date", today).single();
-      setDailyQuiz(data ?? null);
-      if (data && user) {
-        const { data: sub } = await supabase.from("daily_challenge_submissions").select("id").eq("challenge_date", today).eq("user_id", user.id).single();
-        setAlreadySubmitted(!!sub);
+      try {
+        const quiz = await getOrCreateDailyChallenge();
+        setDailyQuiz(quiz ?? null);
+        if (quiz && user) {
+          const { data: sub } = await supabase
+            .from("daily_challenge_submissions")
+            .select("id")
+            .eq("challenge_date", today)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          setAlreadySubmitted(!!sub);
+        }
+      } catch (err) {
+        console.error("Error loading daily quiz:", err);
+      } finally {
+        setLoadingQuiz(false);
       }
-      setLoadingQuiz(false);
     };
     load();
   }, [user]);
