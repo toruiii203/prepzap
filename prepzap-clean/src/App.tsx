@@ -13,6 +13,7 @@ import { setHistoryUser } from "@/lib/historyStore";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { StudeniusLayout } from "@/components/StudeniusLayout";
 import { App as CapApp } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { supabase } from "@/lib/supabase";
 
@@ -197,6 +198,7 @@ function AppRoutes() {
         if (code) {
           handled = true;
           console.log("[DeepLink] Exchanging PKCE code for session...");
+          try { await Browser.close(); } catch {}
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) {
             console.error("[DeepLink] Code exchange error:", error.message);

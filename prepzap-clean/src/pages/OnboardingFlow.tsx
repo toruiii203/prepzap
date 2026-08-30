@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
@@ -455,20 +456,46 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
       return;
     }
 
-    setLoading(true); setError(null)
-    // Auto-reset loading state after 8 seconds so the button doesn't freeze if cancelled/resumed
+    setLoading(true);
+    setError(null);
+
+    // Safety timeout: reset button after 10s if user cancels browser
     setTimeout(() => {
-      setLoading(false)
-    }, 8000)
-    const { error: e } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: Capacitor.isNativePlatform() ? 'studenius://auth/callback' : `${window.location.origin}/auth/callback`,
-        queryParams: { prompt: "select_account" },
-      },
-    })
-    if (e) { setError(e.message); setLoading(false) }
-  }
+      setLoading(false);
+    }, 10000);
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const { data, error: e } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: "studenius://auth/callback",
+            skipBrowserRedirect: true,
+            queryParams: { prompt: "select_account" },
+          },
+        });
+
+        if (e) throw e;
+
+        if (data?.url) {
+          await Browser.open({ url: data.url, windowName: "_self" });
+        }
+      } else {
+        const { error: e } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: { prompt: "select_account" },
+          },
+        });
+        if (e) throw e;
+      }
+    } catch (e: any) {
+      console.error("Google sign-in error:", e);
+      setError(e.message || "Google sign-in failed");
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
       if ((import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
