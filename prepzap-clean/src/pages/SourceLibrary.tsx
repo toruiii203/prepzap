@@ -13,8 +13,8 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 // ── PDF.js text extraction ────────────────────────────────────────────────────
 async function extractPdfText(file: File): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
-  // Use the bundled worker from pdfjs-dist for Vite compatibility
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  const workerUrl = await import("pdfjs-dist/build/pdf.worker.mjs?url");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl.default;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -786,8 +786,8 @@ export default function SourceLibrary() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.txt,text/*,image/*"
-        style={{ opacity: 0, position: "absolute", zIndex: -1, width: 1, height: 1 }}
+        accept="application/pdf,text/plain,image/*"
+        style={{ display: "none" }}
         onChange={handleFileSelected}
       />
       <canvas ref={canvasRef} className="hidden" />
@@ -1033,7 +1033,7 @@ export default function SourceLibrary() {
       {/* ════════════════════════════════════════════════════
           MOBILE LAYOUT — DO NOT TOUCH
       ════════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]">
+      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2] pb-20">
 
         {/* Header */}
         <header className="w-full top-0 sticky bg-[#FAF7F2] flex items-center justify-between px-5 h-16 z-40 border-b-2 border-black shrink-0">

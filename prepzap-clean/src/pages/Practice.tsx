@@ -9,6 +9,8 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
+import { logQuestCompletion } from "@/lib/quests";
+import { logQuestCompletion } from "@/lib/quests";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface Question {
@@ -688,7 +690,7 @@ Each object MUST match this schema exactly:
       </div>{/* end desktop wrapper */}
 
       {/* ══ MOBILE ═══════════════════════════════════════════════════════════ */}
-      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2] pb-20" style={{ height: "100dvh", overflow: "hidden" }}>
 
         <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[3px] border-black flex items-center justify-between px-4 h-16">
           <button onClick={() => navigate(-1)}

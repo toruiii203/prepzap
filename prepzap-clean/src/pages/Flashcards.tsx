@@ -14,6 +14,7 @@ import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 import { db, type Card as SM2Card } from "@/lib/db";
 import { calculateSM2, type Grade } from "@/lib/sm2";
 import { useLiveQuery } from "dexie-react-hooks";
+import { getDueCount as getSRDueCount, getOrCreateSRCard, reviewCard, getDueCards, loadSRData } from "@/lib/spacedRepetition";
 
 interface Flashcard {
   id?: string;
@@ -108,6 +109,41 @@ export default function Flashcards() {
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
   const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
+
+  const [totalDue, setTotalDue] = useState(0);
+  const [isReviewMode, setIsReviewMode] = useState(false);
+
+  useEffect(() => {
+    if (view === 'setup') {
+      setTotalDue(getSRDueCount());
+    }
+  }, [view]);
+
+  const handleStartReview = async () => {
+    const dueSRCards = loadSRData().filter(c => new Date(c.nextReview) <= new Date());
+    if (dueSRCards.length === 0) return;
+    
+    // load actual card contents from dexie
+    const loadedCards = [];
+    for (const src of dueSRCards) {
+      const dbCard = await db.cards.get(src.cardId);
+      if (dbCard) {
+        loadedCards.push({ front: dbCard.front, back: dbCard.back, explanation: dbCard.explanation || '', deckId: dbCard.deckId, dexieId: dbCard.id });
+      }
+    }
+    
+    if (loadedCards.length > 0) {
+      setCards(loadedCards);
+      setCurrentCardIndex(0);
+      setScores({ gotIt: 0, unsure: 0, forgot: 0 });
+      setIsFlipped(false);
+      setIsReviewMode(true);
+      setView('study');
+    } else {
+      alert("No valid cards found for review.");
+    }
+  };
+
 
   // Freemium state
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
@@ -743,7 +779,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               <div className="flex items-center gap-3">
                 {view === "study" && (
                   <button
-                    onClick={() => setView("setup")}
+                    onClick={() => (() => { setView("setup"); setIsReviewMode(false); })()}
                     className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -862,7 +898,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   <span className="material-symbols-outlined text-white text-[40px]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
                 </div>
                 <div className="text-center">
-                  <h2 className="text-[32px] font-black mb-2">Deck Completed!</h2>
+                  <h2 className="text-[32px] font-black mb-2">{isReviewMode ? "All caught up! 🎉" : "Deck Completed!"}</h2>
                   <p className="text-[14px] font-bold text-black/50">Spaced repetition logic has been updated based on your responses.</p>
                 </div>
                 <div className="w-full max-w-md border-2 border-black bg-white shadow-[4px_4px_0px_#000] divide-y-2 divide-black">
@@ -881,7 +917,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
                 <div className="flex gap-4 w-full max-w-md">
                   <button
-                    onClick={() => setView("setup")}
+                    onClick={() => (() => { setView("setup"); setIsReviewMode(false); })()}
                     className="flex-1 py-4 border-2 border-black bg-white font-extrabold text-[15px] shadow-[3px_3px_0px_#000] hover:bg-[#E2E2E2] transition-all"
                   >
                     Restart
@@ -948,13 +984,13 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       {/* ══════════════════════════════════════════════════
           MOBILE LAYOUT
           ══════════════════════════════════════════════════ */}
-      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ minHeight: "100dvh" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2] pb-20" style={{ minHeight: "100dvh" }}>
         <div className="w-full min-h-full bg-[#fcf9f4] flex flex-col flex-1 overflow-hidden">
 
           {/* TopAppBar */}
           <header className="w-full top-0 sticky ios-blur safe-pt border-b-2 border-on-background flex items-center justify-between px-5 h-16 z-50">
             <button
-              onClick={() => view === "study" ? setView("setup") : navigate(-1)}
+              onClick={() => view === "study" ? (() => { setView("setup"); setIsReviewMode(false); })() : navigate(-1)}
               aria-label="Go Back"
               className="material-symbols-outlined text-primary hover:bg-surface-container-high transition-colors w-10 h-10 flex items-center justify-center rounded-full"
             >
@@ -985,6 +1021,12 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           {/* VIEW 1: SETUP STATE */}
           {view === "setup" && (
             <main className="flex-1 px-5 py-6 flex flex-col gap-6 overflow-y-auto pb-8">
+              {totalDue > 0 && (
+                <button onClick={handleStartReview} className="w-full rounded-[12px] border-2 border-[#1A1A1A] bg-[#FF4D2E] text-white font-headline text-headline-md h-16 shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:scale-95 duration-100 active:shadow-none transition-all flex items-center justify-center gap-2 mb-2">
+                  <span className="material-symbols-outlined">schedule</span>
+                  Review ({totalDue} due)
+                </button>
+              )}
               {/* Hero Graphic / Design Banner */}
               <div className="w-full h-32 rounded-[18px] border-2 border-on-background bg-surface-variant shadow-ink-md overflow-hidden relative flex items-center justify-center bg-white">
                 <div
@@ -1268,7 +1310,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               <div className="w-20 h-20 bg-secondary-container rounded-full border-2 border-[#1c1c19] flex items-center justify-center mb-6 shadow-ink-sm">
                 <span className="material-symbols-outlined text-4xl text-black">emoji_events</span>
               </div>
-              <h2 className="font-headline text-headline-xl text-ink font-extrabold mb-2 text-[24px]">Deck Completed!</h2>
+              <h2 className="font-headline text-headline-xl text-ink font-extrabold mb-2 text-[24px]">{isReviewMode ? "All caught up! 🎉" : "Deck Completed!"}</h2>
               <p className="font-body-md text-on-surface-variant max-w-[280px] mb-6 text-[14.5px]">
                 Reviewing mistakes triggers spaced repetition logic in the platform automatically.
               </p>
@@ -1299,7 +1341,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
               <div className="flex gap-4 w-full">
                 <button
-                  onClick={() => setView("setup")}
+                  onClick={() => (() => { setView("setup"); setIsReviewMode(false); })()}
                   className="flex-1 border-2 border-[#1c1c19] bg-white text-[#1c1c19] py-3.5 rounded-xl font-label-md hover:bg-neutral-100 transition-all flex items-center justify-center gap-1 active:translate-y-0.5 text-[14px] font-bold"
                 >
                   Restart

@@ -12,6 +12,7 @@ import { setSourceContextUser } from "@/lib/sourceContext";
 import { setHistoryUser } from "@/lib/historyStore";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { StudeniusLayout } from "@/components/StudeniusLayout";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
@@ -159,6 +160,15 @@ function MobileRootRedirect() {
 function AppRoutes() {
   const { user } = useAuth();
   const [showSplash, setShowSplash] = useState(false);
+  const location = useLocation();
+
+  const hideBottomNav = 
+    location.pathname.startsWith('/onboarding') ||
+    location.pathname.startsWith('/auth/callback') ||
+    location.pathname.startsWith('/landing') ||
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/signup') ||
+    location.pathname.startsWith('/arena/quiz/');
 
   useEffect(() => {
     if (user?.id) {
@@ -186,6 +196,7 @@ function AppRoutes() {
   return (
     <>
       <PWAInstallBanner />
+      <MobileBottomNav hide={hideBottomNav} />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
         {/* Public */}

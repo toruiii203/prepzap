@@ -106,13 +106,7 @@ export function ToolHistorySidebar({ toolKey, onNew, onSelect, activeId }: Props
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: "1px solid var(--pz-border)" }}>
             <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--pz-text-muted)" }}>History</span>
-            <button
-              onClick={onNew}
-              className="flex items-center gap-1 text-[10px] px-2 py-1 transition-opacity hover:opacity-70"
-              style={{ background: "var(--pz-surface3)", border: "1px solid var(--pz-border)", color: "var(--pz-text-2)" }}
-            >
-              <Plus className="h-2.5 w-2.5" /> New
-            </button>
+            
           </div>
 
           {/* List */}

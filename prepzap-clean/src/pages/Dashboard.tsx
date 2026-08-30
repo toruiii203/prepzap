@@ -6,19 +6,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
 
-// All 12 tools flat — used for desktop grid and mobile carousel
+// All 12 tools flat
 const ALL_TOOLS = [
   { route: "/ai-tutor",   icon: "smart_toy",       title: "AI Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
   { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
-  { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-black" },
+  { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-[#8B5CF6]" },
   { route: "/quick-study",icon: "bolt",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
-  { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-black" },
-  { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-black" },
-  { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-black" },
-  { route: "/quick-study",icon: "menu_book",        title: "Quick Study",     desc: "5 min bursts",      color: "text-black" },
-  { route: "/sources",    icon: "folder_open",      title: "Source Library",  desc: "Your materials",    color: "text-black" },
+  { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-[#0EA5E9]" },
+  { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-[#10B981]" },
+  { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-[#EC4899]" },
+  { route: "/quick-study",icon: "menu_book",        title: "Quick Study",     desc: "5 min bursts",      color: "text-[#6366F1]" },
+  { route: "/sources",    icon: "folder_open",      title: "Source Library",  desc: "Your materials",    color: "text-[#78716C]" },
   { route: "/mistakes",   icon: "auto_stories",     title: "Mistake Journal", desc: "Learn from errors", color: "text-[#ba1a1a]" },
-  { route: "/analytics",  icon: "bar_chart",        title: "Analytics",       desc: "Track progress",    color: "text-black" },
+  { route: "/analytics",  icon: "bar_chart",        title: "Analytics",       desc: "Track progress",    color: "text-[#14B8A6]" },
   { route: "/challenges", icon: "emoji_events",     title: "Challenges",      desc: "Compete & win",     color: "text-[#F5A623]" },
 ] as const;
 
@@ -191,6 +191,19 @@ export default function Dashboard() {
     if (!el) return;
     const page = Math.round(el.scrollLeft / el.clientWidth);
     setToolsPage(Math.min(TOOL_SLIDES.length - 1, Math.max(0, page)));
+  };
+
+  const getSessionRoute = (title: string) => {
+    const t = (title || "").toLowerCase();
+    if (t.includes('flashcard')) return '/flashcards';
+    if (t.includes('practice')) return '/practice';
+    if (t.includes('arena') || t.includes('challenge')) return '/arena';
+    if (t.includes('tutor')) return '/ai-tutor';
+    if (t.includes('planner')) return '/planner';
+    if (t.includes('math')) return '/math';
+    if (t.includes('teach')) return '/teach-it';
+    if (t.includes('source')) return '/sources';
+    return '/tools';
   };
 
   const scrollToolsToPage = (page: number) => {
@@ -514,7 +527,7 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════════════
           MOBILE LAYOUT — block on mobile, hidden on desktop
           ═══════════════════════════════════════════════════ */}
-      <main className="md:hidden px-5 pt-6 pb-28 flex flex-col gap-6">
+      <main className="md:hidden px-5 pt-6 pb-32 flex flex-col gap-6 overflow-y-auto h-full">
 
         {/* Greeting */}
         <section className="flex items-center gap-3">

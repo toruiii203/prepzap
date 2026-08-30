@@ -754,7 +754,7 @@ export default function TeachIt() {
 
         </main>
 
-        <div className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-[#FAF7F2] border-t-2 border-black z-20 md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-[#FAF7F2] border-t-2 border-black z-20 md:hidden pb-[calc(12px+env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-2">
             <button onClick={handleMicClick} title={isRecording ? "Stop recording" : "Record voice"} className={`flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] transition-colors ${isRecording ? "text-[#ae2925]" : ""}`}>
               <span className={`material-symbols-outlined text-[16px] ${isRecording ? "animate-pulse" : ""}`}>{isRecording ? "stop_circle" : "mic"}</span>

@@ -9,6 +9,10 @@ const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.
 const DEFAULT_MODEL = "openai/gpt-oss-20b";
 const VISION_MODEL = "openai/gpt-oss-20b";
 
+function getTieredModel(model: string): string {
+  return model;
+}
+
 // Previously this called supabase.auth.getSession() directly with a 5s race
 // timeout. That call has a confirmed deadlock failure mode (Web Locks
 // contention across tabs), and on timeout the old code silently proceeded

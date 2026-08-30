@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { logQuestCompletion } from "@/lib/quests";
 import { supabase } from "@/lib/supabase";
+import { isAnswerCorrect } from "@/lib/quizUtils";
 
 interface Question {
   question: string;
@@ -40,12 +41,41 @@ function todayPH(): string {
     .toISOString().split("T")[0];
 }
 
-function calcScore(correctCount: number, totalSeconds: number, timeLimitSeconds: number): number {
-  const base = correctCount * 1000;
-  const timeRemaining = Math.max(0, timeLimitSeconds - totalSeconds);
-  const speedBonus = Math.round((timeRemaining / timeLimitSeconds) * 500 * correctCount);
+function calcScore(correctCount: number, elapsed: number, totalQuestions: number, isDaily: boolean = false): number {
+  const base = correctCount * 100;
+  if (isDaily) return base; // Daily just sorts by time if tied
+  const totalSecondsRemaining = Math.max(0, totalQuestions * 15 - elapsed);
+  const speedBonus = totalSecondsRemaining * 5;
   return base + speedBonus;
 }
+
+const QTimerRing = ({ qTimeLeft }: { qTimeLeft: number }) => {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (qTimeLeft / 15) * circumference;
+  let color = "#22c55e"; // green
+  if (qTimeLeft <= 7) color = "#eab308"; // yellow
+  if (qTimeLeft <= 3) color = "#ef4444"; // red
+
+  return (
+    <div className="relative w-[60px] h-[60px] bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_0px_#000] flex items-center justify-center">
+      <svg className="absolute top-0 left-0 w-full h-full -rotate-90">
+        <circle
+          cx="30"
+          cy="30"
+          r={radius}
+          stroke={color}
+          strokeWidth="4"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="transition-all duration-1000 ease-linear"
+        />
+      </svg>
+      <span className="font-black text-xl z-10" style={{ color }}>{qTimeLeft}</span>
+    </div>
+  );
+};
 
 export default function ArenaQuiz() {
   const { code } = useParams<{ code: string }>();
@@ -64,6 +94,11 @@ export default function ArenaQuiz() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const [qTimeLeft, setQTimeLeft] = useState(15);
+  const qTimesRef = useRef<number[]>([]);
+  const currentQRef = useRef(0);
+  const handleTimeUpRef = useRef<(qIndex: number) => void>();
+
   // FIX: replaced startTimeRef (client-local, reset on every mount) with a
   // deadlineRef holding an absolute epoch-ms timestamp. Every tick recomputes
   // "time left" as deadline - Date.now(), so it's correct even if the tab was
@@ -77,6 +112,27 @@ export default function ArenaQuiz() {
   // answers in its deps (which was restarting the interval on every selection)
   const answersRef = useRef<Record<number, string>>({});
 
+  useEffect(() => {
+    currentQRef.current = currentQ;
+    if (qTimesRef.current.length > 0) {
+      setQTimeLeft(qTimesRef.current[currentQ]);
+    }
+  }, [currentQ]);
+
+  handleTimeUpRef.current = (qIndex: number) => {
+    // Mark as wrong implicitly by recording empty string if not answered
+    if (answersRef.current[qIndex] === undefined) {
+      const nextAns = { ...answersRef.current, [qIndex]: "" };
+      answersRef.current = nextAns;
+      setAnswers(nextAns);
+    }
+    
+    // Auto move to next question if not the last
+    if (qIndex < questions.length - 1) {
+      setCurrentQ(qIndex + 1);
+    }
+  };
+
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
     if (submitCalledRef.current || !user) return;
@@ -84,18 +140,29 @@ export default function ArenaQuiz() {
     setSubmitting(true);
     if (timerRef.current) clearInterval(timerRef.current);
 
-    // FIX: derive elapsed from the shared deadline rather than a local
-    // "when this tab mounted" timestamp — keeps scoring fair and accurate
-    // across players and across tab backgrounding/reopening.
-    const remainingNow = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
-    const elapsed = Math.max(0, totalTime - remainingNow);
+    // Elapsed time calculation
+    let elapsed = 0;
+    if (isDaily) {
+      // For daily, use the overall timer (10 mins)
+      const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+      elapsed = totalTime - remaining;
+    } else {
+      // Sum elapsed time per question
+      let sumElapsed = 0;
+      for (let i = 0; i < questions.length; i++) {
+        const left = qTimesRef.current[i] ?? 15;
+        sumElapsed += (15 - left);
+      }
+      elapsed = sumElapsed;
+    }
+
     // FIX: read from ref so handleSubmit is stable (no answers in useCallback deps)
     const latestAnswers = answersRef.current;
     const correctCount = questions.reduce(
-      (acc, q, i) => acc + (latestAnswers[i] === q.correct_answer ? 1 : 0),
+      (acc, q, i) => acc + (isAnswerCorrect(q, latestAnswers[i]) ? 1 : 0),
       0
     );
-    const score = calcScore(correctCount, elapsed, totalTime);
+    const score = calcScore(correctCount, elapsed, questions.length, isDaily);
 
     // FIX: include display_name in the submission row so the leaderboard can
     // show real names instead of "Player 1", "Player 2", etc.
@@ -162,6 +229,8 @@ export default function ArenaQuiz() {
         // FIX: store the full daily quiz object so we can read difficulty
         setDailyQuiz(data as DailyQuiz);
         setQuestions(data.questions);
+        qTimesRef.current = new Array(data.questions.length).fill(15);
+        
         const secs = 15 * 60;
         // Daily quiz is a solo attempt (no other players to sync with), so
         // the deadline is simply "now + duration" for this user.
@@ -177,6 +246,8 @@ export default function ArenaQuiz() {
         if (!data) { navigate("/arena"); return; }
         setRoom(data);
         setQuestions(data.questions);
+        qTimesRef.current = new Array(data.questions.length).fill(15);
+        
         const secs = data.time_limit * 60;
 
         // FIX: this is the actual bug fix. Previously this always did
@@ -221,6 +292,19 @@ export default function ArenaQuiz() {
       if (remaining <= 0) {
         if (timerRef.current) clearInterval(timerRef.current);
         handleSubmit();
+        return;
+      }
+      
+      // Per-question timer tick (ONLY for room mode, Daily is untimed per-question)
+      if (!isDaily) {
+        const cQ = currentQRef.current;
+        if (answersRef.current[cQ] === undefined && qTimesRef.current[cQ] > 0) {
+          qTimesRef.current[cQ] -= 1;
+          setQTimeLeft(qTimesRef.current[cQ]);
+          if (qTimesRef.current[cQ] === 0 && handleTimeUpRef.current) {
+            handleTimeUpRef.current(cQ);
+          }
+        }
       }
     };
 
@@ -239,6 +323,7 @@ export default function ArenaQuiz() {
   }, [loading, questions.length, handleSubmit]);
 
   const selectAnswer = (letter: string) => {
+    if (qTimesRef.current[currentQ] === 0) return; // Prevent changing if timed out
     const next = { ...answersRef.current, [currentQ]: letter };
     answersRef.current = next;
     setAnswers(next);
@@ -300,10 +385,8 @@ export default function ArenaQuiz() {
       <div className="md:hidden flex flex-col gap-5 px-4 pt-5 pb-28">
 
         {/* Timer + progress indicator */}
-        <div className="flex flex-col items-center">
-          <span className={`font-black text-[52px] leading-none tracking-tight ${isLow ? "text-[#E8534A]" : "text-black"}`}>
-            {formatTime(timeLeft)}
-          </span>
+        <div className="flex flex-col items-center gap-2">
+          <QTimerRing qTimeLeft={qTimeLeft} />
           <p className="text-[11px] font-bold text-black/40 mt-1">{currentQ + 1} of {questions.length}</p>
         </div>
 
@@ -526,9 +609,15 @@ export default function ArenaQuiz() {
             </button>
           </div>
 
+          {/* Question Timer */}
+          <div className="p-4 border-b-2 border-black flex flex-col items-center justify-center bg-[#f5f0e8]">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Question Time</p>
+            <QTimerRing qTimeLeft={qTimeLeft} />
+          </div>
+
           {/* Big timer */}
           <div className={`p-4 border-b-2 border-black text-center ${isLow ? "bg-[#E8534A]" : "bg-[#f5f0e8]"}`}>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-1">Time Left</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-1">Total Time Left</p>
             <p className={`font-black text-[36px] leading-none ${isLow ? "text-white" : "text-black"}`}>{formatTime(timeLeft)}</p>
           </div>
 

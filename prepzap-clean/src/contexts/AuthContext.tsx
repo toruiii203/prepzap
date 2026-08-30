@@ -33,6 +33,7 @@ interface AuthContextValue {
   loading: boolean
   needsOnboarding: boolean
   refreshProfile: () => Promise<void>
+  loginAsMockUser: () => void
   signOut: () => Promise<void>
   lsKey: (base: string) => string
 }
@@ -213,6 +214,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const loginAsMockUser = () => {
+    console.log("DEV MODE: Manual mock user injection");
+    const mockUser = {
+      id: "mock-user-123",
+      email: "mock@example.com",
+      user_metadata: { full_name: "Mock User (Offline PRO)" },
+      app_metadata: {},
+      aud: "authenticated",
+      created_at: new Date().toISOString()
+    };
+    const mockSession = {
+      access_token: "mock-token",
+      user: mockUser,
+      expires_at: Date.now() + 9999999
+    };
+    
+    setSession(mockSession);
+    cachedSession = mockSession;
+    setUser(mockUser);
+    setProfile({
+      id: "mock-user-123",
+      full_name: "Mock User (Offline PRO)",
+      email: "mock@example.com",
+      plan: "pro",
+      credits_remaining: 9999,
+      total_xp: 5600,
+      streak_days: 12,
+      daily_goal_minutes: 60,
+      questions_answered: 100,
+      accuracy_percent: 85,
+      onboarding_complete: true
+    });
+    setNeedsOnboarding(false);
+  }
+
   const refreshProfile = useCallback(async () => {
     if (user && session) await fetchProfile(user, session)
   }, [user, session, fetchProfile])
@@ -322,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
-      if (import.meta.env.DEV && (import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) return;
+      if ((import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) return;
       
       // Skip the redundant initial fire — `initialize()` above already
       // handles first load. Without this, a fresh session on cold load

@@ -1,6 +1,8 @@
+import { Capacitor } from "@capacitor/core";
 import { useState, useEffect, useRef } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/contexts/AuthContext"
 
 type Screen =
   | "intro"
@@ -378,7 +380,7 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
         </div>
 
         {/* Footer */}
-        <div style={{ paddingBottom: 32, zIndex: 1 }}>
+        <div style={{ paddingBottom: 'calc(110px + env(safe-area-inset-bottom))', zIndex: 1, marginTop: "auto", flexShrink: 0 }}>
           <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.35, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>join thousands of students today</p>
           <button onClick={onNext} style={{ width: "100%", height: 52, background: CTA, color: WHITE, fontWeight: 700, fontSize: 16, borderRadius: 9999, border: `2.5px solid ${BLACK}`, boxShadow: `4px 4px 0 ${BLACK}`, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", animation: "pulse 2s infinite" }}>
             Create Free Account
@@ -437,6 +439,7 @@ function FeatureTeaser({ onNext, onBack }: { onNext: () => void; onBack: () => v
 
 function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: () => void; onBack: () => void; initialMode?: "signup" | "signin" }) {
   const navigate = useNavigate()
+  const { loginAsMockUser } = useAuth()
   const [mode, setMode]         = useState<"signup" | "signin">(initialMode)
   const [email, setEmail]       = useState("")
   const [password, setPassword] = useState("")
@@ -447,11 +450,16 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
   const isSignIn = mode === "signin"
 
   const handleGoogle = async () => {
+    if ((import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+
     setLoading(true); setError(null)
     const { error: e } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: Capacitor.isNativePlatform() ? 'studenius://auth/callback' : `${window.location.origin}/auth/callback`,
         queryParams: { prompt: "select_account" },
       },
     })
@@ -459,6 +467,10 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
   }
 
   const handleSubmit = async () => {
+      if ((import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
+        navigate("/dashboard", { replace: true });
+        return;
+      }
     if (!email || !password) { setError("Please fill in all fields."); return }
     if (!isSignIn && password.length < 6) { setError("Password must be at least 6 characters."); return }
     setLoading(true); setError(null)
@@ -1106,8 +1118,9 @@ export default function Onboarding() {
   // ── Read ?step synchronously so the correct screen renders on frame 1.
   // ?step=nameInput  → OAuth sign-up just completed, user is new, go to nameInput
   // anything else    → normal entry, show intro
+  const location = useLocation();
   const [screen, setScreen] = useState<Screen>(() => {
-    const p = new URLSearchParams(window.location.search)
+    const p = new URLSearchParams(location.search)
     if (p.get("step") === "nameInput") return "nameInput"
     return "intro"
   })
@@ -1122,19 +1135,15 @@ export default function Onboarding() {
 
   useEffect(() => {
     // Clean URL params immediately so refresh doesn't re-trigger
-    const params = new URLSearchParams(window.location.search)
+    const params = new URLSearchParams(location.search)
     if (params.toString()) {
-      window.history.replaceState({}, "", "/onboarding")
+      navigate("/onboarding", { replace: true })
     }
 
     // If we're already at nameInput (OAuth/email callback return), skip the check
     if (screen === "nameInput") return
 
-    // Dev mode escape hatch
-    if (import.meta.env.DEV && (import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
-      navigate("/dashboard", { replace: true });
-      return;
-    }
+    
 
     // One-time check on mount: if user is fully logged in and done with onboarding,
     // send them to dashboard. Don't re-run this on screen changes.

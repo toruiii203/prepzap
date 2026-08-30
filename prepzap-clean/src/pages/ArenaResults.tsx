@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { fireConfetti } from "@/lib/confetti";
+import { isAnswerCorrect } from "@/lib/quizUtils";
 
 interface Question {
   question: string;
@@ -54,9 +56,12 @@ export default function ArenaResults() {
     const score = activeState?.score ?? 0;
     const elapsed = activeState?.elapsed ?? 0;
     const questions = activeState?.questions ?? [];
-    const correctCount = questions.filter((q, i) => answers[i] === q.correct_answer).length;
+    const correctCount = questions.filter((q, i) => isAnswerCorrect(q, answers[i])).length;
     const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
-    const speedBonus = Math.max(0, score - correctCount * 1000);
+    
+    // New formula: speed bonus is 5 points per unused second (Room only)
+    const totalSecondsRemaining = Math.max(0, questions.length * 15 - elapsed);
+    const speedBonus = isDaily ? 0 : (totalSecondsRemaining * 5);
 
     useEffect(() => {
       const load = async () => {
@@ -139,8 +144,11 @@ export default function ArenaResults() {
         </div>
         <div className="w-[2px] bg-black" />
         <div className="text-center flex-1">
-          <p className="text-[10px] font-bold uppercase text-black/40">Speed</p>
-          <p className="font-black text-[20px] text-[#f0a040]">+{speedBonus}</p>
+          <p className="text-[10px] font-bold uppercase text-black/40">Speed Bonus</p>
+          <p className="font-black text-[20px] text-[#22c55e] flex items-center justify-center gap-1">
+            <span className="material-symbols-outlined text-[18px]">bolt</span>
+            +{speedBonus}
+          </p>
         </div>
       </div>
     </div>
@@ -186,7 +194,7 @@ export default function ArenaResults() {
       <div className="flex flex-col">
         {questions.map((q, i) => {
           const userAns = answers[i];
-          const correct = userAns === q.correct_answer;
+          const correct = isAnswerCorrect(q, userAns);
           const isExpanded = expandedQ === i;
           return (
             <div key={i} className={i < questions.length - 1 ? "border-b-2 border-black" : ""}>

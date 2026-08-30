@@ -18,6 +18,7 @@ const TOOL_PAGES = [
     { route: "/mistakes", icon: "playlist_remove", title: "Mistake Journal", desc: "Review errors" },
     { route: "/analytics", icon: "bar_chart", title: "Analytics", desc: "Track progress" },
     { route: "/challenges", icon: "emoji_events", title: "Challenges", desc: "Daily streaks" },
+    { route: "/arena", icon: "sports_esports", title: "Arena", desc: "Compete live" },
   ],
 ] as const;
 

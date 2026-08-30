@@ -113,6 +113,17 @@ export default function StudentProfile() {
   const [userInitial, setUserInitial] = useState("S");
   const [joinDate, setJoinDate] = useState("—");
   const [stats, setStats] = useState({ sessions: 0, studyHrs: 0, avgScore: 0, streak: 0 });
+
+  const deriveStats = () => {
+    // Simple mock stats for now based on some local storage if needed,
+    // or just return some placeholders since we don't have a real stats engine yet.
+    return {
+      sessions: parseInt(localStorage.getItem('study_sessions') || '0', 10),
+      studyHrs: parseFloat(localStorage.getItem('study_hours') || '0.0'),
+      avgScore: parseInt(localStorage.getItem('avg_score') || '0', 10),
+      streak: parseInt(localStorage.getItem('streak') || '0', 10)
+    };
+  };
   const [sourceCount, setSourceCount] = useState(0);
 
   useEffect(() => {
@@ -290,7 +301,7 @@ export default function StudentProfile() {
       {/* ════════════════════════════════════════════════════
           MOBILE LAYOUT
       ════════════════════════════════════════════════════ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2]">
+      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2] pb-20">
 
         {/* Mobile header */}
         <header className="w-full sticky top-0 bg-[#FAF7F2] flex items-center justify-between px-5 h-16 z-40 border-b-2 border-black shrink-0">
