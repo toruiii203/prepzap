@@ -10,7 +10,6 @@ import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { logQuestCompletion } from "@/lib/quests";
-import { logQuestCompletion } from "@/lib/quests";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface Question {
@@ -177,35 +176,35 @@ export default function Practice() {
   const { logSession } = useStudySession();
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
 
-  const [view, setView]                     = useState<"quiz" | "results">(() => sessionStorage.getItem('practice_view') as any || "quiz");
-  const [currentQIndex, setCurrentQIndex]   = useState(() => parseInt(sessionStorage.getItem('practice_index') || '0', 10));
+  const [view, setView]                     = useState<"quiz" | "results">(() => localStorage.getItem('pz_practice_view') as any || "quiz");
+  const [currentQIndex, setCurrentQIndex]   = useState(() => parseInt(localStorage.getItem('pz_practice_index') || '0', 10));
   const [selectedOption, setSelectedOption] = useState<number | null>(() => {
-    const s = sessionStorage.getItem('practice_selected');
+    const s = localStorage.getItem('pz_practice_selected');
     return s ? parseInt(s, 10) : null;
   });
-  const [timeLeft, setTimeLeft]             = useState(() => parseInt(sessionStorage.getItem('practice_time') || '600', 10));
-  const [score, setScore]                   = useState(() => parseInt(sessionStorage.getItem('practice_score') || '0', 10));
+  const [timeLeft, setTimeLeft]             = useState(() => parseInt(localStorage.getItem('pz_practice_time') || '600', 10));
+  const [score, setScore]                   = useState(() => parseInt(localStorage.getItem('pz_practice_score') || '0', 10));
   const [answers, setAnswers]               = useState<number[]>(() => {
-    try { return JSON.parse(sessionStorage.getItem('practice_answers') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('pz_practice_answers') || '[]'); } catch { return []; }
   });
   const [isGenerating, setIsGenerating]     = useState(false);
   const [questions, setQuestions]           = useState<Question[]>(() => {
-    try { return JSON.parse(sessionStorage.getItem('practice_questions') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('pz_practice_questions') || '[]'); } catch { return []; }
   });
-  const [topicInput, setTopicInput]         = useState(() => sessionStorage.getItem('practice_topic') || "");
-  const [questionCount, setQuestionCount]   = useState(() => parseInt(sessionStorage.getItem('practice_count') || '3', 10));
+  const [topicInput, setTopicInput]         = useState(() => localStorage.getItem('pz_practice_topic') || "");
+  const [questionCount, setQuestionCount]   = useState(() => parseInt(localStorage.getItem('pz_practice_count') || '3', 10));
   const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
 
   useEffect(() => {
-    sessionStorage.setItem('practice_view', view);
-    sessionStorage.setItem('practice_index', currentQIndex.toString());
-    sessionStorage.setItem('practice_selected', selectedOption !== null ? selectedOption.toString() : '');
-    sessionStorage.setItem('practice_time', timeLeft.toString());
-    sessionStorage.setItem('practice_score', score.toString());
-    sessionStorage.setItem('practice_answers', JSON.stringify(answers));
-    sessionStorage.setItem('practice_questions', JSON.stringify(questions));
-    sessionStorage.setItem('practice_topic', topicInput);
-    sessionStorage.setItem('practice_count', questionCount.toString());
+    localStorage.setItem('pz_practice_view', view);
+    localStorage.setItem('pz_practice_index', currentQIndex.toString());
+    localStorage.setItem('pz_practice_selected', selectedOption !== null ? selectedOption.toString() : '');
+    localStorage.setItem('pz_practice_time', timeLeft.toString());
+    localStorage.setItem('pz_practice_score', score.toString());
+    localStorage.setItem('pz_practice_answers', JSON.stringify(answers));
+    localStorage.setItem('pz_practice_questions', JSON.stringify(questions));
+    localStorage.setItem('pz_practice_topic', topicInput);
+    localStorage.setItem('pz_practice_count', questionCount.toString());
   }, [view, currentQIndex, selectedOption, timeLeft, score, answers, questions, topicInput, questionCount]);
   const [showHistory, setShowHistory] = useState(false);
   const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);

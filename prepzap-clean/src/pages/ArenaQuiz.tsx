@@ -171,27 +171,59 @@ export default function ArenaQuiz() {
       user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "Player";
 
     try {
+      const storageKey = isDaily ? `pz_arena_active_quiz_daily_${todayPH()}` : `pz_arena_active_quiz_room_${code?.toUpperCase()}`;
+      try { localStorage.removeItem(storageKey); } catch {}
+
       if (isDaily) {
-        await supabase.from("daily_challenge_submissions").insert({
-          user_id: user.id,
-          challenge_date: todayPH(),
-          answers: latestAnswers,
-          score,
-          time_taken_seconds: elapsed,
-          display_name: displayName,
-        });
+        try {
+          const { error } = await supabase.from("daily_challenge_submissions").insert({
+            user_id: user.id,
+            challenge_date: todayPH(),
+            answers: latestAnswers,
+            score,
+            time_taken_seconds: elapsed,
+            display_name: displayName,
+          });
+          if (error) {
+            console.warn("Retrying insert with minimal columns:", error.message);
+            await supabase.from("daily_challenge_submissions").insert({
+              user_id: user.id,
+              challenge_date: todayPH(),
+              answers: latestAnswers,
+              score,
+              time_taken_seconds: elapsed,
+            });
+          }
+        } catch (subErr) {
+          console.warn("Supabase submission failed (saving locally in state):", subErr);
+        }
+
         navigate("/arena/results/daily", {
           state: { answers: latestAnswers, score, elapsed, questions, isDaily: true },
         });
       } else if (room) {
-        await supabase.from("room_submissions").insert({
-          room_id: room.id,
-          user_id: user.id,
-          answers: latestAnswers,
-          score,
-          time_taken: elapsed,
-          display_name: displayName,
-        });
+        try {
+          const { error } = await supabase.from("room_submissions").insert({
+            room_id: room.id,
+            user_id: user.id,
+            answers: latestAnswers,
+            score,
+            time_taken: elapsed,
+            display_name: displayName,
+          });
+          if (error) {
+            await supabase.from("room_submissions").insert({
+              room_id: room.id,
+              user_id: user.id,
+              answers: latestAnswers,
+              score,
+              time_taken: elapsed,
+            });
+          }
+        } catch (subErr) {
+          console.warn("Supabase room submission failed:", subErr);
+        }
+
         navigate(`/arena/results/${code}`, {
           state: { answers: latestAnswers, score, elapsed, questions, isDaily: false },
         });
@@ -229,11 +261,33 @@ export default function ArenaQuiz() {
         qTimesRef.current = new Array(data.questions.length).fill(15);
         
         const secs = 15 * 60;
-        // Daily quiz is a solo attempt (no other players to sync with), so
-        // the deadline is simply "now + duration" for this user.
-        deadlineRef.current = Date.now() + secs * 1000;
-        setTimeLeft(secs);
-        setTotalTime(secs);
+        const storageKey = `pz_arena_active_quiz_daily_${todayPH()}`;
+        let savedState: any = null;
+        try {
+          const cached = localStorage.getItem(storageKey);
+          if (cached) savedState = JSON.parse(cached);
+        } catch {}
+
+        if (savedState && savedState.deadline && savedState.deadline > Date.now()) {
+          deadlineRef.current = savedState.deadline;
+          const remainingNow = Math.max(0, Math.round((savedState.deadline - Date.now()) / 1000));
+          setTimeLeft(remainingNow);
+          setTotalTime(savedState.totalTime || secs);
+          if (savedState.answers) {
+            setAnswers(savedState.answers);
+            answersRef.current = savedState.answers;
+          }
+          if (typeof savedState.currentQ === "number" && savedState.currentQ < data.questions.length) {
+            setCurrentQ(savedState.currentQ);
+          }
+          if (Array.isArray(savedState.qTimes)) {
+            qTimesRef.current = savedState.qTimes;
+          }
+        } else {
+          deadlineRef.current = Date.now() + secs * 1000;
+          setTimeLeft(secs);
+          setTotalTime(secs);
+        }
       } else {
         const { data } = await supabase
           .from("exam_rooms")

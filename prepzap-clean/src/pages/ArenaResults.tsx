@@ -90,26 +90,74 @@ export default function ArenaResults() {
           }
 
           if (isDaily) {
-            const { data } = await supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, auth.users(raw_user_meta_data)")
-              .eq("challenge_date", today).order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(10);
+            let entries: LeaderboardEntry[] = [];
+            try {
+              const { data } = await supabase
+                .from("daily_challenge_submissions")
+                .select("user_id, score, time_taken_seconds, display_name")
+                .eq("challenge_date", today)
+                .order("score", { ascending: false })
+                .order("time_taken_seconds", { ascending: true })
+                .limit(20);
 
-          // FIX: use stored display_name; fall back only for legacy rows without it
-          const entries = (data ?? []).map((row, i) => ({ ...row,
-              time_taken: row.time_taken_seconds || row.time_taken, display_name: row.display_name ?? `Player ${i + 1}` }));
-          setLeaderboard(entries);
-          const rank = entries.findIndex((e) => e.user_id === user?.id);
-          setMyRank(rank >= 0 ? rank + 1 : null);
-        } else {
-          const { data: roomData } = await supabase.from("exam_rooms").select("id").eq("code", code?.toUpperCase()).single();
-          if (roomData) {
-            const { data } = await supabase.from("room_submissions").select("user_id, score, time_taken, display_name")
-              .eq("room_id", roomData.id).order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(10);
-            // FIX: use stored display_name; fall back only for legacy rows without it
-            const entries = (data ?? []).map((row, i) => ({ ...row,
-              time_taken: row.time_taken_seconds || row.time_taken, display_name: row.display_name ?? `Player ${i + 1}` }));
+              if (data && data.length > 0) {
+                entries = data.map((row: any, i: number) => ({
+                  user_id: row.user_id,
+                  score: row.score,
+                  time_taken: row.time_taken_seconds ?? 0,
+                  display_name: row.display_name ?? `Player ${i + 1}`,
+                }));
+              }
+            } catch (queryErr) {
+              console.warn("Could not fetch daily leaderboard from Supabase:", queryErr);
+            }
+
+            // If user's own result is not yet in the list (e.g. fresh submission or local), inject it
+            if (user && state?.score !== undefined) {
+              const myEntryIdx = entries.findIndex((e) => e.user_id === user.id);
+              const myDisplayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "You";
+              if (myEntryIdx === -1) {
+                entries.push({
+                  user_id: user.id,
+                  score: state.score,
+                  time_taken: state.elapsed ?? 0,
+                  display_name: `${myDisplayName} (You)`,
+                });
+                // Sort by score desc, time_taken asc
+                entries.sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
+              }
+            }
+
             setLeaderboard(entries);
             const rank = entries.findIndex((e) => e.user_id === user?.id);
-            setMyRank(rank >= 0 ? rank + 1 : null);
+            setMyRank(rank >= 0 ? rank + 1 : 1);
+        } else {
+          const { data: roomData } = await supabase.from("exam_rooms").select("id").eq("code", code?.toUpperCase()).maybeSingle();
+          if (roomData) {
+            const { data } = await supabase.from("room_submissions").select("user_id, score, time_taken, display_name")
+              .eq("room_id", roomData.id).order("score", { ascending: false }).limit(20);
+            
+            let entries = (data ?? []).map((row: any, i: number) => ({
+              user_id: row.user_id,
+              score: row.score,
+              time_taken: row.time_taken ?? 0,
+              display_name: row.display_name ?? `Player ${i + 1}`,
+            }));
+
+            if (user && state?.score !== undefined && entries.findIndex((e: any) => e.user_id === user.id) === -1) {
+              const myDisplayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "You";
+              entries.push({
+                user_id: user.id,
+                score: state.score,
+                time_taken: state.elapsed ?? 0,
+                display_name: `${myDisplayName} (You)`,
+              });
+              entries.sort((a: any, b: any) => b.score - a.score || a.time_taken - b.time_taken);
+            }
+
+            setLeaderboard(entries);
+            const rank = entries.findIndex((e: any) => e.user_id === user?.id);
+            setMyRank(rank >= 0 ? rank + 1 : 1);
           }
         }
       } finally { setLoading(false); }

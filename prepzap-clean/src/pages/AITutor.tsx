@@ -303,7 +303,7 @@ export default function AITutor() {
   const [inputVal, setInputVal] = useState("");
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
-      const saved = sessionStorage.getItem('tutor_chat');
+      const saved = localStorage.getItem('pz_tutor_chat');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -404,7 +404,7 @@ export default function AITutor() {
       saveSessions(updated);
       return updated;
     });
-    sessionStorage.setItem('tutor_chat', JSON.stringify(messages));
+    localStorage.setItem('pz_tutor_chat', JSON.stringify(messages));
   }, [messages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNewChat = () => {

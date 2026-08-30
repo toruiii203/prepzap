@@ -30,7 +30,19 @@ export default function TeachIt() {
   const [explanation, setExplanation] = useState(() => localStorage.getItem("pz_teachit_draft_explanation") || "");
   // FIX BUG 5: messages array for conversation history
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
-  const [feedback, setFeedback] = useState<FeynmanFeedback | null>(null);
+  const [feedback, setFeedback] = useState<FeynmanFeedback | null>(() => {
+    try {
+      const saved = localStorage.getItem("pz_teachit_feedback");
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    try {
+      if (feedback) localStorage.setItem("pz_teachit_feedback", JSON.stringify(feedback));
+      else localStorage.removeItem("pz_teachit_feedback");
+    } catch {}
+  }, [feedback]);
   const [loading, setLoading] = useState(false);
   const [showXpToast, setShowXpToast] = useState(false);
   const [xpEarnedToast, setXpEarnedToast] = useState(0);

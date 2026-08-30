@@ -256,15 +256,15 @@ export default function MathSolver() {
   const { logSession } = useStudySession();
 
   // Restore state from sessionStorage so tab switches don't wipe results
-  const [problem, setProblem] = useState(() => sessionStorage.getItem("math_problem") || "");
+  const [problem, setProblem] = useState(() => localStorage.getItem("pz_math_problem") || "");
   const [steps, setSteps] = useState<SolutionStep[]>(() => {
     try {
-      return JSON.parse(sessionStorage.getItem("math_steps") || "[]");
+      return JSON.parse(localStorage.getItem("pz_math_steps") || "[]");
     } catch {
       return [];
     }
   });
-  const [solved, setSolved] = useState(() => sessionStorage.getItem("math_solved") === "true");
+  const [solved, setSolved] = useState(() => localStorage.getItem("pz_math_solved") === "true");
   const [activeSource, setActiveSource] = useState<any>(getActiveSource());
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("math-solver") as any;
   const { isPro, canUse, remaining, logUsage } = usePlan();
@@ -294,9 +294,9 @@ export default function MathSolver() {
   }, []);
 
   // Persist results to sessionStorage so tab switches don't wipe them
-  useEffect(() => { sessionStorage.setItem("math_problem", problem); }, [problem]);
-  useEffect(() => { sessionStorage.setItem("math_steps", JSON.stringify(steps)); }, [steps]);
-  useEffect(() => { sessionStorage.setItem("math_solved", String(solved)); }, [solved]);
+  useEffect(() => { localStorage.setItem("pz_math_problem", problem); }, [problem]);
+  useEffect(() => { localStorage.setItem("pz_math_steps", JSON.stringify(steps)); }, [steps]);
+  useEffect(() => { localStorage.setItem("pz_math_solved", String(solved)); }, [solved]);
 
   const symbols = ["+", "−", "×", "÷", "^", "√", "x²", "sin(", "cos(", "tan(", "log(", "ln(", "π", "e", "=", "(", ")", "x", "y"];
 
@@ -733,9 +733,9 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
                     setProblem("");
                     setSolved(false);
                     setSteps([]);
-                    sessionStorage.removeItem("math_problem");
-                    sessionStorage.removeItem("math_steps");
-                    sessionStorage.removeItem("math_solved");
+                    localStorage.removeItem("pz_math_problem");
+                    localStorage.removeItem("pz_math_steps");
+                    localStorage.removeItem("pz_math_solved");
                   }}
                   className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center hover:bg-[#ae2925] hover:text-white transition-colors shadow-[2px_2px_0px_#000]"
                   title="Clear"
@@ -911,9 +911,9 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
                 setProblem("");
                 setSolved(false);
                 setSteps([]);
-                sessionStorage.removeItem("math_problem");
-                sessionStorage.removeItem("math_steps");
-                sessionStorage.removeItem("math_solved");
+                localStorage.removeItem("pz_math_problem");
+                localStorage.removeItem("pz_math_steps");
+                localStorage.removeItem("pz_math_solved");
               }}
               className="w-11 h-11 border-2 border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000]"
             >
