@@ -5,7 +5,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
-import { Mascot } from "@/components/Mascot";
 
 // All 12 tools flat
 const ALL_TOOLS = [
@@ -384,7 +383,7 @@ export default function Dashboard() {
       <div className="hidden md:block md:ml-64 h-full overflow-y-auto p-12">
 
         {/* Desktop Header */}
-        <header className="flex justify-between items-end mb-6">
+        <header className="flex justify-between items-end mb-8">
           <div>
             <h2 className="text-[32px] font-black leading-tight text-black">Good morning, {displayName}.</h2>
             <p className="text-[16px] font-bold text-black/60 mt-1">
@@ -394,16 +393,6 @@ export default function Dashboard() {
           <div className="flex gap-3">
           </div>
         </header>
-
-        {/* Rex Mascot Coach Banner */}
-        <div className="mb-6">
-          <Mascot
-            variant="banner"
-            state="happy"
-            dialogue={`Hey ${displayName}! Let's hit our study targets today.`}
-            subtitle="Rex is here to help you stay on track! 🦊"
-          />
-        </div>
 
         {/* Desktop Bento Grid */}
         <div className="grid grid-cols-12 gap-6">
@@ -550,14 +539,6 @@ export default function Dashboard() {
             </p>
           </div>
         </section>
-
-        {/* Rex Mascot Coach Banner Mobile */}
-        <Mascot
-          variant="banner"
-          state="happy"
-          dialogue={`Hey ${displayName}! Ready to study?`}
-          subtitle="Keep your streak alive today!"
-        />
 
         {/* Goal Progress Bar */}
         <section className="border-2 border-black rounded-2xl bg-[#FAF7F2] p-5" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>

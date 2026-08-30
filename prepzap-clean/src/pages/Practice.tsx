@@ -9,7 +9,6 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
-import { Mascot } from "@/components/Mascot";
 import { logQuestCompletion } from "@/lib/quests";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -220,7 +219,8 @@ export default function Practice() {
   const [showProUpsell, setShowProUpsell] = useState(false);
   const [textAnswers, setTextAnswers] = useState<string[]>([]);
   const [textInput, setTextInput] = useState("");
-  const [mascotState, setMascotState] = useState<"idle" | "attention" | "wrong">("idle");
+  const [showHint, setShowHint] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
 
@@ -399,9 +399,9 @@ Each object MUST match this schema exactly:
     }
 
     if (isCorrect) {
-      setMascotState("success");
+      // Correct answer
     } else {
-      setMascotState("wrong");
+      // Wrong answer
     }
   };
 
@@ -420,7 +420,6 @@ Each object MUST match this schema exactly:
     }
     setMissedQuestions(newMissed);
 
-    setMascotState("idle");
     setShowHint(false);
     setShowExplanation(false);
     setHasAnsweredCurrent(false);
@@ -608,16 +607,16 @@ Each object MUST match this schema exactly:
         
         {view === "quiz" && showReviewTransition && (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-50 bg-[#FAF7F2]">
-            <div className="w-24 h-24 mb-6">
-              <video src="/src/assets/mascot/rex_idle.mp4" autoPlay loop muted playsInline style={{ mixBlendMode: 'screen' }} className="w-full h-full object-cover" />
+            <div className="w-20 h-20 mb-6 bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_#000] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[40px] text-[#FF4D2E]">refresh</span>
             </div>
             <h2 className="text-2xl font-black mb-2">Let's correct what you missed!</h2>
             <p className="text-black/60 font-bold mb-8">You missed {missedQuestions.length} question(s). Let's review them until you master them.</p>
             <button 
-              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); setMascotState("idle"); }}
+              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); }}
               className="bg-[#FF4D2E] text-white font-extrabold px-8 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1 active:shadow-none"
             >
-              Start Review ?
+              Start Review →
             </button>
           </div>
         )}
@@ -806,28 +805,22 @@ Each object MUST match this schema exactly:
         
         {view === "quiz" && showReviewTransition && (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-50 bg-[#FAF7F2]">
-            <div className="w-24 h-24 mb-6">
-              <video src="/src/assets/mascot/rex_idle.mp4" autoPlay loop muted playsInline style={{ mixBlendMode: 'screen' }} className="w-full h-full object-cover" />
+            <div className="w-20 h-20 mb-6 bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_#000] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[40px] text-[#FF4D2E]">refresh</span>
             </div>
             <h2 className="text-2xl font-black mb-2">Let's correct what you missed!</h2>
             <p className="text-black/60 font-bold mb-8">You missed {missedQuestions.length} question(s). Let's review them until you master them.</p>
             <button 
-              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); setMascotState("idle"); }}
+              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); }}
               className="bg-[#FF4D2E] text-white font-extrabold px-8 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1 active:shadow-none"
             >
-              Start Review ?
+              Start Review →
             </button>
           </div>
         )}
 
         {view === "quiz" && !showReviewTransition && (
           <>
-            <Mascot state={mascotState} hintVisible={showHint} onHintClick={() => {
-              if (currentQuestion?.hint) {
-                setShowHint(true);
-                setMascotState("attention");
-              }
-            }} />
             <main className="flex-1 w-full px-4 py-5 flex flex-col gap-5 overflow-y-auto pb-28 relative">
 
               {/* Mobile Banner */}
@@ -930,24 +923,34 @@ Each object MUST match this schema exactly:
 
                     <h2 className="font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
                     {showHint && currentQuestion.hint && (
-                      <div className="mb-4 bg-yellow-100 border-[1.5px] border-black p-3 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
-                        <span className="text-[#FF4D2E] uppercase tracking-widest text-[10px] font-black block mb-1">Rex's Hint</span>
+                      <div className="mb-4 bg-amber-50 border-[1.5px] border-black p-3 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
+                        <span className="text-[#FF4D2E] uppercase tracking-widest text-[10px] font-black block mb-1">Study Hint</span>
                         {currentQuestion.hint}
                       </div>
                     )}
-                    {showExplanation && currentQuestion.explanation && (
+                    {(showExplanation || hasAnsweredCurrent) && currentQuestion.explanation && (
                       <div className="mb-4 bg-blue-50 border-[1.5px] border-black p-3 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
                         <span className="text-blue-600 uppercase tracking-widest text-[10px] font-black block mb-1">Explanation</span>
                         {currentQuestion.explanation}
                       </div>
                     )}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
                         <span className="material-symbols-outlined text-[12px] mr-1">folder</span>{currentQuestion.subject}
                       </span>
                       <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
                         <span className="material-symbols-outlined text-[12px] mr-1">leaderboard</span>{currentQuestion.difficulty}
                       </span>
+                      {currentQuestion.hint && (
+                        <button
+                          type="button"
+                          onClick={() => setShowHint(prev => !prev)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 border-[1.5px] border-black rounded-full text-[11px] font-bold text-yellow-900 shadow-[1px_1px_0px_#000] hover:bg-yellow-200 active:scale-95 transition-all"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">lightbulb</span>
+                          {showHint ? "Hide Hint" : "Hint"}
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col gap-3">

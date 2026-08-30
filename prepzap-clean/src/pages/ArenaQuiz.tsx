@@ -216,10 +216,34 @@ export default function ArenaQuiz() {
       try { localStorage.removeItem(storageKey); } catch {}
 
       if (isDaily) {
+        const today = todayPH();
+        // 1. Mark user done locally
+        try {
+          localStorage.setItem(`pz_daily_done_${today}_${user.id}`, "true");
+          localStorage.setItem(`pz_daily_done_${today}`, "true");
+        } catch {}
+
+        // 2. Append to local submissions list for instant leaderboard reflection
+        try {
+          const localKey = `pz_daily_submissions_${today}`;
+          const existing = JSON.parse(localStorage.getItem(localKey) || "[]");
+          const myEntry = {
+            user_id: user.id,
+            challenge_date: today,
+            score,
+            time_taken_seconds: elapsed,
+            display_name: displayName,
+          };
+          const filtered = existing.filter((e: any) => e.user_id !== user.id);
+          filtered.push(myEntry);
+          localStorage.setItem(localKey, JSON.stringify(filtered));
+        } catch {}
+
+        // 3. Insert into Supabase
         try {
           const { error } = await supabase.from("daily_challenge_submissions").insert({
-              user_id: user.id,
-              challenge_date: todayPH(),
+            user_id: user.id,
+            challenge_date: today,
             score,
             time_taken_seconds: elapsed,
             display_name: displayName,
@@ -228,13 +252,17 @@ export default function ArenaQuiz() {
             console.warn("Retrying insert with minimal columns:", error.message);
             await supabase.from("daily_challenge_submissions").insert({
               user_id: user.id,
-              challenge_date: todayPH(),
+              challenge_date: today,
               score,
               time_taken_seconds: elapsed,
             });
           }
         } catch (subErr) {
-          console.warn("Supabase submission failed (saving locally in state):", subErr);
+          console.warn("Supabase submission failed (saved locally):", subErr);
+        }
+
+        if (addXP) {
+          try { await addXP(score); } catch {}
         }
 
         navigate("/arena/results/daily", {
@@ -286,14 +314,25 @@ export default function ArenaQuiz() {
         if (!data) { navigate("/arena"); return; }
 
         if (user) {
+          const today = todayPH();
+          const localDone = localStorage.getItem(`pz_daily_done_${today}_${user.id}`) || localStorage.getItem(`pz_daily_done_${today}`);
+          if (localDone && mounted) {
+            navigate("/arena");
+            return;
+          }
+
           try {
             const { data: sub } = await supabase
               .from("daily_challenge_submissions")
               .select("id")
-              .eq("challenge_date", todayPH())
+              .eq("challenge_date", today)
               .eq("user_id", user.id)
               .maybeSingle();
-            if (sub && mounted) { navigate("/arena"); return; }
+            if (sub && mounted) {
+              try { localStorage.setItem(`pz_daily_done_${today}_${user.id}`, "true"); } catch {}
+              navigate("/arena");
+              return;
+            }
           } catch (e) {
             console.warn("Submissions query warning:", e);
           }

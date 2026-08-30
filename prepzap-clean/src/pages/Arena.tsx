@@ -472,13 +472,23 @@ export default function Arena() {
         const quiz = await getOrCreateDailyChallenge();
         setDailyQuiz(quiz ?? null);
         if (quiz && user) {
-          const { data: sub } = await supabase
-            .from("daily_challenge_submissions")
-            .select("id")
-            .eq("challenge_date", today)
-            .eq("user_id", user.id)
-            .maybeSingle();
-          setAlreadySubmitted(!!sub);
+          const localDone = localStorage.getItem(`pz_daily_done_${today}_${user.id}`) || localStorage.getItem(`pz_daily_done_${today}`);
+          if (localDone) {
+            setAlreadySubmitted(true);
+          } else {
+            const { data: sub } = await supabase
+              .from("daily_challenge_submissions")
+              .select("id")
+              .eq("challenge_date", today)
+              .eq("user_id", user.id)
+              .maybeSingle();
+            if (sub) {
+              setAlreadySubmitted(true);
+              try { localStorage.setItem(`pz_daily_done_${today}_${user.id}`, "true"); } catch {}
+            } else {
+              setAlreadySubmitted(false);
+            }
+          }
         }
       } catch (err) {
         console.error("Error loading daily quiz:", err);
@@ -492,19 +502,45 @@ export default function Arena() {
   useEffect(() => {
     const load = async () => {
       setLoadingLeaderboard(true);
-      let query = supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, display_name")
-        .order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(10);
-      if (leaderboardTab === "today") query = query.eq("challenge_date", todayPH());
-      const { data } = await query;
-      // FIX: use stored display_name from the submission row; fall back to
-      // "Player N" only if the column is null (old rows before this fix).
-      setLeaderboard(
-        (data ?? []).map((row, i) => ({
-          ...row,
+      let entries: LeaderboardEntry[] = [];
+      try {
+        let query = supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, display_name")
+          .order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(20);
+        if (leaderboardTab === "today") query = query.eq("challenge_date", todayPH());
+        const { data } = await query;
+        if (data) {
+          entries = data.map((row, i) => ({
+            user_id: row.user_id,
+            score: row.score,
             time_taken: row.time_taken_seconds,
-          display_name: row.display_name ?? `Player ${i + 1}`,
-        }))
-      );
+            display_name: row.display_name || `Player ${i + 1}`,
+          }));
+        }
+      } catch (err) {
+        console.warn("Leaderboard fetch error:", err);
+      }
+
+      // Seamlessly merge local today submissions if any
+      try {
+        const localKey = `pz_daily_submissions_${todayPH()}`;
+        const localRaw = localStorage.getItem(localKey);
+        if (localRaw) {
+          const localList: any[] = JSON.parse(localRaw);
+          localList.forEach(item => {
+            if (!entries.find(e => e.user_id === item.user_id)) {
+              entries.push({
+                user_id: item.user_id,
+                score: item.score,
+                time_taken: item.time_taken_seconds || item.time_taken || 0,
+                display_name: item.display_name || "You",
+              });
+            }
+          });
+          entries.sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
+        }
+      } catch {}
+
+      setLeaderboard(entries.slice(0, 10));
       setLoadingLeaderboard(false);
     };
     load();
@@ -543,14 +579,26 @@ export default function Arena() {
             </div>
           </div>
           {alreadySubmitted ? (
-            <div className="bg-black/5 border-2 border-black px-4 py-3 text-center">
-              <p className="font-bold text-[14px] text-black">Already submitted today ✓</p>
-              <p className="text-[11px] text-black/50 mt-0.5">Come back tomorrow.</p>
+            <div className="bg-[#FAF7F2] border-2 border-black p-4 flex flex-col gap-2 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center gap-2 text-green-700">
+                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <p className="font-extrabold text-[14px]">Completed Today! ✓</p>
+              </div>
+              <p className="text-[12px] text-black/60 font-semibold">
+                You've completed your 1 daily challenge attempt. Check your rank on the leaderboard below!
+              </p>
+              <button
+                onClick={() => navigate("/arena/results/daily")}
+                className="mt-1 w-full bg-white text-black font-bold text-[13px] py-2 border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 hover:bg-black hover:text-white transition-colors"
+              >
+                View Today's Breakdown →
+              </button>
             </div>
           ) : (
             <button onClick={() => navigate("/arena/quiz/daily")}
-              className="w-full bg-black text-white font-bold text-[14px] py-3 border-2 border-black flex justify-between items-center px-4 shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
-              Take Today's Quiz <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              className="w-full bg-black text-white font-bold text-[14px] py-3.5 border-2 border-black flex justify-between items-center px-4 shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+              <span>Take Today's Quiz (1 Try)</span>
+              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
           )}
           <p className="text-center text-[11px] text-black/40">Resets in {countdown}</p>
