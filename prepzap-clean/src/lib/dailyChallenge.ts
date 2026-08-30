@@ -46,7 +46,7 @@ Return ONLY a valid JSON array of objects with keys "question", "options" (array
   const raw = await callGroq(
     [{ role: "user", content: prompt }],
     undefined,
-    "openai/gpt-oss-20b",
+    "meta-llama/llama-3.1-8b-instruct",
     2500,
     "arena_gen"
   );

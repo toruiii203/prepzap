@@ -144,7 +144,7 @@ export default function StudentProfile() {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut() } catch(e) {} window.location.href = "/";;
     navigate("/onboarding");
   };
 

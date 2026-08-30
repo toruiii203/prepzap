@@ -96,7 +96,7 @@ export default function Settings() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    try { await supabase.auth.signOut() } catch(e) {} window.location.href = "/";
     navigate("/")
     toast.info("Signed out", { description: "You have been successfully signed out." })
   }
@@ -113,7 +113,7 @@ export default function Settings() {
 
   const handleDeleteAccount = async () => {
     if (!user) return
-    await supabase.auth.signOut()
+    try { await supabase.auth.signOut() } catch(e) {} window.location.href = "/";
     navigate("/")
     toast.error("Account Deleted", { description: "Your account data has been queued for deletion." })
     // Note: actual account deletion requires a Supabase Edge Function with admin key

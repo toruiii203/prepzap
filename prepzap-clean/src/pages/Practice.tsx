@@ -424,6 +424,7 @@ Each object MUST match this schema exactly:
         if (newMissed.length > 0) {
           setShowReviewTransition(true);
         } else {
+          setIsReviewLoop(false);
           finalizeQuiz(score + (isCurrentCorrect ? 1 : 0));
         }
       }
@@ -433,6 +434,7 @@ Each object MUST match this schema exactly:
         setSelectedOption(null);
         setTextInput("");
       } else {
+        setIsReviewLoop(false);
         finalizeQuiz(score);
       }
     }
