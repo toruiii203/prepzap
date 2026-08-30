@@ -661,12 +661,15 @@ export default function Dashboard() {
           </div>
           <div className="text-[12px] text-black/45 font-bold mb-2">Based on study sessions recorded</div>
           <div className="flex flex-wrap gap-2.5">
-            {sessions.slice(0, 3).map((s, i) => (
-              <div key={s.id || i} onClick={() => navigate("/practice")}
-                className="border-2 border-black px-5 py-2 bg-[#FAF7F2] text-[13.5px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer"
-                style={{ boxShadow: "2px 2px 0px rgba(0,0,0,1)" }}>
-                {s.title}
-              </div>
+            {Array.from(new Set(sessions.map((s) => s.title))).slice(0, 4).map((title, i) => (
+              <button
+                key={title || i}
+                type="button"
+                onClick={() => navigate(getSessionRoute(title))}
+                className="border-2 border-black px-4 py-2 bg-[#FAF7F2] text-[13px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+              >
+                {title}
+              </button>
             ))}
             {sessions.length === 0 && (
               <p className="text-[12px] text-black/40 font-bold">Complete study sessions to see your targets here.</p>
