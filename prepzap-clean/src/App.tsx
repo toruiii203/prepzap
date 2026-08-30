@@ -14,6 +14,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { StudeniusLayout } from "@/components/StudeniusLayout";
 import { App as CapApp } from "@capacitor/app";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { supabase } from "@/lib/supabase";
 
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
@@ -180,11 +181,64 @@ function AppRoutes() {
   }, [user?.id]);
 
   useEffect(() => {
-    const handleUrl = (url: string) => {
-      if (!url) return;
-      if (url.includes("studenius://")) {
-        const path = url.split("studenius://")[1];
-        window.location.href = "/" + path;
+    let handled = false;
+
+    const handleUrl = async (rawUrl: string) => {
+      if (!rawUrl || handled) return;
+      console.log("[DeepLink] Received URL:", rawUrl);
+
+      try {
+        // Convert custom scheme (studenius://auth/callback?code=xxx) to parseable URL
+        const normalized = rawUrl.replace(/^studenius:\/\//, "https://localhost/");
+        const parsed = new URL(normalized);
+
+        // 1. PKCE Flow: code in search params
+        const code = parsed.searchParams.get("code");
+        if (code) {
+          handled = true;
+          console.log("[DeepLink] Exchanging PKCE code for session...");
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error("[DeepLink] Code exchange error:", error.message);
+          } else if (data?.session) {
+            console.log("[DeepLink] Auth successful!");
+            navigate("/dashboard", { replace: true });
+            return;
+          }
+        }
+
+        // 2. Implicit Flow: access_token in hash
+        if (parsed.hash) {
+          const hashParams = new URLSearchParams(parsed.hash.substring(1));
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+          if (accessToken && refreshToken) {
+            handled = true;
+            console.log("[DeepLink] Setting session from hash tokens...");
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (error) {
+              console.error("[DeepLink] SetSession error:", error.message);
+            } else if (data?.session) {
+              console.log("[DeepLink] Auth successful from hash!");
+              navigate("/dashboard", { replace: true });
+              return;
+            }
+          }
+        }
+
+        // 3. Fallback: navigate route if not already handled
+        if (rawUrl.includes("studenius://")) {
+          const path = rawUrl.split("studenius://")[1];
+          if (path) {
+            const cleanPath = "/" + path.split("?")[0].split("#")[0];
+            navigate(cleanPath, { replace: true });
+          }
+        }
+      } catch (err) {
+        console.error("[DeepLink] URL parse error:", err);
       }
     };
 
@@ -197,10 +251,14 @@ function AppRoutes() {
 
     // Handle Android/iOS deep links while app is running
     const sub = CapApp.addListener("appUrlOpen", (event) => {
-      handleUrl(event.url);
+      if (event && event.url) {
+        handleUrl(event.url);
+      }
     });
 
-    return () => { sub.then(listener => listener.remove()); };
+    return () => {
+      sub.then(listener => listener.remove()).catch(() => {});
+    };
   }, [navigate]);
 
   if (showSplash) return <SplashScreen onDone={() => setShowSplash(false)} />;

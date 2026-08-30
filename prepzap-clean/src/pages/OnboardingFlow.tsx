@@ -456,6 +456,10 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     }
 
     setLoading(true); setError(null)
+    // Auto-reset loading state after 8 seconds so the button doesn't freeze if cancelled/resumed
+    setTimeout(() => {
+      setLoading(false)
+    }, 8000)
     const { error: e } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

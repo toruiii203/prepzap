@@ -1,5 +1,5 @@
-import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 
 // Handles redirect after:
@@ -8,63 +8,103 @@ import { supabase } from "@/lib/supabase"
 // Checks onboarding_complete and routes accordingly.
 export default function AuthCallback() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    // Where to send the user after auth completes. Login/Signup pages must
-    // store this BEFORE kicking off Google OAuth, since the OAuth redirect
-    // wipes out any query params — sessionStorage survives the round trip.
-    // e.g. in Login.tsx/Signup.tsx before calling signInWithOAuth:
-    //   const redirect = searchParams.get("redirect")
-    //   if (redirect) sessionStorage.setItem("post_auth_redirect", redirect)
-    const getDestination = (onboardingComplete: boolean) => {
+    let resolved = false
+
+    const getDestination = async (userId: string) => {
       const redirect = sessionStorage.getItem("post_auth_redirect")
       sessionStorage.removeItem("post_auth_redirect")
-      if (!onboardingComplete) return "/onboarding?step=nameInput"
-      return redirect || "/dashboard"
-    }
-
-    // FIX: use onAuthStateChange instead of getSession() directly.
-    // After an OAuth redirect, Supabase needs a moment to exchange the
-    // PKCE code for a session. getSession() called immediately may return
-    // null before the exchange completes. The SIGNED_IN event fires reliably
-    // once the session is ready.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event !== "SIGNED_IN" || !session) return
-
-        subscription.unsubscribe()
-
-        // Check if this user has completed onboarding
+      try {
         const { data: profile } = await supabase
           .from("profiles")
           .select("onboarding_complete")
-          .eq("id", session.user.id)
+          .eq("id", userId)
           .maybeSingle()
 
-        navigate(getDestination(!!profile?.onboarding_complete), { replace: true })
+        if (!profile?.onboarding_complete) {
+          return "/onboarding?step=nameInput"
+        }
+      } catch {}
+      return redirect || "/dashboard"
+    }
+
+    const processAuth = async () => {
+      // 1. Check for PKCE code in query params (?code=xxx)
+      const code = searchParams.get("code")
+      if (code) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+          if (!error && data?.session) {
+            resolved = true
+            const dest = await getDestination(data.session.user.id)
+            navigate(dest, { replace: true })
+            return
+          }
+        } catch (e) {
+          console.error("Exchange code failed in AuthCallback:", e)
+        }
       }
-    )
 
-    // Fallback: if already have a session (rare: user navigated to /auth/callback
-    // manually while already logged in), handle immediately
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
-      subscription.unsubscribe()
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_complete")
-        .eq("id", session.user.id)
-        .maybeSingle()
-      navigate(getDestination(!!profile?.onboarding_complete), { replace: true })
-    })
+      // 2. Check for Implicit tokens in hash (#access_token=xxx&refresh_token=xxx)
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const access_token = hashParams.get("access_token")
+        const refresh_token = hashParams.get("refresh_token")
+        if (access_token && refresh_token) {
+          try {
+            const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
+            if (!error && data?.session) {
+              resolved = true
+              const dest = await getDestination(data.session.user.id)
+              navigate(dest, { replace: true })
+              return
+            }
+          } catch (e) {
+            console.error("Set session from hash failed in AuthCallback:", e)
+          }
+        }
+      }
 
-    return () => subscription.unsubscribe()
-  }, [])
+      // 3. Check existing session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        resolved = true
+        const dest = await getDestination(session.user.id)
+        navigate(dest, { replace: true })
+        return
+      }
+
+      // 4. Fallback listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
+        if (s && !resolved) {
+          resolved = true
+          subscription.unsubscribe()
+          const dest = await getDestination(s.user.id)
+          navigate(dest, { replace: true })
+        }
+      })
+
+      // 5. Safety timeout: if after 6 seconds nothing resolved, redirect to /onboarding
+      setTimeout(() => {
+        if (!resolved) {
+          subscription.unsubscribe()
+          setErrorMsg("Login timed out. Returning to login...")
+          setTimeout(() => navigate("/onboarding", { replace: true }), 1500)
+        }
+      }, 6000)
+    }
+
+    processAuth()
+  }, [navigate, searchParams])
 
   return (
     <div style={{
       minHeight: "100dvh",
       display: "flex",
+      flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       background: "#FFFBEA",
@@ -72,8 +112,23 @@ export default function AuthCallback() {
       fontSize: 18,
       fontWeight: 700,
       color: "#1A1A1A",
+      gap: 12,
     }}>
-      Signing you in...
+      {errorMsg ? (
+        <span style={{ color: "#E8534A" }}>{errorMsg}</span>
+      ) : (
+        <>
+          <div style={{
+            width: 32,
+            height: 32,
+            border: "3px solid #1A1A1A",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite"
+          }} />
+          <span>Signing you in...</span>
+        </>
+      )}
     </div>
   )
 }
