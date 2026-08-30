@@ -279,7 +279,8 @@ export default function Flashcards() {
         .insert({
           title: deckLabel,
           cards: cards,
-          created_by: user?.id ?? null,
+          // Remove created_by to avoid constraint error if profile doesn't exist
+            // created_by: user?.id ?? null,
           card_count: cards.length,
         })
         .select("id")
