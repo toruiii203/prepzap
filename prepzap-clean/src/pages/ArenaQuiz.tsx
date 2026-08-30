@@ -439,8 +439,8 @@ export default function ArenaQuiz() {
 
         {/* Timer + progress indicator */}
         <div className="flex flex-col items-center gap-2">
-          <QTimerRing qTimeLeft={qTimeLeft} />
-          <p className="text-[11px] font-bold text-black/40 mt-1">{currentQ + 1} of {questions.length}</p>
+          {!isDaily && <QTimerRing qTimeLeft={qTimeLeft} />}
+          <p className="text-[13px] font-black text-black/60 mt-1">{currentQ + 1} of {questions.length}</p>
         </div>
 
         {/* Question card */}
@@ -663,10 +663,12 @@ export default function ArenaQuiz() {
           </div>
 
           {/* Question Timer */}
-          <div className="p-4 border-b-2 border-black flex flex-col items-center justify-center bg-[#f5f0e8]">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Question Time</p>
-            <QTimerRing qTimeLeft={qTimeLeft} />
-          </div>
+          {!isDaily && (
+            <div className="p-4 border-b-2 border-black flex flex-col items-center justify-center bg-[#f5f0e8]">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Question Time</p>
+              <QTimerRing qTimeLeft={qTimeLeft} />
+            </div>
+          )}
 
           {/* Big timer */}
           <div className={`p-4 border-b-2 border-black text-center ${isLow ? "bg-[#E8534A]" : "bg-[#f5f0e8]"}`}>
