@@ -1118,11 +1118,10 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
 
 export default function Onboarding() {
   const navigate = useNavigate()
+  const { session, user } = useAuth()
+  const location = useLocation();
 
   // ── Read ?step synchronously so the correct screen renders on frame 1.
-  // ?step=nameInput  → OAuth sign-up just completed, user is new, go to nameInput
-  // anything else    → normal entry, show intro
-  const location = useLocation();
   const [screen, setScreen] = useState<Screen>(() => {
     const p = new URLSearchParams(location.search)
     if (p.get("step") === "nameInput") return "nameInput"
@@ -1143,30 +1142,37 @@ export default function Onboarding() {
     if (params.toString()) {
       navigate("/onboarding", { replace: true })
     }
+  }, [])
 
-    // If we're already at nameInput (OAuth/email callback return), skip the check
-    if (screen === "nameInput") return
+  // Reactive auth check: if user is logged in, redirect them to dashboard (or nameInput)
+  useEffect(() => {
+    if (!user || !session) return
 
-    
+    // If currently progressing through the onboarding questionnaire steps, don't interrupt
+    if (screen !== "intro" && screen !== "featureTeaser" && screen !== "accountGateway") {
+      return
+    }
 
-    // One-time check on mount: if user is fully logged in and done with onboarding,
-    // send them to dashboard. Don't re-run this on screen changes.
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_complete")
-        .eq("id", session.user.id)
-        .maybeSingle()
-      // Redirect to dashboard if:
-      // - onboarding_complete is true (done)
-      // - onboarding_complete is null/undefined (old account, let them in)
-      // Only keep them on /onboarding if onboarding_complete is explicitly false
-      if (profile && profile.onboarding_complete !== false) {
-        navigate("/dashboard", { replace: true })
-      }
-    })
-  }, []) // ← run once on mount only
+    let isMounted = true
+    supabase
+      .from("profiles")
+      .select("onboarding_complete")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data: profile }) => {
+        if (!isMounted) return
+        if (profile?.onboarding_complete === false) {
+          setScreen("nameInput")
+        } else {
+          navigate("/dashboard", { replace: true })
+        }
+      })
+      .catch(() => {
+        if (isMounted) navigate("/dashboard", { replace: true })
+      })
+
+    return () => { isMounted = false }
+  }, [user, session, screen, navigate])
 
   return (
     <>

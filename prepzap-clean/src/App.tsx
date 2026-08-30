@@ -202,7 +202,20 @@ function AppRoutes() {
             console.error("[DeepLink] Code exchange error:", error.message);
           } else if (data?.session) {
             console.log("[DeepLink] Auth successful!");
-            navigate("/dashboard", { replace: true });
+            try {
+              const { data: prof } = await supabase
+                .from("profiles")
+                .select("onboarding_complete")
+                .eq("id", data.session.user.id)
+                .maybeSingle();
+              if (prof?.onboarding_complete === false) {
+                navigate("/onboarding?step=nameInput", { replace: true });
+              } else {
+                navigate("/dashboard", { replace: true });
+              }
+            } catch {
+              navigate("/dashboard", { replace: true });
+            }
             return;
           }
         }
@@ -223,7 +236,20 @@ function AppRoutes() {
               console.error("[DeepLink] SetSession error:", error.message);
             } else if (data?.session) {
               console.log("[DeepLink] Auth successful from hash!");
-              navigate("/dashboard", { replace: true });
+              try {
+                const { data: prof } = await supabase
+                  .from("profiles")
+                  .select("onboarding_complete")
+                  .eq("id", data.session.user.id)
+                  .maybeSingle();
+                if (prof?.onboarding_complete === false) {
+                  navigate("/onboarding?step=nameInput", { replace: true });
+                } else {
+                  navigate("/dashboard", { replace: true });
+                }
+              } catch {
+                navigate("/dashboard", { replace: true });
+              }
               return;
             }
           }
