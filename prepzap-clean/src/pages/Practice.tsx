@@ -92,8 +92,6 @@ interface BannerProps {
 const QUESTION_COUNT_OPTIONS = [3, 5, 10, 15];
 function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount }: BannerProps) {
   return (
-    <>
-      {showProUpsell && <ProUpsellModal onClose={() => setShowProUpsell(false)} />}
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -1032,5 +1030,6 @@ Each object MUST match this schema exactly:
         )}
       </div>
     </div>
+    </>
   );
 }
