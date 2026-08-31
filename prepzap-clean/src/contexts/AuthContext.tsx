@@ -105,6 +105,51 @@ export function getCachedSession(): Session | null {
 export function getCachedAccessToken(): string | null {
   return cachedSession?.access_token ?? null
 }
+
+// --- Cross-tab refresh coordination -----------------------------------------
+// Supabase's refresh token is single-use: once a tab redeems it for a new
+// session, the old refresh token is dead. If two tabs each independently
+// call refreshSession() around the same time, the second one to land uses
+// an already-consumed token and gets rejected — which then poisons that
+// tab's session. To prevent this, only one tab is allowed to actually call
+// refreshSession() at a time (enforced via a short-lived localStorage lock),
+// and the resulting session is broadcast to every other open tab so they
+// can adopt it directly instead of refreshing themselves.
+const TAB_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+const REFRESH_LOCK_KEY = "pz_auth_refresh_lock"
+const REFRESH_LOCK_TTL_MS = 10_000 // stale-lock safety net if a tab dies mid-refresh
+
+const authChannel: BroadcastChannel | null =
+  typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("pz_auth_sync") : null
+
+// Tries to claim the cross-tab refresh lock. Returns true if this tab may
+// proceed with refreshSession(); false if another tab already holds a
+// fresh (non-stale) lock and should be trusted to broadcast the result.
+function tryClaimRefreshLock(): boolean {
+  try {
+    const raw = localStorage.getItem(REFRESH_LOCK_KEY)
+    if (raw) {
+      const { ts } = JSON.parse(raw)
+      if (Date.now() - ts < REFRESH_LOCK_TTL_MS) return false // another tab is actively refreshing
+    }
+    localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify({ tabId: TAB_ID, ts: Date.now() }))
+    return true
+  } catch {
+    // localStorage unavailable (private mode, etc.) — fail open so refresh
+    // still happens; worst case is the original race, not a hard failure.
+    return true
+  }
+}
+
+function releaseRefreshLock() {
+  try {
+    const raw = localStorage.getItem(REFRESH_LOCK_KEY)
+    if (raw) {
+      const { tabId } = JSON.parse(raw)
+      if (tabId === TAB_ID) localStorage.removeItem(REFRESH_LOCK_KEY)
+    }
+  } catch {}
+}
 export function getCachedProfile() {
   try {
     const raw = localStorage.getItem("pz_auth_cache");
@@ -152,6 +197,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
   // Track if we're mid-fetch so ProtectedRoute waits instead of redirecting
   const fetchingRef = useRef(false)
+  // Holds the proactive token-refresh timer so it can be cleared and
+  // rescheduled whenever a new session arrives without leaking timers.
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Schedules a proactive token refresh 5 minutes before the session's
+  // access token expires. Supabase tokens last 1 hour; firing early means
+  // cachedSession is always fresh by the time any Groq call reaches for it,
+  // eliminating the ~seconds expiry window that caused 401s.
+  //
+  // Called every time we receive a new session (login, TOKEN_REFRESHED,
+  // getSession success). Clears any previously scheduled timer first so
+  // we never have two competing refreshes running.
+  const scheduleProactiveRefresh = useCallback((s: Session) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+
+    const expiresAt = s.expires_at // Unix seconds
+    if (!expiresAt) return
+
+    const msUntilExpiry = expiresAt * 1000 - Date.now()
+    const refreshIn = msUntilExpiry - 5 * 60 * 1000 // 5 min early
+
+    const doRefresh = async (attempt = 0) => {
+      // Only one tab is allowed to actually hit Supabase for a refresh at
+      // a time — the refresh token is single-use, so a second concurrent
+      // call would fail and could invalidate this tab's session. If
+      // another tab already holds the lock, sit tight: it will broadcast
+      // the new session over authChannel in a moment.
+      if (!tryClaimRefreshLock()) {
+        // Safety net in case the other tab's broadcast never arrives
+        // (e.g. it was closed mid-refresh). Retry a couple of times
+        // before giving up on this cycle — the next scheduled refresh
+        // will try again regardless.
+        if (attempt < 3 && cachedSession?.access_token === s.access_token) {
+          setTimeout(() => doRefresh(attempt + 1), 3000)
+        }
+        return
+      }
+
+      try {
+        const { data, error } = await supabase.auth.refreshSession()
+        if (error) throw error
+        if (data?.session) {
+          authChannel?.postMessage({ type: "session_refreshed", session: data.session, from: TAB_ID })
+        }
+        // onAuthStateChange also fires locally with the new session and
+        // calls scheduleProactiveRefresh again, keeping the cycle going.
+      } catch (err) {
+        console.warn("[auth] Proactive token refresh failed:", err)
+      } finally {
+        releaseRefreshLock()
+      }
+    }
+
+    // Only schedule if the token isn't already about to expire
+    // (e.g. a stale cached token loaded from localStorage).
+    if (refreshIn <= 0) {
+      doRefresh()
+      return
+    }
+
+    refreshTimerRef.current = setTimeout(doRefresh, refreshIn)
+  }, [])
 
   const lsKey = useCallback(
     (base: string) => `pz_${user?.id ?? "anon"}_${base}`,
@@ -331,6 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(s?.user ?? null)
         if (s?.user) {
           await fetchProfile(s.user, s)
+          scheduleProactiveRefresh(s)
         }
       } catch (err) {
         // This is the critical fix: no matter what goes wrong above
@@ -376,6 +484,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initialize()
 
+    // Adopt sessions refreshed by other tabs instead of racing to refresh
+    // this tab's own copy of the (now single-use) refresh token.
+    const handleBroadcast = (event: MessageEvent) => {
+      if (cancelled) return
+      const msg = event.data
+      if (msg?.type !== "session_refreshed" || msg.from === TAB_ID) return
+      const incoming: Session = msg.session
+      if (!incoming?.access_token || incoming.access_token === cachedSession?.access_token) return
+
+      setSession(incoming)
+      cachedSession = incoming
+      setUser(incoming.user ?? null)
+      scheduleProactiveRefresh(incoming)
+    }
+    authChannel?.addEventListener("message", handleBroadcast)
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
@@ -402,6 +526,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(s)
         cachedSession = s
         setUser(s.user)
+        scheduleProactiveRefresh(s)
         try {
           await fetchProfile(s.user, s)
         } catch (err) {
@@ -413,6 +538,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Signed out — clear everything atomically. This only fires on a
         // genuine sign-out event from Supabase, not on a failed network
         // refresh, so it's safe to trust as a real logout.
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current)
+          refreshTimerRef.current = null
+        }
         setSession(null)
         cachedSession = null
         setUser(null)
@@ -427,9 +556,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+      authChannel?.removeEventListener("message", handleBroadcast)
       subscription.unsubscribe()
     }
-  }, [fetchProfile])
+  }, [fetchProfile, scheduleProactiveRefresh])
 
 
   const addXP = useCallback(async (amount: number) => {
@@ -468,6 +599,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const signOut = useCallback(async () => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current)
+      refreshTimerRef.current = null
+    }
     await supabase.auth.signOut()
     try {
       localStorage.removeItem(AUTH_CACHE_KEY)
