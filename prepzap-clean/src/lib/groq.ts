@@ -135,6 +135,87 @@ function looksLikeModel(s: string): boolean {
 // Returns both the text AND which provider actually answered (Groq / Gemini /
 // Cloudflare AI / OpenRouter), since the Worker falls back silently between
 // providers and that fallback was invisible before this change.
+
+// Low-level fetch helper: sends a pre-built message array with a known-good token.
+// Used both for normal calls and the 401-retry path (where we bypass the cache).
+async function _callGroqCoreWithToken(
+  fullMessages: GroqMessage[],
+  resolvedModel: string,
+  maxTokens: number,
+  feature: string | undefined,
+  token: string
+): Promise<{ text: string; provider?: string }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+  let res: Response;
+  try {
+    res = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        model: resolvedModel,
+        max_tokens: maxTokens,
+        messages: fullMessages,
+        temperature: 0.7,
+        ...(feature ? { feature } : {}),
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") {
+      throw new Error("Rex took too long to respond (request timed out). Please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error("[groq] API error:", res.status, err);
+    throw new Error(
+      `Groq API error ${res.status}: ${(err as { error?: { message?: string } }).error?.message ?? res.statusText}`
+    );
+  }
+
+  const data = await res.json();
+
+  // Handle both Gemini format and OpenAI/OpenRouter format
+  let result: string = "";
+  if (data?.candidates?.length) {
+    result = data.candidates[0]?.content?.parts?.[0]?.text ?? "";
+    const finishReason = data.candidates[0]?.finishReason;
+    if (result.length === 0 && finishReason && finishReason !== "STOP") {
+      console.error("[groq] Gemini returned no text, finishReason:", finishReason);
+      throw new Error(
+        finishReason === "SAFETY" || finishReason === "RECITATION"
+          ? "Rex couldn't answer that one — it may have tripped a content filter. Try rephrasing your question."
+          : `Rex couldn't finish that response (${finishReason}). Please try again.`
+      );
+    }
+  } else if (data?.choices?.length) {
+    result = data.choices[0]?.message?.content ?? "";
+  } else {
+    console.error("[groq] Unexpected response structure:", JSON.stringify(data));
+    throw new Error("Empty or invalid response from AI model. Please try again.");
+  }
+
+  if (!result) {
+    throw new Error("Rex returned an empty response. Please try again.");
+  }
+
+  console.log(
+    "[groq] response received, length:", result.length, "✓",
+    "provider:", data?._provider ?? "unknown"
+  );
+
+  return { text: result, provider: data._provider };
+}
+
 async function _callGroqCore(
   messages: GroqMessage[] | string,
   systemPromptOrModel?: string,
@@ -196,7 +277,6 @@ async function _callGroqCore(
   ];
 
   const resolvedModel = getTieredModel(hasImages ? VISION_MODEL : model);
-  const isOpenRouterModel = !resolvedModel.startsWith("gemini"); // Gemini routes direct
 
   console.log(
     "[groq] sending request, model:", resolvedModel,
@@ -204,100 +284,34 @@ async function _callGroqCore(
     "first msg role:", fullMessages[0]?.role
   );
 
-  // FIX: fetch the token ONCE and reuse it. This used to be called a second
-  // time inside the headers object below, which doubled the latency of every
-  // single request (each call can take up to ~2s in the getSession() fallback
-  // path) for no benefit — both calls returned the same value.
   const token = await getAccessTokenSafely();
 
-  // Guard against a hung Worker/upstream request the same way we now guard
-  // getSession() - without this, a stuck fetch produces the exact same
-  // silent-forever "Rex is thinking..." symptom, just one step later.
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
-
-  let res: Response;
   try {
-    res = await fetch(GROQ_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        model: resolvedModel,
-        max_tokens: maxTokens,
-        messages: fullMessages,
-        temperature: 0.7,
-        ...(feature ? { feature } : {}),
-      }),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    if ((err as Error)?.name === "AbortError") {
-      throw new Error("Rex took too long to respond (request timed out). Please try again.");
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    
-    // FIX: Token expiration workaround. If proxy rejects with 401, force a 
-    // token refresh and retry once. This fixes the "breaks every few hours" issue.
-    if (res.status === 401 && !isRetry) {
+    return await _callGroqCoreWithToken(fullMessages, resolvedModel, maxTokens, feature, token);
+  } catch (err: any) {
+    // FIX: On 401, force a token refresh and retry ONCE using the fresh token
+    // DIRECTLY from refreshSession()'s return value. Do NOT re-call
+    // getAccessTokenSafely() here — the in-memory and localStorage caches
+    // may not have updated yet, so reading from them again would just send
+    // the same stale token and cause a second 401.
+    if (err?.message?.includes("401") && !isRetry) {
       console.warn("[groq] API returned 401, forcing token refresh and retrying...");
       try {
-        await supabase.auth.refreshSession();
-        return _callGroqCore(messages, systemPromptOrModel, model, maxTokens, feature, true);
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        const freshToken = refreshData?.session?.access_token;
+        if (!refreshError && freshToken) {
+          console.log("[groq] Token refreshed successfully, retrying with fresh token...");
+          return await _callGroqCoreWithToken(fullMessages, resolvedModel, maxTokens, feature, freshToken);
+        }
+        console.error("[groq] refreshSession returned no token:", refreshError);
       } catch (refreshErr) {
         console.error("[groq] Failed to refresh token during 401 retry:", refreshErr);
       }
     }
 
-    console.error("[groq] API error:", res.status, err);
-    throw new Error(
-      `Groq API error ${res.status}: ${(err as { error?: { message?: string } }).error?.message ?? res.statusText}`
-    );
+    // Re-throw the original error so callers get a clear message
+    throw err;
   }
-
-  const data = await res.json();
-
-  // Handle both Gemini format and OpenAI/OpenRouter format
-  let result: string = "";
-  if (data?.candidates?.length) {
-    // Gemini format
-    result = data.candidates[0]?.content?.parts?.[0]?.text ?? "";
-    const finishReason = data.candidates[0]?.finishReason;
-    if (result.length === 0 && finishReason && finishReason !== "STOP") {
-      console.error("[groq] Gemini returned no text, finishReason:", finishReason);
-      throw new Error(
-        finishReason === "SAFETY" || finishReason === "RECITATION"
-          ? "Rex couldn't answer that one — it may have tripped a content filter. Try rephrasing your question."
-          : `Rex couldn't finish that response (${finishReason}). Please try again.`
-      );
-    }
-  } else if (data?.choices?.length) {
-    // OpenAI/OpenRouter format
-    result = data.choices[0]?.message?.content ?? "";
-  } else {
-    console.error("[groq] Unexpected response structure:", JSON.stringify(data));
-    throw new Error("Empty or invalid response from AI model. Please try again.");
-  }
-
-  console.log(
-    "[groq] response received, length:", result.length,
-    result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓",
-    "provider:", data?._provider ?? "unknown"
-  );
-
-  if (result.length === 0) {
-    throw new Error("AI returned an empty response. Please try again.");
-  }
-
-  return { text: result, provider: data?._provider };
 }
 
 // Public helper — same signature and return type as before (a plain string).
