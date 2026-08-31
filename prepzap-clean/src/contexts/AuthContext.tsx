@@ -253,6 +253,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user && session) await fetchProfile(user, session)
   }, [user, session, fetchProfile])
 
+  // --- Optimistic hydration from cache -----------------------------------
+  // Read pz_auth_cache from localStorage synchronously at mount time so
+  // returning users are never stuck on the loading screen or bounced to
+  // /login while getSession() is still warming up. The real getSession()
+  // still runs afterwards to refresh the token — this just prevents the
+  // visible "loading flash" and the ProtectedRoute redirect that happened
+  // whenever getSession() was slow (cold PWA resume, flaky network, etc.).
+  useEffect(() => {
+    const cached = readAuthCache()
+    if (cached) {
+      setSession(cached.session)
+      cachedSession = cached.session
+      setUser(cached.user)
+      setProfile(cached.profile)
+      setNeedsOnboarding(false)
+      setLoading(false) // Unblock the UI immediately from cached state
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run exactly once on mount, before the async initialize()
+
   useEffect(() => {
     let cancelled = false
     // Guards against the initial getSession() path and the onAuthStateChange
@@ -288,6 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             credits_remaining: 9999,
             total_xp: 5600,
             streak_days: 12,
+
             daily_goal_minutes: 60,
             questions_answered: 100,
             accuracy_percent: 85,
@@ -301,7 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const {
           data: { session: s },
           error,
-        } = await withTimeout(supabase.auth.getSession(), 8000, "getSession()")
+        } = await withTimeout(supabase.auth.getSession(), 5000, "getSession()")
         if (error) throw error
         if (cancelled) return
 

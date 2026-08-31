@@ -31,12 +31,29 @@ function getTieredModel(model: string): string {
 // AuthProvider's initial getSession() call has resolved (e.g. a Groq call
 // firing immediately on page load, before the cache exists yet).
 async function getAccessTokenSafely(): Promise<string> {
-  // Cache-first: synchronous, can't deadlock, always at least as fresh as a
-  // direct getSession() call would be.
+  // 1. Cache-first: synchronous, can't deadlock, always at least as fresh as a
+  //    direct getSession() call would be.
   const cached = getCachedAccessToken();
   if (cached) return cached;
 
-  // Fallback for the narrow startup window before the cache is populated.
+  // 2. localStorage cache — available synchronously even before AuthProvider
+  //    has resolved its async initialize(). This is the key fix for the 401-
+  //    on-startup race: on a cold PWA load the in-memory cache (#1) is empty
+  //    but localStorage already has the last known-good token. Checking here
+  //    means the first AI call on a fresh page load always has a token,
+  //    instead of falling through to getSession() which can time out.
+  try {
+    const raw = localStorage.getItem("pz_auth_cache");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.session?.access_token) {
+        return parsed.session.access_token;
+      }
+    }
+  } catch (e) {}
+
+  // 3. Last resort: call getSession() for the narrow window where localStorage
+  //    is also empty (e.g. brand-new login before any cache has been written).
   try {
     const { data, error } = await Promise.race([
       supabase.auth.getSession(),
@@ -50,17 +67,6 @@ async function getAccessTokenSafely(): Promise<string> {
   } catch (err) {
     console.warn("getSession timeout/error in Groq helper:", err);
   }
-
-  // Last resort: localStorage (offline auth cache written by AuthContext)
-  try {
-    const raw = localStorage.getItem("pz_auth_cache");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.session?.access_token) {
-        return parsed.session.access_token;
-      }
-    }
-  } catch (e) {}
 
   return "";
 }
