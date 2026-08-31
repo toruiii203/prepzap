@@ -14,23 +14,35 @@ function getTieredModel(model: string): string {
   return model;
 }
 
-// Previously this called supabase.auth.getSession() directly with a 5s race
-// timeout. That call has a confirmed deadlock failure mode (Web Locks
-// contention across tabs), and on timeout the old code silently proceeded
-// with NO auth token — which the Worker correctly rejects with 401. That's
-// the exact "Groq API error 401" you were seeing; the token was never being
-// sent, not invalid.
+// FIX (auth 401s): This previously called supabase.auth.getSession() FIRST on
+// every request, racing it against a timeout. getSession() has a confirmed
+// deadlock failure mode (Web Locks contention across tabs), and on timeout the
+// old code silently proceeded with NO auth token — which the Worker correctly
+// rejects with 401. That was the exact "Groq API error 401" bug; the token was
+// never being sent, not invalid.
 //
-// Fix: read the access token from AuthContext's in-memory cache instead.
-// It's synchronous, can't deadlock, and can't time out — it's just whatever
-// AuthProvider last set, which is kept fresh on every auth state change
-// including background token refreshes.
-
+// Fix: check AuthContext's in-memory cache (getCachedAccessToken) FIRST. It's
+// a synchronous read, can't deadlock, and can't time out — it's kept fresh by
+// AuthProvider on every auth state change, including background token
+// refreshes (see AuthContext.tsx). By the time any Groq call fires, the cache
+// is populated in the overwhelming majority of cases.
+//
+// The getSession() race is kept as a fallback ONLY for the brief window before
+// AuthProvider's initial getSession() call has resolved (e.g. a Groq call
+// firing immediately on page load, before the cache exists yet).
 async function getAccessTokenSafely(): Promise<string> {
+  // Cache-first: synchronous, can't deadlock, always at least as fresh as a
+  // direct getSession() call would be.
+  const cached = getCachedAccessToken();
+  if (cached) return cached;
+
+  // Fallback for the narrow startup window before the cache is populated.
   try {
     const { data, error } = await Promise.race([
       supabase.auth.getSession(),
-      new Promise<{data: any, error: any}>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+      new Promise<{ data: any; error: any }>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout")), 2000)
+      ),
     ]);
     if (!error && data?.session?.access_token) {
       return data.session.access_token;
@@ -39,11 +51,7 @@ async function getAccessTokenSafely(): Promise<string> {
     console.warn("getSession timeout/error in Groq helper:", err);
   }
 
-  // Fallback to in-memory cache
-  const token = getCachedAccessToken();
-  if (token) return token;
-
-  // Fallback to local storage
+  // Last resort: localStorage (offline auth cache written by AuthContext)
   try {
     const raw = localStorage.getItem("pz_auth_cache");
     if (raw) {
@@ -171,6 +179,10 @@ async function _callGroqCore(
     "first msg role:", fullMessages[0]?.role
   );
 
+  // FIX: fetch the token ONCE and reuse it. This used to be called a second
+  // time inside the headers object below, which doubled the latency of every
+  // single request (each call can take up to ~2s in the getSession() fallback
+  // path) for no benefit — both calls returned the same value.
   const token = await getAccessTokenSafely();
 
   // Guard against a hung Worker/upstream request the same way we now guard
@@ -185,7 +197,7 @@ async function _callGroqCore(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await getAccessTokenSafely()}`,
+        "Authorization": `Bearer ${token}`,
       },
       body: JSON.stringify({
         model: resolvedModel,
@@ -302,6 +314,8 @@ export async function callGroqWithImages(
 
   console.log("[groq] sending vision request, model:", VISION_MODEL, "messages count:", messages.length);
 
+  // FIX: fetch the token ONCE and reuse it (was fetched twice — once here,
+  // once again inside the headers object below).
   const visionToken = await getAccessTokenSafely();
   const visionController = new AbortController();
   const visionTimeoutId = setTimeout(() => visionController.abort(), 45000);
@@ -312,7 +326,7 @@ export async function callGroqWithImages(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await getAccessTokenSafely()}`,
+        "Authorization": `Bearer ${visionToken}`,
       },
       body: JSON.stringify({
         model: VISION_MODEL,
