@@ -131,13 +131,8 @@ function ProtectedStudeniusLayout() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, needsOnboarding } = useAuth();
 
-  // FIX: only block on loading and session — never redirect to /onboarding here.
-  // AuthCallback handles post-OAuth routing (dashboard vs onboarding).
-  // OnboardingFlow handles post-email-signup routing via onNext().
-  // Adding a needsOnboarding redirect here creates a navigation loop:
-  // onboarding navigates → /dashboard → ProtectedRoute redirects → /onboarding → repeat.
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", background: "#1a0a0a", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,237,232,0.75)", fontSize: 14 }}>
@@ -146,6 +141,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!session) return <Navigate to="/login" replace />;
+  if (needsOnboarding) return <Navigate to="/onboarding?step=nameInput" replace />;
   return <>{children}</>;
 }
 

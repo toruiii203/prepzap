@@ -46,7 +46,7 @@ export default function Settings() {
   const [userInitial, setUserInitial] = useState("L")
   const [creditsLeft, setCreditsLeft] = useState<number | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [pwResetSent, setPwResetSent] = useState(false)
+
   const FREE_CREDITS_TOTAL = 50
 
   // Load profile data on mount
@@ -101,15 +101,7 @@ export default function Settings() {
     toast.info("Signed out", { description: "You have been successfully signed out." })
   }
 
-  const handleChangePassword = async () => {
-    if (!userEmail) return
-    const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    if (!error) setPwResetSent(true)
-      toast.success("Reset link sent!", { description: "Check your email for instructions to reset your password." })
-    setTimeout(() => setPwResetSent(false), 4000)
-  }
+
 
   const handleDeleteAccount = async () => {
     if (!user) return
@@ -272,14 +264,6 @@ export default function Settings() {
           <Section title="Account" icon="manage_accounts">
             <div style={{ display: "flex", flexDirection: "column" }}>
 
-              {/* Change password */}
-              <button onClick={handleChangePassword} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", background: "none", border: "none", borderBottom: "1px solid #e5e1da", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "#1c1c19" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#6b6b6b" }}>lock</span>
-                  {pwResetSent ? "✓ Reset link sent to your email!" : "Change password"}
-                </div>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#6b6b6b" }}>chevron_right</span>
-              </button>
 
               {/* Sign out */}
               <button onClick={handleSignOut} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", background: "none", border: "none", borderBottom: "1px solid #e5e1da", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#d97706" }}>

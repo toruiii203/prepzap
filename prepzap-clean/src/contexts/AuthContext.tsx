@@ -280,12 +280,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error || !data) {
         // No profile row — brand new OAuth user mid-onboarding.
-        // Do NOT set needsOnboarding=true here — that would cause ProtectedRoute
-        // to redirect them back to /onboarding while AuthCallback is routing them.
-        // AuthCallback and OnboardingFlow handle new-user routing themselves.
         const fallback = defaultProfile(u)
         setProfile(fallback)
-        setNeedsOnboarding(false)
+        setNeedsOnboarding(true)
         cacheAuthState(s, u, fallback)
         return false
       }
