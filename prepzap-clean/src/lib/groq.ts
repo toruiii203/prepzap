@@ -46,8 +46,26 @@ async function getAccessTokenSafely(): Promise<string> {
     const raw = localStorage.getItem("pz_auth_cache");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.session?.access_token) {
-        return parsed.session.access_token;
+      const token = parsed?.session?.access_token;
+      if (token) {
+        // Decode the JWT exp claim (middle segment, base64url) and check if
+        // the token is still valid with a 60-second safety buffer. Supabase
+        // access tokens expire after 1 hour regardless of the refresh-token
+        // lifetime — sending an expired token is the direct cause of the
+        // recurring 401s. If it's expired (or close to it), fall through to
+        // getSession() which will use the long-lived refresh token to get a
+        // fresh access token automatically.
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+          const expiresAt = payload?.exp ?? 0; // Unix seconds
+          const nowSec = Math.floor(Date.now() / 1000);
+          if (expiresAt - nowSec > 60) {
+            return token; // Token is fresh — use it
+          }
+          // Token expired or expiring soon — fall through to refresh
+        } catch {
+          return token; // Can't decode? Try it anyway — better than nothing
+        }
       }
     }
   } catch (e) {}
