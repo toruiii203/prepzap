@@ -813,7 +813,7 @@ export default function AITutor() {
       </div>
 
       {/* ═══════════════ MOBILE ═══════════════ */}
-      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2] pb-20" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
 
         {/* Top bar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">

@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { fireConfetti } from "@/lib/confetti";
 import { isAnswerCorrect } from "@/lib/quizUtils";
+import { withTimeout } from "@/lib/withTimeout";
+import { withTimeout } from "@/lib/withTimeout";
 
 interface Question {
   question: string;
@@ -47,6 +49,8 @@ export default function ArenaResults() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
 
   const isDaily = code === "daily" || state?.isDaily;
@@ -77,40 +81,75 @@ export default function ArenaResults() {
     const speedBonus = isDaily ? 0 : (totalSecondsRemaining * 5);
 
     useEffect(() => {
+      let cancelled = false;
       const load = async () => {
         setLoading(true);
+        setLoadError(false);
         try {
           const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-          
-          // State recovery if missing from state & localStorage
-          if (!activeState && user) {
-            if (isDaily) {
-               const [subRes, chalRes] = await Promise.all([
-                 supabase.from("daily_challenge_submissions").select("*").eq("challenge_date", today).eq("user_id", user.id).maybeSingle(),
-                 getOrCreateDailyChallenge().then(q => ({ data: q, error: null }))
-               ]);
-               if (subRes.data && chalRes.data) {
-                 setRestoredState({
-                   answers: subRes.data.answers || {},
-                   score: subRes.data.score || 0,
-                   elapsed: subRes.data.time_taken_seconds || 0,
-                   questions: chalRes.data.questions || [],
-                   isDaily: true
-                 });
-               }
+
+          // Effective values for THIS run. Start from render-time state, and
+          // upgrade in place below if we recover data from Supabase — so the
+          // leaderboard-injection code further down always sees fresh values
+          // instead of the stale `activeState`/`score` this effect closed
+          // over at creation time. (That was the "0 pts on PC" bug: the
+          // recovered score landed in React state via setRestoredState, but
+          // this same effect run kept reading the old pre-recovery values.)
+          let effState = activeState;
+          let effScore = score;
+          let effElapsed = elapsed;
+
+          // State recovery if missing from router state & localStorage (e.g.
+          // this results page was opened on a different device than the one
+          // that submitted the quiz, so there's no router state and no cache)
+          if (!effState && user && isDaily) {
+            try {
+              const [subRes, chalRes] = await Promise.all([
+                withTimeout(
+                  supabase.from("daily_challenge_submissions").select("*").eq("challenge_date", today).eq("user_id", user.id).maybeSingle(),
+                  8000, "daily submission lookup"
+                ),
+                withTimeout(
+                  getOrCreateDailyChallenge().then(q => ({ data: q, error: null })),
+                  8000, "daily challenge lookup"
+                ),
+              ]);
+              if (subRes.data && chalRes.data) {
+                const recovered: LocationState = {
+                  answers: subRes.data.answers || {},
+                  score: subRes.data.score || 0,
+                  elapsed: subRes.data.time_taken_seconds || 0,
+                  questions: chalRes.data.questions || [],
+                  isDaily: true,
+                };
+                setRestoredState(recovered);
+                effState = recovered;
+                effScore = recovered.score;
+                effElapsed = recovered.elapsed;
+              }
+            } catch (recoverErr) {
+              console.warn("Could not recover submission state:", recoverErr);
+              // Not fatal on its own — leaderboard below can still load,
+              // just without "my score" restored for the injection step.
             }
           }
 
+          if (cancelled) return;
+
           if (isDaily) {
             let entries: LeaderboardEntry[] = [];
+            let fetchFailed = false;
             try {
-              const { data } = await supabase
-                .from("daily_challenge_submissions")
-                .select("user_id, score, time_taken_seconds, display_name")
-                .eq("challenge_date", today)
-                .order("score", { ascending: false })
-                .order("time_taken_seconds", { ascending: true })
-                .limit(20);
+              const { data } = await withTimeout(
+                supabase
+                  .from("daily_challenge_submissions")
+                  .select("user_id, score, time_taken_seconds, display_name")
+                  .eq("challenge_date", today)
+                  .order("score", { ascending: false })
+                  .order("time_taken_seconds", { ascending: true })
+                  .limit(20),
+                8000, "daily leaderboard"
+              );
 
               if (data && data.length > 0) {
                 entries = data.map((row: any, i: number) => ({
@@ -122,17 +161,20 @@ export default function ArenaResults() {
               }
             } catch (queryErr) {
               console.warn("Could not fetch daily leaderboard from Supabase:", queryErr);
+              fetchFailed = true;
             }
 
-            // If user's own result is not yet in the list (e.g. fresh submission or local), inject it
-            if (user && (activeState?.score !== undefined || score > 0)) {
+            // If user's own result is not yet in the list (fresh submission,
+            // or just recovered above), inject it using the FRESH effState —
+            // never the stale render-time closure values.
+            if (user && (effState?.score !== undefined || effScore > 0)) {
               const myEntryIdx = entries.findIndex((e) => e.user_id === user.id);
               const myDisplayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "You";
               if (myEntryIdx === -1) {
                 entries.push({
                   user_id: user.id,
-                  score: activeState?.score ?? score,
-                  time_taken: activeState?.elapsed ?? elapsed ?? 0,
+                  score: effState?.score ?? effScore,
+                  time_taken: effState?.elapsed ?? effElapsed ?? 0,
                   display_name: `${myDisplayName} (You)`,
                 });
                 // Sort by score desc, time_taken asc
@@ -140,15 +182,26 @@ export default function ArenaResults() {
               }
             }
 
-            setLeaderboard(entries);
-            const rank = entries.findIndex((e) => e.user_id === user?.id);
-            setMyRank(rank >= 0 ? rank + 1 : 1);
+            if (!cancelled) {
+              setLeaderboard(entries);
+              const rank = entries.findIndex((e) => e.user_id === user?.id);
+              setMyRank(rank >= 0 ? rank + 1 : 1);
+              // Only show a hard error if the fetch truly failed AND we have
+              // nothing at all to show (no cached/recovered entry either).
+              setLoadError(fetchFailed && entries.length === 0);
+            }
         } else {
-          const { data: roomData } = await supabase.from("exam_rooms").select("id").eq("code", code?.toUpperCase()).maybeSingle();
+          const { data: roomData } = await withTimeout(
+            supabase.from("exam_rooms").select("id").eq("code", code?.toUpperCase()).maybeSingle(),
+            8000, "room lookup"
+          );
           if (roomData) {
-            const { data } = await supabase.from("room_submissions").select("user_id, score, time_taken, display_name")
-              .eq("room_id", roomData.id).order("score", { ascending: false }).limit(20);
-            
+            const { data } = await withTimeout(
+              supabase.from("room_submissions").select("user_id, score, time_taken, display_name")
+                .eq("room_id", roomData.id).order("score", { ascending: false }).limit(20),
+              8000, "room leaderboard"
+            );
+
             let entries = (data ?? []).map((row: any, i: number) => ({
               user_id: row.user_id,
               score: row.score,
@@ -156,26 +209,36 @@ export default function ArenaResults() {
               display_name: row.display_name ?? `Player ${i + 1}`,
             }));
 
-            if (user && state?.score !== undefined && entries.findIndex((e: any) => e.user_id === user.id) === -1) {
+            if (user && effState?.score !== undefined && entries.findIndex((e: any) => e.user_id === user.id) === -1) {
               const myDisplayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "You";
               entries.push({
                 user_id: user.id,
-                score: state.score,
-                time_taken: state.elapsed ?? 0,
+                score: effState.score,
+                time_taken: effState.elapsed ?? 0,
                 display_name: `${myDisplayName} (You)`,
               });
               entries.sort((a: any, b: any) => b.score - a.score || a.time_taken - b.time_taken);
             }
 
-            setLeaderboard(entries);
-            const rank = entries.findIndex((e: any) => e.user_id === user?.id);
-            setMyRank(rank >= 0 ? rank + 1 : 1);
+            if (!cancelled) {
+              setLeaderboard(entries);
+              const rank = entries.findIndex((e: any) => e.user_id === user?.id);
+              setMyRank(rank >= 0 ? rank + 1 : 1);
+            }
+          } else if (!cancelled) {
+            setLoadError(true);
           }
         }
-      } finally { setLoading(false); }
+      } catch (err) {
+        console.warn("Failed to load Arena results:", err);
+        if (!cancelled) setLoadError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     load();
-  }, [code, isDaily, user]);
+    return () => { cancelled = true; };
+  }, [code, isDaily, user, retryTick]);
 
   // ── Shared sub-components ──────────────────────────────────────────────────
   const ScoreHero = () => (
@@ -223,6 +286,14 @@ export default function ArenaResults() {
       </div>
       {loading ? (
         <div className="p-6 flex justify-center"><span className="material-symbols-outlined animate-spin text-[24px] text-black/30">progress_activity</span></div>
+      ) : loadError ? (
+        <div className="p-6 flex flex-col items-center gap-3 text-center">
+          <p className="font-bold text-[13px] text-black/40">Couldn't load results — connection may be slow.</p>
+          <button onClick={() => setRetryTick((t) => t + 1)}
+            className="bg-black text-white font-bold text-[12px] px-4 py-2 border-2 border-black shadow-[2px_2px_0px_0px_#f0a040] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
+            Retry
+          </button>
+        </div>
       ) : leaderboard.length === 0 ? (
         <div className="p-6 text-center"><p className="font-bold text-[13px] text-black/40">No results yet.</p></div>
       ) : leaderboard.map((entry, i) => {

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { callGroq, safeParseJSON } from "@/lib/groq";
 import { loadLibrary, type SourceFile } from "@/lib/sourceContext";
+import { withTimeout } from "@/lib/withTimeout";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DailyQuiz {
@@ -435,6 +436,10 @@ export default function Arena() {
   const [loadingQuiz, setLoadingQuiz] = useState(true);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [loadingRooms, setLoadingRooms] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState(false);
+  const [leaderboardRetryTick, setLeaderboardRetryTick] = useState(0);
+  const [roomsError, setRoomsError] = useState(false);
+  const [roomsRetryTick, setRoomsRetryTick] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [countdown, setCountdown] = useState("");
@@ -500,14 +505,22 @@ export default function Arena() {
   }, [user]);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setLoadingLeaderboard(true);
+      setLeaderboardError(false);
       let entries: LeaderboardEntry[] = [];
+      let fetchFailed = false;
       try {
         let query = supabase.from("daily_challenge_submissions").select("user_id, score, time_taken_seconds, display_name")
           .order("score", { ascending: false }).order("time_taken_seconds", { ascending: true }).limit(20);
         if (leaderboardTab === "today") query = query.eq("challenge_date", todayPH());
-        const { data } = await query;
+        // Guarded with a timeout: every supabase.from() call awaits
+        // auth.getSession() internally, and if that ever stalls (slow token
+        // refresh, backgrounded tab, flaky reconnect) this await would
+        // otherwise hang forever with no error — which is what left this
+        // leaderboard spinning indefinitely.
+        const { data } = await withTimeout(query, 8000, "daily leaderboard");
         if (data) {
           entries = data.map((row, i) => ({
             user_id: row.user_id,
@@ -518,6 +531,7 @@ export default function Arena() {
         }
       } catch (err) {
         console.warn("Leaderboard fetch error:", err);
+        fetchFailed = true;
       }
 
       // Seamlessly merge local today submissions if any
@@ -540,29 +554,45 @@ export default function Arena() {
         }
       } catch {}
 
+      if (cancelled) return;
       setLeaderboard(entries.slice(0, 10));
+      // Only surface an error state if we truly have nothing to show — a
+      // local fallback entry still counts as a usable result.
+      setLeaderboardError(fetchFailed && entries.length === 0);
       setLoadingLeaderboard(false);
     };
     load();
     const ch = supabase.channel("arena-daily-leaderboard")
       .on("postgres_changes", { event: "*", schema: "public", table: "daily_challenge_submissions" }, load)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [leaderboardTab]);
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [leaderboardTab, leaderboardRetryTick]);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setLoadingRooms(true);
-      const { data } = await supabase.from("exam_rooms").select("*")
-        .in("status", ["waiting", "active"]).eq("is_public", true).order("created_at", { ascending: false }).limit(20);
-      setRooms(data ?? []); setLoadingRooms(false);
+      setRoomsError(false);
+      try {
+        const { data } = await withTimeout(
+          supabase.from("exam_rooms").select("*")
+            .in("status", ["waiting", "active"]).eq("is_public", true).order("created_at", { ascending: false }).limit(20),
+          8000, "exam rooms"
+        );
+        if (!cancelled) setRooms(data ?? []);
+      } catch (err) {
+        console.warn("Exam rooms fetch error:", err);
+        if (!cancelled) setRoomsError(true);
+      } finally {
+        if (!cancelled) setLoadingRooms(false);
+      }
     };
     load();
     const ch = supabase.channel("arena-rooms")
       .on("postgres_changes", { event: "*", schema: "public", table: "exam_rooms" }, load)
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [roomsRetryTick]);
 
   // ── Shared sub-components ──────────────────────────────────────────────────
   const handleViewBreakdown = () => {
@@ -642,6 +672,14 @@ export default function Arena() {
       <div className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000]">
         {loadingLeaderboard ? (
           <div className="p-6 flex justify-center"><span className="material-symbols-outlined animate-spin text-[24px] text-black/30">progress_activity</span></div>
+        ) : leaderboardError ? (
+          <div className="p-6 flex flex-col items-center gap-3 text-center">
+            <p className="font-bold text-[13px] text-black/40">Couldn't load the leaderboard — connection may be slow.</p>
+            <button onClick={() => setLeaderboardRetryTick((t) => t + 1)}
+              className="bg-black text-white font-bold text-[12px] px-4 py-2 border-2 border-black shadow-[2px_2px_0px_0px_#f0a040] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
+              Retry
+            </button>
+          </div>
         ) : leaderboard.length === 0 ? (
           <div className="p-6 text-center"><p className="font-bold text-[13px] text-black/40">No submissions yet — be first!</p></div>
         ) : leaderboard.map((entry, i) => {
@@ -684,6 +722,14 @@ export default function Arena() {
       <div className="flex flex-col gap-2">
         {loadingRooms ? (
           <div className="p-4 flex justify-center"><span className="material-symbols-outlined animate-spin text-[24px] text-black/30">progress_activity</span></div>
+        ) : roomsError ? (
+          <div className="border-2 border-black p-6 flex flex-col items-center gap-3 text-center bg-white">
+            <p className="font-bold text-[13px] text-black/40">Couldn't load rooms — connection may be slow.</p>
+            <button onClick={() => setRoomsRetryTick((t) => t + 1)}
+              className="bg-black text-white font-bold text-[12px] px-4 py-2 border-2 border-black shadow-[2px_2px_0px_0px_#f0a040] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all">
+              Retry
+            </button>
+          </div>
         ) : rooms.length === 0 ? (
           <div className="border-2 border-dashed border-black p-8 text-center">
             <span className="material-symbols-outlined text-[36px] text-black/20">meeting_room</span>
