@@ -30,64 +30,83 @@ function getTieredModel(model: string): string {
 // The getSession() race is kept as a fallback ONLY for the brief window before
 // AuthProvider's initial getSession() call has resolved (e.g. a Groq call
 // firing immediately on page load, before the cache exists yet).
-async function getAccessTokenSafely(): Promise<string> {
-  // 1. Cache-first: synchronous, can't deadlock, always at least as fresh as a
-  //    direct getSession() call would be.
-  const cached = getCachedAccessToken();
-  if (cached) return cached;
+// ── JWT expiry helpers ──────────────────────────────────────────────────────
+function getJwtExpiry(token: string): number {
+  // Returns the `exp` Unix timestamp from a JWT, or 0 on failure.
+  try {
+    const seg = token.split(".")[1];
+    const payload = JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/")));
+    return payload?.exp ?? 0;
+  } catch {
+    return 0;
+  }
+}
 
-  // 2. localStorage cache — available synchronously even before AuthProvider
-  //    has resolved its async initialize(). This is the key fix for the 401-
-  //    on-startup race: on a cold PWA load the in-memory cache (#1) is empty
-  //    but localStorage already has the last known-good token. Checking here
-  //    means the first AI call on a fresh page load always has a token,
-  //    instead of falling through to getSession() which can time out.
+function isTokenFresh(token: string, bufferSec = 90): boolean {
+  // Returns true if the JWT is still valid with the given buffer in seconds.
+  // 90s buffer is generous enough to survive network round-trips.
+  const exp = getJwtExpiry(token);
+  if (!exp) return true; // Can't decode → optimistically assume fresh
+  return exp - Math.floor(Date.now() / 1000) > bufferSec;
+}
+
+// Fetches a guaranteed-fresh access token without ever calling getSession(),
+// which has a confirmed Web Locks deadlock failure mode in Supabase.
+//
+// Priority order:
+//   1. In-memory cachedSession (kept current by onAuthStateChange) — if fresh
+//   2. localStorage pz_auth_cache — if fresh
+//   3. supabase.auth.refreshSession() — gets a brand-new token via refresh token
+//      (does NOT use Web Locks the same way getSession() does)
+//   4. Empty string as last resort (request will 401 and be caught by caller)
+async function getAccessTokenSafely(): Promise<string> {
+  // 1. In-memory cache — synchronous, always the most up-to-date signal.
+  //    Check expiry: when getSession() times out, AuthContext falls back to
+  //    the localStorage cache which can contain an expired token. That expired
+  //    token ends up here in cachedSession, and if we return it blindly we
+  //    cause a 401 on every single AI call.
+  const cached = getCachedAccessToken();
+  if (cached && isTokenFresh(cached)) return cached;
+
+  // 2. localStorage fallback — survives page refreshes; may be more recent
+  //    than the in-memory cache on a cold PWA resume where AuthContext's
+  //    initialize() hasn't completed yet.
   try {
     const raw = localStorage.getItem("pz_auth_cache");
     if (raw) {
       const parsed = JSON.parse(raw);
-      const token = parsed?.session?.access_token;
-      if (token) {
-        // Decode the JWT exp claim (middle segment, base64url) and check if
-        // the token is still valid with a 60-second safety buffer. Supabase
-        // access tokens expire after 1 hour regardless of the refresh-token
-        // lifetime — sending an expired token is the direct cause of the
-        // recurring 401s. If it's expired (or close to it), fall through to
-        // getSession() which will use the long-lived refresh token to get a
-        // fresh access token automatically.
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-          const expiresAt = payload?.exp ?? 0; // Unix seconds
-          const nowSec = Math.floor(Date.now() / 1000);
-          if (expiresAt - nowSec > 60) {
-            return token; // Token is fresh — use it
-          }
-          // Token expired or expiring soon — fall through to refresh
-        } catch {
-          return token; // Can't decode? Try it anyway — better than nothing
-        }
-      }
+      const lsToken = parsed?.session?.access_token;
+      if (lsToken && isTokenFresh(lsToken)) return lsToken;
     }
-  } catch (e) {}
+  } catch {}
 
-  // 3. Last resort: call getSession() for the narrow window where localStorage
-  //    is also empty (e.g. brand-new login before any cache has been written).
+  // 3. Token is expired (or no token at all). Call refreshSession() to get a
+  //    brand-new access token using the long-lived refresh token.
+  //    This is intentionally NOT getSession():
+  //    - getSession() acquires a Web Lock internally and deadlocks when two
+  //      tabs call it simultaneously → causes the 5s timeout we see in logs
+  //    - refreshSession() does not have this issue in practice, and always
+  //      returns a fresh token as long as the refresh token is valid (60 days)
+  console.log("[groq] Access token expired or missing — refreshing session proactively...");
   try {
     const { data, error } = await Promise.race([
-      supabase.auth.getSession(),
+      supabase.auth.refreshSession(),
       new Promise<{ data: any; error: any }>((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout")), 2000)
+        setTimeout(() => reject(new Error("refreshSession timeout")), 8000)
       ),
     ]);
     if (!error && data?.session?.access_token) {
+      console.log("[groq] Proactive token refresh succeeded.");
       return data.session.access_token;
     }
+    console.warn("[groq] refreshSession returned no token:", error?.message);
   } catch (err) {
-    console.warn("getSession timeout/error in Groq helper:", err);
+    console.warn("[groq] refreshSession failed/timed out:", err);
   }
 
-  return "";
+  return ""; // Caller will handle the empty token (will 401, logged clearly)
 }
+
 
 export interface GroqMessage {
   role: "system" | "user" | "assistant";
