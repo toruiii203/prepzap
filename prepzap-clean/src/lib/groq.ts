@@ -116,7 +116,8 @@ async function _callGroqCore(
   systemPromptOrModel?: string,
   model: string = DEFAULT_MODEL,
   maxTokens: number = 1024,
-  feature?: string
+  feature?: string,
+  isRetry: boolean = false
 ): Promise<{ text: string; provider?: string }> {
   // Fail fast and clearly when there's genuinely no connection, instead of
   // sending a doomed request that surfaces as a confusing error later.
@@ -219,6 +220,19 @@ async function _callGroqCore(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    
+    // FIX: Token expiration workaround. If proxy rejects with 401, force a 
+    // token refresh and retry once. This fixes the "breaks every few hours" issue.
+    if (res.status === 401 && !isRetry) {
+      console.warn("[groq] API returned 401, forcing token refresh and retrying...");
+      try {
+        await supabase.auth.refreshSession();
+        return _callGroqCore(messages, systemPromptOrModel, model, maxTokens, feature, true);
+      } catch (refreshErr) {
+        console.error("[groq] Failed to refresh token during 401 retry:", refreshErr);
+      }
+    }
+
     console.error("[groq] API error:", res.status, err);
     throw new Error(
       `Groq API error ${res.status}: ${(err as { error?: { message?: string } }).error?.message ?? res.statusText}`
