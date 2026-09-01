@@ -25,15 +25,23 @@ async function serialAuthLock<R>(
     return await Promise.race([
       fn(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("serialAuthLock: fn() timed out")), 10000)
+        setTimeout(() => reject(new Error("serialAuthLock: fn() timed out")), 30000)
       )
     ]);
   };
 
   if (typeof navigator !== "undefined" && navigator.locks) {
+    let lockAcquired = false;
     try {
-      return await navigator.locks.request(name, { mode: "exclusive", ifAvailable: false }, executeWithTimeout);
-    } catch (e) {
+      return await navigator.locks.request(name, { mode: "exclusive" }, async () => {
+        lockAcquired = true;
+        return await executeWithTimeout();
+      });
+    } catch (e: any) {
+      if (lockAcquired) {
+        // The error came from executeWithTimeout() (e.g. timeout or network error)
+        throw e;
+      }
       console.warn("navigator.locks failed, falling back to in-tab queue", e);
     }
   }

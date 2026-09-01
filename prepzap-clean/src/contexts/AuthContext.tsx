@@ -9,6 +9,7 @@ import {
 } from "react"
 import { type Session, type User } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
+import { withTimeout } from "@/lib/withTimeout"
 import {
   AUTH_CACHE_KEY,
   TAB_ID,

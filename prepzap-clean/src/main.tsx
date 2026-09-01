@@ -21,6 +21,12 @@ window.onerror = function(message, source, lineno, colno, error) {
 };
 
 window.addEventListener('unhandledrejection', function(event) {
+  // Ignore harmless background timeouts (e.g. Supabase auto-refresh loop throwing)
+  if (event.reason && event.reason.message && event.reason.message.includes('serialAuthLock')) {
+    console.warn("Ignored background unhandled rejection:", event.reason.message);
+    return;
+  }
+
   const errDiv = document.createElement('div');
   errDiv.style.position = 'fixed';
   errDiv.style.inset = '0';
