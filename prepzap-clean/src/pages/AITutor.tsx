@@ -667,7 +667,7 @@ export default function AITutor() {
   ];
 
   return (
-    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
 
       {showUpgrade && (
         <UpgradePrompt
@@ -813,7 +813,7 @@ export default function AITutor() {
       </div>
 
       {/* ═══════════════ MOBILE ═══════════════ */}
-      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2]" style={{ height: "100dvh", overflow: "hidden" }}>
+      <div className="md:hidden w-full flex flex-col bg-[#FAF7F2] flex-1 overflow-hidden">
 
         {/* Top bar */}
         <header className="flex items-center justify-between px-4 h-14 bg-[#FAF7F2] shrink-0 border-b-2 border-black z-10">
