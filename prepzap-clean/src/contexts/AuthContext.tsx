@@ -343,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
 
         setSession(s)
-        cachedSession = s
+        setCachedSession(s)
         setUser(s?.user ?? null)
         if (s?.user) {
           await fetchProfile(s.user, s)
@@ -379,7 +379,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const cached = readAuthCache()
           if (cached) {
             setSession(cached.session)
-            cachedSession = cached.session
+            setCachedSession(cached.session)
             setUser(cached.user)
             setProfile(cached.profile)
             setNeedsOnboarding(false) // trust last known state; don't loop into onboarding offline
@@ -400,10 +400,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const msg = event.data
       if (msg?.type !== "session_refreshed" || msg.from === TAB_ID) return
       const incoming: Session = msg.session
-      if (!incoming?.access_token || incoming.access_token === cachedSession?.access_token) return
+      if (!incoming?.access_token || incoming.access_token === getCachedSession()?.access_token) return
 
       setSession(incoming)
-      cachedSession = incoming
+      setCachedSession(incoming)
       setUser(incoming.user ?? null)
       scheduleProactiveRefresh(incoming)
     }
@@ -426,14 +426,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If it's just a background token refresh (same user ID), do NOT
         // set loading=true, as that forces ProtectedRoute to unmount the entire
         // app and destroys active quiz timers!
-        const userChanged = !cachedSession?.user || cachedSession.user.id !== s.user.id;
+        const currentUser = getCachedSession()?.user;
+        const userChanged = !currentUser || currentUser.id !== s.user.id;
         
         if (userChanged) {
           setLoading(true)
         }
         
         setSession(s)
-        cachedSession = s
+        setCachedSession(s)
         setUser(s.user)
         scheduleProactiveRefresh(s)
         try {
@@ -452,7 +453,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           refreshTimerRef.current = null
         }
         setSession(null)
-        cachedSession = null
+        setCachedSession(null)
         setUser(null)
         setProfile(null)
         setNeedsOnboarding(false)
