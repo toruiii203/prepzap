@@ -3,6 +3,7 @@ import { Browser } from "@capacitor/browser";
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
+import { getCachedSession } from "@/lib/authSession"
 import { useAuth } from "@/contexts/AuthContext"
 
 type Screen =
@@ -895,7 +896,11 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
 
   // Save name + mark onboarding complete — upsert so it works even if row is missing
   const markComplete = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
+    // IMPORTANT: Do NOT call supabase.auth.getSession() here — it hits the
+    // serialAuthLock and can time out, which causes this function to silently
+    // return early and never set onboarding_complete: true.
+    // getCachedSession() reads directly from memory — always instant, never locks.
+    const session = getCachedSession()
     if (!session) return
     await supabase
       .from("profiles")
@@ -940,13 +945,24 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
     const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
-    // Start the DB write early, then navigate after it completes
+    // Start the DB write early, then navigate after it completes.
+    // IMPORTANT: Always navigate regardless of whether refreshProfile()
+    // succeeds — a stale profile is fine, the dashboard will re-fetch.
     const t20 = setTimeout(async () => {
-      await markComplete()
-      await refreshProfile()
-      setTimeout(onDone, 50)
+      try {
+        await markComplete()
+      } catch (e) {
+        console.error("[onboarding] markComplete failed:", e)
+      }
+      // Navigate immediately — don't wait for refreshProfile which can
+      // hit the auth lock and stall forever
+      onDone()
+      // Best-effort profile refresh in the background after navigation
+      try { await refreshProfile() } catch {}
     }, 14500)
-    return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20].forEach(clearTimeout)
+    // Hard deadline: if something above stalls for > 18s, navigate anyway
+    const tFallback = setTimeout(() => { onDone() }, 18000)
+    return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,tFallback].forEach(clearTimeout)
   }, [])
 
   const checkItems = ["Preparing AI Tutor", "Creating Practice Tests", "Building Study Roadmap", "Personalizing Recommendations"]
