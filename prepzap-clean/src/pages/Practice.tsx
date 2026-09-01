@@ -321,7 +321,7 @@ Each object MUST match this schema exactly:
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
-        "meta-llama/llama-3.1-8b-instruct",
+        "openai/gpt-oss-20b",
         Math.min(4096, 300 + questionCount * 300),
         "practice"
       );

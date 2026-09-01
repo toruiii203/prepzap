@@ -119,7 +119,7 @@ Order by frequency descending.`;
       const raw = await callGroq(
         [{ role: "user", content: prompt }],
         undefined,
-        "meta-llama/llama-3.1-8b-instruct",
+        "openai/gpt-oss-20b",
         1024,
         "high_yield"
       );
@@ -153,7 +153,7 @@ Return ONLY valid JSON array, no markdown:
       const raw = await callGroq(
         [{ role: "user", content: prompt }],
         undefined,
-        "meta-llama/llama-3.1-8b-instruct",
+        "openai/gpt-oss-20b",
         512,
         "high_yield"
       );
@@ -196,7 +196,7 @@ Mix question types: definition, application, comparison.`;
       const raw = await callGroq(
         [{ role: "user", content: prompt }],
         undefined,
-        "meta-llama/llama-3.1-8b-instruct",
+        "openai/gpt-oss-20b",
         1024,
         "high_yield"
       );

@@ -337,7 +337,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
-        "meta-llama/llama-3.1-8b-instruct",
+        "openai/gpt-oss-20b",
         2048,
         "flashcard_gen"
       );

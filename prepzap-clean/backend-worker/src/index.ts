@@ -109,7 +109,7 @@ Return ONLY a JSON array: [{"question":"...","options":["A...","B...","C...","D.
         "Authorization": `Bearer ${groqKey}`
       },
       body: JSON.stringify({
-        model: "llama3-8b-8192",
+        model: "openai/gpt-oss-20b",
         messages: [{ role: "user", content: prompt }]
       })
     });

@@ -80,7 +80,7 @@ Return ONLY a JSON array, no markdown, no explanation:
   const raw = await callGroq(
     [{ role: "user", content: prompt }],
     undefined,
-    "meta-llama/llama-3.1-8b-instruct",
+    "openai/gpt-oss-20b",
     2048,
     "arena_gen"
   );

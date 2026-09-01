@@ -29,7 +29,6 @@ export interface AIModel { id: string; label: string; provider: Provider; contex
 
 export const AI_MODELS: AIModel[] = [
   { id: "openai/gpt-oss-20b",                    label: "Llama 3.3 70B",    provider: "groq",        contextK: 128  },
-  { id: "llama-3.1-8b-instant",                       label: "Llama 3.1 8B",     provider: "groq",        contextK: 128  },
   { id: "gemma2-9b-it",                               label: "Gemma 2 9B",       provider: "groq",        contextK: 8    },
   { id: "mixtral-8x7b-32768",                         label: "Mixtral 8×7B",     provider: "groq",        contextK: 32   },
   { id: "meta-llama/llama-3.3-70b-instruct:free",     label: "Llama 3.3 70B",   provider: "openrouter",  contextK: 128  },
