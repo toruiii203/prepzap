@@ -30,18 +30,26 @@ export function safeParseJSON<T = unknown>(raw: string): T {
   // 1. Strip code fences
   let clean = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
 
-  // 2. Try to extract a JSON object or array
-  const objMatch = clean.match(/\{[\s\S]*\}/);
-  const arrMatch = clean.match(/\[[\s\S]*\]/);
-
-  // Prefer whichever appears first in the string
+  // 2. Try to extract a JSON object or array by finding the outermost brackets
   let jsonStr = clean;
-  if (objMatch && arrMatch) {
-    jsonStr = raw.indexOf("{") < raw.indexOf("[") ? objMatch[0] : arrMatch[0];
-  } else if (objMatch) {
-    jsonStr = objMatch[0];
-  } else if (arrMatch) {
-    jsonStr = arrMatch[0];
+  const firstBrace = clean.indexOf("{");
+  const lastBrace = clean.lastIndexOf("}");
+  const firstBracket = clean.indexOf("[");
+  const lastBracket = clean.lastIndexOf("]");
+
+  const hasObj = firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace;
+  const hasArr = firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket;
+
+  if (hasObj && hasArr) {
+    if (firstBrace < firstBracket) {
+      jsonStr = clean.substring(firstBrace, lastBrace + 1);
+    } else {
+      jsonStr = clean.substring(firstBracket, lastBracket + 1);
+    }
+  } else if (hasObj) {
+    jsonStr = clean.substring(firstBrace, lastBrace + 1);
+  } else if (hasArr) {
+    jsonStr = clean.substring(firstBracket, lastBracket + 1);
   }
 
   try {

@@ -390,9 +390,9 @@ export default function ArenaRoom() {
 
         {/* Players */}
         <div>
-          <p className="font-black text-[12px] uppercase tracking-wider text-black/50 mb-2">
-            Players ({players.length}) · {readyCount}/{players.length} ready
-          </p>
+            <p className="font-black text-[12px] uppercase tracking-wider text-black/50 mb-2">
+              {players.length} Player{players.length !== 1 ? 's' : ''} In Room {room.mode === 'live' ? `— ${readyCount} Ready` : ''}
+            </p>
           <PlayerGrid />
         </div>
 
@@ -468,7 +468,7 @@ export default function ArenaRoom() {
           <div>
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-black text-[14px] uppercase tracking-wider">
-                Players ({players.length}) · {readyCount}/{players.length} ready
+                Players ({players.length}) {room.mode === "live" ? `· ${readyCount} Ready` : ""}
               </h3>
               {room.mode === "live" && !isHost && (
                 <div className="flex items-center gap-2">
