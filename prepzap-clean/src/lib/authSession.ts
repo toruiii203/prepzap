@@ -98,77 +98,8 @@ function readCachedTokenFromStorage(): string | null {
   return null
 }
 
-function tryClaimRefreshLock(): boolean {
-  try {
-    const raw = localStorage.getItem(REFRESH_LOCK_KEY)
-    if (raw) {
-      const { ts } = JSON.parse(raw)
-      if (Date.now() - ts < REFRESH_LOCK_TTL_MS) return false
-    }
-    localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify({ tabId: TAB_ID, ts: Date.now() }))
-    return true
-  } catch {
-    return true
-  }
-}
-
-function releaseRefreshLock() {
-  try {
-    const raw = localStorage.getItem(REFRESH_LOCK_KEY)
-    if (raw) {
-      const { tabId } = JSON.parse(raw)
-      if (tabId === TAB_ID) localStorage.removeItem(REFRESH_LOCK_KEY)
-    }
-  } catch {}
-}
-
-async function waitForForeignRefresh(ms = 3500): Promise<string | null> {
-  const started = Date.now()
-  while (Date.now() - started < ms) {
-    await new Promise((r) => setTimeout(r, 250))
-    const mem = cachedSession?.access_token
-    if (mem && isAccessTokenFresh(mem)) return mem
-    const stored = readCachedTokenFromStorage()
-    if (stored) return stored
-  }
-  return null
-}
-
-async function refreshNow(): Promise<string> {
-  if (!tryClaimRefreshLock()) {
-    const fromOtherTab = await waitForForeignRefresh()
-    if (fromOtherTab) return fromOtherTab
-  }
-
-  // Prevent invalid_grant logouts: if the token was JUST refreshed (e.g. in the last 100s
-  // by another tab or an internal supabase-js timer), do NOT force another network refresh.
-  // A fresh Supabase token lasts 3600s. If it expires in > 3500s, it's brand new.
-  const mem = cachedSession?.access_token;
-  if (mem && isAccessTokenFresh(mem, 3500)) return mem;
-  const stored = readCachedTokenFromStorage();
-  if (stored && isAccessTokenFresh(stored, 3500)) return stored;
-
-  try {
-    const { data, error } = await supabase.auth.refreshSession()
-    const session = data?.session
-    if (!error && session?.access_token) {
-      setCachedSession(session)
-      authChannel?.postMessage({ type: "session_refreshed", session, from: TAB_ID })
-      return session.access_token
-    }
-
-    // Do NOT call supabase.auth.getSession() here — it acquires the same
-    // serialAuthLock we're holding, causing a self-deadlock.
-    // If refreshSession() failed, the session is genuinely expired.
-    throw new Error(
-      error?.message || "Your session expired. Please sign in again."
-    )
-  } finally {
-    releaseRefreshLock()
-  }
-}
-
 export async function ensureFreshAccessToken(options?: { force?: boolean }): Promise<string> {
+  // If not forcing, check if we have a fresh token in memory or storage
   if (!options?.force) {
     const mem = cachedSession?.access_token
     if (mem && isAccessTokenFresh(mem)) return mem
@@ -176,13 +107,27 @@ export async function ensureFreshAccessToken(options?: { force?: boolean }): Pro
     if (stored) return stored
   }
 
-  if (inFlight) return inFlight
+  // GoTrue's getSession() automatically refreshes the token if it's expired.
+  // If force is true (e.g. 401 from API), we explicitly ask GoTrue to refresh.
+  // Both calls safely use GoTrue's internal native lock.
+  const { data, error } = options?.force 
+    ? await supabase.auth.refreshSession() 
+    : await supabase.auth.getSession()
+  
+  if (error || !data.session?.access_token) {
+    throw new Error(error?.message || "Your session expired. Please sign in again.")
+  }
 
-  inFlight = refreshNow().finally(() => {
-    inFlight = null
-  })
+  const token = data.session.access_token
+  setCachedSession(data.session)
+  
+  // Only broadcast if it actually changed
+  const stored = readCachedTokenFromStorage()
+  if (token !== stored) {
+    authChannel?.postMessage({ type: "session_refreshed", session: data.session, from: TAB_ID })
+  }
 
-  return inFlight
+  return token
 }
 
 export { AUTH_CACHE_KEY, TAB_ID }

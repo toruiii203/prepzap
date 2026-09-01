@@ -134,44 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
   // Track if we're mid-fetch so ProtectedRoute waits instead of redirecting
   const fetchingRef = useRef(false)
-  // Holds the proactive token-refresh timer so it can be cleared and
-  // rescheduled whenever a new session arrives without leaking timers.
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Schedules a proactive token refresh 5 minutes before the session's
-  // access token expires. Supabase tokens last 1 hour; firing early means
-  // cachedSession is always fresh by the time any Groq call reaches for it,
-  // eliminating the ~seconds expiry window that caused 401s.
-  //
-  // Called every time we receive a new session (login, TOKEN_REFRESHED,
-  // getSession success). Clears any previously scheduled timer first so
-  // we never have two competing refreshes running.
-  const scheduleProactiveRefresh = useCallback((s: Session) => {
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
-
-    const expiresAt = s.expires_at // Unix seconds
-    if (!expiresAt) return
-
-    const msUntilExpiry = expiresAt * 1000 - Date.now()
-    const refreshIn = msUntilExpiry - 5 * 60 * 1000 // 5 min early
-
-    const doRefresh = async () => {
-      try {
-        await ensureFreshAccessToken({ force: true })
-      } catch (err) {
-        console.warn("[auth] Proactive token refresh failed:", err)
-      }
-    }
-
-    // Only schedule if the token isn't already about to expire
-    // (e.g. a stale cached token loaded from localStorage).
-    if (refreshIn <= 0) {
-      doRefresh()
-      return
-    }
-
-    refreshTimerRef.current = setTimeout(doRefresh, refreshIn)
-  }, [])
 
   const lsKey = useCallback(
     (base: string) => `pz_${user?.id ?? "anon"}_${base}`,
@@ -339,7 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const {
           data: { session: s },
           error,
-        } = await withTimeout(supabase.auth.getSession(), 5000, "getSession()")
+        } = await supabase.auth.getSession()
         if (error) throw error
         if (cancelled) return
 
@@ -348,7 +310,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(s?.user ?? null)
         if (s?.user) {
           await fetchProfile(s.user, s)
-          scheduleProactiveRefresh(s)
         }
       } catch (err) {
         // This is the critical fix: no matter what goes wrong above
@@ -406,7 +367,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(incoming)
       setCachedSession(incoming)
       setUser(incoming.user ?? null)
-      scheduleProactiveRefresh(incoming)
     }
     authChannel?.addEventListener("message", handleBroadcast)
 
@@ -437,7 +397,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(s)
         setCachedSession(s)
         setUser(s.user)
-        scheduleProactiveRefresh(s)
         try {
           await fetchProfile(s.user, s)
         } catch (err) {
@@ -471,7 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authChannel?.removeEventListener("message", handleBroadcast)
       subscription.unsubscribe()
     }
-  }, [fetchProfile, scheduleProactiveRefresh])
+  }, [fetchProfile])
 
 
   const addXP = useCallback(async (amount: number) => {

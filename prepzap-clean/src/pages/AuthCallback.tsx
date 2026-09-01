@@ -33,43 +33,7 @@ export default function AuthCallback() {
     }
 
     const processAuth = async () => {
-      // 1. Check for PKCE code in query params (?code=xxx)
-      const code = searchParams.get("code")
-      if (code) {
-        try {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-          if (!error && data?.session) {
-            resolved = true
-            const dest = await getDestination(data.session.user.id)
-            navigate(dest, { replace: true })
-            return
-          }
-        } catch (e) {
-          console.error("Exchange code failed in AuthCallback:", e)
-        }
-      }
-
-      // 2. Check for Implicit tokens in hash (#access_token=xxx&refresh_token=xxx)
-      if (window.location.hash) {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const access_token = hashParams.get("access_token")
-        const refresh_token = hashParams.get("refresh_token")
-        if (access_token && refresh_token) {
-          try {
-            const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
-            if (!error && data?.session) {
-              resolved = true
-              const dest = await getDestination(data.session.user.id)
-              navigate(dest, { replace: true })
-              return
-            }
-          } catch (e) {
-            console.error("Set session from hash failed in AuthCallback:", e)
-          }
-        }
-      }
-
-      // 3. Check cached session first (instant, no lock) before hitting getSession()
+      // 1. Check cached session first (instant, no lock)
       const cached = getCachedSession()
       if (cached) {
         resolved = true
@@ -78,8 +42,9 @@ export default function AuthCallback() {
         return
       }
 
-      // 4. Fallback listener — wait for Supabase to emit the session via onAuthStateChange
-      // This fires reliably even when getSession() is blocked on the lock.
+      // 2. Wait for Supabase to emit the session via onAuthStateChange.
+      // GoTrue automatically parses ?code= or #access_token= from the URL
+      // when detectSessionInUrl is true. We just wait for it.
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
         if (s && !resolved) {
           resolved = true
