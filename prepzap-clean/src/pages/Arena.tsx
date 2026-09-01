@@ -81,7 +81,7 @@ Return ONLY a JSON array, no markdown, no explanation:
     [{ role: "user", content: prompt }],
     undefined,
     "openai/gpt-oss-20b",
-    2048,
+    8192,
     "arena_gen"
   );
   return safeParseJSON<Question[]>(raw);

@@ -47,7 +47,7 @@ Return ONLY a valid JSON array of objects with keys "question", "options" (array
     [{ role: "user", content: prompt }],
     undefined,
     "openai/gpt-oss-20b",
-    2500,
+    8192,
     "arena_gen"
   );
   return safeParseJSON<Question[]>(raw);
