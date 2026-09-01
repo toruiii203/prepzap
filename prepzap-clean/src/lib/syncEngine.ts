@@ -117,21 +117,15 @@ export function setSessionExpiredHandler(fn: () => void) {
   onSessionExpired = fn;
 }
 
+import { ensureFreshAccessToken } from './authSession';
+
 async function ensureValidSession(): Promise<boolean> {
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session) return false;
-
-  const expiresAt = data.session.expires_at; // unix seconds
-  const expiringSoon = expiresAt && expiresAt * 1000 < Date.now() + 60_000; // 60s buffer
-
-  if (!expiringSoon) return true;
-
-  // Try a silent refresh before giving up — refresh_token is cached by
-  // supabase-js and works offline-to-online transitions fine.
-  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-  if (refreshError || !refreshed.session) return false;
-
-  return true;
+  try {
+    await ensureFreshAccessToken();
+    return true;
+  } catch (err) {
+    return false;
+  }
 }
 
 export async function runSync() {

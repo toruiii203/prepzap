@@ -9,6 +9,18 @@ import {
 } from "react"
 import { type Session, type User } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
+import {
+  AUTH_CACHE_KEY,
+  TAB_ID,
+  authChannel,
+  ensureFreshAccessToken,
+  getCachedAccessToken,
+  getCachedSession,
+  getCachedUserId,
+  isAccessTokenFresh,
+  setCachedSession,
+  subscribeToSession,
+} from "@/lib/authSession"
 
 export interface UserProfile {
   id: string
@@ -67,18 +79,6 @@ function defaultProfile(user: User): UserProfile {
   }
 }
 
-// Wraps a promise so it can never hang forever. If `getSession()` stalls
-// (flaky network, cold token refresh on a returning user), this forces
-// resolution instead of leaving `loading` stuck true permanently.
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-    ),
-  ])
-}
-
 // --- Offline auth cache ------------------------------------------------------
 // getSession() can throw or time out while offline, since it may try to
 // refresh the token over the network. When that happens, we fall back to
@@ -87,69 +87,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 // it doesn't grant real access to anything; actual data reads/writes go
 // through the offline data layer (Dexie), and the real Supabase session
 // still gets re-validated the moment we're back online.
-const AUTH_CACHE_KEY = "pz_auth_cache"
 
-// In-memory mirror of the current session, kept in sync by AuthProvider
-// below. Lets plain (non-React) modules like groq.ts and ToolHistory.tsx
-// read the access token / user id synchronously, without ever calling
-// supabase.auth.getSession() themselves — that call has a confirmed
-// deadlock failure mode (Web Locks contention across tabs) which was the
-// actual cause of both the AI Tutor 401s and the "stuck thinking" hangs.
-// This is always at least as fresh as what those direct calls would have
-// returned, since it's updated on every auth state change including
-// background token refreshes.
-let cachedSession: Session | null = null
-export function getCachedSession(): Session | null {
-  return cachedSession
-}
-export function getCachedAccessToken(): string | null {
-  return cachedSession?.access_token ?? null
-}
+export { getCachedAccessToken, getCachedSession, getCachedUserId }
 
-// --- Cross-tab refresh coordination -----------------------------------------
-// Supabase's refresh token is single-use: once a tab redeems it for a new
-// session, the old refresh token is dead. If two tabs each independently
-// call refreshSession() around the same time, the second one to land uses
-// an already-consumed token and gets rejected — which then poisons that
-// tab's session. To prevent this, only one tab is allowed to actually call
-// refreshSession() at a time (enforced via a short-lived localStorage lock),
-// and the resulting session is broadcast to every other open tab so they
-// can adopt it directly instead of refreshing themselves.
-const TAB_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-const REFRESH_LOCK_KEY = "pz_auth_refresh_lock"
-const REFRESH_LOCK_TTL_MS = 10_000 // stale-lock safety net if a tab dies mid-refresh
-
-const authChannel: BroadcastChannel | null =
-  typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("pz_auth_sync") : null
-
-// Tries to claim the cross-tab refresh lock. Returns true if this tab may
-// proceed with refreshSession(); false if another tab already holds a
-// fresh (non-stale) lock and should be trusted to broadcast the result.
-function tryClaimRefreshLock(): boolean {
-  try {
-    const raw = localStorage.getItem(REFRESH_LOCK_KEY)
-    if (raw) {
-      const { ts } = JSON.parse(raw)
-      if (Date.now() - ts < REFRESH_LOCK_TTL_MS) return false // another tab is actively refreshing
-    }
-    localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify({ tabId: TAB_ID, ts: Date.now() }))
-    return true
-  } catch {
-    // localStorage unavailable (private mode, etc.) — fail open so refresh
-    // still happens; worst case is the original race, not a hard failure.
-    return true
-  }
-}
-
-function releaseRefreshLock() {
-  try {
-    const raw = localStorage.getItem(REFRESH_LOCK_KEY)
-    if (raw) {
-      const { tabId } = JSON.parse(raw)
-      if (tabId === TAB_ID) localStorage.removeItem(REFRESH_LOCK_KEY)
-    }
-  } catch {}
-}
 export function getCachedProfile() {
   try {
     const raw = localStorage.getItem("pz_auth_cache");
@@ -159,10 +99,6 @@ export function getCachedProfile() {
     }
   } catch {}
   return null;
-}
-
-export function getCachedUserId(): string | null {
-  return cachedSession?.user?.id ?? null
 }
 
 function cacheAuthState(session: Session, user: User, profile: UserProfile) {
@@ -218,35 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const msUntilExpiry = expiresAt * 1000 - Date.now()
     const refreshIn = msUntilExpiry - 5 * 60 * 1000 // 5 min early
 
-    const doRefresh = async (attempt = 0) => {
-      // Only one tab is allowed to actually hit Supabase for a refresh at
-      // a time — the refresh token is single-use, so a second concurrent
-      // call would fail and could invalidate this tab's session. If
-      // another tab already holds the lock, sit tight: it will broadcast
-      // the new session over authChannel in a moment.
-      if (!tryClaimRefreshLock()) {
-        // Safety net in case the other tab's broadcast never arrives
-        // (e.g. it was closed mid-refresh). Retry a couple of times
-        // before giving up on this cycle — the next scheduled refresh
-        // will try again regardless.
-        if (attempt < 3 && cachedSession?.access_token === s.access_token) {
-          setTimeout(() => doRefresh(attempt + 1), 3000)
-        }
-        return
-      }
-
+    const doRefresh = async () => {
       try {
-        const { data, error } = await supabase.auth.refreshSession()
-        if (error) throw error
-        if (data?.session) {
-          authChannel?.postMessage({ type: "session_refreshed", session: data.session, from: TAB_ID })
-        }
-        // onAuthStateChange also fires locally with the new session and
-        // calls scheduleProactiveRefresh again, keeping the cycle going.
+        await ensureFreshAccessToken({ force: true })
       } catch (err) {
         console.warn("[auth] Proactive token refresh failed:", err)
-      } finally {
-        releaseRefreshLock()
       }
     }
 
@@ -335,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     
     setSession(mockSession);
-    cachedSession = mockSession;
+    setCachedSession(mockSession as Session);
     setUser(mockUser);
     setProfile({
       id: "mock-user-123",
@@ -368,7 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const cached = readAuthCache()
     if (cached) {
       setSession(cached.session)
-      cachedSession = cached.session
+      setCachedSession(cached.session)
       setUser(cached.user)
       setProfile(cached.profile)
       setNeedsOnboarding(false)
@@ -402,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } as Session;
           
           setSession(mockSession);
-          cachedSession = mockSession;
+          setCachedSession(mockSession);
           setUser(mockUser);
           setProfile({
             id: "mock-user-123",

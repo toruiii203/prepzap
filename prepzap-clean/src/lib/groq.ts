@@ -2,8 +2,7 @@
 // Requests are proxied through a Cloudflare Worker to avoid CORS issues.
 // The API key lives in the Worker secret — not exposed in the frontend.
 // ─────────────────────────────────────────────────────────────────────────────
-import { getCachedAccessToken } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { ensureFreshAccessToken } from "@/lib/authSession";
 
 const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.YOUR_DOMAIN.workers.dev";
 // API key removed for security; requests are routed through Cloudflare Worker
@@ -14,97 +13,8 @@ function getTieredModel(model: string): string {
   return model;
 }
 
-// FIX (auth 401s): This previously called supabase.auth.getSession() FIRST on
-// every request, racing it against a timeout. getSession() has a confirmed
-// deadlock failure mode (Web Locks contention across tabs), and on timeout the
-// old code silently proceeded with NO auth token — which the Worker correctly
-// rejects with 401. That was the exact "Groq API error 401" bug; the token was
-// never being sent, not invalid.
-//
-// Fix: check AuthContext's in-memory cache (getCachedAccessToken) FIRST. It's
-// a synchronous read, can't deadlock, and can't time out — it's kept fresh by
-// AuthProvider on every auth state change, including background token
-// refreshes (see AuthContext.tsx). By the time any Groq call fires, the cache
-// is populated in the overwhelming majority of cases.
-//
-// The getSession() race is kept as a fallback ONLY for the brief window before
-// AuthProvider's initial getSession() call has resolved (e.g. a Groq call
-// firing immediately on page load, before the cache exists yet).
-// ── JWT expiry helpers ──────────────────────────────────────────────────────
-function getJwtExpiry(token: string): number {
-  // Returns the `exp` Unix timestamp from a JWT, or 0 on failure.
-  try {
-    const seg = token.split(".")[1];
-    const payload = JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/")));
-    return payload?.exp ?? 0;
-  } catch {
-    return 0;
-  }
-}
-
-function isTokenFresh(token: string, bufferSec = 90): boolean {
-  // Returns true if the JWT is still valid with the given buffer in seconds.
-  // 90s buffer is generous enough to survive network round-trips.
-  const exp = getJwtExpiry(token);
-  if (!exp) return true; // Can't decode → optimistically assume fresh
-  return exp - Math.floor(Date.now() / 1000) > bufferSec;
-}
-
-// Fetches a guaranteed-fresh access token without ever calling getSession(),
-// which has a confirmed Web Locks deadlock failure mode in Supabase.
-//
-// Priority order:
-//   1. In-memory cachedSession (kept current by onAuthStateChange) — if fresh
-//   2. localStorage pz_auth_cache — if fresh
-//   3. supabase.auth.refreshSession() — gets a brand-new token via refresh token
-//      (does NOT use Web Locks the same way getSession() does)
-//   4. Empty string as last resort (request will 401 and be caught by caller)
 async function getAccessTokenSafely(): Promise<string> {
-  // 1. In-memory cache — synchronous, always the most up-to-date signal.
-  //    Check expiry: when getSession() times out, AuthContext falls back to
-  //    the localStorage cache which can contain an expired token. That expired
-  //    token ends up here in cachedSession, and if we return it blindly we
-  //    cause a 401 on every single AI call.
-  const cached = getCachedAccessToken();
-  if (cached && isTokenFresh(cached)) return cached;
-
-  // 2. localStorage fallback — survives page refreshes; may be more recent
-  //    than the in-memory cache on a cold PWA resume where AuthContext's
-  //    initialize() hasn't completed yet.
-  try {
-    const raw = localStorage.getItem("pz_auth_cache");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const lsToken = parsed?.session?.access_token;
-      if (lsToken && isTokenFresh(lsToken)) return lsToken;
-    }
-  } catch {}
-
-  // 3. Token is expired (or no token at all). Call refreshSession() to get a
-  //    brand-new access token using the long-lived refresh token.
-  //    This is intentionally NOT getSession():
-  //    - getSession() acquires a Web Lock internally and deadlocks when two
-  //      tabs call it simultaneously → causes the 5s timeout we see in logs
-  //    - refreshSession() does not have this issue in practice, and always
-  //      returns a fresh token as long as the refresh token is valid (60 days)
-  console.log("[groq] Access token expired or missing — refreshing session proactively...");
-  try {
-    const { data, error } = await Promise.race([
-      supabase.auth.refreshSession(),
-      new Promise<{ data: any; error: any }>((_, reject) =>
-        setTimeout(() => reject(new Error("refreshSession timeout")), 8000)
-      ),
-    ]);
-    if (!error && data?.session?.access_token) {
-      console.log("[groq] Proactive token refresh succeeded.");
-      return data.session.access_token;
-    }
-    console.warn("[groq] refreshSession returned no token:", error?.message);
-  } catch (err) {
-    console.warn("[groq] refreshSession failed/timed out:", err);
-  }
-
-  return ""; // Caller will handle the empty token (will 401, logged clearly)
+  return ensureFreshAccessToken();
 }
 
 
@@ -316,13 +226,8 @@ async function _callGroqCore(
     if (err?.message?.includes("401") && !isRetry) {
       console.warn("[groq] API returned 401, forcing token refresh and retrying...");
       try {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        const freshToken = refreshData?.session?.access_token;
-        if (!refreshError && freshToken) {
-          console.log("[groq] Token refreshed successfully, retrying with fresh token...");
-          return await _callGroqCoreWithToken(fullMessages, resolvedModel, maxTokens, feature, freshToken);
-        }
-        console.error("[groq] refreshSession returned no token:", refreshError);
+        const freshToken = await ensureFreshAccessToken({ force: true });
+        return await _callGroqCoreWithToken(fullMessages, resolvedModel, maxTokens, feature, freshToken);
       } catch (refreshErr) {
         console.error("[groq] Failed to refresh token during 401 retry:", refreshErr);
       }
@@ -385,8 +290,6 @@ export async function callGroqWithImages(
 
   console.log("[groq] sending vision request, model:", VISION_MODEL, "messages count:", messages.length);
 
-  // FIX: fetch the token ONCE and reuse it (was fetched twice — once here,
-  // once again inside the headers object below).
   const visionToken = await getAccessTokenSafely();
   const visionController = new AbortController();
   const visionTimeoutId = setTimeout(() => visionController.abort(), 45000);
