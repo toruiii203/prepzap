@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
+import { getCachedSession } from "@/lib/authSession"
 
 // Handles redirect after:
 // - Google OAuth (sign in or sign up)
@@ -68,16 +69,17 @@ export default function AuthCallback() {
         }
       }
 
-      // 3. Check existing session
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
+      // 3. Check cached session first (instant, no lock) before hitting getSession()
+      const cached = getCachedSession()
+      if (cached) {
         resolved = true
-        const dest = await getDestination(session.user.id)
+        const dest = await getDestination(cached.user.id)
         navigate(dest, { replace: true })
         return
       }
 
-      // 4. Fallback listener
+      // 4. Fallback listener — wait for Supabase to emit the session via onAuthStateChange
+      // This fires reliably even when getSession() is blocked on the lock.
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
         if (s && !resolved) {
           resolved = true
@@ -87,14 +89,15 @@ export default function AuthCallback() {
         }
       })
 
-      // 5. Safety timeout: if after 6 seconds nothing resolved, redirect to /onboarding
+      // 5. Safety timeout: if after 8 seconds nothing resolved, show error and redirect
       setTimeout(() => {
         if (!resolved) {
+          resolved = true
           subscription.unsubscribe()
           setErrorMsg("Login timed out. Returning to login...")
           setTimeout(() => navigate("/onboarding", { replace: true }), 1500)
         }
-      }, 6000)
+      }, 8000)
     }
 
     processAuth()

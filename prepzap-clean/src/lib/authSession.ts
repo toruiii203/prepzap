@@ -157,15 +157,11 @@ async function refreshNow(): Promise<string> {
       return session.access_token
     }
 
-    const { data: gs, error: gsError } = await supabase.auth.getSession()
-    const gsSession = gs?.session
-    if (!gsError && gsSession?.access_token && isAccessTokenFresh(gsSession.access_token, 0)) {
-      setCachedSession(gsSession)
-      return gsSession.access_token
-    }
-
+    // Do NOT call supabase.auth.getSession() here — it acquires the same
+    // serialAuthLock we're holding, causing a self-deadlock.
+    // If refreshSession() failed, the session is genuinely expired.
     throw new Error(
-      error?.message || gsError?.message || "Your session expired. Please sign in again."
+      error?.message || "Your session expired. Please sign in again."
     )
   } finally {
     releaseRefreshLock()
