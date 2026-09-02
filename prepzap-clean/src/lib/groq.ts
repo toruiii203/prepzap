@@ -54,9 +54,17 @@ export function safeParseJSON<T = unknown>(raw: string): T {
 
   try {
     return JSON.parse(jsonStr) as T;
-  } catch {
-    console.error("[safeParseJSON] Failed to parse. Raw response:", raw);
-    throw new Error("AI returned malformed JSON. Please try again.");
+  } catch (err) {
+    // Fallback: Fix unescaped LaTeX backslashes which frequently break JSON parsing
+    // Replaces single backslashes not followed by a quote or another backslash
+    try {
+      const fixedStr = jsonStr.replace(/(?<!\\)\\(?!["\\])/g, '\\\\');
+      return JSON.parse(fixedStr) as T;
+    } catch (innerErr) {
+      console.error("[safeParseJSON] Failed to parse. Raw response:", raw);
+      console.error("[safeParseJSON] Even after backslash fix. Error:", innerErr);
+      throw new Error("AI returned malformed JSON. Please try again.");
+    }
   }
 }
 

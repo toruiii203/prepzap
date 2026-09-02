@@ -41,7 +41,8 @@ export const ROTATING_TOPICS = [
 export async function generateDailyQuestions(topic: string, count: number = 20, difficulty: string = "medium"): Promise<Question[]> {
   const prompt = `Generate ${count} university-level multiple choice questions for a Daily Academic Challenge about "${topic}" at ${difficulty} difficulty.
 Return ONLY a valid JSON array of objects with keys "question", "options" (array of 4 strings with letter prefixes "A. ...", "B. ...", "C. ...", "D. ..."), "correct_answer" ("A", "B", "C", or "D"), and "explanation" (brief 1-2 sentences):
-[{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct_answer":"A","explanation":"..."}]`;
+[{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct_answer":"A","explanation":"..."}]
+CRITICAL: You are outputting raw JSON. If you include any LaTeX math, you MUST double-escape all backslashes (e.g., use \\\\frac instead of \\frac, \\\\( instead of \\(). Single backslashes will break the JSON parser.`;
 
   const raw = await callGroq(
     [{ role: "user", content: prompt }],
