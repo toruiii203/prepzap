@@ -83,7 +83,7 @@ async function _callGroqCoreWithToken(
   token: string
 ): Promise<{ text: string; provider?: string }> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
 
   let res: Response;
   try {
@@ -300,7 +300,7 @@ export async function callGroqWithImages(
 
   const visionToken = await getAccessTokenSafely();
   const visionController = new AbortController();
-  const visionTimeoutId = setTimeout(() => visionController.abort(), 45000);
+  const visionTimeoutId = setTimeout(() => visionController.abort(), 90000);
 
   let res: Response;
   try {
