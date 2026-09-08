@@ -368,6 +368,73 @@ Each object MUST match this schema exactly:
     return clean(input) === clean(expected);
   };
 
+  const handleNext = () => {
+    const actualQIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
+    const question = questions[actualQIndex];
+    
+    let isCorrect = false;
+    let savedAnswer: any = null;
+
+    if (question.type === "identification" || question.type === "fill-in-the-blank") {
+      if (!textInput.trim()) return;
+      isCorrect = validateText(textInput, question.answerText || "");
+      savedAnswer = textInput;
+    } else {
+      if (selectedOption === null) return;
+      isCorrect = selectedOption === question.correct;
+      savedAnswer = selectedOption;
+    }
+
+    if (!isReviewLoop) {
+      setAnswers(prev => [...prev, typeof savedAnswer === "number" ? savedAnswer : -1]);
+      setTextAnswers(prev => [...prev, typeof savedAnswer === "string" ? savedAnswer : ""]);
+      if (isCorrect) {
+        setScore(prev => prev + 1);
+      }
+    }
+
+    let newMissed = [...missedQuestions];
+    if (isCorrect) {
+      if (isReviewLoop) {
+        newMissed = newMissed.filter(idx => idx !== actualQIndex);
+      }
+    } else {
+      if (!isReviewLoop) {
+        newMissed.push(actualQIndex);
+      }
+    }
+    setMissedQuestions(newMissed);
+
+    if (!isReviewLoop) {
+      if (currentQIndex + 1 < questions.length) {
+        setCurrentQIndex(prev => prev + 1);
+        setSelectedOption(null);
+        setTextInput("");
+      } else {
+        if (newMissed.length > 0) {
+          setShowReviewTransition(true);
+        } else {
+          setIsReviewLoop(false);
+          finalizeQuiz(score + (isCorrect ? 1 : 0));
+        }
+      }
+    } else {
+      if (newMissed.length === 0) {
+        setIsReviewLoop(false);
+        finalizeQuiz(score);
+      } else {
+        const nextIdx = reviewIndex + 1;
+        if (nextIdx < newMissed.length) {
+          setReviewIndex(nextIdx);
+        } else {
+          setReviewIndex(0);
+        }
+        setSelectedOption(null);
+        setTextInput("");
+      }
+    }
+  };
+
   const handleCheck = () => {
     if (hasAnsweredCurrent) return; // Prevent double check
 

@@ -445,6 +445,17 @@ export default function Arena() {
   const [countdown, setCountdown] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
+  const deleteRoom = async (roomId: string) => {
+    if (!confirm("Are you sure you want to delete this room?")) return;
+    try {
+      await supabase.from("exam_rooms").delete().eq("id", roomId);
+      // The realtime channel will automatically reload the list
+    } catch (err) {
+      console.error("Failed to delete room:", err);
+      alert("Failed to delete room.");
+    }
+  };
+
   const shareRoom = (code: string) => {
     const url = `${window.location.origin}/invite/${code}`;
     if (navigator.share) {
@@ -574,11 +585,18 @@ export default function Arena() {
       setLoadingRooms(true);
       setRoomsError(false);
       try {
-        const { data } = await withTimeout(
-          supabase.from("exam_rooms").select("*")
-            .in("status", ["waiting", "active"]).eq("is_public", true).order("created_at", { ascending: false }).limit(20),
-          8000, "exam rooms"
-        );
+        let query = supabase.from("exam_rooms").select("*")
+          .in("status", ["waiting", "active"])
+          .order("created_at", { ascending: false })
+          .limit(20);
+          
+        if (user) {
+          query = query.or(`is_public.eq.true,host_id.eq.${user.id}`);
+        } else {
+          query = query.eq("is_public", true);
+        }
+
+        const { data } = await withTimeout(query, 8000, "exam rooms");
         if (!cancelled) setRooms(data ?? []);
       } catch (err) {
         console.warn("Exam rooms fetch error:", err);
@@ -759,6 +777,13 @@ export default function Arena() {
               </div>
             </div>
             <div className="ml-3 flex gap-2 flex-shrink-0">
+              {user?.id === room.host_id && (
+                <button onClick={() => deleteRoom(room.id)}
+                  className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white hover:bg-red-50 text-red-600 shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                  title="Delete room">
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              )}
               <button onClick={() => shareRoom(room.code)}
                 className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
                 title="Copy invite link">
