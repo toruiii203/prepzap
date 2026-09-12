@@ -7,6 +7,7 @@ const NAV_SECTIONS = [
     label: "Main",
     items: [
       { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
+      { icon: "pets",           label: "Study Pet",      route: "/pet" },
       { icon: "smart_toy",      label: "AI Tutor",       route: "/ai-tutor" },
       { icon: "style",          label: "Flashcards",     route: "/flashcards" },
       { icon: "assignment",     label: "Practice",       route: "/practice" },

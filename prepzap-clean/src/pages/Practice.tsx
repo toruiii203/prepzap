@@ -88,9 +88,13 @@ interface BannerProps {
   libraryFiles: any[];
   questionCount: number;
   setQuestionCount: (v: number) => void;
+  activeSourceObj: any;
+  setActiveSourceObj: (v: any) => void;
+  quizType: string;
+  setQuizType: (v: string) => void;
 }
 const QUESTION_COUNT_OPTIONS = [3, 5, 10, 15];
-function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount }: BannerProps) {
+function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount, activeSourceObj, setActiveSourceObj, quizType, setQuizType }: BannerProps) {
   return (
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -102,19 +106,23 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
           <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* FIX: this used to be a dropdown picker for a single "active"
-              Source Library file. It now automatically reads every file in
-              the Source Library — no per-file selection needed — and just
-              shows a read-only count with a link to manage sources. */}
-          <button
-            onClick={() => onNavigate("/sources")}
-            className="flex items-center gap-2 border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0] text-[12px] font-bold hover:bg-black hover:text-white transition-colors"
+          <select
+            value={activeSourceObj ? activeSourceObj.id : "all"}
+            onChange={(e) => {
+              if (e.target.value === "all") {
+                setActiveSourceObj(null);
+              } else {
+                const source = libraryFiles.find((f: any) => f.id === e.target.value);
+                setActiveSourceObj(source);
+              }
+            }}
+            className="border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0] text-[12px] font-bold hover:bg-black hover:text-white transition-colors cursor-pointer focus:outline-none"
           >
-            <span className="material-symbols-outlined text-[16px]">description</span>
-            {libraryFiles.length > 0
-              ? `Using all ${libraryFiles.length} source${libraryFiles.length > 1 ? "s" : ""}`
-              : "No sources — tap to add"}
-          </button>
+            <option value="all">General Study (No Source)</option>
+            {libraryFiles.map((file: any) => (
+              <option key={file.id} value={file.id}>{file.name}</option>
+            ))}
+          </select>
           <button onClick={onGenerate} disabled={isGenerating}
             className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg disabled:opacity-60">
             <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
@@ -128,8 +136,6 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
         className="w-full h-[100px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
         placeholder="Paste your notes or type a topic to generate a custom quiz..."
       />
-      {/* FIX: question count was hardcoded to 3 with no way to change it.
-          This lets the student pick how many questions to generate. */}
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Questions</span>
         <div className="flex border-[1.5px] border-black rounded-lg overflow-hidden">
@@ -145,6 +151,17 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
             </button>
           ))}
         </div>
+        <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-4">Type</span>
+        <select
+          value={quizType}
+          onChange={(e) => setQuizType(e.target.value)}
+          className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
+        >
+          <option value="mixed">Mixed</option>
+          <option value="multiple-choice">Multiple Choice</option>
+          <option value="identification">Identification</option>
+          <option value="fill-in-the-blank">Fill-in-the-Blank</option>
+        </select>
       </div>
     </div>
   );
@@ -198,6 +215,8 @@ export default function Practice() {
   const [topicInput, setTopicInput]         = useState(() => localStorage.getItem('pz_practice_topic') || "");
   const [questionCount, setQuestionCount]   = useState(() => parseInt(localStorage.getItem('pz_practice_count') || '3', 10));
   const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
+  const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
+  const [quizType, setQuizType]             = useState<string>("mixed");
 
   useEffect(() => {
     localStorage.setItem('pz_practice_view', view);
@@ -295,17 +314,24 @@ export default function Practice() {
         }
       }
 
-      const sourceText = buildAllSourcesContext(libraryFiles);
+      const sourceText = activeSourceObj 
+        ? `=== SOURCE: ${activeSourceObj.name} ===\n${activeSourceObj.fullText || activeSourceObj.preview || "[No text available]"}`
+        : "";
       const topicHint  = topicInput.trim();
       
+      const typeInstruct = quizType === "mixed" 
+        ? 'any combination of "multiple-choice", "identification", and "fill-in-the-blank" questions'
+        : `only "${quizType}" questions`;
+      
       const promptText = sourceText
-        ? `Generate a set of ${questionCount || 3} interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
+        ? `Generate a set of ${questionCount || 3} interesting, high-quality quiz questions (${typeInstruct}) based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
         : topicHint
-          ? `Generate ${questionCount || 3} high-quality educational quiz questions about: ${topicHint}`
-          : `Generate ${questionCount || 3} high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
+          ? `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}) about: ${topicHint}`
+          : `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}) across academic curriculum subjects like Math, Chemistry, and History.`;
 
       const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount || 3} questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
 We support three question types: "multiple-choice", "identification", and "fill-in-the-blank".
+For this request, you must generate ${typeInstruct}.
 Each object MUST match this schema exactly:
 {
   "type": "multiple-choice" | "identification" | "fill-in-the-blank",
@@ -698,6 +724,10 @@ Each object MUST match this schema exactly:
               libraryFiles={libraryFiles}
               questionCount={questionCount}
               setQuestionCount={setQuestionCount}
+              activeSourceObj={activeSourceObj}
+              setActiveSourceObj={setActiveSourceObj}
+              quizType={quizType}
+              setQuizType={setQuizType}
             />
 
             {/* Loading */}
@@ -901,7 +931,7 @@ Each object MUST match this schema exactly:
                   placeholder="Paste notes or type a topic..."
                 />
                 {/* Question count options */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0">Questions</span>
                   <div className="flex border-2 border-black rounded-lg overflow-hidden">
                     {QUESTION_COUNT_OPTIONS.map((n, i) => (
@@ -916,15 +946,38 @@ Each object MUST match this schema exactly:
                       </button>
                     ))}
                   </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0 ml-2">Type</span>
+                  <select
+                    value={quizType}
+                    onChange={(e) => setQuizType(e.target.value)}
+                    className="border-2 border-black rounded-lg px-2 py-1 bg-white text-[12px] font-extrabold focus:outline-none cursor-pointer"
+                  >
+                    <option value="mixed">Mixed</option>
+                    <option value="multiple-choice">Multiple Choice</option>
+                    <option value="identification">Identification</option>
+                    <option value="fill-in-the-blank">Fill-in-the-Blank</option>
+                  </select>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => navigate("/sources")}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-2 border-black rounded-lg text-[12px] font-bold bg-[#F0EDE0] hover:bg-black hover:text-white transition-colors">
-                    <span className="material-symbols-outlined text-[16px]">description</span>
-                    {libraryFiles.length > 0 ? `Using all ${libraryFiles.length}` : "No sources"}
-                  </button>
+                <div className="flex flex-col gap-2">
+                  <select
+                    value={activeSourceObj ? activeSourceObj.id : "all"}
+                    onChange={(e) => {
+                      if (e.target.value === "all") {
+                        setActiveSourceObj(null);
+                      } else {
+                        const source = libraryFiles.find((f: any) => f.id === e.target.value);
+                        setActiveSourceObj(source);
+                      }
+                    }}
+                    className="w-full flex-1 border-2 border-black rounded-lg px-3 py-2.5 bg-[#F0EDE0] text-[12px] font-bold focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">General Study (No Source)</option>
+                    {libraryFiles.map((file: any) => (
+                      <option key={file.id} value={file.id}>{file.name}</option>
+                    ))}
+                  </select>
                   <button onClick={handleGenerateQuiz} disabled={isGenerating}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                     {isGenerating ? "Loading..." : "Generate"}
                   </button>

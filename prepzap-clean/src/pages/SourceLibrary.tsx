@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Check, Image, Eye, AlertTriangle } from "lucide-react";
 import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
+import { supabase } from "@/lib/supabase";
 
 const FREE_FILE_LIMIT = 3;
 const PRO_FILE_LIMIT = 10;
@@ -141,6 +142,7 @@ function UploadZone({
   onOpenCamera,
   onUpgrade,
   onPasteManually,
+  onYouTube,
   onDrop,
 }: {
   fileInputRef: React.RefObject<HTMLInputElement>;
@@ -151,6 +153,7 @@ function UploadZone({
   onOpenCamera: () => void;
   onUpgrade: () => void;
   onPasteManually: () => void;
+  onYouTube: () => void;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
 }) {
   return (
@@ -201,12 +204,22 @@ function UploadZone({
           <button onClick={onUpgrade} className="ml-2 text-[#ae2925] underline font-black">Upgrade</button>
         )}
       </p>
-      <button
-        onClick={onPasteManually}
-        className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
-      >
-        Or paste text manually
-      </button>
+      <div className="flex gap-3">
+        <button
+          onClick={onPasteManually}
+          className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] bg-white font-bold text-[13px] hover:bg-neutral-50 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 flex items-center gap-2"
+        >
+          <span className="material-symbols-outlined text-[18px]">edit_note</span>
+          Paste text
+        </button>
+        <button
+          onClick={onYouTube}
+          className="mt-1 px-5 py-2 border-2 border-[#1A1A1A] bg-[#FAF7F2] font-bold text-[13px] hover:bg-[#E2E2E2] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 flex items-center gap-2 text-[#FF0000]"
+        >
+          <span className="material-symbols-outlined text-[18px]">play_circle</span>
+          YouTube
+        </button>
+      </div>
     </div>
   );
 }
@@ -220,6 +233,9 @@ export default function SourceLibrary() {
   const [files, setFiles] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showYtModal, setShowYtModal] = useState(false);
+  const [ytUrl, setYtUrl] = useState("");
+  const [ytLoading, setYtLoading] = useState(false);
   const [uploadFileName, setUploadFileName] = useState("");
   const [uploadContent, setUploadContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -589,6 +605,52 @@ export default function SourceLibrary() {
     setCameraNote("");
   };
 
+  const handleYtImport = async () => {
+    if (!ytUrl.trim()) return;
+    const isYtUrl = /^(https?\:\/\/)?(www\.youtube\.com|youtu\.be)\/.+$/.test(ytUrl);
+    if (!isYtUrl) {
+      setUploadError("Please enter a valid YouTube URL (youtube.com or youtu.be).");
+      return;
+    }
+    if (files.length >= fileLimit) {
+      setUploadError(`You've reached the ${isPro ? "Pro" : "Free"} plan limit of ${fileLimit} files. ${!isPro ? "Upgrade to Pro for up to 20 files." : ""}`);
+      setShowYtModal(false);
+      return;
+    }
+    
+    setYtLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-transcript", {
+        body: { url: ytUrl }
+      });
+
+      if (error) throw new Error(error.message || "Failed to fetch transcript");
+      if (data?.error) throw new Error(data.error);
+      
+      const fullText = data?.transcript || "No transcript available.";
+      
+      addFileToLibrary({
+        id: "f_" + Date.now(),
+        name: "YouTube: " + ytUrl,
+        type: "text",
+        content: fullText.length > 50000 ? fullText.slice(0, 50000) : fullText,
+        fullText: fullText,
+        preview: fullText.slice(0, 300) + "...",
+        size: `${Math.ceil(fullText.length / 100) / 10} KB`,
+        created_at: new Date().toISOString(),
+        isPdf: false,
+      });
+      
+      setShowYtModal(false);
+      setYtUrl("");
+    } catch (err: any) {
+      console.error(err);
+      setUploadError("Could not extract transcript. " + (err.message || ""));
+    } finally {
+      setYtLoading(false);
+    }
+  };
+
   const handleUploadConfirm = () => {
     if (!uploadFileName.trim()) return;
     if (files.length >= fileLimit) {
@@ -802,6 +864,40 @@ export default function SourceLibrary() {
         </div>
       )}
 
+      {showYtModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
+          <div className="bg-[#FAF7F2] border-2 border-black p-6 w-full max-w-sm shadow-[4px_4px_0px_0px_#000]">
+            <div className="flex items-center gap-2 mb-4 text-[#FF0000]">
+              <span className="material-symbols-outlined text-[24px]">play_circle</span>
+              <h2 className="font-extrabold text-[17px] text-black">YouTube Video</h2>
+            </div>
+            <p className="text-[12px] font-bold text-black/60 mb-3">Paste a YouTube link to extract its captions.</p>
+            <input
+              autoFocus
+              type="url"
+              value={ytUrl}
+              onChange={e => setYtUrl(e.target.value)}
+              placeholder="https://youtube.com/watch?v=..."
+              className="w-full border-2 border-black px-4 py-3 text-[14px] font-semibold bg-white mb-5 outline-none"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowYtModal(false); setYtUrl(""); }}
+                className="flex-1 py-3 border-2 border-black font-bold text-[14px]"
+              >Cancel</button>
+              <button
+                onClick={handleYtImport}
+                disabled={ytLoading}
+                className="flex-1 py-3 bg-[#FF0000] text-white border-2 border-black font-bold text-[14px] shadow-[3px_3px_0px_0px_#000] disabled:opacity-50 flex justify-center items-center gap-2"
+              >
+                {ytLoading ? <span className="material-symbols-outlined animate-spin text-[16px]">sync</span> : null}
+                {ytLoading ? "Extracting..." : "Import"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -881,6 +977,13 @@ export default function SourceLibrary() {
               >
                 <span className="material-symbols-outlined text-[18px]">edit_note</span>
                 Paste
+              </button>
+              <button
+                onClick={() => setShowYtModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#FAF7F2] border-2 border-black text-[13px] font-extrabold shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] shrink-0 text-[#FF0000]"
+              >
+                <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                YouTube
               </button>
             </div>
 
@@ -1098,6 +1201,7 @@ export default function SourceLibrary() {
               onOpenCamera={openCamera}
               onUpgrade={() => navigate("/pro")}
               onPasteManually={() => setShowUploadModal(true)}
+              onYouTube={() => setShowYtModal(true)}
               onDrop={handleDrop}
             />
           </section>
