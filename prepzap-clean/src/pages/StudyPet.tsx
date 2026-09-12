@@ -56,9 +56,10 @@ export default function StudyPet() {
         {/* 3D Canvas Area */}
         <div className="w-full max-w-4xl h-[60vh] bg-white border-[3px] border-black shadow-[8px_8px_0px_#000] rounded-3xl overflow-hidden relative mt-16 cursor-grab active:cursor-grabbing">
           <Canvas camera={{ position: [0, 2, 8], fov: 45 }}>
-            <ambientLight intensity={0.5} />
-            <directionalLight position={[10, 10, 5]} intensity={1} />
-            <Environment preset="city" />
+            <ambientLight intensity={0.8} />
+            <directionalLight position={[10, 10, 5]} intensity={1.5} />
+            <pointLight position={[-10, -10, -10]} intensity={0.5} />
+            <spotLight position={[0, 10, 0]} intensity={0.8} penumbra={1} />
             
             <Suspense fallback={null}>
               <PetModel petType={activePet} />
