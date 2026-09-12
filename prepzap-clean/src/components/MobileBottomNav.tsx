@@ -17,6 +17,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
     { name: 'Home', path: '/dashboard', icon: 'home' },
     { name: 'Planner', path: '/planner', icon: 'calendar_month' },
     { name: 'Arena', path: '/arena', icon: 'sports_esports' },
+    { name: 'Pet', path: '/pet', icon: 'pets' },
   ];
 
   return (
@@ -32,14 +33,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
           <button
             key={tab.name}
             onClick={() => navigate(tab.path)}
-            className={`flex flex-col items-center justify-center w-16 pt-3 pb-2 transition-colors ${
+            className={`flex flex-col items-center justify-center flex-1 pt-3 pb-2 transition-colors ${
               isActive ? 'text-[#ae2925]' : 'text-[#1A1A1A] opacity-70 hover:opacity-100'
             }`}
           >
-            <span className="material-symbols-outlined text-2xl mb-1">
+            <span className="material-symbols-outlined text-[22px] mb-1">
               {tab.icon}
             </span>
-            <span className="text-[10px] font-semibold font-quicksand">
+            <span className="text-[10px] font-bold font-quicksand">
               {tab.name}
             </span>
           </button>
