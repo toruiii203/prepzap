@@ -382,12 +382,12 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
         </div>
 
         {/* Footer */}
-        <div style={{ paddingBottom: 'calc(110px + env(safe-area-inset-bottom))', zIndex: 1, marginTop: "auto", flexShrink: 0 }}>
+        <div style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom))', zIndex: 10, marginTop: "auto", flexShrink: 0 }}>
           <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.35, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>join thousands of students today</p>
-          <button onClick={onNext} style={{ width: "100%", height: 52, background: CTA, color: WHITE, fontWeight: 700, fontSize: 16, borderRadius: 9999, border: `2.5px solid ${BLACK}`, boxShadow: `4px 4px 0 ${BLACK}`, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", animation: "pulse 2s infinite" }}>
+          <button onClick={onNext} style={{ width: "100%", height: 52, background: CTA, color: WHITE, fontWeight: 700, fontSize: 16, borderRadius: 9999, border: `2.5px solid ${BLACK}`, boxShadow: `4px 4px 0 ${BLACK}`, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", position: "relative", zIndex: 20, animation: "pulse 2s infinite" }} className="active:translate-y-0.5 active:shadow-[2px_2px_0_#1A1A1A] transition-all">
             Create Free Account
           </button>
-          <button onClick={onSignIn} style={{ display: "block", width: "100%", textAlign: "center", fontSize: 13, color: BLACK, marginTop: 12, textDecoration: "none", background: "none", border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif" }}>
+          <button onClick={onSignIn} style={{ display: "block", width: "100%", textAlign: "center", fontSize: 13, color: BLACK, marginTop: 12, textDecoration: "none", background: "none", border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", position: "relative", zIndex: 20 }}>
             I already have an account — <strong>Log In</strong>
           </button>
           <p style={{ textAlign: "center", fontSize: 10, color: BLACK, opacity: 0.3, marginTop: 10 }}>By joining, you agree to our Terms</p>
@@ -880,7 +880,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
 }
 
 function FinalTransition({ onDone, userName }: { onDone: () => void; userName: string }) {
-  const { refreshProfile } = useAuth()
+  const { refreshProfile, completeOnboarding } = useAuth()
   const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
   const [foxY, setFoxY]                   = useState(110)
   const [foxScale, setFoxScale]           = useState(0.85)
@@ -954,6 +954,7 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
       } catch (e) {
         console.error("[onboarding] markComplete failed:", e)
       }
+      completeOnboarding()
       // Navigate immediately — don't wait for refreshProfile which can
       // hit the auth lock and stall forever
       onDone()
@@ -961,7 +962,7 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
       try { await refreshProfile() } catch {}
     }, 14500)
     // Hard deadline: if something above stalls for > 18s, navigate anyway
-    const tFallback = setTimeout(() => { onDone() }, 18000)
+    const tFallback = setTimeout(() => { completeOnboarding(); onDone() }, 18000)
     return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,tFallback].forEach(clearTimeout)
   }, [])
 
@@ -1069,6 +1070,12 @@ export default function Onboarding() {
 
   // Reactive auth check: if user is logged in, redirect them to dashboard (or nameInput)
   useEffect(() => {
+    // Preload fox images for smooth animations
+    Object.values(FOX).forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+
     if (!user || !session) return
 
     // If currently progressing through the onboarding questionnaire steps, don't interrupt

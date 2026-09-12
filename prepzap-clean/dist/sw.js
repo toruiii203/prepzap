@@ -6,7 +6,7 @@
 // at that specific activation) would ever clean up. Bump SW_VERSION when
 // you actually change what's precached; the browser's own update algorithm
 // (byte-diffing this file) still handles detecting real deploys on its own.
-const SW_VERSION = "v5";
+const SW_VERSION = "v6";
 const CACHE_NAME = "studenius-" + SW_VERSION;
 
 // Assets to cache immediately on install
@@ -87,26 +87,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Skip Google Fonts entirely — let the browser handle these natively.
-  // These <link> tags have no `crossorigin` attribute, so the request mode
-  // is "no-cors" and any fetch() we do here resolves to an opaque response
-  // (status reads as 0, type "opaque"). Our style/script cache branch below
-  // checks `response.status !== 200`, which is true for opaque responses,
-  // so it returns the opaque response as-is via respondWith(). Chrome
-  // disallows that: an opaque response cannot satisfy a request whose
-  // destination is "style" once it's been routed through respondWith.
-  // That mismatch is exactly what surfaced as net::ERR_FAILED in the
-  // console (while the Network tab still showed 200, since the underlying
-  // fetch itself succeeded — only the hand-off back to the page failed).
-  // Net effect: the font CSS never applied and text silently fell back
-  // to system fonts. Not intercepting these requests avoids the opaque-
-  // response path entirely and lets the browser load them normally.
-  if (
-    url.includes("fonts.googleapis.com") ||
-    url.includes("fonts.gstatic.com")
-  ) {
-    return;
-  }
+
 
   // Navigation requests — NETWORK FIRST, no stale HTML ever
   if (event.request.mode === "navigate") {

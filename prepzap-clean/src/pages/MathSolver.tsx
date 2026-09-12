@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { callGroq } from "@/lib/groq";
+import { callGroq, safeParseJSON } from "@/lib/groq";
 import { getActiveSource, buildAIContext, loadContext, loadContext as loadCtx, loadLibrary } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
@@ -350,21 +350,17 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
         "math_solver"
       );
 
-      let sanitized = aiResponse.trim();
-      if (sanitized.startsWith("```")) {
-        sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
-      }
-      const generated = JSON.parse(sanitized);
+      const parsed = safeParseJSON<any[]>(aiResponse);
 
-      if (Array.isArray(generated) && generated.length > 0) {
-        setSteps(generated);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setSteps(parsed);
         setSolved(true);
         saveHistory({
           prompt: problem,
-          preview: generated[0]?.description?.slice(0, 120) || "",
-          output: JSON.stringify(generated),
+          preview: parsed[0]?.description?.slice(0, 120) || "",
+          output: JSON.stringify(parsed),
           model: "rex-ai",
-          meta: `${generated.length} steps`,
+          meta: `${parsed.length} steps`,
         });
 
         // Write to study_sessions so Dashboard + Analytics pick it up, and

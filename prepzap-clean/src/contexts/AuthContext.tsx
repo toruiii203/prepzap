@@ -46,6 +46,7 @@ interface AuthContextValue {
   loading: boolean
   needsOnboarding: boolean
   refreshProfile: () => Promise<void>
+  completeOnboarding: () => void
   loginAsMockUser: () => void
   signOut: () => Promise<void>
   lsKey: (base: string) => string
@@ -58,6 +59,7 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   needsOnboarding: false,
   refreshProfile: async () => {},
+  completeOnboarding: () => {},
   signOut: async () => {},
   lsKey: (base) => `pz_anon_${base}`,
 })
@@ -404,7 +406,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
           if (!cancelled && userChanged) setLoading(false)
         }
-      } else {
+      } else if (event === "SIGNED_OUT" || event === "USER_DELETED") {
         // Signed out — clear everything atomically. This only fires on a
         // genuine sign-out event from Supabase, not on a failed network
         // refresh, so it's safe to trust as a real logout.
@@ -479,9 +481,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [])
 
+  const completeOnboarding = useCallback(() => {
+    setNeedsOnboarding(false);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ session, user, profile, loading, needsOnboarding, refreshProfile, signOut, addXP, lsKey }}
+      value={{ session, user, profile, loading, needsOnboarding, refreshProfile, completeOnboarding, signOut, addXP, lsKey }}
     >
       {children}
     </AuthContext.Provider>

@@ -6,7 +6,7 @@ import { loadLibrary, onSourceChange } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useStudySession } from "@/hooks/useStudySession";
 import UpgradePrompt from "@/components/UpgradePrompt";
-import { callGroq } from "@/lib/groq";
+import { callGroq, safeParseJSON } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { logQuestCompletion } from "@/lib/quests";
@@ -280,30 +280,31 @@ export default function Practice() {
   };
 
   const handleGenerateQuiz = async () => {
-
-    if (!isPro) {
-      const allowed = await canUse("practice");
-      if (!allowed) {
-        setShowUpgrade(true);
-        return;
-      }
-    }
-
     setIsGenerating(true);
     try {
+      if (!isPro) {
+        try {
+          const allowed = await canUse("practice");
+          if (!allowed) {
+            setShowUpgrade(true);
+            setIsGenerating(false);
+            return;
+          }
+        } catch (planErr) {
+          console.warn("Failed to check plan limits, allowing fallback:", planErr);
+        }
+      }
+
       const sourceText = buildAllSourcesContext(libraryFiles);
       const topicHint  = topicInput.trim();
-      // FIX: question count was hardcoded to 3 everywhere (prompt text,
-      // schema instructions, and the results screen). questionCount is now
-      // plumbed through so the selector actually controls how many
       
       const promptText = sourceText
-        ? `Generate a set of ${questionCount} interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
+        ? `Generate a set of ${questionCount || 3} interesting, high-quality multi-choice quiz questions based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
         : topicHint
-          ? `Generate ${questionCount} high-quality educational quiz questions about: ${topicHint}`
-          : `Generate ${questionCount} high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
+          ? `Generate ${questionCount || 3} high-quality educational quiz questions about: ${topicHint}`
+          : `Generate ${questionCount || 3} high-quality educational quiz questions across academic curriculum subjects like Math, Chemistry, and History.`;
 
-      const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount} questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
+      const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount || 3} questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
 We support three question types: "multiple-choice", "identification", and "fill-in-the-blank".
 Each object MUST match this schema exactly:
 {
@@ -322,19 +323,15 @@ Each object MUST match this schema exactly:
         [{ role: "user", content: promptText }],
         systemPrompt,
         "openai/gpt-oss-20b",
-        Math.min(4096, 300 + questionCount * 300),
+        Math.min(4096, 300 + (questionCount || 3) * 300),
         "practice"
       );
 
-      let sanitized = aiResponse.trim();
-      if (sanitized.startsWith("```json")) sanitized = sanitized.substring(7);
-      if (sanitized.endsWith("```"))       sanitized = sanitized.slice(0, -3);
-      sanitized = sanitized.trim();
-
-      const parsed = JSON.parse(sanitized);
+      const parsed = safeParseJSON<any[]>(aiResponse);
       if (Array.isArray(parsed) && parsed.length > 0) {
         setQuestions(parsed);
-        logSession({ title: `Practice: ${topicHint || "General Quiz"}`, durationMinutes: Math.ceil(questionCount * 1.5) }); try { await logUsage("practice"); } catch {};
+        logSession({ title: `Practice: ${topicHint || "General Quiz"}`, durationMinutes: Math.ceil((questionCount || 3) * 1.5) }); 
+        try { await logUsage("practice"); } catch {};
         setCurrentQIndex(0);
         setSelectedOption(null);
         setAnswers([]);
@@ -346,11 +343,12 @@ Each object MUST match this schema exactly:
         setTextInput("");
         setHasAnsweredCurrent(false);
         setIsCurrentCorrect(null);
-        // of whether it's a 3-question or 15-question quiz.
         setTimeLeft(Math.max(300, parsed.length * 90));
-      } else throw new Error("Invalid structure");
+        setView("quiz");
+      } else throw new Error("Invalid structure from AI. Please try again.");
     } catch (err) {
       console.error("Quiz generation error:", err);
+      alert("Failed to generate quiz. " + (err instanceof Error ? err.message : "Please try again."));
     } finally {
       setIsGenerating(false);
     }

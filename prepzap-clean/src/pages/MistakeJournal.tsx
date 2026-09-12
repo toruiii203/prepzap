@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { callGroq } from "@/lib/groq";
+import { callGroq, safeParseJSON } from "@/lib/groq";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 
@@ -284,10 +284,9 @@ Return strictly a valid raw JSON object (no markdown):
         "openai/gpt-oss-20b",
         1000
       );
-      const sanitized = aiResponse.trim().replace(/^```(json)?/, "").replace(/```$/, "").trim();
-      const generated = JSON.parse(sanitized);
-      if (generated.q && Array.isArray(generated.options)) {
-        const quizAssignedMistakes = mistakes.map(m => m.id === item.id ? { ...m, quiz: generated } : m);
+      const parsed = safeParseJSON<any>(aiResponse);
+      if (parsed && parsed.q && Array.isArray(parsed.options)) {
+        const quizAssignedMistakes = mistakes.map(m => m.id === item.id ? { ...m, quiz: parsed } : m);
         setMistakes(quizAssignedMistakes);
         try { localStorage.setItem(getMistakesKey(user?.id), JSON.stringify(quizAssignedMistakes)); } catch {}
         setActiveQuizId(item.id);

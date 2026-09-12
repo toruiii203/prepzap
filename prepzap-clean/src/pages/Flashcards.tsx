@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { logQuestCompletion } from "@/lib/quests";
 import { useStudySession } from "@/hooks/useStudySession";
 import { supabase } from "@/lib/supabase";
-import { callGroq } from "@/lib/groq";
+import { callGroq, safeParseJSON } from "@/lib/groq";
 import { loadContext, loadLibrary, buildAIContext, getActiveSource } from "@/lib/sourceContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
@@ -328,7 +328,7 @@ ${sourceContextText ? `Utilize the following material context to generate highly
 Return strictly a valid raw JSON array containing exactly ${cardCount} objects. Each object must have fields:
 "front" (string, the question/concept front),
 "back" (string, the core answer/fact back),
-"explanation" (string, detailed memory cue / educational backup).
+"explanation" (string, a very simple, concise, and easy-to-understand explanation using plain English to help the student remember).
 
 Only return the raw system valid JSON array. No markdown codeblocks, no explanations, no prefix or suffix!`;
 
@@ -342,19 +342,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
         "flashcard_gen"
       );
 
-      let sanitized = aiResponse.trim();
-      
-      // Robust extraction of JSON array
-      const match = sanitized.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      if (match) {
-        sanitized = match[0];
-      } else {
-        if (sanitized.startsWith("```")) {
-          sanitized = sanitized.replace(/^```(json)?/, "").replace(/```$/, "").trim();
-        }
-      }
-
-      const parsed = JSON.parse(sanitized);
+      const parsed = safeParseJSON<Flashcard[]>(aiResponse);
       if (Array.isArray(parsed) && parsed.length > 0) {
         generatedCards = parsed;
       } else {
