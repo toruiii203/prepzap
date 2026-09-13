@@ -3,12 +3,15 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import TiptapEditor from "@/components/TiptapEditor";
+import KnowledgeGraph from "@/components/KnowledgeGraph";
+import KnowledgeBaseChat from "@/components/KnowledgeBaseChat";
 
 export default function NotesWorkspace() {
   const { user } = useAuth();
   const [notes, setNotes] = useState<any[]>([]);
   const [activeNote, setActiveNote] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showGraph, setShowGraph] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -62,6 +65,9 @@ export default function NotesWorkspace() {
         <div className="w-64 border-r-2 border-black bg-[#FAF7F2] flex flex-col">
           <div className="p-4 border-b-2 border-black flex justify-between items-center">
             <h2 className="font-black text-[16px]">My Notes</h2>
+            <button onClick={() => setShowGraph(!showGraph)} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg hover:bg-[#FF4D2E] hover:text-white transition-colors ml-auto mr-2" title="Toggle Knowledge Graph">
+              <span className="material-symbols-outlined text-[18px]">hub</span>
+            </button>
             <button onClick={handleCreateNote} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg hover:bg-black hover:text-white transition-colors">
               <span className="material-symbols-outlined text-[18px]">add</span>
             </button>
@@ -87,7 +93,17 @@ export default function NotesWorkspace() {
 
         {/* Right Area - Editor */}
         <div className="flex-1 flex flex-col overflow-y-auto bg-[#FAF7F2]">
-          {activeNote ? (
+          {showGraph ? (
+            <div className="flex-1 p-8">
+              <KnowledgeGraph onNodeClick={(id) => {
+                const note = notes.find(n => n.id === id);
+                if (note) {
+                  setActiveNote(note);
+                  setShowGraph(false);
+                }
+              }} />
+            </div>
+          ) : activeNote ? (
             <div className="max-w-3xl w-full mx-auto py-12 px-8 flex flex-col gap-6">
               <input
                 type="text"
@@ -109,6 +125,7 @@ export default function NotesWorkspace() {
           )}
         </div>
       </div>
+      <KnowledgeBaseChat />
     </div>
   );
 }
