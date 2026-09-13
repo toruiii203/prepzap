@@ -79,16 +79,16 @@ export default function StudyPet() {
   };
 
   return (
-    <div className="w-full bg-[#FFB6C1] flex flex-col" style={{ minHeight: "100dvh" }}>
+    <div className="w-full bg-[#FFB6C1] flex flex-col h-[100dvh] overflow-hidden">
       <SharedSidebar active="/pet" />
       
-      <div className="md:ml-64 flex-1 flex flex-col items-center justify-start relative p-6">
+      <div className="md:ml-64 flex-1 flex flex-col items-center justify-start relative p-4 pb-[90px] md:p-6 md:pb-6 overflow-hidden">
         
         {/* Header UI */}
-        <div className="w-full flex justify-between items-start z-10 mb-4 bg-white/40 p-4 rounded-3xl border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,0.2)] backdrop-blur-sm">
+        <div className="w-full flex flex-row justify-between items-center md:items-start z-10 mb-2 md:mb-4 bg-white/40 p-3 md:p-4 rounded-2xl md:rounded-3xl border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,0.2)] backdrop-blur-sm gap-2">
           <div>
-            <h1 className="font-extrabold text-[28px] text-black">My Study Buddy</h1>
-            <p className="font-bold text-black/70 text-[14px]">Study to earn coins and take care of them!</p>
+            <h1 className="font-extrabold text-xl md:text-[28px] text-black tracking-tight leading-tight">My Study Buddy</h1>
+            <p className="font-bold text-black/70 text-[10px] md:text-[14px] leading-tight">Study to earn coins and take care of them!</p>
           </div>
           
           <div className="flex gap-4">
@@ -106,9 +106,9 @@ export default function StudyPet() {
         </div>
 
         {/* Needs Bars */}
-        <div className="w-full max-w-4xl flex gap-4 mb-2 z-10">
-          <div className="flex-1 bg-white p-3 border-[3px] border-black shadow-[4px_4px_0px_#000] rounded-2xl">
-            <div className="flex justify-between font-extrabold text-[12px] mb-1">
+        <div className="w-full max-w-4xl flex gap-2 md:gap-4 mb-2 z-10">
+          <div className="flex-1 bg-white p-2 md:p-3 border-[2px] md:border-[3px] border-black shadow-[2px_2px_0px_#000] md:shadow-[4px_4px_0px_#000] rounded-xl md:rounded-2xl">
+            <div className="flex justify-between font-extrabold text-[10px] md:text-[12px] mb-1">
               <span>🍕 Hunger</span>
               <span className="text-[#FF4D2E]">{Math.floor(stats.hunger)}%</span>
             </div>
@@ -116,8 +116,8 @@ export default function StudyPet() {
               <div className="h-full bg-[#FF4D2E]" style={{ width: `${stats.hunger}%` }} />
             </div>
           </div>
-          <div className="flex-1 bg-white p-3 border-[3px] border-black shadow-[4px_4px_0px_#000] rounded-2xl">
-            <div className="flex justify-between font-extrabold text-[12px] mb-1">
+          <div className="flex-1 bg-white p-2 md:p-3 border-[2px] md:border-[3px] border-black shadow-[2px_2px_0px_#000] md:shadow-[4px_4px_0px_#000] rounded-xl md:rounded-2xl">
+            <div className="flex justify-between font-extrabold text-[10px] md:text-[12px] mb-1">
               <span>⚡ Energy</span>
               <span className="text-[#3b82f6]">{Math.floor(stats.energy)}%</span>
             </div>
@@ -125,8 +125,8 @@ export default function StudyPet() {
               <div className="h-full bg-[#3b82f6]" style={{ width: `${stats.energy}%` }} />
             </div>
           </div>
-          <div className="flex-1 bg-white p-3 border-[3px] border-black shadow-[4px_4px_0px_#000] rounded-2xl">
-            <div className="flex justify-between font-extrabold text-[12px] mb-1">
+          <div className="flex-1 bg-white p-2 md:p-3 border-[2px] md:border-[3px] border-black shadow-[2px_2px_0px_#000] md:shadow-[4px_4px_0px_#000] rounded-xl md:rounded-2xl">
+            <div className="flex justify-between font-extrabold text-[10px] md:text-[12px] mb-1">
               <span>🎮 Fun</span>
               <span className="text-[#10b981]">{Math.floor(stats.fun)}%</span>
             </div>
@@ -137,7 +137,7 @@ export default function StudyPet() {
         </div>
 
         {/* 3D Viewport */}
-        <div className="flex-1 w-full max-w-4xl relative mt-4 rounded-3xl overflow-hidden border-[4px] border-black shadow-[8px_8px_0px_#000] bg-gradient-to-b from-[#87CEEB] to-[#E0F6FF]">
+        <div className="flex-1 min-h-0 w-full max-w-4xl relative mt-2 md:mt-4 rounded-3xl overflow-hidden border-[4px] border-black shadow-[8px_8px_0px_#000] bg-gradient-to-b from-[#87CEEB] to-[#E0F6FF]">
           
           {/* Chat Bubble */}
           <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-3xl border-[3px] border-black shadow-[4px_4px_0px_#000] z-20 font-extrabold text-[15px] animate-bounce max-w-[80%] text-center">
@@ -218,5 +218,6 @@ export default function StudyPet() {
     </div>
   );
 }
+
 
 
