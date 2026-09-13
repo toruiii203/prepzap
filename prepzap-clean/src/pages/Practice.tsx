@@ -795,7 +795,7 @@ Each object MUST match this schema exactly:
                 </div>
 
                 <div className="bg-[#FAF7F2] border-[3px] border-black p-8 shadow-[5px_5px_0px_#000] mb-8 relative mt-4">
-                  <div className="absolute -top-4 -left-4 bg-black text-white px-4 py-1 text-[11px] font-extrabold tracking-widest uppercase">MULTIPLE CHOICE</div>
+                  <div className="absolute -top-4 -left-4 bg-black text-white px-4 py-1 text-[11px] font-extrabold tracking-widest uppercase">{currentQuestion.type ? currentQuestion.type.replace(/-/g, " ") : "MULTIPLE CHOICE"}</div>
                   <div className="flex flex-wrap gap-2 mb-4">
                     <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
                       <span className="material-symbols-outlined text-[13px] mr-1">folder</span>{currentQuestion.subject}
@@ -850,7 +850,7 @@ Each object MUST match this schema exactly:
                   </div>
                   <div className="flex justify-end">
                     <button disabled={(currentQuestion.type === 'multiple-choice' || !currentQuestion.type) ? selectedOption === null : !textInput.trim()} onClick={handleNext}
-                      className={`bg-[#FF4D2E] text-white text-[18px] font-bold px-12 py-4 border-[3px] border-black shadow-[5px_5px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] flex items-center gap-4 transition-all ${selectedOption === null ? "opacity-40 pointer-events-none" : "hover:opacity-90"}`}>
+                      className={`bg-[#FF4D2E] text-white text-[18px] font-bold px-12 py-4 border-[3px] border-black shadow-[5px_5px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] flex items-center gap-4 transition-all ${((currentQuestion.type === 'multiple-choice' || !currentQuestion.type) ? selectedOption === null : !textInput.trim()) ? "opacity-40 pointer-events-none" : "hover:opacity-90"}`}>
                       Next Question <span className="material-symbols-outlined text-2xl">arrow_forward</span>
                     </button>
                   </div>
