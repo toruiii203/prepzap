@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useImperativeHandle, forwardRef, useState } from "react";
+﻿import React, { useEffect, useImperativeHandle, forwardRef, useState, useMemo } from "react";
 import { useGLTF, useAnimations, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { PetAnimationName } from "@/types/petAnimations";
@@ -9,15 +9,79 @@ export interface PetModelRef {
 }
 
 interface PetModelProps {
-  modelUrl: string;
   onPointerDown?: (e: any, part: "head" | "belly") => void;
 }
 
-export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ modelUrl, onPointerDown }, ref) => {
-  const { scene, animations } = useGLTF(modelUrl);
-  const { actions, mixer } = useAnimations(animations, scene);
+// Preload all assets
+const ANIMATION_FILES: Record<PetAnimationName, string> = {
+  "idle": "/models/animations/idle.glb",
+  "joyful-jump": "/models/animations/joyful-jump.glb",
+  "dancing-twerk": "/models/animations/dancing-twerk.glb",
+  "gangnam-style": "/models/animations/gangnam-style.glb",
+  "head-hit": "/models/animations/head-hit.glb",
+  "stomach-hit": "/models/animations/stomach-hit.glb",
+  "fall-over": "/models/animations/fall-over.glb",
+  "thinking": "/models/animations/thinking.glb",
+  "breakdance-1990": "/models/animations/breakdance-1990.glb"
+};
+
+Object.values(ANIMATION_FILES).forEach(url => useGLTF.preload(url));
+
+export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ onPointerDown }, ref) => {
+  // Use idle as the base mesh
+  const { scene } = useGLTF(ANIMATION_FILES["idle"]);
+  
+  // Load all animations
+  const idleData = useGLTF(ANIMATION_FILES["idle"]);
+  const jumpData = useGLTF(ANIMATION_FILES["joyful-jump"]);
+  const danceData = useGLTF(ANIMATION_FILES["dancing-twerk"]);
+  const gangnamData = useGLTF(ANIMATION_FILES["gangnam-style"]);
+  const headHitData = useGLTF(ANIMATION_FILES["head-hit"]);
+  const stomachHitData = useGLTF(ANIMATION_FILES["stomach-hit"]);
+  const fallData = useGLTF(ANIMATION_FILES["fall-over"]);
+  const thinkData = useGLTF(ANIMATION_FILES["thinking"]);
+  const breakdanceData = useGLTF(ANIMATION_FILES["breakdance-1990"]);
+
+  // Extract clips and rename them
+  const clips = useMemo(() => {
+    const rawClips = [
+      { name: "idle", data: idleData },
+      { name: "joyful-jump", data: jumpData },
+      { name: "dancing-twerk", data: danceData },
+      { name: "gangnam-style", data: gangnamData },
+      { name: "head-hit", data: headHitData },
+      { name: "stomach-hit", data: stomachHitData },
+      { name: "fall-over", data: fallData },
+      { name: "thinking", data: thinkData },
+      { name: "breakdance-1990", data: breakdanceData }
+    ];
+
+    return rawClips.map(({ name, data }) => {
+      const originalClip = data.animations[0];
+      if (!originalClip) return null;
+      const clonedClip = originalClip.clone();
+      clonedClip.name = name;
+      return clonedClip;
+    }).filter(Boolean) as THREE.AnimationClip[];
+  }, [
+    idleData, jumpData, danceData, gangnamData, 
+    headHitData, stomachHitData, fallData, thinkData, breakdanceData
+  ]);
+
+  const { actions, mixer } = useAnimations(clips, scene);
   const [activeAction, setActiveAction] = useState<PetAnimationName | null>(null);
   const [particles, setParticles] = useState<{ id: number, type: string, x: number, y: number }[]>([]);
+
+  useEffect(() => {
+    if (actions && Object.keys(actions).length > 0) {
+      console.log("[PetModel] Successfully loaded and renamed clips:", Object.keys(actions));
+      // Force idle to play on initial mount if nothing else is playing
+      if (!activeAction && actions["idle"]) {
+        actions["idle"].reset().fadeIn(0.2).play();
+        setActiveAction("idle");
+      }
+    }
+  }, [actions]);
 
   useImperativeHandle(ref, () => ({
     play: (name: PetAnimationName, options = { loop: true, holdPartway: false }) => {
@@ -41,12 +105,10 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ modelUrl, onPo
         action.setLoop(THREE.LoopRepeat, Infinity);
       }
       
-      // If requested to hold partway (e.g. for Fall), we can stop it early using a mixer event or time
       action.setEffectiveTimeScale(1);
       action.play();
       
       if (options.holdPartway) {
-        // Halt animation at 50% progress
         setTimeout(() => {
           if (action && action.isRunning()) {
              action.paused = true;
@@ -67,28 +129,22 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ modelUrl, onPo
     }
   }));
 
-  useEffect(() => {
-    return () => {
-      if (activeAction && actions && actions[activeAction]) {
-        actions[activeAction]?.stop();
-      }
-    };
-  }, []);
-
   return (
     <group>
-      <primitive 
-        object={scene} 
-        scale={modelUrl.includes("animations") ? 0.02 : 2} 
-        position={[0, -1.5, 0]} 
-        onPointerDown={(e: any) => {
-          e.stopPropagation();
-          // Raycast local Y determination for head vs belly
-          const localY = e.point.y; 
-          const part = localY > 1.0 ? "head" : "belly";
-          onPointerDown?.(e, part);
-        }}
-      />
+      {/* Decoupled mesh rendering: it ALWAYS renders the scene even if animations fail */}
+      {scene && (
+        <primitive 
+          object={scene} 
+          scale={0.02} // Since we use the animated mixamo rig as base, 0.02 is correct
+          position={[0, -1.5, 0]} 
+          onPointerDown={(e: any) => {
+            e.stopPropagation();
+            const localY = e.point.y; 
+            const part = localY > 1.0 ? "head" : "belly";
+            onPointerDown?.(e, part);
+          }}
+        />
+      )}
       {particles.map((p) => (
         <Html key={p.id} position={[0, 1, 0]} center zIndexRange={[100, 0]}>
           <div 
@@ -115,6 +171,4 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ modelUrl, onPo
     </group>
   );
 });
-
-useGLTF.preload("/models/fox.glb");
 

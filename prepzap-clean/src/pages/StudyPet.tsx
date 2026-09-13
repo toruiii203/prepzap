@@ -158,7 +158,7 @@ export default function StudyPet() {
               <group rotation={[0, -Math.PI / 2, 0]}>
                 <PetModel 
                   ref={petRef}
-                  modelUrl={`/models/animations/${activeModel.id}.glb`} 
+                   
                   onPointerDown={handlePointerDown} 
                 />
               </group>
