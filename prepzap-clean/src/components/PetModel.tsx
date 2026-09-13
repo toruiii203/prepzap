@@ -13,7 +13,6 @@ interface PetModelProps {
   onPointerDown?: (e: any, part: "head" | "belly") => void;
 }
 
-// Preload all assets
 const ANIMATION_FILES: Record<PetAnimationName, string> = {
   "idle": "/models/animations/idle.glb",
   "joyful-jump": "/models/animations/joyful-jump.glb",
@@ -31,44 +30,25 @@ Object.values(ANIMATION_FILES).forEach(url => useGLTF.preload(url));
 export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onPointerDown }, ref) => {
   const { scene } = useGLTF(`/models/${baseModel}.glb`);
   
-  // Try to load texture dynamically if it exists (for restored materials)
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  // Ensure the model renders vertex colors cleanly
   useEffect(() => {
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      `/models/${baseModel}_texture.webp`,
-      (tex) => {
-        tex.flipY = false;
-        tex.colorSpace = THREE.SRGBColorSpace;
-        setTexture(tex);
-      },
-      undefined,
-      (err) => {
-        // Silently fail if texture doesn't exist (e.g. capybara, cow)
-        setTexture(null);
-      }
-    );
-  }, [baseModel]);
-
-  useEffect(() => {
-    if (scene && texture) {
+    if (scene) {
       scene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           if (mesh.material) {
-            // Mixamo FBX imports often create a single material with a grey base color.
-            // Override it with white so the texture colors come through accurately.
             const mat = mesh.material as THREE.MeshStandardMaterial;
-            mat.map = texture;
+            mat.vertexColors = true;
+            // Remove any flat map so vertex colors shine through
+            mat.map = null;
             mat.color = new THREE.Color(1, 1, 1);
             mat.needsUpdate = true;
           }
         }
       });
     }
-  }, [scene, texture]);
+  }, [scene]);
   
-  // Load all animations
   const idleData = useGLTF(ANIMATION_FILES["idle"]);
   const jumpData = useGLTF(ANIMATION_FILES["joyful-jump"]);
   const danceData = useGLTF(ANIMATION_FILES["dancing-twerk"]);
@@ -79,7 +59,6 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onP
   const thinkData = useGLTF(ANIMATION_FILES["thinking"]);
   const breakdanceData = useGLTF(ANIMATION_FILES["breakdance-1990"]);
 
-  // Extract clips and rename them
   const clips = useMemo(() => {
     const rawClips = [
       { name: "idle", data: idleData },
