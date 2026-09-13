@@ -115,36 +115,31 @@ export default function StudyPet() {
         </div>
 
         {/* 3D Canvas Area */}
-        <div className="w-full max-w-4xl h-[50vh] bg-white border-[3px] border-black shadow-[8px_8px_0px_#000] rounded-3xl overflow-hidden relative cursor-grab active:cursor-grabbing">
+        <div className="w-full max-w-4xl h-[50vh] bg-white border-[3px] border-black shadow-[8px_8px_0px_#000] rounded-3xl overflow-hidden relative mt-4">
           
           {/* Chat Bubble */}
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] z-20 transition-all duration-300">
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] z-20 transition-all duration-300 text-center min-w-[200px]">
             <p className="font-extrabold text-[14px]">{chatMessage}</p>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-t-[12px] border-t-black border-r-[10px] border-r-transparent"></div>
             <div className="absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-t-[8px] border-t-white border-r-[6px] border-r-transparent"></div>
           </div>
 
-          <Canvas camera={{ position: [0, 2, 8], fov: 45 }}>
+          <Canvas camera={{ position: [0, 1.5, 6], fov: 50 }}>
             <ambientLight intensity={0.8} />
             <directionalLight position={[10, 10, 5]} intensity={1.5} />
             <pointLight position={[-10, -10, -10]} intensity={0.5} />
             <spotLight position={[0, 10, 0]} intensity={0.8} penumbra={1} />
             
             <Suspense fallback={null}>
-              <PetModel modelUrl={modelUrl} isAnimation={activeModel.type === "anim"} />
+              <group rotation={[0, -Math.PI / 2, 0]}>
+                <PetModel modelUrl={modelUrl} isAnimation={activeModel.type === "anim"} />
+              </group>
               <ContactShadows position={[0, -1.5, 0]} opacity={0.4} scale={10} blur={2} far={4} />
             </Suspense>
-            
-            <OrbitControls 
-              enableZoom={false} 
-              enablePan={false}
-              minPolarAngle={Math.PI / 4}
-              maxPolarAngle={Math.PI / 2}
-            />
           </Canvas>
           
           <div className="absolute bottom-4 left-0 right-0 flex justify-center text-[12px] font-bold text-black/40 pointer-events-none">
-            Drag to rotate your buddy
+            Your virtual study buddy
           </div>
         </div>
 
