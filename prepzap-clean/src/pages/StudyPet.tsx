@@ -155,7 +155,7 @@ export default function StudyPet() {
             <ambientLight intensity={stats.isSleeping ? 0.2 : 0.6} />
             <directionalLight position={[5, 5, 5]} intensity={stats.isSleeping ? 0.3 : 1} castShadow />
             <Suspense fallback={null}>
-              <group rotation={[0, -Math.PI / 2, 0]}>
+              <group>
                 <PetModel 
                   ref={petRef} baseModel={activeModelId}
                    
