@@ -448,11 +448,11 @@ export default function Arena() {
   const deleteRoom = async (roomId: string) => {
     if (!confirm("Are you sure you want to delete this room?")) return;
     try {
-      await supabase.from("exam_rooms").delete().eq("id", roomId);
+      await supabase.from("room_presence").delete().eq("room_id", roomId); const { error } = await supabase.from("exam_rooms").delete().eq("id", roomId); if (error) throw error; setRooms(prev => prev.filter(r => r.id !== roomId));
       // The realtime channel will automatically reload the list
     } catch (err) {
       console.error("Failed to delete room:", err);
-      alert("Failed to delete room.");
+      alert("Failed to delete room: " + (err.message || "Unknown error"));
     }
   };
 
