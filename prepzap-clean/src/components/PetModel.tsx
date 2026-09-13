@@ -29,8 +29,44 @@ const ANIMATION_FILES: Record<PetAnimationName, string> = {
 Object.values(ANIMATION_FILES).forEach(url => useGLTF.preload(url));
 
 export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onPointerDown }, ref) => {
-  // Use the user`s selected buddy as the base mesh (fox.glb, bear.glb, etc.)
   const { scene } = useGLTF(`/models/${baseModel}.glb`);
+  
+  // Try to load texture dynamically if it exists (for restored materials)
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      `/models/${baseModel}_texture.webp`,
+      (tex) => {
+        tex.flipY = false;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        setTexture(tex);
+      },
+      undefined,
+      (err) => {
+        // Silently fail if texture doesn't exist (e.g. capybara, cow)
+        setTexture(null);
+      }
+    );
+  }, [baseModel]);
+
+  useEffect(() => {
+    if (scene && texture) {
+      scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          if (mesh.material) {
+            // Mixamo FBX imports often create a single material with a grey base color.
+            // Override it with white so the texture colors come through accurately.
+            const mat = mesh.material as THREE.MeshStandardMaterial;
+            mat.map = texture;
+            mat.color = new THREE.Color(1, 1, 1);
+            mat.needsUpdate = true;
+          }
+        }
+      });
+    }
+  }, [scene, texture]);
   
   // Load all animations
   const idleData = useGLTF(ANIMATION_FILES["idle"]);
@@ -75,7 +111,6 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onP
 
   useEffect(() => {
     if (actions && Object.keys(actions).length > 0) {
-      console.log("[PetModel] Successfully loaded and renamed clips:", Object.keys(actions));
       if (!activeAction && actions["idle"]) {
         actions["idle"].reset().fadeIn(0.2).play();
         setActiveAction("idle");
@@ -170,4 +205,3 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onP
     </group>
   );
 });
-
