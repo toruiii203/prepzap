@@ -60,7 +60,7 @@ export default function NotesWorkspace() {
   return (
     <div className="flex h-screen bg-[#F0EDE0]">
       <SharedSidebar />
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden md:ml-64 pb-16 md:pb-0">
         {/* Left Sidebar - Notes List */}
         <div className="w-64 border-r-2 border-black bg-[#FAF7F2] flex flex-col">
           <div className="p-4 border-b-2 border-black flex justify-between items-center">
