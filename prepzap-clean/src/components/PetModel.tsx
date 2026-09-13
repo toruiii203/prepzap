@@ -30,7 +30,7 @@ Object.values(ANIMATION_FILES).forEach(url => useGLTF.preload(url));
 export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onPointerDown }, ref) => {
   const { scene } = useGLTF(`/models/${baseModel}.glb`);
   
-  // Clean up materials
+  // Ensure the model renders vertex colors cleanly
   useEffect(() => {
     if (scene) {
       scene.traverse((child) => {
@@ -38,7 +38,9 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onP
           const mesh = child as THREE.Mesh;
           if (mesh.material) {
             const mat = mesh.material as THREE.MeshStandardMaterial;
-            mat.vertexColors = false; // Turn off our procedural colors!
+            mat.vertexColors = true;
+            // Remove any flat map so vertex colors shine through
+            mat.map = null;
             mat.color = new THREE.Color(1, 1, 1);
             mat.needsUpdate = true;
           }
