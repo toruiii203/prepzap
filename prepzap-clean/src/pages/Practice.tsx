@@ -809,21 +809,33 @@ Each object MUST match this schema exactly:
                   <p className="text-[14px] opacity-60 italic">Select the most accurate response from the grid below.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  {currentQuestion.options.map((option, idx) => {
-                    const label      = ["A", "B", "C", "D"][idx];
-                    const isSelected = selectedOption === idx;
-                    return (
-                      <button key={idx} onClick={() => setSelectedOption(idx)}
-                        className={`text-left border-[1.5px] border-black p-4 shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all ${isSelected ? "bg-[#FF4D2E] text-white" : "bg-[#FAF7F2] hover:bg-black hover:text-white"}`}>
-                        <div className="flex items-start gap-3">
-                          <span className={`text-[12px] font-extrabold px-2 py-0.5 border-[1.5px] border-black flex-shrink-0 ${isSelected ? "bg-white text-black" : "bg-black text-white"}`}>{label}</span>
-                          <span className="text-[14px] font-medium leading-snug">{option}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                  {currentQuestion.type === "identification" || currentQuestion.type === "fill-in-the-blank" ? (
+                    <div className="mb-8">
+                      <input 
+                        type="text" 
+                        value={textInput} 
+                        onChange={e => setTextInput(e.target.value)} 
+                        placeholder="Type your answer here..."
+                        className="w-full bg-[#FAF7F2] border-[1.5px] border-black rounded-xl p-4 text-[15px] font-bold shadow-[3px_3px_0px_#000] focus:outline-none focus:shadow-[1px_1px_0px_#000] focus:translate-y-[2px]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                      {(currentQuestion.options || []).map((option, idx) => {
+                        const label      = ["A", "B", "C", "D"][idx];
+                        const isSelected = selectedOption === idx;
+                        return (
+                          <button key={idx} onClick={() => setSelectedOption(idx)}
+                            className={`text-left border-[1.5px] border-black p-4 shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all ${isSelected ? "bg-[#FF4D2E] text-white" : "bg-[#FAF7F2] hover:bg-black hover:text-white"}`}>
+                            <div className="flex items-start gap-3">
+                              <span className={`text-[12px] font-extrabold px-2 py-0.5 border-[1.5px] border-black flex-shrink-0 ${isSelected ? "bg-white text-black" : "bg-black text-white"}`}>{label}</span>
+                              <span className="text-[14px] font-medium leading-snug">{option}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
                 <div className="flex flex-col gap-3">
                   <div className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1">Question Navigator</div>
@@ -1096,7 +1108,7 @@ Each object MUST match this schema exactly:
                         className="w-full bg-white border-2 border-black rounded-xl p-4 text-[15px] font-bold shadow-[3px_3px_0px_#000] focus:outline-none focus:shadow-[1px_1px_0px_#000] focus:translate-y-[2px]"
                       />
                     ) : (
-                      currentQuestion.options && currentQuestion.options.map((option, idx) => {
+                      currentQuestion.options && (currentQuestion.options || []).map((option, idx) => {
                       const label      = ["A", "B", "C", "D"][idx];
                       const isSelected = selectedOption === idx;
                       return (
