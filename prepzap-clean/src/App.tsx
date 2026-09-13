@@ -99,6 +99,7 @@ import NotFound from "./pages/NotFound";
 import CramMode from "./pages/CramMode";
 import RecallMode from "./pages/RecallMode";
 import VisualLearner from "./pages/VisualLearner";
+import NotesWorkspace from "./pages/NotesWorkspace";
 import Avatar from "./pages/Avatar";
 
 import Shop from "./pages/Shop";
@@ -347,6 +348,7 @@ function AppRoutes() {
           <Route path="/cram" element={<Navigate to="/quick-study" replace />} />
           <Route path="/recall" element={<Navigate to="/quick-study" replace />} />
           <Route path="/visual-learner" element={<VisualLearner />} />
+          <Route path="/notes" element={<NotesWorkspace />} />
           <Route path="/avatar" element={<Avatar />} />
           
           <Route path="/shop" element={<Shop />} />
