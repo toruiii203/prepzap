@@ -94,7 +94,7 @@ interface BannerProps {
   setQuizType: (v: string) => void;
 }
 const QUESTION_COUNT_OPTIONS = [3, 5, 10, 15];
-function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount, activeSourceObj, setActiveSourceObj, quizType, setQuizType }: BannerProps) {
+function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount, activeSourceObj, setActiveSourceObj, quizType, setQuizType, difficulty, setDifficulty }: BannerProps) {
   return (
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -226,6 +226,7 @@ export default function Practice() {
   const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
   const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
   const [quizType, setQuizType]             = useState<string>("mixed");
+  const [difficulty, setDifficulty] = useState<string>("mixed");
 
   useEffect(() => {
     localStorage.setItem('pz_practice_view', view);
@@ -333,14 +334,14 @@ export default function Practice() {
         : `only "${quizType}" questions`;
       
       const promptText = sourceText
-        ? `Generate a set of ${questionCount || 3} interesting, high-quality quiz questions (${typeInstruct}) based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
+        ? `Generate a set of ${questionCount || 3} interesting, high-quality quiz questions (${typeInstruct}, ${diffInstruct}) based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
         : topicHint
-          ? `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}) about: ${topicHint}`
-          : `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}) across academic curriculum subjects like Math, Chemistry, and History.`;
+          ? `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}, ${diffInstruct}) about: ${topicHint}`
+          : `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}, ${diffInstruct}) across academic curriculum subjects like Math, Chemistry, and History.`;
 
       const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount || 3} questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
 We support three question types: "multiple-choice", "identification", and "fill-in-the-blank".
-For this request, you must generate ${typeInstruct}.
+For this request, you must generate ${typeInstruct} with ${diffInstruct}.
 Each object MUST match this schema exactly:
 {
   "type": "multiple-choice" | "identification" | "fill-in-the-blank",
@@ -410,7 +411,7 @@ Each object MUST match this schema exactly:
 
     if (question.type === "identification" || question.type === "fill-in-the-blank") {
       if (!textInput.trim()) return;
-      isCorrect = validateText(textInput, question.answerText || "");
+      isCorrect = validateText(textInput, question.answerText || (question as any).answer || "");
       savedAnswer = textInput;
     } else {
       if (selectedOption === null) return;
