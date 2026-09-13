@@ -171,6 +171,17 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
           <option value="identification">Identification</option>
           <option value="fill-in-the-blank">Fill-in-the-Blank</option>
         </select>
+          <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-4">Difficulty</span>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
+          >
+            <option value="mixed">Mixed</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
       </div>
     </div>
   );
@@ -979,6 +990,17 @@ Each object MUST match this schema exactly:
                     <option value="identification">Identification</option>
                     <option value="fill-in-the-blank">Fill-in-the-Blank</option>
                   </select>
+          <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-4">Difficulty</span>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
+          >
+            <option value="mixed">Mixed</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center px-1">
