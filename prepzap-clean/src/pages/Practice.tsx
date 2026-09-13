@@ -106,23 +106,32 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
           <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <select
-            value={activeSourceObj ? activeSourceObj.id : "all"}
-            onChange={(e) => {
-              if (e.target.value === "all") {
-                setActiveSourceObj(null);
-              } else {
-                const source = libraryFiles.find((f: any) => f.id === e.target.value);
-                setActiveSourceObj(source);
-              }
-            }}
-            className="border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0] text-[12px] font-bold hover:bg-black hover:text-white transition-colors cursor-pointer focus:outline-none"
-          >
-            <option value="all">General Study (No Source)</option>
-            {libraryFiles.map((file: any) => (
-              <option key={file.id} value={file.id}>{file.name}</option>
-            ))}
-          </select>
+          <div className="flex flex-col items-end gap-1">
+            <button 
+              onClick={() => onNavigate("/library")}
+              className="text-[10px] font-bold text-[#FF4D2E] hover:underline flex items-center"
+            >
+              <span className="material-symbols-outlined text-[12px] mr-1">add_circle</span>
+              Add Source
+            </button>
+            <select
+              value={activeSourceObj ? activeSourceObj.id : "all"}
+              onChange={(e) => {
+                if (e.target.value === "all") {
+                  setActiveSourceObj(null);
+                } else {
+                  const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
+                  setActiveSourceObj(source);
+                }
+              }}
+              className="border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0] text-[12px] font-bold hover:bg-black hover:text-white transition-colors cursor-pointer focus:outline-none"
+            >
+              <option value="all">General Study (No Source)</option>
+              {(libraryFiles || []).map((file: any) => (
+                <option key={file.id} value={file.id}>{file.name}</option>
+              ))}
+            </select>
+          </div>
           <button onClick={onGenerate} disabled={isGenerating}
             className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg disabled:opacity-60">
             <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
@@ -748,8 +757,8 @@ Each object MUST match this schema exactly:
                   </div>
                   <h2 className="font-extrabold text-[24px]">No quiz yet</h2>
                   <p className="text-black/50 font-bold text-[14px] max-w-[280px] leading-relaxed">
-                    {libraryFiles.length > 0
-                      ? `${libraryFiles.length} source${libraryFiles.length > 1 ? "s" : ""} in your library — hit Generate!`
+                    {(libraryFiles || []).length > 0
+                      ? `${(libraryFiles || []).length} source${(libraryFiles || []).length > 1 ? "s" : ""} in your library — hit Generate!`
                       : "Paste your notes, type a topic, or just hit Generate for a random quiz."}
                   </p>
                 </div>
@@ -772,10 +781,10 @@ Each object MUST match this schema exactly:
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    {libraryFiles.length > 0 && (
+                    {(libraryFiles || []).length > 0 && (
                       <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1 bg-[#F0EDE0] text-[12px] font-bold">
                         <span className="material-symbols-outlined text-[16px]">description</span>
-                        <span>{libraryFiles.length} source{libraryFiles.length > 1 ? "s" : ""} used</span>
+                        <span>{(libraryFiles || []).length} source{(libraryFiles || []).length > 1 ? "s" : ""} used</span>
                       </div>
                     )}
                     <div className="flex items-center gap-3 px-5 py-2 bg-[#F0EDE0] border-[1.5px] border-black shadow-[3px_3px_0px_#000]">
@@ -959,20 +968,30 @@ Each object MUST match this schema exactly:
                   </select>
                 </div>
                 <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Source Context</span>
+                    <button 
+                      onClick={() => navigate("/library")}
+                      className="text-[10px] font-bold text-[#FF4D2E] hover:underline flex items-center"
+                    >
+                      <span className="material-symbols-outlined text-[12px] mr-1">add_circle</span>
+                      Add Source
+                    </button>
+                  </div>
                   <select
                     value={activeSourceObj ? activeSourceObj.id : "all"}
                     onChange={(e) => {
                       if (e.target.value === "all") {
                         setActiveSourceObj(null);
                       } else {
-                        const source = libraryFiles.find((f: any) => f.id === e.target.value);
+                        const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
                         setActiveSourceObj(source);
                       }
                     }}
                     className="w-full flex-1 border-2 border-black rounded-lg px-3 py-2.5 bg-[#F0EDE0] text-[12px] font-bold focus:outline-none cursor-pointer"
                   >
                     <option value="all">General Study (No Source)</option>
-                    {libraryFiles.map((file: any) => (
+                    {(libraryFiles || []).map((file: any) => (
                       <option key={file.id} value={file.id}>{file.name}</option>
                     ))}
                   </select>
@@ -999,7 +1018,7 @@ Each object MUST match this schema exactly:
                     </div>
                     <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
                     <p className="font-bold text-[13px] text-black/50 max-w-[260px]">
-                      {libraryFiles.length > 0 ? `${libraryFiles.length} source${libraryFiles.length > 1 ? "s" : ""} in your library — hit Generate!` : "Paste notes, type a topic, or just hit Generate."}
+                      {(libraryFiles || []).length > 0 ? `${(libraryFiles || []).length} source${(libraryFiles || []).length > 1 ? "s" : ""} in your library — hit Generate!` : "Paste notes, type a topic, or just hit Generate."}
                     </p>
                   </div>
                   {historyEntries.length > 0 && (
