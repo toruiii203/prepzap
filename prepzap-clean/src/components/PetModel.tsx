@@ -134,7 +134,7 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onP
       {scene && (
         <primitive 
           object={scene} 
-          scale={2} 
+          scale={200} 
           position={[0, -1.5, 0]} 
           onPointerDown={(e: any) => {
             e.stopPropagation();
