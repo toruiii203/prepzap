@@ -103,6 +103,19 @@ export default function QuickStudy() {
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  useEffect(() => {
+    const exportedData = localStorage.getItem("qs_practice_export");
+    if (exportedData) {
+      try {
+        const text = JSON.parse(exportedData);
+        if (text) setTopic(text);
+        localStorage.removeItem("qs_practice_export");
+      } catch (e) {
+        console.error("Failed to parse exported data", e);
+      }
+    }
+  }, []);
+
   const [copyFlash, setCopyFlash] = useState<"copy" | "share" | null>(null);
 
   useEffect(() => {
@@ -145,7 +158,8 @@ export default function QuickStudy() {
     const rawPastedMaterial = isRawPaste ? trimmedTopic.slice(0, 6000) : "";
 
     if (!shortTopic && !sourceContext && !rawPastedMaterial) {
-      setGenError("Enter a topic, paste your notes, or add a file to your Source Library first.");
+      alert("Cannot generate: Please enter a topic or text. (If you have a file selected, it may not have readable text).");
+        setGenError("Enter a topic, paste your notes, or add a readable file to your Source Library first.");
       return;
     }
 
