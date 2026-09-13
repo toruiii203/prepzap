@@ -202,10 +202,9 @@ export default function StudyPet() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border-[4px] border-black shadow-[8px_8px_0px_#000] p-8 max-w-md w-full">
             <h2 className="text-2xl font-black mb-4">Customize Pet</h2>
-            <p className="text-black/60 font-bold mb-6">Choose a base model to care for. (Currently using idle rig as base placeholder)</p>
+            <p className="text-black/60 font-bold mb-6">Choose a base model to care for. </p>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <button className="border-[3px] border-black rounded-xl p-4 font-extrabold hover:bg-[#FAF7F2] active:translate-y-1">Fox</button>
-              <button className="border-[3px] border-black rounded-xl p-4 font-extrabold hover:bg-[#FAF7F2] active:translate-y-1">Bear</button>
+              <button onClick={() => { setActiveModelId("fox"); setShowCustomize(false); }} className={`border-[3px] border-black rounded-xl p-4 font-extrabold active:translate-y-1 ${activeModelId === "fox" ? "bg-black text-white" : "hover:bg-[#FAF7F2]"}`}>Fox</button><button onClick={() => { setActiveModelId("bear"); setShowCustomize(false); }} className={`border-[3px] border-black rounded-xl p-4 font-extrabold active:translate-y-1 ${activeModelId === "bear" ? "bg-black text-white" : "hover:bg-[#FAF7F2]"}`}>Bear</button><button onClick={() => { setActiveModelId("bunny"); setShowCustomize(false); }} className={`border-[3px] border-black rounded-xl p-4 font-extrabold active:translate-y-1 ${activeModelId === "bunny" ? "bg-black text-white" : "hover:bg-[#FAF7F2]"}`}>Bunny</button><button onClick={() => { setActiveModelId("capybara"); setShowCustomize(false); }} className={`border-[3px] border-black rounded-xl p-4 font-extrabold active:translate-y-1 ${activeModelId === "capybara" ? "bg-black text-white" : "hover:bg-[#FAF7F2]"}`}>Capybara</button><button onClick={() => { setActiveModelId("cow"); setShowCustomize(false); }} className={`border-[3px] border-black rounded-xl p-4 font-extrabold active:translate-y-1 ${activeModelId === "cow" ? "bg-black text-white" : "hover:bg-[#FAF7F2]"}`}>Cow</button><button onClick={() => { setActiveModelId("deer"); setShowCustomize(false); }} className={`border-[3px] border-black rounded-xl p-4 font-extrabold active:translate-y-1 ${activeModelId === "deer" ? "bg-black text-white" : "hover:bg-[#FAF7F2]"}`}>Deer</button>
             </div>
             <button 
               onClick={() => setShowCustomize(false)}
@@ -219,4 +218,5 @@ export default function StudyPet() {
     </div>
   );
 }
+
 
