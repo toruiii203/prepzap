@@ -133,7 +133,7 @@
 ::-webkit-scrollbar-thumb { background: rgba(139,26,42,0.4); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(240,160,64,0.4); }
 
-::selection { background: rgba(240,160,64,0.2); color: var(--pz-text); }
+::selection { background: rgba(255, 77, 46, 0.3); color: inherit; } /* #FF4D2E with opacity */
 
 /* ── Typography helpers ── */
 .gradient-text {
@@ -373,4 +373,14 @@ html.dark {
 }
 html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
   filter: invert(1) hue-rotate(180deg);
+}
+
+
+/* Tiptap Editor Highlights */
+.ProseMirror ::selection {
+  background: rgba(255, 77, 46, 0.3) !important;
+  color: inherit !important;
+}
+.ProseMirror-selectednode {
+  outline: 2px solid #FF4D2E;
 }
