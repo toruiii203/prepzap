@@ -26,7 +26,7 @@ const CHAT_BUBBLES_SLEEPY = [
 ];
 
 export default function StudyPet() {
-  const [activeModel, setActiveModel] = useState({ type: "pet", id: "idle" }); // We use the animated mixamo mesh as base
+  const [activeModelId, setActiveModelId] = useState("fox");
   const { stats, updateStat, addCoins } = usePetStats();
   const petRef = useRef<PetModelRef>(null);
   const { triggerAction } = usePetAnimationDirector(petRef, stats);
@@ -157,7 +157,7 @@ export default function StudyPet() {
             <Suspense fallback={null}>
               <group rotation={[0, -Math.PI / 2, 0]}>
                 <PetModel 
-                  ref={petRef}
+                  ref={petRef} baseModel={activeModelId}
                    
                   onPointerDown={handlePointerDown} 
                 />

@@ -9,6 +9,7 @@ export interface PetModelRef {
 }
 
 interface PetModelProps {
+  baseModel: string;
   onPointerDown?: (e: any, part: "head" | "belly") => void;
 }
 
@@ -27,9 +28,9 @@ const ANIMATION_FILES: Record<PetAnimationName, string> = {
 
 Object.values(ANIMATION_FILES).forEach(url => useGLTF.preload(url));
 
-export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ onPointerDown }, ref) => {
-  // Use idle as the base mesh
-  const { scene } = useGLTF(ANIMATION_FILES["idle"]);
+export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ baseModel, onPointerDown }, ref) => {
+  // Use the user`s selected buddy as the base mesh (fox.glb, bear.glb, etc.)
+  const { scene } = useGLTF(`/models/${baseModel}.glb`);
   
   // Load all animations
   const idleData = useGLTF(ANIMATION_FILES["idle"]);
@@ -75,7 +76,6 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ onPointerDown 
   useEffect(() => {
     if (actions && Object.keys(actions).length > 0) {
       console.log("[PetModel] Successfully loaded and renamed clips:", Object.keys(actions));
-      // Force idle to play on initial mount if nothing else is playing
       if (!activeAction && actions["idle"]) {
         actions["idle"].reset().fadeIn(0.2).play();
         setActiveAction("idle");
@@ -131,11 +131,10 @@ export const PetModel = forwardRef<PetModelRef, PetModelProps>(({ onPointerDown 
 
   return (
     <group>
-      {/* Decoupled mesh rendering: it ALWAYS renders the scene even if animations fail */}
       {scene && (
         <primitive 
           object={scene} 
-          scale={0.02} // Since we use the animated mixamo rig as base, 0.02 is correct
+          scale={2} 
           position={[0, -1.5, 0]} 
           onPointerDown={(e: any) => {
             e.stopPropagation();
