@@ -228,7 +228,7 @@ export default function SourceLibrary() {
   const navigate = useNavigate();
   const { isPro } = usePlan();
   const fileLimit = isPro ? PRO_FILE_LIMIT : FREE_FILE_LIMIT;
-  const [activeQuickTool, setActiveTab] = useState("AI Tutor");
+  const [activeQuickTool, setActiveTab] = useState("Rex Tutor");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -276,7 +276,7 @@ export default function SourceLibrary() {
     };
   }, [cameraStream]);
 
-  const quickTools = ["AI Tutor", "Flashcards", "Practice", "Quick Study"];
+  const quickTools = ["Rex Tutor", "Flashcards", "Practice", "Quick Study"];
 
   const handleToggleSelect = (id: string) => {
     const next = selectedIds.includes(id)
@@ -677,7 +677,7 @@ export default function SourceLibrary() {
 
   const handleQuickToolClick = (tool: string) => {
     setActiveTab(tool);
-    if (tool === "AI Tutor") navigate("/ai-tutor");
+    if (tool === "Rex Tutor") navigate("/ai-tutor");
     else if (tool === "Flashcards") navigate("/flashcards");
     else if (tool === "Practice") navigate("/practice");
     else if (tool === "Quick Study") navigate("/quick-study");
@@ -1100,10 +1100,10 @@ export default function SourceLibrary() {
               <h2 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-4">Quick Launch Tool</h2>
               <div className="flex flex-col gap-3">
                 {[
-                  { label: "AI Tutor", icon: "smart_toy", route: "/ai-tutor", desc: "Chat with AI about your sources" },
+                  { label: "Rex Tutor", icon: "forum", route: "/ai-tutor", desc: "Chat with AI about your sources" },
                   { label: "Flashcards", icon: "style", route: "/flashcards", desc: "Auto-generate flashcards from files" },
                   { label: "Practice", icon: "assignment", route: "/practice", desc: "Build a quiz from your notes" },
-                  { label: "Quick Study", icon: "bolt", route: "/quick-study", desc: "Fast-track key concepts" },
+                  { label: "Quick Study", icon: "edit_note", route: "/quick-study", desc: "Fast-track key concepts" },
                 ].map(tool => (
                   <button
                     key={tool.route}

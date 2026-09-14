@@ -754,7 +754,7 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
 
             {/* Spacer note */}
             <div className="px-8 pb-4 text-[11px] font-bold text-black/30 text-center">
-              AI Solver can make mistakes. Verify important results with your textbook.
+              Rex is a learning assistant, not an answer key. Double-check important facts with your course materials.
             </div>
 
             {!isPro && remainingUses !== null && remainingUses <= 4 && remainingUses > 0 && (

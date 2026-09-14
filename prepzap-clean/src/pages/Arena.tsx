@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { SharedSidebar } from "@/components/SharedSidebar";
 import { callGroq, safeParseJSON } from "@/lib/groq";
 import { loadLibrary, type SourceFile } from "@/lib/sourceContext";
 import { withTimeout } from "@/lib/withTimeout";
@@ -180,7 +181,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <div className="flex justify-between items-end">
               <label className="text-[11px] font-bold uppercase tracking-wider">Topic / Material</label>
               <span className="text-[10px] font-bold text-[#f0a040] flex items-center gap-0.5">
-                <span className="material-symbols-outlined text-[13px]">bolt</span>AI Generated
+                <span className="material-symbols-outlined text-[13px]">edit_document</span>AI Generated
               </span>
             </div>
             <textarea value={topic} onChange={(e) => setTopic(e.target.value)}

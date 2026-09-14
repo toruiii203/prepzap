@@ -100,8 +100,8 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
-            <h2 className="font-extrabold text-[20px]">AI Quiz Builder</h2>
+            <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">school</span>
+            <h2 className="font-extrabold text-[20px]">Quiz Generator</h2>
           </div>
           <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
         </div>
@@ -134,7 +134,7 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
           </div>
           <button onClick={onGenerate} disabled={isGenerating}
             className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg disabled:opacity-60">
-            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+            <span className="material-symbols-outlined text-[18px]">edit_document</span>
             {isGenerating ? "Generating..." : "Generate Quiz via AI"}
           </button>
         </div>
@@ -954,8 +954,8 @@ Each object MUST match this schema exactly:
               {/* Mobile Banner */}
               <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">smart_toy</span>
-                  <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">AI Quiz Builder</span>
+                  <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">school</span>
+                  <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">Quiz Generator</span>
                 </div>
                 <textarea
                   value={topicInput}
@@ -1032,7 +1032,7 @@ Each object MUST match this schema exactly:
                   </select>
                   <button onClick={handleGenerateQuiz} disabled={isGenerating}
                     className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
-                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                    <span className="material-symbols-outlined text-[16px]">edit_document</span>
                     {isGenerating ? "Loading..." : "Generate"}
                   </button>
                 </div>

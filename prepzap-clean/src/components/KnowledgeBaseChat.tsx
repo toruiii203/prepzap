@@ -12,7 +12,7 @@ export default function KnowledgeBaseChat() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([{
     role: "assistant", 
-    content: "Hi! I am your Knowledge Base AI. I have access to all your notes. Ask me anything!"
+    content: "Rex is ready. Ask questions based on your notes."
   }]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);

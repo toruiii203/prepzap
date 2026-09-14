@@ -816,7 +816,7 @@ Return raw JSON only, no wrapping!`;
                     className="flex-1 relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <div className="w-full py-2.5 bg-black text-white border-2 border-black flex items-center justify-center gap-2 z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
-                      <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                      <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>summarize</span>
                       <span className="font-black text-[13px] uppercase tracking-wider">
                         {loading ? "Synthesizing..." : "Generate Notes"}
                       </span>
@@ -905,7 +905,7 @@ Return raw JSON only, no wrapping!`;
                 <div className="grid grid-cols-2 gap-0 divide-x-2 divide-y-2 divide-black">
                   {chips.slice(0, 4).map((chip, idx) => (
                     <button key={idx} onClick={() => setTopic(chip)} className="flex flex-col items-start gap-2 p-4 hover:bg-[#FAF7F2] transition-colors text-left group">
-                      <span className="material-symbols-outlined text-[#ae2925] text-[22px]">bolt</span>
+                      <span className="material-symbols-outlined text-[#ae2925] text-[22px]">edit_note</span>
                       <span className="text-[13px] font-extrabold group-hover:underline">{chip}</span>
                     </button>
                   ))}
@@ -1020,7 +1020,7 @@ Return raw JSON only, no wrapping!`;
             className="relative group cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
             <div className="w-full py-3.5 bg-black text-white border-2 border-black flex items-center justify-center gap-2 z-10 relative group-active:translate-y-0.5 group-active:translate-x-0.5 transition-transform">
-              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>summarize</span>
               <span className="font-black text-[14px]">
                 {loading ? "AI Synthesizing..." : "Generate Study Sheet"}
               </span>

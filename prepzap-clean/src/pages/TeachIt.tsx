@@ -467,7 +467,7 @@ export default function TeachIt() {
                       ? "hover:bg-black cursor-pointer active:translate-y-1 active:shadow-none"
                       : "opacity-50 pointer-events-none"
                   }`}>
-                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
                   {loading ? "Analyzing..." : "Analyze Explanation"}
                 </button>
                 {/* FIX BUG 4: guard remainingUses !== null */}
@@ -564,7 +564,7 @@ export default function TeachIt() {
                   <div key={n} className="w-6 h-6 border-2 border-black bg-white flex items-center justify-center text-[10px] font-black">{n}</div>
                 ))}
               </div>
-              <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">AI Tutor: Active</span>
+              <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Rex: Active</span>
             </div>
           </aside>
         </div>
@@ -785,7 +785,7 @@ export default function TeachIt() {
                 ? "cursor-pointer active:translate-y-0.5 active:shadow-none"
                 : "opacity-50 pointer-events-none"
             }`}>
-            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
             {loading ? "Analyzing..." : "Analyze Explanation"}
           </button>
         </div>

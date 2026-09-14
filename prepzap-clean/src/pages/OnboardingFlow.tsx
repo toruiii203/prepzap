@@ -360,13 +360,16 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
                 <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 14 }}>Students Love It</span>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {[
-                    { stars: "★★★★★", quote: '"Finally an app that actually helps me study."', name: "Mia R." },
-                    { stars: "★★★★★", quote: '"My grades went up in just 2 weeks!"', name: "Carlo T." },
+                    { stars: "★★★★★", quote: '"Finally an app that actually helps me study."', name: "Mia R.", img: "/reviewers/mia.jpg" },
+                    { stars: "★★★★★", quote: '"My grades went up in just 2 weeks!"', name: "Carlo T.", img: "/reviewers/carlo.jpg" },
                   ].map((r, i) => (
                     <div key={i} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 14, padding: 12 }}>
                       <div style={{ color: CTA, fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>{r.stars}</div>
                       <p style={{ fontSize: 14, fontStyle: "italic", color: BLACK, opacity: 0.75, margin: "0 0 8px" }}>{r.quote}</p>
-                      <span style={{ fontSize: 12, color: BLACK, opacity: 0.65, fontWeight: 600 }}>{r.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <img src={r.img} alt={r.name} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${BLACK}` }} />
+                          <span style={{ fontSize: 12, color: BLACK, opacity: 0.65, fontWeight: 600 }}>{r.name}</span>
+                        </div>
                     </div>
                   ))}
                 </div>
@@ -400,7 +403,7 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
 function FeatureTeaser({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const features = [
     { icon: "style",      label: "Flashcards",     desc: "Master concepts quickly",   bg: "#FEF9C3", rot: 2  },
-    { icon: "robot_2",    label: "AI Tutor",        desc: "Ready to help 24/7",        bg: "#FFEDD5", rot: -3 },
+    { icon: "forum",    label: "Rex Tutor",        desc: "Ready to help 24/7",        bg: "#FFEDD5", rot: -3 },
     { icon: "assignment", label: "Practice Tests",  desc: "Prepare for the real thing",bg: "#FEE2E2", rot: 1.5},
   ]
   return (
@@ -709,7 +712,7 @@ function SubjectReaction({ selected, onNext }: { selected: string[]; onNext: () 
 
 const goals = [
   { id: "grades",  name: "Improve Grades",     icon: "trending_up", text: "Got it. Grades first." },
-  { id: "faster",  name: "Study Faster",        icon: "bolt",        text: "Speed + retention. Let's go." },
+  { id: "faster",  name: "Study Faster",        icon: "edit_note",        text: "Speed + retention. Let's go." },
   { id: "habits",  name: "Build Habits",        icon: "autorenew",   text: "Habits over motivation. Smart." },
   { id: "college", name: "Prepare for College", icon: "school",      text: "College bound. Big move." },
   { id: "skill",   name: "Learn a Skill",       icon: "psychology",  text: "Always learning. Love that." },
@@ -966,7 +969,7 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
     return () => [t1,t3,t5,t6,t7,t8,t8b,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,tFallback].forEach(clearTimeout)
   }, [])
 
-  const checkItems = ["Preparing AI Tutor", "Creating Practice Tests", "Building Study Roadmap", "Personalizing Recommendations"]
+  const checkItems = ["Preparing Rex Tutor", "Creating Practice Tests", "Building Study Roadmap", "Personalizing Recommendations"]
 
   return (
     <div style={{ ...s.page, justifyContent: "center", transition: "background 0.4s ease", background: bgColor }}>

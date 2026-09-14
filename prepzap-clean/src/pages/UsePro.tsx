@@ -132,7 +132,7 @@ export default function UsePro() {
             <ul className="flex flex-col gap-4 mb-2 mt-4 text-[#FAF7F2]">
               <li className="flex items-start gap-2.5">
                 <span className="material-symbols-outlined text-[#feae2c] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                <span className="text-[14.5px] font-bold">Unlimited Real-Time AI Tutor</span>
+                <span className="text-[14.5px] font-bold">Unlimited Real-Time Rex Tutor</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="material-symbols-outlined text-[#feae2c] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
@@ -162,7 +162,7 @@ export default function UsePro() {
             <ul className="flex flex-col gap-3 text-zinc-600 text-[13.5px] font-semibold">
               <li className="flex items-start gap-2.5">
                 <span className="material-symbols-outlined shrink-0 text-[16px] mt-0.5">check</span>
-                <span>AI Tutor (Limited daily token usage)</span>
+                <span>Rex Tutor (Limited daily token usage)</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="material-symbols-outlined shrink-0 text-[16px] mt-0.5">check</span>

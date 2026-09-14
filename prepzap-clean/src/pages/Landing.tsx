@@ -10,7 +10,7 @@ const TESTIMONIALS = [
   {
     name: "Sarah J.",
     role: "Computer Science Major",
-    quote: "Studenius literally saved my semester. The AI tutor explained data structures to me in 5 minutes after I'd been stuck for weeks!",
+    quote: "Studenius literally saved my semester. The Rex tutor explained data structures to me in 5 minutes after I'd been stuck for weeks!",
     rotate: "rotate-1",
     initials: "SJ",
     avatarBg: "#baeaff",
@@ -34,8 +34,8 @@ const TESTIMONIALS = [
 ];
 
 const FEATURES = [
-  { bg: "#FFE566", icon: "bolt", title: "AI Flashcards", desc: "Instantly turn your messy notes into structured, high-retention flashcards with spaced repetition built in." },
-  { bg: "#baeaff", icon: "psychology", title: "Smart Tutor", desc: "Stuck on a concept? Rex the AI tutor explains complex topics like you're five. Truly legendary." },
+  { bg: "#FFE566", icon: "edit_note", title: "AI Flashcards", desc: "Instantly turn your messy notes into structured, high-retention flashcards with spaced repetition built in." },
+  { bg: "#baeaff", icon: "psychology", title: "Smart Tutor", desc: "Stuck on a concept? Rex the Rex tutor explains complex topics like you're five. Truly legendary." },
   { bg: "#fafdff", icon: "timer", title: "Focus Timer", desc: "The most satisfying Pomodoro timer you've ever used. Ambient sounds keep you locked in." },
   { bg: "#ffdad3", icon: "military_tech", title: "Arena Battles", desc: "Challenge friends to real-time quiz battles. Climbing the ranks has never felt this good." },
   { bg: "#db3417", icon: "analytics", title: "Study Analytics", desc: "Track your study hours, streak, and session history. See exactly where you need to focus today.", dark: true },
@@ -339,7 +339,7 @@ export default function Studenius() {
                 {[
                   { ok:true, text:"3 flashcard decks per day" },
                   { ok:true, text:"Focus timer with ambient sounds" },
-                  { ok:true, text:"20 AI Tutor queries per day" },
+                  { ok:true, text:"20 Rex Tutor queries per day" },
                   { ok:false, text:"Basic AI model only" },
                 ].map(({ ok, text }) => (
                   <li key={text} style={{ display:"flex", alignItems:"center", gap:8, fontSize:15, opacity: ok ? 1 : 0.45 }}>
@@ -360,7 +360,7 @@ export default function Studenius() {
               <ul style={{ listStyle:"none", padding:0, marginBottom:32, display:"flex", flexDirection:"column", gap:10 }}>
                 {[
                   "Everything in Free",
-                  "Unlimited AI Tutor queries",
+                  "Unlimited Rex Tutor queries",
                   "Premium AI model (70B intelligence)",
                   "Unlimited flashcard generation",
                   "Priority support & early access",

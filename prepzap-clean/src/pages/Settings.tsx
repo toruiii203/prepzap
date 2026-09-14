@@ -154,7 +154,7 @@ export default function Settings() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {[
-                { label: "XP",     value: String(profile?.total_xp ?? 0),        icon: "bolt" },
+                { label: "XP",     value: String(profile?.total_xp ?? 0),        icon: "military_tech" },
                 { label: "Streak", value: String(profile?.streak_days ?? 0),      icon: "local_fire_department" },
                 
               ].map(s => (

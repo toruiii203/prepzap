@@ -188,7 +188,7 @@ function MistakeCard({
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
                 {item.resolved ? "Already Resolved" : "Generate Quiz"}
               </>
             )}
@@ -588,7 +588,7 @@ Return strictly a valid raw JSON object (no markdown):
                       style={{ boxShadow: "5px 5px 0px #000" }}>
                       <div className="absolute -top-6 -right-6 w-24 h-24 bg-[#F5A623] rotate-45 border-2 border-black" />
                       <div className="p-6 flex flex-col gap-3 flex-1 justify-center items-center text-center">
-                        <span className="material-symbols-outlined text-[#F5A623] text-[48px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                        <span className="material-symbols-outlined text-[#F5A623] text-[48px]" style={{ fontVariationSettings: "'FILL' 1" }}>edit_document</span>
                         <h3 className="font-black text-[18px]">AI Insight: Patterns Found</h3>
                         <p className="text-[13px] text-white/70 font-medium leading-relaxed">{aiInsightText}</p>
                       </div>
@@ -681,7 +681,7 @@ Return strictly a valid raw JSON object (no markdown):
                 <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">AI Insight</h3>
                 <div className="bg-black text-white border-2 border-black p-5 relative overflow-hidden" style={{ boxShadow: "3px 3px 0px #000" }}>
                   <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F5A623] rotate-45" />
-                  <span className="material-symbols-outlined text-[#F5A623] text-[32px] mb-3 block" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  <span className="material-symbols-outlined text-[#F5A623] text-[32px] mb-3 block" style={{ fontVariationSettings: "'FILL' 1" }}>edit_document</span>
                   <p className="text-[13px] text-white/80 font-medium leading-relaxed mb-4">{aiInsightText}</p>
                   <button className="w-full py-2.5 bg-[#F5A623] text-black border-2 border-white font-black text-[12px] hover:bg-white transition-colors">
                     Review Pattern
@@ -816,7 +816,7 @@ Return strictly a valid raw JSON object (no markdown):
           {showAiInsight && (
             <div className="bg-black text-white border-2 border-black p-5 relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="absolute -top-4 -right-4 w-16 h-16 bg-[#F5A623] rotate-45" />
-              <span className="material-symbols-outlined text-[#F5A623] text-[36px] mb-2 block" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <span className="material-symbols-outlined text-[#F5A623] text-[36px] mb-2 block" style={{ fontVariationSettings: "'FILL' 1" }}>edit_document</span>
               <h3 className="font-black text-[18px] mb-2">AI Insight: Patterns Found</h3>
               <p className="text-[13px] text-white/70 font-medium leading-relaxed mb-4">{aiInsightText}</p>
               <button className="w-full py-3 bg-[#F5A623] text-black border-2 border-white font-black text-[13px]">

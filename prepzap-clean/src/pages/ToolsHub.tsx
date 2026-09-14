@@ -2,10 +2,10 @@ import { useNavigate } from "react-router-dom";
 
 const TOOL_PAGES = [
   [
-    { route: "/ai-tutor", icon: "smart_toy", title: "AI Tutor", desc: "Interactive help" },
+    { route: "/ai-tutor", icon: "forum", title: "Rex Tutor", desc: "Interactive help" },
     { route: "/practice", icon: "assignment", title: "Practice", desc: "Mock exams" },
     { route: "/flashcards", icon: "style", title: "Flashcards", desc: "Spaced rep" },
-    { route: "/quick-study", icon: "bolt", title: "Cram Mode", desc: "Quick review" },
+    { route: "/quick-study", icon: "edit_note", title: "Cram Mode", desc: "Quick review" },
   ],
   [
     { route: "/planner", icon: "calendar_month", title: "Study Planner", desc: "Schedule sessions" },

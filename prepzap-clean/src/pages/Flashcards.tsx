@@ -551,7 +551,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
       )}
       {showChallengeToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black text-[#F5A623] px-5 py-3 border-2 border-black shadow-[4px_4px_0px_#ae2925] font-bold text-[13px] flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px]">bolt</span>
+          <span className="material-symbols-outlined text-[16px]">layers</span>
           Perfect Recall Challenge: 16 Cards Selected!
         </div>
       )}
@@ -631,7 +631,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             <div className="p-6 border-b-2 border-black">
               <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#FF4D2E] mb-1">Active Session</p>
               <h2 className="text-[22px] font-black leading-tight">
-                {activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : topic || "New AI Deck"}
+                {activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : topic || "Generate Deck"}
               </h2>
             </div>
 
@@ -689,7 +689,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                    <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>layers</span>
                     Generate Deck
                   </>
                 )}
@@ -750,7 +750,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               {/* Daily Goal */}
               <div className="mt-auto bg-[#F0EDE0] border-2 border-black p-4 shadow-[3px_3px_0px_#000] flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#FF4D2E] border-2 border-black flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-white text-[18px]">auto_awesome</span>
+                  <span className="material-symbols-outlined text-white text-[18px]">style</span>
                 </div>
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-wider">Daily Goal</p>
@@ -813,7 +813,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                     onClick={handleGenerate}
                     className="w-full py-4 bg-black text-white border-2 border-black font-extrabold text-[16px] shadow-[4px_4px_0px_#FF4D2E] hover:opacity-90 transition-all flex items-center justify-center gap-2"
                   >
-                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>layers</span>
                     Generate {cardCount} Cards
                   </button>
                 </div>
@@ -1077,7 +1077,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               {!isPro && remainingUses !== null && (
                 <div className="flex items-center justify-between bg-white border-2 border-black rounded-xl px-4 py-3 shadow-[2px_2px_0px_#000]">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px] text-[#ae2925]">bolt</span>
+                    <span className="material-symbols-outlined text-[18px] text-[#ae2925]">layers</span>
                     <span className="text-[13px] font-extrabold text-black">Daily Generations</span>
                   </div>
                   <span className={`text-[13px] font-black ${remainingUses <= 2 ? "text-[#ae2925]" : "text-black"}`}>
@@ -1099,7 +1099,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined">auto_awesome</span>
+                    <span className="material-symbols-outlined">style</span>
                     Generate Cards
                   </>
                 )}

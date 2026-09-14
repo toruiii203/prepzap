@@ -164,31 +164,46 @@ interface MessageThreadProps {
   messages: Message[];
   isLoading: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement>;
+  foxImg?: string;
 }
 
-function MessageThread({ messages, isLoading, messagesEndRef }: MessageThreadProps) {
+function MessageThread({ messages, isLoading, messagesEndRef, foxImg }: MessageThreadProps) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {messages.map((msg, i) => (
-        <div key={i} className={`flex flex-col max-w-[85%] ${msg.sender === "user" ? "self-end items-end" : "self-start items-start"}`}>
-          <div className={`p-3 rounded-2xl border-2 border-black ${
-            msg.sender === "user"
-              ? "bg-[#ae2925] text-white shadow-[2px_2px_0px_#000]"
-              : "bg-white text-black shadow-[2px_2px_0px_#000]"
-          }`}>
-            {msg.sender === "user"
-              ? <p className="text-[14px] leading-relaxed whitespace-pre-line">{msg.text}</p>
-              : <RenderBotText text={msg.text} />
-            }
+        <div key={i} className={`flex max-w-[90%] gap-3 ${msg.sender === "user" ? "self-end flex-row-reverse" : "self-start flex-row"}`}>
+          {msg.sender === "bot" && foxImg && (
+            <div className="w-10 h-10 shrink-0 border-2 border-black rounded-xl overflow-hidden bg-white shadow-[2px_2px_0px_#000]">
+              <img src={foxImg} alt="Rex" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
+            <div className={`p-4 rounded-xl border-2 border-black ${
+              msg.sender === "user"
+                ? "bg-[#ae2925] text-white shadow-[3px_3px_0px_#000]"
+                : "bg-white text-black shadow-[3px_3px_0px_#000]"
+            }`}>
+              {msg.sender === "user"
+                ? <p className="text-[14px] leading-relaxed whitespace-pre-line">{msg.text}</p>
+                : <RenderBotText text={msg.text} />
+              }
+            </div>
+            <span className="text-[10px] font-bold text-black/40 mt-1 px-1">{msg.sender === "user" ? "You" : "Rex"}</span>
           </div>
-          <span className="text-[10px] text-[#888] mt-1 px-1">{msg.sender === "user" ? "You" : "Rex AI"}</span>
         </div>
       ))}
       {isLoading && (
-        <div className="flex flex-col max-w-[80%] self-start">
-          <div className="p-3 rounded-2xl border-2 border-black bg-white shadow-[2px_2px_0px_#000] flex items-center gap-2">
-            <span className="material-symbols-outlined animate-spin text-[#ae2925] text-[18px]">autorenew</span>
-            <span className="text-[13px] font-bold">Rex is thinking...</span>
+        <div className="flex max-w-[80%] self-start gap-3">
+          {foxImg && (
+            <div className="w-10 h-10 shrink-0 border-2 border-black rounded-xl overflow-hidden bg-white shadow-[2px_2px_0px_#000]">
+              <img src={foxImg} alt="Rex" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div className="flex flex-col items-start">
+            <div className="p-3 rounded-xl border-2 border-black bg-white shadow-[3px_3px_0px_#000] flex items-center gap-2">
+              <span className="material-symbols-outlined animate-spin text-[#ae2925] text-[18px]">autorenew</span>
+              <span className="text-[13px] font-bold">Rex is thinking...</span>
+            </div>
           </div>
         </div>
       )}
@@ -298,7 +313,14 @@ export default function AITutor() {
   const recognitionRef = useRef<any>(null);
 
   const [activeMode, setActiveMode] = useState("Explain");
-  const modes = ["Explain", "ELI5", "Analogy", "Quiz Me", "Devil's Advocate", "Summarize"];
+  const STUDY_ACTIONS = [
+    { id: "Explain", label: "Break it down" },
+    { id: "ELI5", label: "Like I'm 5" },
+    { id: "Analogy", label: "Use an analogy" },
+    { id: "Quiz Me", label: "Test me" },
+    { id: "Devil's Advocate", label: "Challenge me" },
+    { id: "Summarize", label: "Summarize" }
+  ];
 
   const [inputVal, setInputVal] = useState("");
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -731,23 +753,6 @@ export default function AITutor() {
           {/* Left — 60% Chat */}
           <div className="w-[60%] flex flex-col border-r-2 border-black">
 
-            {/* Modes */}
-            <div className="px-8 pt-6 pb-4 shrink-0 border-b-2 border-black/10">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Learning Modes</h3>
-              <div className="flex flex-wrap gap-2">
-                {modes.map((mode) => (
-                  <button key={mode} onClick={() => setActiveMode(mode)}
-                    className={`px-4 py-2 border-2 border-black text-[13px] font-bold transition-all ${
-                      activeMode === mode
-                        ? "bg-black text-white shadow-[2px_2px_0px_#000] scale-95"
-                        : "bg-[#FAF7F2] text-black hover:bg-[#E2E2E2]"
-                    }`}>
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Chat feed */}
             <div className="flex-1 overflow-y-auto px-8 py-6">
               {messages.length === 0 ? (
@@ -770,7 +775,7 @@ export default function AITutor() {
                   </div>
                 </div>
               ) : (
-                <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} />
+                <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} foxImg={foxImg} />
               )}
             </div>
 
@@ -853,19 +858,6 @@ export default function AITutor() {
           </div>
         </header>
 
-        {/* Mode pills */}
-        <div className="w-full px-4 py-2 overflow-x-auto flex space-x-2 shrink-0 bg-[#FAF7F2] border-b-2 border-black"
-          style={{ scrollbarWidth: "none" }}>
-          {modes.map((mode) => (
-            <button key={mode} onClick={() => setActiveMode(mode)}
-              className={`shrink-0 px-4 py-1.5 border-2 border-black rounded-full text-[13px] font-bold whitespace-nowrap transition-all ${
-                activeMode === mode ? "bg-[#ae2925] text-white" : "bg-white text-black hover:bg-[#ebe8e3]"
-              }`}>
-              {mode}
-            </button>
-          ))}
-        </div>
-
         {/* Source + count bar */}
         <div className="w-full px-4 py-2 shrink-0 bg-[#FAF7F2] border-b-2 border-black flex items-center justify-between gap-3">
           {activeSource ? (
@@ -910,7 +902,7 @@ export default function AITutor() {
               </div>
             </div>
           ) : (
-            <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} />
+            <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} foxImg={foxImg} />
           )}
         </main>
 

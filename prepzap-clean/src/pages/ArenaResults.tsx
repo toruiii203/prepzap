@@ -270,7 +270,7 @@ export default function ArenaResults() {
         <div className="text-center flex-1">
           <p className="text-[10px] font-bold uppercase text-black/40">Speed Bonus</p>
           <p className="font-black text-[20px] text-[#22c55e] flex items-center justify-center gap-1">
-            <span className="material-symbols-outlined text-[18px]">bolt</span>
+            <span className="material-symbols-outlined text-[18px]">edit_document</span>
             +{speedBonus}
           </p>
         </div>

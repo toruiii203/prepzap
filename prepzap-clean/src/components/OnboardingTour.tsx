@@ -19,12 +19,12 @@ export function OnboardingTour() {
   const steps = [
     {
       title: 'Welcome to Studenius! \uD83E\uDD8A',
-      desc: 'Let’s take a quick 10-second tour to unlock your full potential.',
+      desc: 'Letï¿½s take a quick 10-second tour to unlock your full potential.',
       action: 'Next'
     },
     {
-      title: 'Your AI Tutor',
-      desc: 'Rex is here 24/7 to explain complex topics like you’re 5 years old.',
+      title: 'Your Rex Tutor',
+      desc: 'Rex is here 24/7 to explain complex topics like youï¿½re 5 years old.',
       action: 'Next'
     },
     {

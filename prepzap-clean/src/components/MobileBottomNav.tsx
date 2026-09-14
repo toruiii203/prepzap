@@ -12,7 +12,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
   if (hide) return null;
 
   const tabs = [
-    { name: 'Tutor', path: '/ai-tutor', icon: 'smart_toy' },
+    { name: 'Tutor', path: '/ai-tutor', icon: 'forum' },
     { name: 'Cards', path: '/flashcards', icon: 'style' },
     { name: 'Home', path: '/dashboard', icon: 'home' },
     { name: 'Planner', path: '/planner', icon: 'calendar_month' },

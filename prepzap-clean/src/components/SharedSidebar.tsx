@@ -8,7 +8,7 @@ const NAV_SECTIONS = [
     items: [
       { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
       { icon: "edit_document",  label: "Notes",          route: "/notes" },
-      { icon: "smart_toy",      label: "AI Tutor",       route: "/ai-tutor" },
+      { icon: "forum",      label: "Rex Tutor",       route: "/ai-tutor" },
       { icon: "style",          label: "Flashcards",     route: "/flashcards" },
       { icon: "assignment",     label: "Practice",       route: "/practice" },
       { icon: "timer",          label: "Focus Timer",    route: "/timer" },

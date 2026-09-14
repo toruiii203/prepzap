@@ -47,8 +47,8 @@ export function CommandPalette() {
             <Command.Group heading="Tools" className="px-2 py-2 text-[11px] font-black uppercase text-black/40 tracking-wider">
               {[
                 { name: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
-                { name: 'AI Tutor', icon: 'psychology', route: '/ai-tutor' },
-                { name: 'Flashcards', icon: 'bolt', route: '/flashcards' },
+                { name: 'Rex Tutor', icon: 'psychology', route: '/ai-tutor' },
+                { name: 'Flashcards', icon: 'edit_note', route: '/flashcards' },
                 { name: 'Practice Exams', icon: 'quiz', route: '/practice' },
                 { name: 'Math Solver', icon: 'calculate', route: '/math' },
                 { name: 'Focus Timer', icon: 'timer', route: '/timer' },
