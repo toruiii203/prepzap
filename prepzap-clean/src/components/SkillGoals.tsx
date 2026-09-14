@@ -199,7 +199,7 @@ export function SkillGoals() {
                     className="text-left p-3 border-2 border-black hover:bg-black hover:text-white transition-colors flex items-center justify-between"
                   >
                     <span className="text-[13px] font-black truncate pr-4">{f.name}</span>
-                    <span className="text-[10px] font-bold uppercase shrink-0">Track -></span>
+                    <span className="text-[10px] font-bold uppercase shrink-0">Track &rarr;</span>
                   </button>
                 ))
               )}

@@ -804,7 +804,7 @@ export default function Arena() {
   );
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
+    <div className="w-full min-h-[100dvh] bg-[#f5f0e8] flex"><SharedSidebar active="/arena" /><div className="flex-1 flex flex-col md:ml-64 relative">
       {/* ── Mobile header ── */}
       <header className="md:hidden sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black px-4 py-3 flex justify-between items-center">
         <button
@@ -814,13 +814,11 @@ export default function Arena() {
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
         </button>
-        <div className="text-center">
+        <div className="text-center mx-auto">
           <h1 className="font-black text-[22px] text-black tracking-tight leading-none">Arena</h1>
           <p className="text-[11px] text-black/50 font-medium mt-0.5">Compete. Rank. Win.</p>
         </div>
-        <div className="w-9 h-9 rounded-full border-2 border-black bg-black/10 flex items-center justify-center">
-          <span className="material-symbols-outlined text-[18px]">person</span>
-        </div>
+        
       </header>
 
       {/* ── Desktop header ── */}
@@ -861,7 +859,7 @@ export default function Arena() {
 
       {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} onCreated={(code) => { setShowCreate(false); navigate(`/arena/room/${code}`); }} />}
       {showJoin && <JoinRoomModal onClose={() => setShowJoin(false)} onJoined={(code) => { setShowJoin(false); navigate(`/arena/room/${code}`); }} />}
+        </div>
     </div>
   );
 }
-

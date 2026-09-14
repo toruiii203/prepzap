@@ -62,7 +62,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
     "Student";
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64 overflow-y-auto">
+    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64 overflow-hidden">
       {/* Logo */}
       <div className="mb-6 px-1">
         <h1 className="text-[24px] font-black tracking-tight text-black cursor-pointer" onClick={() => navigate("/dashboard")}>
@@ -71,7 +71,8 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 flex flex-col gap-4 overflow-y-auto pb-4">
+      <div className="flex-1 relative min-h-0">
+        <nav className="h-full flex flex-col gap-4 overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} className="flex flex-col gap-0.5">
             <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 px-2">{section.label}</p>
@@ -93,6 +94,8 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
           </div>
         ))}
       </nav>
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#FAF7F2] to-transparent pointer-events-none" />
+      </div>
 
       {/* Footer */}
       <div className="mt-auto border-t-[1.5px] border-black pt-4 flex flex-col gap-2">

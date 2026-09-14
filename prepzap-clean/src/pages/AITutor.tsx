@@ -6,6 +6,7 @@ import { loadContext, loadLibrary, onSourceChange, saveContext } from "@/lib/sou
 import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
+import { RexDisclaimer } from "@/components/RexDisclaimer";
 
 const FOX = {
   neutral:   "/fox/fox-neutral.png",
@@ -721,7 +722,7 @@ export default function AITutor() {
         {/* Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
           <div className="flex items-center gap-4">
-            <span className="text-[22px] font-black tracking-tight">REX: AI TUTOR</span>
+            <span className="text-[22px] font-black tracking-tight">Rex Tutor</span>
             <div className="w-px h-6 bg-black/20" />
             {activeSource ? (
               <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
