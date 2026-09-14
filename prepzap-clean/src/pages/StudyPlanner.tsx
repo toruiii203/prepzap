@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
+import { SkillGoals } from "@/components/SkillGoals";
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToolHistory } from "@/pages/ToolHistory";
@@ -654,7 +655,7 @@ export default function StudyPlanner() {
               {/* Col 1 — Calendar + Productivity (4 cols) */}
               <div className="col-span-4 flex flex-col gap-5">
                 <CalendarGrid {...calendarProps} />
-                <ProductivityCard productivityScore={productivityScore} />
+                <ProductivityCard productivityScore={productivityScore} sessions={sessions} />
                 {/* Quick actions */}
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -807,7 +808,7 @@ export default function StudyPlanner() {
           </div>
 
           {/* Productivity + Deadlines + Goals — mobile */}
-          <ProductivityCard productivityScore={productivityScore} />
+          <ProductivityCard productivityScore={productivityScore} sessions={sessions} />
           <DeadlinesPanel deadlines={deadlines} onAddClick={() => setShowAddForm(true)} />
           <WeeklyGoalsPanel completedHours={completedHours} doneQuizzes={doneQuizzes} totalQuizzes={totalQuizzes} libCitations={libCitations} />
 

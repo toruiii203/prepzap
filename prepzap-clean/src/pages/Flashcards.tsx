@@ -467,6 +467,15 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             }
 
             // Check perfect recall
+            const scorePct = cards.length > 0 ? Math.round((nextScores.gotIt / cards.length) * 100) : 0;
+            const targetSourceId = cards[0]?.deckId || (activeSourceObj ? activeSourceObj.id : null);
+            await supabase.from("study_activity").insert({
+              user_id: user.id,
+              tool: "flashcards",
+              source_id: targetSourceId,
+              score: scorePct
+            });
+
             if (nextScores.forgot === 0 && nextScores.unsure === 0) {
               await logQuestCompletion(user.id, "perfect-recall");
             }
