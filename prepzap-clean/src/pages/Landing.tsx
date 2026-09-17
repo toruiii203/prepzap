@@ -326,7 +326,7 @@ export default function Studenius() {
             <div style={{ position:"relative", zIndex:10 }}>
               <h2 className="font-display" style={{ fontSize:"clamp(36px,5vw,56px)", fontWeight:900, color:"#fff", marginBottom:16 }}>Ready to go Legendary?</h2>
               <p style={{ color:"rgba(255,255,255,.7)", fontSize:17, marginBottom:32, maxWidth:500, margin:"0 auto 32px" }}>
-                Join the Beta today and be among the first to dominate your exams with Studenius.
+                Join today and start dominating your exams with Studenius.
               </p>
               <button className="neo-btn-primary" onClick={() => navigate("/onboarding")} style={{ padding:"18px 40px", fontSize:22 }}>Start for Free</button>
             </div>

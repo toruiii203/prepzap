@@ -357,11 +357,11 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
             {/* Slide 3 */}
             <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center" }}>
               <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 24, padding: 16, boxShadow: `4px 4px 0 ${BLACK}` }}>
-                <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 14 }}>Beta Tester Access</span>
+                <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 14 }}>Your Ultimate Study Toolkit</span>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {[
-                      { icon: "rocket_launch", quote: "You're one of the first to try Studenius. We're actively building new features based on your feedback.", title: "Early Access" },
-                      { icon: "bug_report", quote: "Help us shape the platform. Found an issue? Let us know so we can fix it instantly.", title: "Shape the Future" },
+                      { icon: "psychology", quote: "Stuck on a concept? Rex explains complex topics instantly so you never fall behind.", title: "Smart Tutor" },
+                      { icon: "edit_note", quote: "Turn messy notes into structured, high-retention flashcards with spaced repetition.", title: "AI Flashcards" },
                     ].map((r, i) => (
                       <div key={i} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 14, padding: 12 }}>
                         <div style={{ color: CTA, fontSize: 24, marginBottom: 4 }}>

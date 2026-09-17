@@ -37,11 +37,7 @@ export function StudeniusLayout() {
           onClick={() => navigate("/dashboard")}
         >
           <span className="text-[22px] font-black tracking-tight text-[#1A1A1A]">Studenius</span>
-          <span
-            className="text-[10px] font-black px-1.5 py-0.5 rounded bg-[#ae2925] text-white tracking-wider"
-          >
-            BETA
-          </span>
+          
         </div>
 
         {/* Nav links */}
