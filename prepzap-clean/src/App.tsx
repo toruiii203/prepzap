@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { setSourceContextUser } from "@/lib/sourceContext";
 import { setHistoryUser } from "@/lib/historyStore";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { AppSkeleton } from "@/components/AppSkeleton";
 import { StudeniusLayout } from "@/components/StudeniusLayout";
 import { App as CapApp } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
@@ -23,9 +24,7 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
   return (
-    <div style={{ position: "fixed", inset: 0, background: "var(--pz-bg, #160810)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-      <img src="/icon-512.png" alt="PrepZap" style={{ width: 120, height: 120, opacity: 0.95 }} />
-    </div>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#FAF7F2" }}><AppSkeleton /></div>
   );
 }
 
@@ -135,13 +134,7 @@ function ProtectedStudeniusLayout() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, needsOnboarding } = useAuth();
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#1a0a0a", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,237,232,0.75)", fontSize: 14 }}>
-        Loading page...
-      </div>
-    );
-  }
+  if (loading) return <AppSkeleton />;
   if (!session) return <Navigate to="/login" replace />;
   if (needsOnboarding) return <Navigate to="/onboarding?step=nameInput" replace />;
   return <>{children}</>;
@@ -149,11 +142,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function MobileRootRedirect() {
   const { session, loading } = useAuth();
-  if (loading) return (
-    <div style={{ minHeight: "100vh", background: "#FAF7F2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <img src="/icon-512.png" alt="Loading" style={{ width: 72, height: 72, opacity: 0.7 }} />
-    </div>
-  );
+  if (loading) return <AppSkeleton />;
   if (session) return <Navigate to="/dashboard" replace />;
   return <Landing />;
 }
@@ -294,12 +283,7 @@ function AppRoutes() {
 
   const safe = (node: React.ReactNode) => (
     <PageErrorBoundary>
-      <Suspense
-        fallback={
-          <div style={{ minHeight: "100vh", background: "#1a0a0a", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,237,232,0.75)", fontSize: 14 }}>
-            Loading page...
-          </div>
-        }
+      <Suspense fallback={<AppSkeleton />}
       >
         {node}
       </Suspense>
