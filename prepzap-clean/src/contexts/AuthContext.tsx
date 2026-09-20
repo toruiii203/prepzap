@@ -426,18 +426,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    // Listen for streak updates from useStudyTimeTracker / bumpStreakIfNeeded
-  useEffect(() => {
-    const handleStreakUpdate = (e: any) => {
-      if (e.detail?.newStreak !== undefined) {
-        setProfile((prev: any) => prev ? { ...prev, streak_days: e.detail.newStreak } : prev);
-      }
-    };
-    window.addEventListener("studenius:streak-updated", handleStreakUpdate);
-    return () => window.removeEventListener("studenius:streak-updated", handleStreakUpdate);
-  }, []);
-
-  return () => {
+    return () => {
       cancelled = true
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
       authChannel?.removeEventListener("message", handleBroadcast)
@@ -491,6 +480,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(AUTH_CACHE_KEY)
     } catch {}
   }, [])
+
+  // Listen for streak updates from useStudyTimeTracker / bumpStreakIfNeeded
+  useEffect(() => {
+    const handleStreakUpdate = (e: any) => {
+      if (e.detail?.newStreak !== undefined) {
+        setProfile((prev: any) => prev ? { ...prev, streak_days: e.detail.newStreak } : prev);
+      }
+    };
+    window.addEventListener("studenius:streak-updated", handleStreakUpdate);
+    return () => window.removeEventListener("studenius:streak-updated", handleStreakUpdate);
+  }, []);
 
   const completeOnboarding = useCallback(() => {
     setNeedsOnboarding(false);
