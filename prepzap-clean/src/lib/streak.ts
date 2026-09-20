@@ -54,5 +54,6 @@ export async function bumpStreakIfNeeded(userId: string): Promise<StreakUpdateRe
     return { streakError: updateError };
   }
 
+  window.dispatchEvent(new CustomEvent("studenius:streak-updated", { detail: { newStreak } }));
   return { streakError: null, newStreak };
 }

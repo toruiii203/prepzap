@@ -1,17 +1,17 @@
 ﻿const fs = require('fs');
 let content = fs.readFileSync('src/components/SharedSidebar.tsx', 'utf8');
 
-// The nav is:
-// <nav className="flex-1 flex flex-col gap-4 overflow-y-auto pb-4">
-// Let's add a scroll indicator mask.
+const regex = /const ROUTE_TO_TOOL_NAME: Record<string, string> = Object\.fromEntries\(\s*NAV_SECTIONS\.flatMap\(\(section\) => section\.items\)\.map\(\(item\) => \[item\.route, item\.label\]\)\s*\);/;
 
-content = content.replace(
-    '<nav className="flex-1 flex flex-col gap-4 overflow-y-auto pb-4">',
-    '<div className="flex-1 relative min-h-0">\n        <nav className="h-full flex flex-col gap-4 overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>'
+const replacement = `const ROUTE_TO_TOOL_NAME: Record<string, string> = Object.fromEntries(
+  NAV_SECTIONS.flatMap((section) => section.items).map((item) => [item.route, item.label])
 );
-content = content.replace(
-    '</nav>',
-    '</nav>\n        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#FAF7F2] to-transparent pointer-events-none" />\n      </div>'
-);
+// DO NOT log time for non-study tools just because they are in the nav.
+delete ROUTE_TO_TOOL_NAME["/dashboard"];
+delete ROUTE_TO_TOOL_NAME["/sources"];
+delete ROUTE_TO_TOOL_NAME["/analytics"];
+delete ROUTE_TO_TOOL_NAME["/planner"];`;
+
+content = content.replace(regex, replacement);
 
 fs.writeFileSync('src/components/SharedSidebar.tsx', content, 'utf8');

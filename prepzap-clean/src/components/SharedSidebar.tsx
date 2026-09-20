@@ -41,6 +41,11 @@ const NAV_SECTIONS = [
 const ROUTE_TO_TOOL_NAME: Record<string, string> = Object.fromEntries(
   NAV_SECTIONS.flatMap((section) => section.items).map((item) => [item.route, item.label])
 );
+// DO NOT log time for non-study tools just because they are in the nav.
+delete ROUTE_TO_TOOL_NAME["/dashboard"];
+delete ROUTE_TO_TOOL_NAME["/sources"];
+delete ROUTE_TO_TOOL_NAME["/analytics"];
+delete ROUTE_TO_TOOL_NAME["/planner"];
 
 interface SharedSidebarProps {
   active: string;
