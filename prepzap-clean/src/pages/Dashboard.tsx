@@ -134,11 +134,11 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{Math.round(Number(session.duration_minutes) || 0)}m &bull; {formattedDate}</div>
+                  <div className="text-[11px] font-bold text-black/50">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m &bull; {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[11px] font-bold text-black/40">{Math.round(Number(session.duration_minutes) || 0)}m studied</div>
+                <div className="text-[11px] font-bold text-black/40">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m studied</div>
               </div>
             </div>
           );
@@ -163,7 +163,7 @@ function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
         return (
           <div key={day} className="flex flex-col items-center justify-end gap-2 group h-full">
             <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-              {dayMinutes[idx] > 0 ? `${Math.round(dayMinutes[idx])}m` : ""}
+              {dayMinutes[idx] > 0 ? (dayMinutes[idx] < 1 ? "<1m" : `${Math.round(dayMinutes[idx])}m`) : ""}
             </span>
             <div
               className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
@@ -305,19 +305,22 @@ export default function Dashboard() {
       const hours = Math.round((totalMins / 60) * 10) / 10;
       setStats({ totalSessions: totalSess, studyTimeHours: hours, avgScore: 0 });
 
-      // Build a map: dayIndex (Mon=0 to Sun=6) -> total minutes studied that day, ONLY for current week
+      // Rolling 7-day window
+      const today = new Date();
+      const windowDays: string[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+        windowDays.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0'));
+      }
+
       const dayMins = new Array(7).fill(0);
       const daysStudied = new Array(7).fill(false);
-      
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dayOfWeek = (startOfToday.getDay() + 6) % 7; // Monday=0, Sunday=6
-      const startOfWeek = new Date(startOfToday.getTime() - dayOfWeek * 86400000);
 
       loadedSessions.forEach((session) => {
-        const d = new Date(session.created_at);
-        if (d.getTime() >= startOfWeek.getTime()) {
-          const idx = (d.getDay() + 6) % 7;
+        // Parse date reliably without timezone shifting
+        const dStr = session.created_at.split("T")[0]; 
+        const idx = windowDays.indexOf(dStr);
+        if (idx !== -1) {
           daysStudied[idx] = true;
           dayMins[idx] += Number(session.duration_minutes) || 0;
         }
@@ -353,7 +356,15 @@ export default function Dashboard() {
   const circumference = 2 * Math.PI * 42; // r=42
   const dashOffset = circumference - (progressPercent / 100) * circumference;
 
-  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const daysOfWeek = useMemo(() => {
+    const today = new Date();
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      days.push(d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase());
+    }
+    return days;
+  }, []);
 
   return (
     <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
@@ -559,7 +570,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-7 gap-1.5">
             {daysOfWeek.map((day, idx) => {
               const studied = studiedDays[idx];
-              const isToday = idx === new Date().getDay() - 1 || (new Date().getDay() === 0 && idx === 6);
+              const isToday = idx === 6;
               return (
                 <div key={day} className="flex flex-col items-center gap-1.5">
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{day[0]}</span>
@@ -688,7 +699,7 @@ export default function Dashboard() {
                   <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
                   <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
                   <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
-                    {Math.round(Number(session.duration_minutes) || 0)}m / {formattedDate}
+                    {Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m / {formattedDate}
                   </div>
                 </div>
               );
