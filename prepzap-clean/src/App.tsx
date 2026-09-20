@@ -18,6 +18,28 @@ import { Browser } from "@capacitor/browser";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { supabase } from "@/lib/supabase";
 
+
+function useMinimumLoading(loading: boolean, minDuration: number = 350) {
+  const [isMinLoading, setIsMinLoading] = useState(true);
+  const [startTime] = useState(Date.now());
+
+  useEffect(() => {
+    if (!loading) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < minDuration) {
+        const timer = setTimeout(() => setIsMinLoading(false), minDuration - elapsed);
+        return () => clearTimeout(timer);
+      } else {
+        setIsMinLoading(false);
+      }
+    } else {
+      setIsMinLoading(true);
+    }
+  }, [loading, minDuration, startTime]);
+
+  return isMinLoading;
+}
+
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 1800);
@@ -133,8 +155,9 @@ function ProtectedStudeniusLayout() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, needsOnboarding } = useAuth();
+  const minLoading = useMinimumLoading(loading, 350);
+  if (minLoading) return <AppSkeleton />;
 
-  if (loading) return <AppSkeleton />;
   if (!session) return <Navigate to="/login" replace />;
   if (needsOnboarding) return <Navigate to="/onboarding?step=nameInput" replace />;
   return <>{children}</>;
@@ -142,7 +165,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function MobileRootRedirect() {
   const { session, loading } = useAuth();
-  if (loading) return <AppSkeleton />;
+  const minLoading = useMinimumLoading(loading, 350);
+  if (minLoading) return <AppSkeleton />;
   if (session) return <Navigate to="/dashboard" replace />;
   return <Landing />;
 }

@@ -331,7 +331,7 @@ export default function ArenaResults() {
           return (
             <div key={i} className={i < questions.length - 1 ? "border-b-2 border-black" : ""}>
               <button onClick={() => setExpandedQ(isExpanded ? null : i)}
-                className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors ${!correct ? "hover:bg-red-50" : "hover:bg-[#f5f0e8]"}`}>
+                className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors ${!correct ? "hover:bg-red-50" : "hover:bg-[#FAF7F2]"}`}>
                 <span className={`material-symbols-outlined text-[20px] flex-shrink-0 mt-0.5 ${correct ? "text-green-600" : "text-[#E8534A]"}`}
                   style={{ fontVariationSettings: "'FILL' 1" }}>
                   {correct ? "check_circle" : "cancel"}
@@ -350,7 +350,7 @@ export default function ArenaResults() {
                     <span className="text-black/30">·</span>
                     <span className="font-bold text-green-600">Correct: {q.correct_answer}</span>
                   </div>
-                  <div className="bg-[#f5f0e8] border-2 border-black p-3">
+                  <div className="bg-[#FAF7F2] border-2 border-black p-3">
                     <p className="text-[12px] font-medium text-black leading-relaxed">{q.explanation}</p>
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export default function ArenaResults() {
 
   const RematchCard = () => (
     <div className="border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] p-8 flex flex-col items-center justify-center text-center">
-      <div className="w-16 h-16 rounded-full border-2 border-black bg-[#f5f0e8] flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-full border-2 border-black bg-[#FAF7F2] flex items-center justify-center mb-4">
         <span className="material-symbols-outlined text-[32px]">replay</span>
       </div>
       <h3 className="font-black text-[22px] text-black mb-2">REMATCH?</h3>
@@ -381,9 +381,9 @@ export default function ArenaResults() {
   );
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
+    <div className="flex flex-col min-h-[100dvh] bg-[#FAF7F2]">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black px-4 md:px-8 py-3 flex justify-between items-center">
+      <header className="sticky top-0 z-30 bg-[#FAF7F2] border-b-[1.5px] border-black px-4 md:px-8 py-3 flex justify-between items-center">
         <button onClick={() => navigate("/arena")} className="flex items-center gap-1 font-bold text-[13px] text-black/50">
           <span className="material-symbols-outlined text-[20px]">arrow_back</span>Arena
         </button>
@@ -405,7 +405,7 @@ export default function ArenaResults() {
       </div>
 
       {/* Mobile bottom actions */}
-      <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 py-4 z-20 flex flex-col gap-3">
+      <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FAF7F2] border-t-2 border-black px-4 py-4 z-20 flex flex-col gap-3">
         {!isDaily && (
           <button onClick={() => navigate(`/arena/room/${code}`)}
             className="w-full bg-black text-white font-bold text-[15px] py-3.5 border-2 border-black shadow-[4px_4px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-2">

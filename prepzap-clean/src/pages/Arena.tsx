@@ -158,9 +158,9 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
       style={{ background: "rgba(0,0,0,0.55)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="w-full md:w-[520px] md:max-h-[85vh] bg-[#f5f0e8] md:rounded-none rounded-t-[24px] border-t-[3px] md:border-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col relative"
+      <div className="w-full md:w-[520px] md:max-h-[85vh] bg-[#FAF7F2] md:rounded-none rounded-t-[24px] border-t-[3px] md:border-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col relative"
         style={{ maxHeight: "90dvh" }}>
-        <div className="flex flex-col items-center md:items-start pt-3 pb-3 px-5 border-b-2 border-black sticky top-0 bg-[#f5f0e8] rounded-t-[24px] md:rounded-none z-10">
+        <div className="flex flex-col items-center md:items-start pt-3 pb-3 px-5 border-b-2 border-black sticky top-0 bg-[#FAF7F2] rounded-t-[24px] md:rounded-none z-10">
           <div className="w-10 h-1 bg-black/20 rounded-full mb-3 md:hidden" />
           <div className="w-full flex justify-between items-center">
             <h2 className="font-bold text-[18px] text-black">Create a Room</h2>
@@ -308,7 +308,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
           {error && <p className="text-[13px] text-red-600 border-2 border-red-400 px-3 py-2 bg-red-50">{error}</p>}
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 bg-[#f5f0e8] border-t-2 border-black px-5 py-4">
+        <div className="absolute bottom-0 left-0 right-0 bg-[#FAF7F2] border-t-2 border-black px-5 py-4">
           <p className="text-center text-[11px] text-black/40 mb-2">{loadingMsg || "Room code generated automatically."}</p>
           <button onClick={handleCreate} disabled={loading}
             className="w-full bg-black text-white font-bold text-[15px] py-3.5 border-2 border-black shadow-[4px_4px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2">
@@ -364,7 +364,7 @@ function JoinRoomModal({ onClose, onJoined }: { onClose: () => void; onJoined: (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
       style={{ background: "rgba(0,0,0,0.55)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="w-full md:w-[440px] bg-[#f5f0e8] rounded-t-[24px] md:rounded-none border-t-[3px] md:border-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col">
+      <div className="w-full md:w-[440px] bg-[#FAF7F2] rounded-t-[24px] md:rounded-none border-t-[3px] md:border-[3px] border-l-[3px] border-r-[3px] border-black flex flex-col">
         <div className="flex flex-col items-center md:items-start pt-3 pb-3 px-5 border-b-2 border-black rounded-t-[24px] md:rounded-none">
           <div className="w-10 h-1 bg-black/20 rounded-full mb-3 md:hidden" />
           <div className="w-full flex justify-between items-center">
@@ -804,9 +804,9 @@ export default function Arena() {
   );
 
   return (
-    <div className="w-full min-h-[100dvh] bg-[#f5f0e8] flex"><SharedSidebar active="/arena" /><div className="flex-1 flex flex-col md:ml-64 relative">
+    <div className="w-full min-h-[100dvh] bg-[#FAF7F2] flex"><SharedSidebar active="/arena" /><div className="flex-1 flex flex-col md:ml-64 relative">
       {/* ── Mobile header ── */}
-      <header className="md:hidden sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black px-4 py-3 flex justify-between items-center">
+      <header className="md:hidden sticky top-0 z-30 bg-[#FAF7F2] border-b-[1.5px] border-black px-4 py-3 flex justify-between items-center">
         <button
           onClick={() => navigate("/dashboard")}
           className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white rounded-full shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"

@@ -231,11 +231,7 @@ export default function ArenaRoom() {
   };
 
   // ── Loading state ──────────────────────────────────────────────────────────
-  if (loading) return (
-    <div className="min-h-[100dvh] bg-[#f5f0e8] flex items-center justify-center">
-      <span className="material-symbols-outlined animate-spin text-[32px]">progress_activity</span>
-    </div>
-  );
+  if (loading) return <AppSkeleton />;
   if (!room) return null;
 
   const readyCount = players.filter((p) => p.status === "ready").length;
@@ -254,7 +250,7 @@ export default function ArenaRoom() {
             {playerIsHost && (
               <span className="absolute -top-2.5 -right-2.5 bg-[#f0a040] border-2 border-black text-[9px] font-black px-1.5 py-0.5">HOST</span>
             )}
-            <div className={`w-11 h-11 rounded-full border-2 border-black flex items-center justify-center font-black text-[16px] ${isMe ? "bg-black text-white" : "bg-[#f5f0e8]"}`}>
+            <div className={`w-11 h-11 rounded-full border-2 border-black flex items-center justify-center font-black text-[16px] ${isMe ? "bg-black text-white" : "bg-[#FAF7F2]"}`}>
               {player.display_name.charAt(0).toUpperCase()}
             </div>
             <p className="font-bold text-[13px] text-black truncate w-full text-center">{isMe ? "You" : player.display_name}</p>
@@ -321,7 +317,7 @@ export default function ArenaRoom() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
+    <div className="flex flex-col min-h-[100dvh] bg-[#FAF7F2]">
 
       {/* Countdown overlay */}
       {countdown !== null && (
@@ -332,7 +328,7 @@ export default function ArenaRoom() {
       )}
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black px-4 md:px-8 py-3 flex justify-between items-center">
+      <header className="sticky top-0 z-30 bg-[#FAF7F2] border-b-[1.5px] border-black px-4 md:px-8 py-3 flex justify-between items-center">
         <button onClick={handleLeave} className="flex items-center gap-1 font-bold text-[13px] text-black/60">
           <span className="material-symbols-outlined text-[20px]">arrow_back</span>Leave
         </button>
@@ -410,7 +406,7 @@ export default function ArenaRoom() {
           any persistent app-level bottom tab bar, which was overlapping and
           blocking taps on Start/Ready/Leave. */}
       <div
-        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 pt-4 z-[100]"
+        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FAF7F2] border-t-2 border-black px-4 pt-4 z-[100]"
         style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
       >
         <ActionButtons />
@@ -441,7 +437,7 @@ export default function ArenaRoom() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono font-black text-[18px] border-2 border-black px-3 py-1.5 bg-[#f5f0e8] tracking-widest shadow-[2px_2px_0px_0px_#000]">
+                <span className="font-mono font-black text-[18px] border-2 border-black px-3 py-1.5 bg-[#FAF7F2] tracking-widest shadow-[2px_2px_0px_0px_#000]">
                   {room.code}
                 </span>
                 <button
@@ -500,7 +496,7 @@ export default function ArenaRoom() {
             {chatLog.map((msg, i) => (
               <div key={i} className={`flex flex-col gap-0.5 ${msg.isMe ? "items-end" : "items-start"}`}>
                 <span className="text-[10px] font-bold text-black/40">{msg.name}</span>
-                <div className={`px-3 py-2 border-2 border-black text-[13px] font-medium max-w-[85%] ${msg.isMe ? "bg-black text-white shadow-[2px_2px_0px_0px_#f0a040]" : "bg-[#f5f0e8] text-black shadow-[2px_2px_0px_0px_#000]"}`}>
+                <div className={`px-3 py-2 border-2 border-black text-[13px] font-medium max-w-[85%] ${msg.isMe ? "bg-black text-white shadow-[2px_2px_0px_0px_#f0a040]" : "bg-[#FAF7F2] text-black shadow-[2px_2px_0px_0px_#000]"}`}>
                   {msg.text}
                 </div>
               </div>
@@ -512,7 +508,7 @@ export default function ArenaRoom() {
               onChange={(e) => setChatMsg(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendChat()}
               placeholder="Type a message..."
-              className="flex-1 border-2 border-black px-3 py-2 text-[13px] font-medium focus:outline-none bg-[#f5f0e8]"
+              className="flex-1 border-2 border-black px-3 py-2 text-[13px] font-medium focus:outline-none bg-[#FAF7F2]"
             />
             <button
               onClick={sendChat}
@@ -566,7 +562,7 @@ function MobileChatSection({
             {chatLog.map((msg, i) => (
               <div key={i} className={`flex flex-col gap-0.5 ${msg.isMe ? "items-end" : "items-start"}`}>
                 <span className="text-[10px] font-bold text-black/40">{msg.name}</span>
-                <div className={`px-3 py-2 border-2 border-black text-[12px] font-medium max-w-[85%] ${msg.isMe ? "bg-black text-white" : "bg-[#f5f0e8] text-black"}`}>
+                <div className={`px-3 py-2 border-2 border-black text-[12px] font-medium max-w-[85%] ${msg.isMe ? "bg-black text-white" : "bg-[#FAF7F2] text-black"}`}>
                   {msg.text}
                 </div>
               </div>
@@ -578,7 +574,7 @@ function MobileChatSection({
               onChange={(e) => setChatMsg(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendChat()}
               placeholder="Type a message..."
-              className="flex-1 border-2 border-black px-3 py-2 text-[13px] font-medium focus:outline-none bg-[#f5f0e8]"
+              className="flex-1 border-2 border-black px-3 py-2 text-[13px] font-medium focus:outline-none bg-[#FAF7F2]"
             />
             <button
               onClick={sendChat}

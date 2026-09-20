@@ -509,20 +509,15 @@ export default function ArenaQuiz() {
     : `${room?.topic} � ${room?.difficulty}`;
 
   // -- Loading ----------------------------------------------------------------
-  if (loading) return (
-    <div className="min-h-[100dvh] bg-[#f5f0e8] flex flex-col items-center justify-center gap-3">
-      <span className="material-symbols-outlined animate-spin text-[36px]">progress_activity</span>
-      <p className="font-bold text-[14px] text-black/50">Loading quiz...</p>
-    </div>
-  );
+  if (loading) return <AppSkeleton />;
   if (!q) return null;
 
   // -- Render -----------------------------------------------------------------
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#f5f0e8]">
+    <div className="flex flex-col min-h-[100dvh] bg-[#FAF7F2]">
 
       {/* -- Header (shared) -- */}
-      <header className="sticky top-0 z-30 bg-[#f5f0e8] border-b-[1.5px] border-black shadow-[0_2px_0px_rgba(0,0,0,0.05)]">
+      <header className="sticky top-0 z-30 bg-[#FAF7F2] border-b-[1.5px] border-black shadow-[0_2px_0px_rgba(0,0,0,0.05)]">
         <div className="grid grid-cols-3 items-center px-4 md:px-8 py-3">
           <div className="flex justify-start">
             <button
@@ -568,8 +563,8 @@ export default function ArenaQuiz() {
 
         {/* Question card */}
         <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-5 relative">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 bg-[#f5f0e8] border-2 border-black rounded-full" />
-          <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#f5f0e8] mb-3">
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 bg-[#FAF7F2] border-2 border-black rounded-full" />
+          <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#FAF7F2] mb-3">
             {difficultyLabel}
           </span>
           <p className="font-black text-[17px] text-black leading-snug">{q.question}</p>
@@ -622,14 +617,14 @@ export default function ArenaQuiz() {
 
       {/* Mobile bottom nav */}
       <div
-        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#f5f0e8] border-t-2 border-black px-4 pt-4 z-[100]"
+        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FAF7F2] border-t-2 border-black px-4 pt-4 z-[100]"
         style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
       >
         <div className="flex gap-3">
           <button
             onClick={() => handleNavQ(Math.max(0, currentQ - 1))}
             disabled={currentQ === 0}
-            className="flex-1 bg-[#f5f0e8] border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-30"
+            className="flex-1 bg-[#FAF7F2] border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-30"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>Prev
           </button>
@@ -663,7 +658,7 @@ export default function ArenaQuiz() {
 
             {/* Question card */}
             <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-6">
-              <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#f5f0e8] mb-4">
+              <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#FAF7F2] mb-4">
                 {difficultyLabel}
               </span>
               <p className="font-black text-[22px] text-black leading-snug">{q.question}</p>
@@ -681,7 +676,7 @@ export default function ArenaQuiz() {
                     className={`border-2 border-black p-5 flex items-start gap-4 text-left transition-all active:translate-x-[2px] active:translate-y-[2px] ${
                       selected
                         ? "bg-black text-white shadow-[4px_4px_0px_0px_#f0a040]"
-                        : "bg-white text-black shadow-[4px_4px_0px_0px_#000] hover:bg-[#f5f0e8]"
+                        : "bg-white text-black shadow-[4px_4px_0px_0px_#000] hover:bg-[#FAF7F2]"
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black text-[14px] flex-shrink-0 mt-0.5 ${selected ? "border-white bg-white text-black" : "border-black bg-white text-black"}`}>
@@ -758,7 +753,7 @@ export default function ArenaQuiz() {
                       ? "bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] -translate-x-0.5 -translate-y-0.5"
                       : answers[i]
                         ? "bg-black text-white"
-                        : "bg-white hover:bg-[#f5f0e8]"
+                        : "bg-white hover:bg-[#FAF7F2]"
                   }`}
                 >
                   {i + 1}
@@ -782,14 +777,14 @@ export default function ArenaQuiz() {
 
           {/* Question Timer (multiplayer only) */}
           {!isDaily && (
-            <div className="p-4 border-b-2 border-black flex flex-col items-center justify-center bg-[#f5f0e8]">
+            <div className="p-4 border-b-2 border-black flex flex-col items-center justify-center bg-[#FAF7F2]">
               <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Question Time</p>
               <QTimerRing qTimeLeft={qTimeLeft} />
             </div>
           )}
 
           {/* Big timer */}
-          <div className={`p-4 border-b-2 border-black text-center ${isLow ? "bg-[#E8534A]" : "bg-[#f5f0e8]"}`}>
+          <div className={`p-4 border-b-2 border-black text-center ${isLow ? "bg-[#E8534A]" : "bg-[#FAF7F2]"}`}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mb-1">Total Time Left</p>
             <p className={`font-black text-[36px] leading-none ${isLow ? "text-white" : "text-black"}`}>{formatTime(timeLeft)}</p>
           </div>
