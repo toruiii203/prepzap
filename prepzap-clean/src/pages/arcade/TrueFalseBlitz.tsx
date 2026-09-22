@@ -4,14 +4,14 @@ import { SharedSidebar } from "@/components/SharedSidebar";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateGameContent, TrueFalseStatement } from "@/lib/arcadePipeline";
-import { useSourceContext } from "@/lib/sourceContext";
+import { getActiveSource } from "@/lib/sourceContext";
 import { supabase } from "@/lib/supabase";
 import { logQuestCompletion } from "@/lib/quests";
 
 export default function TrueFalseBlitz() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { state: ctx } = useSourceContext();
+  const activeSource = getActiveSource();
 
   const [statements, setStatements] = useState<TrueFalseStatement[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -35,8 +35,8 @@ export default function TrueFalseBlitz() {
       setFlash(null);
 
       try {
-        const sourceText = ctx.activeSourceObj?.fullText || ctx.activeSourceObj?.preview || "general knowledge";
-        const sourceId = ctx.activeSourceObj?.id || "";
+        const sourceText = activeSource?.fullText || activeSource?.preview || "general knowledge";
+        const sourceId = activeSource?.id || "";
         
         const data = await generateGameContent(sourceText, sourceId, "true_false");
         // We might get e.g. 10 statements.
@@ -47,7 +47,7 @@ export default function TrueFalseBlitz() {
       }
     }
     loadGame();
-  }, [ctx.activeSourceObj]);
+  }, [activeSource]);
 
   useEffect(() => {
     if (status === "playing") {
@@ -100,7 +100,7 @@ export default function TrueFalseBlitz() {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!user) return;
 
-    const sourceId = ctx.activeSourceObj?.id || null;
+    const sourceId = activeSource?.id || null;
     const finalScore = (score * 10) + (longestStreak * 5); 
     
     try {

@@ -1,5 +1,4 @@
-﻿import { callGroq } from "./groq";
-import { safeParseJSON } from "./jsonParser";
+﻿import { callGroq, safeParseJSON } from "./groq";
 import { supabase } from "./supabase";
 
 export type ArcadeGameType = "memory_match" | "true_false" | "termle";

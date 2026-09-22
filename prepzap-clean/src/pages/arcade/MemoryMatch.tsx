@@ -4,7 +4,7 @@ import { SharedSidebar } from "@/components/SharedSidebar";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateGameContent, MemoryMatchPair } from "@/lib/arcadePipeline";
-import { useSourceContext } from "@/lib/sourceContext";
+import { getActiveSource } from "@/lib/sourceContext";
 import { supabase } from "@/lib/supabase";
 import { logQuestCompletion } from "@/lib/quests";
 
@@ -19,7 +19,7 @@ interface Card {
 export default function MemoryMatch() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { state: ctx } = useSourceContext();
+  const activeSource = getActiveSource();
 
   const [cards, setCards] = useState<Card[]>([]);
   const [moves, setMoves] = useState(0);
@@ -39,8 +39,8 @@ export default function MemoryMatch() {
 
       try {
         // Fallback to empty string if no active source
-        const sourceText = ctx.activeSourceObj?.fullText || ctx.activeSourceObj?.preview || "general knowledge";
-        const sourceId = ctx.activeSourceObj?.id || "";
+        const sourceText = activeSource?.fullText || activeSource?.preview || "general knowledge";
+        const sourceId = activeSource?.id || "";
         
         const data = await generateGameContent(sourceText, sourceId, "memory_match");
         
@@ -63,7 +63,7 @@ export default function MemoryMatch() {
     }
 
     loadGame();
-  }, [ctx.activeSourceObj]);
+  }, [activeSource]);
 
   useEffect(() => {
     if (status === "playing" && startTime) {
@@ -130,7 +130,7 @@ export default function MemoryMatch() {
     if (!user) return;
 
     // Log to study_activity
-    const sourceId = ctx.activeSourceObj?.id || null;
+    const sourceId = activeSource?.id || null;
     const finalScore = Math.max(0, 1000 - (moves * 10) - elapsedTime); // Basic arbitrary scoring
     
     try {

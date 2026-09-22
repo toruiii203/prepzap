@@ -4,14 +4,14 @@ import { SharedSidebar } from "@/components/SharedSidebar";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateGameContent, TermleWord } from "@/lib/arcadePipeline";
-import { useSourceContext } from "@/lib/sourceContext";
+import { getActiveSource } from "@/lib/sourceContext";
 import { supabase } from "@/lib/supabase";
 import { logQuestCompletion } from "@/lib/quests";
 
 export default function Termle() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { state: ctx } = useSourceContext();
+  const activeSource = getActiveSource();
 
   const [targetWord, setTargetWord] = useState<string>("");
   const [targetHint, setTargetHint] = useState<string>("");
@@ -30,8 +30,8 @@ export default function Termle() {
       setHintUsed(false);
 
       try {
-        const sourceText = ctx.activeSourceObj?.fullText || ctx.activeSourceObj?.preview || "general knowledge";
-        const sourceId = ctx.activeSourceObj?.id || "";
+        const sourceText = activeSource?.fullText || activeSource?.preview || "general knowledge";
+        const sourceId = activeSource?.id || "";
         
         const data = await generateGameContent(sourceText, sourceId, "termle");
         // Pick random word from the 5
@@ -44,13 +44,13 @@ export default function Termle() {
       }
     }
     loadGame();
-  }, [ctx.activeSourceObj]);
+  }, [activeSource]);
 
   const handleGameOver = async (finalStatus: "won" | "lost", finalGuesses: string[]) => {
     setStatus(finalStatus);
     if (!user) return;
 
-    const sourceId = ctx.activeSourceObj?.id || null;
+    const sourceId = activeSource?.id || null;
     let finalScore = 0;
     if (finalStatus === "won") {
       finalScore = (MAX_GUESSES - finalGuesses.length + 1) * 100;
