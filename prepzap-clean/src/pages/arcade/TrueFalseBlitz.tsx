@@ -11,7 +11,8 @@ import { logQuestCompletion } from "@/lib/quests";
 export default function TrueFalseBlitz() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const activeSource = getActiveSource();
+  const activeSourceForDep = getActiveSource();
+  const activeSourceId = activeSourceForDep?.id || "";
 
   const [statements, setStatements] = useState<TrueFalseStatement[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -26,6 +27,7 @@ export default function TrueFalseBlitz() {
 
   useEffect(() => {
     async function loadGame() {
+      const activeSource = getActiveSource();
       setStatus("loading");
       setScore(0);
       setStreak(0);
@@ -47,7 +49,7 @@ export default function TrueFalseBlitz() {
       }
     }
     loadGame();
-  }, [activeSource]);
+  }, [activeSourceId]);
 
   useEffect(() => {
     if (status === "playing") {
@@ -100,7 +102,8 @@ export default function TrueFalseBlitz() {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!user) return;
 
-    const sourceId = activeSource?.id || null;
+    const currentSource = getActiveSource();
+    const sourceId = currentSource?.id || null;
     const finalScore = (score * 10) + (longestStreak * 5); 
     
     try {

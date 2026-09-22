@@ -19,7 +19,8 @@ interface Card {
 export default function MemoryMatch() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const activeSource = getActiveSource();
+  const activeSourceForDep = getActiveSource();
+  const activeSourceId = activeSourceForDep?.id || "";
 
   const [cards, setCards] = useState<Card[]>([]);
   const [moves, setMoves] = useState(0);
@@ -31,6 +32,7 @@ export default function MemoryMatch() {
 
   useEffect(() => {
     async function loadGame() {
+      const activeSource = getActiveSource();
       setStatus("loading");
       setCards([]);
       setMoves(0);
@@ -63,7 +65,7 @@ export default function MemoryMatch() {
     }
 
     loadGame();
-  }, [activeSource]);
+  }, [activeSourceId]);
 
   useEffect(() => {
     if (status === "playing" && startTime) {
@@ -130,7 +132,8 @@ export default function MemoryMatch() {
     if (!user) return;
 
     // Log to study_activity
-    const sourceId = activeSource?.id || null;
+    const currentSource = getActiveSource();
+    const sourceId = currentSource?.id || null;
     const finalScore = Math.max(0, 1000 - (moves * 10) - elapsedTime); // Basic arbitrary scoring
     
     try {

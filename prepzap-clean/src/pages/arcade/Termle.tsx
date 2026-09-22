@@ -11,7 +11,8 @@ import { logQuestCompletion } from "@/lib/quests";
 export default function Termle() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const activeSource = getActiveSource();
+  const activeSourceForDep = getActiveSource();
+  const activeSourceId = activeSourceForDep?.id || "";
 
   const [targetWord, setTargetWord] = useState<string>("");
   const [targetHint, setTargetHint] = useState<string>("");
@@ -24,6 +25,7 @@ export default function Termle() {
 
   useEffect(() => {
     async function loadGame() {
+      const activeSource = getActiveSource();
       setStatus("loading");
       setGuesses([]);
       setCurrentGuess("");
@@ -44,13 +46,14 @@ export default function Termle() {
       }
     }
     loadGame();
-  }, [activeSource]);
+  }, [activeSourceId]);
 
   const handleGameOver = async (finalStatus: "won" | "lost", finalGuesses: string[]) => {
     setStatus(finalStatus);
     if (!user) return;
 
-    const sourceId = activeSource?.id || null;
+    const currentSource = getActiveSource();
+    const sourceId = currentSource?.id || null;
     let finalScore = 0;
     if (finalStatus === "won") {
       finalScore = (MAX_GUESSES - finalGuesses.length + 1) * 100;
