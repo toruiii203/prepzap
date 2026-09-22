@@ -131,10 +131,9 @@ import MistakeJournal from "./pages/MistakeJournal";
 // ── Arena ────────────────────────────────────────────────────────────────────
 import Arena from "./pages/Arena";
 import Arcade from "./pages/Arcade";
-// Import games here when created: 
-// import MemoryMatch from "./pages/arcade/MemoryMatch";
-// import TrueFalseBlitz from "./pages/arcade/TrueFalseBlitz";
-// import Termle from "./pages/arcade/Termle";
+import MemoryMatch from "./pages/arcade/MemoryMatch";
+import TrueFalseBlitz from "./pages/arcade/TrueFalseBlitz";
+import Termle from "./pages/arcade/Termle";
 import ArenaRoom from "./pages/ArenaRoom";
 import ArenaQuiz from "./pages/ArenaQuiz";
 import ArenaResults from "./pages/ArenaResults";
