@@ -374,6 +374,10 @@ function AppRoutes() {
           <Route path="/arena/room/:code" element={<ArenaRoom />} />
           <Route path="/arena/quiz/:code" element={<ArenaQuiz />} />
           <Route path="/arena/results/:code" element={<ArenaResults />} />
+          <Route path="/arcade" element={<Arcade />} />
+          <Route path="/arcade/memory-match" element={<MemoryMatch />} />
+          <Route path="/arcade/true-false" element={<TrueFalseBlitz />} />
+          <Route path="/arcade/termle" element={<Termle />} />
         </Route>
 
         {/* Catch-all */}
