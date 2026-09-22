@@ -24,7 +24,7 @@ DROP POLICY IF EXISTS "Users can insert own presence" ON public.room_presence;
 DROP POLICY IF EXISTS "Users can update own presence" ON public.room_presence;
 DROP POLICY IF EXISTS "Users can delete own presence" ON public.room_presence;
 
-﻿-- Create Notes Table
+-- Create Notes Table
 CREATE TABLE IF NOT EXISTS public.notes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -86,6 +86,8 @@ USING (
         AND notes.user_id = auth.uid()
     )
 );
+
+
 -- Fix missing profiles
 insert into public.profiles (id, full_name, email, plan, streak_days, onboarding_complete)
 select id, raw_user_meta_data->>'full_name', email, 'free', 0, true
@@ -104,6 +106,8 @@ with check (auth.uid() = user_id);
 create policy "Users can view their own usage logs"
 on usage_logs for select
 using (auth.uid() = user_id);
+
+
 CREATE TABLE public.user_skills (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES auth.users NOT NULL,
@@ -130,6 +134,8 @@ CREATE POLICY "Users can manage their own study activity" ON public.study_activi
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE INDEX idx_study_activity_user_source ON public.study_activity (user_id, source_id);
+
+
 -- 1. ARCADE CACHE TABLE
 CREATE TABLE IF NOT EXISTS public.arcade_cache (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -167,6 +173,8 @@ CREATE POLICY "Users can read own study activity" ON public.study_activity FOR S
 CREATE POLICY "Users can insert own study activity" ON public.study_activity FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_study_activity_user_source ON public.study_activity (user_id, source_id);
+
+
 CREATE TABLE IF NOT EXISTS public.daily_challenge_submissions (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -230,3 +238,5 @@ CREATE POLICY "Anyone can read room presence" ON public.room_presence FOR SELECT
 CREATE POLICY "Users can insert own presence" ON public.room_presence FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own presence" ON public.room_presence FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete own presence" ON public.room_presence FOR DELETE USING (auth.uid() = user_id);
+
+
