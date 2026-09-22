@@ -532,7 +532,7 @@ export default function Arena() {
         // refresh, backgrounded tab, flaky reconnect) this await would
         // otherwise hang forever with no error — which is what left this
         // leaderboard spinning indefinitely.
-        const { data } = await withTimeout(query, 8000, "daily leaderboard");
+        const { data } = await withTimeout(query, 4000, "daily leaderboard");
         if (data) {
           entries = data.map((row, i) => ({
             user_id: row.user_id,
@@ -597,7 +597,7 @@ export default function Arena() {
           query = query.eq("is_public", true);
         }
 
-        const { data } = await withTimeout(query, 8000, "exam rooms");
+        const { data } = await withTimeout(query, 4000, "exam rooms");
         if (!cancelled) setRooms(data ?? []);
       } catch (err) {
         console.warn("Exam rooms fetch error:", err);
