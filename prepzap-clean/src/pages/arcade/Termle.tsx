@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
+import { AttachSourcePill } from "@/components/AttachSourcePill";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateGameContent, TermleWord } from "@/lib/arcadePipeline";
 import { getActiveSource } from "@/lib/sourceContext";
@@ -155,11 +155,11 @@ export default function Termle() {
               </h1>
             </div>
           </div>
-          <GlobalContextBar compact />
+          <AttachSourcePill />
         </header>
 
         <main className="flex-1 p-4 md:p-8 flex flex-col items-center pb-24">
-          <div className="md:hidden w-full mb-4 flex justify-center"><GlobalContextBar /></div>
+          <div className="md:hidden w-full mb-4 flex justify-center"><AttachSourcePill /></div>
 
           {status === "loading" ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center">

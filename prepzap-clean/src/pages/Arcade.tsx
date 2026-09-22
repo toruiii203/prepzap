@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { SourcePicker } from "@/components/SourcePicker";
-import { GlobalContextBar } from "@/components/GlobalContextBar";
+import { AttachSourcePill } from "@/components/AttachSourcePill";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
@@ -39,14 +39,14 @@ export default function Arcade() {
               <p className="text-[13px] text-black/50 font-medium mt-1">Play games based on your study materials.</p>
             </div>
             <div className="flex items-center gap-4">
-              <GlobalContextBar compact />
+              <AttachSourcePill />
               <button onClick={() => tutorial.show()} className="w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"><span className="material-symbols-outlined text-[20px]">help</span></button>
             </div>
           </header>
 
           <main className="flex-1 p-6 md:p-8 overflow-y-auto">
             <div className="md:hidden mb-6">
-              <GlobalContextBar />
+              <AttachSourcePill />
             </div>
 
             <h2 className="text-[18px] font-black mb-6">Select a Game</h2>
