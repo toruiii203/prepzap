@@ -117,7 +117,7 @@ DROP POLICY IF EXISTS "Users can manage their own study activity" ON public.stud
 CREATE POLICY "Users can manage their own study activity" ON public.study_activity 
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE INDEX idx_study_activity_user_source ON public.study_activity (user_id, source_id);
+CREATE INDEX IF NOT EXISTS idx_study_activity_user_source ON public.study_activity (user_id, source_id);
 
 
 -- 1. ARCADE CACHE TABLE
