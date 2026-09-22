@@ -805,37 +805,9 @@ export default function Arena() {
 
   return (
     <div className="w-full min-h-[100dvh] bg-[#FAF7F2] flex"><SharedSidebar active="/arena" /><div className="flex-1 flex flex-col md:ml-64 relative">
-      {/* ── Mobile header ── */}
-      <header className="md:hidden sticky top-0 z-30 bg-[#FAF7F2] border-b-[1.5px] border-black px-4 py-3 flex justify-between items-center">
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white rounded-full shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
-          aria-label="Back to dashboard"
-        >
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-        </button>
-        <div className="text-center mx-auto">
-          <h1 className="font-black text-[22px] text-black tracking-tight leading-none">Arena</h1>
-          <p className="text-[11px] text-black/50 font-medium mt-0.5">Compete. Rank. Win.</p>
-        </div>
-        
-      </header>
+      
 
-      {/* ── Desktop header ── */}
-      <header className="hidden md:flex items-end justify-between px-8 pt-8 pb-4 border-b-2 border-black">
-        <div className="flex items-end gap-4">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="flex items-center gap-1.5 px-3 py-2 border-2 border-black bg-white font-bold text-[13px] shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all mb-1"
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>Dashboard
-          </button>
-          <div>
-            <h1 className="font-black text-[36px] text-black tracking-tight leading-none">Arena</h1>
-            <p className="text-[13px] text-black/50 font-medium mt-1">Test your knowledge and compete with peers.</p>
-          </div>
-        </div>
-      </header>
+      
 
       {/* ── Mobile layout ── */}
       <div className="md:hidden flex flex-col gap-6 px-4 pt-5 pb-24">

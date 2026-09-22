@@ -117,7 +117,7 @@ export function SkillGoals() {
       {showBanner && (
         <div className="bg-[#FEF9EE] border-2 border-[#E8A020] p-3 mb-4 flex justify-between items-start gap-2">
           <p className="text-[12px] font-bold text-[#92600A] leading-snug">
-            Skill tracking starts today ?" progress builds as you keep studying.
+            Skill tracking starts today — progress builds as you keep studying.
           </p>
           <button onClick={dismissBanner} className="text-[#92600A] hover:text-black font-black text-[14px]">×</button>
         </div>

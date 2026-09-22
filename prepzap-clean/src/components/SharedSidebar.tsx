@@ -24,6 +24,7 @@ const NAV_SECTIONS = [
       { icon: "auto_stories",   label: "Mistake Journal",route: "/mistakes" },
       { icon: "military_tech",  label: "Challenges",     route: "/challenges" },
       { icon: "sports_esports", label: "Arena",          route: "/arena" },
+        { icon: "stadia_controller", label: "Arcade",         route: "/arcade" },
     ],
   },
   {
@@ -75,9 +76,24 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         </h1>
       </div>
 
-      {/* Nav */}
+      
+        <style>{`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: #FAF7F2;
+            border-left: 1.5px solid black;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: black;
+            border: 1.5px solid black;
+          }
+        `}</style>
+        {/* Nav */}
+
       <div className="flex-1 relative min-h-0">
-        <nav className="h-full flex flex-col gap-4 overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
+        <nav className="h-full flex flex-col gap-4 overflow-y-auto pb-4 custom-scrollbar" >
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} className="flex flex-col gap-0.5">
             <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 px-2">{section.label}</p>

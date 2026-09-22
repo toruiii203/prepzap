@@ -2,6 +2,9 @@ import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
@@ -57,6 +60,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
             {tasks.map((task) => (
               <div key={task.id} className="flex items-center gap-3 justify-between">
                 <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => tutorial.show()}>help</span>
                   <button
                     onClick={() => handleToggleTask(task.id, task.completed)}
                     className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
@@ -405,6 +409,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-3">
+              <button onClick={() => tutorial.show()} className="w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"><span className="material-symbols-outlined text-[20px]">help</span></button>
           </div>
         </header>
 

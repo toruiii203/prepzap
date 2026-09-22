@@ -170,6 +170,8 @@ interface ToolPageShellProps {
 
 export function ToolPageShell({ children }: ToolPageShellProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const tutorial = useTutorialModal(location.pathname);
   const { user } = useAuth();
   const displayName = (user?.user_metadata?.full_name || user?.email?.split("@")[0] || "S").slice(0, 2).toUpperCase();
 
@@ -182,6 +184,7 @@ export function ToolPageShell({ children }: ToolPageShellProps) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <SourceSelectorPill />
+            <span className="material-symbols-outlined" style={{ fontSize: 20, cursor: "pointer", color: TEXT2 }} onClick={() => tutorial.show()}>help</span>
           <Link to="/pro" style={{ color: TEXT2, textDecoration: "none", fontSize: 11, fontWeight: 700 }}>Pricing</Link>
           <div onClick={() => navigate("/settings")} style={{ width: 28, height: 28, borderRadius: "50%", background: "#8b1a2a", border: `2px solid ${GOLD}`, color: GOLD, fontWeight: 800, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             {displayName}
@@ -189,6 +192,7 @@ export function ToolPageShell({ children }: ToolPageShellProps) {
         </div>
       </nav>
       <div>{children}</div>
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT[location.pathname] || []} title="How it works" />
     </div>
   );
 }

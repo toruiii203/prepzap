@@ -7,6 +7,9 @@ import { useToolHistory } from "@/pages/ToolHistory";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 import { RexDisclaimer } from "@/components/RexDisclaimer";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 const FOX = {
   neutral:   "/fox/fox-neutral.png",
@@ -209,9 +212,9 @@ function MessageThread({ messages, isLoading, messagesEndRef, foxImg }: MessageT
         </div>
       )}
       <div ref={messagesEndRef} />
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
 // ─── History Panel ─────────────────────────────────────────────────────────────
 interface HistoryPanelProps {
@@ -306,6 +309,7 @@ const generateTitle = (msgs: Message[]): string => {
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function AITutor() {
   const navigate = useNavigate();
+  const tutorial = useTutorialModal("/ai-tutor");
   const { save: saveHistory } = useToolHistory("ai-tutor");
   const { isPro, canUse, remaining, logUsage, loading: planLoading } = usePlan();
   const [remainingUses, setRemainingUses] = useState<number>(20);
@@ -781,7 +785,17 @@ export default function AITutor() {
             </div>
 
             {/* Input */}
-            <div className="shrink-0 px-8 pb-6 pt-4 border-t-2 border-black bg-[#FAF7F2]">
+            
+              <div className="shrink-0 px-8 pt-4 bg-[#FAF7F2]">
+                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
+                  {STUDY_ACTIONS.map(mode => (
+                    <button key={mode.id} onClick={() => setActiveMode(mode.id)} className={`shrink-0 px-3 py-1.5 border-2 border-black font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ${activeMode === mode.id ? 'bg-[#FF4D2E] text-white' : 'bg-white text-black hover:bg-[#E2E2E2]'}`}>
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+<div className="shrink-0 px-8 pb-6 pt-4 border-t-2 border-black bg-[#FAF7F2]">
               <div className="border-2 border-black bg-white flex items-end gap-2 p-2" style={{ boxShadow: "3px 3px 0px #000" }}>
                 <button onClick={() => navigate("/sources")}
                   className="w-11 h-11 flex items-center justify-center hover:bg-[#F0EDE0] transition-colors flex-shrink-0">
@@ -804,10 +818,12 @@ export default function AITutor() {
                 </button>
                 <button onClick={() => handleSend()}
                   className="w-11 h-11 bg-black text-white flex items-center justify-center border-2 border-black hover:bg-[#FF4D2E] transition-colors flex-shrink-0">
-                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+                  <span className="font-black text-[12px] uppercase tracking-widest">SEND</span>
                 </button>
               </div>
-              {!isPro && remainingUses <= 2 && remainingUses > 0 && (
+              <RexDisclaimer />
+              <RexDisclaimer />
+            {!isPro && remainingUses <= 2 && remainingUses > 0 && (
                 <div className="flex justify-center mt-2">
                   <SoftWarning feature="ai_tutor" remaining={remainingUses} />
                 </div>
@@ -936,7 +952,7 @@ export default function AITutor() {
             />
             <button onClick={() => handleSend()}
               className="w-11 h-11 shrink-0 bg-[#ae2925] border-2 border-black rounded-xl flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5">
-              <span className="material-symbols-outlined text-white text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+              <span className="font-black text-[12px] uppercase tracking-widest text-white">SEND</span>
             </button>
           </div>
           {!isPro && remainingUses <= 2 && remainingUses > 0 && (
