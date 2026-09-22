@@ -1,3 +1,4 @@
+import { AppSkeleton } from "@/components/AppSkeleton";
 import { getOrCreateDailyChallenge } from "@/lib/dailyChallenge";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
