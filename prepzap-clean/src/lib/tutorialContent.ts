@@ -66,6 +66,7 @@ export const TUTORIAL_CONTENT: Record<string, TutorialFeature[]> = {
     { icon: "timeline", title: "Subject Breakdown", desc: "See which topics need more attention." }
   ]
 
+  ,
   "/arcade": [
     { icon: "stadia_controller", title: "Mini-Games", desc: "Turn your study materials into playable games." },
     { icon: "memory", title: "AI Generated", desc: "Games are custom-built from your active source." },
