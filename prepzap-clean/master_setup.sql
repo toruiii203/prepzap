@@ -90,7 +90,7 @@ on usage_logs for select
 using (auth.uid() = user_id);
 
 
-CREATE TABLE public.user_skills (
+CREATE TABLE IF NOT EXISTS public.user_skills (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES auth.users NOT NULL,
     source_id text NOT NULL,
@@ -103,7 +103,7 @@ DROP POLICY IF EXISTS "Users can manage their own skills" ON public.user_skills;
 CREATE POLICY "Users can manage their own skills" ON public.user_skills 
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE TABLE public.study_activity (
+CREATE TABLE IF NOT EXISTS public.study_activity (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES auth.users NOT NULL,
     tool text NOT NULL,
@@ -239,3 +239,13 @@ DROP POLICY IF EXISTS "Users can delete own presence" ON public.room_presence;
 CREATE POLICY "Users can delete own presence" ON public.room_presence FOR DELETE USING (auth.uid() = user_id);
 
 
+
+
+-- Ensure study_activity score is numeric
+DO $$
+BEGIN
+  ALTER TABLE public.study_activity ALTER COLUMN score TYPE numeric;
+EXCEPTION
+  WHEN undefined_table THEN
+    -- Do nothing if table somehow doesn't exist
+END $$;
