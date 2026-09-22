@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Studenius — AI-Powered Study Platform</title>
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="icon" href="/fox_icon_final.png" type="image/png" />
+    <link rel="alternate icon" href="/fox_icon_final.png" />
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/icon-512.png" />
+
+    <!-- PWA manifest (single, no duplicate) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+
+    <!-- FIXED: Material Symbols axis tags must be alphabetical (FILL, GRAD, opsz, wght)
+         and each range must line up positionally with its tag. The old URL had
+         "wght,FILL@100..700,0..1" which is out of order and fails to parse on some
+         browsers (this is why it broke on mobile but a stale desktop cache still worked). -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" crossorigin="anonymous">
+
+    <!-- Canonical & Sitemap -->
+    <link rel="canonical" href="https://studenius.com" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
+    <!-- PWA meta -->
+    <meta name="theme-color" content="#ae2925" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Studenius" />
+
+    <!-- SEO -->
+    <meta name="description" content="Studenius is an AI-powered study platform with an AI Tutor, Cram Mode, Flashcards, Math Solver, Recall Mode, and more — built to help students study smarter and ace their exams." />
+    <meta name="keywords" content="AI study app, AI tutor, flashcards, cram mode, math solver, exam prep, spaced repetition, student app, study tools, Studenius" />
+    <meta name="author" content="Studenius" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://studenius.com" />
+    <meta property="og:site_name" content="Studenius" />
+    <meta property="og:title" content="Studenius — AI-Powered Study Platform" />
+    <meta property="og:description" content="Study smarter with AI. Studenius gives you an AI Tutor, Cram Mode, Flashcards, Math Solver, Recall Mode, and more — all in one platform built for serious students." />
+    <meta property="og:image" content="https://studenius.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_PH" />
+
+    <!-- Twitter/X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://studenius.com" />
+    <meta name="twitter:title" content="Studenius — AI-Powered Study Platform" />
+    <meta name="twitter:description" content="Study smarter with AI. Cram Mode, AI Tutor, Flashcards, Math Solver and more — built for serious students." />
+    <meta name="twitter:image" content="https://studenius.com/og-image.png" />
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://studenius.com/#website",
+          "url": "https://studenius.com",
+          "name": "Studenius",
+          "description": "AI-powered student learning platform with tools for studying, exam prep, and academic performance.",
+          "publisher": { "@id": "https://studenius.com/#organization" },
+          "inLanguage": "en-PH"
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://studenius.com/#organization",
+          "name": "Studenius",
+          "url": "https://studenius.com",
+          "logo": { "@type": "ImageObject", "url": "https://studenius.com/fox_icon_final.png" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Studenius",
+          "url": "https://studenius.com",
+          "applicationCategory": "EducationApplication",
+          "operatingSystem": "Web",
+          "description": "Studenius is an AI-powered study platform with an AI Tutor, Cram Mode, Smart Flashcards, Math Solver, High Yield Detector, Recall Mode, Mistake Journal, Focus Timer, and competitive Arena quizzes.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Free Plan",
+              "price": "0",
+              "priceCurrency": "PHP"
+            },
+            {
+              "@type": "Offer",
+              "name": "Studenius VIP",
+              "price": "199",
+              "priceCurrency": "PHP",
+              "billingIncrement": "P1M"
+            }
+          ],
+          "featureList": ["AI Tutor", "Cram Mode", "Smart Flashcards", "Math Solver", "High Yield Detector", "Recall Mode", "Feynman Mode", "Mistake Journal", "Focus Timer", "Study DNA Analytics", "Source Library", "Arena Quiz Battles", "Study Planner"],
+          "audience": { "@type": "EducationalAudience", "educationalRole": "student" },
+          "publisher": { "@id": "https://studenius.com/#organization" }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Material Symbols fallback: hide icon glyphs until the font actually loads,
+         so a failed/slow font request shows nothing instead of raw text like
+         "home", "play_circle", "school". Falls back to visible after 2s max
+         so icons never stay hidden forever if the Fonts API is unsupported. -->
+    <style>
+      .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+        visibility: hidden;
+      }
+      .fonts-loaded .material-symbols-outlined {
+        visibility: visible;
+      }
+    </style>
+    <style>body { background-color: #FAF7F2; }</style>
+  
+    <!-- Static Skeleton Logic -->
+    <script>
+      try {
+        var p = window.location.pathname;
+        var a = ['/dashboard', '/notes', '/ai-tutor', '/flashcards', '/practice', '/timer', '/planner', '/math', '/teach-it', '/quick-study', '/sources', '/mistakes', '/analytics', '/challenges', '/arena'];
+        var isApp = a.some(function(r) { return p.startsWith(r); });
+        var hasS = localStorage.getItem('pz-auth-storage');
+        if (isApp && hasS) {
+          document.documentElement.classList.add('show-app-skeleton');
+        }
+      } catch(e) {}
+    </script>
+    <style>
+      html, body { background: #FAF7F2; margin: 0; padding: 0; }
+      .static-skel { display: none; width: 100%; min-height: 100vh; background: #FAF7F2; flex-direction: column; font-family: sans-serif; }
+      .show-app-skeleton .static-skel { display: flex; }
+      
+      @keyframes skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      .skel-pulse { animation: skel-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      .skel-box { background: rgba(0,0,0,0.1); border-radius: 4px; }
+      .skel-circle { background: rgba(0,0,0,0.1); border-radius: 50%; }
+
+      .skel-sidebar { display: none; width: 256px; border-right: 1.5px solid #000; padding: 16px; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; background: #FAF7F2; box-sizing: border-box; }
+      .skel-main { flex: 1; display: flex; flex-direction: column; position: relative; min-height: 100vh; box-sizing: border-box; padding-bottom: 64px; }
+      
+      .skel-header { position: sticky; top: 0; z-index: 30; background: #FAF7F2; border-bottom: 1.5px solid #000; padding: 0 16px; height: 64px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; }
+      .skel-content { padding: 16px; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box; }
+      
+      .skel-card { border: 2px solid #000; background: #fff; box-shadow: 3px 3px 0px #000; padding: 16px; display: flex; flex-direction: column; box-sizing: border-box; }
+      .skel-grid-4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .skel-grid-8 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+      .skel-bottom { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: #FAF7F2; border-top: 1.5px solid #000; display: flex; align-items: center; justify-content: space-around; z-index: 40; }
+      .hide-mobile { display: none; }
+
+      @media (min-width: 768px) {
+        .hide-mobile { display: block; }
+        .skel-sidebar { display: flex; }
+        .skel-main { margin-left: 256px; padding-bottom: 0; }
+        .skel-header { height: 96px; padding: 0 32px; }
+        .skel-content { padding: 32px; gap: 32px; }
+        .skel-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+        .skel-grid-8 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+        .skel-bottom { display: none; }
+      }
+      @media (min-width: 1024px) {
+        .skel-grid-8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-_Ky7-v-w.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cm-OnuuR.css">
+  </head>
+  <body>
+    <div id="root" vaul-drawer-wrapper="">
+      <div class="static-skel">
+        <!-- Sidebar -->
+        <aside class="skel-sidebar">
+          <div style="margin-bottom: 32px; padding: 0 4px;">
+            <div class="skel-box skel-pulse" style="height: 24px; width: 128px;"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 16px; flex: 1;">
+            <!-- Group 1: 5 items -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div class="skel-box skel-pulse" style="height: 12px; width: 64px; margin-bottom: 8px;"></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+            </div>
+            <!-- Group 2: 4 items -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div class="skel-box skel-pulse" style="height: 12px; width: 64px; margin-bottom: 8px;"></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+            </div>
+            <!-- Group 3: 2 items -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div class="skel-box skel-pulse" style="height: 12px; width: 64px; margin-bottom: 8px;"></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px;"><div class="skel-box skel-pulse" style="width: 20px; height: 20px; flex-shrink: 0;"></div><div class="skel-box skel-pulse" style="height: 16px; width: 100%;"></div></div>
+            </div>
+          </div>
+        </aside>
+      
+        <!-- Main -->
+        <div class="skel-main">
+          <header class="skel-header">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="skel-box skel-pulse" style="height: 32px; width: 256px; max-width: 50vw;"></div>
+              <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 128px;"></div>
+            </div>
+            <div class="skel-circle skel-pulse" style="width: 44px; height: 44px; border: 2px solid #000; flex-shrink: 0;"></div>
+          </header>
+      
+          <div class="skel-content">
+            <div class="skel-grid-4">
+              <div class="skel-card" style="height: 128px; justify-content: space-between;">
+                <div class="skel-circle skel-pulse" style="width: 32px; height: 32px;"></div>
+                <div style="margin-top: auto;">
+                  <div class="skel-box skel-pulse" style="height: 20px; width: 64px; margin-bottom: 8px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 12px; width: 96px;"></div>
+                </div>
+              </div>
+              <div class="skel-card" style="height: 128px; justify-content: space-between;">
+                <div class="skel-circle skel-pulse" style="width: 32px; height: 32px;"></div>
+                <div style="margin-top: auto;">
+                  <div class="skel-box skel-pulse" style="height: 20px; width: 64px; margin-bottom: 8px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 12px; width: 96px;"></div>
+                </div>
+              </div>
+              <div class="skel-card" style="height: 128px; justify-content: space-between;">
+                <div class="skel-circle skel-pulse" style="width: 32px; height: 32px;"></div>
+                <div style="margin-top: auto;">
+                  <div class="skel-box skel-pulse" style="height: 20px; width: 64px; margin-bottom: 8px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 12px; width: 96px;"></div>
+                </div>
+              </div>
+              <div class="skel-card" style="height: 128px; justify-content: space-between;">
+                <div class="skel-circle skel-pulse" style="width: 32px; height: 32px;"></div>
+                <div style="margin-top: auto;">
+                  <div class="skel-box skel-pulse" style="height: 20px; width: 64px; margin-bottom: 8px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 12px; width: 96px;"></div>
+                </div>
+              </div>
+            </div>
+      
+            <div>
+              <div class="skel-box skel-pulse" style="height: 20px; width: 160px; margin-bottom: 16px;"></div>
+              <div class="skel-grid-8">
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+                <div class="skel-card" style="height: 160px; justify-content: center; align-items: center; gap: 12px;">
+                  <div class="skel-box skel-pulse" style="width: 48px; height: 48px;"></div>
+                  <div class="skel-box skel-pulse" style="height: 16px; width: 80px;"></div>
+                  <div class="skel-box skel-pulse hide-mobile" style="height: 12px; width: 96px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      
+        <div class="skel-bottom">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;">
+            <div class="skel-box skel-pulse" style="width: 24px; height: 24px;"></div>
+            <div class="skel-box skel-pulse" style="width: 40px; height: 8px;"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;">
+            <div class="skel-box skel-pulse" style="width: 24px; height: 24px;"></div>
+            <div class="skel-box skel-pulse" style="width: 40px; height: 8px;"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;">
+            <div class="skel-box skel-pulse" style="width: 24px; height: 24px;"></div>
+            <div class="skel-box skel-pulse" style="width: 40px; height: 8px;"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;">
+            <div class="skel-box skel-pulse" style="width: 24px; height: 24px;"></div>
+            <div class="skel-box skel-pulse" style="width: 40px; height: 8px;"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;">
+            <div class="skel-box skel-pulse" style="width: 24px; height: 24px;"></div>
+            <div class="skel-box skel-pulse" style="width: 40px; height: 8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.warn('SW registration failed:', err));
+        });
+      }
+    </script>
+
+    <!-- Reveal icons once the Material Symbols font is actually ready -->
+    <script>
+      (function () {
+        function reveal() {
+          document.documentElement.classList.add('fonts-loaded');
+        }
+        if ('fonts' in document) {
+          document.fonts.load('24px "Material Symbols Outlined"').finally(reveal);
+          // Safety net: never leave icons hidden more than 2s even if load() hangs
+          setTimeout(reveal, 2000);
+        } else {
+          // Fonts API unsupported (old browsers) — just show icons immediately
+          reveal();
+        }
+      })();
+    </script>
+  </body>
+</html>

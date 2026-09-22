@@ -25,7 +25,7 @@ type ArcadeContentMap = {
 };
 
 // Fallback bank
-const FALLBACKS: Record<string, ArcadeContentMap> = {
+export const FALLBACKS: Record<string, ArcadeContentMap> = {
   general: {
     memory_match: [
       { term: "Hypothesis", definition: "A proposed explanation based on limited evidence." },
@@ -78,7 +78,8 @@ function validateResult<T extends ArcadeGameType>(type: T, parsed: any): parsed 
 export async function generateGameContent<T extends ArcadeGameType>(
   sourceText: string,
   sourceId: string,
-  gameType: T
+  gameType: T,
+  userId: string
 ): Promise<ArcadeContentMap[T]> {
   // 1. Check Cache
   if (sourceId) {
@@ -87,6 +88,7 @@ export async function generateGameContent<T extends ArcadeGameType>(
       .select("content")
       .eq("source_id", sourceId)
       .eq("game_type", gameType)
+      .eq("user_id", userId)
       .single();
       
     if (data && data.content) {
@@ -106,6 +108,7 @@ export async function generateGameContent<T extends ArcadeGameType>(
         // Cache it
         if (sourceId) {
           await supabase.from("arcade_cache").insert({
+            user_id: userId,
             source_id: sourceId,
             game_type: gameType,
             content: parsed

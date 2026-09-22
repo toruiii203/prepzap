@@ -44,7 +44,7 @@ export default function MemoryMatch() {
         const sourceText = activeSource?.fullText || activeSource?.preview || "general knowledge";
         const sourceId = activeSource?.id || "";
         
-        const data = await generateGameContent(sourceText, sourceId, "memory_match");
+        const data = await generateGameContent(sourceText, sourceId, "memory_match", user?.id || "");
         
         // Transform pairs into individual cards
         let generatedCards: Card[] = [];

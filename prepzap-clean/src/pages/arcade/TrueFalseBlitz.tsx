@@ -40,7 +40,7 @@ export default function TrueFalseBlitz() {
         const sourceText = activeSource?.fullText || activeSource?.preview || "general knowledge";
         const sourceId = activeSource?.id || "";
         
-        const data = await generateGameContent(sourceText, sourceId, "true_false");
+        const data = await generateGameContent(sourceText, sourceId, "true_false", user?.id || "");
         // We might get e.g. 10 statements.
         setStatements(data);
         setStatus("playing");

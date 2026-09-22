@@ -3,10 +3,37 @@ import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { AttachSourcePill } from "@/components/AttachSourcePill";
 import { useAuth } from "@/contexts/AuthContext";
-import { generateGameContent, TermleWord } from "@/lib/arcadePipeline";
+import { TermleWord, FALLBACKS } from "@/lib/arcadePipeline";
 import { getActiveSource } from "@/lib/sourceContext";
 import { supabase } from "@/lib/supabase";
 import { logQuestCompletion } from "@/lib/quests";
+
+
+const STOPWORDS = new Set(["THEIR", "THERE", "ABOUT", "WHICH", "WOULD", "THESE", "OTHER", "COULD", "FIRST", "AFTER", "THOSE", "WHERE", "BEING", "UNDER", "YEARS", "GREAT", "STATE", "WORLD", "THREE", "FOUND", "MIGHT", "STILL", "SINCE", "NEVER", "SHOULD", "BECAUSE", "THROUGH", "BETWEEN", "ANOTHER", "HOWEVER", "WITHOUT", "DURING", "ALWAYS"]);
+
+function extractTermleWords(sourceText: string): TermleWord[] {
+  const sentences = sourceText.match(/[^.!?]+[.!?]+/g) || [];
+  const results: TermleWord[] = [];
+  const seenWords = new Set<string>();
+
+  for (const sentence of sentences) {
+    const words = sentence.match(/\b[A-Za-z]{5,10}\b/g) || [];
+    for (const word of words) {
+      const upperWord = word.toUpperCase();
+      if (!STOPWORDS.has(upperWord) && !seenWords.has(upperWord)) {
+        seenWords.add(upperWord);
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        const hint = sentence.replace(regex, '_____').trim();
+        results.push({ word: upperWord, hint });
+      }
+    }
+  }
+
+  if (results.length < 5) {
+    return FALLBACKS.general.termle;
+  }
+  return results;
+}
 
 export default function Termle() {
   const navigate = useNavigate();
@@ -35,7 +62,7 @@ export default function Termle() {
         const sourceText = activeSource?.fullText || activeSource?.preview || "general knowledge";
         const sourceId = activeSource?.id || "";
         
-        const data = await generateGameContent(sourceText, sourceId, "termle");
+        const data = extractTermleWords(sourceText);
         // Pick random word from the 5
         const picked = data[Math.floor(Math.random() * data.length)];
         setTargetWord(picked.word.toUpperCase());
