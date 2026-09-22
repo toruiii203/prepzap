@@ -27,6 +27,7 @@ export default function TrueFalseBlitz() {
 
   useEffect(() => {
     async function loadGame() {
+      if (!user) return;
       const activeSource = getActiveSource();
       setStatus("loading");
       setScore(0);

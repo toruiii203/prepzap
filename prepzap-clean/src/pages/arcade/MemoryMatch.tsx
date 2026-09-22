@@ -32,6 +32,7 @@ export default function MemoryMatch() {
 
   useEffect(() => {
     async function loadGame() {
+      if (!user) return;
       const activeSource = getActiveSource();
       setStatus("loading");
       setCards([]);
