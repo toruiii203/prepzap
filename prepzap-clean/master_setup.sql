@@ -1,29 +1,3 @@
-DROP POLICY IF EXISTS "Users can view their own notes" ON public.notes;
-DROP POLICY IF EXISTS "Users can insert their own notes" ON public.notes;
-DROP POLICY IF EXISTS "Users can update their own notes" ON public.notes;
-DROP POLICY IF EXISTS "Users can delete their own notes" ON public.notes;
-DROP POLICY IF EXISTS "Users can view links for their notes" ON public.note_links;
-DROP POLICY IF EXISTS "Users can manage links for their notes" ON public.note_links;
-DROP POLICY IF EXISTS "Users can insert their own usage logs" ON usage_logs;
-DROP POLICY IF EXISTS "Users can view their own usage logs" ON usage_logs;
-DROP POLICY IF EXISTS "Users can manage their own skills" ON public.user_skills;
-DROP POLICY IF EXISTS "Users can manage their own study activity" ON public.study_activity;
-DROP POLICY IF EXISTS "Users can read own arcade cache" ON public.arcade_cache;
-DROP POLICY IF EXISTS "Users can insert own arcade cache" ON public.arcade_cache;
-DROP POLICY IF EXISTS "Users can update own arcade cache" ON public.arcade_cache;
-DROP POLICY IF EXISTS "Users can read own study activity" ON public.study_activity;
-DROP POLICY IF EXISTS "Users can insert own study activity" ON public.study_activity;
-DROP POLICY IF EXISTS "Users can read all submissions" ON public.daily_challenge_submissions;
-DROP POLICY IF EXISTS "Users can insert own submission" ON public.daily_challenge_submissions;
-DROP POLICY IF EXISTS "Allow anyone to read exam rooms" ON public.exam_rooms;
-DROP POLICY IF EXISTS "Users can insert own rooms" ON public.exam_rooms;
-DROP POLICY IF EXISTS "Host can update own rooms" ON public.exam_rooms;
-DROP POLICY IF EXISTS "Host can delete own rooms" ON public.exam_rooms;
-DROP POLICY IF EXISTS "Anyone can read room presence" ON public.room_presence;
-DROP POLICY IF EXISTS "Users can insert own presence" ON public.room_presence;
-DROP POLICY IF EXISTS "Users can update own presence" ON public.room_presence;
-DROP POLICY IF EXISTS "Users can delete own presence" ON public.room_presence;
-
 -- Create Notes Table
 CREATE TABLE IF NOT EXISTS public.notes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -37,19 +11,23 @@ CREATE TABLE IF NOT EXISTS public.notes (
 -- Enable RLS
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own notes" ON public.notes;
 CREATE POLICY "Users can view their own notes"
 ON public.notes FOR SELECT
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own notes" ON public.notes;
 CREATE POLICY "Users can insert their own notes"
 ON public.notes FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own notes" ON public.notes;
 CREATE POLICY "Users can update their own notes"
 ON public.notes FOR UPDATE
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own notes" ON public.notes;
 CREATE POLICY "Users can delete their own notes"
 ON public.notes FOR DELETE
 USING (auth.uid() = user_id);
@@ -66,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.note_links (
 ALTER TABLE public.note_links ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Can view links if you own the source note
+DROP POLICY IF EXISTS "Users can view links for their notes" ON public.note_links;
 CREATE POLICY "Users can view links for their notes"
 ON public.note_links FOR SELECT
 USING (
@@ -77,6 +56,7 @@ USING (
 );
 
 -- Policy: Can manage links if you own the source note
+DROP POLICY IF EXISTS "Users can manage links for their notes" ON public.note_links;
 CREATE POLICY "Users can manage links for their notes"
 ON public.note_links FOR ALL
 USING (
@@ -96,13 +76,15 @@ where not exists (select 1 from public.profiles where profiles.id = auth.users.i
 
 -- Ensure RLS allows usage_logs
 alter table public.usage_logs enable row level security;
-drop policy if exists "Users can insert their own usage logs" on usage_logs;
-drop policy if exists "Users can view their own usage logs" on usage_logs;
 
+
+
+DROP POLICY IF EXISTS "Users can insert their own usage logs" ON usage_logs;
 create policy "Users can insert their own usage logs"
 on usage_logs for insert
 with check (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view their own usage logs" ON usage_logs;
 create policy "Users can view their own usage logs"
 on usage_logs for select
 using (auth.uid() = user_id);
@@ -117,6 +99,7 @@ CREATE TABLE public.user_skills (
 );
 
 ALTER TABLE public.user_skills ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own skills" ON public.user_skills;
 CREATE POLICY "Users can manage their own skills" ON public.user_skills 
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -130,6 +113,7 @@ CREATE TABLE public.study_activity (
 );
 
 ALTER TABLE public.study_activity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own study activity" ON public.study_activity;
 CREATE POLICY "Users can manage their own study activity" ON public.study_activity 
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -148,11 +132,14 @@ CREATE TABLE IF NOT EXISTS public.arcade_cache (
 );
 
 ALTER TABLE public.arcade_cache ENABLE ROW LEVEL SECURITY;
+
+
+
 DROP POLICY IF EXISTS "Users can read own arcade cache" ON public.arcade_cache;
-DROP POLICY IF EXISTS "Users can insert own arcade cache" ON public.arcade_cache;
-DROP POLICY IF EXISTS "Users can update own arcade cache" ON public.arcade_cache;
 CREATE POLICY "Users can read own arcade cache" ON public.arcade_cache FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own arcade cache" ON public.arcade_cache;
 CREATE POLICY "Users can insert own arcade cache" ON public.arcade_cache FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own arcade cache" ON public.arcade_cache;
 CREATE POLICY "Users can update own arcade cache" ON public.arcade_cache FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- 2. STUDY ACTIVITY TABLE
@@ -167,9 +154,11 @@ CREATE TABLE IF NOT EXISTS public.study_activity (
 );
 
 ALTER TABLE public.study_activity ENABLE ROW LEVEL SECURITY;
+
+
 DROP POLICY IF EXISTS "Users can read own study activity" ON public.study_activity;
-DROP POLICY IF EXISTS "Users can insert own study activity" ON public.study_activity;
 CREATE POLICY "Users can read own study activity" ON public.study_activity FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own study activity" ON public.study_activity;
 CREATE POLICY "Users can insert own study activity" ON public.study_activity FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_study_activity_user_source ON public.study_activity (user_id, source_id);
@@ -187,9 +176,11 @@ CREATE TABLE IF NOT EXISTS public.daily_challenge_submissions (
 );
 
 ALTER TABLE public.daily_challenge_submissions ENABLE ROW LEVEL SECURITY;
+
+
 DROP POLICY IF EXISTS "Users can read all submissions" ON public.daily_challenge_submissions;
-DROP POLICY IF EXISTS "Users can insert own submission" ON public.daily_challenge_submissions;
 CREATE POLICY "Users can read all submissions" ON public.daily_challenge_submissions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert own submission" ON public.daily_challenge_submissions;
 CREATE POLICY "Users can insert own submission" ON public.daily_challenge_submissions FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE TABLE IF NOT EXISTS public.exam_rooms (
@@ -209,13 +200,17 @@ CREATE TABLE IF NOT EXISTS public.exam_rooms (
 );
 
 ALTER TABLE public.exam_rooms ENABLE ROW LEVEL SECURITY;
+
+
+
+
 DROP POLICY IF EXISTS "Allow anyone to read exam rooms" ON public.exam_rooms;
-DROP POLICY IF EXISTS "Users can insert own rooms" ON public.exam_rooms;
-DROP POLICY IF EXISTS "Host can update own rooms" ON public.exam_rooms;
-DROP POLICY IF EXISTS "Host can delete own rooms" ON public.exam_rooms;
 CREATE POLICY "Allow anyone to read exam rooms" ON public.exam_rooms FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert own rooms" ON public.exam_rooms;
 CREATE POLICY "Users can insert own rooms" ON public.exam_rooms FOR INSERT WITH CHECK (auth.uid() = host_id);
+DROP POLICY IF EXISTS "Host can update own rooms" ON public.exam_rooms;
 CREATE POLICY "Host can update own rooms" ON public.exam_rooms FOR UPDATE USING (auth.uid() = host_id) WITH CHECK (auth.uid() = host_id);
+DROP POLICY IF EXISTS "Host can delete own rooms" ON public.exam_rooms;
 CREATE POLICY "Host can delete own rooms" ON public.exam_rooms FOR DELETE USING (auth.uid() = host_id);
 
 CREATE TABLE IF NOT EXISTS public.room_presence (
@@ -230,13 +225,17 @@ CREATE TABLE IF NOT EXISTS public.room_presence (
 );
 
 ALTER TABLE public.room_presence ENABLE ROW LEVEL SECURITY;
+
+
+
+
 DROP POLICY IF EXISTS "Anyone can read room presence" ON public.room_presence;
-DROP POLICY IF EXISTS "Users can insert own presence" ON public.room_presence;
-DROP POLICY IF EXISTS "Users can update own presence" ON public.room_presence;
-DROP POLICY IF EXISTS "Users can delete own presence" ON public.room_presence;
 CREATE POLICY "Anyone can read room presence" ON public.room_presence FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert own presence" ON public.room_presence;
 CREATE POLICY "Users can insert own presence" ON public.room_presence FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own presence" ON public.room_presence;
 CREATE POLICY "Users can update own presence" ON public.room_presence FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own presence" ON public.room_presence;
 CREATE POLICY "Users can delete own presence" ON public.room_presence FOR DELETE USING (auth.uid() = user_id);
 
 
