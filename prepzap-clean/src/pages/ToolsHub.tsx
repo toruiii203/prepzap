@@ -11,7 +11,12 @@ const TOOL_PAGES = [
     { route: "/planner", icon: "calendar_month", title: "Study Planner", desc: "Schedule sessions" },
     { route: "/math", icon: "calculate", title: "Math Solver", desc: "Step-by-step" },
     { route: "/teach-it", icon: "psychology", title: "Teach It", desc: "Feynman mode" },
+    { route: "/timer", icon: "timer", title: "Focus Timer", desc: "Pomodoro" },
+  ],
+  [
     { route: "/quick-study", icon: "menu_book", title: "Quick Study", desc: "High yield" },
+    { route: "/arcade", icon: "sports_esports", title: "Arcade", desc: "Mini-games" },
+    { route: "/settings", icon: "settings", title: "Settings", desc: "Preferences" },
   ],
   [
     { route: "/sources", icon: "attach_file", title: "Source Library", desc: "Upload notes" },

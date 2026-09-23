@@ -713,13 +713,7 @@ Return raw JSON only, no wrapping!`;
               <div className="col-span-2 border-2 border-black bg-white shadow-[5px_5px_0px_#000] p-6 flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b-2 border-black pb-4">
                   <h3 className="text-[20px] font-black">Concept Generator</h3>
-                  <span
-                    className="text-[11px] font-black uppercase tracking-widest bg-black text-white px-3 py-1"
-                    title="AI estimate of how well this sheet covers the topic — specific to this generation, not tracked over time"
-                  >
-                    Coverage Score: {generatedSheet ? `${generatedSheet.coverageScore}%` : "—"}
-                  </span>
-                </div>
+                  </div>
                 {/* Textarea */}
                 <div>
                   <label className="block text-[11px] font-black uppercase tracking-widest text-black/50 mb-2">
@@ -733,7 +727,7 @@ Return raw JSON only, no wrapping!`;
                     className="w-full bg-[#F0EDE0] border-2 border-black px-4 py-3 text-[15px] font-medium placeholder:text-black/30 resize-none focus:outline-none"
                     placeholder="Paste complex lecture notes or enter a topic (e.g., 'Cellular Mitosis Mechanics')..."
                   />
-                </div>
+                
                 {/* Chips */}
                 <div className="flex flex-wrap gap-2">
                   {chips.map((chip, idx) => (
@@ -845,20 +839,7 @@ Return raw JSON only, no wrapping!`;
 
             {/* Tabs + Output */}
             <div className="space-y-0">
-              {/* Tab bar */}
-              <div className="flex gap-px border-b-[3px] border-black">
-                {(["Cram", "HighYield"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setGeneratedSheet(null); }}
-                    className={`px-8 py-3 text-[12px] font-black uppercase tracking-widest border-t-[3px] border-x-[3px] border-black -mb-[3px] z-10 transition-colors ${
-                      activeTab === tab ? "bg-black text-white" : "bg-[#FAF7F2] text-black hover:bg-[#E2E2E2]"
-                    }`}
-                  >
-                    {tab === "Cram" ? "Cram Mode" : "High Yield"}
-                  </button>
-                ))}
-              </div>
+              
               {/* Output card */}
               <OutputCard />
             </div>
@@ -1055,15 +1036,7 @@ Return raw JSON only, no wrapping!`;
                       );
                     })}
                   </ul>
-                  <div className="h-1.5 w-full bg-[#E8E4DC] border border-black overflow-hidden mb-1">
-                    <div className="h-full bg-black transition-all duration-700" style={{ width: `${generatedSheet.coverageScore}%` }} />
-                  </div>
-                  <p
-                    className="text-[10px] font-black uppercase tracking-widest text-black/40"
-                    title="AI estimate for this generation only, not tracked over time"
-                  >
-                    Coverage Score: {generatedSheet.coverageScore}%
-                  </p>
+                  
                 </>
               ) : null}
             </div>
