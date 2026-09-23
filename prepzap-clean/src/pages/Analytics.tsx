@@ -4,6 +4,7 @@ import { StatsCardExport } from "@/components/StatsCardExport";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudyStats } from "@/hooks/useStudyStats";
 
 interface AnalyticsProps {
 }
@@ -12,9 +13,48 @@ export default function Analytics() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const { sessions, loading } = useStudyStats();
   const [tasksCompletedPct, setTasksCompletedPct] = useState(0);
-  const [loading, setLoading] = useState(true);
+  
+  const [subjectAccuracy, setSubjectAccuracy] = useState<{subject: string, correct: number, total: number, pct: number}[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    useEffect(() => {
+    // Derive task completion rate from localStorage (same source as Dashboard)
+    try {
+      const stored = localStorage.getItem("pz_checklist");
+      const tasks = stored ? JSON.parse(stored) : [];
+      if (tasks.length > 0) {
+        const completedCount = tasks.filter((t: any) => t.completed).length;
+        setTasksCompletedPct(Math.round((completedCount / tasks.length) * 100));
+      }
+    } catch {}
+
+    // Mock subject accuracy for now
+    setSubjectAccuracy([
+      { subject: "Biology", correct: 45, total: 50, pct: 90 },
+      { subject: "History", correct: 30, total: 40, pct: 75 },
+      { subject: "Math", correct: 15, total: 25, pct: 60 }
+    ]);
+  }, [user?.id]);-router-dom";
+import { SharedSidebar } from "@/components/SharedSidebar";
+import { StatsCardExport } from "@/components/StatsCardExport";
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { useStudyStats } from "@/hooks/useStudyStats";
+
+interface AnalyticsProps {
+}
+
+export default function Analytics() {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const { sessions, loading } = useStudyStats();
+  const [tasksCompletedPct, setTasksCompletedPct] = useState(0);
+  
   const [subjectAccuracy, setSubjectAccuracy] = useState<{subject: string, correct: number, total: number, pct: number}[]>([]);
 
   useEffect(() => {
@@ -104,6 +144,16 @@ export default function Analytics() {
   const totalMins = sessions.reduce((sum, s) => sum + (s.duration_minutes || s.duration || 0), 0);
   const activeHoursStr = (totalMins / 60).toFixed(1) + "h";
   const totalSessionsCount = sessions.length;
+
+  
+  const formatDuration = (mins: number) => {
+    if (!mins || mins <= 0) return "0m";
+    if (mins < 1) return "<1m";
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  };
 
   const formatDateHelper = (isoString: string) => {
     try {
@@ -329,7 +379,7 @@ export default function Analytics() {
                           <td className="py-3 text-[13px] font-bold text-black/50">{formatDateHelper(ses.created_at)}</td>
                           <td className="py-3">
                             <span className="text-[12px] font-extrabold bg-black text-white px-2 py-0.5 rounded-full border border-black">
-                              {ses.duration_minutes || ses.duration || 0} mins
+                              {formatDuration(Number(ses.duration_minutes || ses.duration || 0))}
                             </span>
                           </td>
                         </tr>
@@ -511,7 +561,7 @@ export default function Analytics() {
                         <h3 className="font-headline text-body-lg text-black font-extrabold truncate text-[15.5px]">{ses.title || ses.subject}</h3>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[12px] font-bold text-[#faf7f2] bg-primary px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_rgba(0,0,0,1)]">
-                            {ses.duration_minutes || ses.duration || 0} mins
+                            {formatDuration(Number(ses.duration_minutes || ses.duration || 0))}
                           </span>
                           <span className="text-[12px] text-on-surface-variant font-bold opacity-60">{formatDateHelper(ses.created_at)}</span>
                         </div>

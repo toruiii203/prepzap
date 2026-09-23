@@ -249,3 +249,7 @@ EXCEPTION
   WHEN undefined_table THEN
     -- Do nothing if table somehow doesn't exist
 END $$;
+
+-- P0.4 Content Moderation Filter
+ALTER TABLE public.exam_rooms DROP CONSTRAINT IF EXISTS no_test_rooms;
+ALTER TABLE public.exam_rooms ADD CONSTRAINT no_test_rooms CHECK (room_name NOT ILIKE '%test%' AND room_name NOT ILIKE '%mock%');

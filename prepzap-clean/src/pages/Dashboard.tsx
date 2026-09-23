@@ -139,11 +139,11 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m &bull; {formattedDate}</div>
+                  <div className="text-[11px] font-bold text-black/50">{formatDuration(Number(session.duration_minutes))} &bull; {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[11px] font-bold text-black/40">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m studied</div>
+                <div className="text-[11px] font-bold text-black/40">{formatDuration(Number(session.duration_minutes))} studied</div>
               </div>
             </div>
           );
@@ -184,7 +184,17 @@ function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
   );
 }
 
-export default function Dashboard() {
+export default 
+const formatDuration = (mins: number) => {
+  if (!mins || mins <= 0) return "0m";
+  if (mins < 1) return "<1m";
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+};
+
+function Dashboard() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { isPro } = usePlan();
@@ -419,11 +429,11 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m &bull; {formattedDate}</div>
+                  <div className="text-[11px] font-bold text-black/50">{formatDuration(Number(session.duration_minutes))} &bull; {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[11px] font-bold text-black/40">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m studied</div>
+                <div className="text-[11px] font-bold text-black/40">{formatDuration(Number(session.duration_minutes))} studied</div>
               </div>
             </div>
           );
@@ -985,7 +995,7 @@ export default function Dashboard() {
                   <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
                   <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
                   <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
-                    {Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m / {formattedDate}
+                    {formatDuration(Number(session.duration_minutes))} / {formattedDate}
                   </div>
                 </div>
               );

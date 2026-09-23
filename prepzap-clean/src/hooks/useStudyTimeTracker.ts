@@ -130,6 +130,7 @@ export function useStudyTimeTracker(
     window.addEventListener("focus", handleFocus);
     window.addEventListener("blur", handleBlur);
     window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
 
     return () => {
       clearInterval(tick);
@@ -138,6 +139,7 @@ export function useStudyTimeTracker(
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
       flush(); // send the last partial chunk when navigating to another route
     };
     // toolName changing (e.g. user navigates to a different tool) intentionally

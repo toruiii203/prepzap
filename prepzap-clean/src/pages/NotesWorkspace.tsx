@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { withTimeout } from "@/lib/withTimeout";
 import { useAuth } from "@/contexts/AuthContext";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import TiptapEditor from "@/components/TiptapEditor";
@@ -16,7 +17,7 @@ export default function NotesWorkspace() {
   useEffect(() => {
     if (!user) return;
     const fetchNotes = async () => {
-      const { data, error } = await supabase.from("notes").select("*").eq("user_id", user.id).order("updated_at", { ascending: false });
+      const { data, error } = await withTimeout(supabase.from("notes").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }), 5000, "fetch notes");
       if (data) {
         setNotes(data);
         if (data.length > 0 && !activeNote) setActiveNote(data[0]);

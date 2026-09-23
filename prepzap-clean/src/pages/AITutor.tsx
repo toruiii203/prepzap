@@ -822,7 +822,6 @@ export default function AITutor() {
                 </button>
               </div>
               <RexDisclaimer />
-              <RexDisclaimer />
             {!isPro && remainingUses <= 2 && remainingUses > 0 && (
                 <div className="flex justify-center mt-2">
                   <SoftWarning feature="ai_tutor" remaining={remainingUses} />
