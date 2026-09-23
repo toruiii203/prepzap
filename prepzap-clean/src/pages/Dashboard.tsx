@@ -6,6 +6,287 @@ import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudyStats } from "@/hooks/useStudyStats";
+import { supabase } from "@/lib/supabase";
+import { usePlan } from "@/hooks/usePlan";
+
+// All 12 tools flat
+const ALL_TOOLS = [
+  { route: "/ai-tutor",   icon: "forum",       title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
+  { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
+  { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-[#8B5CF6]" },
+  { route: "/quick-study",icon: "edit_note",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
+  { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-[#0EA5E9]" },
+  { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-[#10B981]" },
+  { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-[#EC4899]" },
+  { route: "/quick-study",icon: "menu_book",        title: "Quick Study",     desc: "5 min bursts",      color: "text-[#6366F1]" },
+  { route: "/sources",    icon: "folder_open",      title: "Source Library",  desc: "Your materials",    color: "text-[#78716C]" },
+  { route: "/mistakes",   icon: "auto_stories",     title: "Mistake Journal", desc: "Learn from errors", color: "text-[#ba1a1a]" },
+  { route: "/analytics",  icon: "bar_chart",        title: "Analytics",       desc: "Track progress",    color: "text-[#14B8A6]" },
+  { route: "/challenges", icon: "emoji_events",     title: "Challenges",      desc: "Compete & win",     color: "text-[#F5A623]" },
+] as const;
+
+// Mobile carousel: chunk into slides of 4
+const TOOL_SLIDES = [
+  ALL_TOOLS.slice(0, 4),
+  ALL_TOOLS.slice(4, 8),
+  ALL_TOOLS.slice(8, 12),
+];
+
+// ─── Sub-components defined OUTSIDE Dashboard to prevent remount on every render ───
+
+interface QuestLogBodyProps {
+  tasks: { id: any; title: string; completed: boolean; time?: string }[];
+  loadingTasks: boolean;
+  newTaskTitle: string;
+  setNewTaskTitle: (v: string) => void;
+  handleAddTask: (e: React.FormEvent) => void;
+  handleToggleTask: (id: any, completed: boolean) => void;
+  handleDeleteTask: (id: any) => void;
+}
+
+function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, handleAddTask, handleToggleTask, handleDeleteTask }: QuestLogBodyProps) {
+  return (
+    <>
+      <div className="flex-1 p-4 overflow-y-auto">
+        {loadingTasks ? (
+          <div className="text-center py-4 text-xs font-bold text-slate-400">Loading checklist...</div>
+        ) : tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-40">
+            <span className="material-symbols-outlined text-[48px] mb-2">task_alt</span>
+            <p className="text-sm font-bold">No quests yet.<br />Add your first target below.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {tasks.map((task) => (
+              <div key={task.id} className="flex items-center gap-3 justify-between">
+                <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => tutorial.show()}>help</span>
+                  <button
+                    onClick={() => handleToggleTask(task.id, task.completed)}
+                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
+                      task.completed ? "bg-[#E8534A]" : "bg-white hover:bg-[#ffdad6]"
+                    }`}
+                  >
+                    {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
+                  </button>
+                  <div className={`text-[14px] font-extrabold ${task.completed ? "line-through opacity-40" : ""}`}>
+                    {task.title}
+                    {task.time && (
+                      <span className="text-[11px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-black/10">
+                        {task.time}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteTask(task.id)}
+                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-black cursor-pointer transition-colors"
+                >
+                  delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="border-t-2 border-black p-3">
+        <form onSubmit={handleAddTask} className="flex gap-2">
+          <input
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Add a quest..."
+            className="flex-1 bg-transparent border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40"
+          />
+          <button
+            type="submit"
+            className="border-2 border-black bg-black text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+          </button>
+        </form>
+      </div>
+    </>
+  );
+}
+
+interface RecentSessionsRowsProps {
+  // FIX: DB column is `duration_minutes`, not `duration` — this mismatch was
+  // why every duration/XP calculation silently rendered as 0.
+  sessions: { id: any; title: string; duration_minutes: number; created_at: string }[];
+  loadingSessions: boolean;
+}
+
+function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsProps) {
+  return (
+    <div className="divide-y-2 divide-black">
+      {loadingSessions ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
+      ) : sessions.length === 0 ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">No sessions yet. Start studying!</div>
+      ) : (
+        sessions.slice(0, 3).map((session, sIdx) => {
+          const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          const icons = ["science", "calculate", "history_edu"];
+          const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
+          return (
+            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`w-11 h-11 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
+                  style={{ boxShadow: "2px 2px 0px #000" }}>
+                  <span className="material-symbols-outlined text-[20px]">{icons[sIdx % 3]}</span>
+                </div>
+                <div>
+                  <div className="text-[14px] font-extrabold text-black">{session.title}</div>
+                  <div className="text-[11px] font-bold text-black/50">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m &bull; {formattedDate}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[11px] font-bold text-black/40">{Number(session.duration_minutes) > 0 && Number(session.duration_minutes) < 1 ? "<1" : Math.round(Number(session.duration_minutes) || 0)}m studied</div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+interface WeeklyBarsProps {
+  daysOfWeek: string[];
+  dayMinutes: number[];
+  studiedDays: boolean[];
+}
+
+function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
+  // 10 hours = 600 minutes
+  return (
+    <div className="h-48 flex items-end justify-between px-4 pb-2">
+      {daysOfWeek.map((day, idx) => {
+        const heightPct = dayMinutes[idx] === 0 ? 8 : Math.min(100, Math.max(8, Math.round((dayMinutes[idx] / 600) * 100)));
+        return (
+          <div key={day} className="flex flex-col items-center justify-end gap-2 group h-full">
+            <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              {dayMinutes[idx] > 0 ? (dayMinutes[idx] < 1 ? "<1m" : `${Math.round(dayMinutes[idx])}m`) : ""}
+            </span>
+            <div
+              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
+                studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
+              }`}
+              style={{ height: `${heightPct}%` }}
+            />
+            <span className="text-[10px] font-black uppercase text-black/40 mt-1">{day}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const { isPro } = usePlan();
+  const [toolsPage, setToolsPage] = useState(0);
+  const toolsScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleToolsScroll = () => {
+    const el = toolsScrollRef.current;
+    if (!el) return;
+    const page = Math.round(el.scrollLeft / el.clientWidth);
+    setToolsPage(Math.min(TOOL_SLIDES.length - 1, Math.max(0, page)));
+  };
+
+  const getSessionRoute = (title: string) => {
+    const t = (title || "").toLowerCase();
+    if (t.includes('flashcard')) return '/flashcards';
+    if (t.includes('practice')) return '/practice';
+    if (t.includes('arena') || t.includes('challenge')) return '/arena';
+    if (t.includes('tutor')) return '/ai-tutor';
+    if (t.includes('planner')) return '/planner';
+    if (t.includes('math')) return '/math';
+    if (t.includes('teach')) return '/teach-it';
+    if (t.includes('source')) return '/sources';
+    return '/tools';
+  };
+
+  const scrollToolsToPage = (page: number) => {
+    const el = toolsScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: page * el.clientWidth, behavior: "smooth" });
+    setToolsPage(page);
+  };
+
+  const toTitleCase = (s: string) =>
+    s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  const rawName =
+    user?.avatarConfig?.full_name ||
+    (user as any)?.user_metadata?.full_name ||
+    user?.name ||
+    user?.email?.split("@")[0] ||
+    "Master";
+  const displayName = toTitleCase(rawName);
+
+  const [tasks, setTasks] = useState<{ id: any; title: string; completed: boolean; time?: string }[]>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
+  const { sessions, stats, loading: loadingSessions } = useStudyStats();
+  
+  const [studiedDays, setStudiedDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
+  const [dayMinutes, setDayMinutes] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  useEffect(() => {
+    // Calculate calendar days
+    const today = new Date();
+    const windowDays: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      windowDays.push(d.toISOString().split("T")[0]);
+    }
+
+    const dayMins = new Array(7).fill(0);
+    const daysStudied = new Array(7).fill(false);
+
+    sessions.forEach((session) => {
+      const dStr = session.created_at.split("T")[0]; 
+      const idx = windowDays.indexOf(dStr);
+      if (idx !== -1) {
+        daysStudied[idx] = true;
+        dayMins[idx] += Number(session.duration_minutes) || 0;
+      }
+    });
+
+    setStudiedDays(daysStudied);
+    setDayMinutes(dayMins);
+  }, [sessions]);
+
+  const fetchTasks = () => {
+    setLoadingTasks(true);
+    try {
+      const stored = localStorage.getItem("pz_checklist");
+      const parsed = stored ? JSON.parse(stored) : [];
+      setTasks(parsed);
+    } catch {
+      setTasks([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }; "react-router-dom";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { SharedSidebar } from "@/components/SharedSidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
+import { useAuth } from "@/contexts/AuthContext";
+import { useStudyStats } from "@/hooks/useStudyStats";
 import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
 
@@ -446,7 +727,7 @@ export default function Dashboard() {
             <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Total Sessions</div>
               <div>
-                <div className="text-[48px] font-black leading-none text-black">{stats.totalSessions}</div>
+                <div className="text-[48px] font-black leading-none text-black">{stats.sessions}</div>
                 <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Lifetime</div>
               </div>
             </section>
@@ -455,7 +736,7 @@ export default function Dashboard() {
             <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Time Studied</div>
               <div>
-                <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyTimeHours}h</div>
+                <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyHrs}h</div>
                 <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Total Hours</div>
               </div>
             </section>
@@ -593,11 +874,11 @@ export default function Dashboard() {
         {/* Stats */}
         <section className="grid grid-cols-2 gap-3.5">
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black leading-tight">{stats.totalSessions}</div>
+            <div className="text-[22px] font-black leading-tight">{stats.sessions}</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
           </div>
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black leading-tight">{stats.studyTimeHours}h</div>
+            <div className="text-[22px] font-black leading-tight">{stats.studyHrs}h</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
           </div>
         </section>
