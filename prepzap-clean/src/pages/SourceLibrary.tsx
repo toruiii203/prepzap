@@ -5,6 +5,9 @@ import { ArrowLeft, Search, Paperclip, Camera, FileText, File, Trash2, Check, Im
 import { loadLibrary, saveLibrary, loadContext, saveContext } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
 import { supabase } from "@/lib/supabase";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 const FREE_FILE_LIMIT = 3;
 const PRO_FILE_LIMIT = 10;
@@ -225,6 +228,7 @@ function UploadZone({
 }
 
 export default function SourceLibrary() {
+  const tutorial = useTutorialModal("/sources");
   const navigate = useNavigate();
   const { isPro } = usePlan();
   const fileLimit = isPro ? PRO_FILE_LIMIT : FREE_FILE_LIMIT;
@@ -307,7 +311,8 @@ export default function SourceLibrary() {
   };
 
   // ── File upload with PDF.js extraction ────────────────────────────────────
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/sources"] || []} title="Source Library" />) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError(null);
@@ -936,6 +941,8 @@ export default function SourceLibrary() {
               R
             </div>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Desktop Dual Pane */}
@@ -1175,6 +1182,8 @@ export default function SourceLibrary() {
           >
             <Search className="w-6 h-6 text-[#1A1A1A]" />
           </button>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Main */}

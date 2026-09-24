@@ -61,7 +61,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
             {tasks.map((task) => (
               <div key={task.id} className="flex items-center gap-3 justify-between">
                 <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => tutorial.show()}>help</span>
+            
                   <button
                     onClick={() => handleToggleTask(task.id, task.completed)}
                     className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${

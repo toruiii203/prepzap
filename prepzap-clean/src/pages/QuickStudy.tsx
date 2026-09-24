@@ -9,6 +9,9 @@ import { useStudySession } from "@/hooks/useStudySession";
 import { useAuth } from "@/contexts/AuthContext";
 import { logQuestCompletion } from "@/lib/quests";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 interface StudyPoint {
   label: string;
@@ -49,6 +52,7 @@ const SOFT_TRIM_LENGTH = 260;
 const MAX_POINT_VALUE_LENGTH = 900;
 
 export default function QuickStudy() {
+  const tutorial = useTutorialModal("/quick-study");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { logSession } = useStudySession();
@@ -100,7 +104,8 @@ export default function QuickStudy() {
   };
 
   // FIX BUG 4: initialize remainingUses as null to avoid flicker
-  const [remainingUses, setRemainingUses] = useState<number | null>(null);
+  const [remainingUses, setRemainingUses] = useState<number | null>
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/quick-study"] || []} title="Quick Study" />(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
   useEffect(() => {
@@ -702,6 +707,8 @@ Return raw JSON only, no wrapping!`;
               S
             </div>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Desktop body — scrollable */}
@@ -917,6 +924,8 @@ Return raw JSON only, no wrapping!`;
             <span className="material-symbols-outlined text-[#ae2925] text-[16px]">timer</span>
             <span className="text-[11px] font-black text-[#ae2925]">TIMER</span>
           </button>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Mobile scrollable body */}

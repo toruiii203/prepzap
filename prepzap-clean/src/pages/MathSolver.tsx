@@ -9,6 +9,9 @@ import { useStudySession } from "@/hooks/useStudySession";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 interface SolutionStep {
   stepNumber: number;
@@ -251,6 +254,7 @@ function ScientificCalculator({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function MathSolver() {
+  const tutorial = useTutorialModal("/math");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { logSession } = useStudySession();
@@ -350,7 +354,8 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
         "math_solver"
       );
 
-      const parsed = safeParseJSON<any[]>(aiResponse);
+      const parsed = safeParseJSON<any[]>
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/math"] || []} title="Math Solver" />(aiResponse);
 
       if (Array.isArray(parsed) && parsed.length > 0) {
         setSteps(parsed);
@@ -621,6 +626,8 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
               S
             </div>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Desktop Dual Pane */}
@@ -810,6 +817,8 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
           >
             <span className="material-symbols-outlined text-[18px]">library_books</span>
           </button>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Mobile scrollable content */}

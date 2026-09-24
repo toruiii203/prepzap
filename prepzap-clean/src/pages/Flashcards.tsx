@@ -15,6 +15,9 @@ import { db, type Card as SM2Card } from "@/lib/db";
 import { calculateSM2, type Grade } from "@/lib/sm2";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDueCount as getSRDueCount, getOrCreateSRCard, reviewCard, getDueCards, loadSRData } from "@/lib/spacedRepetition";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 interface Flashcard {
   id?: string;
@@ -83,6 +86,7 @@ function DesktopFlashcard({ currentCard, isFlipped, setIsFlipped }: DesktopFlash
 }
 
 export default function Flashcards() {
+  const tutorial = useTutorialModal("/flashcards");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isChallenge = searchParams.get('challenge') === 'true';
@@ -801,7 +805,9 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </button>
                 )}
               </div>
-            </header>
+            
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
+        </header>
 
             {/* Setup view */}
             {view === "setup" && !isLoading && (
@@ -1014,7 +1020,9 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 <span className="material-symbols-outlined text-[#1A1A1A] text-[18px]">library_books</span>
               </button>
             </div>
-          </header>
+          
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
+        </header>
 
           {/* VIEW 1: SETUP STATE */}
           {view === "setup" && (

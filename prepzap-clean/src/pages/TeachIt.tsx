@@ -9,6 +9,9 @@ import { usePlan } from "@/hooks/usePlan";
 import { useStudySession } from "@/hooks/useStudySession";
 import UpgradePrompt, { SoftWarning } from "@/components/UpgradePrompt";
 import { useToolHistory } from "@/pages/ToolHistory";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 interface FeynmanFeedback {
   strengths: string[];
@@ -19,6 +22,7 @@ interface FeynmanFeedback {
 }
 
 export default function TeachIt() {
+  const tutorial = useTutorialModal("/teach-it");
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const { isPro, canUse, remaining, logUsage } = usePlan();
@@ -278,6 +282,7 @@ export default function TeachIt() {
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/teach-it"] || []} title="Teach It" />
 
       {showUpgrade && (
         <UpgradePrompt
@@ -347,6 +352,8 @@ export default function TeachIt() {
               {profile?.display_name?.charAt(0)?.toUpperCase() ?? "S"}
             </div>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Desktop workspace */}
@@ -587,6 +594,8 @@ export default function TeachIt() {
             className="w-9 h-9 flex items-center justify-center rounded-full cursor-pointer hover:bg-[#ebe8e3]">
             <span className="material-symbols-outlined">library_books</span>
           </button>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* FIX BUG 7: pb-28 ensures content isn't hidden behind fixed bottom bar */}

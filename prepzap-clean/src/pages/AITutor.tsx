@@ -357,7 +357,8 @@ export default function AITutor() {
       document.documentElement.style.overscrollBehavior = "";
     };
   }, []);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/ai-tutor"] || []} title="Rex Tutor" />(null);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -750,6 +751,8 @@ export default function AITutor() {
               R
             </div>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Dual Pane */}
@@ -872,6 +875,8 @@ export default function AITutor() {
               <span className="material-symbols-outlined text-black text-[18px]">library_books</span>
             </button>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Source + count bar */}

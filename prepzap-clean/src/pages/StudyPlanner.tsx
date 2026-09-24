@@ -5,6 +5,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { loadLibrary } from "@/lib/sourceContext";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface PlannerSession {
@@ -507,6 +510,7 @@ function ProductivityCard({ productivityScore, sessions = [] }: ProductivityCard
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function StudyPlanner() {
+  const tutorial = useTutorialModal("/planner");
   const navigate   = useNavigate();
   const { profile, user } = useAuth();
   
@@ -664,6 +668,7 @@ export default function StudyPlanner() {
   return (
     // FIX: was minHeight:100dvh on root — caused desktop scroll issue; use height:100dvh + overflow:hidden
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/planner"] || []} title="Study Planner" />
 
       <SharedSidebar active="/planner" />
 
@@ -692,6 +697,8 @@ export default function StudyPlanner() {
               {avatarLetter}
             </div>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Desktop 3-col bento */}
@@ -808,6 +815,8 @@ export default function StudyPlanner() {
             <span className="material-symbols-outlined text-[#E8534A] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
             <span className="text-[11px] font-black">{streak}</span>
           </div>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         {/* Mobile scrollable body */}

@@ -10,6 +10,9 @@ import { callGroq, safeParseJSON } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
 import { logQuestCompletion } from "@/lib/quests";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface Question {
@@ -210,6 +213,7 @@ function HistoryCard({ entry, onOpenReview }: { entry: HistoryEntry; onOpenRevie
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Practice() {
+  const tutorial = useTutorialModal("/practice");
   const { isPro, canUse, logUsage } = usePlan();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const navigate = useNavigate();
@@ -694,6 +698,7 @@ Each object MUST match this schema exactly:
 
   return (
     <>
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/practice"] || []} title="Practice" />
       {showProUpsell && <ProUpsellModal onClose={() => setShowProUpsell(false)} />}
       <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
 
@@ -928,6 +933,8 @@ Each object MUST match this schema exactly:
             className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5">
             <span className="material-symbols-outlined text-[20px]">library_books</span>
           </button>
+        
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
         </header>
 
         

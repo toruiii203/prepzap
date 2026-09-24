@@ -10,6 +10,7 @@ interface AnalyticsProps {
 }
 
 export default function Analytics() {
+  const tutorial = useTutorialModal("/analytics");
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
@@ -44,6 +45,9 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyStats } from "@/hooks/useStudyStats";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 interface AnalyticsProps {
 }

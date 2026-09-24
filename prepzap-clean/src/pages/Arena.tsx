@@ -7,6 +7,9 @@ import { SharedSidebar } from "@/components/SharedSidebar";
 import { callGroq, safeParseJSON } from "@/lib/groq";
 import { loadLibrary, type SourceFile } from "@/lib/sourceContext";
 import { withTimeout } from "@/lib/withTimeout";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DailyQuiz {
@@ -427,6 +430,7 @@ function JoinRoomModal({ onClose, onJoined }: { onClose: () => void; onJoined: (
 
 // ── Main Arena Page ───────────────────────────────────────────────────────────
 export default function Arena() {
+  const tutorial = useTutorialModal("/arena");
   const navigate = useNavigate();
   const { user } = useAuth();
   const [dailyQuiz, setDailyQuiz] = useState<DailyQuiz | null>(null);
@@ -626,6 +630,7 @@ export default function Arena() {
 
   const renderDailyCard = () => (
     <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] overflow-hidden">
+        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/arena"] || []} title="Arena" />
       <div className="bg-[#f0a040] border-b-2 border-black px-4 py-2 flex justify-between items-center">
         <span className="font-bold text-[11px] uppercase tracking-widest">Daily Challenge</span>
         <span className="font-bold text-[11px]">{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
