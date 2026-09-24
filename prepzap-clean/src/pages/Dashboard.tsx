@@ -265,7 +265,8 @@ function Dashboard() {
     const daysStudied = new Array(7).fill(false);
 
     sessions.forEach((session) => {
-      const dStr = session.created_at.split("T")[0]; 
+      const dateObj = new Date(session.created_at);
+        const dStr = dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0'); 
       const idx = windowDays.indexOf(dStr);
       if (idx !== -1) {
         daysStudied[idx] = true;
@@ -612,8 +613,9 @@ export default function Dashboard() {
       const daysStudied = new Array(7).fill(false);
 
       loadedSessions.forEach((session) => {
-        // Parse date reliably without timezone shifting
-        const dStr = session.created_at.split("T")[0]; 
+        // Parse date reliably converting from UTC to Local timezone
+        const dateObj = new Date(session.created_at);
+        const dStr = dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0'); 
         const idx = windowDays.indexOf(dStr);
         if (idx !== -1) {
           daysStudied[idx] = true;
