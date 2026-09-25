@@ -406,7 +406,7 @@ If source material is provided, base the scenes on its actual content, not gener
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
                   <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>�/</span>
+                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>&bull; /</span>
                     <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                   </div>
                 </div>

@@ -14,12 +14,12 @@ const TOOL_PAGES = [
     { route: "/timer", icon: "timer", title: "Focus Timer", desc: "Pomodoro" },
   ],
   [
-    { route: "/quick-study", icon: "menu_book", title: "Quick Study", desc: "High yield" },
     { route: "/arcade", icon: "sports_esports", title: "Arcade", desc: "Mini-games" },
+    { route: "/notes", icon: "edit_document", title: "My Notes", desc: "Rich text editor" },
     { route: "/settings", icon: "settings", title: "Settings", desc: "Preferences" },
+    { route: "/sources", icon: "attach_file", title: "Source Library", desc: "Upload notes" }
   ],
   [
-    { route: "/sources", icon: "attach_file", title: "Source Library", desc: "Upload notes" },
     { route: "/mistakes", icon: "playlist_remove", title: "Mistake Journal", desc: "Review errors" },
     { route: "/analytics", icon: "bar_chart", title: "Analytics", desc: "Track progress" },
     { route: "/challenges", icon: "emoji_events", title: "Challenges", desc: "Daily streaks" },

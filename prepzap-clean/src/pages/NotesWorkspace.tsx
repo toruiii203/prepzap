@@ -83,7 +83,7 @@ export default function NotesWorkspace() {
       <SharedSidebar />
       <div className="flex-1 flex overflow-hidden md:ml-64 pb-16 md:pb-0">
         {/* Left Sidebar - Notes List */}
-        <div className="w-64 border-r-2 border-black bg-[#FAF7F2] flex flex-col">
+        <div className={`w-full md:w-64 border-r-2 border-black bg-[#FAF7F2] flex-col ${(activeNote || showGraph) ? "hidden md:flex" : "flex"}`}>
           <div className="p-4 border-b-2 border-black flex justify-between items-center">
             <h2 className="font-black text-[16px]">My Notes</h2>
             <button onClick={() => tutorial.show()} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg hover:bg-black hover:text-white transition-colors ml-auto mr-2" title="Help">
@@ -116,9 +116,15 @@ export default function NotesWorkspace() {
         </div>
 
         {/* Right Area - Editor */}
-        <div className="flex-1 flex flex-col overflow-y-auto bg-[#FAF7F2]">
+        <div className={`flex-1 flex-col overflow-y-auto bg-[#FAF7F2] ${(!activeNote && !showGraph) ? "hidden md:flex" : "flex"}`}>
           {showGraph ? (
-            <div className="flex-1 p-8">
+            <div className="flex-1 p-8 flex flex-col">
+              <div className="md:hidden flex items-center gap-3 mb-4">
+                <button onClick={() => setShowGraph(false)} className="w-10 h-10 flex items-center justify-center border-2 border-black rounded-lg hover:bg-black hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                </button>
+                <span className="font-black text-[16px]">Knowledge Graph</span>
+              </div>
               <KnowledgeGraph onNodeClick={(id) => {
                 const note = notes.find(n => n.id === id);
                 if (note) {
@@ -128,7 +134,13 @@ export default function NotesWorkspace() {
               }} />
             </div>
           ) : activeNote ? (
-            <div className="max-w-3xl w-full mx-auto py-12 px-8 flex flex-col gap-6">
+            <div className="max-w-3xl w-full mx-auto md:py-12 md:px-8 py-6 px-5 flex flex-col gap-6">
+              <div className="md:hidden flex items-center gap-3 mb-2">
+                <button onClick={() => setActiveNote(null)} className="w-10 h-10 flex items-center justify-center border-2 border-black rounded-lg hover:bg-black hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                </button>
+                <span className="font-black text-[16px]">All Notes</span>
+              </div>
               <input
                 type="text"
                 value={activeNote.title || ""}

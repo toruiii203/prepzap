@@ -506,8 +506,8 @@ export default function ArenaQuiz() {
   const answeredCount = Object.keys(answers).length;
 
   const difficultyLabel = isDaily
-    ? `Daily Quiz � ${dailyQuiz?.difficulty ?? "Medium"}`
-    : `${room?.topic} � ${room?.difficulty}`;
+    ? `Daily Quiz • ${dailyQuiz?.difficulty ?? "Medium"}`
+    : `${room?.topic} • ${room?.difficulty}`;
 
   // -- Loading ----------------------------------------------------------------
   if (loading) return <AppSkeleton />;
@@ -653,7 +653,7 @@ export default function ArenaQuiz() {
       {/* ------------ DESKTOP ------------ */}
       <div className="hidden md:flex flex-1 overflow-hidden">
 
-        {/* Center � question + options */}
+        {/* Center - question + options */}
         <div className="flex-1 p-8 overflow-y-auto flex flex-col gap-6 justify-between">
           <div className="flex flex-col gap-6">
 
@@ -736,7 +736,7 @@ export default function ArenaQuiz() {
           </div>
         </div>
 
-        {/* Right panel � question map + timer */}
+        {/* Right panel - question map + timer */}
         <aside className="w-[260px] border-l-2 border-black bg-white flex flex-col overflow-y-auto">
 
           {/* Question map */}

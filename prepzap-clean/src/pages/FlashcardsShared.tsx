@@ -128,7 +128,7 @@ export default function FlashcardsShared() {
     return (
       <div className="w-full min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center gap-4">
         <div className="w-10 h-10 border-4 border-black border-t-[#CC0000] rounded-full animate-spin" />
-        <p className="font-extrabold text-black/50 text-sm uppercase tracking-widest">Loading deck�</p>
+        <p className="font-extrabold text-black/50 text-sm uppercase tracking-widest">Loading deck...</p>
       </div>
     );
   }
@@ -349,7 +349,7 @@ export default function FlashcardsShared() {
           </div>
         )}
 
-        {/* Response buttons � only show after flip */}
+        {/* Response buttons - only show after flip */}
         {isFlipped ? (
           <div className="w-full grid grid-cols-3 gap-3">
             {([
@@ -384,7 +384,7 @@ export default function FlashcardsShared() {
       {/* Footer CTA */}
       <div className="border-t-2 border-black bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm mt-auto">
         <p className="font-bold text-black/60 text-center sm:text-left">
-          Shared via <span className="text-[#CC0000] font-black">Studenius</span> � AI study tools for students
+          Shared via <span className="text-[#CC0000] font-black">Studenius</span> - AI study tools for students
         </p>
         {user ? (
           <button
