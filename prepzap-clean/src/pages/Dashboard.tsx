@@ -15,7 +15,7 @@ const ALL_TOOLS = [
   { route: "/ai-tutor",   icon: "forum",       title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
   { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
   { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-[#8B5CF6]" },
-  { route: "/quick-study",icon: "edit_note",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
+  { route: "/call",        icon: "phone_in_talk",         title: "Call Rex",        desc: "Voice tutor",       color: "text-[#b61b00]" },
   { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-[#0EA5E9]" },
   { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-[#10B981]" },
   { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-[#EC4899]" },
