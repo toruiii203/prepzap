@@ -64,8 +64,8 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
             
                   <button
                     onClick={() => handleToggleTask(task.id, task.completed)}
-                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
-                      task.completed ? "bg-[#E8534A]" : "bg-white hover:bg-[#ffdad6]"
+                    className={`w-5 h-5 rounded-full border border-white/10 flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
+                      task.completed ? "bg-[#E8534A]" : "bg-white/5 hover:bg-[#ffdad6]"
                     }`}
                   >
                     {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
@@ -73,7 +73,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
                   <div className={`text-[14px] font-extrabold ${task.completed ? "line-through opacity-40" : ""}`}>
                     {task.title}
                     {task.time && (
-                      <span className="text-[11px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-black/10">
+                      <span className="text-[11px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-white/10/10">
                         {task.time}
                       </span>
                     )}
@@ -81,7 +81,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
                 </div>
                 <button
                   onClick={() => handleDeleteTask(task.id)}
-                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-black cursor-pointer transition-colors"
+                  className="material-symbols-outlined text-[18px] text-white/30 hover:text-white cursor-pointer transition-colors"
                 >
                   delete
                 </button>
@@ -90,18 +90,18 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
           </div>
         )}
       </div>
-      <div className="border-t-2 border-black p-3">
+      <div className="border-t-2 border-white/10 p-3">
         <form onSubmit={handleAddTask} className="flex gap-2">
           <input
             type="text"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             placeholder="Add a quest..."
-            className="flex-1 bg-transparent border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40"
+            className="flex-1 bg-transparent border border-white/10 px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40"
           />
           <button
             type="submit"
-            className="border-2 border-black bg-black text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
+            className="border border-white/10 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
           </button>
@@ -120,7 +120,7 @@ interface RecentSessionsRowsProps {
 
 function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsProps) {
   return (
-    <div className="divide-y-2 divide-black">
+    <div className="divide-y-2 divide-white/10">
       {loadingSessions ? (
         <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
       ) : sessions.length === 0 ? (
@@ -129,21 +129,21 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
         sessions.slice(0, 3).map((session, sIdx) => {
           const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
           const icons = ["science", "calculate", "history_edu"];
-          const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
+          const bgs = ["bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)]", "bg-[#b61b00]", "bg-[#858480]"];
           return (
-            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
+            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white/5 hover:bg-[#f3f3f3] transition-colors">
               <div className="flex items-center gap-4">
-                <div className={`w-11 h-11 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
-                  style={{ boxShadow: "2px 2px 0px #000" }}>
+                <div className={`w-11 h-11 border border-white/10 flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
+                  >
                   <span className="material-symbols-outlined text-[20px]">{icons[sIdx % 3]}</span>
                 </div>
                 <div>
-                  <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{formatDuration(Number(session.duration_minutes || session.duration))} &bull; {formattedDate}</div>
+                  <div className="text-[14px] font-extrabold text-white">{session.title}</div>
+                  <div className="text-[11px] font-bold text-white/50">{formatDuration(Number(session.duration_minutes || session.duration))} &bull; {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[11px] font-bold text-black/40">{formatDuration(Number(session.duration_minutes || session.duration))} studied</div>
+                <div className="text-[11px] font-bold text-white/40">{formatDuration(Number(session.duration_minutes || session.duration))} studied</div>
               </div>
             </div>
           );
@@ -167,16 +167,16 @@ function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
         const heightPct = dayMinutes[idx] === 0 ? 8 : Math.min(100, Math.max(8, Math.round((dayMinutes[idx] / 600) * 100)));
         return (
           <div key={day} className="flex flex-col items-center justify-end gap-2 group h-full">
-            <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-[9px] font-black text-white/40 opacity-0 group-hover:opacity-100 transition-opacity">
               {dayMinutes[idx] > 0 ? (dayMinutes[idx] < 1 ? "<1m" : `${Math.round(dayMinutes[idx])}m`) : ""}
             </span>
             <div
-              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
-                studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
+              className={`w-8 border border-white/10 transition-colors group-hover:bg-[#FF4D2E] ${
+                studiedDays[idx] ? "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)]" : "bg-[#18181b]"
               }`}
               style={{ height: `${heightPct}%` }}
             />
-            <span className="text-[10px] font-black uppercase text-black/40 mt-1">{day}</span>
+            <span className="text-[10px] font-black uppercase text-white/40 mt-1">{day}</span>
           </div>
         );
       })}
@@ -213,17 +213,17 @@ function CallRexBanner({ navigate }: { navigate: any }) {
   if (hasCalled) {
     // Collapsed version for returning users
     return (
-      <div className="border-2 border-black rounded-2xl bg-[#E8E4DC] p-4 flex items-center justify-between" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+      <div className="border border-white/10 rounded-2xl bg-white/5/5 border border-white/10 p-4 flex items-center justify-between" >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-black overflow-hidden bg-white shrink-0">
+          <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden bg-white/5 shrink-0">
             <img src="/fox/fox-neutral.png" alt="Rex" className="w-full h-full object-cover scale-150 mt-1" />
           </div>
           <div>
             <h3 className="text-[14px] font-black tracking-tight leading-none">Talk to Rex</h3>
-            <p className="text-[12px] font-bold text-black/60">Voice chat tutor</p>
+            <p className="text-[12px] font-bold text-white/60">Voice chat tutor</p>
           </div>
         </div>
-        <button onClick={handleCall} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95">
+        <button onClick={handleCall} className="w-10 h-10 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] text-white rounded-full flex items-center justify-center hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)]/80 transition-colors active:scale-95">
           <span className="material-symbols-outlined text-[20px]">phone_in_talk</span>
         </button>
       </div>
@@ -232,7 +232,7 @@ function CallRexBanner({ navigate }: { navigate: any }) {
 
   // Hero version for first-time users
   return (
-    <div className="border-2 border-black rounded-2xl bg-[#ae2925] overflow-hidden relative" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
+    <div className="border border-white/10 rounded-2xl bg-[#ae2925] overflow-hidden relative" >
       {/* Background decoration */}
       <div className="absolute right-0 top-0 bottom-0 w-[40%] bg-cover bg-left opacity-30 mix-blend-luminosity" style={{ backgroundImage: "url('/fox/call_bg.jpg')" }} />
       <div className="absolute right-[-20px] bottom-[-20px] w-48 h-48 pointer-events-none">
@@ -240,7 +240,7 @@ function CallRexBanner({ navigate }: { navigate: any }) {
       </div>
 
       <div className="relative z-10 p-5 md:p-8 w-[70%]">
-        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white text-black font-black uppercase text-[10px] tracking-wider rounded border-2 border-black mb-3">
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white/5 text-white font-black uppercase text-[10px] tracking-wider rounded border border-white/10 mb-3">
           <span className="material-symbols-outlined text-[12px] text-orange-500">campaign</span>
           New Feature
         </div>
@@ -248,7 +248,7 @@ function CallRexBanner({ navigate }: { navigate: any }) {
         <p className="text-white/80 font-bold text-[13px] md:text-[15px] mb-5 max-w-[280px]">
           Consolidate your learning by talking through concepts with Rex in a live voice call.
         </p>
-        <button onClick={handleCall} className="bg-white text-black border-2 border-black font-black uppercase tracking-widest text-[13px] px-6 py-3 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-100 transition-all flex items-center gap-2">
+        <button onClick={handleCall} className="bg-white/5 text-white border border-white/10 font-black uppercase tracking-widest text-[13px] px-6 py-3 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-100 transition-all flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px]">phone_in_talk</span>
           Call Rex
         </button>
@@ -459,7 +459,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
+    <div className="w-full bg-transparent min-h-full flex flex-col font-body-md text-white flex-1">
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/dashboard"] || []} title="Dashboard" />
 
       <SharedSidebar active="/dashboard" />
@@ -467,8 +467,8 @@ export default function Dashboard() {
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           MOBILE TOP BAR â€” hidden on desktop (md:hidden)
           â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-      <header className="md:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
-        <div className="text-[18px] font-black tracking-wider uppercase">Studenius</div>
+      <header className="md:hidden h-16 w-full px-5 flex items-center justify-between bg-transparent z-40 sticky top-0 border-b-[1.5px] border-white/10">
+        <div className="text-[18px] font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Studenius</div>
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
           <div className="px-3 py-1 rounded-full cursor-pointer bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:scale-95 transition-all" onClick={() => navigate("/pro")}>
@@ -478,7 +478,7 @@ export default function Dashboard() {
               <span className="text-[11px] font-black text-white uppercase tracking-wider" style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}>Go Pro</span>
             )}
           </div>
-          <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-2 border-black flex items-center justify-center font-black text-[13px] cursor-pointer" onClick={() => navigate("/profile")}>
+          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white border border-white/20 shadow-[0_0_10px_rgba(79,70,229,0.5)] flex items-center justify-center font-black text-[13px] cursor-pointer" onClick={() => navigate("/profile")}>
             {displayName.slice(0, 1).toUpperCase()}
           </div>
         </div>
@@ -492,13 +492,13 @@ export default function Dashboard() {
         {/* Desktop Header */}
         <header className="flex justify-between items-end mb-8">
           <div>
-            <h2 className="text-[32px] font-black leading-tight text-black">Good morning, {displayName}.</h2>
-            <p className="text-[16px] font-bold text-black/60 mt-1">
+            <h2 className="text-[32px] font-black leading-tight text-white">Good morning, {displayName}.</h2>
+            <p className="text-[16px] font-bold text-white/60 mt-1">
               {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Keep the streak alive
             </p>
           </div>
           <div className="flex gap-3">
-              <button onClick={() => tutorial.show()} className="w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"><span className="material-symbols-outlined text-[20px]">help</span></button>
+              <button onClick={() => tutorial.show()} className="w-10 h-10 flex items-center justify-center border border-white/10 bg-white/5 hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"><span className="material-symbols-outlined text-[20px]">help</span></button>
           </div>
         </header>
 
@@ -512,14 +512,14 @@ export default function Dashboard() {
           <div className="col-span-8 grid grid-cols-3 gap-6">
 
             {/* Today's Goal */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col items-center text-center relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <section className="border border-white/10 bg-white/5 p-4 flex flex-col items-center text-center relative overflow-hidden" >
               <div className="absolute top-0 left-0 w-full h-1 bg-[#FF4D2E]" />
-              <div className="text-[10px] font-black uppercase tracking-wider text-black/50 self-start mb-3">Today's Goal</div>
+              <div className="text-[10px] font-black uppercase tracking-wider text-white/50 self-start mb-3">Today's Goal</div>
               <div className="relative w-24 h-24 flex items-center justify-center mb-2">
                 <svg className="w-full h-full -rotate-90">
                   <circle className="text-[#E8E4DC]" cx="48" cy="48" fill="transparent" r="42" stroke="currentColor" strokeWidth="6" />
                   <circle
-                    className="text-black"
+                    className="text-white"
                     cx="48" cy="48" fill="transparent" r="42"
                     stroke="currentColor" strokeWidth="6"
                     strokeDasharray={circumference}
@@ -531,31 +531,31 @@ export default function Dashboard() {
                   <span className="text-[22px] font-black leading-tight">{completedCount}/{goalCount}</span>
                 </div>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Sessions</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-white/50">Sessions</span>
             </section>
 
             {/* Total Sessions */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
-              <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Total Sessions</div>
+            <section className="border border-white/10 bg-white/5 p-4 flex flex-col justify-between relative" >
+              <div className="text-[10px] font-black uppercase tracking-wider text-white/50">Total Sessions</div>
               <div>
-                <div className="text-[48px] font-black leading-none text-black">{stats.totalSessions}</div>
-                <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Lifetime</div>
+                <div className="text-[48px] font-black leading-none text-white">{stats.totalSessions}</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-white/40 mt-1">Lifetime</div>
               </div>
             </section>
 
             {/* Time Studied */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
-              <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Time Studied</div>
+            <section className="border border-white/10 bg-white/5 p-4 flex flex-col justify-between relative" >
+              <div className="text-[10px] font-black uppercase tracking-wider text-white/50">Time Studied</div>
               <div>
                 <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyTimeHours}h</div>
-                <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Total Hours</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-white/40 mt-1">Total Hours</div>
               </div>
             </section>
           </div>
 
           {/* Quest Log â€” tall right column spanning 2 rows */}
-          <section className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col" style={{ boxShadow: "4px 4px 0px #000" }}>
-            <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FAF7F2]/50">
+          <section className="col-span-4 row-span-2 border border-white/10 bg-white/5 flex flex-col" >
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-transparent/50">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Quest Log</h3>
               <span className="material-symbols-outlined text-[20px]">history_edu</span>
             </div>
@@ -571,38 +571,38 @@ export default function Dashboard() {
           </section>
 
           {/* Quick Tools â€” 4x3 grid */}
-          <section className="col-span-8 border-2 border-black bg-[#F0EDE0] p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <section className="col-span-8 border border-white/10 bg-[#18181b] p-4" >
             <h3 className="text-[13px] font-black uppercase tracking-wider mb-4">Quick Tools</h3>
             <div className="grid grid-cols-4 gap-3">
               {ALL_TOOLS.map((tool) => (
                 <button
                   key={tool.route + tool.title}
                   onClick={() => navigate(tool.route)}
-                  className="border-2 border-black bg-white p-3 flex flex-col items-center justify-center text-center gap-1 h-28 hover:bg-black hover:text-white group transition-colors"
-                  style={{ boxShadow: "3px 3px 0px #000" }}
+                  className="border border-white/10 bg-white/5 p-3 flex flex-col items-center justify-center text-center gap-1 h-28 hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] hover:text-white group transition-colors"
+                  style={{  }}
                 >
                   <span className={`material-symbols-outlined text-[22px] group-hover:text-white ${tool.color}`}>{tool.icon}</span>
                   <span className="text-[13px] font-extrabold group-hover:text-white">{tool.title}</span>
-                  <span className="text-[11px] font-bold text-black/50 group-hover:text-white/70">{tool.desc}</span>
+                  <span className="text-[11px] font-bold text-white/50 group-hover:text-white/70">{tool.desc}</span>
                 </button>
               ))}
             </div>
           </section>
 
           {/* Weekly Momentum */}
-          <section className="col-span-8 border-2 border-black bg-white p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <section className="col-span-8 border border-white/10 bg-white/5 p-4" >
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Weekly Momentum</h3>
               <div className="flex gap-2">
-                <span className="px-3 py-1 bg-black text-white text-[11px] font-black uppercase tracking-wider">Study Hours</span>
-                <span className="px-3 py-1 border-[1.5px] border-black text-[11px] font-black uppercase tracking-wider">Goals Met</span>
+                <span className="px-3 py-1 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] text-white text-[11px] font-black uppercase tracking-wider">Study Hours</span>
+                <span className="px-3 py-1 border-[1.5px] border-white/10 text-[11px] font-black uppercase tracking-wider">Goals Met</span>
               </div>
             </div>
             <WeeklyBars daysOfWeek={daysOfWeek} dayMinutes={dayMinutes} studiedDays={studiedDays} />
           </section>
 
           {/* Academic Streak */}
-          <section className="col-span-4 border-2 border-black bg-[#FF4D2E] text-white p-4 flex flex-col justify-between min-h-[200px]" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <section className="col-span-4 border border-white/10 bg-[#FF4D2E] text-white p-4 flex flex-col justify-between min-h-[200px]" >
             <div className="flex justify-between items-start">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Academic Streak</h3>
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
@@ -616,8 +616,8 @@ export default function Dashboard() {
           </section>
 
           {/* Recent Sessions â€” full width */}
-          <section className="col-span-12 border-2 border-black bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
-            <div className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
+          <section className="col-span-12 border border-white/10 bg-transparent overflow-hidden" >
+            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Recent Sessions</h3>
               <button className="text-[13px] font-extrabold text-[#FF4D2E] hover:underline">View All</button>
             </div>
@@ -634,12 +634,12 @@ export default function Dashboard() {
 
         {/* Greeting */}
         <section className="flex items-center gap-3">
-          <div className="w-[44px] h-[44px] rounded-full bg-[#fca623]/20 border-2 border-black flex items-center justify-center flex-shrink-0">
+          <div className="w-[44px] h-[44px] rounded-full bg-indigo-500/20 border-white/10 border border-white/10 flex items-center justify-center flex-shrink-0">
             <span className="material-symbols-outlined text-[20px]">school</span>
           </div>
           <div>
             <h1 className="text-[26px] font-black leading-tight tracking-tight">Good morning, {displayName}.</h1>
-            <p className="text-[14px] text-black/65 font-bold mt-0.5">
+            <p className="text-[14px] text-white/65 font-bold mt-0.5">
               {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
             </p>
           </div>
@@ -649,7 +649,7 @@ export default function Dashboard() {
           <div className="mb-6"><CallRexBanner navigate={navigate} /></div>
 
         {/* Goal Progress Bar */}
-        <section className="border-2 border-black rounded-2xl bg-[#FAF7F2] p-5" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
+        <section className="border border-white/10 rounded-2xl bg-transparent p-5" >
           <div className="flex justify-between items-end mb-4">
             <div>
               <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">Current Goal</div>
@@ -657,15 +657,15 @@ export default function Dashboard() {
             </div>
             <div className="text-[28px] font-black leading-none">{completedCount}/{goalCount}</div>
           </div>
-          <div className="h-2 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
-            <div className="h-full bg-black rounded-r-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+          <div className="h-2 bg-white/5/5 border border-white/10 rounded-full overflow-hidden border border-white/10">
+            <div className="h-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] rounded-r-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
           </div>
         </section>
 
         
 
         {/* Weekly Calendar (mobile only) */}
-        <section className="border-2 border-black rounded-2xl bg-white p-5" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+        <section className="border border-white/10 rounded-2xl bg-white/5 p-5" >
           <div className="text-[11.5px] opacity-50 font-black uppercase tracking-wider mb-3">Weekly Study Calendar</div>
           <div className="grid grid-cols-7 gap-1.5">
             {daysOfWeek.map((day, idx) => {
@@ -674,8 +674,8 @@ export default function Dashboard() {
               return (
                 <div key={day} className="flex flex-col items-center gap-1.5">
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{day[0]}</span>
-                  <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-extrabold text-[11px] transition-all ${
-                    studied ? "bg-black text-white shadow-[1px_1px_0px_#000]" : "bg-[#FAF7F2] text-black/35"
+                  <div className={`w-8 h-8 rounded-full border border-white/10 flex items-center justify-center font-extrabold text-[11px] transition-all ${
+                    studied ? "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] text-white shadow-[1px_1px_0px_#000]" : "bg-transparent text-white/35"
                   } ${isToday ? "ring-2 ring-orange-400 scale-105" : ""}`}>
                     {studied ? "✓" : idx + 1}
                   </div>
@@ -687,11 +687,11 @@ export default function Dashboard() {
 
         {/* Stats */}
         <section className="grid grid-cols-2 gap-3.5">
-          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
             <div className="text-[22px] font-black leading-tight">{stats.totalSessions}</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
           </div>
-          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
             <div className="text-[22px] font-black leading-tight">{stats.studyTimeHours}h</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
           </div>
@@ -701,7 +701,7 @@ export default function Dashboard() {
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
             <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Tools</div>
-            <button type="button" onClick={() => navigate("/tools")} className="text-[11px] font-bold text-black/50 underline">See all</button>
+            <button type="button" onClick={() => navigate("/tools")} className="text-[11px] font-bold text-white/50 underline">See all</button>
           </div>
           <div className="relative">
             <div
@@ -717,12 +717,12 @@ export default function Dashboard() {
                       key={tool.title}
                       type="button"
                       onClick={() => navigate(tool.route)}
-                      className="h-[110px] border-2 border-black rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
+                      className="h-[110px] border border-white/10 rounded-[14px] bg-transparent p-3 text-left shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
                     >
                       <span className={`material-symbols-outlined text-[20px] mb-2 block ${tool.color}`}>{tool.icon}</span>
                       <div>
                         <div className="text-[13px] font-bold">{tool.title}</div>
-                        <div className="text-[11px] text-black/40 font-semibold">{tool.desc}</div>
+                        <div className="text-[11px] text-white/40 font-semibold">{tool.desc}</div>
                       </div>
                     </button>
                   ))}
@@ -733,7 +733,7 @@ export default function Dashboard() {
             <div className="flex justify-center gap-1.5 mt-2">
               {TOOL_SLIDES.map((_, idx) => (
                 <button key={idx} type="button" onClick={() => scrollToolsToPage(idx)}
-                  className={`w-1.5 h-1.5 rounded-full transition-opacity ${toolsPage === idx ? "bg-black" : "bg-black/20"}`} />
+                  className={`w-1.5 h-1.5 rounded-full transition-opacity ${toolsPage === idx ? "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)]" : "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)]/20"}`} />
               ))}
             </div>
           </div>
@@ -744,7 +744,7 @@ export default function Dashboard() {
           <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2">
             Quest Log
           </div>
-          <div className="border-2 border-black rounded-xl bg-white overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+          <div className="border border-white/10 rounded-xl bg-white/5 overflow-hidden" >
             <QuestLogBody
               tasks={tasks}
               loadingTasks={loadingTasks}
@@ -761,44 +761,44 @@ export default function Dashboard() {
         <section>
           <div className="text-[11px] font-black opacity-50 uppercase tracking-wider flex items-center gap-2 mb-1">
             Specific Performance Targets
-            <div className="ml-auto w-6 h-6 rounded-full border-2 border-black bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-white transition-colors" onClick={() => navigate("/planner")}>
+            <div className="ml-auto w-6 h-6 rounded-full border border-white/10 bg-transparent flex items-center justify-center cursor-pointer hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] hover:text-white transition-colors" onClick={() => navigate("/planner")}>
               <span className="material-symbols-outlined text-[14px]">add</span>
             </div>
           </div>
-          <div className="text-[12px] text-black/45 font-bold mb-2">Based on study sessions recorded</div>
+          <div className="text-[12px] text-white/45 font-bold mb-2">Based on study sessions recorded</div>
           <div className="flex flex-wrap gap-2.5">
             {Array.from(new Set(sessions.map((s) => s.title))).slice(0, 4).map((title, i) => (
               <button
                 key={title || i}
                 type="button"
                 onClick={() => navigate(getSessionRoute(title))}
-                className="border-2 border-black px-4 py-2 bg-[#FAF7F2] text-[13px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                className="border border-white/10 px-4 py-2 bg-transparent text-[13px] font-extrabold hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] hover:text-white transition-colors cursor-pointer shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
                 {title}
               </button>
             ))}
             {sessions.length === 0 && (
-              <p className="text-[12px] text-black/40 font-bold">Complete study sessions to see your targets here.</p>
+              <p className="text-[12px] text-white/40 font-bold">Complete study sessions to see your targets here.</p>
             )}
           </div>
         </section>
 
         {/* History Ledger (mobile recent sessions) */}
-        <section className="border-2 border-black rounded-[16px] bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
-          <div className="text-[11.5px] font-black opacity-50 uppercase tracking-wider border-b-[1.5px] border-black p-4 pb-3">
+        <section className="border border-white/10 rounded-[16px] bg-transparent overflow-hidden" >
+          <div className="text-[11.5px] font-black opacity-50 uppercase tracking-wider border-b-[1.5px] border-white/10 p-4 pb-3">
             History Ledger
           </div>
           <div className="p-4 flex flex-col gap-5 relative">
-            <div className="absolute left-[19px] top-6 bottom-4 w-[1.5px] bg-black opacity-20" />
+            <div className="absolute left-[19px] top-6 bottom-4 w-[1.5px] bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] opacity-20" />
             {loadingSessions ? (
               <div className="text-center py-2 text-xs font-bold text-slate-400">Loading ledger...</div>
             ) : sessions.slice(0, 3).map((session, sIdx) => {
               const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
               return (
                 <div key={session.id || sIdx} className="flex justify-between items-center relative pl-5">
-                  <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
+                  <div className="absolute left-[-1px] w-2.5 h-2.5 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] rounded-full border border-[#FAF7F2]" />
                   <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
-                  <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
+                  <div className="text-[11.5px] opacity-50 font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10/10 shrink-0">
                     {formatDuration(Number(session.duration_minutes || session.duration))} / {formattedDate}
                   </div>
                 </div>
