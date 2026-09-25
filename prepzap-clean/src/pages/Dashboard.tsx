@@ -471,11 +471,11 @@ export default function Dashboard() {
         <div className="text-[18px] font-black tracking-wider uppercase">Studenius</div>
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
-          <div className="px-2.5 py-0.5 border-[1.5px] border-black rounded-full cursor-pointer bg-[#fca623]/20" onClick={() => navigate("/pro")}>
+          <div className="px-3 py-1 rounded-full cursor-pointer bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:scale-95 transition-all" onClick={() => navigate("/pro")}>
             {isPro ? (
-              <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO ✨</span>
+              <span className="text-[11px] font-black text-white uppercase tracking-wider" style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}>PRO 👑</span>
             ) : (
-              <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">Go Pro</span>
+              <span className="text-[11px] font-black text-white uppercase tracking-wider" style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}>Go Pro</span>
             )}
           </div>
           <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-2 border-black flex items-center justify-center font-black text-[13px] cursor-pointer" onClick={() => navigate("/profile")}>

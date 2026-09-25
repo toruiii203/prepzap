@@ -46,7 +46,8 @@ export function Logo({ size = "md" }: { size?: LogoSize }) {
       </div>
       <span style={{
         fontFamily: "'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', Calibri, sans-serif",
-        fontSize, fontWeight: 300,
+        fontSize, fontWeight: 900,
+        textShadow: "1.5px 0px 0px rgba(0, 100, 255, 0.8), -1.5px 0px 0px rgba(255, 100, 0, 0.8)",
         letterSpacing: spacing,
         color: "var(--pz-text)",
         textTransform: "uppercase",
