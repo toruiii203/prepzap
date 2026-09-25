@@ -48,7 +48,7 @@ interface QuestLogBodyProps {
 function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, handleAddTask, handleToggleTask, handleDeleteTask }: QuestLogBodyProps) {
   return (
     <>
-      <div className="flex-1 p-4 overflow-y-aut✓>
+      <div className="flex-1 p-4 overflow-y-auto">
         {loadingTasks ? (
           <div className="text-center py-4 text-xs font-bold text-slate-400">Loading checklist...</div>
         ) : tasks.length === 0 ? (
@@ -407,7 +407,7 @@ export default function Dashboard() {
         <div className="text-[18px] font-black tracking-wider uppercase">Studenius</div>
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
-          <div className="px-2.5 py-0.5 border-[1.5px] border-black rounded-full cursor-pointer bg-[#fca623]/20" onClick={() => navigate("/pr✓)}>
+          <div className="px-2.5 py-0.5 border-[1.5px] border-black rounded-full cursor-pointer bg-[#fca623]/20" onClick={() => navigate("/pro")}>
             {isPro ? (
               <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO ✨</span>
             ) : (

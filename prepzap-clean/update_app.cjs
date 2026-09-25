@@ -1,10 +1,18 @@
 ﻿const fs = require('fs');
 let content = fs.readFileSync('src/App.tsx', 'utf8');
 
-// Imports
-content = content.replace('import Arena from "./pages/Arena";', 'import Arena from "./pages/Arena";\nimport Arcade from "./pages/Arcade";\n// Import games here when created: \n// import MemoryMatch from "./pages/arcade/MemoryMatch";\n// import TrueFalseBlitz from "./pages/arcade/TrueFalseBlitz";\n// import Termle from "./pages/arcade/Termle";');
+const importSearch = `import AITutor from "@/pages/AITutor";`;
+if (content.includes(importSearch)) {
+  content = content.replace(importSearch, `${importSearch}\nimport CallWithRex from "@/pages/CallWithRex";`);
+} else {
+  // If lazy loaded or something else
+  content = content.replace(`import AITutor from "./pages/AITutor";`, `import AITutor from "./pages/AITutor";\nimport CallWithRex from "./pages/CallWithRex";`);
+  // Or just prepend it if neither matches
+  if (!content.includes('CallWithRex')) {
+    content = `import CallWithRex from "@/pages/CallWithRex";\n` + content;
+  }
+}
 
-// Routes
-content = content.replace('<Route path="/arena/*" element={<ProtectedRoute><Arena /></ProtectedRoute>} />', '<Route path="/arena/*" element={<ProtectedRoute><Arena /></ProtectedRoute>} />\n          <Route path="/arcade" element={<ProtectedRoute><Arcade /></ProtectedRoute>} />');
+content = content.replace(`<Route path="/ai-tutor" element={<AITutor />} />`, `<Route path="/ai-tutor" element={<AITutor />} />\n          <Route path="/call" element={<CallWithRex />} />`);
 
 fs.writeFileSync('src/App.tsx', content, 'utf8');

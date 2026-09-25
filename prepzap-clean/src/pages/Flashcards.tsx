@@ -605,7 +605,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                     <p className="text-[10px] text-black/30 font-bold mt-0.5">
                       {(() => {
                         const d = Math.floor((Date.now() - new Date(item.createdAt || item.created_at).getTime()) / 86400000);
-                        return d === 0 ? "Today" : d === 1 ? "Yesterday" : d + "d ag✓;
+                        return d === 0 ? "Today" : d === 1 ? "Yesterday" : d + "d ago";
                       })()}
                     </p>
                   )}
@@ -849,7 +849,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
             {/* Study view */}
             {view === "study" && !isLoading && (
-              <div className="flex-1 flex flex-col p-8 gap-6 overflow-y-aut✓>
+              <div className="flex-1 flex flex-col p-8 gap-6 overflow-y-auto">
                 {/* Progress */}
                 <div className="flex items-center gap-4">
                   <span className="text-[13px] font-extrabold w-16 text-right">{currentCardIndex + 1} / {cards.length}</span>
@@ -1160,7 +1160,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           
                 {/* SAVED DECKS DASHBOARD */}
                 {decks.length > 0 && (
-                  <div className="mt-8 border-t-2 border-black pt-6 pb-12 w-full max-w-[480px] mx-aut✓>
+                  <div className="mt-8 border-t-2 border-black pt-6 pb-12 w-full max-w-[480px] mx-auto">
                     <h2 className="font-headline text-[18px] font-black mb-4 uppercase tracking-widest text-black/40">Your Saved Decks</h2>
                     <div className="flex flex-col gap-3">
                       {decks.map(deck => (

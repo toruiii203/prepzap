@@ -106,6 +106,7 @@ import FocusTimer from "./pages/FocusTimer";
 import Analytics from "./pages/Analytics";
 import StudyPlanner from "./pages/StudyPlanner";
 import AITutor from "./pages/AITutor";
+import CallWithRex from "./pages/CallWithRex";
 import ToolsHub from "./pages/ToolsHub";
 import StudentProfile from "./pages/StudentProfile";
 import Challenges from "./pages/Challenges";
@@ -351,6 +352,7 @@ function AppRoutes() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/planner" element={<StudyPlanner />} />
           <Route path="/ai-tutor" element={<AITutor />} />
+          <Route path="/call" element={<CallWithRex />} />
           <Route path="/tools" element={<ToolsHub />} />
           <Route path="/profile" element={<StudentProfile />} />
           <Route path="/leaderboard" element={<Arena />} />
