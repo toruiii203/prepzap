@@ -751,8 +751,9 @@ export default function AITutor() {
               className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer hover:opacity-90">
               R
             </div>
-          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
-<button onClick={() => tutorial.show()} className="flex items-center justify-center w-9 h-9 border-2 border-black bg-white rounded-full shadow-[2px_2px_0px_#000] hover:bg-[#ebe8e3] ml-2" title="Tutorial"><span className="material-symbols-outlined text-black text-[18px]">help</span></button>
+          <button onClick={() => tutorial.show()} className="flex items-center justify-center w-10 h-10 border-2 border-black bg-white rounded-full shadow-[2px_2px_0px_#000] hover:bg-[#ebe8e3] ml-2" title="Tutorial">
+                <span className="material-symbols-outlined text-black text-[18px]">help</span>
+              </button>
 </div>
         
           
