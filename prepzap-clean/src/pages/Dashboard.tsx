@@ -184,7 +184,6 @@ function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
   );
 }
 
-export default 
 const formatDuration = (mins: number) => {
   if (!mins || mins <= 0) return "0m";
   if (mins < 1) return "<1m";

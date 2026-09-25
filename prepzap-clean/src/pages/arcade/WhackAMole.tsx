@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSourceContext } from "@/contexts/SourceContext";
+import { getActiveSource } from "@/lib/sourceContext";
 import { supabase } from "@/lib/supabase";
 import { logQuestCompletion } from "@/lib/quests";
 import { generateGameContent, WhackAMoleQuestion } from "@/lib/arcadePipeline";
@@ -9,7 +9,8 @@ import { generateGameContent, WhackAMoleQuestion } from "@/lib/arcadePipeline";
 export default function WhackAMole() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeSource } = useSourceContext();
+  const activeSource = getActiveSource();
+  const activeSourceId = activeSource?.id || "";
 
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<WhackAMoleQuestion[]>([]);
@@ -35,7 +36,7 @@ export default function WhackAMole() {
       setStartTime(Date.now());
     }
     load();
-  }, [activeSource, user]);
+  }, [activeSourceId, user]);
 
   useEffect(() => {
     if (gameState !== "playing" || questions.length === 0) return;

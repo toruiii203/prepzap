@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
-import { useSourceContext } from "@/contexts/SourceContext";
+import { getActiveSource } from "@/lib/sourceContext";
 import { supabase } from "@/lib/supabase";
 import { logQuestCompletion } from "@/lib/quests";
 
@@ -56,7 +56,8 @@ function shuffle(str: string) {
 export default function AnagramSprint() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeSource } = useSourceContext();
+  const activeSource = getActiveSource();
+  const activeSourceId = activeSource?.id || "";
   
   const ROUND_COUNT = 8;
   const [words, setWords] = useState<WordData[]>([]);
@@ -81,7 +82,7 @@ export default function AnagramSprint() {
       selected.push(selected[Math.floor(Math.random() * selected.length)]);
     }
     setWords(selected);
-  }, [activeSource]);
+  }, [activeSourceId]);
 
   useEffect(() => {
     if (words.length > 0 && currentIndex < ROUND_COUNT) {

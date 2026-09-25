@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSourceContext } from "@/contexts/SourceContext";
+import { getActiveSource } from "@/lib/sourceContext";
 import { supabase } from "@/lib/supabase";
 import { logQuestCompletion } from "@/lib/quests";
 import { generateGameContent, OddOneOutRound } from "@/lib/arcadePipeline";
@@ -9,7 +9,8 @@ import { generateGameContent, OddOneOutRound } from "@/lib/arcadePipeline";
 export default function OddOneOut() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeSource } = useSourceContext();
+  const activeSource = getActiveSource();
+  const activeSourceId = activeSource?.id || "";
 
   const [loading, setLoading] = useState(true);
   const [rounds, setRounds] = useState<OddOneOutRound[]>([]);
@@ -34,7 +35,7 @@ export default function OddOneOut() {
       setStartTime(Date.now());
     }
     load();
-  }, [activeSource, user]);
+  }, [activeSourceId, user]);
 
   const handleGameOver = async (finalScore: number) => {
     setGameState("game_over");

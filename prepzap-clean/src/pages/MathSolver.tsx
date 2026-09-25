@@ -354,8 +354,7 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
         "math_solver"
       );
 
-      const parsed = safeParseJSON<any[]>
-        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/math"] || []} title="Math Solver" />(aiResponse);
+      const parsed = safeParseJSON<any[]>(aiResponse);
 
       if (Array.isArray(parsed) && parsed.length > 0) {
         setSteps(parsed);
