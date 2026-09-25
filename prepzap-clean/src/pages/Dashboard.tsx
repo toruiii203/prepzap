@@ -494,7 +494,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-[32px] font-black leading-tight text-black">Good morning, {displayName}.</h2>
             <p className="text-[16px] font-bold text-black/60 mt-1">
-              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} â€¢ Keep the streak alive
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Keep the streak alive
             </p>
           </div>
           <div className="flex gap-3">
