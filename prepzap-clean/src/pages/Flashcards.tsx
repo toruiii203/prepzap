@@ -605,7 +605,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                     <p className="text-[10px] text-black/30 font-bold mt-0.5">
                       {(() => {
                         const d = Math.floor((Date.now() - new Date(item.createdAt || item.created_at).getTime()) / 86400000);
-                        return d === 0 ? "Today" : d === 1 ? "Yesterday" : d + "d ago";
+                        return d === 0 ? "Today" : d === 1 ? "Yesterday" : d + "d ag✓;
                       })()}
                     </p>
                   )}
@@ -849,7 +849,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
             {/* Study view */}
             {view === "study" && !isLoading && (
-              <div className="flex-1 flex flex-col p-8 gap-6 overflow-y-auto">
+              <div className="flex-1 flex flex-col p-8 gap-6 overflow-y-aut✓>
                 {/* Progress */}
                 <div className="flex items-center gap-4">
                   <span className="text-[13px] font-extrabold w-16 text-right">{currentCardIndex + 1} / {cards.length}</span>
@@ -903,7 +903,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   <span className="material-symbols-outlined text-white text-[40px]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
                 </div>
                 <div className="text-center">
-                  <h2 className="text-[32px] font-black mb-2">{isReviewMode ? "All caught up! 🎉" : "Deck Completed!"}</h2>
+                  <h2 className="text-[32px] font-black mb-2">{isReviewMode ? "All caught up! 🏆" : "Deck Completed!"}</h2>
                   <p className="text-[14px] font-bold text-black/50">Spaced repetition logic has been updated based on your responses.</p>
                 </div>
                 <div className="w-full max-w-md border-2 border-black bg-white shadow-[4px_4px_0px_#000] divide-y-2 divide-black">
@@ -1160,7 +1160,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           
                 {/* SAVED DECKS DASHBOARD */}
                 {decks.length > 0 && (
-                  <div className="mt-8 border-t-2 border-black pt-6 pb-12 w-full max-w-[480px] mx-auto">
+                  <div className="mt-8 border-t-2 border-black pt-6 pb-12 w-full max-w-[480px] mx-aut✓>
                     <h2 className="font-headline text-[18px] font-black mb-4 uppercase tracking-widest text-black/40">Your Saved Decks</h2>
                     <div className="flex flex-col gap-3">
                       {decks.map(deck => (
@@ -1328,7 +1328,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               <div className="w-20 h-20 bg-secondary-container rounded-full border-2 border-[#1c1c19] flex items-center justify-center mb-6 shadow-ink-sm">
                 <span className="material-symbols-outlined text-4xl text-black">emoji_events</span>
               </div>
-              <h2 className="font-headline text-headline-xl text-ink font-extrabold mb-2 text-[24px]">{isReviewMode ? "All caught up! 🎉" : "Deck Completed!"}</h2>
+              <h2 className="font-headline text-headline-xl text-ink font-extrabold mb-2 text-[24px]">{isReviewMode ? "All caught up! 🏆" : "Deck Completed!"}</h2>
               <p className="font-body-md text-on-surface-variant max-w-[280px] mb-6 text-[14.5px]">
                 Reviewing mistakes triggers spaced repetition logic in the platform automatically.
               </p>

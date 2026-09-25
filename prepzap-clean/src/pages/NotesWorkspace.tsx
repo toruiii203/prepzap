@@ -4,7 +4,7 @@ import { withTimeout } from "@/lib/withTimeout";
 import { useAuth } from "@/contexts/AuthContext";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import TiptapEditor from "@/components/TiptapEditor";
-import { loadContext } from "@/lib/sourceContext";
+import { loadLibrary } from "@/lib/sourceContext";
 
 import KnowledgeGraph from "@/components/KnowledgeGraph";
 import KnowledgeBaseChat from "@/components/KnowledgeBaseChat";
@@ -30,7 +30,7 @@ export default function NotesWorkspace() {
   }, [user]);
 
   useEffect(() => {
-    const sources = loadContext();
+    const sources = loadLibrary();
     (window as any)._availableLinks = [
       ...notes.map(n => ({ id: n.id, label: n.title || "Untitled", type: "note" })),
       ...sources.map((s: any) => ({ id: s.id, label: s.name, type: "source" }))
