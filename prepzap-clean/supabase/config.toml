@@ -14,3 +14,8 @@ entrypoint = "./functions/get-transcript/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/moderate-and-insert/index.ts"
+
+[functions.embed-document]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/embed-document/index.ts"

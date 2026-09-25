@@ -1,3 +1,4 @@
+import { processDocumentForRAG } from "@/lib/rag";
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useRef } from "react";

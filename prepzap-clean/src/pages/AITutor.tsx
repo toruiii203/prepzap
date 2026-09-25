@@ -1,3 +1,4 @@
+import { getRelevantContext } from "@/lib/rag";
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useRef, useEffect } from "react";
