@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,7 +33,7 @@ const TOOL_SLIDES = [
   ALL_TOOLS.slice(8, 12),
 ];
 
-// ─── Sub-components defined OUTSIDE Dashboard to prevent remount on every render ───
+// â”€â”€â”€ Sub-components defined OUTSIDE Dashboard to prevent remount on every render â”€â”€â”€
 
 interface QuestLogBodyProps {
   tasks: { id: any; title: string; completed: boolean; time?: string }[];
@@ -112,7 +112,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
 }
 
 interface RecentSessionsRowsProps {
-  // FIX: DB column is `duration_minutes`, not `duration` — this mismatch was
+  // FIX: DB column is `duration_minutes`, not `duration` â€” this mismatch was
   // why every duration/XP calculation silently rendered as 0.
   sessions: { id: any; title: string; duration_minutes: number; created_at: string }[];
   loadingSessions: boolean;
@@ -139,11 +139,11 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold text-black">{session.title}</div>
-                  <div className="text-[11px] font-bold text-black/50">{formatDuration(Number(session.duration_minutes))} &bull; {formattedDate}</div>
+                  <div className="text-[11px] font-bold text-black/50">{formatDuration(Number(session.duration_minutes || session.duration))} &bull; {formattedDate}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[11px] font-bold text-black/40">{formatDuration(Number(session.duration_minutes))} studied</div>
+                <div className="text-[11px] font-bold text-black/40">{formatDuration(Number(session.duration_minutes || session.duration))} studied</div>
               </div>
             </div>
           );
@@ -254,7 +254,7 @@ export default function Dashboard() {
   }, [user?.id]); // wait for auth to resolve before fetching
 
   // Time tracking itself lives centrally in SharedSidebar (mounted on every
-  // route), so Dashboard doesn't call useStudyTimeTracker directly — doing so
+  // route), so Dashboard doesn't call useStudyTimeTracker directly â€” doing so
   // here too would double-count time. Instead, just listen for the event it
   // fires after each successful flush so Recent Sessions/stats update live.
   useEffect(() => {
@@ -287,22 +287,34 @@ export default function Dashboard() {
         }
       } catch (err) {}
       
-      const { data } = await supabase
-        .from("study_sessions")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false });
+      const [sessRes, actRes] = await Promise.all([
+          supabase.from("study_sessions").select("*").eq("user_id", user?.id).order("created_at", { ascending: false }),
+          supabase.from("study_activity").select("id, activity_type, tool, created_at, metadata").eq("user_id", user?.id).order("created_at", { ascending: false })
+        ]);
         
-      if (data && data.length > 0) {
-        // Merge without duplicates (using titles and dates)
-        data.forEach(dbSess => {
-          if (!combinedData.find(s => s.id === dbSess.id)) {
-            combinedData.push(dbSess);
-          }
-        });
-      }
-      
-      combinedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        if (sessRes.data && sessRes.data.length > 0) {
+          sessRes.data.forEach(dbSess => {
+            if (!combinedData.find(s => s.id === dbSess.id)) {
+              combinedData.push(dbSess);
+            }
+          });
+        }
+        
+        if (actRes.data && actRes.data.length > 0) {
+          actRes.data.forEach(act => {
+            if (!combinedData.find(s => s.id === act.id)) {
+              const time_seconds = act.metadata?.time_seconds || 0;
+              combinedData.push({
+                id: act.id,
+                title: act.tool || act.activity_type || "Arcade Activity",
+                duration_minutes: Math.round(time_seconds / 60),
+                created_at: act.created_at
+              });
+            }
+          });
+        }
+        
+        combinedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       setSessions(combinedData);
       calculateStatsAndCalendar(combinedData);
@@ -315,7 +327,7 @@ export default function Dashboard() {
 
   const calculateStatsAndCalendar = (loadedSessions: any[]) => {
       const totalSess = loadedSessions.length;
-      const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration_minutes) || 0), 0);
+      const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration_minutes || curr.duration) || 0), 0);
       const hours = Math.round((totalMins / 60) * 10) / 10;
       setStats({ totalSessions: totalSess, studyTimeHours: hours, avgScore: 0 });
 
@@ -337,7 +349,7 @@ export default function Dashboard() {
         const idx = windowDays.indexOf(dStr);
         if (idx !== -1) {
           daysStudied[idx] = true;
-          dayMins[idx] += Number(session.duration_minutes) || 0;
+          dayMins[idx] += Number(session.duration_minutes || session.duration) || 0;
         }
       });
       setStudiedDays(daysStudied);
@@ -387,16 +399,16 @@ export default function Dashboard() {
 
       <SharedSidebar active="/dashboard" />
 
-      {/* ═══════════════════════════════════════════════════
-          MOBILE TOP BAR — hidden on desktop (md:hidden)
-          ═══════════════════════════════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          MOBILE TOP BAR â€” hidden on desktop (md:hidden)
+          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <header className="md:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
         <div className="text-[18px] font-black tracking-wider uppercase">Studenius</div>
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
           <div className="px-2.5 py-0.5 border-[1.5px] border-black rounded-full cursor-pointer bg-[#fca623]/20" onClick={() => navigate("/pro")}>
             {isPro ? (
-              <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO ✦</span>
+              <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">PRO âœ¦</span>
             ) : (
               <span className="text-[10px] font-extrabold text-black uppercase tracking-wider">Go Pro</span>
             )}
@@ -407,9 +419,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ═══════════════════════════════════════════════════
-          DESKTOP LAYOUT — md:block, offset by sidebar
-          ═══════════════════════════════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          DESKTOP LAYOUT â€” md:block, offset by sidebar
+          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <div className="hidden md:block md:ml-64 h-full overflow-y-auto p-12">
 
         {/* Desktop Header */}
@@ -417,7 +429,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-[32px] font-black leading-tight text-black">Good morning, {displayName}.</h2>
             <p className="text-[16px] font-bold text-black/60 mt-1">
-              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} • Keep the streak alive
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} â€¢ Keep the streak alive
             </p>
           </div>
           <div className="flex gap-3">
@@ -458,7 +470,7 @@ export default function Dashboard() {
             <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Total Sessions</div>
               <div>
-                <div className="text-[48px] font-black leading-none text-black">{stats.sessions}</div>
+                <div className="text-[48px] font-black leading-none text-black">{stats.totalSessions}</div>
                 <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Lifetime</div>
               </div>
             </section>
@@ -467,13 +479,13 @@ export default function Dashboard() {
             <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Time Studied</div>
               <div>
-                <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyHrs}h</div>
+                <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyTimeHours}h</div>
                 <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Total Hours</div>
               </div>
             </section>
           </div>
 
-          {/* Quest Log — tall right column spanning 2 rows */}
+          {/* Quest Log â€” tall right column spanning 2 rows */}
           <section className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col" style={{ boxShadow: "4px 4px 0px #000" }}>
             <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FAF7F2]/50">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Quest Log</h3>
@@ -490,7 +502,7 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* Quick Tools — 4x3 grid */}
+          {/* Quick Tools â€” 4x3 grid */}
           <section className="col-span-8 border-2 border-black bg-[#F0EDE0] p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
             <h3 className="text-[13px] font-black uppercase tracking-wider mb-4">Quick Tools</h3>
             <div className="grid grid-cols-4 gap-3">
@@ -531,11 +543,11 @@ export default function Dashboard() {
               <span className="text-[64px] font-black leading-none">{profile?.streak_days ?? 0}</span>
               <span className="text-[24px] font-black uppercase">Days</span>
             </div>
-            <p className="text-[12px] font-bold opacity-90">{(profile?.streak_days ?? 0) > 0 ? `${profile?.streak_days} day streak — keep it going!` : "Start your first session to build your streak."}</p>
+            <p className="text-[12px] font-bold opacity-90">{(profile?.streak_days ?? 0) > 0 ? `${profile?.streak_days} day streak â€” keep it going!` : "Start your first session to build your streak."}</p>
 
           </section>
 
-          {/* Recent Sessions — full width */}
+          {/* Recent Sessions â€” full width */}
           <section className="col-span-12 border-2 border-black bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
             <div className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Recent Sessions</h3>
@@ -547,9 +559,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════
-          MOBILE LAYOUT — block on mobile, hidden on desktop
-          ═══════════════════════════════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          MOBILE LAYOUT â€” block on mobile, hidden on desktop
+          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <main className="md:hidden px-5 pt-6 pb-32 flex flex-col gap-6 overflow-y-auto h-full">
 
         {/* Greeting */}
@@ -594,7 +606,7 @@ export default function Dashboard() {
                   <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-extrabold text-[11px] transition-all ${
                     studied ? "bg-black text-white shadow-[1px_1px_0px_#000]" : "bg-[#FAF7F2] text-black/35"
                   } ${isToday ? "ring-2 ring-orange-400 scale-105" : ""}`}>
-                    {studied ? "✓" : idx + 1}
+                    {studied ? "âœ“" : idx + 1}
                   </div>
                 </div>
               );
@@ -605,16 +617,16 @@ export default function Dashboard() {
         {/* Stats */}
         <section className="grid grid-cols-2 gap-3.5">
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black leading-tight">{stats.sessions}</div>
+            <div className="text-[22px] font-black leading-tight">{stats.totalSessions}</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
           </div>
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black leading-tight">{stats.studyHrs}h</div>
+            <div className="text-[22px] font-black leading-tight">{stats.studyTimeHours}h</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
           </div>
         </section>
 
-        {/* Tools — swipeable carousel (mobile only) */}
+        {/* Tools â€” swipeable carousel (mobile only) */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
             <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Tools</div>
@@ -656,7 +668,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Quest Log — mobile */}
+        {/* Quest Log â€” mobile */}
         <section>
           <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2">
             Quest Log
@@ -716,7 +728,7 @@ export default function Dashboard() {
                   <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
                   <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
                   <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
-                    {formatDuration(Number(session.duration_minutes))} / {formattedDate}
+                    {formatDuration(Number(session.duration_minutes || session.duration))} / {formattedDate}
                   </div>
                 </div>
               );
@@ -731,5 +743,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
 
 
