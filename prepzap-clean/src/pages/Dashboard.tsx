@@ -15,7 +15,7 @@ const ALL_TOOLS = [
   { route: "/ai-tutor",   icon: "forum",       title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
   { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
   { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-[#8B5CF6]" },
-  { route: "/call",        icon: "phone_in_talk",         title: "Call Rex",        desc: "Voice tutor",       color: "text-[#b61b00]" },
+  { route: "/quick-study",icon: "edit_note",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
   { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-[#0EA5E9]" },
   { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-[#10B981]" },
   { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-[#EC4899]" },
@@ -192,6 +192,70 @@ const formatDuration = (mins: number) => {
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 };
+
+
+// Call Rex Hero Banner Component
+function CallRexBanner({ navigate }: { navigate: any }) {
+  const [hasCalled, setHasCalled] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("pz_has_called_rex")) {
+      setHasCalled(true);
+    }
+  }, []);
+
+  const handleCall = () => {
+    localStorage.setItem("pz_has_called_rex", "true");
+    setHasCalled(true);
+    navigate("/call");
+  };
+
+  if (hasCalled) {
+    // Collapsed version for returning users
+    return (
+      <div className="border-2 border-black rounded-2xl bg-[#E8E4DC] p-4 flex items-center justify-between" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-black overflow-hidden bg-white shrink-0">
+            <img src="/fox/fox-neutral.png" alt="Rex" className="w-full h-full object-cover scale-150 mt-1" />
+          </div>
+          <div>
+            <h3 className="text-[14px] font-black tracking-tight leading-none">Talk to Rex</h3>
+            <p className="text-[12px] font-bold text-black/60">Voice chat tutor</p>
+          </div>
+        </div>
+        <button onClick={handleCall} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95">
+          <span className="material-symbols-outlined text-[20px]">phone_in_talk</span>
+        </button>
+      </div>
+    );
+  }
+
+  // Hero version for first-time users
+  return (
+    <div className="border-2 border-black rounded-2xl bg-[#ae2925] overflow-hidden relative" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
+      {/* Background decoration */}
+      <div className="absolute right-0 top-0 bottom-0 w-[40%] bg-cover bg-left opacity-30 mix-blend-luminosity" style={{ backgroundImage: "url('/fox/call_bg.jpg')" }} />
+      <div className="absolute right-[-20px] bottom-[-20px] w-48 h-48 pointer-events-none">
+        <img src="/fox/fox-happy.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-xl" />
+      </div>
+
+      <div className="relative z-10 p-5 md:p-8 w-[70%]">
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white text-black font-black uppercase text-[10px] tracking-wider rounded border-2 border-black mb-3">
+          <span className="material-symbols-outlined text-[12px] text-orange-500">campaign</span>
+          New Feature
+        </div>
+        <h2 className="text-[22px] md:text-[28px] font-black text-white leading-tight mb-2">Practice speaking out loud.</h2>
+        <p className="text-white/80 font-bold text-[13px] md:text-[15px] mb-5 max-w-[280px]">
+          Consolidate your learning by talking through concepts with Rex in a live voice call.
+        </p>
+        <button onClick={handleCall} className="bg-white text-black border-2 border-black font-black uppercase tracking-widest text-[13px] px-6 py-3 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-100 transition-all flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">phone_in_talk</span>
+          Call Rex
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const tutorial = useTutorialModal("/dashboard");
@@ -438,6 +502,9 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {/* Call Rex Banner (Desktop) */}
+        <div className="mb-8"><CallRexBanner navigate={navigate} /></div>
+
         {/* Desktop Bento Grid */}
         <div className="grid grid-cols-12 gap-6">
 
@@ -577,6 +644,9 @@ export default function Dashboard() {
             </p>
           </div>
         </section>
+
+          {/* Call Rex Banner */}
+          <div className="mb-6"><CallRexBanner navigate={navigate} /></div>
 
         {/* Goal Progress Bar */}
         <section className="border-2 border-black rounded-2xl bg-[#FAF7F2] p-5" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>

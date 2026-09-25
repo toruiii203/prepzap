@@ -10,6 +10,10 @@ export default function CallWithRex() {
   const [transcript, setTranscript] = useState("");
   const [rexReply, setRexReply] = useState("");
   const [amplitude, setAmplitude] = useState(0);
+  const callStateRef = useRef(callState);
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -50,7 +54,7 @@ export default function CallWithRex() {
 
     recognition.onend = () => {
       // If we were listening, transition to thinking and process
-      if (callState === "listening") {
+      if (callStateRef.current === "listening") {
         processTranscript();
       }
     };
