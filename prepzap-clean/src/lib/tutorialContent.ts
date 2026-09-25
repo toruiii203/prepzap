@@ -67,6 +67,11 @@ export const TUTORIAL_CONTENT: Record<string, TutorialFeature[]> = {
   ]
 
   ,
+  "/notes": [
+    { icon: "edit_document", title: "Rich Text Editor", desc: "Write notes with a distraction-free, notion-style interface." },
+    { icon: "add_link", title: "Smart Linking", desc: "Type '[[' to instantly link other notes or sources." },
+    { icon: "hub", title: "Knowledge Graph", desc: "Visualize connections between your ideas in real-time." }
+  ],
   "/arcade": [
     { icon: "stadia_controller", title: "Mini-Games", desc: "Turn your study materials into playable games." },
     { icon: "memory", title: "AI Generated", desc: "Games are custom-built from your active source." },

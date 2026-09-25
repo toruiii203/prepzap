@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/withTimeout";
 import { useAuth } from "@/contexts/AuthContext";
 import { SharedSidebar } from "@/components/SharedSidebar";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
 import TiptapEditor from "@/components/TiptapEditor";
 import { loadLibrary } from "@/lib/sourceContext";
 
@@ -10,6 +12,7 @@ import KnowledgeGraph from "@/components/KnowledgeGraph";
 import KnowledgeBaseChat from "@/components/KnowledgeBaseChat";
 
 export default function NotesWorkspace() {
+  const tutorial = useTutorialModal("/notes");
   const { user } = useAuth();
   const [notes, setNotes] = useState<any[]>([]);
   const [activeNote, setActiveNote] = useState<any>(null);
@@ -70,13 +73,22 @@ export default function NotesWorkspace() {
 
   return (
     <div className="flex h-screen bg-[#F0EDE0]">
+      <TutorialModal
+        isOpen={tutorial.isOpen}
+        onClose={tutorial.hide}
+        content={tutorial.content}
+        title="My Notes"
+      />
       <SharedSidebar />
       <div className="flex-1 flex overflow-hidden md:ml-64 pb-16 md:pb-0">
         {/* Left Sidebar - Notes List */}
         <div className="w-64 border-r-2 border-black bg-[#FAF7F2] flex flex-col">
           <div className="p-4 border-b-2 border-black flex justify-between items-center">
             <h2 className="font-black text-[16px]">My Notes</h2>
-            <button onClick={() => setShowGraph(!showGraph)} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg hover:bg-[#FF4D2E] hover:text-white transition-colors ml-auto mr-2" title="Toggle Knowledge Graph">
+            <button onClick={() => tutorial.show()} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg hover:bg-black hover:text-white transition-colors ml-auto mr-2" title="Help">
+              <span className="material-symbols-outlined text-[18px]">help</span>
+            </button>
+            <button onClick={() => setShowGraph(!showGraph)} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg hover:bg-[#FF4D2E] hover:text-white transition-colors mr-2" title="Toggle Knowledge Graph">
               <span className="material-symbols-outlined text-[18px]">hub</span>
             </button>
             <button onClick={handleCreateNote} className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg hover:bg-black hover:text-white transition-colors">
