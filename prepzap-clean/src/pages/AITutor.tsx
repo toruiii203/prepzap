@@ -708,7 +708,7 @@ export default function AITutor() {
   ];
 
   return (
-    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
+    <div className="w-full bg-[#FAF7F2] flex flex-col fixed inset-0 z-0" style={{ height: "100dvh", overflow: "hidden" }}>
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/ai-tutor"] || []} title="Rex Tutor" />
 
       {showUpgrade && (
@@ -810,6 +810,7 @@ export default function AITutor() {
                   ref={desktopTextareaRef}
                   value={inputVal}
                   onChange={(e) => handleTextareaChange(e, desktopTextareaRef)}
+              onBlur={() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
                   rows={1}
                   className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[15px] py-2.5 px-2 resize-none placeholder:text-black/30 font-medium"
@@ -950,6 +951,7 @@ export default function AITutor() {
               ref={textareaRef}
               value={inputVal}
               onChange={(e) => handleTextareaChange(e, textareaRef)}
+              onBlur={() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
               rows={1}
               className="flex-1 min-h-[44px] max-h-[120px] bg-white border-2 border-black rounded-xl px-4 py-2.5 text-[14px] placeholder:text-black/30 resize-none focus:outline-none shadow-[2px_2px_0px_#000]"
