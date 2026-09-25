@@ -194,6 +194,7 @@ const formatDuration = (mins: number) => {
 };
 
 export default function Dashboard() {
+  const tutorial = useTutorialModal("/dashboard");
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { isPro } = usePlan();
@@ -743,6 +744,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
