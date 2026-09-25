@@ -460,6 +460,10 @@ export default function Dashboard() {
 
   return (
     <div className="w-full bg-transparent min-h-full flex flex-col font-body-md text-white flex-1">
+      <style>{`
+        .studenius-app > div { background-color: #0B0F19 !important; border-color: rgba(255,255,255,0.1) !important; }
+        .studenius-app { background-color: #050811 !important; }
+      `}</style>
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/dashboard"] || []} title="Dashboard" />
 
       <SharedSidebar active="/dashboard" />
@@ -602,10 +606,10 @@ export default function Dashboard() {
           </section>
 
           {/* Academic Streak */}
-          <section className="col-span-4 border border-white/10 bg-[#FF4D2E] text-white p-4 flex flex-col justify-between min-h-[200px]" >
+          <section className="col-span-4 border border-white/10 bg-white/5 backdrop-blur-sm text-white p-4 flex flex-col justify-between min-h-[200px] shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 transition-all" >
             <div className="flex justify-between items-start">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Academic Streak</h3>
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+              <span className="material-symbols-outlined text-transparent bg-clip-text bg-gradient-to-b from-orange-300 to-orange-500" style={{ fontVariationSettings: "'FILL' 1", textShadow: "0 0 15px rgba(249,115,22,0.8)" }}>local_fire_department</span>
             </div>
             <div className="flex items-baseline gap-2 my-2">
               <span className="text-[64px] font-black leading-none">{profile?.streak_days ?? 0}</span>
@@ -741,10 +745,10 @@ export default function Dashboard() {
 
         {/* Quest Log â€” mobile */}
         <section>
-          <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2">
+          <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2 text-white">
             Quest Log
           </div>
-          <div className="border border-white/10 rounded-xl bg-white/5 overflow-hidden" >
+          <div className="border border-white/10 rounded-xl bg-white/5 backdrop-blur-sm overflow-hidden" >
             <QuestLogBody
               tasks={tasks}
               loadingTasks={loadingTasks}
