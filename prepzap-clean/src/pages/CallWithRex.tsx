@@ -2,6 +2,14 @@
 import { useNavigate } from "react-router-dom";
 import { callGroq } from "@/lib/groq";
 
+// Character states
+const FOX_STATES = {
+  idle: "/fox/fox-neutral.png",
+  listening: "/fox/fox-peeking.png",
+  thinking: "/fox/fox-thinking.png",
+  answering: "/fox/fox-happy.png",
+};
+
 type CallState = "idle" | "listening" | "thinking";
 
 export default function CallWithRex() {
@@ -166,9 +174,43 @@ export default function CallWithRex() {
     <div className="fixed inset-0 z-50 flex flex-col bg-black text-white overflow-hidden">
       {/* Background Asset */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-80"
+        className="absolute inset-0 z-0 bg-cover bg-center opacity-40 blur-sm"
         style={{ backgroundImage: "url('/fox/call_bg.jpg')" }}
       />
+      
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-8px) scale(1.01); }
+        }
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
+        }
+      `}</style>
+
+      {/* Rex Character Avatar */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none mt-20">
+        <img 
+          src={
+            callState === "thinking" ? FOX_STATES.thinking :
+            callState === "listening" ? FOX_STATES.listening :
+            (callState === "idle" && rexReply) ? FOX_STATES.answering :
+            FOX_STATES.idle
+          } 
+          alt="Rex" 
+          className={`w-full max-w-[400px] object-contain transition-transform duration-75 ${callState === "idle" && !rexReply ? "animate-float" : ""}`}
+          style={{ 
+            transform: callState === "listening" 
+              ? `scale(${1 + (amplitude / 255) * 0.15})` 
+              : callState === "thinking"
+              ? "scale(1.02) rotate(2deg) translateY(-10px)"
+              : callState === "idle" && !rexReply
+              ? "scale(1)" 
+              : "scale(1.05)",
+            filter: "drop-shadow(0px 20px 30px rgba(0,0,0,0.5))"
+          }}
+        />
+      </div>
       
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-6 pt-12 bg-gradient-to-b from-black/60 to-transparent">
