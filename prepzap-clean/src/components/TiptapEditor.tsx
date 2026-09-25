@@ -3,6 +3,9 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import { FloatingMenu, BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import Mention from "@tiptap/extension-mention";
+import suggestion from "./suggestion";
+
 import { callGroq } from "@/lib/groq";
 
 interface TiptapEditorProps {
@@ -16,6 +19,15 @@ export default function TiptapEditor({ initialContent, onUpdate }: TiptapEditorP
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'mention inline-block px-1.5 py-0.5 rounded-md bg-[#e3e8f8] border-2 border-[#1c1c19] text-[#1e3a8a] font-bold shadow-[2px_2px_0px_#1c1c19] mx-1 cursor-pointer hover:bg-[#dbeafe] transition-colors',
+        },
+        suggestion: {
+          ...suggestion,
+          char: '[[',
+        },
+      }),
       Placeholder.configure({
         placeholder: "Type '/' for commands, '[[' to link notes...",
       }),
