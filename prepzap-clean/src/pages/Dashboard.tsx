@@ -383,6 +383,7 @@ export default function Dashboard() {
 
   return (
     <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/dashboard"] || []} title="Dashboard" />
 
       <SharedSidebar active="/dashboard" />
 

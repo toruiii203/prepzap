@@ -554,6 +554,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/flashcards"] || []} title="Flashcards" />
 
       {/* ── Share Toast ─────────────────────────────────────────────────────── */}
       {showShareToast && (

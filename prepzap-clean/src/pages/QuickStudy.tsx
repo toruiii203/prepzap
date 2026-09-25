@@ -664,6 +664,7 @@ Return raw JSON only, no wrapping!`;
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/quick-study"] || []} title="Quick Study" />
       {/* FIX: window.print() used to print the entire page (sidebar, header,
           input panel, history, etc). This scopes printing to just the
           generated study sheet card by hiding everything else in the DOM

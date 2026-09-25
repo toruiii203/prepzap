@@ -574,6 +574,7 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/math"] || []} title="Math Solver" />
       {showUpgrade && (
         <UpgradePrompt feature="math_solver" remaining={remainingUses} onClose={() => setShowUpgrade(false)} />
       )}

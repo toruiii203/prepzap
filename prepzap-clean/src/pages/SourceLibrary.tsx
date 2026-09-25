@@ -781,6 +781,7 @@ export default function SourceLibrary() {
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/sources"] || []} title="Source Library" />
 
       <SharedSidebar active="/sources" />
 
