@@ -9,6 +9,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStudyStats } from "@/hooks/useStudyStats";
 import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
+import { motion, animate, useAnimation } from "framer-motion";
+
+function AnimatedCounter({ value, duration = 1.5 }: { value: number, duration?: number }) {
+  const nodeRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const controls = animate(0, value, {
+      duration: duration,
+      ease: "easeOut",
+      onUpdate(v) {
+        if (nodeRef.current) {
+          nodeRef.current.textContent = Math.round(v).toString();
+        }
+      }
+    });
+    return () => controls.stop();
+  }, [value, duration]);
+  return <span ref={nodeRef}>{value}</span>;
+}
 
 // All 12 tools flat
 const ALL_TOOLS = [
@@ -104,7 +122,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
             className="border-2 border-black bg-black text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
-          </button>
+                  </motion.button>
         </form>
       </div>
     </>
@@ -225,7 +243,7 @@ function CallRexBanner({ navigate }: { navigate: any }) {
         </div>
         <button onClick={handleCall} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95">
           <span className="material-symbols-outlined text-[20px]">phone_in_talk</span>
-        </button>
+                  </motion.button>
       </div>
     );
   }
@@ -256,6 +274,18 @@ function CallRexBanner({ navigate }: { navigate: any }) {
     </div>
   );
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 export default function Dashboard() {
   const tutorial = useTutorialModal("/dashboard");
@@ -498,7 +528,8 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-              <button onClick={() => tutorial.show()} className="w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"><span className="material-symbols-outlined text-[20px]">help</span></button>
+              <button onClick={() => tutorial.show()} className="w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"><span className="material-symbols-outlined text-[20px]">help</span>
+                  </motion.button>
           </div>
         </header>
 
@@ -512,7 +543,7 @@ export default function Dashboard() {
           <div className="col-span-8 grid grid-cols-3 gap-6">
 
             {/* Today's Goal */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col items-center text-center relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <motion.section variants={itemVariants} className="border-2 border-black bg-white p-4 flex flex-col items-center text-center relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="absolute top-0 left-0 w-full h-1 bg-[#FF4D2E]" />
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50 self-start mb-3">Today's Goal</div>
               <div className="relative w-24 h-24 flex items-center justify-center mb-2">
@@ -532,29 +563,29 @@ export default function Dashboard() {
                 </div>
               </div>
               <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Sessions</span>
-            </section>
+            </motion.section>
 
             {/* Total Sessions */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <motion.section variants={itemVariants} className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Total Sessions</div>
               <div>
                 <div className="text-[48px] font-black leading-none text-black">{stats.totalSessions}</div>
                 <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Lifetime</div>
               </div>
-            </section>
+            </motion.section>
 
             {/* Time Studied */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <motion.section variants={itemVariants} className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Time Studied</div>
               <div>
                 <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyTimeHours}h</div>
                 <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Total Hours</div>
               </div>
-            </section>
+            </motion.section>
           </div>
 
           {/* Quest Log â€” tall right column spanning 2 rows */}
-          <section className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <motion.section variants={itemVariants} className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col" style={{ boxShadow: "4px 4px 0px #000" }}>
             <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FAF7F2]/50">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Quest Log</h3>
               <span className="material-symbols-outlined text-[20px]">history_edu</span>
@@ -568,14 +599,14 @@ export default function Dashboard() {
               handleToggleTask={handleToggleTask}
               handleDeleteTask={handleDeleteTask}
             />
-          </section>
+          </motion.section>
 
           {/* Quick Tools â€” 4x3 grid */}
-          <section className="col-span-8 border-2 border-black bg-[#F0EDE0] p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <motion.section variants={itemVariants} className="col-span-8 border-2 border-black bg-[#F0EDE0] p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
             <h3 className="text-[13px] font-black uppercase tracking-wider mb-4">Quick Tools</h3>
             <div className="grid grid-cols-4 gap-3">
               {ALL_TOOLS.map((tool) => (
-                <button
+                <motion.button
                   key={tool.route + tool.title}
                   onClick={() => navigate(tool.route)}
                   className="border-2 border-black bg-white p-3 flex flex-col items-center justify-center text-center gap-1 h-28 hover:bg-black hover:text-white group transition-colors"
@@ -584,13 +615,13 @@ export default function Dashboard() {
                   <span className={`material-symbols-outlined text-[22px] group-hover:text-white ${tool.color}`}>{tool.icon}</span>
                   <span className="text-[13px] font-extrabold group-hover:text-white">{tool.title}</span>
                   <span className="text-[11px] font-bold text-black/50 group-hover:text-white/70">{tool.desc}</span>
-                </button>
-              ))}
+                </motion.button>
+            ))}
             </div>
-          </section>
+          </motion.section>
 
           {/* Weekly Momentum */}
-          <section className="col-span-8 border-2 border-black bg-white p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <motion.section variants={itemVariants} className="col-span-8 border-2 border-black bg-white p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Weekly Momentum</h3>
               <div className="flex gap-2">
@@ -599,30 +630,30 @@ export default function Dashboard() {
               </div>
             </div>
             <WeeklyBars daysOfWeek={daysOfWeek} dayMinutes={dayMinutes} studiedDays={studiedDays} />
-          </section>
+          </motion.section>
 
           {/* Academic Streak */}
-          <section className="col-span-4 border-2 border-black bg-[#FF4D2E] text-white p-4 flex flex-col justify-between min-h-[200px]" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <motion.section variants={itemVariants} className="col-span-4 border-2 border-black bg-[#FF4D2E] text-white p-4 flex flex-col justify-between min-h-[200px]" style={{ boxShadow: "4px 4px 0px #000" }}>
             <div className="flex justify-between items-start">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Academic Streak</h3>
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
             </div>
             <div className="flex items-baseline gap-2 my-2">
-              <span className="text-[64px] font-black leading-none">{profile?.streak_days ?? 0}</span>
+              <span className="text-[64px] font-black leading-none"><AnimatedCounter value={profile?.streak_days ?? 0} /></span>
               <span className="text-[24px] font-black uppercase">Days</span>
             </div>
             <p className="text-[12px] font-bold opacity-90">{(profile?.streak_days ?? 0) > 0 ? `${profile?.streak_days} day streak â€” keep it going!` : "Start your first session to build your streak."}</p>
 
-          </section>
+          </motion.section>
 
           {/* Recent Sessions â€” full width */}
-          <section className="col-span-12 border-2 border-black bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
+          <motion.section variants={itemVariants} className="col-span-12 border-2 border-black bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
             <div className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Recent Sessions</h3>
               <button className="text-[13px] font-extrabold text-[#FF4D2E] hover:underline">View All</button>
             </div>
             <RecentSessionsRows sessions={sessions} loadingSessions={loadingSessions} />
-          </section>
+          </motion.section>
 
         </div>
       </div>
@@ -633,7 +664,7 @@ export default function Dashboard() {
       <main className="md:hidden px-5 pt-6 pb-32 flex flex-col gap-6 overflow-y-auto h-full">
 
         {/* Greeting */}
-        <section className="flex items-center gap-3">
+        <motion.section variants={itemVariants} className="flex items-center gap-3">
           <div className="w-[44px] h-[44px] rounded-full bg-[#fca623]/20 border-2 border-black flex items-center justify-center flex-shrink-0">
             <span className="material-symbols-outlined text-[20px]">school</span>
           </div>
@@ -643,13 +674,13 @@ export default function Dashboard() {
               {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
             </p>
           </div>
-        </section>
+        </motion.section>
 
           {/* Call Rex Banner */}
           <div className="mb-6"><CallRexBanner navigate={navigate} /></div>
 
         {/* Goal Progress Bar */}
-        <section className="border-2 border-black rounded-2xl bg-[#FAF7F2] p-5" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
+        <motion.section variants={itemVariants} className="border-2 border-black rounded-2xl bg-[#FAF7F2] p-5" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
           <div className="flex justify-between items-end mb-4">
             <div>
               <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">Current Goal</div>
@@ -658,14 +689,14 @@ export default function Dashboard() {
             <div className="text-[28px] font-black leading-none">{completedCount}/{goalCount}</div>
           </div>
           <div className="h-2 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
-            <div className="h-full bg-black rounded-r-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+            <motion.div className="h-full bg-black rounded-r-full" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 1.5, ease: "easeOut" }} />
           </div>
-        </section>
+        </motion.section>
 
         
 
         {/* Weekly Calendar (mobile only) */}
-        <section className="border-2 border-black rounded-2xl bg-white p-5" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+        <motion.section variants={itemVariants} className="border-2 border-black rounded-2xl bg-white p-5" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
           <div className="text-[11.5px] opacity-50 font-black uppercase tracking-wider mb-3">Weekly Study Calendar</div>
           <div className="grid grid-cols-7 gap-1.5">
             {daysOfWeek.map((day, idx) => {
@@ -683,22 +714,22 @@ export default function Dashboard() {
               );
             })}
           </div>
-        </section>
+        </motion.section>
 
         {/* Stats */}
-        <section className="grid grid-cols-2 gap-3.5">
+        <motion.section variants={itemVariants} className="grid grid-cols-2 gap-3.5">
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black leading-tight">{stats.totalSessions}</div>
+            <div className="text-[22px] font-black leading-tight"><AnimatedCounter value={stats.totalSessions} /></div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
           </div>
           <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
             <div className="text-[22px] font-black leading-tight">{stats.studyTimeHours}h</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Tools â€” swipeable carousel (mobile only) */}
-        <section className="flex flex-col gap-3">
+        <motion.section variants={itemVariants} className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
             <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Tools</div>
             <button type="button" onClick={() => navigate("/tools")} className="text-[11px] font-bold text-black/50 underline">See all</button>
@@ -717,15 +748,15 @@ export default function Dashboard() {
                       key={tool.title}
                       type="button"
                       onClick={() => navigate(tool.route)}
-                      className="h-[110px] border-2 border-black rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex flex-col justify-between"
+                      className="h-[110px] border-2 border-black rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_rgba(0,0,0,1)]    flex flex-col justify-between" whileHover={{ y: -4, transition: { type: "spring", stiffness: 400, damping: 10 } }} whileTap={{ scale: 0.95, y: 2 }}
                     >
                       <span className={`material-symbols-outlined text-[20px] mb-2 block ${tool.color}`}>{tool.icon}</span>
                       <div>
                         <div className="text-[13px] font-bold">{tool.title}</div>
                         <div className="text-[11px] text-black/40 font-semibold">{tool.desc}</div>
                       </div>
-                    </button>
-                  ))}
+                    </motion.button>
+            ))}
                 </div>
               ))}
             </div>
@@ -737,10 +768,10 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Quest Log â€” mobile */}
-        <section>
+        <motion.section variants={itemVariants}>
           <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2">
             Quest Log
           </div>
@@ -755,10 +786,10 @@ export default function Dashboard() {
               handleDeleteTask={handleDeleteTask}
             />
           </div>
-        </section>
+        </motion.section>
 
         {/* Performance Target Chips */}
-        <section>
+        <motion.section variants={itemVariants}>
           <div className="text-[11px] font-black opacity-50 uppercase tracking-wider flex items-center gap-2 mb-1">
             Specific Performance Targets
             <div className="ml-auto w-6 h-6 rounded-full border-2 border-black bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-white transition-colors" onClick={() => navigate("/planner")}>
@@ -768,23 +799,23 @@ export default function Dashboard() {
           <div className="text-[12px] text-black/45 font-bold mb-2">Based on study sessions recorded</div>
           <div className="flex flex-wrap gap-2.5">
             {Array.from(new Set(sessions.map((s) => s.title))).slice(0, 4).map((title, i) => (
-              <button
+              <motion.button whileHover={{ y: -2, transition: { type: "spring", stiffness: 400, damping: 10 } }} whileTap={{ scale: 0.95, y: 2 }}
                 key={title || i}
                 type="button"
                 onClick={() => navigate(getSessionRoute(title))}
                 className="border-2 border-black px-4 py-2 bg-[#FAF7F2] text-[13px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
                 {title}
-              </button>
+              </motion.button>
             ))}
             {sessions.length === 0 && (
               <p className="text-[12px] text-black/40 font-bold">Complete study sessions to see your targets here.</p>
             )}
           </div>
-        </section>
+        </motion.section>
 
         {/* History Ledger (mobile recent sessions) */}
-        <section className="border-2 border-black rounded-[16px] bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+        <motion.section variants={itemVariants} className="border-2 border-black rounded-[16px] bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
           <div className="text-[11.5px] font-black opacity-50 uppercase tracking-wider border-b-[1.5px] border-black p-4 pb-3">
             History Ledger
           </div>
@@ -808,8 +839,8 @@ export default function Dashboard() {
               <div className="text-center py-1 text-xs text-slate-400 font-bold">No sessions yet. Start studying!</div>
             )}
           </div>
-        </section>
-      </main>
+        </motion.section>
+      </motion.main>
 
     </div>
   );
