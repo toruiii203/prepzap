@@ -134,6 +134,10 @@ import Arcade from "./pages/Arcade";
 import MemoryMatch from "./pages/arcade/MemoryMatch";
 import TrueFalseBlitz from "./pages/arcade/TrueFalseBlitz";
 import Termle from "./pages/arcade/Termle";
+import AnagramSprint from "./pages/arcade/AnagramSprint";
+import WhackAMole from "./pages/arcade/WhackAMole";
+import OddOneOut from "./pages/arcade/OddOneOut";
+
 import ArenaRoom from "./pages/ArenaRoom";
 import ArenaQuiz from "./pages/ArenaQuiz";
 import ArenaResults from "./pages/ArenaResults";
@@ -378,6 +382,10 @@ function AppRoutes() {
           <Route path="/arcade/memory-match" element={<MemoryMatch />} />
           <Route path="/arcade/true-false" element={<TrueFalseBlitz />} />
           <Route path="/arcade/termle" element={<Termle />} />
+          <Route path="/arcade/anagram-sprint" element={<AnagramSprint />} />
+          <Route path="/arcade/whack-a-mole" element={<WhackAMole />} />
+          <Route path="/arcade/odd-one-out" element={<OddOneOut />} />
+
         </Route>
 
         {/* Catch-all */}

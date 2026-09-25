@@ -39,6 +39,17 @@ export default function Challenges() {
 
   const allChallenges = [
     {
+      id: "arcade_game",
+      tag: "Daily 5",
+      tagStyle: "bg-black text-white",
+      icon: "stadia_controller",
+      iconStyle: "text-purple-600",
+      title: "Gamer",
+      desc: "Play an Arcade game.",
+      cta: "PLAY ARCADE",
+      ctaAction: () => navigate("/arcade"),
+    },
+    {
       id: "perfect-recall",
       tag: "Daily 5",
       tagStyle: "bg-black text-white",

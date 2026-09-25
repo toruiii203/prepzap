@@ -252,16 +252,17 @@ END $$;
 
 -- P0.4 Content Moderation Filter
 
--- P0.4 Real Content Moderation Filter
+
+-- P0.4 Real Content Moderation Filter (Word boundary regex)
 ALTER TABLE public.exam_rooms DROP CONSTRAINT IF EXISTS room_name_blocklist;
 ALTER TABLE public.exam_rooms ADD CONSTRAINT room_name_blocklist CHECK (
-  room_name NOT ILIKE '%ching%' AND
-  room_name NOT ILIKE '%chong%' AND
-  room_name NOT ILIKE '%nigg%' AND
-  room_name NOT ILIKE '%fag%' AND
-  room_name NOT ILIKE '%shit%' AND
-  room_name NOT ILIKE '%fuck%' AND
-  room_name NOT ILIKE '%bitch%' AND
+  room_name !~* '\yching\y' AND
+  room_name !~* '\ychong\y' AND
+  room_name !~* '\ynigg\w*\y' AND
+  room_name !~* '\yfag\w*\y' AND
+  room_name !~* '\yshit\w*\y' AND
+  room_name !~* '\yfuck\w*\y' AND
+  room_name !~* '\ybitch\w*\y' AND
   LENGTH(room_name) > 1
 );
 

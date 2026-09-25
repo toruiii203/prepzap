@@ -1,28 +1,56 @@
 ﻿const fs = require('fs');
 let content = fs.readFileSync('src/lib/arcadePipeline.ts', 'utf8');
 
-// Export FALLBACKS
+// 1. Update ArcadeGameType
 content = content.replace(
-  'const FALLBACKS: Record<string, ArcadeContentMap> = {',
-  'export const FALLBACKS: Record<string, ArcadeContentMap> = {'
+  /export type ArcadeGameType = "memory_match" \| "true_false" \| "termle";/,
+  'export type ArcadeGameType = "memory_match" | "true_false" | "termle" | "anagram_sprint" | "whack_a_mole" | "odd_one_out";'
 );
 
-// Update generateGameContent signature
+// 2. Add new interfaces
+const interfaces = `
+export interface WhackAMoleQuestion {
+  question: string;
+  correctAnswer: string;
+  wrongAnswers: string[];
+}
+
+export interface OddOneOutRound {
+  items: string[];
+  oddIndex: number;
+  reason: string;
+}
+`;
+if (!content.includes('WhackAMoleQuestion')) {
+  content = content.replace(/export interface TermleWord[^}]+}/, match => match + '\n' + interfaces);
+}
+
+// 3. Update ArcadeContentMap
 content = content.replace(
-  'export async function generateGameContent<T extends ArcadeGameType>(\n  sourceText: string,\n  sourceId: string,\n  gameType: T\n): Promise<ArcadeContentMap[T]> {',
-  'export async function generateGameContent<T extends ArcadeGameType>(\n  sourceText: string,\n  sourceId: string,\n  gameType: T,\n  userId: string\n): Promise<ArcadeContentMap[T]> {'
+  /termle: TermleWord\[\];\n};/,
+  'termle: TermleWord[];\n  anagram_sprint: TermleWord[];\n  whack_a_mole: WhackAMoleQuestion[];\n  odd_one_out: OddOneOutRound[];\n};'
 );
 
-// Update supabase .eq cache check to include user_id
-content = content.replace(
-  '.eq("game_type", gameType)\n      .single();',
-  '.eq("game_type", gameType)\n      .eq("user_id", userId)\n      .single();'
-);
-
-// Update supabase insert to include user_id
-content = content.replace(
-  'source_id: sourceId,\n            game_type: gameType,\n            content: parsed',
-  'user_id: userId,\n            source_id: sourceId,\n            game_type: gameType,\n            content: parsed'
-);
+// 4. Update Fallbacks
+const fallbackData = `
+    anagram_sprint: [
+      { word: "theory", hint: "A well-substantiated explanation is called a _____." },
+      { word: "variable", hint: "An element liable to change is a _____." }
+    ],
+    whack_a_mole: [
+      { question: "What is the powerhouse of the cell?", correctAnswer: "Mitochondria", wrongAnswers: ["Nucleus", "Ribosome", "Chloroplast"] },
+      { question: "Which particle has a positive charge?", correctAnswer: "Proton", wrongAnswers: ["Electron", "Neutron", "Photon"] }
+    ],
+    odd_one_out: [
+      { items: ["Dog", "Cat", "Lion", "Oak Tree"], oddIndex: 3, reason: "Oak Tree is a plant, while the others are animals." },
+      { items: ["Iron", "Copper", "Water", "Gold"], oddIndex: 2, reason: "Water is a compound, while the others are pure elemental metals." }
+    ]
+`;
+if (!content.includes('whack_a_mole: [')) {
+  content = content.replace(
+    /termle: \[[^\]]+\]\n  \}/,
+    match => match.slice(0, -2) + ',' + fallbackData + '  }'
+  );
+}
 
 fs.writeFileSync('src/lib/arcadePipeline.ts', content, 'utf8');

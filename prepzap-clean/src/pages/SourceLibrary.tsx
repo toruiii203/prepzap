@@ -311,8 +311,7 @@ export default function SourceLibrary() {
   };
 
   // ── File upload with PDF.js extraction ────────────────────────────────────
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>
-        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/sources"] || []} title="Source Library" />) => {
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError(null);

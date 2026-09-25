@@ -104,8 +104,7 @@ export default function QuickStudy() {
   };
 
   // FIX BUG 4: initialize remainingUses as null to avoid flicker
-  const [remainingUses, setRemainingUses] = useState<number | null>
-        <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/quick-study"] || []} title="Quick Study" />(null);
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
   useEffect(() => {
