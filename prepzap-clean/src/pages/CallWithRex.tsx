@@ -136,7 +136,7 @@ export default function CallWithRex() {
       const reply = await callGroq(
         msgs,
         "You are Rex, an encouraging and concise AI study tutor. The user is speaking to you via voice. Reply in 1-2 short sentences. Do not use emojis, keep it conversational.",
-        "llama3-8b-8192",
+        undefined,
         150,
         "call_with_rex"
       );
