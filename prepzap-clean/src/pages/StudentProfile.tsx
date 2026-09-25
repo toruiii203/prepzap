@@ -24,7 +24,7 @@ function getLocalNumber(key: string, fallback = 0): number {
 }
 
 function getJoinDate(isoString?: string): string {
-  if (!isoString) return "ΓÇö";
+  if (!isoString) return "-";
   const d = new Date(isoString);
   return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
@@ -112,7 +112,7 @@ export default function StudentProfile() {
   const [userName, setUserName] = useState("Student");
   const [userEmail, setUserEmail] = useState("");
   const [userInitial, setUserInitial] = useState("S");
-  const [joinDate, setJoinDate] = useState("ΓÇö");
+  const [joinDate, setJoinDate] = useState("-");
   const [stats, setStats] = useState({ sessions: 0, studyHrs: 0, avgScore: 0, streak: 0 });
 
   const deriveStats = () => {
@@ -245,34 +245,34 @@ export default function StudentProfile() {
             </div>
           </section>
 
-          {/* Stats grid ΓÇö 4 equal columns */}
+          {/* Stats grid - 4 equal columns */}
           <section className="grid grid-cols-4 gap-6">
             <StatCard
               label="Total Sessions"
-              value={stats.sessions > 0 ? stats.sessions.toLocaleString() : "ΓÇö"}
+              value={stats.sessions > 0 ? stats.sessions.toLocaleString() : "-"}
               sub={stats.sessions > 0 ? "Focus sessions logged" : "Start a Focus Timer session"}
             />
             <StatCard
               label="Study Time"
-              value={stats.studyHrs > 0 ? `${stats.studyHrs}hrs` : "ΓÇö"}
+              value={stats.studyHrs > 0 ? `${stats.studyHrs}hrs` : "-"}
               sub={stats.studyHrs > 0 ? "Total tracked time" : "Time tracked via Focus Timer"}
             />
             <StatCard
               label="Avg Score"
-              value={stats.avgScore > 0 ? `${stats.avgScore}%` : "ΓÇö"}
+              value={stats.avgScore > 0 ? `${stats.avgScore}%` : "-"}
               accent={stats.avgScore > 0 ? "#FF4D2E" : undefined}
               sub={stats.avgScore > 0 ? "Across all practice sets" : "Complete a Practice set"}
             />
             <StatCard
               label="Current Streak"
-              value={stats.streak > 0 ? `${stats.streak}d` : "ΓÇö"}
+              value={stats.streak > 0 ? `${stats.streak}d` : "-"}
               accent="#F5A623"
               icon="local_fire_department"
               sub={stats.streak > 0 ? "Days in a row" : "Keep studying daily!"}
             />
           </section>
 
-          {/* Hub cards grid ΓÇö 2├ù3 */}
+          {/* Hub cards grid - 2x3 */}
           <section className="grid grid-cols-2 gap-6">
             {hubCards.map(card => (
               <HubCard
@@ -369,13 +369,13 @@ export default function StudentProfile() {
             </div>
           </div>
 
-          {/* Mobile stats ΓÇö 2├ù2 grid */}
+          {/* Mobile stats - 2x2 grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Sessions",     value: stats.sessions > 0 ? stats.sessions.toLocaleString() : "ΓÇö", accent: undefined,   icon: undefined },
-              { label: "Study Time",   value: stats.studyHrs > 0 ? `${stats.studyHrs}h` : "ΓÇö",           accent: undefined,   icon: undefined },
-              { label: "Avg Score",    value: stats.avgScore > 0 ? `${stats.avgScore}%` : "ΓÇö",           accent: "#FF4D2E",   icon: undefined },
-              { label: "Streak",       value: stats.streak > 0 ? `${stats.streak}d` : "ΓÇö",               accent: "#F5A623",   icon: "local_fire_department" },
+              { label: "Sessions",     value: stats.sessions > 0 ? stats.sessions.toLocaleString() : "-", accent: undefined,   icon: undefined },
+              { label: "Study Time",   value: stats.studyHrs > 0 ? `${stats.studyHrs}h` : "-",           accent: undefined,   icon: undefined },
+              { label: "Avg Score",    value: stats.avgScore > 0 ? `${stats.avgScore}%` : "-",           accent: "#FF4D2E",   icon: undefined },
+              { label: "Streak",       value: stats.streak > 0 ? `${stats.streak}d` : "-",               accent: "#F5A623",   icon: "local_fire_department" },
             ].map(s => (
               <div
                 key={s.label}
