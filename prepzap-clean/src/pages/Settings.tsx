@@ -18,7 +18,16 @@ function Section({ title, icon, children }: { title: string; icon: string; child
         <span className="material-symbols-outlined" style={{ fontSize: 16, color: RED }}>{icon}</span>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#1c1c19", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</span>
       </div>
-      <div style={{ padding: 16, background: "#FAF7F2" }}>{children}</div>
+      <div style={{ padding: 16, background: "#FAF7F2" }}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#1c1c19", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Display Name</label>
+                  <input type="text" value={profileDisplayName} onChange={(e) => setProfileDisplayName(e.target.value)} placeholder="How you appear in games" style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "'Quicksand', sans-serif", fontSize: 13 }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#1c1c19", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>@Username</label>
+                  <input type="text" value={profileUsername} onChange={(e) => setProfileUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="Unique handle" style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "'Quicksand', sans-serif", fontSize: 13 }} />
+                </div>
+{children}</div>
     </div>
   )
 }
@@ -42,6 +51,8 @@ export default function Settings() {
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle")
   const [userName, setUserName] = useState("Learner")
+  const [profileUsername, setProfileUsername] = useState("");
+  const [profileDisplayName, setProfileDisplayName] = useState("");
   const [userEmail, setUserEmail] = useState("")
   const [userInitial, setUserInitial] = useState("L")
   const [creditsLeft, setCreditsLeft] = useState<number | null>(null)
@@ -59,7 +70,9 @@ export default function Settings() {
     setUserInitial(name.charAt(0).toUpperCase())
 
     // Load saved preferences from profiles table
-    supabase.from("profiles").select("daily_goal_minutes, subjects, notif_streak, notif_reminders, notif_community, notif_weekly").eq("id", user.id).maybeSingle().then(({ data }) => {
+    supabase.from("profiles").select("daily_goal_minutes, subjects, notif_streak, notif_reminders, notif_community, notif_weekly, username, display_name").eq("id", user.id).maybeSingle().then(({ data }) => {
+        if (data?.username) setProfileUsername(data.username);
+        if (data?.display_name) setProfileDisplayName(data.display_name);
       if (!data) return
       if (data.daily_goal_minutes) setDailyGoal(data.daily_goal_minutes as DailyGoal)
       if (data.subjects?.length) setSubjects(new Set(data.subjects))
