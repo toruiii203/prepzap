@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 import TiptapEditor from "@/components/TiptapEditor";
 import { loadLibrary } from "@/lib/sourceContext";
 
@@ -75,8 +76,8 @@ export default function NotesWorkspace() {
     <div className="flex h-screen bg-[#F0EDE0]">
       <TutorialModal
         isOpen={tutorial.isOpen}
-        onClose={tutorial.hide}
-        content={tutorial.content}
+        onDismiss={tutorial.dismiss}
+        features={TUTORIAL_CONTENT["/notes"] || []}
         title="My Notes"
       />
       <SharedSidebar />
