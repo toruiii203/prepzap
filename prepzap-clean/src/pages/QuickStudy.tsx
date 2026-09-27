@@ -257,7 +257,7 @@ Return raw JSON only, no wrapping!`;
       const aiResponse = await callGroq(
         [{ role: "user", content: buildPrompt(retry) }],
         systemPrompt,
-        "openai/gpt-oss-20b",
+        undefined,
         1600,
         "quick_study"
       );
@@ -322,7 +322,9 @@ Return raw JSON only, no wrapping!`;
     } catch (firstErr: any) {
       if (firstErr?.message?.includes("API error")) {
         console.error("[QuickStudy] API error on first attempt, skipping retry:", firstErr);
-        throw firstErr; // Skip retry on network/auth/rate-limit errors
+        setGenError("API error occurred. Please try again later.");
+          setLoading(false);
+          return; // Prevent crash, exit cleanly
       }
       console.warn("[QuickStudy] first generation attempt failed, retrying once:", firstErr);
       try {
@@ -733,9 +735,9 @@ Return raw JSON only, no wrapping!`;
                     rows={4}
                     className="w-full bg-[#F0EDE0] border-2 border-black px-4 py-3 text-[15px] font-medium placeholder:text-black/30 resize-none focus:outline-none"
                     placeholder="Paste complex lecture notes or enter a topic (e.g., 'Cellular Mitosis Mechanics')..."
-                  />
-                
-                {/* Chips */}
+                    />
+                  </div>
+                  {/* Chips */}
                 <div className="flex flex-wrap gap-2">
                   {chips.map((chip, idx) => (
                     <button
