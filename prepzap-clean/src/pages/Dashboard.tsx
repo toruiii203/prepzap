@@ -30,25 +30,30 @@ function AnimatedCounter({ value, duration = 1.5 }: { value: number, duration?: 
 
 // All 12 tools flat
 const ALL_TOOLS = [
-  { route: "/ai-tutor",   icon: "forum",       title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
-  { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
-  { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-[#8B5CF6]" },
-  { route: "/quick-study",icon: "edit_note",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
-  { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-[#0EA5E9]" },
-  { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-[#10B981]" },
-  { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-[#EC4899]" },
-  { route: "/quick-study",icon: "menu_book",        title: "Quick Study",     desc: "5 min bursts",      color: "text-[#6366F1]" },
-  { route: "/sources",    icon: "folder_open",      title: "Source Library",  desc: "Your materials",    color: "text-[#78716C]" },
-  { route: "/mistakes",   icon: "auto_stories",     title: "Mistake Journal", desc: "Learn from errors", color: "text-[#ba1a1a]" },
-  { route: "/analytics",  icon: "bar_chart",        title: "Analytics",       desc: "Track progress",    color: "text-[#14B8A6]" },
-  { route: "/challenges", icon: "emoji_events",     title: "Challenges",      desc: "Compete & win",     color: "text-[#F5A623]" },
-] as const;
+    { route: "/ai-tutor",   icon: "forum",       title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
+    { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
+    { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-[#8B5CF6]" },
+    { route: "/quick-study",icon: "edit_note",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
+    { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-[#0EA5E9]" },
+    { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-[#10B981]" },
+    { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-[#EC4899]" },
+    { route: "/timer",      icon: "timer",            title: "Focus Timer",     desc: "Pomodoro",          color: "text-[#6366F1]" },
+    { route: "/arcade",     icon: "sports_esports",   title: "Arcade",          desc: "Mini-games",        color: "text-[#F43F5E]" },
+    { route: "/notes",      icon: "edit_document",    title: "My Notes",        desc: "Rich text editor",  color: "text-[#EAB308]" },
+    { route: "/settings",   icon: "settings",         title: "Settings",        desc: "Preferences",       color: "text-[#64748B]" },
+    { route: "/sources",    icon: "attach_file",      title: "Source Library",  desc: "Upload notes",      color: "text-[#78716C]" },
+    { route: "/mistakes",   icon: "playlist_remove",  title: "Mistake Journal", desc: "Review errors",     color: "text-[#ba1a1a]" },
+    { route: "/analytics",  icon: "bar_chart",        title: "Analytics",       desc: "Track progress",    color: "text-[#14B8A6]" },
+    { route: "/challenges", icon: "emoji_events",     title: "Challenges",      desc: "Daily streaks",     color: "text-[#F5A623]" },
+    { route: "/arena",      icon: "sports_esports",   title: "Arena",           desc: "Compete live",      color: "text-[#8B5CF6]" },
+  ] as const;
 
 // Mobile carousel: chunk into slides of 4
 const TOOL_SLIDES = [
   ALL_TOOLS.slice(0, 4),
   ALL_TOOLS.slice(4, 8),
   ALL_TOOLS.slice(8, 12),
+  ALL_TOOLS.slice(12, 16),
 ];
 
 // â”€â”€â”€ Sub-components defined OUTSIDE Dashboard to prevent remount on every render â”€â”€â”€

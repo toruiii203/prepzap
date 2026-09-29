@@ -224,9 +224,7 @@ export default function UsePro() {
               </button>
             </div>
           )}
-          <p className="text-[12.5px] font-bold text-on-surface-variant mt-3 opacity-60">
-            GCash · Maya · Cards · PayPal · Cancel anytime
-          </p>
+          
         </section>
       </main>
     </div>
