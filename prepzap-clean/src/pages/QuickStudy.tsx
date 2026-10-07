@@ -1056,7 +1056,6 @@ Return raw JSON only, no wrapping!`;
           {/* Output card */}
           <OutputCard compact />
         </main>
-      </div>
     </div>
     </div>
   );
