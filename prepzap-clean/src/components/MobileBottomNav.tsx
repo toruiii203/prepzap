@@ -46,13 +46,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
           >
             <div className={`flex flex-col items-center justify-center rounded-xl transition-all ${
               isActive 
-                ? 'bg-[#FFD13B] px-3 py-1 border-2 border-black shadow-[2px_2px_0px_#1A1A1A] -translate-y-1' 
-                : 'py-1'
+                ? 'bg-[#FFD13B] px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_#1A1A1A] -translate-y-0.5' 
+                : 'py-0.5'
             }`}>
-              <span className={`material-symbols-outlined text-[20px] ${isActive ? 'text-black font-black' : ''}`}>
+              <span className={`material-symbols-outlined text-[19px] ${isActive ? 'text-black font-black' : ''}`}>
                 {tab.icon}
               </span>
-              <span className="text-[10px] font-black tracking-tight leading-none mt-0.5">
+              <span className="text-[9.5px] font-black tracking-tight leading-none mt-0.5">
                 {tab.name}
               </span>
             </div>

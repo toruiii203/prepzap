@@ -248,43 +248,43 @@ function CallRexBanner({ navigate }: { navigate: any }) {
   if (hasCalled) {
     // Collapsed version for returning users
     return (
-      <div className="border-2 border-black rounded-2xl bg-[#E8E4DC] p-4 flex items-center justify-between" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+      <div className="border-2 border-black rounded-2xl bg-white p-3.5 md:p-4 flex items-center justify-between shadow-[3px_3px_0px_#1A1A1A] w-full max-w-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-black overflow-hidden bg-white shrink-0">
-            <img src="/fox/fox-neutral.png" alt="Rex" className="w-full h-full object-cover scale-150 mt-1" />
+          <div className="w-10 h-10 rounded-full border-2 border-black bg-[#FFD13B] p-1 shrink-0 flex items-center justify-center shadow-[1px_1px_0px_#1A1A1A]">
+            <img src="/fox/fox-happy.png" alt="Rex Head" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h3 className="text-[14px] font-black tracking-tight leading-none">Talk to Rex</h3>
-            <p className="text-[12px] font-bold text-black/60">Voice chat tutor</p>
+            <h3 className="text-[14px] font-black tracking-tight leading-none text-black">Talk to Rex</h3>
+            <p className="text-[11.5px] font-bold text-black/55 mt-0.5">Voice chat tutor</p>
           </div>
         </div>
-        <button onClick={handleCall} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors active:scale-95">
-          <span className="material-symbols-outlined text-[20px]">phone_in_talk</span>
-                  </button>
+        <button onClick={handleCall} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center border-2 border-black hover:bg-[#FF4D2E] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none">
+          <span className="material-symbols-outlined text-[19px]">phone_in_talk</span>
+        </button>
       </div>
     );
   }
 
   // Hero version for first-time users
   return (
-    <div className="border-2 border-black rounded-2xl bg-[#ae2925] overflow-hidden relative" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
+    <div className="border-2 border-black rounded-2xl bg-[#ae2925] overflow-hidden relative shadow-[4px_4px_0px_#1A1A1A] max-w-2xl">
       {/* Background decoration */}
       <div className="absolute right-0 top-0 bottom-0 w-[40%] bg-cover bg-left opacity-30 mix-blend-luminosity" style={{ backgroundImage: "url('/fox/call_bg.jpg')" }} />
-      <div className="absolute right-[-20px] bottom-[-20px] w-48 h-48 pointer-events-none">
+      <div className="absolute right-[-10px] bottom-[-10px] w-36 h-36 pointer-events-none">
         <img src="/fox/fox-happy.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-xl" />
       </div>
 
-      <div className="relative z-10 p-5 md:p-8 w-[70%]">
-        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white text-black font-black uppercase text-[10px] tracking-wider rounded border-2 border-black mb-3">
+      <div className="relative z-10 p-5 md:p-7 w-[72%]">
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white text-black font-black uppercase text-[10px] tracking-wider rounded border-2 border-black mb-2.5 shadow-[1px_1px_0px_#000]">
           <span className="material-symbols-outlined text-[12px] text-orange-500">campaign</span>
-          New Feature
+          Voice Tutor
         </div>
-        <h2 className="text-[22px] md:text-[28px] font-black text-white leading-tight mb-2">Practice speaking out loud.</h2>
-        <p className="text-white/80 font-bold text-[13px] md:text-[15px] mb-5 max-w-[280px]">
-          Consolidate your learning by talking through concepts with Rex in a live voice call.
+        <h2 className="text-[20px] md:text-[24px] font-black text-white leading-tight mb-1.5">Practice speaking out loud.</h2>
+        <p className="text-white/85 font-bold text-[12.5px] md:text-[14px] mb-4 max-w-[280px] leading-snug">
+          Talk through concepts with Rex in a live voice call.
         </p>
-        <button onClick={handleCall} className="bg-white text-black border-2 border-black font-black uppercase tracking-widest text-[13px] px-6 py-3 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-100 transition-all flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">phone_in_talk</span>
+        <button onClick={handleCall} className="bg-white text-black border-2 border-black font-black uppercase tracking-wider text-[12px] px-5 py-2.5 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-100 transition-all flex items-center gap-2">
+          <span className="material-symbols-outlined text-[17px]">phone_in_talk</span>
           Call Rex
         </button>
       </div>
@@ -712,14 +712,6 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 <h3 className="text-[13px] font-black uppercase tracking-wider text-black">Recommended For You</h3>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-black bg-[#FFD13B] text-black">
-                  {primaryStyleMeta.label}
-                </span>
-                {primarySubjectMeta && (
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-black bg-white text-black">
-                    {primarySubjectMeta.name} Track
-                  </span>
-                )}
               </div>
               <button
                 type="button"
@@ -804,83 +796,81 @@ export default function Dashboard() {
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           MOBILE LAYOUT â€” block on mobile, hidden on desktop
           â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-      <main className="md:hidden px-5 pt-6 pb-32 flex flex-col gap-6 overflow-y-auto h-full">
+      <main className="md:hidden px-4 pt-4 pb-28 flex flex-col gap-3.5 overflow-y-auto h-full">
 
-        {/* Greeting with Rex Persona Badge */}
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#FFD13B] border-2 border-black flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0px_#1A1A1A]">
-              <span className="material-symbols-outlined text-[24px] text-black">school</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-[24px] font-black leading-tight tracking-tight text-black truncate">Good morning, {displayName}.</h1>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-[12.5px] text-black/60 font-bold">
+        {/* Greeting Header */}
+        <section className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-[19px] sm:text-[21px] font-black leading-tight tracking-tight text-black">
+                Good morning, {displayName}.
+              </h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-[12px] text-black/55 font-bold">
                   {new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-black/30" />
-                <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black bg-[#FFD13B] text-black shadow-[1px_1px_0px_#1A1A1A]">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black bg-[#FFD13B] text-black shadow-[1px_1px_0px_#1A1A1A]">
                   {activeGoalMeta.badge}
                 </span>
               </div>
             </div>
+
+            {/* Rex Head Mascot Icon */}
+            <div className="w-11 h-11 rounded-2xl bg-[#FFD13B] border-2 border-black flex items-center justify-center p-1 flex-shrink-0 shadow-[2px_2px_0px_#1A1A1A]">
+              <img src="/fox/fox-happy.png" alt="Rex Head" className="w-full h-full object-contain" />
+            </div>
           </div>
 
           {/* Rex Personalized Motivational Coach Bubble */}
-          <div className="border-2 border-black rounded-2xl bg-white p-3.5 flex items-center gap-3.5 shadow-[3px_3px_0px_#1A1A1A]">
-            <div className="w-11 h-11 rounded-full border-2 border-black overflow-hidden bg-[#FF9F1C] shrink-0 flex items-center justify-center shadow-[1px_1px_0px_#1A1A1A]">
-              <img src="/fox/fox-happy.png" alt="Rex" className="w-full h-full object-cover scale-125 mt-1" />
-            </div>
+          <div className="border-2 border-black rounded-xl bg-white p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#1A1A1A]">
+            <span className="material-symbols-outlined text-[18px] text-[#AE2925] shrink-0 mt-0.5">format_quote</span>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Rex Tutor</span>
-                {primarySubjectMeta && (
-                  <span className="text-[9.5px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border border-black/20 bg-[#FFFDF5] text-black/70">
-                    {primarySubjectMeta.name} Track
-                  </span>
-                )}
-              </div>
-              <p className="text-[12.5px] font-extrabold text-black leading-snug">
+              <p className="text-[12px] font-extrabold text-black leading-snug">
                 "{activeGoalMeta.rexQuote}"
               </p>
+              {primarySubjectMeta && (
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-black/45 mt-1 block">
+                  Rex Tutor &bull; {primarySubjectMeta.name} Track
+                </span>
+              )}
             </div>
           </div>
         </section>
 
-        {/* 1-Tap Daily Focus Launcher */}
-        <section className="border-2 border-black rounded-2xl bg-[#FF4D2E] text-white p-4.5 relative overflow-hidden shadow-[4px_4px_0px_#1A1A1A]">
-          <div className="relative z-10 w-[78%]">
-            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-black text-white font-black uppercase text-[10px] tracking-wider rounded border border-white/20 mb-2">
+        {/* 1-Tap Daily Focus Launcher (Clean Head Icon, Full Width Text) */}
+        <section className="border-2 border-black rounded-2xl bg-[#FF4D2E] text-white p-4 relative overflow-hidden shadow-[3px_3px_0px_#1A1A1A]">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-black text-white font-black uppercase text-[9.5px] tracking-wider rounded border border-white/20">
               <span className="material-symbols-outlined text-[12px] text-[#FFD13B]">bolt</span>
               Daily Focus &bull; {primarySubjectMeta.name}
             </div>
-            <h3 className="text-[18px] font-black leading-tight mb-1">Boost retention in 5 minutes</h3>
-            <p className="text-[12px] font-bold text-white/90 mb-3.5 leading-snug">
-              Rex prepared your active recall set for {primarySubjectMeta.name}.
-            </p>
-            <button
-              type="button"
-              onClick={() => { playSuccess(); navigate(primarySubjectMeta.recommendedTool); }}
-              className="bg-white text-black border-2 border-black font-black uppercase text-[12px] tracking-wider px-4 py-2.5 rounded-full shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFD13B] transition-all flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[17px]">play_arrow</span>
-              Launch Practice
-            </button>
+
+            {/* Rex Head Badge */}
+            <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center p-0.5 shrink-0 shadow-xs">
+              <img src="/fox/fox-happy.png" alt="Rex Head" className="w-full h-full object-contain" />
+            </div>
           </div>
-          <div className="absolute right-[-14px] bottom-[-18px] w-28 h-28 pointer-events-none">
-            <img src="/fox/fox-excited.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-md" />
-          </div>
+
+          <h3 className="text-[17px] font-black leading-tight mb-1">Boost retention in 5 minutes</h3>
+          <p className="text-[12px] font-semibold text-white/90 mb-3 leading-snug max-w-xs">
+            Rex prepared your active recall set for {primarySubjectMeta.name}.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => { playSuccess(); navigate(primarySubjectMeta.recommendedTool); }}
+            className="bg-white text-black border-2 border-black font-black uppercase text-[11.5px] tracking-wider px-4 py-2 rounded-full shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFD13B] transition-all flex items-center gap-1.5 w-fit"
+          >
+            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+            Launch Practice
+          </button>
         </section>
 
-        {/* Recommended For You — 2x2 Grid Directly Based on Onboarding Choices */}
-        <section className="flex flex-col gap-2.5">
+        {/* Recommended For You — Streamlined 2x2 Grid */}
+        <section className="flex flex-col gap-2">
           <div className="flex justify-between items-center px-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Recommended For You</span>
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded border border-black bg-[#FFD13B] text-black uppercase">
-                {primaryStyleMeta.label}
-              </span>
-            </div>
+            <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Recommended For You</span>
             <button
               type="button"
               onClick={() => { playPop(); navigate("/tools"); }}
@@ -889,21 +879,21 @@ export default function Dashboard() {
               See all
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {recommendedTools.map((tool) => (
               <button
                 key={"rec-mob-" + tool.title}
                 type="button"
                 onClick={() => { playPop(); navigate(tool.route); }}
-                className="h-[114px] border-2 border-black rounded-[16px] bg-white p-3.5 text-left shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group"
+                className="h-[96px] border-2 border-black rounded-xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group"
               >
                 <div className="flex items-center justify-between">
-                  <span className={`material-symbols-outlined text-[24px] ${tool.color}`}>{tool.icon}</span>
-                  <span className="material-symbols-outlined text-[16px] opacity-20 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-black">arrow_forward</span>
+                  <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
+                  <span className="material-symbols-outlined text-[15px] opacity-25 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-black">arrow_forward</span>
                 </div>
                 <div>
-                  <div className="text-[14px] font-black text-black leading-tight">{tool.title}</div>
-                  <div className="text-[11px] text-black/55 font-bold mt-0.5 truncate">{tool.desc}</div>
+                  <div className="text-[13px] font-black text-black leading-tight truncate">{tool.title}</div>
+                  <div className="text-[10.5px] text-black/55 font-bold mt-0.5 truncate">{tool.desc}</div>
                 </div>
               </button>
             ))}
@@ -911,10 +901,10 @@ export default function Dashboard() {
         </section>
 
         {/* Call Rex Voice Banner */}
-        <div className="mb-1"><CallRexBanner navigate={navigate} /></div>
+        <div><CallRexBanner navigate={navigate} /></div>
 
         {/* Goal Progress Bar */}
-        <section className="border-2 border-black rounded-2xl bg-white p-5 shadow-[4px_4px_0px_#1A1A1A]">
+        <section className="border-2 border-black rounded-2xl bg-white p-4 shadow-[3px_3px_0px_#1A1A1A]">
           <div className="flex justify-between items-end mb-4">
             <div>
               <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">Today's Target</div>
