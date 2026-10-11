@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTimeTracker } from "@/hooks/useStudyTimeTracker";
+import { playTap } from "@/lib/soundFX";
 
 const NAV_SECTIONS = [
   {
@@ -102,9 +103,14 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
               return (
                 <button
                   key={item.route}
-                  onClick={() => navigate(item.route)}
-                  className={`flex items-center gap-3 px-3 py-2.5 text-[13px] font-bold transition-all text-left w-full ${
-                    isActive ? "bg-black text-white" : "text-black hover:bg-[#E2E2E2]"
+                  onClick={() => {
+                    playTap();
+                    navigate(item.route);
+                  }}
+                  className={`flex items-center gap-3 px-3 py-2.5 text-[13px] font-black transition-all text-left w-full rounded-xl ${
+                    isActive
+                      ? "bg-black text-white shadow-[2px_2px_0px_#AE2925] translate-x-1"
+                      : "text-black hover:bg-black/5 hover:translate-x-0.5"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[20px]" style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
