@@ -177,9 +177,36 @@
 .math-output .katex { font-size: 1.05em; }
 .math-output .katex-display { margin: 0.5em 0; }
 
-/* ── Hover card ── */
+/* ── Hover card & 3D Forward Bounce ── */
 .pz-card-hover { transition: border-color 0.15s ease, transform 0.15s ease; }
 .pz-card-hover:hover { border-color: var(--pz-border-hv) !important; transform: translateY(-2px); }
+
+/* Physical 3D button forward bounce (lifts UP on hover, compresses DOWN on active, ZERO sidewards shift) */
+.btn-3d {
+  box-shadow: 0 4px 0 #1A1A1A;
+  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+.btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #1A1A1A;
+}
+.btn-3d:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #1A1A1A;
+}
+
+.btn-3d-sm {
+  box-shadow: 0 2.5px 0 #1A1A1A;
+  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+.btn-3d-sm:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 0 #1A1A1A;
+}
+.btn-3d-sm:active {
+  transform: translateY(1.5px);
+  box-shadow: 0 1px 0 #1A1A1A;
+}
 
 /* ── Tool card grid ── */
 .tool-grid {

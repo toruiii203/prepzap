@@ -490,6 +490,19 @@ export default function Dashboard() {
     return [...matched, ...remaining].slice(0, 4);
   }, [primarySubjectMeta, primaryStyleMeta]);
 
+  // Remaining tools excluding recommended to eliminate duplication on mobile and desktop
+  const otherTools = useMemo(() => {
+    return ALL_TOOLS.filter((t) => !recommendedTools.some((r) => r.route === t.route));
+  }, [recommendedTools]);
+
+  const otherToolSlides = useMemo(() => {
+    const slides: (typeof ALL_TOOLS[number])[][] = [];
+    for (let i = 0; i < otherTools.length; i += 4) {
+      slides.push(otherTools.slice(i, i + 4));
+    }
+    return slides;
+  }, [otherTools]);
+
   const fetchTasks = () => {
     setLoadingTasks(true);
     try {
@@ -639,8 +652,74 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Call Rex Banner (Desktop) */}
-        <div className="mb-8"><CallRexBanner navigate={navigate} /></div>
+        {/* Desktop Top Command Deck (Side-by-side Hero Cards) */}
+        <div className="grid grid-cols-12 gap-6 mb-8">
+          
+          {/* Card 1 (Col 7): 1-Tap Daily Focus Mission */}
+          <section className="col-span-7 border-2 border-black rounded-2xl bg-[#FF4D2E] text-white p-5 relative overflow-hidden shadow-[0px_4px_0px_#1A1A1A] flex flex-col justify-between">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-black text-white font-black uppercase text-[10px] tracking-wider rounded-lg border border-white/20">
+                  <span className="material-symbols-outlined text-[13px] text-[#FFD13B]">bolt</span>
+                  Daily Focus &bull; {primarySubjectMeta.name}
+                </div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-white/80">
+                  Estimated 5 mins
+                </span>
+              </div>
+              <h3 className="text-[22px] font-black leading-tight mb-1">Boost retention in 5 minutes</h3>
+              <p className="text-[13px] font-semibold text-white/90 max-w-md leading-relaxed mb-4">
+                Rex prepared an active recall set for {primarySubjectMeta.name} tailored to your {activeGoalMeta.label.toLowerCase()} goal.
+              </p>
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => { playSuccess(); navigate(primarySubjectMeta.recommendedTool); }}
+                className="bg-white text-black border-2 border-black font-black uppercase text-[12px] tracking-wider px-5 py-2.5 rounded-full shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] hover:bg-[#FFD13B] transition-all flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                Launch Practice
+              </button>
+
+              <div className="flex items-center gap-2 text-[12px] font-extrabold text-white/80 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
+                <span className="material-symbols-outlined text-[16px] text-[#FFD13B]">auto_awesome</span>
+                <span>Active Recall • Spaced Repetition</span>
+              </div>
+            </div>
+
+            {/* Subtle Rex Mascot Head in Top Right */}
+            <div className="absolute right-3 -top-2 w-28 h-28 opacity-15 pointer-events-none">
+              <img src="/fox/fox-happy.png" alt="Rex" className="w-full h-full object-contain" />
+            </div>
+          </section>
+
+          {/* Card 2 (Col 5): Talk to Rex & Daily Coach Tip */}
+          <section className="col-span-5 flex flex-col gap-3.5 justify-between">
+            {/* Talk to Rex Voice Call Widget */}
+            <CallRexBanner navigate={navigate} />
+
+            {/* Rex Daily Coaching Insight */}
+            <div className="border-2 border-black rounded-2xl bg-white p-4 shadow-[0px_3px_0px_#1A1A1A] flex items-start gap-3 flex-1">
+              <div className="w-10 h-10 rounded-xl border-2 border-black bg-[#FFD13B] p-0.5 shrink-0 flex items-center justify-center shadow-[0px_2px_0px_#1A1A1A]">
+                <img src="/fox/fox-happy.png" alt="Rex" className="w-full h-full object-contain" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Rex Coaching Tip</span>
+                  <span className="text-[9.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-black/15 bg-[#FAF7F2] text-black/60">
+                    {activeGoalMeta.badge}
+                  </span>
+                </div>
+                <p className="text-[12.5px] font-extrabold text-black leading-snug">
+                  "{activeGoalMeta.rexQuote}"
+                </p>
+              </div>
+            </div>
+          </section>
+
+        </div>
 
         {/* Desktop Bento Grid */}
         <div className="grid grid-cols-12 gap-6">
@@ -649,7 +728,7 @@ export default function Dashboard() {
           <div className="col-span-8 grid grid-cols-3 gap-6">
 
             {/* Today's Goal */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col items-center text-center relative overflow-hidden" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <section className="border-2 border-black bg-white p-4 flex flex-col items-center text-center relative overflow-hidden rounded-2xl shadow-[0px_4px_0px_#000]">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#FF4D2E]" />
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50 self-start mb-3">Today's Goal</div>
               <div className="relative w-24 h-24 flex items-center justify-center mb-2">
@@ -672,7 +751,7 @@ export default function Dashboard() {
             </section>
 
             {/* Total Sessions */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative rounded-2xl shadow-[0px_4px_0px_#000]">
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Total Sessions</div>
               <div>
                 <div className="text-[48px] font-black leading-none text-black">{stats.totalSessions}</div>
@@ -681,7 +760,7 @@ export default function Dashboard() {
             </section>
 
             {/* Time Studied */}
-            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative rounded-2xl shadow-[0px_4px_0px_#000]">
               <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Time Studied</div>
               <div>
                 <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyTimeHours}h</div>
@@ -690,8 +769,8 @@ export default function Dashboard() {
             </section>
           </div>
 
-          {/* Quest Log â€” tall right column spanning 2 rows */}
-          <section className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col" style={{ boxShadow: "4px 4px 0px #000" }}>
+          {/* Quest Log — tall right column spanning 2 rows */}
+          <section className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col rounded-2xl shadow-[0px_4px_0px_#000] overflow-hidden">
             <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FAF7F2]/50">
               <h3 className="text-[13px] font-black uppercase tracking-wider">Quest Log</h3>
               <span className="material-symbols-outlined text-[20px]">history_edu</span>
@@ -707,48 +786,66 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* Quick Tools — Personalized Track & All Tools */}
-          <section className="col-span-8 border-2 border-black bg-[#FFFDF5] p-5" style={{ boxShadow: "4px 4px 0px #000" }}>
+          {/* Quick Tools — Redesigned Modern Study Hub with Forward Bounce */}
+          <section className="col-span-8 border-2 border-black bg-white rounded-2xl p-6 shadow-[0px_4px_0px_#1A1A1A]">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
-                <h3 className="text-[13px] font-black uppercase tracking-wider text-black">Recommended For You</h3>
+                <h3 className="text-[14px] font-black uppercase tracking-wider text-black">Recommended For You</h3>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-[#FAF7F2] text-black/60">
+                  Personalized
+                </span>
               </div>
               <button
                 type="button"
                 onClick={() => { playPop(); navigate("/tools"); }}
-                className="text-[11px] font-black text-black underline hover:text-[#FF4D2E] transition-colors"
+                className="text-[12px] font-black text-black underline hover:text-[#FF4D2E] transition-colors"
               >
                 View all 16 tools
               </button>
             </div>
 
-            {/* Pinned 4 recommended tools */}
-            <div className="grid grid-cols-4 gap-3 mb-4">
+            {/* Pinned 4 recommended tools with rich cards and forward bounce */}
+            <div className="grid grid-cols-4 gap-3.5 mb-5">
               {recommendedTools.map((tool) => (
                 <button
                   key={"rec-" + tool.route}
                   onClick={() => { playPop(); navigate(tool.route); }}
-                  className="border-2 border-black bg-white p-3 flex flex-col items-center justify-center text-center gap-1 h-28 hover:bg-[#FFFBEA] transition-all rounded-xl shadow-[3px_3px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none group"
+                  className="border-2 border-black bg-[#FAF7F2] hover:bg-white p-3.5 flex flex-col justify-between h-[116px] rounded-xl text-left shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] transition-all group"
                 >
-                  <span className={`material-symbols-outlined text-[24px] ${tool.color}`}>{tool.icon}</span>
-                  <span className="text-[13px] font-black text-black">{tool.title}</span>
-                  <span className="text-[10.5px] font-bold text-black/50 group-hover:text-black/80">{tool.desc}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-black/15 flex items-center justify-center shadow-xs group-hover:border-black transition-colors">
+                      <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
+                    </div>
+                    <span className="material-symbols-outlined text-[16px] text-black/30 group-hover:text-black transition-colors">north_east</span>
+                  </div>
+                  <div>
+                    <div className="text-[14px] font-black text-black leading-tight group-hover:text-[#FF4D2E] transition-colors">{tool.title}</div>
+                    <div className="text-[11px] font-bold text-black/55 mt-0.5 leading-snug truncate">{tool.desc}</div>
+                  </div>
                 </button>
               ))}
             </div>
 
-            {/* Other tools grid */}
-            <div className="pt-3 border-t-2 border-black/10">
-              <div className="text-[11px] font-black uppercase tracking-wider text-black/40 mb-3">All Tools</div>
+            {/* Other tools grid — app dock style (zero duplication) */}
+            <div className="pt-4 border-t-2 border-black/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-black/45">More Study Tools</span>
+                <span className="text-[10px] font-extrabold text-black/40">1-Tap Quick Launch</span>
+              </div>
               <div className="grid grid-cols-4 gap-2.5">
-                {ALL_TOOLS.filter(t => !recommendedTools.some(r => r.route === t.route)).slice(0, 8).map((tool) => (
+                {otherTools.slice(0, 8).map((tool) => (
                   <button
                     key={"all-" + tool.route}
                     onClick={() => { playPop(); navigate(tool.route); }}
-                    className="border-2 border-black bg-white p-2.5 flex items-center gap-2.5 hover:bg-black hover:text-white transition-all rounded-lg shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none group text-left"
+                    className="border-2 border-black bg-white hover:bg-[#FAF7F2] p-2.5 flex items-center gap-2.5 rounded-xl shadow-[0px_2px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[0px_3px_0px_#1A1A1A] active:translate-y-[1px] active:shadow-[0px_0.5px_0px_#1A1A1A] transition-all group text-left"
                   >
-                    <span className={`material-symbols-outlined text-[18px] group-hover:text-white ${tool.color}`}>{tool.icon}</span>
-                    <span className="text-[12px] font-bold text-black group-hover:text-white truncate">{tool.title}</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] group-hover:bg-white border border-black/10 flex items-center justify-center shrink-0 transition-colors">
+                      <span className={`material-symbols-outlined text-[18px] ${tool.color}`}>{tool.icon}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12px] font-black text-black truncate group-hover:text-[#FF4D2E] transition-colors">{tool.title}</div>
+                      <div className="text-[10px] font-bold text-black/45 truncate">{tool.desc}</div>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -963,19 +1060,19 @@ export default function Dashboard() {
               className="flex overflow-x-auto snap-x snap-mandatory gap-0 pb-2 scroll-smooth"
               style={{ scrollbarWidth: "none" }}
             >
-              {TOOL_SLIDES.map((slide, slideIdx) => (
+              {otherToolSlides.map((slide, slideIdx) => (
                 <div key={slideIdx} className="min-w-full snap-start grid grid-cols-2 gap-3 px-0.5">
                   {slide.map((tool) => (
                     <button
                       key={tool.title}
                       type="button"
                       onClick={() => { playPop(); navigate(tool.route); }}
-                      className="h-[110px] border-2 border-black rounded-[14px] bg-white p-3 text-left shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all"
+                      className="h-[102px] border-2 border-black rounded-xl bg-white p-3 text-left shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] hover:bg-[#FFFDF5] flex flex-col justify-between transition-all"
                     >
-                      <span className={`material-symbols-outlined text-[20px] mb-2 block ${tool.color}`}>{tool.icon}</span>
+                      <span className={`material-symbols-outlined text-[20px] mb-1.5 block ${tool.color}`}>{tool.icon}</span>
                       <div>
-                        <div className="text-[13px] font-bold text-black">{tool.title}</div>
-                        <div className="text-[11px] text-black/40 font-semibold">{tool.desc}</div>
+                        <div className="text-[13px] font-black text-black leading-tight truncate">{tool.title}</div>
+                        <div className="text-[10.5px] text-black/55 font-bold mt-0.5 truncate">{tool.desc}</div>
                       </div>
                     </button>
                   ))}
@@ -984,7 +1081,7 @@ export default function Dashboard() {
             </div>
             <div className="absolute right-0 top-0 bottom-2 w-12 pointer-events-none bg-gradient-to-l from-[#FAF7F2] to-transparent" />
             <div className="flex justify-center gap-1.5 mt-2">
-              {TOOL_SLIDES.map((_, idx) => (
+              {otherToolSlides.map((_, idx) => (
                 <button key={idx} type="button" onClick={() => scrollToolsToPage(idx)}
                   className={`w-1.5 h-1.5 rounded-full transition-opacity ${toolsPage === idx ? "bg-black" : "bg-black/20"}`} />
               ))}
