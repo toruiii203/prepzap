@@ -309,35 +309,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { isPro } = usePlan();
-  const [toolsPage, setToolsPage] = useState(0);
-  const toolsScrollRef = useRef<HTMLDivElement>(null);
-
-  const handleToolsScroll = () => {
-    const el = toolsScrollRef.current;
-    if (!el) return;
-    const page = Math.round(el.scrollLeft / el.clientWidth);
-    setToolsPage(Math.min(TOOL_SLIDES.length - 1, Math.max(0, page)));
-  };
-
-  const getSessionRoute = (title: string) => {
-    const t = (title || "").toLowerCase();
-    if (t.includes('flashcard')) return '/flashcards';
-    if (t.includes('practice')) return '/practice';
-    if (t.includes('arena') || t.includes('challenge')) return '/arena';
-    if (t.includes('tutor')) return '/ai-tutor';
-    if (t.includes('planner')) return '/planner';
-    if (t.includes('math')) return '/math';
-    if (t.includes('teach')) return '/teach-it';
-    if (t.includes('source')) return '/sources';
-    return '/tools';
-  };
-
-  const scrollToolsToPage = (page: number) => {
-    const el = toolsScrollRef.current;
-    if (!el) return;
-    el.scrollTo({ left: page * el.clientWidth, behavior: "smooth" });
-    setToolsPage(page);
-  };
 
   const toTitleCase = (s: string) =>
     s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
@@ -489,19 +460,6 @@ export default function Dashboard() {
     const remaining = ALL_TOOLS.filter((t) => !preferredRoutes.has(t.route));
     return [...matched, ...remaining].slice(0, 4);
   }, [primarySubjectMeta, primaryStyleMeta]);
-
-  // Remaining tools excluding recommended to eliminate duplication on mobile and desktop
-  const otherTools = useMemo(() => {
-    return ALL_TOOLS.filter((t) => !recommendedTools.some((r) => r.route === t.route));
-  }, [recommendedTools]);
-
-  const otherToolSlides = useMemo(() => {
-    const slides: (typeof ALL_TOOLS[number])[][] = [];
-    for (let i = 0; i < otherTools.length; i += 4) {
-      slides.push(otherTools.slice(i, i + 4));
-    }
-    return slides;
-  }, [otherTools]);
 
   const fetchTasks = () => {
     setLoadingTasks(true);
@@ -964,10 +922,15 @@ export default function Dashboard() {
           </button>
         </section>
 
-        {/* Recommended For You — Streamlined 2x2 Grid */}
+        {/* 3. Recommended Study Tools — 4 Personalized Cards */}
         <section className="flex flex-col gap-2">
           <div className="flex justify-between items-center px-0.5">
-            <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Recommended For You</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Recommended For You</span>
+              <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-white text-black/60">
+                Personalized
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => { playPop(); navigate("/tools"); }}
@@ -997,104 +960,34 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Call Rex Voice Banner */}
+        {/* 4. Talk to Rex Banner */}
         <div><CallRexBanner navigate={navigate} /></div>
 
-        {/* Goal Progress Bar */}
-        <section className="border-2 border-black rounded-2xl bg-white p-4 shadow-[3px_3px_0px_#1A1A1A]">
-          <div className="flex justify-between items-end mb-4">
-            <div>
-              <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">Today's Target</div>
-              <div className="text-[15px] font-extrabold">{completedCount} of {goalCount} checklist targets completed</div>
+        {/* 5. Daily Quests & Progress */}
+        <section className="flex flex-col gap-2.5">
+          {/* Goal Progress Header */}
+          <div className="border-2 border-black rounded-xl bg-white p-3.5 shadow-[2px_2px_0px_#1A1A1A]">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[11px] opacity-60 font-black uppercase tracking-wider">Today's Quest Target</span>
+              <span className="text-[13px] font-black">{completedCount} of {goalCount} completed</span>
             </div>
-            <div className="text-[28px] font-black leading-none">{completedCount}/{goalCount}</div>
-          </div>
-          <div className="h-2.5 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
-            <div className="h-full bg-[#10B981] rounded-r-full transition-all duration-500" style={{ width: `${Math.min(100, Math.round((completedCount / goalCount) * 100))}%` }} />
-          </div>
-        </section>
-
-        {/* Weekly Calendar (mobile only) */}
-        <section className="border-2 border-black rounded-2xl bg-white p-5 shadow-[4px_4px_0px_#1A1A1A]">
-          <div className="text-[11.5px] opacity-50 font-black uppercase tracking-wider mb-3">Weekly Study Calendar</div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {daysOfWeek.map((day, idx) => {
-              const studied = studiedDays[idx];
-              const isToday = idx === 6;
-              return (
-                <div key={day} className="flex flex-col items-center gap-1.5">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{day[0]}</span>
-                  <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-extrabold text-[11px] transition-all ${
-                    studied ? "bg-black text-white shadow-[1px_1px_0px_#000]" : "bg-[#FAF7F2] text-black/35"
-                  } ${isToday ? "ring-2 ring-[#FF9F1C] scale-105" : ""}`}>
-                    {studied ? "✓" : idx + 1}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section className="grid grid-cols-2 gap-3.5">
-          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[84px]">
-            <div className="text-[24px] font-black leading-tight text-black"><AnimatedCounter value={stats.totalSessions} /></div>
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
-          </div>
-          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[84px]">
-            <div className="text-[24px] font-black leading-tight text-[#FF4D2E]">{stats.studyTimeHours}h</div>
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
-          </div>
-        </section>
-
-        {/* All Tools — swipeable carousel (mobile only) */}
-        <section className="flex flex-col gap-3">
-          <div className="flex justify-between items-center">
-            <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Explore All Tools</div>
-            <button type="button" onClick={() => { playPop(); navigate("/tools"); }} className="text-[11px] font-bold text-black/50 underline">See all</button>
-          </div>
-          <div className="relative">
-            <div
-              ref={toolsScrollRef}
-              onScroll={handleToolsScroll}
-              className="flex overflow-x-auto snap-x snap-mandatory gap-0 pb-2 scroll-smooth"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {otherToolSlides.map((slide, slideIdx) => (
-                <div key={slideIdx} className="min-w-full snap-start grid grid-cols-2 gap-3 px-0.5">
-                  {slide.map((tool) => (
-                    <button
-                      key={tool.title}
-                      type="button"
-                      onClick={() => { playPop(); navigate(tool.route); }}
-                      className="h-[102px] border-2 border-black rounded-xl bg-white p-3 text-left shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] hover:bg-[#FFFDF5] flex flex-col justify-between transition-all"
-                    >
-                      <span className={`material-symbols-outlined text-[20px] mb-1.5 block ${tool.color}`}>{tool.icon}</span>
-                      <div>
-                        <div className="text-[13px] font-black text-black leading-tight truncate">{tool.title}</div>
-                        <div className="text-[10.5px] text-black/55 font-bold mt-0.5 truncate">{tool.desc}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <div className="absolute right-0 top-0 bottom-2 w-12 pointer-events-none bg-gradient-to-l from-[#FAF7F2] to-transparent" />
-            <div className="flex justify-center gap-1.5 mt-2">
-              {otherToolSlides.map((_, idx) => (
-                <button key={idx} type="button" onClick={() => scrollToolsToPage(idx)}
-                  className={`w-1.5 h-1.5 rounded-full transition-opacity ${toolsPage === idx ? "bg-black" : "bg-black/20"}`} />
-              ))}
+            <div className="h-2.5 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
+              <div
+                className="h-full bg-[#10B981] rounded-r-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((completedCount / goalCount) * 100))}%` }}
+              />
             </div>
           </div>
-        </section>
 
-        {/* Quest Log â€” mobile */}
-        <section>
-          <div className="text-[18px] font-extrabold mb-3 flex items-center gap-2">
-            Quest Log
-          </div>
-          <div className="border-2 border-black rounded-xl bg-white overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+          {/* Quest Log Checklist */}
+          <div className="border-2 border-black rounded-xl bg-white overflow-hidden shadow-[3px_3px_0px_#1A1A1A]">
+            <div className="p-3 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
+              <span className="text-[12px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-[#AE2925]">checklist</span>
+                Daily Quests
+              </span>
+              <span className="text-[10.5px] font-bold text-black/50">Keep your streak</span>
+            </div>
             <QuestLogBody
               tasks={tasks}
               loadingTasks={loadingTasks}
@@ -1104,59 +997,6 @@ export default function Dashboard() {
               handleToggleTask={handleToggleTask}
               handleDeleteTask={handleDeleteTask}
             />
-          </div>
-        </section>
-
-        {/* Performance Target Chips */}
-        <section>
-          <div className="text-[11px] font-black opacity-50 uppercase tracking-wider flex items-center gap-2 mb-1">
-            Specific Performance Targets
-            <div className="ml-auto w-6 h-6 rounded-full border-2 border-black bg-[#FAF7F2] flex items-center justify-center cursor-pointer hover:bg-black hover:text-white transition-colors" onClick={() => navigate("/planner")}>
-              <span className="material-symbols-outlined text-[14px]">add</span>
-            </div>
-          </div>
-          <div className="text-[12px] text-black/45 font-bold mb-2">Based on study sessions recorded</div>
-          <div className="flex flex-wrap gap-2.5">
-            {Array.from(new Set(sessions.map((s) => s.title))).slice(0, 4).map((title, i) => (
-              <button
-                key={title || i}
-                type="button"
-                onClick={() => navigate(getSessionRoute(title))}
-                className="border-2 border-black px-4 py-2 bg-[#FAF7F2] text-[13px] font-extrabold hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-              >
-                {title}
-              </button>
-            ))}
-            {sessions.length === 0 && (
-              <p className="text-[12px] text-black/40 font-bold">Complete study sessions to see your targets here.</p>
-            )}
-          </div>
-        </section>
-
-        {/* History Ledger (mobile recent sessions) */}
-        <section className="border-2 border-black rounded-[16px] bg-[#FAF7F2] overflow-hidden" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
-          <div className="text-[11.5px] font-black opacity-50 uppercase tracking-wider border-b-[1.5px] border-black p-4 pb-3">
-            History Ledger
-          </div>
-          <div className="p-4 flex flex-col gap-5 relative">
-            <div className="absolute left-[19px] top-6 bottom-4 w-[1.5px] bg-black opacity-20" />
-            {loadingSessions ? (
-              <div className="text-center py-2 text-xs font-bold text-slate-400">Loading ledger...</div>
-            ) : sessions.slice(0, 3).map((session, sIdx) => {
-              const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-              return (
-                <div key={session.id || sIdx} className="flex justify-between items-center relative pl-5">
-                  <div className="absolute left-[-1px] w-2.5 h-2.5 bg-black rounded-full border border-[#FAF7F2]" />
-                  <div className="text-[14px] font-extrabold flex-1 pr-2 truncate">{session.title}</div>
-                  <div className="text-[11.5px] opacity-50 font-bold bg-white px-2 py-0.5 rounded-md border border-black/10 shrink-0">
-                    {formatDuration(Number(session.duration_minutes || session.duration))} / {formattedDate}
-                  </div>
-                </div>
-              );
-            })}
-            {!loadingSessions && sessions.length === 0 && (
-              <div className="text-center py-1 text-xs text-slate-400 font-bold">No sessions yet. Start studying!</div>
-            )}
           </div>
         </section>
       </main>

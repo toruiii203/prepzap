@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { BottomNav } from "@/components/BottomNav";
 
 interface StudeniusShellProps {
   children: ReactNode;
@@ -41,13 +40,6 @@ export function StudeniusShell({ children, hideNav = false }: StudeniusShellProp
       {/* Main content — full width on mobile, fills remaining space on desktop */}
       <div className="flex flex-col flex-1 min-w-0 min-h-[100dvh] relative">
         {children}
-
-        {/* Bottom nav — mobile only */}
-        {!hideNav && (
-          <div className="md:hidden">
-            <BottomNav />
-          </div>
-        )}
       </div>
     </div>
   );

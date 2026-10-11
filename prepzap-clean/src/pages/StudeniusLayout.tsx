@@ -1,5 +1,4 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BottomNav } from "@/components/BottomNav";
 
 const NAV_LINKS = [
   { href: "/dashboard", icon: "home", label: "Home" },
@@ -87,11 +86,6 @@ export function StudeniusLayout() {
       <div className="flex flex-col flex-1 min-w-0 relative" style={{ minHeight: "100dvh" }}>
         {/* Page content rendered by React Router */}
         <Outlet />
-
-        {/* Bottom nav — mobile only */}
-        <div className="md:hidden">
-          <BottomNav />
-        </div>
       </div>
     </div>
   );

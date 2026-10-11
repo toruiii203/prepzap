@@ -69,6 +69,7 @@ export default function NotesWorkspace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [syncStatus, setSyncStatus] = useState<"saved" | "saving" | "offline">("saved");
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showBrainChat, setShowBrainChat] = useState(false);
 
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cacheKey = user ? `studenius_notes_cache_${user.id}` : null;
@@ -366,6 +367,19 @@ export default function NotesWorkspace() {
               </button>
 
               <button
+                onClick={() => {
+                  playPop();
+                  setShowBrainChat(!showBrainChat);
+                }}
+                className={`w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+                  showBrainChat ? "bg-[#FFD13B] text-black" : "bg-white hover:bg-[#FFD13B] text-black"
+                }`}
+                title="Rex Brain Chat"
+              >
+                <span className="material-symbols-outlined text-[17px]">hub</span>
+              </button>
+
+              <button
                 onClick={() => setShowTemplateModal(true)}
                 className="h-8 px-2.5 flex items-center gap-1 border-2 border-black rounded-lg bg-[#AE2925] text-white font-black text-[12px] uppercase tracking-wider hover:bg-black transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                 title="New Note"
@@ -524,7 +538,7 @@ export default function NotesWorkspace() {
               </div>
             </div>
           ) : activeNote ? (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
               
               {/* Studio Editor Top Toolbar */}
               <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b-2 border-black px-4 md:px-8 py-3 flex items-center justify-between gap-3 shadow-sm">
@@ -569,8 +583,22 @@ export default function NotesWorkspace() {
                 {/* Right Action Buttons */}
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => {
+                      playPop();
+                      setShowBrainChat(!showBrainChat);
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border-2 border-black rounded-lg font-black text-[12px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+                      showBrainChat ? "bg-[#FFD13B] text-black" : "bg-white hover:bg-[#FFD13B] text-black"
+                    }`}
+                    title="Rex Brain Chat"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">hub</span>
+                    <span className="hidden sm:inline">Rex Brain</span>
+                  </button>
+
+                  <button
                     onClick={handleExportToFlashcards}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#AE2925] hover:text-white font-black text-[12px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#AE2925] hover:text-white font-black text-[12px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                     title="Export selected concepts into Flashcards"
                   >
                     <span className="material-symbols-outlined text-[16px]">style</span>
@@ -588,7 +616,7 @@ export default function NotesWorkspace() {
               </div>
 
               {/* Editor Sheet Canvas */}
-              <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8 flex flex-col gap-4">
+              <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-4 md:p-8 pb-28 md:pb-12 flex flex-col gap-4">
                 
                 {/* Note Title Input */}
                 <input
@@ -720,8 +748,8 @@ export default function NotesWorkspace() {
         </div>
       )}
 
-      {/* Knowledge Base Chat Sidecar */}
-      <KnowledgeBaseChat />
+      {/* Knowledge Base Chat Sidecar / Drawer */}
+      <KnowledgeBaseChat isOpen={showBrainChat} onClose={() => setShowBrainChat(false)} />
     </div>
   );
 }
