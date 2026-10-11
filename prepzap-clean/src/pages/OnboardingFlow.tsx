@@ -5,6 +5,8 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 import { getCachedSession } from "@/lib/authSession"
 import { useAuth } from "@/contexts/AuthContext"
+import { saveUserPreferences, generateSmartQuests, GOAL_METADATA } from "@/lib/userPreferences"
+import { playPop, playSuccess, playCelebration } from "@/lib/soundFX"
 
 type Screen =
   | "intro"
@@ -586,7 +588,10 @@ function SubjectSelection({ onNext, onBack }: { onNext: (selected: string[]) => 
   const [selected, setSelected] = useState<string[]>([])
   const [hovering, setHovering] = useState<string | null>(null)
 
-  const toggle = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  const toggle = (id: string) => {
+    playPop();
+    setSelected(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  }
 
   const foxSrc = hovering ? FOX.thinking
     : selected.length === 0 ? FOX.neutral
@@ -737,7 +742,10 @@ function GoalSelection({ onNext, onBack }: { onNext: (goal: string) => void; onB
               const isSel = selected === goal.id
               return (
                 <button key={goal.id} style={s.optionCard(isSel)}
-                  onClick={() => setSelected(isSel ? null : goal.id)}
+                  onClick={() => {
+                    playPop();
+                    setSelected(isSel ? null : goal.id);
+                  }}
                   onMouseEnter={() => setHovering(goal.id)} onMouseLeave={() => setHovering(null)}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{ width: 32, height: 32, background: BLACK, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -845,7 +853,10 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
   const [selected, setSelected] = useState<string[]>([])
   const [hovering, setHovering] = useState(false)
 
-  const toggle = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  const toggle = (id: string) => {
+    playPop();
+    setSelected(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  }
 
   const foxSrc  = hovering ? FOX.thinking : selected.length > 0 ? FOX.excited : FOX.neutral
   const dialogue = selected.length > 0
@@ -883,7 +894,19 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
   )
 }
 
-function FinalTransition({ onDone, userName }: { onDone: () => void; userName: string }) {
+function FinalTransition({
+  onDone,
+  userName,
+  selectedSubjects,
+  selectedGoal,
+  selectedStyles,
+}: {
+  onDone: () => void;
+  userName: string;
+  selectedSubjects: string[];
+  selectedGoal: string;
+  selectedStyles: string[];
+}) {
   const { refreshProfile, completeOnboarding } = useAuth()
   const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
   const [foxY, setFoxY]                   = useState(110)
@@ -898,13 +921,32 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
   const [progressVisible, setProgressVisible] = useState(false)
   const [bgColor, setBgColor]             = useState(BG)
 
-  // Save name + mark onboarding complete — upsert so it works even if row is missing
+  // Save name, preferences + mark onboarding complete
   const markComplete = async () => {
-    // IMPORTANT: Do NOT call supabase.auth.getSession() here — it hits the
-    // serialAuthLock and can time out, which causes this function to silently
-    // return early and never set onboarding_complete: true.
-    // getCachedSession() reads directly from memory — always instant, never locks.
     const session = getCachedSession()
+    const userId = session?.user?.id
+    const dailyMinutes = GOAL_METADATA[selectedGoal]?.dailyMinutes || 30
+
+    const prefs = {
+      name: userName || session?.user?.user_metadata?.full_name || "Scholar",
+      subjects: selectedSubjects && selectedSubjects.length > 0 ? selectedSubjects : ["other"],
+      goal: selectedGoal || "grades",
+      learningStyles: selectedStyles && selectedStyles.length > 0 ? selectedStyles : ["mixed"],
+      dailyGoalMinutes: dailyMinutes,
+      completedAt: new Date().toISOString(),
+    }
+
+    saveUserPreferences(prefs, userId)
+
+    // Generate initial tailored quest log for the user's checklist
+    const smartQuests = generateSmartQuests(prefs)
+    try {
+      localStorage.setItem("pz_checklist", JSON.stringify(smartQuests))
+      if (userId) {
+        localStorage.setItem(`pz_${userId}_checklist`, JSON.stringify(smartQuests))
+      }
+    } catch {}
+
     if (!session) return
     await supabase
       .from("profiles")
@@ -912,6 +954,10 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
         id: session.user.id,
         email: session.user.email,
         full_name: userName || session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
+        daily_goal_minutes: dailyMinutes,
+        avatar_config: {
+          study_preferences: prefs,
+        },
         onboarding_complete: true,
       }, { onConflict: "id" })
   }
@@ -937,10 +983,10 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
     const t7  = setTimeout(() => setFoxSrc(FOX.neutral), 5400)
     const t8  = setTimeout(() => { setChecklistVisible(true); setProgressVisible(true) }, 6800)
     const t8b = setTimeout(() => setProgressWidth(85), 6900)
-    const t9  = setTimeout(() => setChecks(c => [true,...c.slice(1)]), 7300)
-    const t10 = setTimeout(() => setChecks(c => [c[0],true,...c.slice(2)]), 8200)
-    const t11 = setTimeout(() => { setChecks(c => [...c.slice(0,2),true,c[3]]); setFoxSrc(FOX.excited) }, 9100)
-    const t12 = setTimeout(() => setChecks(c => [...c.slice(0,3),true]), 10000)
+    const t9  = setTimeout(() => { setChecks(c => [true,...c.slice(1)]); playPop(1.1); }, 7300)
+    const t10 = setTimeout(() => { setChecks(c => [c[0],true,...c.slice(2)]); playPop(1.2); }, 8200)
+    const t11 = setTimeout(() => { setChecks(c => [...c.slice(0,2),true,c[3]]); setFoxSrc(FOX.excited); playPop(1.3); }, 9100)
+    const t12 = setTimeout(() => { setChecks(c => [...c.slice(0,3),true]); playSuccess(); }, 10000)
     const t13 = setTimeout(() => { setHeadlinePhase("out"); }, 10800)
     const t14 = setTimeout(() => setChecklistVisible(false), 11200)
     const t15 = setTimeout(() => { setProgressWidth(100); setBgColor(YELLOW) }, 11600)
@@ -948,7 +994,7 @@ function FinalTransition({ onDone, userName }: { onDone: () => void; userName: s
     showLine("You're all set.", 11800, 0)
     const t17 = setTimeout(() => setHeadlinePhase("in"), 11840)
     const t18 = setTimeout(() => { setProgressVisible(false); setSubVisible(true) }, 13000)
-    const t19 = setTimeout(() => setFoxSrc(FOX.happy), 13200)
+    const t19 = setTimeout(() => { setFoxSrc(FOX.happy); playCelebration(); }, 13200)
     // Start the DB write early, then navigate after it completes.
     // IMPORTANT: Always navigate regardless of whether refreshProfile()
     // succeeds — a stale profile is fine, the dashboard will re-fetch.
@@ -1134,7 +1180,15 @@ export default function Onboarding() {
       {screen === "goalSelection"    && <GoalSelection onNext={g => { setSelectedGoal(g); go("goalReaction") }} onBack={() => go("subjectSelection")} />}
       {screen === "goalReaction"     && <GoalReaction goal={selectedGoal} onNext={() => go("learningStyle")} />}
       {screen === "learningStyle"    && <LearningStyle onNext={s => { setSelectedStyles(s); go("finalTransition") }} onBack={() => go("goalSelection")} />}
-      {screen === "finalTransition"  && <FinalTransition onDone={() => navigate("/dashboard", { replace: true })} userName={userName} />}
+      {screen === "finalTransition"  && (
+        <FinalTransition
+          onDone={() => navigate("/dashboard", { replace: true })}
+          userName={userName}
+          selectedSubjects={selectedSubjects}
+          selectedGoal={selectedGoal}
+          selectedStyles={selectedStyles}
+        />
+      )}
     </>
   )
 }

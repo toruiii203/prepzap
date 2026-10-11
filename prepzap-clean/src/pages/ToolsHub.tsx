@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { playPop } from "@/lib/soundFX";
 
 const TOOL_PAGES = [
   [
@@ -8,15 +9,15 @@ const TOOL_PAGES = [
     { route: "/quick-study", icon: "edit_note", title: "Cram Mode", desc: "Quick review" },
   ],
   [
+    { route: "/visual-learner", icon: "visibility", title: "Visual Learner", desc: "Mindmaps & cards" },
     { route: "/planner", icon: "calendar_month", title: "Study Planner", desc: "Schedule sessions" },
     { route: "/math", icon: "calculate", title: "Math Solver", desc: "Step-by-step" },
     { route: "/teach-it", icon: "psychology", title: "Teach It", desc: "Feynman mode" },
-    { route: "/timer", icon: "timer", title: "Focus Timer", desc: "Pomodoro" },
   ],
   [
+    { route: "/timer", icon: "timer", title: "Focus Timer", desc: "Pomodoro" },
     { route: "/arcade", icon: "sports_esports", title: "Arcade", desc: "Mini-games" },
     { route: "/notes", icon: "edit_document", title: "My Notes", desc: "Rich text editor" },
-    { route: "/settings", icon: "settings", title: "Settings", desc: "Preferences" },
     { route: "/sources", icon: "attach_file", title: "Source Library", desc: "Upload notes" }
   ],
   [
@@ -32,37 +33,37 @@ export default function ToolsHub() {
 
   return (
     <>
-      <header className="h-16 px-5 flex items-center justify-between bg-[#FAF7F2] border-b-[1.5px] border-black sticky top-0 z-40">
+      <header className="h-16 px-5 flex items-center justify-between bg-[#FFFDF5] border-b-2 border-black sticky top-0 z-40">
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          className="material-symbols-outlined text-[22px] hover:opacity-70"
+          onClick={() => { playPop(); navigate(-1); }}
+          className="w-9 h-9 border-2 border-black rounded-lg bg-white shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center transition-all hover:bg-black hover:text-white"
           aria-label="Back to dashboard"
         >
-          arrow_back
+          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
         </button>
-        <h1 className="text-[18px] font-black tracking-tight">All Tools</h1>
-        <div className="w-6" />
+        <h1 className="text-[18px] font-black tracking-tight text-black">All Study Tools</h1>
+        <div className="w-9" />
       </header>
 
-      <main className="px-5 pt-6 pb-28 flex flex-col gap-8">
+      <main className="px-5 pt-6 pb-28 flex flex-col gap-8 bg-[#FAF7F2] min-h-screen">
         {TOOL_PAGES.map((page, pageIdx) => (
           <section key={pageIdx} className="flex flex-col gap-3">
-            <div className="text-[11px] font-black uppercase tracking-wider opacity-50">
-              Page {pageIdx + 1}
+            <div className="text-[11px] font-black uppercase tracking-wider text-black/50">
+              Category {pageIdx + 1}
             </div>
             <div className="grid grid-cols-2 gap-3">
               {page.map((tool) => (
                 <button
                   key={tool.route}
                   type="button"
-                  onClick={() => navigate(tool.route)}
-                  className="text-left ink-border rounded-[14px] bg-[#FAF7F2] p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 transition-transform min-h-[110px] flex flex-col justify-between"
+                  onClick={() => { playPop(); navigate(tool.route); }}
+                  className="text-left border-2 border-black rounded-[14px] bg-white p-4 shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-[#FFFDF5] transition-all min-h-[110px] flex flex-col justify-between group"
                 >
-                  <span className="material-symbols-outlined text-[22px] mb-2 block">{tool.icon}</span>
+                  <span className="material-symbols-outlined text-[24px] mb-2 block text-black group-hover:scale-110 transition-transform">{tool.icon}</span>
                   <div>
-                    <div className="text-[14px] font-extrabold text-black">{tool.title}</div>
-                    <div className="text-[11px] text-black/45 font-bold mt-0.5">{tool.desc}</div>
+                    <div className="text-[14px] font-black text-black leading-tight">{tool.title}</div>
+                    <div className="text-[11px] text-black/55 font-bold mt-0.5">{tool.desc}</div>
                   </div>
                 </button>
               ))}

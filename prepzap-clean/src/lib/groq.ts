@@ -6,7 +6,7 @@ import { ensureFreshAccessToken } from "@/lib/authSession";
 
 const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.YOUR_DOMAIN.workers.dev";
 // API key removed for security; requests are routed through Cloudflare Worker
-const DEFAULT_MODEL = "openai/gpt-oss-20b";
+const DEFAULT_MODEL = "google/gemini-flash-1.5-8b";
 const VISION_MODEL = "google/gemini-flash-1.5-8b";
 
 function getTieredModel(model: string): string {

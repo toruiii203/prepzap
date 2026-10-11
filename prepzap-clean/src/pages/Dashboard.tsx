@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,16 @@ import { useStudyStats } from "@/hooks/useStudyStats";
 import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
 import { motion, animate, useAnimation } from "framer-motion";
+import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
+import {
+  getStoredPreferences,
+  SUBJECT_METADATA,
+  GOAL_METADATA,
+  STYLE_METADATA,
+  generateSmartQuests,
+  type UserStudyPreferences
+} from "@/lib/userPreferences";
+import { levelFromXp, xpProgressPercent, xpToNextLevel, tierFromLevel } from "@/lib/xp";
 
 function AnimatedCounter({ value, duration = 1.5 }: { value: number, duration?: number }) {
   const nodeRef = useRef<HTMLSpanElement>(null);
@@ -28,25 +38,26 @@ function AnimatedCounter({ value, duration = 1.5 }: { value: number, duration?: 
   return <span ref={nodeRef}>{value}</span>;
 }
 
-// All 12 tools flat
+// All tools flat
 const ALL_TOOLS = [
-    { route: "/ai-tutor",   icon: "forum",       title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
-    { route: "/practice",   icon: "assignment",       title: "Practice",        desc: "Mock exams",        color: "text-[#F5A623]" },
-    { route: "/flashcards", icon: "style",            title: "Flashcards",      desc: "Spaced recall",     color: "text-[#8B5CF6]" },
-    { route: "/quick-study",icon: "edit_note",             title: "Cram Mode",       desc: "Last minute prep",  color: "text-[#b61b00]" },
-    { route: "/planner",    icon: "calendar_month",   title: "Study Planner",   desc: "Stay organized",    color: "text-[#0EA5E9]" },
-    { route: "/math",       icon: "calculate",        title: "Math Solver",     desc: "Step-by-step",      color: "text-[#10B981]" },
-    { route: "/teach-it",   icon: "psychology",       title: "Teach It",        desc: "Active learning",   color: "text-[#EC4899]" },
-    { route: "/timer",      icon: "timer",            title: "Focus Timer",     desc: "Pomodoro",          color: "text-[#6366F1]" },
-    { route: "/arcade",     icon: "sports_esports",   title: "Arcade",          desc: "Mini-games",        color: "text-[#F43F5E]" },
-    { route: "/notes",      icon: "edit_document",    title: "My Notes",        desc: "Rich text editor",  color: "text-[#EAB308]" },
-    { route: "/settings",   icon: "settings",         title: "Settings",        desc: "Preferences",       color: "text-[#64748B]" },
-    { route: "/sources",    icon: "attach_file",      title: "Source Library",  desc: "Upload notes",      color: "text-[#78716C]" },
-    { route: "/mistakes",   icon: "playlist_remove",  title: "Mistake Journal", desc: "Review errors",     color: "text-[#ba1a1a]" },
-    { route: "/analytics",  icon: "bar_chart",        title: "Analytics",       desc: "Track progress",    color: "text-[#14B8A6]" },
-    { route: "/challenges", icon: "emoji_events",     title: "Challenges",      desc: "Daily streaks",     color: "text-[#F5A623]" },
-    { route: "/arena",      icon: "sports_esports",   title: "Arena",           desc: "Compete live",      color: "text-[#8B5CF6]" },
-  ] as const;
+  { route: "/ai-tutor",       icon: "forum",          title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
+  { route: "/practice",       icon: "assignment",     title: "Practice",         desc: "Mock exams",        color: "text-[#F5A623]" },
+  { route: "/flashcards",     icon: "style",          title: "Flashcards",       desc: "Spaced recall",     color: "text-[#8B5CF6]" },
+  { route: "/quick-study",    icon: "edit_note",      title: "Cram Mode",        desc: "Last minute prep",  color: "text-[#b61b00]" },
+  { route: "/visual-learner", icon: "visibility",     title: "Visual Learner",   desc: "Mindmaps & diagrams",color: "text-[#8B5CF6]" },
+  { route: "/planner",        icon: "calendar_month", title: "Study Planner",    desc: "Stay organized",    color: "text-[#0EA5E9]" },
+  { route: "/math",           icon: "calculate",      title: "Math Solver",      desc: "Step-by-step",      color: "text-[#10B981]" },
+  { route: "/teach-it",       icon: "psychology",     title: "Teach It",         desc: "Active learning",   color: "text-[#EC4899]" },
+  { route: "/timer",          icon: "timer",          title: "Focus Timer",      desc: "Pomodoro",          color: "text-[#6366F1]" },
+  { route: "/arcade",         icon: "sports_esports", title: "Arcade",           desc: "Mini-games",        color: "text-[#F43F5E]" },
+  { route: "/notes",          icon: "edit_document",  title: "My Notes",         desc: "Rich text editor",  color: "text-[#EAB308]" },
+  { route: "/settings",       icon: "settings",       title: "Settings",         desc: "Preferences",       color: "text-[#64748B]" },
+  { route: "/sources",        icon: "attach_file",    title: "Source Library",   desc: "Upload notes",      color: "text-[#78716C]" },
+  { route: "/mistakes",       icon: "playlist_remove",title: "Mistake Journal",  desc: "Review errors",     color: "text-[#ba1a1a]" },
+  { route: "/analytics",      icon: "bar_chart",      title: "Analytics",        desc: "Track progress",    color: "text-[#14B8A6]" },
+  { route: "/challenges",     icon: "emoji_events",   title: "Challenges",       desc: "Daily streaks",     color: "text-[#F5A623]" },
+  { route: "/arena",          icon: "sports_esports", title: "Arena",            desc: "Compete live",      color: "text-[#8B5CF6]" },
+] as const;
 
 // Mobile carousel: chunk into slides of 4
 const TOOL_SLIDES = [
@@ -82,29 +93,30 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
         ) : (
           <div className="flex flex-col gap-3">
             {tasks.map((task) => (
-              <div key={task.id} className="flex items-center gap-3 justify-between">
-                <div className="flex items-center gap-3">
-            
+              <div key={task.id} className="flex items-center gap-3 justify-between group">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <button
+                    type="button"
                     onClick={() => handleToggleTask(task.id, task.completed)}
-                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-colors ${
-                      task.completed ? "bg-[#E8534A]" : "bg-white hover:bg-[#ffdad6]"
+                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-all active:scale-90 ${
+                      task.completed ? "bg-[#10B981] shadow-none" : "bg-white hover:bg-[#FFFBEA] shadow-[1px_1px_0px_#000]"
                     }`}
                   >
                     {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
                   </button>
-                  <div className={`text-[14px] font-extrabold ${task.completed ? "line-through opacity-40" : ""}`}>
+                  <div className={`text-[14px] font-extrabold truncate transition-opacity ${task.completed ? "line-through opacity-40 text-black" : "text-black"}`}>
                     {task.title}
                     {task.time && (
-                      <span className="text-[11px] font-bold opacity-50 ml-1.5 bg-[#ebe8e3] px-2 py-0.5 rounded-full border border-black/10">
+                      <span className="text-[11px] font-bold opacity-60 ml-1.5 bg-[#FFFBEA] px-2 py-0.5 rounded-full border border-black/15">
                         {task.time}
                       </span>
                     )}
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleDeleteTask(task.id)}
-                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-black cursor-pointer transition-colors"
+                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-[#FF4D2E] cursor-pointer transition-colors p-1"
                 >
                   delete
                 </button>
@@ -113,21 +125,21 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
           </div>
         )}
       </div>
-      <div className="border-t-2 border-black p-3">
+      <div className="border-t-2 border-black p-3 bg-[#FFFDF5]">
         <form onSubmit={handleAddTask} className="flex gap-2">
           <input
             type="text"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             placeholder="Add a quest..."
-            className="flex-1 bg-transparent border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40"
+            className="flex-1 bg-white border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40 rounded-lg"
           />
           <button
             type="submit"
-            className="border-2 border-black bg-black text-white px-3 flex items-center justify-center hover:bg-[#333] transition-colors"
+            className="border-2 border-black bg-black text-white px-3.5 flex items-center justify-center hover:bg-[#FF4D2E] transition-colors rounded-lg shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
-                  </button>
+          </button>
         </form>
       </div>
     </>
@@ -363,18 +375,7 @@ export default function Dashboard() {
     return () => window.removeEventListener("studenius:session-logged", handleSessionLogged);
   }, [user?.id]);
 
-  const fetchTasks = () => {
-    setLoadingTasks(true);
-    try {
-      const stored = localStorage.getItem("pz_checklist");
-      const parsed = stored ? JSON.parse(stored) : [];
-      setTasks(parsed);
-    } catch {
-      setTasks([]);
-    } finally {
-      setLoadingTasks(false);
-    }
-  };
+
 
   const fetchSessions = async () => {
     setLoadingSessions(true);
@@ -456,25 +457,110 @@ export default function Dashboard() {
       setDayMinutes(dayMins);
     };
 
+  const [userPrefs, setUserPrefs] = useState<UserStudyPreferences | null>(() => getStoredPreferences(user?.id));
+
+  useEffect(() => {
+    const loaded = getStoredPreferences(user?.id);
+    if (loaded) setUserPrefs(loaded);
+
+    const onUpdate = (e: any) => {
+      if (e.detail) setUserPrefs(e.detail);
+    };
+    window.addEventListener("studenius:preferences-updated", onUpdate);
+    return () => window.removeEventListener("studenius:preferences-updated", onUpdate);
+  }, [user?.id]);
+
+  const primarySubjectId = userPrefs?.subjects?.[0] || "math";
+  const primarySubjectMeta = SUBJECT_METADATA[primarySubjectId] || SUBJECT_METADATA.other;
+  const activeGoalId = userPrefs?.goal || "grades";
+  const activeGoalMeta = GOAL_METADATA[activeGoalId] || GOAL_METADATA.grades;
+  const primaryStyleId = userPrefs?.learningStyles?.[0] || "mixed";
+  const primaryStyleMeta = STYLE_METADATA[primaryStyleId] || STYLE_METADATA.mixed;
+
+  // Smart recommended tools directly derived from onboarding choices
+  const recommendedTools = useMemo(() => {
+    const preferredRoutes = new Set<string>();
+    if (primarySubjectMeta.recommendedTool) {
+      preferredRoutes.add(primarySubjectMeta.recommendedTool);
+    }
+    primaryStyleMeta.topTools.forEach((r) => preferredRoutes.add(r));
+
+    const matched = ALL_TOOLS.filter((t) => preferredRoutes.has(t.route));
+    const remaining = ALL_TOOLS.filter((t) => !preferredRoutes.has(t.route));
+    return [...matched, ...remaining].slice(0, 4);
+  }, [primarySubjectMeta, primaryStyleMeta]);
+
+  const fetchTasks = () => {
+    setLoadingTasks(true);
+    try {
+      const userKey = user?.id ? `pz_${user.id}_checklist` : "pz_checklist";
+      const stored = localStorage.getItem(userKey) || localStorage.getItem("pz_checklist");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTasks(parsed);
+          setLoadingTasks(false);
+          return;
+        }
+      }
+      // If empty or first run, generate smart starter quests
+      const prefs = getStoredPreferences(user?.id) || {
+        name: displayName || "Scholar",
+        subjects: ["math"],
+        goal: "grades",
+        learningStyles: ["flashcards"],
+        dailyGoalMinutes: 30,
+        completedAt: new Date().toISOString()
+      };
+      const smart = generateSmartQuests(prefs);
+      setTasks(smart);
+      try {
+        localStorage.setItem("pz_checklist", JSON.stringify(smart));
+        if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(smart));
+      } catch {}
+    } catch {
+      setTasks([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
   const handleToggleTask = (id: any, currentCompleted: boolean) => {
-    const updated = tasks.map((t) => (t.id === id ? { ...t, completed: !currentCompleted } : t));
+    const nextCompleted = !currentCompleted;
+    if (nextCompleted) {
+      playSuccess();
+    } else {
+      playTap();
+    }
+    const updated = tasks.map((t) => (t.id === id ? { ...t, completed: nextCompleted } : t));
     setTasks(updated);
-    try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
+    try {
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
+      if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(updated));
+    } catch {}
   };
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    const updated = [...tasks, { id: Date.now().toString(), title: newTaskTitle, completed: false, time: "Just now" }];
-    try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
+    playPop();
+    const updated = [...tasks, { id: Date.now().toString(), title: newTaskTitle.trim(), completed: false, time: "Just now" }];
+    try {
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
+      if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(updated));
+    } catch {}
     setTasks(updated);
     setNewTaskTitle("");
   };
 
   const handleDeleteTask = (id: any) => {
+    playTap();
     const updated = tasks.filter((t) => t.id !== id);
     setTasks(updated);
-    try { localStorage.setItem("pz_checklist", JSON.stringify(updated)); } catch {}
+    try {
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
+      if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(updated));
+    } catch {}
   };
 
   const completedCount = tasks.filter((t) => t.completed).length;
@@ -502,20 +588,35 @@ export default function Dashboard() {
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           MOBILE TOP BAR â€” hidden on desktop (md:hidden)
           â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-      <header className="md:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FAF7F2] z-40 sticky top-0 border-b-[1.5px] border-black">
-        <div className="text-[18px] font-black tracking-wider uppercase">Studenius</div>
+      <header className="md:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FFFDF5] z-40 sticky top-0 border-b-2 border-black">
+        <div className="text-[20px] font-black tracking-tight text-black flex items-center gap-1.5">
+          <span>STUDENIUS</span>
+          <span className="w-2 h-2 rounded-full bg-[#FF4D2E]" />
+        </div>
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-[24px] cursor-pointer hover:opacity-75" onClick={() => navigate("/sources")}>attach_file</span>
-          <div className="px-3 py-1 rounded-full cursor-pointer bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:scale-95 transition-all" onClick={() => navigate("/pro")}>
-            {isPro ? (
-              <span className="text-[11px] font-black text-white uppercase tracking-wider" style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}>PRO 👑</span>
-            ) : (
-              <span className="text-[11px] font-black text-white uppercase tracking-wider" style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}>Go Pro</span>
-            )}
-          </div>
-          <div className="w-8 h-8 rounded-full bg-[#ae2925] text-white border-2 border-black flex items-center justify-center font-black text-[13px] cursor-pointer" onClick={() => navigate("/profile")}>
+          <button
+            type="button"
+            onClick={() => { playPop(); navigate("/sources"); }}
+            className="w-9 h-9 border-2 border-black rounded-lg bg-white shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center transition-all"
+            title="Source Library"
+          >
+            <span className="material-symbols-outlined text-[20px] text-black">attach_file</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { playPop(); navigate("/pro"); }}
+            className="px-3 py-1.5 rounded-full border-2 border-black bg-[#FFD13B] shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center gap-1.5 transition-all"
+          >
+            <span className="material-symbols-outlined text-[15px] text-black" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+            <span className="text-[11px] font-black text-black uppercase tracking-wider">{isPro ? "PRO" : "GO PRO"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { playPop(); navigate("/profile"); }}
+            className="w-9 h-9 rounded-full bg-[#FF4D2E] text-white border-2 border-black shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center font-black text-[13px] cursor-pointer transition-all"
+          >
             {displayName.slice(0, 1).toUpperCase()}
-          </div>
+          </button>
         </div>
       </header>
 
@@ -606,22 +707,59 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* Quick Tools â€” 4x3 grid */}
-          <section className="col-span-8 border-2 border-black bg-[#F0EDE0] p-4" style={{ boxShadow: "4px 4px 0px #000" }}>
-            <h3 className="text-[13px] font-black uppercase tracking-wider mb-4">Quick Tools</h3>
-            <div className="grid grid-cols-4 gap-3">
-              {ALL_TOOLS.map((tool) => (
+          {/* Quick Tools — Personalized Track & All Tools */}
+          <section className="col-span-8 border-2 border-black bg-[#FFFDF5] p-5" style={{ boxShadow: "4px 4px 0px #000" }}>
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[13px] font-black uppercase tracking-wider text-black">Recommended For You</h3>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-black bg-[#FFD13B] text-black">
+                  {primaryStyleMeta.label}
+                </span>
+                {primarySubjectMeta && (
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-black bg-white text-black">
+                    {primarySubjectMeta.name} Track
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => { playPop(); navigate("/tools"); }}
+                className="text-[11px] font-black text-black underline hover:text-[#FF4D2E] transition-colors"
+              >
+                View all 16 tools
+              </button>
+            </div>
+
+            {/* Pinned 4 recommended tools */}
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              {recommendedTools.map((tool) => (
                 <button
-                  key={tool.route + tool.title}
-                  onClick={() => navigate(tool.route)}
-                  className="border-2 border-black bg-white p-3 flex flex-col items-center justify-center text-center gap-1 h-28 hover:bg-black hover:text-white group transition-colors"
-                  style={{ boxShadow: "3px 3px 0px #000" }}
+                  key={"rec-" + tool.route}
+                  onClick={() => { playPop(); navigate(tool.route); }}
+                  className="border-2 border-black bg-white p-3 flex flex-col items-center justify-center text-center gap-1 h-28 hover:bg-[#FFFBEA] transition-all rounded-xl shadow-[3px_3px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none group"
                 >
-                  <span className={`material-symbols-outlined text-[22px] group-hover:text-white ${tool.color}`}>{tool.icon}</span>
-                  <span className="text-[13px] font-extrabold group-hover:text-white">{tool.title}</span>
-                  <span className="text-[11px] font-bold text-black/50 group-hover:text-white/70">{tool.desc}</span>
+                  <span className={`material-symbols-outlined text-[24px] ${tool.color}`}>{tool.icon}</span>
+                  <span className="text-[13px] font-black text-black">{tool.title}</span>
+                  <span className="text-[10.5px] font-bold text-black/50 group-hover:text-black/80">{tool.desc}</span>
                 </button>
-            ))}
+              ))}
+            </div>
+
+            {/* Other tools grid */}
+            <div className="pt-3 border-t-2 border-black/10">
+              <div className="text-[11px] font-black uppercase tracking-wider text-black/40 mb-3">All Tools</div>
+              <div className="grid grid-cols-4 gap-2.5">
+                {ALL_TOOLS.filter(t => !recommendedTools.some(r => r.route === t.route)).slice(0, 8).map((tool) => (
+                  <button
+                    key={"all-" + tool.route}
+                    onClick={() => { playPop(); navigate(tool.route); }}
+                    className="border-2 border-black bg-white p-2.5 flex items-center gap-2.5 hover:bg-black hover:text-white transition-all rounded-lg shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none group text-left"
+                  >
+                    <span className={`material-symbols-outlined text-[18px] group-hover:text-white ${tool.color}`}>{tool.icon}</span>
+                    <span className="text-[12px] font-bold text-black group-hover:text-white truncate">{tool.title}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -668,40 +806,129 @@ export default function Dashboard() {
           â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <main className="md:hidden px-5 pt-6 pb-32 flex flex-col gap-6 overflow-y-auto h-full">
 
-        {/* Greeting */}
-        <section className="flex items-center gap-3">
-          <div className="w-[44px] h-[44px] rounded-full bg-[#fca623]/20 border-2 border-black flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-[20px]">school</span>
+        {/* Greeting with Rex Persona Badge */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-[#FFD13B] border-2 border-black flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0px_#1A1A1A]">
+              <span className="material-symbols-outlined text-[24px] text-black">school</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-[24px] font-black leading-tight tracking-tight text-black truncate">Good morning, {displayName}.</h1>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span className="text-[12.5px] text-black/60 font-bold">
+                  {new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                </span>
+                <span className="w-1 h-1 rounded-full bg-black/30" />
+                <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black bg-[#FFD13B] text-black shadow-[1px_1px_0px_#1A1A1A]">
+                  {activeGoalMeta.badge}
+                </span>
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-[26px] font-black leading-tight tracking-tight">Good morning, {displayName}.</h1>
-            <p className="text-[14px] text-black/65 font-bold mt-0.5">
-              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-            </p>
+
+          {/* Rex Personalized Motivational Coach Bubble */}
+          <div className="border-2 border-black rounded-2xl bg-white p-3.5 flex items-center gap-3.5 shadow-[3px_3px_0px_#1A1A1A]">
+            <div className="w-11 h-11 rounded-full border-2 border-black overflow-hidden bg-[#FF9F1C] shrink-0 flex items-center justify-center shadow-[1px_1px_0px_#1A1A1A]">
+              <img src="/fox/fox-happy.png" alt="Rex" className="w-full h-full object-cover scale-125 mt-1" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Rex Tutor</span>
+                {primarySubjectMeta && (
+                  <span className="text-[9.5px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border border-black/20 bg-[#FFFDF5] text-black/70">
+                    {primarySubjectMeta.name} Track
+                  </span>
+                )}
+              </div>
+              <p className="text-[12.5px] font-extrabold text-black leading-snug">
+                "{activeGoalMeta.rexQuote}"
+              </p>
+            </div>
           </div>
         </section>
 
-          {/* Call Rex Banner */}
-          <div className="mb-6"><CallRexBanner navigate={navigate} /></div>
+        {/* 1-Tap Daily Focus Launcher */}
+        <section className="border-2 border-black rounded-2xl bg-[#FF4D2E] text-white p-4.5 relative overflow-hidden shadow-[4px_4px_0px_#1A1A1A]">
+          <div className="relative z-10 w-[78%]">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-black text-white font-black uppercase text-[10px] tracking-wider rounded border border-white/20 mb-2">
+              <span className="material-symbols-outlined text-[12px] text-[#FFD13B]">bolt</span>
+              Daily Focus &bull; {primarySubjectMeta.name}
+            </div>
+            <h3 className="text-[18px] font-black leading-tight mb-1">Boost retention in 5 minutes</h3>
+            <p className="text-[12px] font-bold text-white/90 mb-3.5 leading-snug">
+              Rex prepared your active recall set for {primarySubjectMeta.name}.
+            </p>
+            <button
+              type="button"
+              onClick={() => { playSuccess(); navigate(primarySubjectMeta.recommendedTool); }}
+              className="bg-white text-black border-2 border-black font-black uppercase text-[12px] tracking-wider px-4 py-2.5 rounded-full shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFD13B] transition-all flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[17px]">play_arrow</span>
+              Launch Practice
+            </button>
+          </div>
+          <div className="absolute right-[-14px] bottom-[-18px] w-28 h-28 pointer-events-none">
+            <img src="/fox/fox-excited.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-md" />
+          </div>
+        </section>
+
+        {/* Recommended For You — 2x2 Grid Directly Based on Onboarding Choices */}
+        <section className="flex flex-col gap-2.5">
+          <div className="flex justify-between items-center px-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Recommended For You</span>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded border border-black bg-[#FFD13B] text-black uppercase">
+                {primaryStyleMeta.label}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => { playPop(); navigate("/tools"); }}
+              className="text-[11px] font-black text-black underline hover:text-[#FF4D2E] transition-colors"
+            >
+              See all
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {recommendedTools.map((tool) => (
+              <button
+                key={"rec-mob-" + tool.title}
+                type="button"
+                onClick={() => { playPop(); navigate(tool.route); }}
+                className="h-[114px] border-2 border-black rounded-[16px] bg-white p-3.5 text-left shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`material-symbols-outlined text-[24px] ${tool.color}`}>{tool.icon}</span>
+                  <span className="material-symbols-outlined text-[16px] opacity-20 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-black">arrow_forward</span>
+                </div>
+                <div>
+                  <div className="text-[14px] font-black text-black leading-tight">{tool.title}</div>
+                  <div className="text-[11px] text-black/55 font-bold mt-0.5 truncate">{tool.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Call Rex Voice Banner */}
+        <div className="mb-1"><CallRexBanner navigate={navigate} /></div>
 
         {/* Goal Progress Bar */}
-        <section className="border-2 border-black rounded-2xl bg-[#FAF7F2] p-5" style={{ boxShadow: "5px 5px 0px rgba(0,0,0,1)" }}>
+        <section className="border-2 border-black rounded-2xl bg-white p-5 shadow-[4px_4px_0px_#1A1A1A]">
           <div className="flex justify-between items-end mb-4">
             <div>
-              <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">Current Goal</div>
+              <div className="text-[11px] opacity-50 font-black uppercase tracking-wider mb-1">Today's Target</div>
               <div className="text-[15px] font-extrabold">{completedCount} of {goalCount} checklist targets completed</div>
             </div>
             <div className="text-[28px] font-black leading-none">{completedCount}/{goalCount}</div>
           </div>
-          <div className="h-2 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
-            <div className="h-full bg-black rounded-r-full" style={{ width: `${Math.min(100, Math.round((sessions.length / 5) * 100))}%` }} />
+          <div className="h-2.5 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
+            <div className="h-full bg-[#10B981] rounded-r-full transition-all duration-500" style={{ width: `${Math.min(100, Math.round((completedCount / goalCount) * 100))}%` }} />
           </div>
         </section>
 
-        
-
         {/* Weekly Calendar (mobile only) */}
-        <section className="border-2 border-black rounded-2xl bg-white p-5" style={{ boxShadow: "4px 4px 0px rgba(0,0,0,1)" }}>
+        <section className="border-2 border-black rounded-2xl bg-white p-5 shadow-[4px_4px_0px_#1A1A1A]">
           <div className="text-[11.5px] opacity-50 font-black uppercase tracking-wider mb-3">Weekly Study Calendar</div>
           <div className="grid grid-cols-7 gap-1.5">
             {daysOfWeek.map((day, idx) => {
@@ -712,7 +939,7 @@ export default function Dashboard() {
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{day[0]}</span>
                   <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-extrabold text-[11px] transition-all ${
                     studied ? "bg-black text-white shadow-[1px_1px_0px_#000]" : "bg-[#FAF7F2] text-black/35"
-                  } ${isToday ? "ring-2 ring-orange-400 scale-105" : ""}`}>
+                  } ${isToday ? "ring-2 ring-[#FF9F1C] scale-105" : ""}`}>
                     {studied ? "✓" : idx + 1}
                   </div>
                 </div>
@@ -723,21 +950,21 @@ export default function Dashboard() {
 
         {/* Stats */}
         <section className="grid grid-cols-2 gap-3.5">
-          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black leading-tight"><AnimatedCounter value={stats.totalSessions} /></div>
+          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[84px]">
+            <div className="text-[24px] font-black leading-tight text-black"><AnimatedCounter value={stats.totalSessions} /></div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Total Sessions</div>
           </div>
-          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[80px]">
-            <div className="text-[22px] font-black leading-tight">{stats.studyTimeHours}h</div>
+          <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col items-center justify-center text-center min-h-[84px]">
+            <div className="text-[24px] font-black leading-tight text-[#FF4D2E]">{stats.studyTimeHours}h</div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1">Time Studied</div>
           </div>
         </section>
 
-        {/* Tools â€” swipeable carousel (mobile only) */}
+        {/* All Tools — swipeable carousel (mobile only) */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center">
-            <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Tools</div>
-            <button type="button" onClick={() => navigate("/tools")} className="text-[11px] font-bold text-black/50 underline">See all</button>
+            <div className="text-[11px] font-black uppercase tracking-wider opacity-50">Explore All Tools</div>
+            <button type="button" onClick={() => { playPop(); navigate("/tools"); }} className="text-[11px] font-bold text-black/50 underline">See all</button>
           </div>
           <div className="relative">
             <div
@@ -752,16 +979,16 @@ export default function Dashboard() {
                     <button
                       key={tool.title}
                       type="button"
-                      onClick={() => navigate(tool.route)}
-                      className="h-[110px] border-2 border-black rounded-[14px] bg-[#FAF7F2] p-3 text-left shadow-[3px_3px_0px_rgba(0,0,0,1)]    flex flex-col justify-between"
+                      onClick={() => { playPop(); navigate(tool.route); }}
+                      className="h-[110px] border-2 border-black rounded-[14px] bg-white p-3 text-left shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all"
                     >
                       <span className={`material-symbols-outlined text-[20px] mb-2 block ${tool.color}`}>{tool.icon}</span>
                       <div>
-                        <div className="text-[13px] font-bold">{tool.title}</div>
+                        <div className="text-[13px] font-bold text-black">{tool.title}</div>
                         <div className="text-[11px] text-black/40 font-semibold">{tool.desc}</div>
                       </div>
                     </button>
-            ))}
+                  ))}
                 </div>
               ))}
             </div>

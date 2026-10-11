@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { playPop } from '@/lib/soundFX';
 
 interface MobileBottomNavProps {
   hide?: boolean;
@@ -22,8 +23,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
 
   return (
     <nav 
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FAF7F2] border-t-2 border-[#1A1A1A] flex justify-around items-center"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FFFDF5] border-t-2 border-[#1A1A1A] flex justify-around items-center px-1 shadow-[0_-4px_10px_rgba(0,0,0,0.04)]"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 8px) + 4px)', paddingTop: '6px' }}
     >
       {tabs.map((tab) => {
         const isActive = tab.path === '/dashboard'
@@ -32,20 +33,33 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
         return (
           <button
             key={tab.name}
-            onClick={() => navigate(tab.path)}
-            className={`flex flex-col items-center justify-center flex-1 pt-3 pb-2 transition-colors ${
-              isActive ? 'text-[#ae2925]' : 'text-[#1A1A1A] opacity-70 hover:opacity-100'
+            type="button"
+            onClick={() => {
+              playPop();
+              navigate(tab.path);
+            }}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-1 transition-all active:scale-90 ${
+              isActive 
+                ? 'text-black' 
+                : 'text-black/60 hover:text-black'
             }`}
           >
-            <span className="material-symbols-outlined text-[22px] mb-1">
-              {tab.icon}
-            </span>
-            <span className="text-[10px] font-bold font-quicksand">
-              {tab.name}
-            </span>
+            <div className={`flex flex-col items-center justify-center rounded-xl transition-all ${
+              isActive 
+                ? 'bg-[#FFD13B] px-3 py-1 border-2 border-black shadow-[2px_2px_0px_#1A1A1A] -translate-y-1' 
+                : 'py-1'
+            }`}>
+              <span className={`material-symbols-outlined text-[20px] ${isActive ? 'text-black font-black' : ''}`}>
+                {tab.icon}
+              </span>
+              <span className="text-[10px] font-black tracking-tight leading-none mt-0.5">
+                {tab.name}
+              </span>
+            </div>
           </button>
         );
       })}
     </nav>
   );
 };
+
