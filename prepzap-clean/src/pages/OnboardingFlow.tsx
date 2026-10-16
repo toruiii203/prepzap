@@ -3,14 +3,13 @@ import { Browser } from "@capacitor/browser";
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/contexts/AuthContext"
 import { getCachedSession } from "@/lib/authSession"
 import { saveUserPreferences, generateSmartQuests, GOAL_METADATA, SUBJECT_METADATA, type ExamTarget, type UserStudyPreferences } from "@/lib/userPreferences"
 import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX"
 
 type Screen =
   | "intro"
-  | "featureTeaser"
-  | "accountGateway"
   | "nameInput"
   | "subjectSelection"
   | "subjectReaction"
@@ -289,12 +288,15 @@ function BottomBar({ onSkip, onContinue, continueLabel = "Continue" }: {
   )
 }
 
-function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
+function IntroHook({ onNext }: { onNext: () => void }) {
+  const navigate = useNavigate()
   const [slide, setSlide] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const sliderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const id = setInterval(() => setSlide(s => (s + 1) % 3), 3000)
+    const id = setInterval(() => setSlide(s => (s + 1) % 3), 3500)
     return () => clearInterval(id)
   }, [])
 
@@ -303,156 +305,6 @@ function IntroHook({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => v
       sliderRef.current.scrollTo({ left: sliderRef.current.offsetWidth * slide, behavior: "smooth" })
     }
   }, [slide])
-
-  return (
-    <div style={s.page}>
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", width: "100%", maxWidth: CONTENT_MAX, padding: "40px 24px 0", position: "relative", justifyContent: "space-between" }}>
-        {/* Decorative circles */}
-        <div style={{ position: "absolute", top: 80, left: -40, width: 160, height: 160, border: "3px dashed rgba(26,26,26,0.1)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: 160, right: -40, width: 128, height: 128, border: "3px solid rgba(26,26,26,0.08)", borderRadius: "50%", transform: "rotate(45deg)", pointerEvents: "none" }} />
-
-        <div style={{ textAlign: "center", zIndex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: BLACK, opacity: 0.5, letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>Studenius</p>
-          <h1 style={{ fontSize: 36, fontWeight: 800, color: BLACK, lineHeight: 1.2, margin: "16px 0 0" }}>The Tool built<br />for students</h1>
-        </div>
-
-        {/* Slider */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", paddingTop: 24 }}>
-          <div ref={sliderRef} style={{ width: "100%", maxWidth: 340, display: "flex", overflowX: "hidden", scrollSnapType: "x mandatory", scrollBehavior: "smooth" }}>
-            {/* Slide 1 */}
-            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center" }}>
-              <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 24, padding: 16, boxShadow: `4px 4px 0 ${BLACK}` }}>
-                <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 12 }}>AI Chat</span>
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <div style={{ background: BLACK, color: WHITE, borderRadius: "14px 14px 4px 14px", padding: "8px 14px", maxWidth: "85%", fontSize: 14 }}>Explain Newton's 3rd Law</div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 8 }}>
-                  <div style={{ background: WHITE, color: BLACK, border: `1.5px solid ${BLACK}`, borderRadius: "4px 14px 14px 14px", padding: "8px 14px", maxWidth: "95%", fontSize: 14, lineHeight: 1.5 }}>For every action, there is an equal and opposite reaction. Like jumping off a skateboard!</div>
-                </div>
-                <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                  {["Math", "Science", "English"].map(t => (
-                    <span key={t} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 9999, padding: "3px 10px", fontSize: 12, fontWeight: 600, color: BLACK }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* Slide 2 */}
-            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center" }}>
-              <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 24, padding: 16, boxShadow: `4px 4px 0 ${BLACK}` }}>
-                <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 12 }}>Practice Mode</span>
-                <h3 style={{ fontSize: 22, fontWeight: 800, color: BLACK, margin: "0 0 14px" }}>What is Newton's 3rd Law?</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {[
-                    { l: "A", t: "Every action has an equal reaction.", sel: true },
-                    { l: "B", t: "Objects in motion stay in motion.", sel: false },
-                    { l: "C", t: "Force equals mass times acceleration.", sel: false },
-                    { l: "D", t: "Energy cannot be created or destroyed.", sel: false },
-                  ].map(o => (
-                    <div key={o.l} style={{ background: o.sel ? BLACK : WHITE, color: o.sel ? WHITE : BLACK, borderRadius: 14, padding: "10px 12px", border: `1.5px solid ${BLACK}`, display: "flex", gap: 10, fontSize: 14, alignItems: "center" }}>
-                      <span style={{ fontWeight: 700, minWidth: 20 }}>{o.l}</span>
-                      <span>{o.t}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* Slide 3 */}
-            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center" }}>
-              <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 24, padding: 16, boxShadow: `4px 4px 0 ${BLACK}` }}>
-                <span style={{ display: "inline-block", background: YELLOW, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 14 }}>Your Ultimate Study Toolkit</span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {[
-                      { icon: "psychology", quote: "Stuck on a concept? Rex explains complex topics instantly so you never fall behind.", title: "Smart Tutor" },
-                      { icon: "edit_note", quote: "Turn messy notes into structured, high-retention flashcards with spaced repetition.", title: "AI Flashcards" },
-                    ].map((r, i) => (
-                      <div key={i} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 14, padding: 12 }}>
-                        <div style={{ color: CTA, fontSize: 24, marginBottom: 4 }}>
-                          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>{r.icon}</span>
-                        </div>
-                        <p style={{ fontSize: 13, color: BLACK, opacity: 0.75, margin: "0 0 8px", lineHeight: 1.4 }}>{r.quote}</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 12, color: BLACK, opacity: 1, fontWeight: 800 }}>{r.title}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Dots */}
-          <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "center" }}>
-            {[0, 1, 2].map(i => (
-              <button key={i} onClick={() => setSlide(i)} style={{ width: 12, height: 12, borderRadius: "50%", background: i === slide ? CTA : "transparent", border: `2px solid ${CTA}`, padding: 0, cursor: "pointer", transition: "all 0.3s" }} />
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom))', zIndex: 10, marginTop: "auto", flexShrink: 0 }}>
-          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.35, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>join thousands of students today</p>
-          <button onClick={onNext} style={{ width: "100%", height: 52, background: CTA, color: WHITE, fontWeight: 700, fontSize: 16, borderRadius: 9999, border: `2.5px solid ${BLACK}`, boxShadow: `4px 4px 0 ${BLACK}`, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", position: "relative", zIndex: 20, animation: "pulse 2s infinite" }} className="active:translate-y-0.5 active:shadow-[2px_2px_0_#1A1A1A] transition-all">
-            Create Free Account
-          </button>
-          <button onClick={onSignIn} style={{ display: "block", width: "100%", textAlign: "center", fontSize: 13, color: BLACK, marginTop: 12, textDecoration: "none", background: "none", border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", position: "relative", zIndex: 20 }}>
-            I already have an account — <strong>Log In</strong>
-          </button>
-          <p style={{ textAlign: "center", fontSize: 10, color: BLACK, opacity: 0.3, marginTop: 10 }}>By joining, you agree to our Terms</p>
-        </div>
-      </main>
-    </div>
-  )
-}
-
-function FeatureTeaser({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const features = [
-    { icon: "style",      label: "Flashcards",     desc: "Master concepts quickly",   bg: "#FEF9C3", rot: 2  },
-    { icon: "forum",    label: "Rex Tutor",        desc: "Ready to help 24/7",        bg: "#FFEDD5", rot: -3 },
-    { icon: "assignment", label: "Practice Tests",  desc: "Prepare for the real thing",bg: "#FEE2E2", rot: 1.5},
-  ]
-  return (
-    <div style={s.page}>
-      <Header onBack={onBack} progress={10} />
-      <div style={s.content}>
-        <main style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 24px 140px" }}>
-          {/* Speech bubble */}
-          <div style={{ textAlign: "center", marginBottom: 32 }}>
-            <div style={{ background: WHITE, border: `2.5px solid ${BLACK}`, borderRadius: 18, padding: 16, boxShadow: `4px 4px 0 ${BLACK}`, maxWidth: 280, margin: "0 auto", position: "relative" }}>
-              <p style={{ fontSize: 20, fontWeight: 800, color: BLACK, margin: 0, lineHeight: 1.3 }}>Multiple tools in One place. Let's go!</p>
-              <div style={{ position: "absolute", bottom: -15, left: "50%", marginLeft: -10, width: 0, height: 0, borderLeft: "10px solid transparent", borderRight: "10px solid transparent", borderTop: `15px solid ${BLACK}` }} />
-              <div style={{ position: "absolute", bottom: -11, left: "50%", marginLeft: -8, width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: `12px solid ${WHITE}`, zIndex: 1 }} />
-            </div>
-          </div>
-          {/* Stacked feature cards */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: -12, position: "relative" }}>
-            {features.map((f, i) => (
-              <div key={f.label} style={{ transform: `rotate(${f.rot}deg)`, marginBottom: i < 2 ? -12 : 0, zIndex: 3 - i, position: "relative" }}>
-                <div style={{ background: f.bg, border: `2.5px solid ${BLACK}`, borderRadius: 14, padding: "14px 16px", minWidth: 280, display: "flex", alignItems: "center", gap: 14, boxShadow: `4px 4px 0 ${BLACK}` }}>
-                  <div style={{ width: 40, height: 40, background: BLACK, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <span className="material-symbols-outlined" style={{ color: WHITE, fontSize: 20 }}>{f.icon}</span>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: BLACK, margin: 0 }}>{f.label}</p>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: BLACK, opacity: 0.6, margin: 0 }}>{f.desc}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </main>
-        <BottomBar onSkip={onNext} onContinue={onNext} />
-      </div>
-    </div>
-  )
-}
-
-function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: () => void; onBack: () => void; initialMode?: "signup" | "signin" }) {
-  const navigate = useNavigate()
-  const { loginAsMockUser } = useAuth()
-  const [mode, setMode]         = useState<"signup" | "signin">(initialMode)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState<string | null>(null)
-
-  const isSignIn = mode === "signin"
 
   const handleGoogle = async () => {
     if ((import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
@@ -464,7 +316,7 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
     setError(null);
 
     // Safety timeout: reset button after 10s if user cancels browser
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setLoading(false);
     }, 10000);
 
@@ -496,49 +348,174 @@ function AccountGateway({ onNext, onBack, initialMode = "signup" }: { onNext: ()
       }
     } catch (e: any) {
       console.error("Google sign-in error:", e);
-      setError(e.message || "Google sign-in failed");
+      setError(e.message || "Google sign-in failed. Please try again.");
       setLoading(false);
+      clearTimeout(timer);
     }
   };
 
-
-
   return (
     <div style={s.page}>
-      <Header onBack={onBack} />
-      <div style={s.content}>
-        <main style={{ flex: 1, padding: "32px 24px 80px", boxSizing: "border-box" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", width: "100%", maxWidth: CONTENT_MAX, padding: "clamp(20px, 3vh, 36px) 24px clamp(16px, 3vh, 28px)", position: "relative", justifyContent: "space-between", overflowY: "auto", boxSizing: "border-box" }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", top: 60, left: -40, width: 140, height: 140, border: "3px dashed rgba(26,26,26,0.1)", borderRadius: "50%", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: 180, right: -40, width: 120, height: 120, border: "3px solid rgba(26,26,26,0.08)", borderRadius: "50%", transform: "rotate(45deg)", pointerEvents: "none" }} />
 
-          {/* Title */}
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <h2 style={{ fontSize: 32, fontWeight: 800, color: BLACK, letterSpacing: "-0.02em", margin: "0 0 8px" }}>
-              {isSignIn ? "Welcome Back" : "Let's Get You In"}
-            </h2>
-            <p style={{ fontSize: 17, color: BLACK, opacity: 0.8, margin: 0 }}>
-              {isSignIn ? "Continue your learning journey" : "Join thousands of students today"}
-            </p>
+        <div style={{ textAlign: "center", zIndex: 1, flexShrink: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: BLACK, opacity: 0.5, letterSpacing: "0.12em", textTransform: "uppercase", margin: 0 }}>Studenius</p>
+          <h1 style={{ fontSize: "clamp(28px, 6vw, 36px)", fontWeight: 800, color: BLACK, lineHeight: 1.15, margin: "10px 0 0" }}>The Tool built<br />for students</h1>
+        </div>
+
+        {/* Slider */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 0", minHeight: 0 }}>
+          <div ref={sliderRef} style={{ width: "100%", maxWidth: 340, display: "flex", overflowX: "auto", scrollSnapType: "x mandatory", scrollBehavior: "smooth", scrollbarWidth: "none" }}>
+            {/* Slide 1 */}
+            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center", boxSizing: "border-box" }}>
+              <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 20, padding: 14, boxShadow: `4px 4px 0 ${BLACK}` }}>
+                <span style={{ display: "inline-block", background: YELLOW, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 10 }}>AI Chat</span>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div style={{ background: BLACK, color: WHITE, borderRadius: "14px 14px 4px 14px", padding: "7px 12px", maxWidth: "85%", fontSize: 13, fontWeight: 600 }}>Explain Newton's 3rd Law</div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 8 }}>
+                  <div style={{ background: WHITE, color: BLACK, border: `1.5px solid ${BLACK}`, borderRadius: "4px 14px 14px 14px", padding: "7px 12px", maxWidth: "95%", fontSize: 13, lineHeight: 1.45, fontWeight: 600 }}>For every action, there is an equal and opposite reaction. Like jumping off a skateboard!</div>
+                </div>
+                <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+                  {["Math", "Science", "English"].map(t => (
+                    <span key={t} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 9999, padding: "2px 8px", fontSize: 11, fontWeight: 700, color: BLACK }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Slide 2 */}
+            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center", boxSizing: "border-box" }}>
+              <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 20, padding: 14, boxShadow: `4px 4px 0 ${BLACK}` }}>
+                <span style={{ display: "inline-block", background: YELLOW, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 10 }}>Practice Mode</span>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: BLACK, margin: "0 0 10px" }}>What is Newton's 3rd Law?</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {[
+                    { l: "A", t: "Every action has an equal reaction.", sel: true },
+                    { l: "B", t: "Objects in motion stay in motion.", sel: false },
+                    { l: "C", t: "Force equals mass times acceleration.", sel: false },
+                    { l: "D", t: "Energy cannot be created or destroyed.", sel: false },
+                  ].map(o => (
+                    <div key={o.l} style={{ background: o.sel ? BLACK : WHITE, color: o.sel ? WHITE : BLACK, borderRadius: 10, padding: "7px 10px", border: `1.5px solid ${BLACK}`, display: "flex", gap: 8, fontSize: 12, alignItems: "center", fontWeight: 600 }}>
+                      <span style={{ fontWeight: 800, minWidth: 16 }}>{o.l}</span>
+                      <span>{o.t}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Slide 3 */}
+            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center", boxSizing: "border-box" }}>
+              <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 20, padding: 14, boxShadow: `4px 4px 0 ${BLACK}` }}>
+                <span style={{ display: "inline-block", background: YELLOW, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 10 }}>Your Ultimate Study Toolkit</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[
+                    { icon: "psychology", quote: "Stuck on a concept? Rex explains complex topics instantly so you never fall behind.", title: "Smart Tutor" },
+                    { icon: "edit_note", quote: "Turn messy notes into structured, high-retention flashcards with spaced repetition.", title: "AI Flashcards" },
+                  ].map((r, i) => (
+                    <div key={i} style={{ background: WHITE, border: `1.5px solid ${BLACK}`, borderRadius: 12, padding: 10 }}>
+                      <div style={{ color: CTA, fontSize: 20, marginBottom: 2 }}>
+                        <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1", fontSize: 20 }}>{r.icon}</span>
+                      </div>
+                      <p style={{ fontSize: 12, color: BLACK, opacity: 0.75, margin: "0 0 4px", lineHeight: 1.35, fontWeight: 600 }}>{r.quote}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 11, color: BLACK, opacity: 1, fontWeight: 800 }}>{r.title}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
+          {/* Dots */}
+          <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "center" }}>
+            {[0, 1, 2].map(i => (
+              <button key={i} onClick={() => setSlide(i)} aria-label={`Go to slide ${i + 1}`} style={{ width: 10, height: 10, borderRadius: "50%", background: i === slide ? CTA : "transparent", border: `2px solid ${CTA}`, padding: 0, cursor: "pointer", transition: "all 0.3s" }} />
+            ))}
+          </div>
+        </div>
 
-          {/* Google */}
-          <button onClick={handleGoogle} disabled={loading}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, height: 52, background: WHITE, border: `2.5px solid ${BLACK}`, borderRadius: 9999, cursor: loading ? "default" : "pointer", width: "100%", fontFamily: "'Quicksand', sans-serif", marginBottom: 12, opacity: loading ? 0.6 : 1, boxSizing: "border-box", boxShadow: `3px 3px 0 ${BLACK}` }}>
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            <span style={{ color: BLACK, fontSize: 15, fontWeight: 700 }}>
-              {loading ? "Redirecting..." : "Continue with Google"}
-            </span>
-          </button>
-
+        {/* Footer Actions */}
+        <div style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))', zIndex: 10, marginTop: "auto", flexShrink: 0, width: "100%" }}>
           {error && (
-            <div style={{ background: "#FFF0F0", border: `2px solid ${CTA}`, borderRadius: 12, padding: "12px 16px", fontSize: 14, color: CTA, fontWeight: 700, marginBottom: 16 }}>
+            <div style={{ background: "#FFF0F0", border: `2px solid ${CTA}`, borderRadius: 12, padding: "8px 12px", fontSize: 12, color: CTA, fontWeight: 700, marginBottom: 10, textAlign: "center" }}>
               {error}
             </div>
           )}
 
-          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.4, marginTop: 16 }}>
-            By joining, you agree to our <a href="/terms" style={{ color: BLACK, fontWeight: 700 }}>Terms</a>
+          {/* Primary Action: Continue with Google */}
+          <button
+            onClick={handleGoogle}
+            disabled={loading}
+            style={{
+              width: "100%",
+              height: 52,
+              background: WHITE,
+              color: BLACK,
+              fontWeight: 700,
+              fontSize: 16,
+              borderRadius: 9999,
+              border: `2.5px solid ${BLACK}`,
+              boxShadow: `4px 4px 0 ${BLACK}`,
+              cursor: loading ? "default" : "pointer",
+              fontFamily: "'Quicksand', sans-serif",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              position: "relative",
+              zIndex: 20,
+              opacity: loading ? 0.7 : 1,
+              boxSizing: "border-box",
+            }}
+            className="active:translate-y-0.5 active:shadow-[2px_2px_0_#1A1A1A] transition-all"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            <span>{loading ? "Redirecting..." : "Continue with Google"}</span>
+          </button>
+
+          {/* Secondary Action: Start setup without Google right now */}
+          <button
+            onClick={onNext}
+            style={{
+              width: "100%",
+              height: 48,
+              background: CTA,
+              color: WHITE,
+              fontWeight: 700,
+              fontSize: 15,
+              borderRadius: 9999,
+              border: `2.5px solid ${BLACK}`,
+              boxShadow: `3px 3px 0 ${BLACK}`,
+              cursor: "pointer",
+              fontFamily: "'Quicksand', sans-serif",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 10,
+              position: "relative",
+              zIndex: 20,
+              boxSizing: "border-box",
+            }}
+            className="active:translate-y-0.5 active:shadow-[1px_1px_0_#1A1A1A] transition-all"
+          >
+            <span>Get Started</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
+          </button>
+
+          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.45, marginTop: 10, marginBottom: 0, fontWeight: 600 }}>
+            By continuing, you agree to our <a href="/terms" style={{ color: BLACK, fontWeight: 700, textDecoration: "underline" }}>Terms</a>
           </p>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }
@@ -1270,7 +1247,6 @@ export default function Onboarding() {
     if (p.get("step") === "nameInput") return "nameInput"
     return "intro"
   })
-  const [startInSignIn, setStartInSignIn] = useState(false)
 
   const [userName, setUserName]                 = useState("")
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
@@ -1299,7 +1275,7 @@ export default function Onboarding() {
     if (!user || !session) return
 
     // If currently progressing through the onboarding questionnaire steps, don't interrupt
-    if (screen !== "intro" && screen !== "featureTeaser" && screen !== "accountGateway") {
+    if (screen !== "intro") {
       return
     }
 
@@ -1341,10 +1317,8 @@ export default function Onboarding() {
         }
       `}</style>
 
-      {screen === "intro"            && <IntroHook onNext={() => go("featureTeaser")} onSignIn={() => { setStartInSignIn(true); go("accountGateway") }} />}
-      {screen === "featureTeaser"    && <FeatureTeaser onNext={() => go("accountGateway")} onBack={() => go("intro")} />}
-      {screen === "accountGateway"   && <AccountGateway initialMode={startInSignIn ? "signin" : "signup"} onNext={() => go("nameInput")} onBack={() => startInSignIn ? go("intro") : go("featureTeaser")} />}
-      {screen === "nameInput"        && <NameInput onNext={n => { setUserName(n); go("subjectSelection") }} onBack={() => go("accountGateway")} />}
+      {screen === "intro"            && <IntroHook onNext={() => go("nameInput")} />}
+      {screen === "nameInput"        && <NameInput onNext={n => { setUserName(n); go("subjectSelection") }} onBack={() => go("intro")} />}
       {screen === "subjectSelection" && <SubjectSelection onNext={s => { setSelectedSubjects(s); go("subjectReaction") }} onBack={() => go("nameInput")} />}
       {screen === "subjectReaction"  && <SubjectReaction selected={selectedSubjects} onNext={() => go("goalSelection")} />}
       {screen === "goalSelection"    && <GoalSelection onNext={g => { setSelectedGoal(g); go("goalReaction") }} onBack={() => go("subjectSelection")} />}
