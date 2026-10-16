@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { SharedSidebar } from "@/components/SharedSidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
@@ -8,21 +9,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStudyStats } from "@/hooks/useStudyStats";
 import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
-import { motion, animate } from "framer-motion";
+import { motion, animate, useAnimation } from "framer-motion";
 import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
-import { RexMascot } from "@/components/RexMascot";
-import { useCommunity, CampusNote } from "@/hooks/useCommunity";
-import { toast } from "sonner";
 import {
   getStoredPreferences,
   SUBJECT_METADATA,
   GOAL_METADATA,
   STYLE_METADATA,
+  generateSmartQuests,
   type UserStudyPreferences
 } from "@/lib/userPreferences";
-import { levelFromXp, xpProgressPercent, xpToNextLevel } from "@/lib/xp";
+import { levelFromXp, xpProgressPercent, xpToNextLevel, tierFromLevel } from "@/lib/xp";
 
-function AnimatedCounter({ value, duration = 1.2 }: { value: number, duration?: number }) {
+function AnimatedCounter({ value, duration = 1.5 }: { value: number, duration?: number }) {
   const nodeRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const controls = animate(0, value, {
@@ -39,122 +38,415 @@ function AnimatedCounter({ value, duration = 1.2 }: { value: number, duration?: 
   return <span ref={nodeRef}>{value}</span>;
 }
 
-// 4 Primary Core Study Tools (No truncation, generous spacing)
-const PRIMARY_TOOLS = [
-  { 
-    route: "/ai-tutor", 
-    icon: "forum", 
-    title: "Rex Tutor", 
-    desc: "AI Voice & Text Mentor", 
-    badge: "Voice & Chat",
-    color: "text-[#FF4D2E]", 
-    bg: "bg-[#FF4D2E]/10",
-    border: "border-[#FF4D2E]"
-  },
-  { 
-    route: "/practice", 
-    icon: "assignment", 
-    title: "Practice", 
-    desc: "Gizmo Adaptive Quiz", 
-    badge: "Spaced Recall",
-    color: "text-[#F5A623]", 
-    bg: "bg-[#F5A623]/10",
-    border: "border-[#F5A623]"
-  },
-  { 
-    route: "/flashcards", 
-    icon: "style", 
-    title: "Flashcards", 
-    desc: "Active Recall Decks", 
-    badge: "Smart Mastery",
-    color: "text-[#8B5CF6]", 
-    bg: "bg-[#8B5CF6]/10",
-    border: "border-[#8B5CF6]"
-  },
-  { 
-    route: "/notes", 
-    icon: "edit_document", 
-    title: "My Notes", 
-    desc: "Knowledge Workspace", 
-    badge: "Rich Editor",
-    color: "text-[#0EA5E9]", 
-    bg: "bg-[#0EA5E9]/10",
-    border: "border-[#0EA5E9]"
-  },
+// All tools flat
+const ALL_TOOLS = [
+  { route: "/ai-tutor",       icon: "forum",          title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
+  { route: "/practice",       icon: "assignment",     title: "Practice",         desc: "Mock exams",        color: "text-[#F5A623]" },
+  { route: "/flashcards",     icon: "style",          title: "Flashcards",       desc: "Spaced recall",     color: "text-[#8B5CF6]" },
+  { route: "/community",      icon: "menu_book",      title: "Campus Vault",     desc: "Peer study notes",  color: "text-[#10B981]" },
+  { route: "/quick-study",    icon: "edit_note",      title: "Cram Mode",        desc: "Last minute prep",  color: "text-[#b61b00]" },
+  { route: "/visual-learner", icon: "visibility",     title: "Visual Learner",   desc: "Mindmaps & diagrams",color: "text-[#8B5CF6]" },
+  { route: "/planner",        icon: "calendar_month", title: "Study Planner",    desc: "Stay organized",    color: "text-[#0EA5E9]" },
+  { route: "/math",           icon: "calculate",      title: "Math Solver",      desc: "Step-by-step",      color: "text-[#10B981]" },
+  { route: "/teach-it",       icon: "psychology",     title: "Teach It",         desc: "Active learning",   color: "text-[#EC4899]" },
+  { route: "/timer",          icon: "timer",          title: "Focus Timer",      desc: "Pomodoro",          color: "text-[#6366F1]" },
+  { route: "/arcade",         icon: "sports_esports", title: "Arcade",           desc: "Mini-games",        color: "text-[#F43F5E]" },
+  { route: "/notes",          icon: "edit_document",  title: "My Notes",         desc: "Rich text editor",  color: "text-[#EAB308]" },
+  { route: "/settings",       icon: "settings",       title: "Settings",         desc: "Preferences",       color: "text-[#64748B]" },
+  { route: "/sources",        icon: "attach_file",    title: "Source Library",   desc: "Upload notes",      color: "text-[#78716C]" },
+  { route: "/mistakes",       icon: "playlist_remove",title: "Mistake Journal",  desc: "Review errors",     color: "text-[#ba1a1a]" },
+  { route: "/analytics",      icon: "bar_chart",      title: "Analytics",        desc: "Track progress",    color: "text-[#14B8A6]" },
+  { route: "/challenges",     icon: "emoji_events",   title: "Challenges",       desc: "Daily streaks",     color: "text-[#F5A623]" },
+  { route: "/arena",          icon: "sports_esports", title: "Arena",            desc: "Compete live",      color: "text-[#8B5CF6]" },
 ] as const;
 
-// Secondary Utilities & Games (Expandable drawer — zero clutter)
-const SECONDARY_TOOLS = [
-  { route: "/community",      icon: "groups",          title: "Community Vault",  desc: "Peer notes & study buddies", color: "text-[#10B981]" },
-  { route: "/quick-study",    icon: "menu_book",       title: "Cram Mode",        desc: "Last-minute exam review",   color: "text-[#b61b00]" },
-  { route: "/visual-learner", icon: "visibility",      title: "Visual Learner",   desc: "Mindmaps & flowcharts",      color: "text-[#8B5CF6]" },
-  { route: "/math",           icon: "calculate",       title: "Math Solver",      desc: "Step-by-step solver",       color: "text-[#10B981]" },
-  { route: "/teach-it",       icon: "psychology",      title: "Teach It",         desc: "Feynman active recall",     color: "text-[#EC4899]" },
-  { route: "/timer",          icon: "timer",           title: "Focus Timer",      desc: "Pomodoro focus blocks",     color: "text-[#6366F1]" },
-  { route: "/planner",        icon: "calendar_month",  title: "Study Planner",    desc: "Schedules & syllabi",       color: "text-[#0EA5E9]" },
-  { route: "/arcade",         icon: "sports_esports",  title: "Arcade Games",     desc: "Quick study mini-games",    color: "text-[#F43F5E]" },
-  { route: "/arena",          icon: "military_tech",   title: "Arena Duels",      desc: "Live multiplayer matches",  color: "text-[#F5A623]" },
-  { route: "/sources",        icon: "folder_open",     title: "Source Library",   desc: "PDFs & notes hub",          color: "text-[#78716C]" },
-  { route: "/mistakes",       icon: "auto_stories",    title: "Mistake Journal",  desc: "Weak concept review",       color: "text-[#ba1a1a]" },
-  { route: "/analytics",      icon: "bar_chart",       title: "Analytics",        desc: "Mastery metrics & trends",  color: "text-[#14B8A6]" },
-] as const;
-
-const STARTER_TASKS = [
-  { id: "starter-1", title: "Complete your first 3-minute study session", completed: false, xp: 50, route: "/practice" },
-  { id: "starter-2", title: "Ask Rex Tutor to explain a complex topic", completed: false, xp: 30, route: "/ai-tutor" },
-  { id: "starter-3", title: "Review 5 flashcards or create a deck", completed: false, xp: 20, route: "/flashcards" },
+// Mobile carousel: chunk into slides of 4
+const TOOL_SLIDES = [
+  ALL_TOOLS.slice(0, 4),
+  ALL_TOOLS.slice(4, 8),
+  ALL_TOOLS.slice(8, 12),
+  ALL_TOOLS.slice(12, 16),
 ];
 
-function formatDuration(mins: number): string {
-  if (mins < 60) return `${mins}m`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+// Sub-components defined OUTSIDE Dashboard to prevent remount on every render
+
+interface QuestLogBodyProps {
+  tasks: { id: any; title: string; completed: boolean; time?: string }[];
+  loadingTasks: boolean;
+  newTaskTitle: string;
+  setNewTaskTitle: (v: string) => void;
+  handleAddTask: (e: React.FormEvent) => void;
+  handleToggleTask: (id: any, completed: boolean) => void;
+  handleDeleteTask: (id: any) => void;
 }
 
-// ─── Main Dashboard Component ────────────────────────────────────────────────
+function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, handleAddTask, handleToggleTask, handleDeleteTask }: QuestLogBodyProps) {
+  return (
+    <>
+      <div className="flex-1 p-4 overflow-y-auto">
+        {loadingTasks ? (
+          <div className="text-center py-4 text-xs font-bold text-slate-400">Loading checklist...</div>
+        ) : tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-40">
+            <span className="material-symbols-outlined text-[48px] mb-2">task_alt</span>
+            <p className="text-sm font-bold">No quests yet.<br />Add your first target below.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {tasks.map((task) => (
+              <div key={task.id} className="flex items-center gap-3 justify-between group">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleTask(task.id, task.completed)}
+                    className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-all active:scale-90 ${
+                      task.completed ? "bg-[#10B981] shadow-none" : "bg-white hover:bg-[#FFFBEA] shadow-[1px_1px_0px_#000]"
+                    }`}
+                  >
+                    {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
+                  </button>
+                  <div className={`text-[14px] font-extrabold truncate transition-opacity ${task.completed ? "line-through opacity-40 text-black" : "text-black"}`}>
+                    {task.title}
+                    {task.time && (
+                      <span className="text-[11px] font-bold opacity-60 ml-1.5 bg-[#FFFBEA] px-2 py-0.5 rounded-full border border-black/15">
+                        {task.time}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTask(task.id)}
+                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-[#FF4D2E] cursor-pointer transition-colors p-1"
+                >
+                  delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="border-t-2 border-black p-3 bg-[#FFFDF5]">
+        <form onSubmit={handleAddTask} className="flex gap-2">
+          <input
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Add a quest..."
+            className="flex-1 bg-white border-2 border-black px-3 py-2 text-[13px] font-bold outline-none focus:ring-0 placeholder:opacity-40 rounded-lg"
+          />
+          <button
+            type="submit"
+            className="border-2 border-black bg-black text-white px-3.5 flex items-center justify-center hover:bg-[#FF4D2E] transition-colors rounded-lg shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+          </button>
+        </form>
+      </div>
+    </>
+  );
+}
+
+interface RecentSessionsRowsProps {
+  sessions: { id: any; title: string; duration_minutes: number; created_at: string }[];
+  loadingSessions: boolean;
+}
+
+function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsProps) {
+  return (
+    <div className="divide-y-2 divide-black">
+      {loadingSessions ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
+      ) : sessions.length === 0 ? (
+        <div className="p-4 text-center text-xs font-bold text-slate-400">No sessions yet. Start studying!</div>
+      ) : (
+        sessions.slice(0, 3).map((session, sIdx) => {
+          const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          const icons = ["science", "calculate", "history_edu"];
+          const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
+          return (
+            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`w-11 h-11 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
+                  style={{ boxShadow: "2px 2px 0px #000" }}>
+                  <span className="material-symbols-outlined text-[20px]">{icons[sIdx % 3]}</span>
+                </div>
+                <div>
+                  <div className="text-[14px] font-extrabold text-black">{session.title}</div>
+                  <div className="text-[11px] font-bold text-black/50">{formatDuration(Number(session.duration_minutes || 0))} &bull; {formattedDate}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[11px] font-bold text-black/40">{formatDuration(Number(session.duration_minutes || 0))} studied</div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+interface WeeklyBarsProps {
+  daysOfWeek: string[];
+  dayMinutes: number[];
+  studiedDays: boolean[];
+}
+
+function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
+  return (
+    <div className="h-48 flex items-end justify-between px-4 pb-2">
+      {daysOfWeek.map((day, idx) => {
+        const heightPct = dayMinutes[idx] === 0 ? 8 : Math.min(100, Math.max(8, Math.round((dayMinutes[idx] / 600) * 100)));
+        return (
+          <div key={day} className="flex flex-col items-center justify-end gap-2 group h-full">
+            <span className="text-[9px] font-black text-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              {dayMinutes[idx] > 0 ? (dayMinutes[idx] < 1 ? "<1m" : `${Math.round(dayMinutes[idx])}m`) : ""}
+            </span>
+            <div
+              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
+                studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
+              }`}
+              style={{ height: `${heightPct}%` }}
+            />
+            <span className="text-[10px] font-black uppercase text-black/40 mt-1">{day}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const formatDuration = (mins: number) => {
+  if (!mins || mins <= 0) return "0m";
+  if (mins < 1) return "<1m";
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+};
+
+// Call Rex Hero Banner Component
+function CallRexBanner({ navigate }: { navigate: any }) {
+  const [hasCalled, setHasCalled] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("pz_has_called_rex")) {
+      setHasCalled(true);
+    }
+  }, []);
+
+  const handleCall = () => {
+    localStorage.setItem("pz_has_called_rex", "true");
+    setHasCalled(true);
+    navigate("/call");
+  };
+
+  if (hasCalled) {
+    // Collapsed version for returning users
+    return (
+      <div className="border-2 border-black rounded-2xl bg-white p-3.5 md:p-4 flex items-center justify-between shadow-[3px_3px_0px_#1A1A1A] w-full max-w-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-black bg-[#FFD13B] p-1 shrink-0 flex items-center justify-center shadow-[1px_1px_0px_#1A1A1A]">
+            <img src="/fox/fox-happy.png" alt="Rex Head" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h3 className="text-[14px] font-black tracking-tight leading-none text-black">Talk to Rex</h3>
+            <p className="text-[11.5px] font-bold text-black/55 mt-0.5">Voice chat tutor</p>
+          </div>
+        </div>
+        <button onClick={handleCall} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center border-2 border-black hover:bg-[#FF4D2E] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer">
+          <span className="material-symbols-outlined text-[19px]">phone_in_talk</span>
+        </button>
+      </div>
+    );
+  }
+
+  // Hero version for first-time users
+  return (
+    <div className="border-2 border-black rounded-2xl bg-[#ae2925] overflow-hidden relative shadow-[4px_4px_0px_#1A1A1A] max-w-2xl">
+      <div className="absolute right-0 top-0 bottom-0 w-[40%] bg-cover bg-left opacity-30 mix-blend-luminosity" style={{ backgroundImage: "url('/fox/call_bg.jpg')" }} />
+      <div className="absolute right-[-10px] bottom-[-10px] w-36 h-36 pointer-events-none">
+        <img src="/fox/fox-happy.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-xl" />
+      </div>
+
+      <div className="relative z-10 p-5 md:p-7 w-[72%]">
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white text-black font-black uppercase text-[10px] tracking-wider rounded border-2 border-black mb-2.5 shadow-[1px_1px_0px_#000]">
+          <span className="material-symbols-outlined text-[12px] text-orange-500">campaign</span>
+          Voice Tutor
+        </div>
+        <h2 className="text-[20px] md:text-[24px] font-black text-white leading-tight mb-1.5">Practice speaking out loud.</h2>
+        <p className="text-white/85 font-bold text-[12.5px] md:text-[14px] mb-4 max-w-[280px] leading-snug">
+          Talk through concepts with Rex in a live voice call.
+        </p>
+        <button onClick={handleCall} className="bg-white text-black border-2 border-black font-black uppercase tracking-wider text-[12px] px-5 py-2.5 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-100 transition-all flex items-center gap-2 cursor-pointer">
+          <span className="material-symbols-outlined text-[17px]">phone_in_talk</span>
+          Call Rex
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const navigate = useNavigate();
   const tutorial = useTutorialModal("/dashboard");
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { isPro } = usePlan();
-  const { stats } = useStudyStats();
 
-  const [isToolsExpanded, setIsToolsExpanded] = useState(false);
-  const [tasks, setTasks] = useState<{ id: any; title: string; completed: boolean; xp?: number; route?: string }[]>([]);
+  const toTitleCase = (s: string) =>
+    s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  const rawName =
+    user?.avatarConfig?.full_name ||
+    (user as any)?.user_metadata?.full_name ||
+    (profile as any)?.full_name ||
+    (profile as any)?.username ||
+    user?.name ||
+    user?.email?.split("@")[0] ||
+    "Scholar";
+  const displayName = toTitleCase(rawName);
+
+  const [tasks, setTasks] = useState<{ id: any; title: string; completed: boolean; time?: string }[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [loadingTasks, setLoadingTasks] = useState(true);
+
   const [sessions, setSessions] = useState<{ id: any; title: string; duration_minutes: number; created_at: string }[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
-  const [userPrefs, setUserPrefs] = useState<UserStudyPreferences | null>(null);
 
-  // Load user preferences
+  const [stats, setStats] = useState({ totalSessions: 0, studyTimeHours: 0, avgScore: 0 });
+  const [studiedDays, setStudiedDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
+  const [dayMinutes, setDayMinutes] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+
   useEffect(() => {
-    setUserPrefs(getStoredPreferences());
-  }, []);
+    fetchTasks();
+    if (user?.id) fetchSessions();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleSessionLogged = () => fetchSessions();
+    window.addEventListener("studenius:session-logged", handleSessionLogged);
+    return () => window.removeEventListener("studenius:session-logged", handleSessionLogged);
+  }, [user?.id]);
+
+  const fetchSessions = async () => {
+    if (!user?.id) {
+      setLoadingSessions(false);
+      return;
+    }
+    setLoadingSessions(true);
+    try {
+      let combinedData: any[] = [];
+      try {
+        const local = localStorage.getItem("pz_study_sessions");
+        if (local) {
+          combinedData = JSON.parse(local);
+        }
+      } catch (err) {}
+      
+      const [sessRes, actRes] = await Promise.all([
+        Promise.resolve(supabase.from("study_sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false })).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("study_activity").select("*").eq("user_id", user.id).order("created_at", { ascending: false })).catch(() => ({ data: [] }))
+      ]);
+      
+      if (sessRes.data && sessRes.data.length > 0) {
+        sessRes.data.forEach((dbSess: any) => {
+          if (!combinedData.find(s => s.id === dbSess.id)) {
+            combinedData.push(dbSess);
+          }
+        });
+      }
+      
+      if (actRes.data && actRes.data.length > 0) {
+        actRes.data.forEach((act: any) => {
+          if (!combinedData.find(s => s.id === act.id)) {
+            const time_seconds = act.metadata?.time_seconds || 0;
+            combinedData.push({
+              id: act.id,
+              title: act.tool || act.activity_type || "Arcade Activity",
+              duration_minutes: Math.round(time_seconds / 60),
+              created_at: act.created_at
+            });
+          }
+        });
+      }
+      
+      combinedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      setSessions(combinedData);
+      calculateStatsAndCalendar(combinedData);
+    } catch (err) {
+      console.error("Error loading sessions:", err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const calculateStatsAndCalendar = (loadedSessions: any[]) => {
+    const totalSess = loadedSessions.length;
+    const totalMins = loadedSessions.reduce((acc, curr) => acc + (Number(curr.duration_minutes || curr.duration) || 0), 0);
+    const hours = Math.round((totalMins / 60) * 10) / 10;
+    setStats({ totalSessions: totalSess, studyTimeHours: hours, avgScore: 0 });
+
+    const today = new Date();
+    const windowDays: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      windowDays.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0'));
+    }
+
+    const dayMins = new Array(7).fill(0);
+    const daysStudied = new Array(7).fill(false);
+
+    loadedSessions.forEach((session) => {
+      const dateObj = new Date(session.created_at);
+      const dStr = dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0'); 
+      const idx = windowDays.indexOf(dStr);
+      if (idx !== -1) {
+        daysStudied[idx] = true;
+        dayMins[idx] += Number(session.duration_minutes || session.duration) || 0;
+      }
+    });
+    setStudiedDays(daysStudied);
+    setDayMinutes(dayMins);
+  };
+
+  const [userPrefs, setUserPrefs] = useState<UserStudyPreferences | null>(() => getStoredPreferences(user?.id));
+
+  useEffect(() => {
+    const loaded = getStoredPreferences(user?.id);
+    if (loaded) setUserPrefs(loaded);
+
+    const onUpdate = (e: any) => {
+      if (e.detail) setUserPrefs(e.detail);
+    };
+    window.addEventListener("studenius:preferences-updated", onUpdate);
+    return () => window.removeEventListener("studenius:preferences-updated", onUpdate);
+  }, [user?.id]);
 
   const primarySubjectId = userPrefs?.subjects?.[0] || "biology";
   const primarySubjectMeta = SUBJECT_METADATA[primarySubjectId] || SUBJECT_METADATA.other;
   const activeGoalId = userPrefs?.goal || "grades";
   const activeGoalMeta = GOAL_METADATA[activeGoalId] || GOAL_METADATA.grades;
+  const primaryStyleId = userPrefs?.learningStyles?.[0] || "mixed";
+  const primaryStyleMeta = STYLE_METADATA[primaryStyleId] || STYLE_METADATA.mixed;
 
-  // Display Name
-  const rawName =
-    (user as any)?.user_metadata?.full_name ||
-    profile?.full_name ||
-    (profile as any)?.username ||
-    user?.email?.split("@")[0] ||
-    "Scholar";
-  const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+  const recommendedTools = useMemo(() => {
+    const preferredRoutes = new Set<string>();
+    if (primarySubjectMeta.recommendedTool) {
+      preferredRoutes.add(primarySubjectMeta.recommendedTool);
+    }
+    primaryStyleMeta.topTools.forEach((r) => preferredRoutes.add(r));
 
-  // Streak calculation (Guaranteed friendly streak with Rex so new users never see a dead zero)
-  const streakDays = Math.max(1, profile?.streak_days ?? 1);
-  const totalXp = profile?.total_xp ?? 45;
-  const currentLevel = levelFromXp(totalXp);
-  const xpPercent = xpProgressPercent(totalXp);
-  const xpRemaining = xpToNextLevel(totalXp);
+    const matched = ALL_TOOLS.filter((t) => preferredRoutes.has(t.route));
+    const remaining = ALL_TOOLS.filter((t) => !preferredRoutes.has(t.route));
+    return [...matched, ...remaining].slice(0, 4);
+  }, [primarySubjectMeta, primaryStyleMeta]);
 
-  // Fetch tasks
+  const otherTools = useMemo(() => {
+    const recRoutes = new Set(recommendedTools.map((t) => t.route));
+    return ALL_TOOLS.filter((t) => !recRoutes.has(t.route));
+  }, [recommendedTools]);
+
   const fetchTasks = () => {
     setLoadingTasks(true);
     try {
@@ -168,879 +460,525 @@ export default function Dashboard() {
           return;
         }
       }
-      // Populate starter tasks
-      setTasks(STARTER_TASKS);
+      const prefs = getStoredPreferences(user?.id) || {
+        name: displayName || "Scholar",
+        subjects: ["biology"],
+        goal: "grades",
+        learningStyles: ["flashcards"],
+        dailyGoalMinutes: 30,
+        completedAt: new Date().toISOString()
+      };
+      const smart = generateSmartQuests(prefs);
+      setTasks(smart);
+      try {
+        localStorage.setItem("pz_checklist", JSON.stringify(smart));
+        if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(smart));
+      } catch {}
     } catch {
-      setTasks(STARTER_TASKS);
+      setTasks([]);
     } finally {
       setLoadingTasks(false);
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, [user?.id]);
-
-  const saveTasks = (newTasks: typeof tasks) => {
-    setTasks(newTasks);
-    const userKey = user?.id ? `pz_${user.id}_checklist` : "pz_checklist";
-    localStorage.setItem(userKey, JSON.stringify(newTasks));
-  };
-
-  const handleToggleTask = (id: any) => {
-    playSuccess();
-    const updated = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-    saveTasks(updated);
+  const handleToggleTask = (id: any, currentCompleted: boolean) => {
+    const nextCompleted = !currentCompleted;
+    if (nextCompleted) {
+      playSuccess();
+    } else {
+      playTap();
+    }
+    const updated = tasks.map((t) => (t.id === id ? { ...t, completed: nextCompleted } : t));
+    setTasks(updated);
+    try {
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
+      if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(updated));
+    } catch {}
   };
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
     playPop();
-    const newTask = {
-      id: Date.now().toString(),
-      title: newTaskTitle.trim(),
-      completed: false,
-      xp: 25,
-    };
-    saveTasks([newTask, ...tasks]);
+    const updated = [...tasks, { id: Date.now().toString(), title: newTaskTitle.trim(), completed: false, time: "Just now" }];
+    try {
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
+      if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(updated));
+    } catch {}
+    setTasks(updated);
     setNewTaskTitle("");
   };
 
   const handleDeleteTask = (id: any) => {
     playTap();
-    saveTasks(tasks.filter(t => t.id !== id));
-  };
-
-  // Fetch Recent Sessions
-  const fetchSessions = async () => {
-    if (!user?.id) {
-      setLoadingSessions(false);
-      return;
-    }
-    setLoadingSessions(true);
+    const updated = tasks.filter((t) => t.id !== id);
+    setTasks(updated);
     try {
-      let combinedData: any[] = [];
-      const local = localStorage.getItem("pz_study_sessions");
-      if (local) {
-        try { combinedData = JSON.parse(local); } catch {}
-      }
-
-      const [sessRes, actRes] = await Promise.all([
-        Promise.resolve(supabase.from("study_sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6)).catch(() => ({ data: [] })),
-        Promise.resolve(supabase.from("study_activity").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6)).catch(() => ({ data: [] }))
-      ]);
-
-      if (sessRes.data && sessRes.data.length > 0) {
-        sessRes.data.forEach(dbSess => {
-          if (!combinedData.find(s => s.id === dbSess.id)) {
-            combinedData.push(dbSess);
-          }
-        });
-      }
-
-      setSessions(combinedData.slice(0, 4));
-    } catch {
-      // Fallback
-    } finally {
-      setLoadingSessions(false);
-    }
+      localStorage.setItem("pz_checklist", JSON.stringify(updated));
+      if (user?.id) localStorage.setItem(`pz_${user.id}_checklist`, JSON.stringify(updated));
+    } catch {}
   };
 
-  useEffect(() => {
-    fetchSessions();
-  }, [user?.id]);
+  const completedCount = tasks.filter((t) => t.completed).length;
+  const goalCount = tasks.length > 5 ? tasks.length : 5;
+  const progressPercent = Math.min(100, Math.round((completedCount / goalCount) * 100));
+  const circumference = 2 * Math.PI * 42;
+  const dashOffset = circumference - (progressPercent / 100) * circumference;
 
-  // Contextual Rex speech based on streak and time of day
-  const rexSpeech = useMemo(() => {
-    const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
-    if (streakDays >= 3) {
-      return `🔥 ${streakDays}-day streak with Rex! You're on fire, ${displayName}!`;
+  const daysOfWeek = useMemo(() => {
+    const today = new Date();
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      days.push(d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase());
     }
-    return `Good ${timeGreeting}, ${displayName}! Let's lock in your study streak with Rex today!`;
-  }, [streakDays, displayName]);
-
-  // Community Vault & Social Hook
-  const {
-    notes: campusNotes,
-    buddies,
-    feed: socialFeed,
-    sendNudge,
-    sendHighFive
-  } = useCommunity();
-
-  const handleStudyNote = (note: CampusNote, mode: "practice" | "flashcards") => {
-    playPop();
-    if (mode === "practice") {
-      localStorage.setItem("qs_practice_export", JSON.stringify(note.content));
-      toast.success(`Loading "${note.title}" into Practice Quiz!`);
-      navigate("/practice");
-    } else {
-      localStorage.setItem("qs_flashcards_export", JSON.stringify(note.content));
-      localStorage.setItem("pz_practice_topic", note.title);
-      toast.success(`Loading "${note.title}" into Flashcards!`);
-      navigate("/flashcards");
-    }
-  };
-
-  const completedTasksCount = tasks.filter(t => t.completed).length;
+    return days;
+  }, []);
 
   return (
-    <div className="w-full bg-[#FAF7F2] min-h-screen text-black flex flex-col font-sans">
+    <div className="w-full bg-[#FAF7F2] min-h-full flex flex-col font-body-md text-black flex-1">
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/dashboard"] || []} title="Dashboard" />
+
       <SharedSidebar active="/dashboard" />
 
-      {/* ══ DESKTOP WRAPPER ══════════════════════════════════════════════════ */}
-      <div className="hidden md:flex md:ml-64 flex-col min-h-screen">
-        <main className="p-8 lg:p-10 max-w-7xl w-full mx-auto flex flex-col gap-8">
-          
-          {/* 1. Header Greeting & Quick Stats Banner */}
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-[30px] font-black tracking-tight leading-tight">
-                Welcome back, {displayName}
-              </h1>
-              <p className="text-[14px] font-bold text-black/55 mt-0.5 flex items-center gap-2">
-                <span>{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</span>
-                <span>•</span>
-                <span className="text-[#FF4D2E] font-black">🔥 {streakDays}-Day Active Streak</span>
-              </p>
-            </div>
+      {/* ── MOBILE TOP BAR ───────────────────────────────────────────────────────── */}
+      <header className="md:hidden h-16 w-full px-5 flex items-center justify-between bg-[#FFFDF5] z-40 sticky top-0 border-b-2 border-black">
+        <div className="text-[20px] font-black tracking-tight text-black flex items-center gap-1.5">
+          <span>STUDENIUS</span>
+          <span className="w-2 h-2 rounded-full bg-[#FF4D2E]" />
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => { playPop(); navigate("/sources"); }}
+            className="w-9 h-9 border-2 border-black rounded-lg bg-white shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center transition-all cursor-pointer"
+            title="Source Library"
+          >
+            <span className="material-symbols-outlined text-[20px] text-black">attach_file</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { playPop(); navigate("/pro"); }}
+            className="px-3 py-1.5 rounded-full border-2 border-black bg-[#FFD13B] shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[15px] text-black" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+            <span className="text-[11px] font-black text-black uppercase tracking-wider">{isPro ? "PRO" : "GO PRO"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { playPop(); navigate("/profile"); }}
+            className="w-9 h-9 rounded-full bg-[#FF4D2E] text-white border-2 border-black shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center font-black text-[13px] cursor-pointer transition-all"
+          >
+            {displayName.slice(0, 1).toUpperCase()}
+          </button>
+        </div>
+      </header>
 
-            <div className="flex items-center gap-3">
-              {/* Level Pill */}
-              <div className="bg-white border-2 border-black px-4 py-2 rounded-xl shadow-[2px_2px_0px_#000] flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-[#F5A623] text-[20px]">military_tech</span>
-                <div className="text-left">
-                  <div className="text-[11px] font-black uppercase tracking-wider text-black/50">Level {currentLevel}</div>
-                  <div className="text-[13px] font-extrabold">{totalXp} XP</div>
-                </div>
-              </div>
+      {/* ── DESKTOP LAYOUT ──────────────────────────────────────────────────────── */}
+      <div className="hidden md:block md:ml-64 h-full overflow-y-auto p-12">
 
-              {/* Help Tutorial */}
-              <button
-                onClick={() => tutorial.show()}
-                className="w-10 h-10 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors flex items-center justify-center rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer"
-                title="Tutorial"
-              >
-                <span className="material-symbols-outlined text-[20px]">help</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 2. High-Impact Hero: Living Moving Rex Mascot & Daily Focus Mission */}
-          <section className="w-full bg-[#FF4D2E] text-white border-[3px] border-black rounded-3xl p-6 lg:p-8 shadow-[6px_6px_0px_#000] relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6">
-            
-            {/* Left: Living Moving Rex Mascot with Floating Physics */}
-            <div className="flex items-center gap-5 z-10 w-full lg:w-auto">
-              <RexMascot 
-                emotion={streakDays >= 3 ? "excited" : "happy"} 
-                size="lg" 
-                speech={rexSpeech}
-                subSpeech="Tap Rex for study advice!"
-              />
-            </div>
-
-            {/* Right: Daily Focus Mission CTA */}
-            <div className="z-10 bg-white text-black border-2 border-black rounded-2xl p-5 lg:p-6 shadow-[4px_4px_0px_#000] flex flex-col gap-3.5 max-w-md w-full">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 bg-[#FFF275] border border-black rounded-full text-[10px] font-black uppercase tracking-wider">
-                  Today's Mission • {primarySubjectMeta.name}
-                </span>
-                <span className="text-[11px] font-extrabold text-black/50">3 mins</span>
-              </div>
-
-              <div>
-                <h3 className="text-[18px] font-black leading-tight">
-                  Boost retention in {primarySubjectMeta.name}
-                </h3>
-                <p className="text-[12.5px] font-bold text-black/60 mt-1 leading-snug">
-                  Rex prepared an adaptive recall session tailored to your {activeGoalMeta.label.toLowerCase()} target.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  onClick={() => {
-                    playSuccess();
-                    navigate(primarySubjectMeta.recommendedTool || "/practice");
-                  }}
-                  className="bg-[#FF4D2E] text-white border-2 border-black px-6 py-2.5 rounded-xl font-extrabold text-[13px] shadow-[3px_3px_0px_#000] hover:opacity-95 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-                  Launch Practice
-                </button>
-
-                <div className="text-[12px] font-extrabold text-[#16a34a] flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                  <span>+50 XP Reward</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* 3. The 4-Tool Primary App Launchpad (Clean, Generous Spacing, Zero Truncation) */}
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px] text-black">grid_view</span>
-                <h2 className="text-[16px] font-black uppercase tracking-wider">Core Study Tools</h2>
-              </div>
-              <span className="text-[12px] font-bold text-black/45">1-Tap Launch</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {PRIMARY_TOOLS.map((tool) => (
-                <button
-                  key={tool.route}
-                  onClick={() => {
-                    playPop();
-                    navigate(tool.route);
-                  }}
-                  className="bg-white border-[2.5px] border-black rounded-2xl p-5 text-left shadow-[4px_4px_0px_#000] hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] transition-all flex flex-col justify-between h-[150px] group cursor-pointer"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className={`w-12 h-12 rounded-xl border-2 border-black flex items-center justify-center ${tool.bg} shadow-[2px_2px_0px_#000]`}>
-                      <span className={`material-symbols-outlined text-[26px] ${tool.color}`}>{tool.icon}</span>
-                    </div>
-                    <span className="px-2 py-0.5 bg-[#FAF7F2] border border-black rounded text-[9.5px] font-black uppercase tracking-wider text-black/60">
-                      {tool.badge}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="font-extrabold text-[17px] leading-tight group-hover:text-[#FF4D2E] transition-colors">
-                      {tool.title}
-                    </h3>
-                    <p className="text-[12px] font-bold text-black/55 mt-0.5 leading-snug">
-                      {tool.desc}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Expandable Utility Drawer Toggle */}
-            <div className="flex flex-col items-center mt-2">
-              <button
-                onClick={() => {
-                  playTap();
-                  setIsToolsExpanded(!isToolsExpanded);
-                }}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-full border-2 border-black bg-white hover:bg-[#F0EDE0] font-extrabold text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
-              >
-                <span>{isToolsExpanded ? "Hide Other Tools" : "Browse All 12 Other Tools (Arcade, Solver, Notes Vault...)"}</span>
-                <span className="material-symbols-outlined text-[16px] transition-transform" style={{ transform: isToolsExpanded ? "rotate(180deg)" : "none" }}>
-                  expand_more
-                </span>
-              </button>
-
-              {/* Expanded Utility Drawer */}
-              {isToolsExpanded && (
-                <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t-2 border-black/15 animate-in fade-in duration-200">
-                  {SECONDARY_TOOLS.map((tool) => (
-                    <button
-                      key={tool.route}
-                      onClick={() => {
-                        playPop();
-                        navigate(tool.route);
-                      }}
-                      className="bg-white border-2 border-black rounded-xl p-3 flex items-center gap-3 shadow-[2px_2px_0px_#000] hover:bg-[#FAF7F2] hover:-translate-y-0.5 active:translate-y-0.5 transition-all text-left cursor-pointer group"
-                    >
-                      <div className="w-9 h-9 rounded-lg border border-black/20 bg-[#FAF7F2] flex items-center justify-center shrink-0">
-                        <span className={`material-symbols-outlined text-[20px] ${tool.color}`}>{tool.icon}</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-extrabold text-black group-hover:text-[#FF4D2E] transition-colors leading-tight">
-                          {tool.title}
-                        </div>
-                        <div className="text-[10.5px] font-bold text-black/50 leading-tight truncate">
-                          {tool.desc}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* 4. Bento Section: Quest Log + Streak with Rex + Habit Momentum */}
-          <div className="grid grid-cols-12 gap-6">
-            
-            {/* Left Col (8): Quest Log with Starter Boost */}
-            <section className="col-span-12 lg:col-span-8 bg-white border-[2.5px] border-black rounded-2xl p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b-2 border-black/10 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[22px] text-[#FF4D2E]">checklist</span>
-                    <h2 className="text-[16px] font-black uppercase tracking-wider">Today's Quest Missions</h2>
-                  </div>
-                  <span className="text-[12px] font-extrabold text-black/50">
-                    {completedTasksCount} of {tasks.length} Completed
-                  </span>
-                </div>
-
-                {/* Quests List */}
-                <div className="flex flex-col gap-2.5">
-                  {tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`border-2 border-black rounded-xl p-3.5 flex items-center justify-between gap-3 transition-all ${
-                        task.completed ? "bg-[#dcfce7] border-green-700 opacity-80" : "bg-white hover:bg-[#FAF7F2]"
-                      }`}
-                    >
-                      <div 
-                        onClick={() => handleToggleTask(task.id)}
-                        className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
-                      >
-                        <div className={`w-6 h-6 rounded border-2 border-black flex items-center justify-center ${task.completed ? "bg-black text-white" : "bg-white"}`}>
-                          {task.completed && <span className="material-symbols-outlined text-[16px]">check</span>}
-                        </div>
-                        <span className={`text-[13.5px] font-extrabold ${task.completed ? "line-through text-black/50" : "text-black"}`}>
-                          {task.title}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {task.xp && (
-                          <span className="px-2 py-0.5 bg-[#FFF275] border border-black rounded text-[10px] font-black text-black">
-                            +{task.xp} XP
-                          </span>
-                        )}
-                        {task.route && !task.completed && (
-                          <button
-                            onClick={() => { playPop(); navigate(task.route!); }}
-                            className="text-[11px] font-black text-[#FF4D2E] hover:underline"
-                          >
-                            Go →
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="text-black/30 hover:text-black transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">close</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Add Custom Quest Input */}
-              <form onSubmit={handleAddTask} className="flex gap-2 mt-4 pt-3 border-t-2 border-black/10">
-                <input
-                  type="text"
-                  value={newTaskTitle}
-                  onChange={e => setNewTaskTitle(e.target.value)}
-                  placeholder="Add your own custom study goal..."
-                  className="flex-1 bg-[#FAF7F2] border-2 border-black rounded-xl px-4 py-2 text-[13px] font-bold focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="bg-black text-white border-2 border-black px-4 py-2 rounded-xl text-[12px] font-black uppercase hover:bg-[#FF4D2E] transition-colors cursor-pointer"
-                >
-                  Add
-                </button>
-              </form>
-            </section>
-
-            {/* Right Col (4): Streak with Rex & Level Target */}
-            <div className="col-span-12 lg:col-span-4 flex flex-col gap-5">
-              
-              {/* Streak with Rex Card */}
-              <section className="bg-[#FFF275] border-[2.5px] border-black rounded-2xl p-5 shadow-[4px_4px_0px_#000] flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Streak with Rex</span>
-                  <span className="text-[20px]">🔥</span>
-                </div>
-
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-[52px] font-black leading-none text-black">
-                    <AnimatedCounter value={streakDays} />
-                  </span>
-                  <span className="text-[20px] font-black uppercase">Days</span>
-                </div>
-
-                <p className="text-[12px] font-bold text-black/75 leading-snug">
-                  {streakDays > 1 
-                    ? `${streakDays} day streak with Rex — keep it burning!`
-                    : "Complete today's 3-minute mission to lock in Day 1!"}
-                </p>
-
-                <div className="mt-4 pt-3 border-t-2 border-black/15 flex items-center justify-between text-[11px] font-extrabold text-black/60">
-                  <span>Protected by Rex</span>
-                  <span className="text-black font-black">Daily Goal: 3 mins</span>
-                </div>
-              </section>
-
-              {/* Scholar Level Card */}
-              <section className="bg-white border-[2.5px] border-black rounded-2xl p-5 shadow-[4px_4px_0px_#000] flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Scholar Progression</span>
-                  <span className="px-2 py-0.5 bg-[#85f5eb] border border-black rounded text-[10px] font-black uppercase">
-                    Level {currentLevel}
-                  </span>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center text-[12px] font-extrabold mb-1">
-                    <span>XP to Level {currentLevel + 1}</span>
-                    <span className="text-[#FF4D2E] font-black">{xpRemaining} XP left</span>
-                  </div>
-                  <div className="w-full h-3 bg-[#E8E4DC] border-2 border-black rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#FF4D2E] transition-all duration-500" 
-                      style={{ width: `${xpPercent}%` }} 
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[12px] font-extrabold pt-1">
-                  <span className="text-black/50">Total Sessions</span>
-                  <span className="font-black">{(stats as any)?.totalSessions || sessions.length}</span>
-                </div>
-              </section>
-            </div>
-          </div>
-
-          {/* 5. Campus Vault Spotlight (Knowunity Reverse-Engineering) */}
-          <section className="bg-white border-[2.5px] border-black rounded-2xl p-6 shadow-[4px_4px_0px_#000]">
-            <div className="flex items-center justify-between pb-4 border-b-2 border-black/10 mb-5 flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl border-2 border-black bg-indigo-100 flex items-center justify-center shadow-[1px_1px_0px_#000]">
-                  <span className="material-symbols-outlined text-[20px] text-indigo-700">menu_book</span>
-                </div>
-                <div>
-                  <h2 className="text-[16px] font-black uppercase tracking-wider">Campus Vault Spotlight</h2>
-                  <p className="text-[11.5px] font-bold text-black/50">Peer-shared study guides ready to study with 1 tap</p>
-                </div>
-              </div>
-              <button
-                onClick={() => { playTap(); navigate("/community"); }}
-                className="px-3.5 py-1.5 bg-[#FAF7F2] hover:bg-black hover:text-white border-2 border-black rounded-xl text-[12px] font-black transition-colors shadow-[2px_2px_0px_#000] cursor-pointer flex items-center gap-1.5"
-              >
-                <span>Browse All {campusNotes.length} Notes</span>
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {campusNotes.slice(0, 3).map((note) => (
-                <div
-                  key={note.id}
-                  className="bg-[#FAF7F2] border-2 border-black rounded-xl p-4 flex flex-col justify-between hover:-translate-y-0.5 transition-all shadow-[2px_2px_0px_#000]"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`px-2 py-0.5 rounded border text-[9.5px] font-black uppercase tracking-wider ${note.subjectBadgeColor}`}>
-                        {note.subject}
-                      </span>
-                      <span className="text-[11px] font-black text-black/60 flex items-center gap-1">
-                        <span>❤️</span> {note.likes}
-                      </span>
-                    </div>
-
-                    <h3 className="text-[14.5px] font-extrabold text-black leading-snug line-clamp-2 mb-1.5">
-                      {note.title}
-                    </h3>
-                    <p className="text-[11.5px] font-bold text-black/60 line-clamp-2 leading-relaxed mb-3">
-                      {note.summary}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-black/10 flex items-center gap-2">
-                    <button
-                      onClick={() => handleStudyNote(note, "practice")}
-                      className="flex-1 py-1.5 bg-[#FF4D2E] hover:bg-[#e03d20] text-white border border-black rounded-lg text-[11px] font-black shadow-[1px_1px_0px_#000] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">quiz</span>
-                      <span>Quiz</span>
-                    </button>
-                    <button
-                      onClick={() => handleStudyNote(note, "flashcards")}
-                      className="flex-1 py-1.5 bg-amber-400 hover:bg-amber-500 text-black border border-black rounded-lg text-[11px] font-black shadow-[1px_1px_0px_#000] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">style</span>
-                      <span>Cards</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 6. Friend Streaks & High-Fives (Duolingo Reverse-Engineering) */}
-          <div className="grid grid-cols-12 gap-6">
-            {/* Left (7 cols): Friend Streaks */}
-            <section className="col-span-12 lg:col-span-7 bg-white border-[2.5px] border-black rounded-2xl p-6 shadow-[4px_4px_0px_#000] flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b-2 border-black/10 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[20px]">🔥</span>
-                    <h2 className="text-[15px] font-black uppercase tracking-wider">Friend Streaks</h2>
-                  </div>
-                  <button
-                    onClick={() => { playTap(); navigate("/community"); }}
-                    className="text-[11px] font-black text-[#FF4D2E] hover:underline"
-                  >
-                    View All Buddies →
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {buddies.slice(0, 4).map((buddy) => (
-                    <div
-                      key={buddy.id}
-                      className="border-2 border-black rounded-xl p-3 bg-[#FAF7F2] flex items-center justify-between gap-3 shadow-[2px_2px_0px_#000]"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 rounded-lg border border-black bg-white flex items-center justify-center text-[18px] shrink-0">
-                          {buddy.avatar}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-[12.5px] font-black text-black truncate leading-tight">
-                            {buddy.name}
-                          </div>
-                          <div className="text-[10px] font-black text-[#FF4D2E]">
-                            🔥 {buddy.streakDays}d Streak
-                          </div>
-                        </div>
-                      </div>
-
-                      {buddy.isRexMascot ? (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-800 border border-green-600 rounded text-[9.5px] font-black uppercase">
-                          Active
-                        </span>
-                      ) : buddy.hasStudiedToday ? (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-800 border border-green-600 rounded text-[9.5px] font-black uppercase">
-                          Done ✅
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => sendNudge(buddy.id)}
-                          className="px-2.5 py-1 bg-[#FF4D2E] hover:bg-[#e03d20] text-white border border-black rounded-lg text-[10px] font-black transition-all active:translate-y-0.5 cursor-pointer shrink-0 shadow-[1px_1px_0px_#000]"
-                        >
-                          Nudge
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* Right (5 cols): Live High-Five Social Feed */}
-            <section className="col-span-12 lg:col-span-5 bg-white border-[2.5px] border-black rounded-2xl p-6 shadow-[4px_4px_0px_#000]">
-              <div className="flex items-center justify-between pb-3 border-b-2 border-black/10 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[20px] text-amber-500">celebration</span>
-                  <h2 className="text-[15px] font-black uppercase tracking-wider">Campus Feed</h2>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Live</span>
-              </div>
-
-              <div className="flex flex-col gap-2.5">
-                {socialFeed.slice(0, 3).map((item) => (
-                  <div
-                    key={item.id}
-                    className="border border-black/20 rounded-xl p-2.5 bg-[#FAF7F2] flex items-center justify-between gap-2 text-left"
-                  >
-                    <div className="min-w-0 flex items-center gap-2">
-                      <span className="text-[16px]">{item.userAvatar}</span>
-                      <div className="min-w-0">
-                        <div className="text-[11.5px] font-black text-black truncate">
-                          <span className="text-[#FF4D2E]">{item.userName}</span> {item.action}
-                        </div>
-                        <div className="text-[9.5px] font-bold text-black/40">
-                          {item.topic} • {item.timeAgo}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => sendHighFive(item.id)}
-                      disabled={item.highFived}
-                      className={`px-2 py-1 rounded-lg border border-black text-[10px] font-black transition-all shrink-0 cursor-pointer ${
-                        item.highFived
-                          ? "bg-green-100 text-green-800 border-green-600 opacity-70"
-                          : "bg-white hover:bg-amber-100 text-black shadow-[1px_1px_0px_#000]"
-                      }`}
-                    >
-                      {item.highFived ? "🙌" : "🙌 +5XP"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* 7. Recent Sessions */}
-          {sessions.length > 0 && (
-            <section className="bg-white border-[2.5px] border-black rounded-2xl p-5 shadow-[4px_4px_0px_#000]">
-              <div className="flex items-center justify-between pb-3 border-b-2 border-black/10 mb-3">
-                <h2 className="text-[14px] font-black uppercase tracking-wider">Recent Study Sessions</h2>
-                <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">
-                  View Analytics →
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {sessions.map((sess, i) => (
-                  <div key={sess.id || i} className="border-2 border-black rounded-xl p-3 bg-[#FAF7F2]">
-                    <div className="text-[13px] font-extrabold text-black leading-tight truncate">{sess.title}</div>
-                    <div className="text-[11px] font-bold text-black/50 mt-1">
-                      {formatDuration(Number(sess.duration_minutes || 5))} studied • {new Date(sess.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-        </main>
-      </div>
-
-      {/* ══ MOBILE VIEW ══════════════════════════════════════════════════════ */}
-      <div className="md:hidden flex flex-col min-h-screen pb-28">
-        
-        {/* Mobile Header */}
-        <header className="sticky top-0 z-40 bg-[#FAF7F2] border-b-2 border-black px-4 h-16 flex items-center justify-between shrink-0">
+        {/* Desktop Header */}
+        <header className="flex justify-between items-end mb-8">
           <div>
-            <h1 className="font-black text-[18px] leading-tight">Good morning, {displayName}</h1>
-            <p className="text-[11px] font-extrabold text-[#FF4D2E] flex items-center gap-1">
-              <span>🔥 {streakDays}-Day Active Streak</span>
+            <h2 className="text-[32px] font-black leading-tight text-black">Good morning, {displayName}.</h2>
+            <p className="text-[16px] font-bold text-black/60 mt-1">
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Keep the streak alive
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => tutorial.show()}
-              className="w-9 h-9 border-2 border-black bg-white flex items-center justify-center rounded-xl shadow-[2px_2px_0px_#000]"
-            >
-              <span className="material-symbols-outlined text-[18px]">help</span>
+          <div className="flex gap-3">
+            <button onClick={() => tutorial.show()} className="w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer">
+              <span className="material-symbols-outlined text-[20px]">help</span>
             </button>
           </div>
         </header>
 
-        <main className="p-4 flex flex-col gap-5 flex-1">
+        {/* Desktop Top Command Deck */}
+        <div className="grid grid-cols-12 gap-6 mb-8">
           
-          {/* Mobile Rex Hero */}
-          <section className="bg-[#FF4D2E] text-white border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0px_#000] flex flex-col gap-3">
-            <RexMascot 
-              emotion={streakDays >= 3 ? "excited" : "happy"} 
-              size="md" 
-              speech={rexSpeech}
-            />
-
-            <div className="bg-white text-black border-2 border-black rounded-xl p-3.5 shadow-[2px_2px_0px_#000] flex flex-col gap-2.5">
-              <div className="flex items-center justify-between text-[11px] font-black">
-                <span className="text-[#FF4D2E] uppercase">Today's Focus • {primarySubjectMeta.name}</span>
-                <span className="text-black/50">3 mins</span>
+          {/* Card 1 (Col 7): 1-Tap Daily Focus Mission */}
+          <section className="col-span-7 border-2 border-black rounded-2xl bg-[#FF4D2E] text-white p-5 relative overflow-hidden shadow-[0px_4px_0px_#1A1A1A] flex flex-col justify-between">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-black text-white font-black uppercase text-[10px] tracking-wider rounded-lg border border-white/20">
+                  <span className="material-symbols-outlined text-[13px] text-[#FFD13B]">bolt</span>
+                  Daily Focus &bull; {primarySubjectMeta.name}
+                </div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-white/80">
+                  Estimated 5 mins
+                </span>
               </div>
+              <h3 className="text-[22px] font-black leading-tight mb-1">Boost retention in 5 minutes</h3>
+              <p className="text-[13px] font-semibold text-white/90 max-w-md leading-relaxed mb-4">
+                Rex prepared an active recall set for {primarySubjectMeta.name} tailored to your {activeGoalMeta.label.toLowerCase()} goal.
+              </p>
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between pt-1">
               <button
-                onClick={() => {
-                  playSuccess();
-                  navigate(primarySubjectMeta.recommendedTool || "/practice");
-                }}
-                className="w-full bg-[#FF4D2E] text-white border-2 border-black py-2.5 rounded-xl font-extrabold text-[13px] shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => { playSuccess(); navigate(primarySubjectMeta.recommendedTool); }}
+                className="bg-white text-black border-2 border-black font-black uppercase text-[12px] tracking-wider px-5 py-2.5 rounded-full shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] hover:bg-[#FFD13B] transition-all flex items-center gap-2 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-                Launch Practice (+50 XP)
+                Launch Practice
               </button>
+
+              <div className="flex items-center gap-2 text-[12px] font-extrabold text-white/80 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
+                <span className="material-symbols-outlined text-[16px] text-[#FFD13B]">auto_awesome</span>
+                <span>Active Recall &bull; Spaced Repetition</span>
+              </div>
+            </div>
+
+            {/* Rex Mascot in Top Right — Fully visible, vivid, friendly character */}
+            <div className="absolute right-3 -bottom-2 w-32 h-32 pointer-events-none transition-transform hover:scale-105">
+              <img src="/fox/fox-happy.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-md" />
             </div>
           </section>
 
-          {/* 4 Core Primary Tools */}
-          <section className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-black uppercase tracking-wider text-black">Core Study Tools</span>
+          {/* Card 2 (Col 5): Talk to Rex & Daily Coach Tip */}
+          <section className="col-span-5 flex flex-col gap-3.5 justify-between">
+            <CallRexBanner navigate={navigate} />
+
+            <div className="border-2 border-black rounded-2xl bg-white p-4 shadow-[0px_3px_0px_#1A1A1A] flex items-start gap-3 flex-1">
+              <div className="w-10 h-10 rounded-xl border-2 border-black bg-[#FFD13B] p-0.5 shrink-0 flex items-center justify-center shadow-[0px_2px_0px_#1A1A1A]">
+                <img src="/fox/fox-happy.png" alt="Rex" className="w-full h-full object-contain" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-black/40">Rex Coaching Tip</span>
+                  <span className="text-[9.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-black/15 bg-[#FAF7F2] text-black/60">
+                    {activeGoalMeta.badge}
+                  </span>
+                </div>
+                <p className="text-[12.5px] font-extrabold text-black leading-snug">
+                  "{activeGoalMeta.rexQuote}"
+                </p>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        {/* Desktop Bento Grid */}
+        <div className="grid grid-cols-12 gap-6">
+
+          {/* Stats Row: Today's Goal + Total Sessions + Time Studied */}
+          <div className="col-span-8 grid grid-cols-3 gap-6">
+
+            {/* Today's Goal */}
+            <section className="border-2 border-black bg-white p-4 flex flex-col items-center text-center relative overflow-hidden rounded-2xl shadow-[0px_4px_0px_#000]">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[#FF4D2E]" />
+              <div className="text-[10px] font-black uppercase tracking-wider text-black/50 self-start mb-3">Today's Goal</div>
+              <div className="relative w-24 h-24 flex items-center justify-center mb-2">
+                <svg className="w-full h-full -rotate-90">
+                  <circle className="text-[#E8E4DC]" cx="48" cy="48" fill="transparent" r="42" stroke="currentColor" strokeWidth="6" />
+                  <circle
+                    className="text-black"
+                    cx="48" cy="48" fill="transparent" r="42"
+                    stroke="currentColor" strokeWidth="6"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[22px] font-black leading-tight">{completedCount}/{goalCount}</span>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Sessions</span>
+            </section>
+
+            {/* Total Sessions */}
+            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative rounded-2xl shadow-[0px_4px_0px_#000]">
+              <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Total Sessions</div>
+              <div>
+                <div className="text-[48px] font-black leading-none text-black">{stats.totalSessions}</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Lifetime</div>
+              </div>
+            </section>
+
+            {/* Time Studied */}
+            <section className="border-2 border-black bg-white p-4 flex flex-col justify-between relative rounded-2xl shadow-[0px_4px_0px_#000]">
+              <div className="text-[10px] font-black uppercase tracking-wider text-black/50">Time Studied</div>
+              <div>
+                <div className="text-[48px] font-black leading-none text-[#FF4D2E]">{stats.studyTimeHours}h</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-black/40 mt-1">Total Hours</div>
+              </div>
+            </section>
+          </div>
+
+          {/* Quest Log — tall right column spanning 2 rows */}
+          <section className="col-span-4 row-span-2 border-2 border-black bg-white flex flex-col rounded-2xl shadow-[0px_4px_0px_#000] overflow-hidden">
+            <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FAF7F2]/50">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Quest Log</h3>
+              <span className="material-symbols-outlined text-[20px]">history_edu</span>
+            </div>
+            <QuestLogBody
+              tasks={tasks}
+              loadingTasks={loadingTasks}
+              newTaskTitle={newTaskTitle}
+              setNewTaskTitle={setNewTaskTitle}
+              handleAddTask={handleAddTask}
+              handleToggleTask={handleToggleTask}
+              handleDeleteTask={handleDeleteTask}
+            />
+          </section>
+
+          {/* Quick Tools — Redesigned Modern Study Hub */}
+          <section className="col-span-8 border-2 border-black bg-white rounded-2xl p-6 shadow-[0px_4px_0px_#1A1A1A]">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[14px] font-black uppercase tracking-wider text-black">Recommended For You</h3>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-[#FAF7F2] text-black/60">
+                  Personalized
+                </span>
+              </div>
               <button
-                onClick={() => { playTap(); setIsToolsExpanded(!isToolsExpanded); }}
-                className="text-[11px] font-extrabold text-[#FF4D2E] underline"
+                type="button"
+                onClick={() => { playPop(); navigate("/tools"); }}
+                className="text-[12px] font-black text-black underline hover:text-[#FF4D2E] transition-colors cursor-pointer"
               >
-                {isToolsExpanded ? "Show Less" : "See All 12 Tools"}
+                View all 17 tools
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {PRIMARY_TOOLS.map((tool) => (
+            {/* Pinned 4 recommended tools with rich cards and forward bounce */}
+            <div className="grid grid-cols-4 gap-3.5 mb-5">
+              {recommendedTools.map((tool) => (
                 <button
-                  key={tool.route}
+                  key={"rec-" + tool.route}
                   onClick={() => { playPop(); navigate(tool.route); }}
-                  className="bg-white border-2 border-black rounded-xl p-3.5 text-left shadow-[2px_2px_0px_#000] active:translate-y-0.5 flex flex-col justify-between h-[115px]"
+                  className="border-2 border-black bg-[#FAF7F2] hover:bg-white p-3.5 flex flex-col justify-between h-[116px] rounded-xl text-left shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] transition-all group cursor-pointer"
                 >
-                  <div className={`w-9 h-9 rounded-lg border border-black flex items-center justify-center ${tool.bg}`}>
-                    <span className={`material-symbols-outlined text-[20px] ${tool.color}`}>{tool.icon}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-black/15 flex items-center justify-center shadow-xs group-hover:border-black transition-colors">
+                      <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
+                    </div>
+                    <span className="material-symbols-outlined text-[16px] text-black/30 group-hover:text-black transition-colors">north_east</span>
                   </div>
                   <div>
-                    <div className="text-[14px] font-black leading-tight text-black">{tool.title}</div>
-                    <div className="text-[11px] font-bold text-black/50 leading-tight mt-0.5">{tool.desc}</div>
+                    <div className="text-[14px] font-black text-black leading-tight group-hover:text-[#FF4D2E] transition-colors">{tool.title}</div>
+                    <div className="text-[11px] font-bold text-black/55 mt-0.5 leading-snug truncate">{tool.desc}</div>
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* Expanded Drawer on Mobile */}
-            {isToolsExpanded && (
-              <div className="grid grid-cols-2 gap-2.5 pt-2">
-                {SECONDARY_TOOLS.map((tool) => (
+            {/* Other tools grid — app dock style (zero duplication) */}
+            <div className="pt-4 border-t-2 border-black/10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-black/45">More Study Tools</span>
+                <span className="text-[10px] font-extrabold text-black/40">1-Tap Quick Launch</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2.5">
+                {otherTools.slice(0, 8).map((tool) => (
                   <button
-                    key={tool.route}
+                    key={"all-" + tool.route}
                     onClick={() => { playPop(); navigate(tool.route); }}
-                    className="bg-white border-2 border-black rounded-lg p-2.5 flex items-center gap-2 shadow-[1px_1px_0px_#000] text-left"
+                    className="border-2 border-black bg-white hover:bg-[#FAF7F2] p-2.5 flex items-center gap-2.5 rounded-xl shadow-[0px_2px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[0px_3px_0px_#1A1A1A] active:translate-y-[1px] active:shadow-[0px_0.5px_0px_#1A1A1A] transition-all group text-left cursor-pointer"
                   >
-                    <span className={`material-symbols-outlined text-[18px] ${tool.color}`}>{tool.icon}</span>
-                    <span className="text-[12px] font-extrabold truncate">{tool.title}</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] group-hover:bg-white border border-black/10 flex items-center justify-center shrink-0 transition-colors">
+                      <span className={`material-symbols-outlined text-[18px] ${tool.color}`}>{tool.icon}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12px] font-black text-black truncate group-hover:text-[#FF4D2E] transition-colors">{tool.title}</div>
+                      <div className="text-[10px] font-bold text-black/45 truncate">{tool.desc}</div>
+                    </div>
                   </button>
                 ))}
               </div>
-            )}
-          </section>
-
-          {/* Mobile Quests */}
-          <section className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex flex-col gap-3">
-            <div className="flex items-center justify-between pb-2 border-b border-black/10">
-              <span className="text-[12px] font-black uppercase tracking-wider">Today's Quests</span>
-              <span className="text-[11px] font-bold text-black/50">{completedTasksCount}/{tasks.length} Done</span>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => handleToggleTask(task.id)}
-                  className={`border-2 border-black rounded-xl p-3 flex items-center gap-3 cursor-pointer ${
-                    task.completed ? "bg-[#dcfce7] border-green-700 opacity-70" : "bg-white"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded border-2 border-black flex items-center justify-center ${task.completed ? "bg-black text-white" : "bg-white"}`}>
-                    {task.completed && <span className="material-symbols-outlined text-[14px]">check</span>}
-                  </div>
-                  <span className={`text-[12px] font-bold flex-1 ${task.completed ? "line-through text-black/50" : "text-black"}`}>
-                    {task.title}
-                  </span>
-                  {task.xp && (
-                    <span className="text-[10px] font-black text-[#FF4D2E]">+{task.xp} XP</span>
-                  )}
-                </div>
-              ))}
             </div>
           </section>
 
-          {/* Streak with Rex */}
-          <section className="bg-[#FFF275] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-black/60 block">Streak with Rex</span>
-              <div className="text-[28px] font-black leading-tight">🔥 {streakDays} Days</div>
-              <p className="text-[11px] font-bold text-black/70">Complete your daily mission to protect the flame.</p>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] font-black uppercase tracking-wider text-black/50 block">Level {currentLevel}</span>
-              <span className="text-[13px] font-black">{totalXp} XP</span>
-            </div>
-          </section>
-
-          {/* Mobile Campus Vault Spotlight */}
-          <section className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex flex-col gap-3">
-            <div className="flex items-center justify-between pb-2 border-b border-black/10">
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[18px] text-indigo-700">menu_book</span>
-                <span className="text-[12px] font-black uppercase tracking-wider">Campus Vault</span>
+          {/* Weekly Momentum */}
+          <section className="col-span-8 border-2 border-black bg-white p-4 rounded-2xl shadow-[0px_4px_0px_#000]">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Weekly Momentum</h3>
+              <div className="flex gap-2">
+                <span className="px-3 py-1 bg-black text-white text-[11px] font-black uppercase tracking-wider rounded-lg">Study Hours</span>
+                <span className="px-3 py-1 border-[1.5px] border-black text-[11px] font-black uppercase tracking-wider rounded-lg">Goals Met</span>
               </div>
-              <button
-                onClick={() => { playTap(); navigate("/community"); }}
-                className="text-[11px] font-extrabold text-[#FF4D2E] underline cursor-pointer"
-              >
-                Browse All ({campusNotes.length})
+            </div>
+            <WeeklyBars daysOfWeek={daysOfWeek} dayMinutes={dayMinutes} studiedDays={studiedDays} />
+          </section>
+
+          {/* Academic Streak */}
+          <section className="col-span-4 border-2 border-black bg-[#FF4D2E] text-white p-4 flex flex-col justify-between min-h-[200px] rounded-2xl shadow-[0px_4px_0px_#000]">
+            <div className="flex justify-between items-start">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Academic Streak</h3>
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+            </div>
+            <div className="flex items-baseline gap-2 my-2">
+              <span className="text-[64px] font-black leading-none"><AnimatedCounter value={profile?.streak_days ?? 0} /></span>
+              <span className="text-[24px] font-black uppercase">Days</span>
+            </div>
+            <p className="text-[12px] font-bold opacity-90">
+              {(profile?.streak_days ?? 0) > 0 ? `${profile?.streak_days} day streak — keep it going!` : "Start your first session to build your streak."}
+            </p>
+          </section>
+
+          {/* Recent Sessions — full width */}
+          <section className="col-span-12 border-2 border-black bg-[#FAF7F2] overflow-hidden rounded-2xl shadow-[0px_4px_0px_#000]">
+            <div className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
+              <h3 className="text-[13px] font-black uppercase tracking-wider">Recent Sessions</h3>
+              <button onClick={() => navigate("/analytics")} className="text-[13px] font-extrabold text-[#FF4D2E] hover:underline cursor-pointer">
+                View All
               </button>
             </div>
-
-            <div className="flex flex-col gap-2.5">
-              {campusNotes.slice(0, 2).map((note) => (
-                <div
-                  key={note.id}
-                  className="border border-black rounded-xl p-3 bg-[#FAF7F2] flex flex-col gap-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase ${note.subjectBadgeColor}`}>
-                      {note.subject}
-                    </span>
-                    <span className="text-[10px] font-bold text-black/50">❤️ {note.likes}</span>
-                  </div>
-                  <div className="text-[13px] font-black leading-tight text-black line-clamp-1">
-                    {note.title}
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => handleStudyNote(note, "practice")}
-                      className="flex-1 py-1.5 bg-[#FF4D2E] text-white border border-black rounded-lg text-[10.5px] font-black flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[13px]">quiz</span>
-                      <span>Quiz</span>
-                    </button>
-                    <button
-                      onClick={() => handleStudyNote(note, "flashcards")}
-                      className="flex-1 py-1.5 bg-amber-400 text-black border border-black rounded-lg text-[10.5px] font-black flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[13px]">style</span>
-                      <span>Cards</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <RecentSessionsRows sessions={sessions} loadingSessions={loadingSessions} />
           </section>
 
-          {/* Mobile Friend Streaks */}
-          <section className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex flex-col gap-3">
-            <div className="flex items-center justify-between pb-2 border-b border-black/10">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[16px]">🔥</span>
-                <span className="text-[12px] font-black uppercase tracking-wider">Friend Streaks</span>
-              </div>
-              <button
-                onClick={() => { playTap(); navigate("/community"); }}
-                className="text-[11px] font-extrabold text-[#FF4D2E] underline cursor-pointer"
-              >
-                View Buddies
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {buddies.slice(0, 3).map((buddy) => (
-                <div
-                  key={buddy.id}
-                  className="border border-black rounded-xl p-2.5 bg-[#FAF7F2] flex items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[20px]">{buddy.avatar}</span>
-                    <div className="min-w-0">
-                      <div className="text-[12px] font-black text-black truncate">{buddy.name}</div>
-                      <div className="text-[9.5px] font-black text-[#FF4D2E]">🔥 {buddy.streakDays}d Streak</div>
-                    </div>
-                  </div>
-
-                  {buddy.isRexMascot || buddy.hasStudiedToday ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-800 border border-green-600 rounded text-[9px] font-black uppercase">
-                      Done ✅
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => sendNudge(buddy.id)}
-                      className="px-2.5 py-1 bg-[#FF4D2E] text-white border border-black rounded-lg text-[10px] font-black cursor-pointer"
-                    >
-                      Nudge
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-        </main>
+        </div>
       </div>
+
+      {/* ── MOBILE LAYOUT ───────────────────────────────────────────────────────── */}
+      <main className="md:hidden px-4 pt-4 pb-28 flex flex-col gap-3.5 overflow-y-auto h-full">
+
+        {/* Greeting Header */}
+        <section className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-[19px] sm:text-[21px] font-black leading-tight tracking-tight text-black">
+                Good morning, {displayName}.
+              </h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-[12px] text-black/55 font-bold">
+                  {new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                </span>
+                <span className="w-1 h-1 rounded-full bg-black/30" />
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black bg-[#FFD13B] text-black shadow-[1px_1px_0px_#1A1A1A]">
+                  {activeGoalMeta.badge}
+                </span>
+              </div>
+            </div>
+
+            {/* Rex Head Mascot Icon */}
+            <div className="w-11 h-11 rounded-2xl bg-[#FFD13B] border-2 border-black flex items-center justify-center p-1 flex-shrink-0 shadow-[2px_2px_0px_#1A1A1A]">
+              <img src="/fox/fox-happy.png" alt="Rex Head" className="w-full h-full object-contain" />
+            </div>
+          </div>
+
+          {/* Rex Personalized Motivational Coach Bubble */}
+          <div className="border-2 border-black rounded-xl bg-white p-3 flex items-start gap-2.5 shadow-[2px_2px_0px_#1A1A1A]">
+            <span className="material-symbols-outlined text-[18px] text-[#AE2925] shrink-0 mt-0.5">format_quote</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-extrabold text-black leading-snug">
+                "{activeGoalMeta.rexQuote}"
+              </p>
+              {primarySubjectMeta && (
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-black/45 mt-1 block">
+                  Rex Tutor &bull; {primarySubjectMeta.name} Track
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* 1-Tap Daily Focus Launcher */}
+        <section className="border-2 border-black rounded-2xl bg-[#FF4D2E] text-white p-4 relative overflow-hidden shadow-[3px_3px_0px_#1A1A1A]">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-black text-white font-black uppercase text-[9.5px] tracking-wider rounded border border-white/20">
+              <span className="material-symbols-outlined text-[12px] text-[#FFD13B]">bolt</span>
+              Daily Focus &bull; {primarySubjectMeta.name}
+            </div>
+
+            <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center p-0.5 shrink-0 shadow-xs">
+              <img src="/fox/fox-happy.png" alt="Rex Head" className="w-full h-full object-contain" />
+            </div>
+          </div>
+
+          <h3 className="text-[17px] font-black leading-tight mb-1">Boost retention in 5 minutes</h3>
+          <p className="text-[12px] font-semibold text-white/90 mb-3 leading-snug max-w-xs">
+            Rex prepared your active recall set for {primarySubjectMeta.name}.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => { playSuccess(); navigate(primarySubjectMeta.recommendedTool); }}
+            className="bg-white text-black border-2 border-black font-black uppercase text-[11.5px] tracking-wider px-4 py-2 rounded-full shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFD13B] transition-all flex items-center gap-1.5 w-fit cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+            Launch Practice
+          </button>
+        </section>
+
+        {/* Recommended Study Tools — 4 Personalized Cards */}
+        <section className="flex flex-col gap-2">
+          <div className="flex justify-between items-center px-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Recommended For You</span>
+              <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-white text-black/60">
+                Personalized
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => { playPop(); navigate("/tools"); }}
+              className="text-[11px] font-black text-black underline hover:text-[#FF4D2E] transition-colors cursor-pointer"
+            >
+              See all
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {recommendedTools.map((tool) => (
+              <button
+                key={"rec-mob-" + tool.title}
+                type="button"
+                onClick={() => { playPop(); navigate(tool.route); }}
+                className="h-[96px] border-2 border-black rounded-xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
+                  <span className="material-symbols-outlined text-[15px] opacity-25 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-black">arrow_forward</span>
+                </div>
+                <div>
+                  <div className="text-[13px] font-black text-black leading-tight truncate">{tool.title}</div>
+                  <div className="text-[10.5px] text-black/55 font-bold mt-0.5 truncate">{tool.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Talk to Rex Banner */}
+        <div><CallRexBanner navigate={navigate} /></div>
+
+        {/* Daily Quests & Progress */}
+        <section className="flex flex-col gap-2.5">
+          <div className="border-2 border-black rounded-xl bg-white p-3.5 shadow-[2px_2px_0px_#1A1A1A]">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[11px] opacity-60 font-black uppercase tracking-wider">Today's Quest Target</span>
+              <span className="text-[13px] font-black">{completedCount} of {goalCount} completed</span>
+            </div>
+            <div className="h-2.5 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
+              <div
+                className="h-full bg-[#10B981] rounded-r-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((completedCount / goalCount) * 100))}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="border-2 border-black rounded-xl bg-white overflow-hidden shadow-[3px_3px_0px_#1A1A1A]">
+            <div className="p-3 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
+              <span className="text-[12px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-[#AE2925]">checklist</span>
+                Daily Quests
+              </span>
+              <span className="text-[10.5px] font-bold text-black/50">Keep your streak</span>
+            </div>
+            <QuestLogBody
+              tasks={tasks}
+              loadingTasks={loadingTasks}
+              newTaskTitle={newTaskTitle}
+              setNewTaskTitle={setNewTaskTitle}
+              handleAddTask={handleAddTask}
+              handleToggleTask={handleToggleTask}
+              handleDeleteTask={handleDeleteTask}
+            />
+          </div>
+        </section>
+      </main>
+
     </div>
   );
 }

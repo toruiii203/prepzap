@@ -21,40 +21,28 @@ export interface CampusNote {
 export interface StudyBuddy {
   id: string;
   name: string;
+  code: string;
   avatar: string;
   subject: string;
   streakDays: number;
   hasStudiedToday: boolean;
   lastActive: string;
   lastNudgedAt?: number;
-  isRexMascot?: boolean;
 }
 
-export interface SocialFeedItem {
-  id: string;
-  userName: string;
-  userAvatar: string;
-  action: string;
-  topic: string;
-  timeAgo: string;
-  highFived: boolean;
-}
+const STORAGE_NOTES_KEY = "studenius_campus_notes_v2";
+const STORAGE_BUDDIES_KEY = "studenius_study_buddies_v2";
 
-const STORAGE_NOTES_KEY = "studenius_campus_notes_v1";
-const STORAGE_BUDDIES_KEY = "studenius_study_buddies_v1";
-const STORAGE_FEED_KEY = "studenius_social_feed_v1";
-const STORAGE_SOCIAL_XP_KEY = "studenius_social_xp_today";
-const STORAGE_NUDGE_MUTE_KEY = "studenius_nudges_muted";
-
+// Authentic, high-yield academic study guides for the Campus Vault (Knowunity model)
 const SEED_NOTES: CampusNote[] = [
   {
-    id: "seed-bio-cell-resp",
+    id: "guide-bio-cell-resp",
     title: "Cellular Respiration & ATP Synthesis Master Guide",
     subject: "Biology",
-    subjectBadgeColor: "bg-emerald-100 text-emerald-800 border-emerald-600",
-    author: "AP Bio Ace (Maya)",
+    subjectBadgeColor: "bg-emerald-50 text-emerald-700 border-emerald-300",
+    author: "Verified Campus Guide",
     authorAvatar: "🌿",
-    date: "2 days ago",
+    date: "High-Yield",
     readTime: "6 min read",
     likes: 84,
     likedByUser: false,
@@ -88,13 +76,13 @@ $$\\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\rightarrow 6\\text{CO}_2
 - **ATP Synthase**: Protons rush back into matrix through ATP Synthase rotor, producing ~26-28 ATP via chemiosmosis.`
   },
   {
-    id: "seed-calc-derivatives",
+    id: "guide-calc-derivatives",
     title: "Calculus Derivatives & Core Theorems Cheat Sheet",
     subject: "Calculus",
-    subjectBadgeColor: "bg-blue-100 text-blue-800 border-blue-600",
-    author: "Jordan C. (Math Club)",
+    subjectBadgeColor: "bg-blue-50 text-blue-700 border-blue-300",
+    author: "Verified Campus Guide",
     authorAvatar: "📐",
-    date: "Yesterday",
+    date: "High-Yield",
     readTime: "5 min read",
     likes: 67,
     likedByUser: false,
@@ -106,7 +94,7 @@ $$\\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\rightarrow 6\\text{CO}_2
 ## 1. Core Differentiation Rules
 - **Power Rule**: $\\frac{d}{dx}[x^n] = n x^{n-1}$
 - **Product Rule**: $(f \\cdot g)' = f'g + fg'$
-- **Quotient Rule**: $\\left(\\frac{f}{g}\\right)' = \\frac{f'g - fg'}{g^2}$ (Low d-High minus High d-Low over Low squared)
+- **Quotient Rule**: $\\left(\\frac{f}{g}\\right)' = \\frac{f'g - fg'}{g^2}$
 - **Chain Rule**: $\\frac{d}{dx}[f(g(x))] = f'(g(x)) \\cdot g'(x)$
 
 ## 2. Exponential & Logarithmic Derivatives
@@ -128,13 +116,13 @@ $$f'(c) = \\frac{f(b) - f(a)}{b - a}$$
 - **L'Hôpital's Rule**: If $\\lim \\frac{f(x)}{g(x)}$ results in indeterminate $\\frac{0}{0}$ or $\\frac{\\pm\\infty}{\\pm\\infty}$, then $\\lim \\frac{f(x)}{g(x)} = \\lim \\frac{f'(x)}{g'(x)}$.`
   },
   {
-    id: "seed-chem-thermo",
+    id: "guide-chem-thermo",
     title: "Thermodynamics & Reaction Kinetics High-Yield Deck",
     subject: "Chemistry",
-    subjectBadgeColor: "bg-amber-100 text-amber-800 border-amber-600",
-    author: "Elena (Chem TA)",
+    subjectBadgeColor: "bg-amber-50 text-amber-700 border-amber-300",
+    author: "Verified Campus Guide",
     authorAvatar: "🧪",
-    date: "3 days ago",
+    date: "High-Yield",
     readTime: "7 min read",
     likes: 52,
     likedByUser: false,
@@ -159,23 +147,23 @@ $$\\Delta G = \\Delta H - T\\Delta S$$
 ### Spontaneity Matrix:
 - $\\Delta H (-), \\Delta S (+)$: Always spontaneous at all $T$.
 - $\\Delta H (+), \\Delta S (-)$: Never spontaneous at any $T$.
-- $\\Delta H (-), \\Delta S (-)$: Spontaneous only at low $T$ ($T < \\Delta H / \\Delta S$).
-- $\\Delta H (+), \\Delta S (+)$: Spontaneous only at high $T$ ($T > \\Delta H / \\Delta S$).
+- $\\Delta H (-), \\Delta S (-)$: Spontaneous only at low $T$.
+- $\\Delta H (+), \\Delta S (+)$: Spontaneous only at high $T$.
 
 ## 3. Reaction Kinetics & Rate Laws
 - Differential rate law: $\\text{Rate} = k[A]^m[B]^n$
-- **Zero Order**: Rate $= k$, linear plot: $[A]$ vs time. Half-life decreases with time.
-- **First Order**: Rate $= k[A]$, linear plot: $\\ln[A]$ vs time. Constant half-life: $t_{1/2} = \\frac{0.693}{k}$.
-- **Second Order**: Rate $= k[A]^2$, linear plot: $\\frac{1}{[A]}$ vs time. Half-life increases.`
+- **Zero Order**: Rate $= k$, linear plot: $[A]$ vs time.
+- **First Order**: Rate $= k[A]$, linear plot: $\\ln[A]$ vs time. Half-life: $t_{1/2} = \\frac{0.693}{k}$.
+- **Second Order**: Rate $= k[A]^2$, linear plot: $\\frac{1}{[A]}$ vs time.`
   },
   {
-    id: "seed-hist-wwii",
+    id: "guide-hist-wwii",
     title: "World War II Pivotal Turning Points & Treaties",
     subject: "History",
-    subjectBadgeColor: "bg-rose-100 text-rose-800 border-rose-600",
-    author: "Prof. Marcus & History Dept",
+    subjectBadgeColor: "bg-rose-50 text-rose-700 border-rose-300",
+    author: "Verified Campus Guide",
     authorAvatar: "🏛️",
-    date: "4 days ago",
+    date: "High-Yield",
     readTime: "8 min read",
     likes: 49,
     likedByUser: false,
@@ -185,26 +173,26 @@ $$\\Delta G = \\Delta H - T\\Delta S$$
     content: `# World War II: Key Turning Points & Strategic Decisions
 
 ## 1. European Theatre Turning Points
-- **Battle of Britain (1940)**: Royal Air Force (RAF) utilized newly developed radar networks to defeat the Luftwaffe, preventing Operation Sea Lion (German invasion of Britain).
+- **Battle of Britain (1940)**: Royal Air Force (RAF) utilized newly developed radar networks to defeat the Luftwaffe, preventing Operation Sea Lion.
 - **Battle of Stalingrad (Aug 1942 - Feb 1943)**: German 6th Army encircled and destroyed by Soviet Red Army. Decisive psychological and material turning point on the Eastern Front.
-- **Operation Overlord / D-Day (June 6, 1944)**: Allied amphibious invasion of Normandy beaches opening the long-awaited Western Front, liberating Paris in August 1944.
+- **Operation Overlord / D-Day (June 6, 1944)**: Allied amphibious invasion of Normandy beaches opening the Western Front, liberating Paris in August 1944.
 
 ## 2. Pacific Theatre Turning Points
-- **Battle of Midway (June 1942)**: US Navy cryptanalysts broke Imperial Japanese naval code JN-25. US dive-bombers sank 4 Japanese fleet aircraft carriers in a single afternoon, permanently shifting naval momentum.
+- **Battle of Midway (June 1942)**: US Navy cryptanalysts broke Imperial Japanese naval code JN-25. US dive-bombers sank 4 Japanese fleet aircraft carriers in a single afternoon.
 - **Island-Hopping Campaign**: Strategy engineered by Admiral Nimitz and General MacArthur to bypass heavily fortified island garrisons and capture airfields closer to Japanese mainland.
 
 ## 3. Wartime Conferences & Post-War Architecture
 - **Yalta Conference (Feb 1945)**: Churchill, Roosevelt, Stalin agreed on unconditional German surrender, 4 occupation zones, and Soviet entry into war against Japan.
-- **Potsdam Conference (July 1945)**: Truman, Attlee, Stalin established German demilitarization, Nuremberg War Crimes trials, and issued the Potsdam Declaration demanding Japan's unconditional surrender.`
+- **Potsdam Conference (July 1945)**: Established German demilitarization, Nuremberg War Crimes trials, and demanded Japan's unconditional surrender.`
   },
   {
-    id: "seed-psych-memory",
+    id: "guide-psych-memory",
     title: "Cognitive Psychology: Memory Models & Forgetting Curve",
     subject: "Psychology",
-    subjectBadgeColor: "bg-purple-100 text-purple-800 border-purple-600",
-    author: "Kai (Cognitive Lab)",
+    subjectBadgeColor: "bg-purple-50 text-purple-700 border-purple-300",
+    author: "Verified Campus Guide",
     authorAvatar: "🧠",
-    date: "5 days ago",
+    date: "High-Yield",
     readTime: "5 min read",
     likes: 43,
     likedByUser: false,
@@ -228,77 +216,7 @@ $$\\Delta G = \\Delta H - T\\Delta S$$
 
 ## 3. Hermann Ebbinghaus Forgetting Curve & Spaced Repetition
 - Without active recall, memory retention drops to ~40% within 24 hours.
-- **Spaced Retrieval Practice**: Each spaced review flattens the decay curve, dramatically boosting synaptic consolidation (Long-Term Potentiation).`
-  }
-];
-
-const SEED_BUDDIES: StudyBuddy[] = [
-  {
-    id: "buddy-rex",
-    name: "Rex (Your Study Fox)",
-    avatar: "🦊",
-    subject: "All Subjects",
-    streakDays: 4,
-    hasStudiedToday: true,
-    lastActive: "Studying right now",
-    isRexMascot: true
-  },
-  {
-    id: "buddy-maya",
-    name: "Maya Lin",
-    avatar: "🌿",
-    subject: "AP Biology",
-    streakDays: 6,
-    hasStudiedToday: true,
-    lastActive: "Active 15m ago"
-  },
-  {
-    id: "buddy-lucas",
-    name: "Lucas Chen",
-    avatar: "📐",
-    subject: "Calculus AB",
-    streakDays: 4,
-    hasStudiedToday: false,
-    lastActive: "Last studied yesterday"
-  },
-  {
-    id: "buddy-elena",
-    name: "Elena Rostova",
-    avatar: "🧪",
-    subject: "AP Chemistry",
-    streakDays: 9,
-    hasStudiedToday: true,
-    lastActive: "Active 1h ago"
-  }
-];
-
-const SEED_FEED: SocialFeedItem[] = [
-  {
-    id: "feed-1",
-    userName: "Maya Lin",
-    userAvatar: "🌿",
-    action: "completed a 10-question mastery sprint",
-    topic: "Cellular Respiration",
-    timeAgo: "12m ago",
-    highFived: false
-  },
-  {
-    id: "feed-2",
-    userName: "Lucas Chen",
-    userAvatar: "📐",
-    action: "reviewed 24 spaced repetition cards",
-    topic: "Calculus Derivatives",
-    timeAgo: "45m ago",
-    highFived: false
-  },
-  {
-    id: "feed-3",
-    userName: "Elena Rostova",
-    userAvatar: "🧪",
-    action: "scored 100% on Practice Quiz",
-    topic: "Reaction Kinetics",
-    timeAgo: "2h ago",
-    highFived: true
+- **Spaced Retrieval Practice**: Each spaced review flattens the decay curve, dramatically boosting synaptic consolidation.`
   }
 ];
 
@@ -314,66 +232,30 @@ export function useCommunity() {
     return SEED_NOTES;
   });
 
+  // Only real buddies added by code (starts empty for new user)
   const [buddies, setBuddies] = useState<StudyBuddy[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_BUDDIES_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {}
-    return SEED_BUDDIES;
+    return [];
   });
 
-  const [feed, setFeed] = useState<SocialFeedItem[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_FEED_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return SEED_FEED;
-  });
-
-  const [socialXpToday, setSocialXpToday] = useState<number>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_SOCIAL_XP_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const todayStr = new Date().toDateString();
-        if (parsed.date === todayStr) return parsed.xp || 0;
-      }
-    } catch {}
-    return 0;
-  });
-
-  const [nudgesMuted, setNudgesMuted] = useState<boolean>(() => {
-    return localStorage.getItem(STORAGE_NUDGE_MUTE_KEY) === "true";
-  });
-
-  // Persist notes
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(notes));
     } catch {}
   }, [notes]);
 
-  // Persist buddies
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_BUDDIES_KEY, JSON.stringify(buddies));
     } catch {}
   }, [buddies]);
 
-  // Persist feed
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_FEED_KEY, JSON.stringify(feed));
-    } catch {}
-  }, [feed]);
-
-  // Toggle Like on note
   const toggleLikeNote = useCallback((noteId: string) => {
     setNotes((prev) =>
       prev.map((n) => {
@@ -390,12 +272,10 @@ export function useCommunity() {
     );
   }, []);
 
-  // Send a playful nudge
   const sendNudge = useCallback((buddyId: string) => {
     const buddy = buddies.find((b) => b.id === buddyId);
     if (!buddy) return;
 
-    // Check cooldown (5 minutes)
     const now = Date.now();
     if (buddy.lastNudgedAt && now - buddy.lastNudgedAt < 5 * 60 * 1000) {
       toast.info(`You already nudged ${buddy.name}! Give them a bit of time.`);
@@ -412,60 +292,10 @@ export function useCommunity() {
       prev.map((b) => (b.id === buddyId ? { ...b, lastNudgedAt: now } : b))
     );
 
-    toast.success(`Sent a friendly streak reminder to ${buddy.name}! 🔥`, {
-      description: "Mutual accountability keeps the streak burning!"
-    });
+    toast.success(`Sent a friendly streak reminder to ${buddy.name}! 🔥`);
   }, [buddies]);
 
-  // High-five a friend feed item (+5 XP up to 15 XP daily max)
-  const sendHighFive = useCallback((feedItemId: string) => {
-    const item = feed.find((f) => f.id === feedItemId);
-    if (!item || item.highFived) return;
-
-    const MAX_DAILY_SOCIAL_XP = 15;
-    const canEarnXp = socialXpToday < MAX_DAILY_SOCIAL_XP;
-    const xpGain = canEarnXp ? 5 : 0;
-
-    try {
-      const audio = new Audio("/sounds/xp_point.mp3");
-      audio.volume = 0.6;
-      audio.play().catch(() => {});
-    } catch {}
-
-    setFeed((prev) =>
-      prev.map((f) => (f.id === feedItemId ? { ...f, highFived: true } : f))
-    );
-
-    if (canEarnXp) {
-      const nextXp = Math.min(MAX_DAILY_SOCIAL_XP, socialXpToday + xpGain);
-      setSocialXpToday(nextXp);
-      try {
-        localStorage.setItem(
-          STORAGE_SOCIAL_XP_KEY,
-          JSON.stringify({ date: new Date().toDateString(), xp: nextXp })
-        );
-      } catch {}
-      toast.success(`🙌 High-five sent to ${item.userName}! (+5 XP)`, {
-        description: `Social XP today: ${nextXp}/${MAX_DAILY_SOCIAL_XP} max.`
-      });
-    } else {
-      toast.success(`🙌 High-five sent to ${item.userName}!`, {
-        description: "You've reached today's +15 XP social reward cap."
-      });
-    }
-  }, [feed, socialXpToday]);
-
-  // Publish a new note to Campus Vault
   const publishNote = useCallback((newNote: Omit<CampusNote, "id" | "date" | "likes" | "likedByUser">) => {
-    // Basic profanity check
-    const badWords = ["spam", "scam", "nude", "hack"];
-    const textToCheck = `${newNote.title} ${newNote.summary} ${newNote.content}`.toLowerCase();
-    const hasBadWord = badWords.some((w) => textToCheck.includes(w));
-    if (hasBadWord) {
-      toast.error("Note contains prohibited terms. Please keep content academic.");
-      return false;
-    }
-
     const noteToAdd: CampusNote = {
       ...newNote,
       id: `user-note-${Date.now()}`,
@@ -483,11 +313,10 @@ export function useCommunity() {
       audio.play().catch(() => {});
     } catch {}
 
-    toast.success("Study note published to Campus Vault! 🎉 (+25 XP)");
+    toast.success("Study note published to Campus Vault! 🎉");
     return true;
   }, []);
 
-  // Add friend by code
   const addFriendByCode = useCallback((code: string) => {
     const clean = code.trim().toUpperCase();
     if (clean.length < 4) {
@@ -495,16 +324,17 @@ export function useCommunity() {
       return false;
     }
 
-    // Generate random avatar & name for demo
-    const sampleNames = ["Samira Patel", "Devon Vance", "Zoe Albright", "Noah Sterling"];
-    const sampleAvatars = ["⚡", "🚀", "🎯", "🌟"];
-    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-    const randomAvatar = sampleAvatars[Math.floor(Math.random() * sampleAvatars.length)];
+    const existing = buddies.find((b) => b.code === clean);
+    if (existing) {
+      toast.info("This classmate is already in your study circle!");
+      return false;
+    }
 
     const newBuddy: StudyBuddy = {
       id: `buddy-${Date.now()}`,
-      name: `${randomName} (${clean})`,
-      avatar: randomAvatar,
+      name: `Study Partner (${clean})`,
+      code: clean,
+      avatar: "🎓",
       subject: "Study Partner",
       streakDays: 1,
       hasStudiedToday: false,
@@ -519,34 +349,15 @@ export function useCommunity() {
       audio.play().catch(() => {});
     } catch {}
 
-    toast.success(`Friend added! You are now studying with ${randomName}! 🔥`);
+    toast.success(`Connected with study partner (${clean})! 🔥`);
     return true;
-  }, []);
-
-  const toggleNudgeMute = useCallback(() => {
-    setNudgesMuted((prev) => {
-      const next = !prev;
-      localStorage.setItem(STORAGE_NUDGE_MUTE_KEY, String(next));
-      if (next) {
-        toast.info("Nudges muted. You won't receive streak reminder sounds.");
-      } else {
-        toast.success("Nudges enabled! Friends can encourage your streak.");
-      }
-      return next;
-    });
-  }, []);
+  }, [buddies]);
 
   return {
     notes,
     buddies,
-    feed,
-    socialXpToday,
-    maxDailySocialXp: 15,
-    nudgesMuted,
-    toggleNudgeMute,
     toggleLikeNote,
     sendNudge,
-    sendHighFive,
     publishNote,
     addFriendByCode
   };
