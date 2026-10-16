@@ -461,6 +461,11 @@ export default function Dashboard() {
     return [...matched, ...remaining].slice(0, 4);
   }, [primarySubjectMeta, primaryStyleMeta]);
 
+  const otherTools = useMemo(() => {
+    const recRoutes = new Set(recommendedTools.map((t) => t.route));
+    return ALL_TOOLS.filter((t) => !recRoutes.has(t.route));
+  }, [recommendedTools]);
+
   const fetchTasks = () => {
     setLoadingTasks(true);
     try {
