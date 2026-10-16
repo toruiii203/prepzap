@@ -153,11 +153,6 @@ async function _callGroqCoreWithToken(
     throw new Error("Rex returned an empty response. Please try again.");
   }
 
-  console.log(
-    "[groq] response received, length:", result.length, "✓",
-    "provider:", data?._provider ?? "unknown"
-  );
-
   return { text: result, provider: data._provider };
 }
 
@@ -222,12 +217,6 @@ async function _callGroqCore(
   ];
 
   const resolvedModel = getTieredModel(hasImages ? VISION_MODEL : model);
-
-  console.log(
-    "[groq] sending request, model:", resolvedModel,
-    "messages count:", fullMessages.length,
-    "first msg role:", fullMessages[0]?.role
-  );
 
   const token = await getAccessTokenSafely();
 
@@ -304,8 +293,6 @@ export async function callGroqWithImages(
     { role: "user" as const, content: userContent },
   ];
 
-  console.log("[groq] sending vision request, model:", VISION_MODEL, "messages count:", messages.length);
-
   const visionToken = await getAccessTokenSafely();
   const visionController = new AbortController();
   const visionTimeoutId = setTimeout(() => visionController.abort(), 90000);
@@ -351,7 +338,6 @@ export async function callGroqWithImages(
   }
 
   const result: string = data.choices[0]?.message?.content ?? "";
-  console.log("[groq] response received, length:", result.length, result.length === 0 ? "⚠️ EMPTY RESPONSE" : "✓");
 
   if (result.length === 0) {
     throw new Error("Vision model returned an empty response. Please try again.");

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -38,8 +38,8 @@ export function useStudyStats() {
       }
 
       // We use Promise.race to prevent infinite hangs if Supabase's internal queue is stuck
-      const fetchSessionsPromise = supabase.from("study_sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-      const fetchActivityPromise = supabase.from("study_activity").select("id, activity_type, tool, created_at, metadata").eq("user_id", user.id).order("created_at", { ascending: false });
+      const fetchSessionsPromise = supabase.from("study_sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).catch(() => ({ data: [] }));
+      const fetchActivityPromise = supabase.from("study_activity").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).catch(() => ({ data: [] }));
       
       const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 8000));
 

@@ -349,6 +349,10 @@ export default function Dashboard() {
 
 
   const fetchSessions = async () => {
+    if (!user?.id) {
+      setLoadingSessions(false);
+      return;
+    }
     setLoadingSessions(true);
     try {
       let combinedData: any[] = [];
@@ -360,8 +364,8 @@ export default function Dashboard() {
       } catch (err) {}
       
       const [sessRes, actRes] = await Promise.all([
-          supabase.from("study_sessions").select("*").eq("user_id", user?.id).order("created_at", { ascending: false }),
-          supabase.from("study_activity").select("id, activity_type, tool, created_at, metadata").eq("user_id", user?.id).order("created_at", { ascending: false })
+          supabase.from("study_sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).catch(() => ({ data: [] })),
+          supabase.from("study_activity").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).catch(() => ({ data: [] }))
         ]);
         
         if (sessRes.data && sessRes.data.length > 0) {
