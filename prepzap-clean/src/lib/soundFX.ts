@@ -177,3 +177,110 @@ export function playCelebration() {
     triggerHaptic("celebrate");
   } catch {}
 }
+
+/**
+ * Duolingo-style soft, encouraging clunk for mistakes (not harsh or buzzing)
+ */
+export function playIncorrect() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.16);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.16);
+    triggerHaptic("medium");
+  } catch {}
+}
+
+/**
+ * Ascending pitch combo chime for consecutive correct answers (Duolingo style)
+ */
+export function playComboStreak(streak: number = 1) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Pitch multiplier increases per streak up to 10
+    const pitchMultiplier = Math.min(1.8, 1 + (streak - 1) * 0.08);
+    const baseNotes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    const count = streak >= 3 ? 4 : 3;
+
+    for (let i = 0; i < count; i++) {
+      const freq = baseNotes[i] * pitchMultiplier;
+      const noteTime = now + i * 0.055;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = streak >= 5 ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      gain.gain.setValueAtTime(0, noteTime);
+      gain.gain.linearRampToValueAtTime(0.2, noteTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.22);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.22);
+    }
+
+    if (streak >= 5) {
+      triggerHaptic("celebrate");
+    } else {
+      triggerHaptic("success");
+    }
+  } catch {}
+}
+
+/**
+ * Resonant crystalline chime when a previously missed card reaches 100% Mastery
+ */
+export function playMastery() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // F#5, A#5, C#6, F#6 sparkling arpeggio
+    const notes = [739.99, 932.33, 1108.73, 1479.98];
+    notes.forEach((freq, idx) => {
+      const noteTime = now + idx * 0.06;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      gain.gain.setValueAtTime(0, noteTime);
+      gain.gain.linearRampToValueAtTime(0.22, noteTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.35);
+    });
+
+    triggerHaptic("celebrate");
+  } catch {}
+}

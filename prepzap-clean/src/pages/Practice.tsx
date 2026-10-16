@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { loadLibrary, onSourceChange } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
@@ -9,13 +9,22 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { callGroq, safeParseJSON } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { useToolHistory } from "@/pages/ToolHistory";
-import { logQuestCompletion } from "@/lib/quests";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
+import { 
+  playPop, 
+  playTap, 
+  playSuccess, 
+  playCelebration, 
+  playIncorrect, 
+  playComboStreak, 
+  playMastery 
+} from "@/lib/soundFX";
+import { fireConfetti } from "@/lib/confetti";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
-interface Question {
+export interface Question {
   type?: "multiple-choice" | "identification" | "fill-in-the-blank";
   q: string;
   options?: string[];
@@ -27,6 +36,16 @@ interface Question {
   explanation?: string;
 }
 
+export interface AdaptiveItem {
+  id: string;
+  question: Question;
+  originalIndex: number;
+  mastery: number; // 0 to 100
+  attempts: number;
+  isReTest: boolean;
+  scaffoldHint?: string;
+}
+
 interface HistoryEntry {
   prompt?: string;
   preview?: string;
@@ -36,16 +55,11 @@ interface HistoryEntry {
   created_at?: string;
 }
 
-// FIX: history entries previously only stored the raw selected-answer
-// indices in `output` (e.g. "[1,0,2]") with no question text, options, or
-// correct answers alongside them — there was no way to reconstruct a
-// review even if a detail view existed. `output` now stores the full
-// question set together with the student's answers so history can show
-// a real question-by-question breakdown.
 interface ReviewData {
   questions: Question[];
-  answers: number[];
+  answers: (number | string)[];
 }
+
 function parseReviewData(entry: HistoryEntry): ReviewData | null {
   if (!entry.output) return null;
   try {
@@ -59,7 +73,7 @@ function parseReviewData(entry: HistoryEntry): ReviewData | null {
   }
 }
 
-// ─── Helpers (outside component — stable, never recreated) ───────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function parseHistoryEntry(entry: HistoryEntry) {
   const meta = entry.meta || "";
   const parts = meta.split("/");
@@ -80,8 +94,64 @@ function parseHistoryEntry(entry: HistoryEntry) {
   return { pct, ringColor, ringBg, timeAgo, title, correct, total };
 }
 
-// ─── Sub-components (outside — React never remounts them on re-render) ────────
+function cleanStr(s: string): string {
+  return (s || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+}
 
+function getLevenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+/**
+ * Gizmo Recall Scaffolding Generator:
+ * Generates first-letter blanks clues or hint cues when an item is missed.
+ */
+function generateScaffold(question: Question): string {
+  if (question.type === "identification" || question.type === "fill-in-the-blank") {
+    const raw = (question.answerText || "").trim();
+    if (!raw) return question.hint || "Recall the core keyword from your study source.";
+    
+    const words = raw.split(" ");
+    const maskedWords = words.map(w => {
+      if (w.length <= 2) return w;
+      const first = w[0].toUpperCase();
+      const blanks = Array(w.length - 1).fill("_").join(" ");
+      return `${first} ${blanks}`;
+    });
+    return `First-letter clue: ${maskedWords.join("   ")} (${raw.length} chars)`;
+  } else {
+    if (question.hint) {
+      return `Rex Hint: ${question.hint}`;
+    }
+    if (question.explanation) {
+      const firstSentence = question.explanation.split(". ")[0];
+      return `Key concept: ${firstSentence}.`;
+    }
+    return "Think back to the key definition in your study source.";
+  }
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 interface BannerProps {
   isGenerating: boolean;
   topicInput: string;
@@ -95,26 +165,50 @@ interface BannerProps {
   setActiveSourceObj: (v: any) => void;
   quizType: string;
   setQuizType: (v: string) => void;
+  difficulty: string;
+  setDifficulty: (v: string) => void;
 }
+
 const QUESTION_COUNT_OPTIONS = [3, 5, 10, 15];
-function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, onNavigate, libraryFiles, questionCount, setQuestionCount, activeSourceObj, setActiveSourceObj, quizType, setQuizType, difficulty, setDifficulty }: BannerProps) {
+
+function DesktopBanner({
+  isGenerating,
+  topicInput,
+  setTopicInput,
+  onGenerate,
+  onNavigate,
+  libraryFiles,
+  questionCount,
+  setQuestionCount,
+  activeSourceObj,
+  setActiveSourceObj,
+  quizType,
+  setQuizType,
+  difficulty,
+  setDifficulty,
+}: BannerProps) {
   return (
-    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[1.5px] border-black p-6 flex flex-col gap-4">
+    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[2px] border-black shadow-[4px_4px_0px_#000] p-6 flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">school</span>
-            <h2 className="font-extrabold text-[20px]">Quiz Generator</h2>
+            <span className="material-symbols-outlined text-[#FF4D2E] text-[24px]">school</span>
+            <h2 className="font-extrabold text-[22px]">Quiz Generator</h2>
+            <span className="px-2.5 py-0.5 bg-[#FFF275] border border-black rounded-full text-[10px] font-black uppercase tracking-wider">
+              Adaptive Mastery
+            </span>
           </div>
-          <p className="text-[13px] text-black/60 font-bold">Create custom quizzes instantly.</p>
+          <p className="text-[13px] text-black/60 font-bold">
+            Spaced recall engine tests missed concepts until 100% mastery.
+          </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex flex-col items-end gap-1">
             <button 
               onClick={() => onNavigate("/library")}
-              className="text-[10px] font-bold text-[#FF4D2E] hover:underline flex items-center"
+              className="text-[11px] font-bold text-[#FF4D2E] hover:underline flex items-center"
             >
-              <span className="material-symbols-outlined text-[12px] mr-1">add_circle</span>
+              <span className="material-symbols-outlined text-[13px] mr-1">add_circle</span>
               Add Source
             </button>
             <select
@@ -129,24 +223,27 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
               }}
               className="border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0] text-[12px] font-bold hover:bg-black hover:text-white transition-colors cursor-pointer focus:outline-none"
             >
-              <option value="all">General Study (No Source)</option>
+              <option value="all">General Study (All Sources)</option>
               {(libraryFiles || []).map((file: any) => (
                 <option key={file.id} value={file.id}>{file.name}</option>
               ))}
             </select>
           </div>
-          <button onClick={onGenerate} disabled={isGenerating}
-            className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[1.5px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-90 rounded-lg disabled:opacity-60">
-            <span className="material-symbols-outlined text-[18px]">edit_document</span>
-            {isGenerating ? "Generating..." : "Generate Quiz via AI"}
+          <button 
+            onClick={onGenerate} 
+            disabled={isGenerating}
+            className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[2px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-95 rounded-lg disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-[18px]">bolt</span>
+            {isGenerating ? "Generating..." : "Generate Mastery Quiz"}
           </button>
         </div>
       </div>
       <textarea
         value={topicInput}
         onChange={e => setTopicInput(e.target.value)}
-        className="w-full h-[100px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
-        placeholder="Paste your notes or type a topic to generate a custom quiz..."
+        className="w-full h-[90px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
+        placeholder="Paste your notes or type a topic (e.g. Cellular Respiration, Newton's Laws)..."
       />
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Questions</span>
@@ -163,28 +260,30 @@ function DesktopBanner({ isGenerating, topicInput, setTopicInput, onGenerate, on
             </button>
           ))}
         </div>
-        <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-4">Type</span>
+
+        <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-3">Type</span>
         <select
           value={quizType}
           onChange={(e) => setQuizType(e.target.value)}
           className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
         >
-          <option value="mixed">Mixed</option>
+          <option value="mixed">Mixed Types</option>
           <option value="multiple-choice">Multiple Choice</option>
           <option value="identification">Identification</option>
           <option value="fill-in-the-blank">Fill-in-the-Blank</option>
         </select>
-          <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-4">Difficulty</span>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
-          >
-            <option value="mixed">Mixed</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+
+        <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-3">Difficulty</span>
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+          className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
+        >
+          <option value="mixed">Mixed</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
       </div>
     </div>
   );
@@ -195,21 +294,20 @@ function HistoryCard({ entry, onOpenReview }: { entry: HistoryEntry; onOpenRevie
   return (
     <button
       onClick={() => onOpenReview(entry)}
-      className="w-full bg-white border-[1.5px] border-black p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5 text-left"
+      className="w-full bg-white border-[1.5px] border-black p-4 rounded-xl flex items-start gap-3 hover:bg-[#F0EDE0] transition-colors cursor-pointer active:translate-y-0.5 text-left shadow-[2px_2px_0px_#000]"
     >
-      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[13px]"
+      <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 border-2 font-extrabold text-[12px]"
         style={{ background: ringBg, borderColor: ringColor, color: ringColor }}>
         {pct}%
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-extrabold text-[13px] leading-snug line-clamp-2 mb-1">{title}</p>
-        <p className="text-[11px] text-black/40 font-bold">{correct}/{total} correct{timeAgo ? ` · ${timeAgo}` : ""}</p>
+        <p className="text-[11px] text-black/50 font-bold">{correct}/{total} correct{timeAgo ? ` · ${timeAgo}` : ""}</p>
       </div>
-      <span className="material-symbols-outlined text-[18px] text-black/20 self-center shrink-0">chevron_right</span>
+      <span className="material-symbols-outlined text-[18px] text-black/30 self-center shrink-0">chevron_right</span>
     </button>
   );
 }
-
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Practice() {
@@ -217,56 +315,92 @@ export default function Practice() {
   const { isPro, canUse, logUsage } = usePlan();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const navigate = useNavigate();
-  const { user, profile, refreshProfile, addXP } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { logSession } = useStudySession();
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
 
-  const [view, setView]                     = useState<"quiz" | "results">(() => localStorage.getItem('pz_practice_view') as any || "quiz");
-  const [currentQIndex, setCurrentQIndex]   = useState(() => parseInt(localStorage.getItem('pz_practice_index') || '0', 10));
-  const [selectedOption, setSelectedOption] = useState<number | null>(() => {
-    const s = localStorage.getItem('pz_practice_selected');
-    return s ? parseInt(s, 10) : null;
+  // Global Quiz View
+  const [view, setView] = useState<"quiz" | "results">(() => 
+    (localStorage.getItem('pz_practice_view') as any) || "quiz"
+  );
+
+  // Gizmo Adaptive Queue & Recall State
+  const [adaptiveQueue, setAdaptiveQueue] = useState<AdaptiveItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pz_practice_queue');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
-  const [timeLeft, setTimeLeft]             = useState(() => parseInt(localStorage.getItem('pz_practice_time') || '600', 10));
-  const [score, setScore]                   = useState(() => parseInt(localStorage.getItem('pz_practice_score') || '0', 10));
-  const [answers, setAnswers]               = useState<number[]>(() => {
+  const [totalInitialCount, setTotalInitialCount] = useState<number>(() => 
+    parseInt(localStorage.getItem('pz_practice_total_count') || '0', 10)
+  );
+  const [masteredCount, setMasteredCount] = useState<number>(() => 
+    parseInt(localStorage.getItem('pz_practice_mastered_count') || '0', 10)
+  );
+
+  // Duolingo Dopamine Streak State
+  const [comboStreak, setComboStreak] = useState<number>(() => 
+    parseInt(localStorage.getItem('pz_practice_combo') || '0', 10)
+  );
+  const [highestStreak, setHighestStreak] = useState<number>(() => 
+    parseInt(localStorage.getItem('pz_practice_highest_combo') || '0', 10)
+  );
+
+  // Interaction State for Active Question
+  const [hasAnsweredCurrent, setHasAnsweredCurrent] = useState(false);
+  const [isCurrentCorrect, setIsCurrentCorrect] = useState<boolean | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [semanticFeedback, setSemanticFeedback] = useState<string>("");
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [textInput, setTextInput] = useState("");
+  const [showHint, setShowHint] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+
+  // Overall Quiz Metadata & Archive State
+  const [timeLeft, setTimeLeft] = useState(() => 
+    parseInt(localStorage.getItem('pz_practice_time') || '600', 10)
+  );
+  const [score, setScore] = useState(() => 
+    parseInt(localStorage.getItem('pz_practice_score') || '0', 10)
+  );
+  const [answers, setAnswers] = useState<(number | string)[]>(() => {
     try { return JSON.parse(localStorage.getItem('pz_practice_answers') || '[]'); } catch { return []; }
   });
-  const [isGenerating, setIsGenerating]     = useState(false);
-  const [questions, setQuestions]           = useState<Question[]>(() => {
+  const [questions, setQuestions] = useState<Question[]>(() => {
     try { return JSON.parse(localStorage.getItem('pz_practice_questions') || '[]'); } catch { return []; }
   });
-  const [topicInput, setTopicInput]         = useState(() => localStorage.getItem('pz_practice_topic') || "");
-  const [questionCount, setQuestionCount]   = useState(() => parseInt(localStorage.getItem('pz_practice_count') || '3', 10));
-  const [libraryFiles, setLibraryFiles]     = useState<any[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [topicInput, setTopicInput] = useState(() => 
+    localStorage.getItem('pz_practice_topic') || ""
+  );
+  const [questionCount, setQuestionCount] = useState(() => 
+    parseInt(localStorage.getItem('pz_practice_count') || '5', 10)
+  );
+  const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
   const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
-  const [quizType, setQuizType]             = useState<string>("mixed");
+  const [quizType, setQuizType] = useState<string>("mixed");
   const [difficulty, setDifficulty] = useState<string>("mixed");
 
+  const [showHistory, setShowHistory] = useState(false);
+  const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
+
+  // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem('pz_practice_view', view);
-    localStorage.setItem('pz_practice_index', currentQIndex.toString());
-    localStorage.setItem('pz_practice_selected', selectedOption !== null ? selectedOption.toString() : '');
+    localStorage.setItem('pz_practice_queue', JSON.stringify(adaptiveQueue));
+    localStorage.setItem('pz_practice_total_count', totalInitialCount.toString());
+    localStorage.setItem('pz_practice_mastered_count', masteredCount.toString());
+    localStorage.setItem('pz_practice_combo', comboStreak.toString());
+    localStorage.setItem('pz_practice_highest_combo', highestStreak.toString());
     localStorage.setItem('pz_practice_time', timeLeft.toString());
     localStorage.setItem('pz_practice_score', score.toString());
     localStorage.setItem('pz_practice_answers', JSON.stringify(answers));
     localStorage.setItem('pz_practice_questions', JSON.stringify(questions));
     localStorage.setItem('pz_practice_topic', topicInput);
     localStorage.setItem('pz_practice_count', questionCount.toString());
-  }, [view, currentQIndex, selectedOption, timeLeft, score, answers, questions, topicInput, questionCount]);
-  const [isReviewLoop, setIsReviewLoop] = useState(false);
-  const [missedQuestions, setMissedQuestions] = useState<number[]>([]);
-  const [reviewIndex, setReviewIndex] = useState(0);
-  const [hasAnsweredCurrent, setHasAnsweredCurrent] = useState(false);
-  const [isCurrentCorrect, setIsCurrentCorrect] = useState<boolean | null>(null);
-  const [showReviewTransition, setShowReviewTransition] = useState(false);
-  const [showProUpsell, setShowProUpsell] = useState(false);
-  const [textAnswers, setTextAnswers] = useState<string[]>([]);
-  const [textInput, setTextInput] = useState("");
-  const [showHint, setShowHint] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
+  }, [view, adaptiveQueue, totalInitialCount, masteredCount, comboStreak, highestStreak, timeLeft, score, answers, questions, topicInput, questionCount]);
 
   // Handle export from Quick Study
   useEffect(() => {
@@ -274,7 +408,7 @@ export default function Practice() {
     if (exportedData) {
       try {
         const material = JSON.parse(exportedData);
-        setTopicInput(material);
+        setTopicInput(typeof material === "string" ? material : JSON.stringify(material));
         setQuestionCount(5);
         localStorage.removeItem("qs_practice_export");
       } catch (err) {
@@ -283,7 +417,7 @@ export default function Practice() {
     }
   }, []);
 
-
+  // Library sync
   useEffect(() => {
     const sync = () => setLibraryFiles(loadLibrary());
     sync();
@@ -292,37 +426,81 @@ export default function Practice() {
     return () => { unsub(); window.removeEventListener("focus", sync); };
   }, []);
 
+  // Countdown timer
   useEffect(() => {
-    if (view !== "quiz" || questions.length === 0) return;
+    if (view !== "quiz" || adaptiveQueue.length === 0) return;
     const interval = setInterval(() => {
       setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(interval);
-  }, [view, questions.length]);
+  }, [view, adaptiveQueue.length]);
 
-  // FIX: Practice used to rely on a single manually-picked "active source"
-  // file via getActiveSource()/buildAIContext() — the student had to open a
-  // dropdown and choose one file from the Source Library before every quiz.
-  // This now reads every file currently in the Source Library automatically,
-  // same as Quick Study, so there's nothing to pick.
-  const MAX_CHARS_PER_SOURCE = 5000;
-  const MAX_SOURCES = 5;
-  const buildAllSourcesContext = (files: any[]): string => {
-    const usable = files.filter((f) => f.fullText || f.preview);
-    if (usable.length === 0) return "";
-    const parts = usable.slice(0, MAX_SOURCES).map((f) => {
-      if (f.type === "image/jpeg" || f.type === "image/png") {
-        return `=== SOURCE: ${f.name} ===\n[Camera capture image — text not available]`;
+  // Active question derived from queue head
+  const currentItem: AdaptiveItem | undefined = adaptiveQueue[0];
+  const currentQuestion: Question | undefined = currentItem?.question;
+
+  // Rex AI Semantic Grading via Groq with typo allowance
+  const evaluateAnswer = async (
+    userText: string, 
+    expectedText: string, 
+    questionText: string
+  ): Promise<{ isCorrect: boolean; feedback?: string }> => {
+    const cUser = cleanStr(userText);
+    const cExp = cleanStr(expectedText);
+
+    // Exact match
+    if (cUser === cExp) {
+      return { isCorrect: true, feedback: "Spot on! Perfect match." };
+    }
+
+    if (cUser.length < 2) {
+      return { isCorrect: false, feedback: "" };
+    }
+
+    // Levenshtein typo check (1 character error on terms >= 4 chars)
+    const dist = getLevenshteinDistance(cUser, cExp);
+    if (dist <= 1 && cExp.length >= 4) {
+      return { isCorrect: true, feedback: "Accepted! (Minor typo auto-corrected)" };
+    }
+
+    // Groq AI Semantic Check
+    try {
+      const prompt = `Grade this student answer for an academic quiz question.
+Question: "${questionText}"
+Expected Answer: "${expectedText}"
+Student Answer: "${userText}"
+
+Rules:
+- Accept conceptual matches, synonyms, or slight phrasing variations (e.g. "cell powerhouse" for "mitochondria", "Newton's 1st law" for "law of inertia").
+- Accept spelling typos if phonetically clear.
+- Reject factual errors or guessing.
+
+Output strict JSON only:
+{"isCorrect": true|false, "feedback": "Short 1-sentence note"}`;
+
+      const res = await callGroq(
+        [{ role: "user", content: prompt }],
+        "You are an encouraging academic grading assistant. Output valid JSON only.",
+        "openai/gpt-oss-20b",
+        140,
+        "practice"
+      );
+
+      const parsed = safeParseJSON<{ isCorrect: boolean; feedback: string }>(res);
+      if (parsed && typeof parsed.isCorrect === "boolean") {
+        return { 
+          isCorrect: parsed.isCorrect, 
+          feedback: parsed.feedback || (parsed.isCorrect ? "Accepted conceptually!" : "") 
+        };
       }
-      const raw = f.fullText || f.preview || "";
-      const text =
-        raw.length > MAX_CHARS_PER_SOURCE ? raw.slice(0, MAX_CHARS_PER_SOURCE) + "\n[…truncated]" : raw;
-      return `=== SOURCE: ${f.name} ===\n${text}`;
-    });
-    if (parts.length === 0) return "";
-    return `\n\n--- STUDY SOURCES (base your questions on this material) ---\n${parts.join("\n\n")}\n--- END SOURCES ---`;
+    } catch (e) {
+      console.warn("Groq semantic grading error:", e);
+    }
+
+    return { isCorrect: false, feedback: "" };
   };
 
+  // Generate Quiz handler
   const handleGenerateQuiz = async () => {
     setIsGenerating(true);
     try {
@@ -335,68 +513,90 @@ export default function Practice() {
             return;
           }
         } catch (planErr) {
-          console.warn("Failed to check plan limits, allowing fallback:", planErr);
+          console.warn("Failed to check plan limits:", planErr);
         }
       }
 
       const sourceText = activeSourceObj 
         ? `=== SOURCE: ${activeSourceObj.name} ===\n${activeSourceObj.fullText || activeSourceObj.preview || "[No text available]"}`
         : "";
-      const topicHint  = topicInput.trim();
+      const topicHint = topicInput.trim();
       
       const typeInstruct = quizType === "mixed" 
         ? 'any combination of "multiple-choice", "identification", and "fill-in-the-blank" questions'
         : `only "${quizType}" questions`;
+
+      const diffInstruct = difficulty === "mixed"
+        ? "with mixed difficulties (Easy, Medium, Hard)"
+        : `with "${difficulty}" difficulty`;
       
       const promptText = sourceText
-        ? `Generate a set of ${questionCount || 3} interesting, high-quality quiz questions (${typeInstruct}, ${diffInstruct}) based on the following student resource:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
+        ? `Generate a set of ${questionCount || 5} interesting, high-quality quiz questions (${typeInstruct}, ${diffInstruct}) based on this student material:\n\n---\n${sourceText}\n---\n${topicHint ? `\nFocus especially on: ${topicHint}` : ""}`
         : topicHint
-          ? `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}, ${diffInstruct}) about: ${topicHint}`
-          : `Generate ${questionCount || 3} high-quality educational quiz questions (${typeInstruct}, ${diffInstruct}) across academic curriculum subjects like Math, Chemistry, and History.`;
+          ? `Generate ${questionCount || 5} high-quality educational quiz questions (${typeInstruct}, ${diffInstruct}) about: ${topicHint}`
+          : `Generate ${questionCount || 5} high-quality educational quiz questions (${typeInstruct}, ${diffInstruct}) across core academic curriculum subjects.`;
 
-      const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount || 3} questions. Do NOT write any introduction or explanation markdown blocks outside the JSON array of objects.
+      const systemPrompt = `You are a strict JSON api generator. You MUST respond with a valid JSON array of exactly ${questionCount || 5} questions. Do NOT write any introduction or explanation outside the JSON array.
 We support three question types: "multiple-choice", "identification", and "fill-in-the-blank".
-For this request, you must generate ${typeInstruct} with ${diffInstruct}.
+For this request, generate ${typeInstruct} ${diffInstruct}.
 Each object MUST match this schema exactly:
 {
   "type": "multiple-choice" | "identification" | "fill-in-the-blank",
   "q": "Question text or sentence with a ______ for blanks.",
   "options": ["A","B","C","D"], // ONLY for multiple-choice, otherwise null
-  "correct": 0, // For multiple-choice, index of correct option.
+  "correct": 0, // For multiple-choice, index 0-3 of correct option.
   "answerText": "Exact word", // For identification or fill-in-the-blank
-  "subject": "Subject",
+  "subject": "Subject name",
   "difficulty": "Easy, Medium or Hard",
   "hint": "A short helpful hint.",
-  "explanation": "Why the answer is correct."
+  "explanation": "Why this answer is correct."
 }`;
 
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
         "openai/gpt-oss-20b",
-        Math.min(4096, 300 + (questionCount || 3) * 300),
+        Math.min(4096, 400 + (questionCount || 5) * 320),
         "practice"
       );
 
-      const parsed = safeParseJSON<any[]>(aiResponse);
+      const parsed = safeParseJSON<Question[]>(aiResponse);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const queueItems: AdaptiveItem[] = parsed.map((q, idx) => ({
+          id: `q-${Date.now()}-${idx}`,
+          question: q,
+          originalIndex: idx,
+          mastery: 0,
+          attempts: 0,
+          isReTest: false,
+        }));
+
         setQuestions(parsed);
-        logSession({ title: `Practice: ${topicHint || "General Quiz"}`, durationMinutes: Math.ceil((questionCount || 3) * 1.5) }); 
-        try { await logUsage("practice"); } catch {};
-        setCurrentQIndex(0);
-        setSelectedOption(null);
-        setAnswers([]);
-        setTextAnswers([]);
+        setAdaptiveQueue(queueItems);
+        setTotalInitialCount(parsed.length);
+        setMasteredCount(0);
+        setComboStreak(0);
+        setHighestStreak(0);
         setScore(0);
-        setMissedQuestions([]);
-        setIsReviewLoop(false);
-        setReviewIndex(0);
+        setAnswers([]);
+        setSelectedOption(null);
         setTextInput("");
         setHasAnsweredCurrent(false);
         setIsCurrentCorrect(null);
+        setSemanticFeedback("");
         setTimeLeft(Math.max(300, parsed.length * 90));
+
+        logSession({ 
+          title: `Practice: ${topicHint || "Adaptive Mastery Quiz"}`, 
+          durationMinutes: Math.ceil((questionCount || 5) * 1.5) 
+        }); 
+        try { await logUsage("practice"); } catch {};
+        
+        playSuccess();
         setView("quiz");
-      } else throw new Error("Invalid structure from AI. Please try again.");
+      } else {
+        throw new Error("Invalid structure from AI. Please try again.");
+      }
     } catch (err) {
       console.error("Quiz generation error:", err);
       alert("Failed to generate quiz. " + (err instanceof Error ? err.message : "Please try again."));
@@ -411,164 +611,143 @@ Each object MUST match this schema exactly:
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const validateText = (input: string, expected: string) => {
-    if (!input || !expected) return false;
-    const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return clean(input) === clean(expected);
-  };
+  // Check Answer Handler (Duolingo dopamine triggers + Groq semantic eval)
+  const handleCheck = useCallback(async () => {
+    if (hasAnsweredCurrent || isEvaluating || !currentItem) return;
 
-  const handleNext = () => {
-    const actualQIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
-    const question = questions[actualQIndex];
-    
-    let isCorrect = false;
-    let savedAnswer: any = null;
+    const q = currentItem.question;
+    const isMc = q.type === "multiple-choice" || (!q.type && q.options && q.options.length > 0);
 
-    if (question.type === "identification" || question.type === "fill-in-the-blank") {
-      if (!textInput.trim()) return;
-      isCorrect = validateText(textInput, question.answerText || (question as any).answer || "");
-      savedAnswer = textInput;
-    } else {
+    if (isMc) {
       if (selectedOption === null) return;
-      isCorrect = selectedOption === question.correct;
-      savedAnswer = selectedOption;
-    }
+      const isCorrect = selectedOption === q.correct;
+      setIsCurrentCorrect(isCorrect);
+      setHasAnsweredCurrent(true);
 
-    if (!isReviewLoop) {
-      setAnswers(prev => [...prev, typeof savedAnswer === "number" ? savedAnswer : -1]);
-      setTextAnswers(prev => [...prev, typeof savedAnswer === "string" ? savedAnswer : ""]);
       if (isCorrect) {
-        setScore(prev => prev + 1);
-      }
-    }
-
-    let newMissed = [...missedQuestions];
-    if (isCorrect) {
-      if (isReviewLoop) {
-        newMissed = newMissed.filter(idx => idx !== actualQIndex);
-      }
-    } else {
-      if (!isReviewLoop) {
-        newMissed.push(actualQIndex);
-      }
-    }
-    setMissedQuestions(newMissed);
-
-    if (!isReviewLoop) {
-      if (currentQIndex + 1 < questions.length) {
-        setCurrentQIndex(prev => prev + 1);
-        setSelectedOption(null);
-        setTextInput("");
-      } else {
-        if (newMissed.length > 0) {
-          setShowReviewTransition(true);
+        const newStreak = comboStreak + 1;
+        setComboStreak(newStreak);
+        setHighestStreak(prev => Math.max(prev, newStreak));
+        if (currentItem.isReTest) {
+          playMastery();
         } else {
-          setIsReviewLoop(false);
-          finalizeQuiz(score + (isCorrect ? 1 : 0));
+          playComboStreak(newStreak);
+          setScore(prev => prev + 1);
+        }
+        if (!currentItem.isReTest) {
+          setAnswers(prev => [...prev, selectedOption]);
+        }
+      } else {
+        setComboStreak(0);
+        playIncorrect();
+        if (!currentItem.isReTest) {
+          setAnswers(prev => [...prev, selectedOption]);
         }
       }
     } else {
-      if (newMissed.length === 0) {
-        setIsReviewLoop(false);
-        finalizeQuiz(score);
-      } else {
-        const nextIdx = reviewIndex + 1;
-        if (nextIdx < newMissed.length) {
-          setReviewIndex(nextIdx);
-        } else {
-          setReviewIndex(0);
-        }
-        setSelectedOption(null);
-        setTextInput("");
-      }
-    }
-  };
-
-  const handleCheck = () => {
-    if (hasAnsweredCurrent) return; // Prevent double check
-
-    const actualQIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
-    const question = questions[actualQIndex];
-    
-    let isCorrect = false;
-    let savedAnswer: any = null;
-
-    if (question.type === "identification" || question.type === "fill-in-the-blank") {
       if (!textInput.trim()) return;
-      isCorrect = validateText(textInput, question.answerText || "");
-      savedAnswer = textInput;
-    } else {
-      if (selectedOption === null) return;
-      isCorrect = selectedOption === question.correct;
-      savedAnswer = selectedOption;
-    }
+      setIsEvaluating(true);
 
-    setIsCurrentCorrect(isCorrect);
-    setHasAnsweredCurrent(true);
+      const target = (q.answerText || "").trim();
+      const evaluation = await evaluateAnswer(textInput, target, q.q);
 
-    if (!isReviewLoop) {
-      setAnswers(prev => [...prev, typeof savedAnswer === "number" ? savedAnswer : -1]);
-      setTextAnswers(prev => [...prev, typeof savedAnswer === "string" ? savedAnswer : ""]);
-      if (isCorrect) {
-        setScore(prev => prev + 1);
+      setIsEvaluating(false);
+      setIsCurrentCorrect(evaluation.isCorrect);
+      setSemanticFeedback(evaluation.feedback || "");
+      setHasAnsweredCurrent(true);
+
+      if (evaluation.isCorrect) {
+        const newStreak = comboStreak + 1;
+        setComboStreak(newStreak);
+        setHighestStreak(prev => Math.max(prev, newStreak));
+        if (currentItem.isReTest) {
+          playMastery();
+        } else {
+          playComboStreak(newStreak);
+          setScore(prev => prev + 1);
+        }
+        if (!currentItem.isReTest) {
+          setAnswers(prev => [...prev, textInput.trim()]);
+        }
+      } else {
+        setComboStreak(0);
+        playIncorrect();
+        if (!currentItem.isReTest) {
+          setAnswers(prev => [...prev, textInput.trim()]);
+        }
       }
     }
+  }, [hasAnsweredCurrent, isEvaluating, currentItem, selectedOption, textInput, comboStreak]);
 
-    if (isCorrect) {
-      // Correct answer
-    } else {
-      // Wrong answer
-    }
-  };
+  // Continue Handler (Gizmo adaptive recall re-queueing)
+  const handleContinue = useCallback(() => {
+    if (!currentItem) return;
 
-  const handleContinue = () => {
-    const actualQIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
-    let newMissed = [...missedQuestions];
-    
-    if (isCurrentCorrect) {
-      if (isReviewLoop) {
-        newMissed = newMissed.filter(idx => idx !== actualQIndex);
-      }
-    } else {
-      if (!isReviewLoop) {
-        newMissed.push(actualQIndex);
-      }
-    }
-    setMissedQuestions(newMissed);
-
+    playPop(1.1);
     setShowHint(false);
     setShowExplanation(false);
     setHasAnsweredCurrent(false);
     setIsCurrentCorrect(null);
-    
-    if (!isReviewLoop) {
-      if (currentQIndex + 1 < questions.length) {
-        setCurrentQIndex(prev => prev + 1);
-        setSelectedOption(null);
-        setTextInput("");
-      } else {
-        if (newMissed.length > 0) {
-          setShowReviewTransition(true);
+    setSelectedOption(null);
+    setTextInput("");
+    setSemanticFeedback("");
+
+    const remaining = adaptiveQueue.slice(1);
+
+    if (isCurrentCorrect) {
+      setMasteredCount(prev => prev + 1);
+
+      if (remaining.length === 0) {
+        finalizeQuiz(score + (currentItem.isReTest ? 0 : 1));
+        return;
+      }
+      setAdaptiveQueue(remaining);
+    } else {
+      // Missed: Spaced recall re-test 2 questions later with scaffolding
+      const retestItem: AdaptiveItem = {
+        ...currentItem,
+        id: `retest-${Date.now()}-${currentItem.originalIndex}`,
+        attempts: currentItem.attempts + 1,
+        isReTest: true,
+        scaffoldHint: generateScaffold(currentItem.question),
+      };
+
+      const insertIdx = Math.min(remaining.length, 2);
+      remaining.splice(insertIdx, 0, retestItem);
+      setAdaptiveQueue(remaining);
+    }
+  }, [currentItem, isCurrentCorrect, adaptiveQueue, score]);
+
+  // Keyboard shortcut listener (Enter to check / continue)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (view !== "quiz" || isGenerating || !currentItem) return;
+
+      if (e.key === "Enter") {
+        if (!hasAnsweredCurrent) {
+          const isMc = currentItem.question.type === "multiple-choice" || (!currentItem.question.type && currentItem.question.options && currentItem.question.options.length > 0);
+          const canCheck = isMc ? selectedOption !== null : textInput.trim().length > 0;
+          if (canCheck && !isEvaluating) {
+            e.preventDefault();
+            handleCheck();
+          }
         } else {
-          setIsReviewLoop(false);
-          finalizeQuiz(score + (isCurrentCorrect ? 1 : 0));
+          e.preventDefault();
+          handleContinue();
         }
       }
-    } else {
-      if (newMissed.length > 0) {
-        setReviewIndex(prev => prev % newMissed.length);
-        setSelectedOption(null);
-        setTextInput("");
-      } else {
-        setIsReviewLoop(false);
-        finalizeQuiz(score);
-      }
-    }
-  };
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [view, isGenerating, currentItem, hasAnsweredCurrent, selectedOption, textInput, isEvaluating, handleCheck, handleContinue]);
 
   const finalizeQuiz = (finalScore: number) => {
-    const xpAwarded    = finalScore * 30 + 10;
-    const coinsAwarded = finalScore * 15 + 5;
+    playCelebration();
+    fireConfetti();
+
+    const xpAwarded    = totalInitialCount * 30 + 20;
+    const coinsAwarded = totalInitialCount * 15 + 10;
     if (user && profile) {
       supabase.from("profiles").update({
         total_xp: (profile.total_xp || profile.xp || 0) + xpAwarded,
@@ -578,24 +757,25 @@ Each object MUST match this schema exactly:
         if (typeof refreshProfile === "function") refreshProfile();
       });
     }
+
     const quizSubjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
     const historyTitle = topicInput.trim() || quizSubjects.join(", ") || "Practice Quiz";
     saveHistory({
       prompt:  questions.map(q => q.q).join(" | ").slice(0, 120),
       preview: historyTitle,
       output:  JSON.stringify({ questions, answers } as ReviewData),
-      model:   "rex-ai",
-      meta:    `${finalScore}/${questions.length}`,
+      model:   "rex-ai-mastery",
+      meta:    `${totalInitialCount}/${totalInitialCount} Mastered (Streak: ${highestStreak})`,
     });
     setView("results");
   };
 
-  const progressPercent  = questions.length > 0 ? Math.round(((currentQIndex + 1) / questions.length) * 100) : 0;
-  const actualRenderIndex = isReviewLoop ? missedQuestions[reviewIndex] : currentQIndex;
-  const currentQuestion  = questions.length > 0 && actualRenderIndex < questions.length ? questions[actualRenderIndex] : null;
+  // Progress metrics
+  const progressPercent = totalInitialCount > 0 
+    ? Math.min(100, Math.round((masteredCount / totalInitialCount) * 100)) 
+    : 0;
 
-  // ── RENDER ────────────────────────────────────────────────────────────────
-  // HistoryDrawer — slides in from right on mobile; always visible on desktop
+  // History Drawer Component
   const HistoryDrawerContent = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black shrink-0">
@@ -603,7 +783,10 @@ Each object MUST match this schema exactly:
           <span className="material-symbols-outlined text-[20px]">history</span>
           <h3 className="text-[16px] font-extrabold">Quiz History</h3>
         </div>
-        <button onClick={() => setShowHistory(false)} className="md:hidden w-8 h-8 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+        <button 
+          onClick={() => setShowHistory(false)} 
+          className="md:hidden w-8 h-8 flex items-center justify-center border-2 border-black bg-white shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+        >
           <span className="material-symbols-outlined text-[16px]">close</span>
         </button>
       </div>
@@ -619,7 +802,10 @@ Each object MUST match this schema exactly:
       </div>
       {historyEntries.length > 0 && (
         <div className="px-4 py-3 border-t-2 border-black shrink-0">
-          <button onClick={() => navigate("/analytics")} className="w-full py-2 border-2 border-black bg-[#F0EDE0] text-[12px] font-extrabold hover:bg-black hover:text-white transition-colors">
+          <button 
+            onClick={() => navigate("/analytics")} 
+            className="w-full py-2 border-2 border-black bg-[#F0EDE0] text-[12px] font-extrabold hover:bg-black hover:text-white transition-colors"
+          >
             View All in Analytics →
           </button>
         </div>
@@ -627,10 +813,7 @@ Each object MUST match this schema exactly:
     </div>
   );
 
-
-  // FIX: history cards previously had no way to view the actual questions
-  // and answers from a past attempt. This renders each question with the
-  // student's chosen answer and the correct one, back-to-back.
+  // Past Attempt Review Modal
   const ReviewModal = () => {
     if (!reviewEntry) return null;
     const { pct, title, correct, total, timeAgo } = parseHistoryEntry(reviewEntry);
@@ -638,7 +821,7 @@ Each object MUST match this schema exactly:
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/50" onClick={() => setReviewEntry(null)} />
-        <div className="relative bg-[#FAF7F2] border-2 border-black shadow-[6px_6px_0px_#000] w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="relative bg-[#FAF7F2] border-[3px] border-black shadow-[6px_6px_0px_#000] w-full max-w-2xl max-h-[85vh] flex flex-col">
           <div className="flex items-start justify-between gap-4 px-6 py-4 border-b-2 border-black bg-white shrink-0">
             <div>
               <p className="font-extrabold text-[16px] leading-snug">{title}</p>
@@ -651,40 +834,51 @@ Each object MUST match this schema exactly:
               <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-50">
                 <span className="material-symbols-outlined text-[32px]">quiz</span>
                 <p className="text-[12px] font-bold max-w-[280px]">
-                  Detailed answers aren't available for this attempt — it was saved before question-by-question review existed. New quizzes will show the full breakdown here.
+                  Detailed answers aren't available for this attempt.
                 </p>
               </div>
             ) : (
               review.questions.map((q, i) => {
                 const userAnswer = review.answers[i];
-                const isCorrect  = userAnswer === q.correct;
+                const isMc = q.type === "multiple-choice" || (!q.type && q.options && q.options.length > 0);
+                const isCorrect = isMc ? userAnswer === q.correct : cleanStr(String(userAnswer || "")) === cleanStr(q.answerText || "");
                 return (
-                  <div key={i} className="flex flex-col gap-2">
+                  <div key={i} className="flex flex-col gap-2 bg-white border-2 border-black p-4 rounded-xl">
                     <div className="flex items-start gap-2">
-                      <span className={`material-symbols-outlined text-[18px] shrink-0 mt-0.5 ${isCorrect ? "text-green-600" : "text-[#ae2925]"}`}>
+                      <span className={`material-symbols-outlined text-[20px] shrink-0 mt-0.5 ${isCorrect ? "text-green-600" : "text-[#dc2626]"}`}>
                         {isCorrect ? "check_circle" : "cancel"}
                       </span>
                       <p className="font-extrabold text-[14px] leading-snug">{i + 1}. {q.q}</p>
                     </div>
-                    <div className="flex flex-col gap-1.5 pl-7">
-                      {q.options.map((opt, oi) => {
-                        const isTheCorrectOne = oi === q.correct;
-                        const isUserPick      = oi === userAnswer;
-                        const style = isTheCorrectOne
-                          ? "border-green-600 bg-green-50 text-green-800"
-                          : isUserPick
-                            ? "border-[#ae2925] bg-[#fee2e2] text-[#ae2925]"
-                            : "border-black/10 bg-white text-black/60";
-                        return (
-                          <div key={oi} className={`flex items-center gap-2 px-3 py-1.5 border-[1.5px] rounded-lg text-[12px] font-semibold ${style}`}>
-                            <span className="font-extrabold">{["A", "B", "C", "D"][oi]}</span>
-                            <span className="flex-1">{opt}</span>
-                            {isTheCorrectOne && <span className="text-[10px] font-black uppercase tracking-wider">Correct</span>}
-                            {isUserPick && !isTheCorrectOne && <span className="text-[10px] font-black uppercase tracking-wider">Your pick</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
+
+                    {isMc && q.options && (
+                      <div className="flex flex-col gap-1.5 pl-7 mt-1">
+                        {q.options.map((opt, oi) => {
+                          const isTheCorrectOne = oi === q.correct;
+                          const isUserPick = oi === userAnswer;
+                          const style = isTheCorrectOne
+                            ? "border-green-600 bg-green-50 text-green-800 font-bold"
+                            : isUserPick
+                              ? "border-[#dc2626] bg-[#fee2e2] text-[#dc2626] font-bold"
+                              : "border-black/10 bg-white text-black/60";
+                          return (
+                            <div key={oi} className={`flex items-center gap-2 px-3 py-1.5 border-[1.5px] rounded-lg text-[12px] ${style}`}>
+                              <span className="font-extrabold">{["A", "B", "C", "D"][oi]}</span>
+                              <span className="flex-1">{opt}</span>
+                              {isTheCorrectOne && <span className="text-[10px] font-black uppercase tracking-wider">Correct</span>}
+                              {isUserPick && !isTheCorrectOne && <span className="text-[10px] font-black uppercase tracking-wider">Your pick</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {!isMc && (
+                      <div className="pl-7 flex flex-col gap-1 text-[13px] mt-1">
+                        <p className="text-black/70 font-semibold">Your answer: <span className="font-bold text-black">{String(userAnswer || "—")}</span></p>
+                        <p className="text-green-700 font-bold">Correct answer: {q.answerText || "—"}</p>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -695,16 +889,119 @@ Each object MUST match this schema exactly:
     );
   };
 
+  // Feedback Bottom Drawer (Duolingo style for Desktop & Mobile)
+  const isMc = currentQuestion?.type === "multiple-choice" || (!currentQuestion?.type && currentQuestion?.options && currentQuestion.options.length > 0);
+  const canCheck = isMc ? selectedOption !== null : textInput.trim().length > 0;
+  const expectedAnswerText = isMc
+    ? (currentQuestion?.options && currentQuestion.correct !== undefined ? currentQuestion.options[currentQuestion.correct] : "")
+    : (currentQuestion?.answerText || "");
+
+  const FeedbackDrawer = () => (
+    <div className={`sticky bottom-0 w-full border-t-[3px] border-black transition-colors z-40 ${
+      hasAnsweredCurrent 
+        ? (isCurrentCorrect ? "bg-[#dcfce7]" : "bg-[#fee2e2]") 
+        : "bg-white/95 backdrop-blur-md"
+    }`}>
+      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Left Side: Rex mascot & feedback state */}
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          {hasAnsweredCurrent ? (
+            <>
+              <div className="relative shrink-0">
+                <img 
+                  src={isCurrentCorrect 
+                    ? (comboStreak >= 3 ? "/fox/fox-excited.png" : "/fox/fox-happy.png")
+                    : "/fox/fox-neutral.png"
+                  } 
+                  alt="Rex Mascot" 
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md animate-bounce-short"
+                />
+              </div>
+              <div className="flex flex-col">
+                <div className={`flex items-center gap-1.5 font-black text-[18px] sm:text-[22px] ${isCurrentCorrect ? "text-[#16a34a]" : "text-[#dc2626]"}`}>
+                  <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    {isCurrentCorrect ? "check_circle" : "cancel"}
+                  </span>
+                  <span>
+                    {isCurrentCorrect 
+                      ? (comboStreak >= 2 ? `🔥 ${comboStreak} IN A ROW!` : (currentItem?.isReTest ? "CONCEPT MASTERED!" : "EXCELLENT!"))
+                      : "NOT QUITE"}
+                  </span>
+                </div>
+                <div className="text-[13px] font-bold text-black/75 mt-0.5 leading-snug">
+                  {isCurrentCorrect ? (
+                    semanticFeedback || (currentItem?.isReTest ? "You mastered this recalled concept!" : (currentQuestion?.explanation || "Great work! Keep the streak going."))
+                  ) : (
+                    <div>
+                      <p className="text-black font-extrabold">Correct answer: <span className="underline decoration-2">{expectedAnswerText}</span></p>
+                      <p className="text-black/60 text-[12px] mt-0.5">Rex added this back to the queue to test in 2 questions.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <img 
+                src="/fox/fox-happy.png" 
+                alt="Rex" 
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+              />
+              <div className="hidden sm:flex flex-col">
+                <span className="text-[12px] font-black uppercase tracking-wider text-black/40">Duolingo × Gizmo Super-Loop</span>
+                <span className="text-[13px] font-bold text-black/70">Master each concept before moving on. Press <kbd className="px-1.5 py-0.5 bg-[#FAF7F2] border border-black rounded font-mono text-[11px]">Enter ↵</kbd> to check.</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Action Button */}
+        <div className="w-full sm:w-auto flex items-center justify-end">
+          {hasAnsweredCurrent ? (
+            <button
+              onClick={handleContinue}
+              className={`w-full sm:w-auto px-10 py-3.5 rounded-xl border-2 border-black font-extrabold text-[16px] text-white flex items-center justify-center gap-2 shadow-[4px_4px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer ${
+                isCurrentCorrect ? "bg-[#16a34a] hover:bg-[#15803d]" : "bg-[#dc2626] hover:bg-[#b91c1c]"
+              }`}
+            >
+              <span>CONTINUE</span>
+              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleCheck}
+              disabled={!canCheck || isEvaluating}
+              className={`w-full sm:w-auto px-10 py-3.5 rounded-xl border-2 border-black font-extrabold text-[16px] flex items-center justify-center gap-2 transition-all ${
+                canCheck && !isEvaluating
+                  ? "bg-[#FF4D2E] text-white shadow-[4px_4px_0px_#000] active:translate-y-0.5 active:shadow-none cursor-pointer hover:opacity-95"
+                  : "bg-[#E8E4DC] text-black/40 border-black/30 pointer-events-none opacity-60"
+              }`}
+            >
+              {isEvaluating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <span>Rex is evaluating...</span>
+                </>
+              ) : (
+                <>
+                  <span>CHECK ANSWER</span>
+                  <span className="material-symbols-outlined text-[20px]">check</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/practice"] || []} title="Practice" />
-      {showProUpsell && <ProUpsellModal onClose={() => setShowProUpsell(false)} />}
-      <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
-
+      {showUpgrade && <UpgradePrompt feature="practice" remaining={0} onClose={() => setShowUpgrade(false)} />}
       <ReviewModal />
 
-      {/* ── Mobile History Drawer overlay ──────────────────────────────── */}
+      {/* ── Mobile History Drawer Overlay ─────────────────────────────────── */}
       {showHistory && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div className="flex-1 bg-black/40" onClick={() => setShowHistory(false)} />
@@ -714,263 +1011,354 @@ Each object MUST match this schema exactly:
         </div>
       )}
 
-      {/* ══ DESKTOP ══════════════════════════════════════════════════════════ */}
+      {/* ══ DESKTOP VIEW ══════════════════════════════════════════════════════ */}
       <SharedSidebar active="/practice" />
-      {showUpgrade && <UpgradePrompt feature="practice" remaining={0} onClose={() => setShowUpgrade(false)} />}
 
-      <div className="hidden md:flex md:ml-64 bg-[#FAF7F2]" style={{ minHeight: "100vh" }}>
-        {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
-        
-        {view === "quiz" && showReviewTransition && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-50 bg-[#FAF7F2]">
-            <div className="w-20 h-20 mb-6 bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_#000] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[40px] text-[#FF4D2E]">refresh</span>
-            </div>
-            <h2 className="text-2xl font-black mb-2">Let's correct what you missed!</h2>
-            <p className="text-black/60 font-bold mb-8">You missed {missedQuestions.length} question(s). Let's review them until you master them.</p>
-            <button 
-              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); }}
-              className="bg-[#FF4D2E] text-white font-extrabold px-8 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1 active:shadow-none"
-            >
-              Start Review →
-            </button>
-          </div>
-        )}
+      <div className="hidden md:flex md:ml-64 bg-[#FAF7F2] flex-col" style={{ minHeight: "100vh" }}>
+        <div className="flex flex-1 overflow-hidden">
+          {/* Main Workspace */}
+          <div className="flex-1 flex flex-col overflow-y-auto">
+            
+            {/* View: Active Quiz or Generator */}
+            {view === "quiz" && (
+              <main className="flex-1 flex flex-col p-8 max-w-4xl mx-auto w-full">
+                
+                {/* Desktop Top Generator Banner */}
+                <DesktopBanner
+                  isGenerating={isGenerating}
+                  topicInput={topicInput}
+                  setTopicInput={setTopicInput}
+                  onGenerate={handleGenerateQuiz}
+                  onNavigate={navigate}
+                  libraryFiles={libraryFiles}
+                  questionCount={questionCount}
+                  setQuestionCount={setQuestionCount}
+                  activeSourceObj={activeSourceObj}
+                  setActiveSourceObj={setActiveSourceObj}
+                  quizType={quizType}
+                  setQuizType={setQuizType}
+                  difficulty={difficulty}
+                  setDifficulty={setDifficulty}
+                />
 
-        {view === "quiz" && !showReviewTransition && (
-          <main className="flex-1 flex flex-col p-10 max-w-4xl mx-auto w-full">
-
-            <DesktopBanner
-              isGenerating={isGenerating}
-              topicInput={topicInput}
-              setTopicInput={setTopicInput}
-              onGenerate={handleGenerateQuiz}
-              onNavigate={navigate}
-              libraryFiles={libraryFiles}
-              questionCount={questionCount}
-              setQuestionCount={setQuestionCount}
-              activeSourceObj={activeSourceObj}
-              setActiveSourceObj={setActiveSourceObj}
-              quizType={quizType}
-              setQuizType={setQuizType}
-            />
-
-            {/* Loading */}
-            {isGenerating && (
-              <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4">
-                <div className="w-16 h-16 border-4 border-[#FF4D2E] border-t-transparent rounded-full animate-spin" />
-                <p className="font-bold text-[14px] text-black/50">Building your quiz...</p>
-              </div>
-            )}
-
-            {/* Empty + History side by side */}
-            {questions.length === 0 && !isGenerating && (
-              <div className="flex gap-8 flex-1">
-                {/* Left: empty state */}
-                <div className="flex-1 flex flex-col items-center justify-center text-center py-20 gap-4">
-                  <div className="w-28 h-28 bg-[#E2E2E2] border-[1.5px] border-black shadow-[5px_5px_0px_#000] rounded-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[56px] text-black opacity-40" style={{ fontVariationSettings: "'FILL' 1" }}>extension_off</span>
+                {/* Loading state */}
+                {isGenerating && (
+                  <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4">
+                    <div className="w-16 h-16 border-4 border-[#FF4D2E] border-t-transparent rounded-full animate-spin" />
+                    <p className="font-extrabold text-[15px] text-black/60">Crafting your adaptive mastery quiz...</p>
                   </div>
-                  <h2 className="font-extrabold text-[24px]">No quiz yet</h2>
-                  <p className="text-black/50 font-bold text-[14px] max-w-[280px] leading-relaxed">
-                    {(libraryFiles || []).length > 0
-                      ? `${(libraryFiles || []).length} source${(libraryFiles || []).length > 1 ? "s" : ""} in your library — hit Generate!`
-                      : "Paste your notes, type a topic, or just hit Generate for a random quiz."}
-                  </p>
-                </div>
+                )}
 
-                {/* History moved to persistent right panel */}
-              </div>
-            )}
-
-            {/* Active Quiz */}
-            {questions.length > 0 && !isGenerating && currentQuestion && (
-              <>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-                  <div className="flex-grow w-full md:max-w-md flex flex-col gap-2">
-                    <div className="flex justify-between">
-                      <span className="text-[13px] font-extrabold tracking-widest uppercase">Question {currentQIndex + 1}/{questions.length}</span>
-                      <span className="text-[13px] font-extrabold">{progressPercent}%</span>
+                {/* Empty State */}
+                {adaptiveQueue.length === 0 && !isGenerating && (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-4">
+                    <div className="w-24 h-24 bg-[#E2E2E2] border-2 border-black shadow-[4px_4px_0px_#000] rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[48px] text-black opacity-40">school</span>
                     </div>
-                    <div className="h-3 w-full bg-[#E8E4DC] border-[1.5px] border-black overflow-hidden">
-                      <div className="h-full bg-black transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-                    </div>
+                    <h2 className="font-extrabold text-[22px]">Ready to test your mastery?</h2>
+                    <p className="text-black/60 font-bold text-[14px] max-w-[340px]">
+                      {(libraryFiles || []).length > 0
+                        ? `${(libraryFiles || []).length} source(s) detected in your library. Select one or type a topic, then click Generate!`
+                        : "Type a topic above, choose your question type, and start testing."}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    {(libraryFiles || []).length > 0 && (
-                      <div className="flex items-center gap-2 border-[1.5px] border-black rounded-full px-3 py-1 bg-[#F0EDE0] text-[12px] font-bold">
-                        <span className="material-symbols-outlined text-[16px]">description</span>
-                        <span>{(libraryFiles || []).length} source{(libraryFiles || []).length > 1 ? "s" : ""} used</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3 px-5 py-2 bg-[#F0EDE0] border-[1.5px] border-black shadow-[3px_3px_0px_#000]">
-                      <span className="material-symbols-outlined">timer</span>
-                      <span className="text-[22px] font-bold tracking-tighter">{formatTime(timeLeft)}</span>
-                    </div>
-                  </div>
-                </div>
+                )}
 
-                <div className="bg-[#FAF7F2] border-[3px] border-black p-8 shadow-[5px_5px_0px_#000] mb-8 relative mt-4">
-                  <div className="absolute -top-4 -left-4 bg-black text-white px-4 py-1 text-[11px] font-extrabold tracking-widest uppercase">{currentQuestion.type ? currentQuestion.type.replace(/-/g, " ") : "MULTIPLE CHOICE"}</div>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-[13px] mr-1">folder</span>{currentQuestion.subject}
-                    </span>
-                    <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-[13px] mr-1">leaderboard</span>{currentQuestion.difficulty}
-                    </span>
-                  </div>
-                  <h2 className="text-[26px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
-                  <div className="h-[1px] bg-black w-full opacity-10 my-4" />
-                  <p className="text-[14px] opacity-60 italic">Select the most accurate response from the grid below.</p>
-                </div>
+                {/* Active Question Content */}
+                {adaptiveQueue.length > 0 && !isGenerating && currentQuestion && (
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div>
+                      {/* Top Bar: Progress + Flame Combo Badge + Timer */}
+                      <div className="flex items-center justify-between mb-6 gap-4">
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <div className="flex justify-between items-center text-[12px] font-extrabold">
+                            <span className="uppercase tracking-wider text-black/50">
+                              Mastery Progress ({masteredCount} of {totalInitialCount})
+                            </span>
+                            <span className="text-[#FF4D2E] font-black">{progressPercent}%</span>
+                          </div>
+                          <div className="h-3.5 w-full bg-[#E8E4DC] border-[2px] border-black rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-[#FF4D2E] transition-all duration-300" 
+                              style={{ width: `${progressPercent}%` }} 
+                            />
+                          </div>
+                        </div>
 
-                  {currentQuestion.type === "identification" || currentQuestion.type === "fill-in-the-blank" ? (
-                    <div className="mb-8">
-                      <input 
-                        type="text" 
-                        value={textInput} 
-                        onChange={e => setTextInput(e.target.value)} 
-                        placeholder="Type your answer here..."
-                        className="w-full bg-[#FAF7F2] border-[1.5px] border-black rounded-xl p-4 text-[15px] font-bold shadow-[3px_3px_0px_#000] focus:outline-none focus:shadow-[1px_1px_0px_#000] focus:translate-y-[2px]"
-                      />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                      {(currentQuestion.options || []).map((option, idx) => {
-                        const label      = ["A", "B", "C", "D"][idx];
-                        const isSelected = selectedOption === idx;
-                        return (
-                          <button key={idx} onClick={() => setSelectedOption(idx)}
-                            className={`text-left border-[1.5px] border-black p-4 shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all ${isSelected ? "bg-[#FF4D2E] text-white" : "bg-[#FAF7F2] hover:bg-black hover:text-white"}`}>
-                            <div className="flex items-start gap-3">
-                              <span className={`text-[12px] font-extrabold px-2 py-0.5 border-[1.5px] border-black flex-shrink-0 ${isSelected ? "bg-white text-black" : "bg-black text-white"}`}>{label}</span>
-                              <span className="text-[14px] font-medium leading-snug">{option}</span>
+                        <div className="flex items-center gap-3">
+                          {/* Flame Combo Streak Badge */}
+                          {comboStreak > 1 && (
+                            <div className="flex items-center gap-1.5 bg-[#FFF275] border-[2px] border-black px-3.5 py-1.5 rounded-full text-[13px] font-black shadow-[2px_2px_0px_#000] animate-bounce-short">
+                              <span className="text-[16px]">🔥</span>
+                              <span>{comboStreak} STREAK</span>
                             </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                          )}
 
-                <div className="flex flex-col gap-3">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1">Question Navigator</div>
-                  <div className="flex gap-2 mb-4">
-                    {questions.map((_, i) => (
-                      <button key={i} className={`w-7 h-7 flex items-center justify-center text-xs font-extrabold border transition-all ${
-                        i === currentQIndex         ? "bg-black text-white border-black"
-                        : answers[i] !== undefined  ? "bg-[#2d6a2d] text-white border-[#2d6a2d]"
-                        :                             "bg-[#E8E4DC] text-black/40 border-black/20"
-                      }`}>{i + 1}</button>
-                    ))}
+                          {/* Countdown Timer */}
+                          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#F0EDE0] border-[2px] border-black shadow-[2px_2px_0px_#000] rounded-full text-[13px] font-bold">
+                            <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">timer</span>
+                            <span>{formatTime(timeLeft)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Adaptive Re-Test Banner */}
+                      {currentItem.isReTest && (
+                        <div className="mb-4 bg-[#85f5eb] border-[2px] border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[3px_3px_0px_#000]">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[20px] text-black">refresh</span>
+                            <span className="text-[12px] font-black uppercase tracking-wider text-black">
+                              Adaptive Recall · Re-Testing Question #{currentItem.originalIndex + 1}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-bold text-black/70">Attempt {currentItem.attempts + 1}</span>
+                        </div>
+                      )}
+
+                      {/* Question Card */}
+                      <div className="bg-white border-[3px] border-black p-8 shadow-[5px_5px_0px_#000] rounded-2xl mb-6 relative">
+                        <div className="absolute -top-3.5 left-6 bg-black text-white px-3.5 py-0.5 text-[10px] font-black tracking-widest uppercase rounded">
+                          {currentQuestion.type ? currentQuestion.type.replace(/-/g, " ") : "MULTIPLE CHOICE"}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 mb-4 mt-2">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                              <span className="material-symbols-outlined text-[13px] mr-1">folder</span>{currentQuestion.subject}
+                            </span>
+                            <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                              <span className="material-symbols-outlined text-[13px] mr-1">leaderboard</span>{currentQuestion.difficulty}
+                            </span>
+                          </div>
+
+                          {currentQuestion.hint && (
+                            <button
+                              type="button"
+                              onClick={() => { playPop(); setShowHint(prev => !prev); }}
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 border-[1.5px] border-black rounded-full text-[11px] font-bold text-yellow-900 shadow-[1px_1px_0px_#000] hover:bg-yellow-200 active:scale-95 transition-all"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">lightbulb</span>
+                              {showHint ? "Hide Hint" : "Hint"}
+                            </button>
+                          )}
+                        </div>
+
+                        <h2 className="text-[24px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
+
+                        {/* Hint box */}
+                        {showHint && currentQuestion.hint && (
+                          <div className="mb-4 bg-amber-50 border-[2px] border-black p-3.5 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
+                            <span className="text-[#FF4D2E] uppercase tracking-widest text-[10px] font-black block mb-1">Rex Study Hint</span>
+                            {currentQuestion.hint}
+                          </div>
+                        )}
+
+                        {/* Scaffolding clue for re-tests */}
+                        {currentItem.isReTest && currentItem.scaffoldHint && (
+                          <div className="mb-4 bg-[#FFF9E6] border-[2px] border-black p-3.5 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000] flex items-start gap-2.5">
+                            <span className="material-symbols-outlined text-[#F5A623] text-[20px] shrink-0">psychology</span>
+                            <div>
+                              <span className="text-[#B45309] text-[10px] font-black uppercase tracking-wider block mb-0.5">Rex Recall Scaffolding</span>
+                              <p className="text-black font-extrabold tracking-wide">{currentItem.scaffoldHint}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Options / Input Field */}
+                      {isMc ? (
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                          {(currentQuestion.options || []).map((option, idx) => {
+                            const label = ["A", "B", "C", "D"][idx];
+                            const isSelected = selectedOption === idx;
+                            return (
+                              <button 
+                                key={idx} 
+                                onClick={() => {
+                                  if (hasAnsweredCurrent) return;
+                                  playTap();
+                                  setSelectedOption(idx);
+                                }}
+                                disabled={hasAnsweredCurrent}
+                                className={`text-left border-[2px] border-black p-4.5 rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all cursor-pointer ${
+                                  isSelected 
+                                    ? "bg-[#FF4D2E] text-white" 
+                                    : "bg-white hover:bg-neutral-50"
+                                }`}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <span className={`text-[12px] font-extrabold px-2.5 py-0.5 border-[1.5px] border-black flex-shrink-0 rounded ${
+                                    isSelected ? "bg-white text-black" : "bg-black text-white"
+                                  }`}>
+                                    {label}
+                                  </span>
+                                  <span className="text-[15px] font-bold leading-snug">{option}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="mb-6">
+                          <input 
+                            type="text" 
+                            value={textInput} 
+                            disabled={hasAnsweredCurrent}
+                            onChange={e => setTextInput(e.target.value)} 
+                            placeholder="Type your answer here..."
+                            autoFocus
+                            className="w-full bg-white border-[2px] border-black rounded-xl p-4.5 text-[16px] font-extrabold shadow-[4px_4px_0px_#000] focus:outline-none focus:shadow-[2px_2px_0px_#000] focus:translate-y-[2px] transition-all"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-end">
-                    <button disabled={(currentQuestion.type === 'multiple-choice' || !currentQuestion.type) ? selectedOption === null : !textInput.trim()} onClick={handleNext}
-                      className={`bg-[#FF4D2E] text-white text-[18px] font-bold px-12 py-4 border-[3px] border-black shadow-[5px_5px_0px_#000] active:translate-y-0.5 active:shadow-[2px_2px_0px_#000] flex items-center gap-4 transition-all ${((currentQuestion.type === 'multiple-choice' || !currentQuestion.type) ? selectedOption === null : !textInput.trim()) ? "opacity-40 pointer-events-none" : "hover:opacity-90"}`}>
-                      Next Question <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+                )}
+              </main>
+            )}
+
+            {/* View: Results Screen */}
+            {view === "results" && (
+              <div className="flex flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto flex-1">
+                <div className="max-w-xl w-full flex flex-col items-center text-center">
+                  <div className="relative mb-6">
+                    <img 
+                      src="/fox/fox-excited.png" 
+                      alt="Rex Mascot Celebrating" 
+                      className="w-32 h-32 object-contain animate-bounce-short"
+                    />
+                  </div>
+                  <h2 className="text-[36px] font-black mb-2">100% Concept Mastery!</h2>
+                  <p className="text-black/60 font-bold max-w-[340px] mb-8 text-[15px]">
+                    Every concept in this set was tested and retrieved until full cognitive consolidation.
+                  </p>
+
+                  <div className="w-full bg-white border-[3px] border-black shadow-[5px_5px_0px_#000] rounded-2xl p-6 flex flex-col gap-4 text-left mb-8">
+                    <div className="flex justify-between items-center border-b border-black/10 pb-4">
+                      <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Mastery Level</span>
+                      <span className="text-[#16a34a] text-[28px] font-black">100% Mastered</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-black/10 pb-4">
+                      <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Best Combo Streak</span>
+                      <span className="text-[#FF4D2E] text-[20px] font-black flex items-center gap-1">
+                        🔥 {highestStreak} in a row
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-black/10 pb-4">
+                      <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">First-Pass Accuracy</span>
+                      <span className="text-[18px] font-extrabold">
+                        {totalInitialCount > 0 ? Math.round((score / totalInitialCount) * 100) : 0}% ({score}/{totalInitialCount})
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Rewards Unlocked</span>
+                      <span className="text-[#F5A623] font-black text-[16px]">
+                        +{totalInitialCount * 30 + 20} XP / +{totalInitialCount * 15 + 10} Coins
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 w-full">
+                    <button 
+                      onClick={() => {
+                        playPop();
+                        setView("quiz");
+                        setAdaptiveQueue([]);
+                        setTotalInitialCount(0);
+                        setMasteredCount(0);
+                        setScore(0);
+                        setComboStreak(0);
+                        setQuestions([]);
+                        setAnswers([]);
+                      }}
+                      className="flex-1 bg-white border-[3px] border-black text-black py-4 font-extrabold hover:bg-[#E2E2E2] active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer rounded-xl"
+                    >
+                      New Quiz
+                    </button>
+                    <button 
+                      onClick={() => navigate("/dashboard")}
+                      className="flex-1 bg-[#FF4D2E] border-[3px] border-black text-white py-4 font-extrabold hover:opacity-95 active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer rounded-xl"
+                    >
+                      Dashboard
                     </button>
                   </div>
                 </div>
-              </>
+              </div>
             )}
-          </main>
-        )}
 
-        {view === "results" && (
-          <div className="flex flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto flex-1">
-          <div className="max-w-xl w-full flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-[#fca623]/20 border-[3px] border-black shadow-[5px_5px_0px_#000] flex items-center justify-center mb-8">
-              <span className="material-symbols-outlined text-5xl">emoji_events</span>
-            </div>
-            <h2 className="text-[36px] font-black mb-2">Exam Complete!</h2>
-            <p className="text-black/50 font-bold max-w-[320px] mb-8 text-[15px]">Practice test recorded. Review your detailed scores below.</p>
-            <div className="w-full bg-white border-[3px] border-black shadow-[5px_5px_0px_#000] p-6 flex flex-col gap-4 text-left mb-8">
-              <div className="flex justify-between items-center border-b border-black/10 pb-4">
-                <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">SUCCESS METRIC</span>
-                <span className="text-[#FF4D2E] text-[28px] font-black">{Math.round((score / questions.length) * 100)}%</span>
-              </div>
-              <div className="flex justify-between items-center border-b border-black/10 pb-4">
-                <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">CORRECT HITS</span>
-                <span className="text-[18px] font-bold">{score} / {questions.length} items</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">REWARDS UNLOCKED</span>
-                <span className="text-[#F5A623] font-bold text-[15px]">+{score * 30 + 10} XP / +{score * 15 + 5} Coins</span>
-              </div>
-            </div>
-            <div className="flex gap-4 w-full">
-              <button onClick={() => { setView("quiz"); setCurrentQIndex(0); setSelectedOption(null); setScore(0); setAnswers([]); setTimeLeft(600); setQuestions([]); }}
-                className="flex-1 bg-white border-[3px] border-black text-black py-4 font-extrabold hover:bg-[#E2E2E2] active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer">
-                New Quiz
-              </button>
-              <button onClick={() => navigate("/dashboard")}
-                className="flex-1 bg-[#FF4D2E] border-[3px] border-black text-white py-4 font-extrabold hover:opacity-95 active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer">
-                Dashboard
-              </button>
-            </div>
+            {/* Desktop Feedback Drawer */}
+            {view === "quiz" && adaptiveQueue.length > 0 && !isGenerating && (
+              <FeedbackDrawer />
+            )}
           </div>
-          </div>
-        )}
-        </div>{/* end desktop main */}
 
-        {/* Persistent desktop history right panel */}
-        <aside className="w-[280px] border-l-2 border-black bg-white flex flex-col shrink-0" style={{ minHeight: "100vh" }}>
-          <HistoryDrawerContent />
-        </aside>
-      </div>{/* end desktop wrapper */}
+          {/* Persistent Desktop Quiz History Sidebar */}
+          <aside className="w-[280px] border-l-2 border-black bg-white flex flex-col shrink-0" style={{ minHeight: "100vh" }}>
+            <HistoryDrawerContent />
+          </aside>
+        </div>
+      </div>
 
-      {/* ══ MOBILE ═══════════════════════════════════════════════════════════ */}
-      <div className="md:hidden w-full min-h-screen bg-[#FAF7F2] flex flex-col pb-28">
-
-        <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[3px] border-black flex items-center justify-between px-4 h-16 shrink-0">
-          <button onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5">
+      {/* ══ MOBILE VIEW ══════════════════════════════════════════════════════ */}
+      <div className="md:hidden w-full min-h-screen bg-[#FAF7F2] flex flex-col pb-24">
+        {/* Header */}
+        <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[2px] border-black flex items-center justify-between px-4 h-16 shrink-0">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+          >
             <span className="material-symbols-outlined text-[22px]">arrow_back</span>
           </button>
-          <h1 className="font-extrabold text-[20px]">Practice</h1>
-          <button onClick={() => navigate("/sources")}
-            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5">
-            <span className="material-symbols-outlined text-[20px]">library_books</span>
-          </button>
-        
-          <button onClick={() => tutorial.show()} className="flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none w-9 h-9 md:w-10 md:h-10 shrink-0 z-50 ml-2" title="Tutorial"><span className="material-symbols-outlined text-[18px] md:text-[20px]">help</span></button>
-        </header>
+          
+          <div className="flex items-center gap-1.5 font-extrabold text-[18px]">
+            <span>Practice</span>
+            {comboStreak > 1 && (
+              <span className="bg-[#FFF275] border border-black rounded-full px-2 py-0.5 text-[11px] font-black">
+                🔥 {comboStreak}
+              </span>
+            )}
+          </div>
 
-        
-        {view === "quiz" && showReviewTransition && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-50 bg-[#FAF7F2]">
-            <div className="w-20 h-20 mb-6 bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_#000] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[40px] text-[#FF4D2E]">refresh</span>
-            </div>
-            <h2 className="text-2xl font-black mb-2">Let's correct what you missed!</h2>
-            <p className="text-black/60 font-bold mb-8">You missed {missedQuestions.length} question(s). Let's review them until you master them.</p>
+          <div className="flex items-center gap-2">
             <button 
-              onClick={() => { setShowReviewTransition(false); setIsReviewLoop(true); setReviewIndex(0); }}
-              className="bg-[#FF4D2E] text-white font-extrabold px-8 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1 active:shadow-none"
+              onClick={() => setShowHistory(true)}
+              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5"
             >
-              Start Review →
+              <span className="material-symbols-outlined text-[20px]">history</span>
+            </button>
+            <button 
+              onClick={() => tutorial.show()} 
+              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+            >
+              <span className="material-symbols-outlined text-[18px]">help</span>
             </button>
           </div>
-        )}
+        </header>
 
-        {view === "quiz" && !showReviewTransition && (
+        {/* Mobile View: Quiz or Results */}
+        {view === "quiz" && (
           <>
-            <main className="w-full px-4 py-5 flex flex-col gap-5">
-
-              {/* Mobile Banner */}
-              <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">school</span>
-                  <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">Quiz Generator</span>
+            <main className="w-full px-4 py-5 flex flex-col gap-4 flex-1">
+              
+              {/* Mobile Generator Banner */}
+              <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0 shadow-[2px_2px_0px_#000]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">school</span>
+                    <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">Quiz Generator</span>
+                  </div>
+                  <span className="px-2 py-0.5 bg-[#FFF275] border border-black rounded text-[9px] font-black uppercase">
+                    Adaptive
+                  </span>
                 </div>
+
                 <textarea
                   value={topicInput}
                   onChange={e => setTopicInput(e.target.value)}
-                  className="w-full h-24 bg-[#FAF7F2] border-2 border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none"
+                  className="w-full h-20 bg-[#FAF7F2] border-2 border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none"
                   placeholder="Paste notes or type a topic..."
                 />
-                {/* Question count options */}
+
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0">Questions</span>
                   <div className="flex border-2 border-black rounded-lg overflow-hidden">
@@ -986,29 +1374,31 @@ Each object MUST match this schema exactly:
                       </button>
                     ))}
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0 ml-2">Type</span>
+
+                  <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0 ml-1">Type</span>
                   <select
                     value={quizType}
                     onChange={(e) => setQuizType(e.target.value)}
                     className="border-2 border-black rounded-lg px-2 py-1 bg-white text-[12px] font-extrabold focus:outline-none cursor-pointer"
                   >
                     <option value="mixed">Mixed</option>
-                    <option value="multiple-choice">Multiple Choice</option>
-                    <option value="identification">Identification</option>
-                    <option value="fill-in-the-blank">Fill-in-the-Blank</option>
+                    <option value="multiple-choice">MC</option>
+                    <option value="identification">Ident</option>
+                    <option value="fill-in-the-blank">Blank</option>
                   </select>
-          <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-4">Difficulty</span>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
-          >
-            <option value="mixed">Mixed</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    className="border-2 border-black rounded-lg px-2 py-1 bg-white text-[12px] font-extrabold focus:outline-none cursor-pointer"
+                  >
+                    <option value="mixed">All Diff</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
                 </div>
+
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center px-1">
                     <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Source Context</span>
@@ -1030,199 +1420,227 @@ Each object MUST match this schema exactly:
                         setActiveSourceObj(source);
                       }
                     }}
-                    className="w-full flex-1 border-2 border-black rounded-lg px-3 py-2.5 bg-[#F0EDE0] text-[12px] font-bold focus:outline-none cursor-pointer"
+                    className="w-full border-2 border-black rounded-lg px-3 py-2 bg-[#F0EDE0] text-[12px] font-bold focus:outline-none cursor-pointer"
                   >
                     <option value="all">General Study (No Source)</option>
                     {(libraryFiles || []).map((file: any) => (
                       <option key={file.id} value={file.id}>{file.name}</option>
                     ))}
                   </select>
-                  <button onClick={handleGenerateQuiz} disabled={isGenerating}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[12px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all">
-                    <span className="material-symbols-outlined text-[16px]">edit_document</span>
-                    {isGenerating ? "Loading..." : "Generate"}
+
+                  <button 
+                    onClick={handleGenerateQuiz} 
+                    disabled={isGenerating}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[13px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">bolt</span>
+                    {isGenerating ? "Building Quiz..." : "Generate Mastery Quiz"}
                   </button>
                 </div>
               </section>
 
+              {/* Mobile Loading */}
               {isGenerating && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
-                  <div className="w-14 h-14 rounded-full border-4 border-[#FF4D2E] border-t-transparent animate-spin" />
-                  <p className="font-bold text-[13px] text-black/50">Building your quiz...</p>
+                  <div className="w-12 h-12 rounded-full border-4 border-[#FF4D2E] border-t-transparent animate-spin" />
+                  <p className="font-extrabold text-[13px] text-black/50">Building adaptive quiz...</p>
                 </div>
               )}
 
-              {questions.length === 0 && !isGenerating && (
-                <>
-                  <div className="flex flex-col items-center text-center gap-3 py-8">
-                    <div className="w-24 h-24 bg-[#E2E2E2] border-[1.5px] border-black rounded-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[48px] text-black opacity-40" style={{ fontVariationSettings: "'FILL' 1" }}>extension_off</span>
-                    </div>
-                    <h2 className="font-extrabold text-[20px]">No quiz yet</h2>
-                    <p className="font-bold text-[13px] text-black/50 max-w-[260px]">
-                      {(libraryFiles || []).length > 0 ? `${(libraryFiles || []).length} source${(libraryFiles || []).length > 1 ? "s" : ""} in your library — hit Generate!` : "Paste notes, type a topic, or just hit Generate."}
-                    </p>
+              {/* Mobile Empty */}
+              {adaptiveQueue.length === 0 && !isGenerating && (
+                <div className="flex flex-col items-center text-center gap-3 py-8">
+                  <div className="w-20 h-20 bg-[#E2E2E2] border-[1.5px] border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_#000]">
+                    <span className="material-symbols-outlined text-[40px] text-black opacity-40">school</span>
                   </div>
-                  {historyEntries.length > 0 && (
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-black/40">Recent Quizzes</span>
-                        <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
-                      </div>
-                      {(historyEntries as HistoryEntry[]).slice(0, 5).map((entry, i) => (
-                        <HistoryCard key={i} entry={entry} onOpenReview={setReviewEntry} />
-                      ))}
-                    </div>
-                  )}
-                </>
+                  <h2 className="font-extrabold text-[18px]">No active quiz</h2>
+                  <p className="font-bold text-[12px] text-black/50 max-w-[240px]">
+                    Choose options above and tap Generate to begin adaptive recall.
+                  </p>
+                </div>
               )}
 
-              {questions.length > 0 && !isGenerating && currentQuestion && (
+              {/* Mobile Active Question Card */}
+              {adaptiveQueue.length > 0 && !isGenerating && currentQuestion && (
                 <>
+                  {/* Top Mobile Bar */}
                   <div className="flex items-center justify-between w-full">
-                    <div className="bg-white px-3 py-1.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1.5 text-[13px] font-bold">
-                      <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]">timer</span>
+                    <div className="bg-white px-3 py-1 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1.5 text-[12px] font-bold">
+                      <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">timer</span>
                       {formatTime(timeLeft)}
                     </div>
-                    <div className="font-extrabold text-[15px]">
-                      {isReviewLoop ? "Review Mode" : `Question ${currentQIndex + 1}`} <span className="text-black/40 font-bold text-[13px]">/ {questions.length}</span>
-                    </div>
-                  </div>
-                  <div className="w-full h-3 bg-white border-2 border-black rounded-full overflow-hidden">
-                    <div className="h-full bg-[#FF4D2E] transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-                  </div>
-                  <div className="bg-white rounded-2xl border-2 border-black shadow-[3px_3px_0px_#000] p-5 relative">
-                    <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#85f5eb] rounded-full border-2 border-black flex items-center justify-center rotate-12 z-10">
-                      <span className="material-symbols-outlined text-[16px]">psychology_alt</span>
-                    </div>
 
-                    <h2 className="font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
-                    {showHint && currentQuestion.hint && (
-                      <div className="mb-4 bg-amber-50 border-[1.5px] border-black p-3 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
-                        <span className="text-[#FF4D2E] uppercase tracking-widest text-[10px] font-black block mb-1">Study Hint</span>
-                        {currentQuestion.hint}
+                    <div className="font-extrabold text-[13px]">
+                      Mastered: <span className="text-[#16a34a] font-black">{masteredCount}</span> / {totalInitialCount}
+                    </div>
+                  </div>
+
+                  <div className="w-full h-2.5 bg-white border-2 border-black rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#FF4D2E] transition-all duration-300" 
+                      style={{ width: `${progressPercent}%` }} 
+                    />
+                  </div>
+
+                  {/* Re-test notice */}
+                  {currentItem.isReTest && (
+                    <div className="bg-[#85f5eb] border-2 border-black px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center justify-between">
+                      <span>🔄 Recall Retry · Q#{currentItem.originalIndex + 1}</span>
+                      <span>Attempt #{currentItem.attempts + 1}</span>
+                    </div>
+                  )}
+
+                  {/* Card */}
+                  <div className="bg-white rounded-2xl border-2 border-black shadow-[3px_3px_0px_#000] p-5 relative">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[10px] font-bold uppercase">
+                          {currentQuestion.subject}
+                        </span>
+                        <span className="px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[10px] font-bold uppercase">
+                          {currentQuestion.difficulty}
+                        </span>
                       </div>
-                    )}
-                    {(showExplanation || hasAnsweredCurrent) && currentQuestion.explanation && (
-                      <div className="mb-4 bg-blue-50 border-[1.5px] border-black p-3 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
-                        <span className="text-blue-600 uppercase tracking-widest text-[10px] font-black block mb-1">Explanation</span>
-                        {currentQuestion.explanation}
-                      </div>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
-                        <span className="material-symbols-outlined text-[12px] mr-1">folder</span>{currentQuestion.subject}
-                      </span>
-                      <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
-                        <span className="material-symbols-outlined text-[12px] mr-1">leaderboard</span>{currentQuestion.difficulty}
-                      </span>
+
                       {currentQuestion.hint && (
                         <button
                           type="button"
-                          onClick={() => setShowHint(prev => !prev)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 border-[1.5px] border-black rounded-full text-[11px] font-bold text-yellow-900 shadow-[1px_1px_0px_#000] hover:bg-yellow-200 active:scale-95 transition-all"
+                          onClick={() => { playPop(); setShowHint(prev => !prev); }}
+                          className="px-2.5 py-0.5 bg-yellow-100 border border-black rounded-full text-[10px] font-bold text-yellow-900"
                         >
-                          <span className="material-symbols-outlined text-[13px]">lightbulb</span>
                           {showHint ? "Hide Hint" : "Hint"}
                         </button>
                       )}
                     </div>
+
+                    <h2 className="font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
+
+                    {showHint && currentQuestion.hint && (
+                      <div className="mb-3 bg-amber-50 border border-black p-2.5 rounded-lg text-[12px] font-bold">
+                        <span className="text-[#FF4D2E] text-[10px] font-black uppercase block">Hint</span>
+                        {currentQuestion.hint}
+                      </div>
+                    )}
+
+                    {currentItem.isReTest && currentItem.scaffoldHint && (
+                      <div className="mb-3 bg-[#FFF9E6] border border-black p-2.5 rounded-lg text-[12px] font-bold">
+                        <span className="text-[#B45309] text-[10px] font-black uppercase block">Rex Recall Scaffolding</span>
+                        {currentItem.scaffoldHint}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex flex-col gap-3">
-                    {currentQuestion.type === "identification" || currentQuestion.type === "fill-in-the-blank" ? (
+
+                  {/* Options */}
+                  <div className="flex flex-col gap-2.5">
+                    {isMc ? (
+                      (currentQuestion.options || []).map((option, idx) => {
+                        const label = ["A", "B", "C", "D"][idx];
+                        const isSelected = selectedOption === idx;
+                        return (
+                          <button
+                            key={idx}
+                            disabled={hasAnsweredCurrent}
+                            onClick={() => {
+                              if (hasAnsweredCurrent) return;
+                              playTap();
+                              setSelectedOption(idx);
+                            }}
+                            className={`w-full text-left rounded-xl border-2 border-black p-3.5 flex items-center gap-3 transition-all ${
+                              isSelected 
+                                ? "bg-[#FF4D2E] text-white shadow-[2px_2px_0px_#000]" 
+                                : "bg-white shadow-[1px_1px_0px_#000] active:translate-y-0.5"
+                            }`}
+                          >
+                            <div className={`w-7 h-7 rounded border border-black flex items-center justify-center flex-shrink-0 font-extrabold text-[12px] ${
+                              isSelected ? "bg-white text-black" : "bg-[#FAF7F2] text-black"
+                            }`}>
+                              {label}
+                            </div>
+                            <span className="text-[13px] font-bold leading-tight">{option}</span>
+                          </button>
+                        );
+                      })
+                    ) : (
                       <input 
                         type="text" 
                         value={textInput} 
+                        disabled={hasAnsweredCurrent}
                         onChange={e => setTextInput(e.target.value)} 
                         placeholder="Type your answer here..."
-                        className="w-full bg-white border-2 border-black rounded-xl p-4 text-[15px] font-bold shadow-[3px_3px_0px_#000] focus:outline-none focus:shadow-[1px_1px_0px_#000] focus:translate-y-[2px]"
+                        className="w-full bg-white border-2 border-black rounded-xl p-4 text-[14px] font-bold shadow-[2px_2px_0px_#000] focus:outline-none"
                       />
-                    ) : (
-                      currentQuestion.options && (currentQuestion.options || []).map((option, idx) => {
-                      const label      = ["A", "B", "C", "D"][idx];
-                      const isSelected = selectedOption === idx;
-                      return (
-                        <button key={idx} onClick={() => setSelectedOption(idx)}
-                          className={`w-full text-left rounded-2xl border-2 border-black p-4 flex items-center gap-3 transition-all ${isSelected ? "bg-[#ffdad6] shadow-[3px_3px_0px_#000] -translate-y-0.5" : "bg-white shadow-[1px_1px_0px_rgba(0,0,0,0.1)] hover:shadow-[3px_3px_0px_#000] hover:-translate-y-0.5"}`}>
-                          <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center flex-shrink-0 font-extrabold text-[13px] ${isSelected ? "bg-[#FF4D2E] text-white" : "bg-neutral-100"}`}>{label}</div>
-                          <span className={`text-[14px] leading-tight ${isSelected ? "font-extrabold" : "font-bold"}`}>{option}</span>
-                        </button>
-                      );
-                    })
                     )}
                   </div>
                 </>
               )}
             </main>
 
-            {questions.length > 0 && !isGenerating && !showReviewTransition && (
-              <div className={`sticky bottom-0 w-full border-t-2 border-black px-4 py-4 pb-6 z-30 transition-colors ${hasAnsweredCurrent ? (isCurrentCorrect ? "bg-[#dcfce7]" : "bg-[#ffdad6]") : "bg-[#FAF7F2]"}`}>
-                
-                {hasAnsweredCurrent ? (
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className={`font-black text-[18px] flex items-center gap-2 ${isCurrentCorrect ? "text-[#16a34a]" : "text-[#dc2626]"}`}>
-                        <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          {isCurrentCorrect ? "check_circle" : "cancel"}
-                        </span>
-                        {isCurrentCorrect ? "Excellent!" : "Incorrect"}
-                      </div>
-                      {!isCurrentCorrect && (
-                        <button onClick={() => setShowProUpsell(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#dc2626] rounded-xl text-[#dc2626] font-bold text-[12px] shadow-[2px_2px_0px_#dc2626] active:translate-y-[2px] active:shadow-none">
-                          <span className="material-symbols-outlined text-[14px]">help</span> Why?
-                        </button>
-                      )}
-                    </div>
-                    <button onClick={handleContinue} className={`w-full text-white py-3.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${isCurrentCorrect ? "bg-[#16a34a]" : "bg-[#dc2626]"}`}>
-                      Continue
-                    </button>
-                  </div>
-                ) : (
-                  <button disabled={(currentQuestion?.type === 'multiple-choice' || !currentQuestion?.type) ? selectedOption === null : !textInput.trim()} onClick={handleCheck}
-                    className={`w-full text-white py-3.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all text-[15px] font-extrabold ${((currentQuestion?.type === 'multiple-choice' || !currentQuestion?.type) ? selectedOption !== null : textInput.trim()) ? "bg-[#FF4D2E] cursor-pointer" : "bg-neutral-300 pointer-events-none opacity-50"}`}>
-                    Check Answer
-                  </button>
-                )}
-              </div>
+            {/* Mobile Feedback Drawer */}
+            {adaptiveQueue.length > 0 && !isGenerating && (
+              <FeedbackDrawer />
             )}
           </>
         )}
 
+        {/* Mobile View: Results */}
         {view === "results" && (
           <main className="flex-1 w-full px-5 py-8 flex flex-col items-center justify-center text-center overflow-y-auto">
-            <div className="w-20 h-20 bg-[#fca623]/20 border-2 border-black shadow-[4px_4px_0px_#000] rounded-full flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-4xl">emoji_events</span>
-            </div>
-            <h2 className="font-black mb-1.5 text-[24px]">Exam Complete!</h2>
-            <p className="text-black/50 font-bold max-w-[280px] mb-6 text-[14px]">Practice test recorded. Review your scores below.</p>
+            <img 
+              src="/fox/fox-excited.png" 
+              alt="Rex Mascot Celebrating" 
+              className="w-24 h-24 object-contain mb-4 animate-bounce-short"
+            />
+            <h2 className="font-black mb-1.5 text-[24px]">100% Mastery!</h2>
+            <p className="text-black/50 font-bold max-w-[280px] mb-6 text-[13px]">
+              Quiz completed through the adaptive recall engine.
+            </p>
+
             <div className="w-full bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#000] flex flex-col gap-4 text-left mb-8">
               <div className="flex justify-between items-center border-b pb-2.5">
-                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Success Metric</span>
-                <span className="text-[#FF4D2E] text-[22px] font-black">{Math.round((score / questions.length) * 100)}%</span>
+                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Mastery</span>
+                <span className="text-[#16a34a] text-[20px] font-black">100% Mastered</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2.5">
-                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Correct Hits</span>
-                <span className="text-[15px] font-bold">{score} / {questions.length} items</span>
+                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Best Streak</span>
+                <span className="text-[#FF4D2E] text-[16px] font-black">🔥 {highestStreak} in a row</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-2.5">
+                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">First Pass</span>
+                <span className="text-[14px] font-bold">{score} / {totalInitialCount}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Rewards</span>
-                <span className="text-[#F5A623] font-bold text-[14px]">+{score * 30 + 10} XP / +{score * 15 + 5} Coins</span>
+                <span className="text-[#F5A623] font-bold text-[14px]">+{totalInitialCount * 30 + 20} XP / +{totalInitialCount * 15 + 10} Coins</span>
               </div>
             </div>
+
             <div className="flex gap-3 w-full">
-              <button onClick={() => { setView("quiz"); setCurrentQIndex(0); setSelectedOption(null); setScore(0); setAnswers([]); setTimeLeft(600); setQuestions([]); }}
-                className="flex-1 bg-white border-2 border-black py-3.5 rounded-xl font-bold active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer">
+              <button 
+                onClick={() => {
+                  playPop();
+                  setView("quiz");
+                  setAdaptiveQueue([]);
+                  setTotalInitialCount(0);
+                  setMasteredCount(0);
+                  setScore(0);
+                  setComboStreak(0);
+                  setQuestions([]);
+                  setAnswers([]);
+                }}
+                className="flex-1 bg-white border-2 border-black py-3.5 rounded-xl font-bold active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer"
+              >
                 New Quiz
               </button>
-              <button onClick={() => navigate("/dashboard")}
-                className="flex-1 bg-[#FF4D2E] border-2 border-black text-white py-3.5 rounded-xl font-bold active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer">
+              <button 
+                onClick={() => navigate("/dashboard")}
+                className="flex-1 bg-[#FF4D2E] border-2 border-black text-white py-3.5 rounded-xl font-bold active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer"
+              >
                 Dashboard
               </button>
             </div>
           </main>
         )}
       </div>
-    </div>
     </>
   );
 }
