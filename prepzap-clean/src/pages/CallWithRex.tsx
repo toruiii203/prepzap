@@ -1,24 +1,19 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { callGroq } from "@/lib/groq";
-
-const FOX_STATES = {
-  idle: "/fox/fox-neutral.png",
-  listening: "/fox/fox-peeking.png",
-  processing: "/fox/fox-thinking.png",
-  responding: "/fox/fox-happy.png",
-};
-
-type CallState = "idle" | "listening" | "processing" | "responding";
+import { AnimatedRex, type RexState } from "@/components/AnimatedRex";
+import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 
 export default function CallWithRex() {
   const navigate = useNavigate();
-  const [callState, setCallState] = useState<CallState>("idle");
+  const [callState, setCallState] = useState<RexState>("idle");
   const [transcript, setTranscript] = useState("");
   const [rexReply, setRexReply] = useState("");
   const [amplitude, setAmplitude] = useState(0);
-  
-  const callStateRef = useRef<CallState>(callState);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+
+  const callStateRef = useRef<RexState>(callState);
   const transcriptRef = useRef("");
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<any>(null);
@@ -36,7 +31,8 @@ export default function CallWithRex() {
   }, [transcript]);
 
   const initSpeechRecognition = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return null;
 
     const recognition = new SpeechRecognition();
@@ -46,7 +42,6 @@ export default function CallWithRex() {
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
-      // Explicitly only transition to listening if we are idle (prevent duplicate starts)
       if (callStateRef.current === "idle") {
         setCallState("listening");
         setTranscript("");
@@ -66,12 +61,11 @@ export default function CallWithRex() {
     recognition.onerror = (event: any) => {
       console.error("[CallWithRex] Speech recognition error:", event.error);
       if (event.error !== "aborted") {
-         forceIdleCleanup();
+        forceIdleCleanup();
       }
     };
 
     recognition.onend = () => {
-      // If we ended naturally or via STOP, and were listening, process it.
       if (callStateRef.current === "listening" && !processingRef.current) {
         processTranscript();
       } else {
@@ -128,24 +122,75 @@ export default function CallWithRex() {
   const forceIdleCleanup = () => {
     stopAmplitudeTracking();
     if (recognitionRef.current) {
-      recognitionRef.current.onend = null; // Prevent loops
+      recognitionRef.current.onend = null;
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
     processingRef.current = false;
+    setIsSpeaking(false);
     setCallState("idle");
   };
 
-  const startListening = () => {
-    if (callState !== "idle") return; // Prevent duplicate sessions
-    setRexReply("");
-    
-    // Cleanup any lingering instances
-    if (recognitionRef.current) {
-       recognitionRef.current.onend = null;
-       recognitionRef.current.stop();
+  const speakReply = (text: string) => {
+    if (isMuted || typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setIsSpeaking(true);
+      const readingTimeMs = Math.max(3000, text.split(" ").length * 220 + 1500);
+      setTimeout(() => {
+        setIsSpeaking(false);
+        forceIdleCleanup();
+      }, readingTimeMs);
+      return;
     }
-    
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.15; // Friendly, youthful mentor voice
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice =
+        voices.find(
+          (v) =>
+            v.lang.startsWith("en") &&
+            (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Samantha"))
+        ) || voices.find((v) => v.lang.startsWith("en"));
+      if (preferredVoice) utterance.voice = preferredVoice;
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        forceIdleCleanup();
+      };
+
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        forceIdleCleanup();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      setIsSpeaking(true);
+      setTimeout(() => {
+        setIsSpeaking(false);
+        forceIdleCleanup();
+      }, 3000);
+    }
+  };
+
+  const startListening = () => {
+    if (callState !== "idle") return;
+    playPop();
+    setRexReply("");
+
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.stop();
+    }
+
     const recognition = initSpeechRecognition();
     if (recognition) {
       recognitionRef.current = recognition;
@@ -153,7 +198,6 @@ export default function CallWithRex() {
         recognition.start();
         startAmplitudeTracking();
       } catch (e) {
-        // Handle case where recognition is already started
         forceIdleCleanup();
       }
     }
@@ -161,20 +205,20 @@ export default function CallWithRex() {
 
   const stopListening = () => {
     if (callStateRef.current !== "listening") return;
+    playTap();
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    // Note: stopping recognition triggers onend, which handles processTranscript.
   };
 
   const processTranscript = async () => {
     if (processingRef.current) return;
     processingRef.current = true;
-    
+
     stopAmplitudeTracking();
-    
+
     const finalTranscript = transcriptRef.current;
-    
+
     if (!finalTranscript.trim()) {
       forceIdleCleanup();
       return;
@@ -192,19 +236,12 @@ export default function CallWithRex() {
       );
       setRexReply(reply);
       setCallState("responding");
-      
-      // Auto-return to idle after reading time (rough estimate: 100ms per word + 2s buffer)
-      const readingTimeMs = Math.max(3000, (reply.split(" ").length * 200) + 2000);
-      setTimeout(() => {
-         if (callStateRef.current === "responding") {
-            forceIdleCleanup();
-         }
-      }, readingTimeMs);
-      
+      speakReply(reply);
     } catch (err) {
-      setRexReply("Sorry, I had trouble processing that. Could you repeat?");
+      const errorMsg = "Sorry, I had trouble processing that. Could you repeat?";
+      setRexReply(errorMsg);
       setCallState("responding");
-      setTimeout(() => forceIdleCleanup(), 4000);
+      speakReply(errorMsg);
     } finally {
       processingRef.current = false;
     }
@@ -212,131 +249,189 @@ export default function CallWithRex() {
 
   useEffect(() => {
     return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
       forceIdleCleanup();
     };
   }, []);
 
   const handleClose = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     forceIdleCleanup();
     navigate(-1);
+  };
+
+  const toggleMute = () => {
+    playTap();
+    if (!isMuted && typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsMuted(!isMuted);
   };
 
   const scale = 1 + (amplitude / 255) * 0.5;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white overflow-hidden">
-      {/* Background Asset */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-40 blur-sm"
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#141210] text-white overflow-hidden">
+      {/* Background Ambience */}
+      <div
+        className="absolute inset-0 z-0 bg-cover bg-center opacity-30 blur-md pointer-events-none"
         style={{ backgroundImage: "url('/fox/call_bg.jpg')" }}
       />
-      
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) scale(1); }
-          50% { transform: translateY(-8px) scale(1.01); }
-        }
-        .animate-float {
-          animation: float 4s ease-in-out infinite;
-        }
-      `}</style>
 
-      {/* Rex Character Avatar */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none mt-20">
-        <img 
-          src={
-            callState === "processing" ? FOX_STATES.processing :
-            callState === "listening" ? FOX_STATES.listening :
-            callState === "responding" ? FOX_STATES.responding :
-            FOX_STATES.idle
-          } 
-          alt="Rex" 
-          className={`w-full max-w-[400px] object-contain transition-transform duration-75 ${(callState === "idle" || callState === "responding") ? "animate-float" : ""}`}
-          style={{ 
-            transform: callState === "listening" 
-              ? `scale(${1 + (amplitude / 255) * 0.15})` 
-              : callState === "processing"
-              ? "scale(1.02) rotate(2deg) translateY(-10px)"
-              : (callState === "idle" || callState === "responding")
-              ? "scale(1)" 
-              : "scale(1.05)",
-            filter: "drop-shadow(0px 20px 30px rgba(0,0,0,0.5))"
-          }}
-        />
-      </div>
-      
-      {/* Header */}
-      <div className="relative z-10 flex items-center justify-between p-6 pt-12 bg-gradient-to-b from-black/60 to-transparent">
-        <h1 className="text-xl font-black tracking-widest uppercase">Call with Rex</h1>
-        <button 
-          onClick={handleClose}
-          className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center transition-colors"
-        >
-          <span className="material-symbols-outlined text-white">close</span>
-        </button>
+      {/* Header Bar */}
+      <div className="relative z-10 flex items-center justify-between p-6 pt-10 bg-gradient-to-b from-black/80 to-transparent">
+        <div className="flex items-center gap-2.5">
+          <div className="w-3 h-3 rounded-full bg-[#10B981] animate-ping" />
+          <h1 className="text-[17px] font-black tracking-wider uppercase">Live Voice with Rex</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Mute/Unmute Audio Toggle */}
+          <button
+            type="button"
+            onClick={toggleMute}
+            title={isMuted ? "Unmute Rex Voice" : "Mute Rex Voice"}
+            className="w-10 h-10 bg-white/15 hover:bg-white/25 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center transition-all cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[20px] text-white">
+              {isMuted ? "volume_off" : "volume_up"}
+            </span>
+          </button>
+
+          {/* Close Call */}
+          <button
+            type="button"
+            onClick={handleClose}
+            className="w-10 h-10 bg-white/15 hover:bg-white/25 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center transition-all cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[20px] text-white">close</span>
+          </button>
+        </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-start p-6 pt-10">
-        
-        {/* User Speech Caption (Listening) */}
-        {callState === "listening" && (
-          <div className="w-full max-w-md bg-black/50 backdrop-blur-md border border-white/20 rounded-2xl p-5 mb-4 animate-in fade-in slide-in-from-bottom-4">
-            <p className="text-white/70 text-sm font-bold uppercase tracking-wider mb-2">You</p>
-            <p className="text-lg font-semibold">{transcript || "Listening..."}</p>
-          </div>
-        )}
-
-        {/* Rex Thinking State */}
-        {callState === "processing" && (
-          <div className="w-full max-w-md bg-white border-2 border-black rounded-2xl p-5 mb-4 shadow-[4px_4px_0px_#000] animate-in fade-in zoom-in-95">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#ae2925] flex items-center justify-center animate-pulse">
-                <span className="material-symbols-outlined text-white text-[16px]">psychology</span>
-              </div>
-              <p className="text-black font-black uppercase tracking-widest text-sm">Rex is thinking...</p>
+      {/* Main Stage: Airlearn-Style Animated Moving Rex */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-between p-6 pb-2">
+        {/* Dynamic Caption / Dialogue Box */}
+        <div className="w-full max-w-md min-h-[100px] flex flex-col justify-end">
+          {/* User Transcript */}
+          {callState === "listening" && (
+            <div className="bg-black/60 backdrop-blur-md border-2 border-white/20 rounded-2xl p-4 shadow-[4px_4px_0px_#000] animate-in fade-in slide-in-from-bottom-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#FFD13B] block mb-1">
+                You (Listening...)
+              </span>
+              <p className="text-[16px] font-extrabold text-white leading-snug">
+                {transcript || "Speak freely... Rex is listening"}
+              </p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Rex Text Response (Responding) */}
-        {(callState === "responding" || (callState === "idle" && rexReply)) && rexReply && (
-          <div className="w-full max-w-md bg-white border-2 border-black rounded-2xl p-6 mb-4 shadow-[6px_6px_0px_#000] animate-in fade-in zoom-in-95 relative">
-            <div className="absolute -bottom-3 left-8 w-6 h-6 bg-white border-b-2 border-l-2 border-black transform -rotate-45" />
-            <p className="text-[#ae2925] text-sm font-black uppercase tracking-wider mb-2">Rex</p>
-            <p className="text-black text-xl font-bold leading-snug">{rexReply}</p>
-          </div>
-        )}
-      </div>
+          {/* Rex Thinking State */}
+          {callState === "processing" && (
+            <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0px_#000] animate-in fade-in zoom-in-95">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#FF4D2E] flex items-center justify-center animate-pulse">
+                  <span className="material-symbols-outlined text-white text-[16px]">psychology</span>
+                </div>
+                <div>
+                  <p className="text-black font-black uppercase tracking-wider text-[12px]">
+                    Rex is thinking...
+                  </p>
+                  <p className="text-black/60 font-bold text-[11px]">Synthesizing your answer</p>
+                </div>
+              </div>
+            </div>
+          )}
 
-      {/* Bottom Control Bar */}
-      <div className="relative z-10 bg-gradient-to-t from-black via-black/80 to-transparent p-8 pb-12 flex items-center justify-between">
-        
-        {/* Mic Visualizer */}
-        <div className="w-16 h-16 flex items-center justify-center">
-          <div 
-            className={`absolute w-12 h-12 rounded-full transition-transform duration-75 ${callState === "listening" ? "bg-red-500/40" : "bg-white/10"}`}
-            style={{ transform: `scale(${scale})` }}
-          />
-          <div className={`relative w-12 h-12 rounded-full flex items-center justify-center z-10 ${callState === "listening" ? "bg-red-500 text-white" : "bg-white/20 text-white"}`}>
-            <span className="material-symbols-outlined">{callState === "listening" ? "mic" : "mic_off"}</span>
-          </div>
+          {/* Rex Response Bubble */}
+          {(callState === "responding" || (callState === "idle" && rexReply)) && rexReply && (
+            <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[6px_6px_0px_#000] animate-in fade-in zoom-in-95 relative">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[#FF4D2E] text-[11px] font-black uppercase tracking-wider">
+                  Rex AI Tutor
+                </span>
+                {isSpeaking && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#10B981]">
+                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-ping" />
+                    Speaking
+                  </span>
+                )}
+              </div>
+              <p className="text-black text-[16px] md:text-[18px] font-black leading-snug">
+                {rexReply}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Action Button */}
-        <button 
-          onClick={callState === "listening" ? stopListening : startListening}
-          disabled={callState === "processing" || callState === "responding"}
-          className={`px-8 py-4 rounded-full font-black text-lg uppercase tracking-widest transition-all ${
-            callState === "listening" 
-              ? "bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]" 
-              : (callState === "processing" || callState === "responding")
-              ? "bg-gray-500 text-white opacity-50"
-              : "bg-white text-black hover:bg-gray-200"
-          }`}
-        >
-          {callState === "listening" ? "Stop" : callState === "processing" ? "Thinking..." : callState === "responding" ? "Speaking..." : "Tap to Speak"}
-        </button>
+        {/* Center: Alive Animated Rex with Lip-Sync & Audio Reaction */}
+        <div className="my-auto py-4 flex flex-col items-center justify-center">
+          <AnimatedRex
+            state={callState}
+            amplitude={amplitude}
+            speaking={isSpeaking}
+            size="xl"
+            interactive={true}
+            onClick={() => {
+              if (callState === "idle") startListening();
+            }}
+          />
+          <span className="text-[11px] font-bold text-white/50 mt-3 tracking-wide">
+            {callState === "listening"
+              ? "Rex is hearing your voice"
+              : callState === "processing"
+              ? "Rex is processing your concept"
+              : callState === "responding"
+              ? "Rex is speaking"
+              : "Tap Rex or 'Tap to Speak' below"}
+          </span>
+        </div>
+
+        {/* Bottom Control Bar */}
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-3xl p-4 flex items-center justify-between shadow-[0px_4px_20px_rgba(0,0,0,0.4)]">
+          {/* Live Mic Halo Indicator */}
+          <div className="w-14 h-14 flex items-center justify-center relative">
+            <div
+              className={`absolute w-12 h-12 rounded-full transition-transform duration-75 ${
+                callState === "listening" ? "bg-red-500/40" : "bg-white/10"
+              }`}
+              style={{ transform: `scale(${scale})` }}
+            />
+            <div
+              className={`relative w-11 h-11 rounded-full flex items-center justify-center z-10 transition-colors ${
+                callState === "listening" ? "bg-red-500 text-white" : "bg-white/20 text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[22px]">
+                {callState === "listening" ? "mic" : "mic_none"}
+              </span>
+            </div>
+          </div>
+
+          {/* Central Call Trigger Button */}
+          <button
+            type="button"
+            onClick={callState === "listening" ? stopListening : startListening}
+            disabled={callState === "processing" || callState === "responding"}
+            className={`px-8 py-3.5 rounded-full font-black text-[14px] uppercase tracking-wider transition-all border-2 border-black shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer ${
+              callState === "listening"
+                ? "bg-red-500 text-white"
+                : callState === "processing" || callState === "responding"
+                ? "bg-gray-400 text-black opacity-60 cursor-not-allowed"
+                : "bg-[#FFD13B] text-black hover:bg-white"
+            }`}
+          >
+            {callState === "listening"
+              ? "Done Speaking"
+              : callState === "processing"
+              ? "Thinking..."
+              : callState === "responding"
+              ? "Rex Speaking..."
+              : "Tap to Speak"}
+          </button>
+        </div>
       </div>
     </div>
   );

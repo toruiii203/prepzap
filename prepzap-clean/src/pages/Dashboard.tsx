@@ -12,6 +12,7 @@ import { usePlan } from "@/hooks/usePlan";
 import { motion, animate, useAnimation } from "framer-motion";
 import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
 import { ExamCountdownBanner } from "@/components/ExamCountdownBanner";
+import { AnimatedRex } from "@/components/AnimatedRex";
 import {
   getStoredPreferences,
   saveExamTarget,
@@ -252,67 +253,59 @@ const formatDuration = (mins: number) => {
   return `${m}m`;
 };
 
-// Call Rex Hero Banner Component
+// Animated Talk with Rex Banner (Airlearn-style living character)
 function CallRexBanner({ navigate }: { navigate: any }) {
-  const [hasCalled, setHasCalled] = useState(false);
-
-  useEffect(() => {
-    if (localStorage.getItem("pz_has_called_rex")) {
-      setHasCalled(true);
-    }
-  }, []);
-
   const handleCall = () => {
+    playSuccess();
     localStorage.setItem("pz_has_called_rex", "true");
-    setHasCalled(true);
     navigate("/call");
   };
 
-  if (hasCalled) {
-    // Collapsed version for returning users
-    return (
-      <div className="border-2 border-black rounded-2xl bg-white p-3.5 md:p-4 flex items-center justify-between shadow-[3px_3px_0px_#1A1A1A] w-full max-w-md">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-black bg-[#FFD13B] p-1 shrink-0 flex items-center justify-center shadow-[1px_1px_0px_#1A1A1A]">
-            <img src="/fox/fox-happy.png" alt="Rex Head" className="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h3 className="text-[14px] font-black tracking-tight leading-none text-black">Talk to Rex</h3>
-            <p className="text-[11.5px] font-bold text-black/55 mt-0.5">Voice chat tutor</p>
-          </div>
-        </div>
-        <button onClick={handleCall} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center border-2 border-black hover:bg-[#FF4D2E] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer">
-          <span className="material-symbols-outlined text-[19px]">phone_in_talk</span>
-        </button>
-      </div>
-    );
-  }
-
-  // Hero version for first-time users
   return (
-    <div className="border-2 border-black rounded-2xl bg-[#ae2925] overflow-hidden relative shadow-[4px_4px_0px_#1A1A1A] max-w-2xl">
-      <div className="absolute right-0 top-0 bottom-0 w-[40%] bg-cover bg-left opacity-30 mix-blend-luminosity" style={{ backgroundImage: "url('/fox/call_bg.jpg')" }} />
-      <div className="absolute right-[-10px] bottom-[-10px] w-36 h-36 pointer-events-none">
-        <img src="/fox/fox-happy.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-xl" />
+    <div className="border-2 border-black rounded-2xl bg-[#FFFDF5] hover:bg-white p-4 md:p-5 relative overflow-hidden shadow-[0px_4px_0px_#1A1A1A] flex flex-col justify-between transition-all group">
+      <div className="flex items-center justify-between mb-2.5 z-10">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-black text-white font-black uppercase text-[10px] tracking-wider rounded-lg border border-white/20">
+          <span className="material-symbols-outlined text-[13px] text-[#FFD13B]">phone_in_talk</span>
+          Voice Tutor &bull; Talk with Rex
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-white text-black/60 shadow-xs">
+          Interactive AI
+        </span>
       </div>
 
-      <div className="relative z-10 p-5 md:p-7 w-[72%]">
-        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white text-black font-black uppercase text-[10px] tracking-wider rounded border-2 border-black mb-2.5 shadow-[1px_1px_0px_#000]">
-          <span className="material-symbols-outlined text-[12px] text-orange-500">campaign</span>
-          Voice Tutor
+      <div className="flex items-center justify-between gap-3 z-10">
+        <div className="flex-1 min-w-0 pr-1">
+          <h3 className="text-[17px] md:text-[19px] font-black text-black leading-tight mb-1">
+            Practice speaking out loud.
+          </h3>
+          <p className="text-[11.5px] md:text-[12.5px] font-bold text-black/60 leading-snug mb-3 max-w-[260px]">
+            Talk through tricky topics with Rex. Rex listens, thinks, and responds like an interactive mentor.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleCall}
+            className="bg-[#FFD13B] text-black hover:bg-black hover:text-white border-2 border-black font-black uppercase text-[11px] tracking-wider px-4 py-2 rounded-xl shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer w-fit"
+          >
+            <span className="material-symbols-outlined text-[16px]">phone_in_talk</span>
+            Call Rex Now
+          </button>
         </div>
-        <h2 className="text-[20px] md:text-[24px] font-black text-white leading-tight mb-1.5">Practice speaking out loud.</h2>
-        <p className="text-white/85 font-bold text-[12.5px] md:text-[14px] mb-4 max-w-[280px] leading-snug">
-          Talk through concepts with Rex in a live voice call.
-        </p>
-        <button onClick={handleCall} className="bg-white text-black border-2 border-black font-black uppercase tracking-wider text-[12px] px-5 py-2.5 rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:bg-gray-100 transition-all flex items-center gap-2 cursor-pointer">
-          <span className="material-symbols-outlined text-[17px]">phone_in_talk</span>
-          Call Rex
-        </button>
+
+        {/* Live Animated Moving Rex Mascot */}
+        <div className="shrink-0 -mr-1">
+          <AnimatedRex
+            state="idle"
+            size="md"
+            interactive={true}
+            onClick={handleCall}
+          />
+        </div>
       </div>
     </div>
   );
 }
+
 
 export default function Dashboard() {
   const tutorial = useTutorialModal("/dashboard");
@@ -665,9 +658,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Rex Mascot in Top Right — Fully visible, vivid, friendly character */}
-            <div className="absolute right-3 -bottom-2 w-32 h-32 pointer-events-none transition-transform hover:scale-105">
-              <img src="/fox/fox-happy.png" alt="Rex Mascot" className="w-full h-full object-contain drop-shadow-md" />
+            {/* Rex Mascot in Top Right — Living animated character */}
+            <div className="absolute right-2 -bottom-2 pointer-events-none">
+              <AnimatedRex state="excited" size="md" interactive={false} />
             </div>
           </section>
 
