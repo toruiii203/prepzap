@@ -257,6 +257,15 @@ export default function Flashcards() {
     }
     const lib = loadLibrary();
     setLibraryFiles(lib || []);
+
+    const exportFlash = localStorage.getItem("qs_flashcards_export");
+    if (exportFlash) {
+      try {
+        const material = JSON.parse(exportFlash);
+        setTopic(typeof material === "string" ? material.slice(0, 80) : "Campus Vault Note");
+        localStorage.removeItem("qs_flashcards_export");
+      } catch {}
+    }
   }, []);
 
   const handleSelectSource = (file: any) => {

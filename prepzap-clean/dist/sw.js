@@ -57,6 +57,11 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = event.request.url;
 
+  // Ignore non-HTTP/HTTPS schemes (e.g. chrome-extension://, moz-extension://)
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return;
+  }
+
   // Skip R2 media — let browser handle range requests natively
   if (url.includes("r2.dev") || url.includes("r2.cloudflarestorage.com")) {
     return;
@@ -143,7 +148,7 @@ self.addEventListener("fetch", (event) => {
             return response;
           }
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
           return response;
         })
         .catch(() =>

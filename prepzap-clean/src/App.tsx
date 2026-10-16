@@ -112,6 +112,7 @@ import StudentProfile from "./pages/StudentProfile";
 import Challenges from "./pages/Challenges";
 import TeachIt from "./pages/TeachIt";
 import QuickStudy from "./pages/QuickStudy";
+import Community from "./pages/Community";
 
 
 
@@ -357,6 +358,7 @@ function AppRoutes() {
           <Route path="/profile" element={<StudentProfile />} />
           <Route path="/leaderboard" element={<Arena />} />
           <Route path="/challenges" element={<Challenges />} />
+          <Route path="/community" element={<Community />} />
           <Route path="/teach-it" element={<TeachIt />} />
           <Route path="/quick-study" element={<QuickStudy />} />
           

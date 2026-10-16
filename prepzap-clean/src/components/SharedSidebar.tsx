@@ -8,6 +8,7 @@ const NAV_SECTIONS = [
     label: "Main",
     items: [
       { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
+      { icon: "groups",         label: "Community",      route: "/community" },
       { icon: "edit_document",  label: "Notes",          route: "/notes" },
       { icon: "forum",      label: "Rex Tutor",       route: "/ai-tutor" },
       { icon: "style",          label: "Flashcards",     route: "/flashcards" },
@@ -121,7 +122,6 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
           </div>
         ))}
       </nav>
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#FAF7F2] to-transparent pointer-events-none" />
       </div>
 
       {/* Footer */}
