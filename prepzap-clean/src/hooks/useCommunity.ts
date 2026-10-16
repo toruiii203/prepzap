@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { playTap, playSuccess, playMastery } from "@/lib/soundFX";
 
 export interface CampusNote {
   id: string;
@@ -282,11 +283,7 @@ export function useCommunity() {
       return;
     }
 
-    try {
-      const audio = new Audio("/sounds/short_tap.mp3");
-      audio.volume = 0.5;
-      audio.play().catch(() => {});
-    } catch {}
+    playTap();
 
     setBuddies((prev) =>
       prev.map((b) => (b.id === buddyId ? { ...b, lastNudgedAt: now } : b))
@@ -307,11 +304,7 @@ export function useCommunity() {
 
     setNotes((prev) => [noteToAdd, ...prev]);
 
-    try {
-      const audio = new Audio("/sounds/star_chime.mp3");
-      audio.volume = 0.6;
-      audio.play().catch(() => {});
-    } catch {}
+    playSuccess();
 
     toast.success("Study note published to Campus Vault! 🎉");
     return true;
@@ -343,11 +336,7 @@ export function useCommunity() {
 
     setBuddies((prev) => [...prev, newBuddy]);
 
-    try {
-      const audio = new Audio("/sounds/winner.mp3");
-      audio.volume = 0.5;
-      audio.play().catch(() => {});
-    } catch {}
+    playMastery();
 
     toast.success(`Connected with study partner (${clean})! 🔥`);
     return true;

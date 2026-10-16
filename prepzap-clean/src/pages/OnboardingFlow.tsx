@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 import { getCachedSession } from "@/lib/authSession"
-import { useAuth } from "@/contexts/AuthContext"
-import { saveUserPreferences, generateSmartQuests, GOAL_METADATA } from "@/lib/userPreferences"
-import { playPop, playSuccess, playCelebration } from "@/lib/soundFX"
+import { saveUserPreferences, generateSmartQuests, GOAL_METADATA, SUBJECT_METADATA, type ExamTarget, type UserStudyPreferences } from "@/lib/userPreferences"
+import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX"
 
 type Screen =
   | "intro"
@@ -18,6 +17,7 @@ type Screen =
   | "goalSelection"
   | "goalReaction"
   | "learningStyle"
+  | "examTarget"
   | "finalTransition"
 
 const FOX = {
@@ -865,7 +865,7 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
 
   return (
     <div style={s.page}>
-      <Header onBack={onBack} progress={100} />
+      <Header onBack={onBack} progress={80} />
       <div style={s.content}>
         <main style={{ flex: 1, padding: "0 24px 160px", overflowY: "auto" }}>
           <MascotRow src={foxSrc} dialogue={dialogue} subtitle="Select all that apply." />
@@ -894,18 +894,186 @@ function LearningStyle({ onNext, onBack }: { onNext: (styles: string[]) => void;
   )
 }
 
+function ExamTargetStep({
+  onNext,
+  onBack,
+  selectedSubjects,
+}: {
+  onNext: (target: ExamTarget | null) => void;
+  onBack: () => void;
+  selectedSubjects: string[];
+}) {
+  const [examTitle, setExamTitle] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [subject, setSubject] = useState(selectedSubjects[0] || "other");
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const PRESET_CHIPS = ["Midterm", "Finals", "Unit Test", "SAT / ACT", "AP Exam"];
+
+  const handleChipClick = (chip: string) => {
+    playPop();
+    const primarySubName = SUBJECT_METADATA[subject]?.name || "Exam";
+    setExamTitle(`${primarySubName} ${chip}`);
+  };
+
+  const handleContinue = () => {
+    if (!examTitle.trim() || !examDate) {
+      onNext(null);
+      return;
+    }
+    playSuccess();
+    onNext({
+      examTitle: examTitle.trim(),
+      examDate,
+      subject,
+    });
+  };
+
+  const handleSkip = () => {
+    playTap();
+    onNext(null);
+  };
+
+  return (
+    <div style={s.page}>
+      <Header onBack={onBack} progress={95} />
+      <div style={s.content}>
+        <main style={{ flex: 1, padding: "0 24px 160px", overflowY: "auto" }}>
+          <MascotRow
+            src={examTitle ? FOX.excited : FOX.peeking}
+            dialogue={examTitle ? `Locked in! Rex will track ${examTitle}.` : "Got an upcoming exam or test?"}
+            subtitle="Optional — we'll set up your live countdown & readiness tracker."
+          />
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.6, marginBottom: 8 }}>
+                Quick Exam Types
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {PRESET_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => handleChipClick(chip)}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 12,
+                      border: `2px solid ${BLACK}`,
+                      background: examTitle.includes(chip) ? YELLOW : WHITE,
+                      fontWeight: 800,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      boxShadow: `2px 2px 0px ${BLACK}`,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.6, marginBottom: 6 }}>
+                Exam Title
+              </label>
+              <input
+                type="text"
+                value={examTitle}
+                onChange={(e) => setExamTitle(e.target.value)}
+                placeholder="e.g. Biology Midterm, Calculus Final"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: `2.5px solid ${BLACK}`,
+                  background: WHITE,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.6, marginBottom: 6 }}>
+                Target Date
+              </label>
+              <input
+                type="date"
+                min={todayStr}
+                value={examDate}
+                onChange={(e) => setExamDate(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: `2.5px solid ${BLACK}`,
+                  background: WHITE,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  cursor: "pointer",
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.6, marginBottom: 6 }}>
+                Subject Category
+              </label>
+              <select
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: `2.5px solid ${BLACK}`,
+                  background: WHITE,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  cursor: "pointer",
+                }}
+              >
+                {Object.entries(SUBJECT_METADATA).map(([key, meta]) => (
+                  <option key={key} value={key}>
+                    {meta.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </main>
+        <BottomBar
+          onSkip={handleSkip}
+          onContinue={handleContinue}
+          continueLabel={examTitle && examDate ? "Set Target" : "Continue"}
+        />
+      </div>
+    </div>
+  );
+}
+
 function FinalTransition({
   onDone,
   userName,
   selectedSubjects,
   selectedGoal,
   selectedStyles,
+  examTarget,
 }: {
   onDone: () => void;
   userName: string;
   selectedSubjects: string[];
   selectedGoal: string;
   selectedStyles: string[];
+  examTarget?: ExamTarget | null;
 }) {
   const { refreshProfile, completeOnboarding } = useAuth()
   const [foxSrc, setFoxSrc]               = useState(FOX.peeking)
@@ -927,13 +1095,14 @@ function FinalTransition({
     const userId = session?.user?.id
     const dailyMinutes = GOAL_METADATA[selectedGoal]?.dailyMinutes || 30
 
-    const prefs = {
+    const prefs: UserStudyPreferences = {
       name: userName || session?.user?.user_metadata?.full_name || "Scholar",
       subjects: selectedSubjects && selectedSubjects.length > 0 ? selectedSubjects : ["other"],
       goal: selectedGoal || "grades",
       learningStyles: selectedStyles && selectedStyles.length > 0 ? selectedStyles : ["mixed"],
       dailyGoalMinutes: dailyMinutes,
       completedAt: new Date().toISOString(),
+      examTarget: examTarget || null,
     }
 
     saveUserPreferences(prefs, userId)
@@ -1107,6 +1276,7 @@ export default function Onboarding() {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [selectedGoal, setSelectedGoal]         = useState("")
   const [selectedStyles, setSelectedStyles]     = useState<string[]>([])
+  const [selectedExamTarget, setSelectedExamTarget] = useState<ExamTarget | null>(null)
 
   const go = (s: Screen) => setScreen(s)
 
@@ -1179,7 +1349,14 @@ export default function Onboarding() {
       {screen === "subjectReaction"  && <SubjectReaction selected={selectedSubjects} onNext={() => go("goalSelection")} />}
       {screen === "goalSelection"    && <GoalSelection onNext={g => { setSelectedGoal(g); go("goalReaction") }} onBack={() => go("subjectSelection")} />}
       {screen === "goalReaction"     && <GoalReaction goal={selectedGoal} onNext={() => go("learningStyle")} />}
-      {screen === "learningStyle"    && <LearningStyle onNext={s => { setSelectedStyles(s); go("finalTransition") }} onBack={() => go("goalSelection")} />}
+      {screen === "learningStyle"    && <LearningStyle onNext={s => { setSelectedStyles(s); go("examTarget") }} onBack={() => go("goalSelection")} />}
+      {screen === "examTarget"       && (
+        <ExamTargetStep
+          onNext={t => { setSelectedExamTarget(t); go("finalTransition") }}
+          onBack={() => go("learningStyle")}
+          selectedSubjects={selectedSubjects}
+        />
+      )}
       {screen === "finalTransition"  && (
         <FinalTransition
           onDone={() => navigate("/dashboard", { replace: true })}
@@ -1187,8 +1364,10 @@ export default function Onboarding() {
           selectedSubjects={selectedSubjects}
           selectedGoal={selectedGoal}
           selectedStyles={selectedStyles}
+          examTarget={selectedExamTarget}
         />
       )}
     </>
   )
 }
+

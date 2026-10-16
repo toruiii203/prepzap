@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
+export interface ExamTarget {
+  examTitle: string;
+  examDate: string; // YYYY-MM-DD
+  subject?: string;
+}
+
 export interface UserStudyPreferences {
   name: string;
   subjects: string[];
@@ -7,6 +13,7 @@ export interface UserStudyPreferences {
   learningStyles: string[];
   dailyGoalMinutes: number;
   completedAt: string;
+  examTarget?: ExamTarget | null;
 }
 
 export const SUBJECT_METADATA: Record<string, { name: string; icon: string; color: string; bg: string; recommendedTool: string }> = {
@@ -132,6 +139,18 @@ export function saveUserPreferences(prefs: UserStudyPreferences, userId?: string
   } catch (err) {
     console.error("Error saving user preferences:", err);
   }
+}
+
+export function saveExamTarget(examTarget: ExamTarget | null, userId?: string): void {
+  const current = getStoredPreferences(userId) || {
+    name: "Student",
+    subjects: ["other"],
+    goal: "grades",
+    learningStyles: ["mixed"],
+    dailyGoalMinutes: 30,
+    completedAt: new Date().toISOString(),
+  };
+  saveUserPreferences({ ...current, examTarget }, userId);
 }
 
 /**

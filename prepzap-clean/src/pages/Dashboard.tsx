@@ -11,17 +11,20 @@ import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
 import { motion, animate, useAnimation } from "framer-motion";
 import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
+import { ExamCountdownBanner } from "@/components/ExamCountdownBanner";
 import {
   getStoredPreferences,
+  saveExamTarget,
   SUBJECT_METADATA,
   GOAL_METADATA,
   STYLE_METADATA,
   generateSmartQuests,
-  type UserStudyPreferences
+  type UserStudyPreferences,
+  type ExamTarget,
 } from "@/lib/userPreferences";
 import { levelFromXp, xpProgressPercent, xpToNextLevel, tierFromLevel } from "@/lib/xp";
 
-function AnimatedCounter({ value, duration = 1.5 }: { value: number, duration?: number }) {
+function AnimatedCounter({ value, duration = 1.5 }: { value: number; duration?: number }) {
   const nodeRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const controls = animate(0, value, {
@@ -31,42 +34,65 @@ function AnimatedCounter({ value, duration = 1.5 }: { value: number, duration?: 
         if (nodeRef.current) {
           nodeRef.current.textContent = Math.round(v).toString();
         }
-      }
+      },
     });
     return () => controls.stop();
   }, [value, duration]);
   return <span ref={nodeRef}>{value}</span>;
 }
 
-// All tools flat
-const ALL_TOOLS = [
-  { route: "/ai-tutor",       icon: "forum",          title: "Rex Tutor",        desc: "Personal mentor",   color: "text-[#FF4D2E]" },
-  { route: "/practice",       icon: "assignment",     title: "Practice",         desc: "Mock exams",        color: "text-[#F5A623]" },
-  { route: "/flashcards",     icon: "style",          title: "Flashcards",       desc: "Spaced recall",     color: "text-[#8B5CF6]" },
-  { route: "/community",      icon: "menu_book",      title: "Campus Vault",     desc: "Peer study notes",  color: "text-[#10B981]" },
-  { route: "/quick-study",    icon: "edit_note",      title: "Cram Mode",        desc: "Last minute prep",  color: "text-[#b61b00]" },
-  { route: "/visual-learner", icon: "visibility",     title: "Visual Learner",   desc: "Mindmaps & diagrams",color: "text-[#8B5CF6]" },
-  { route: "/planner",        icon: "calendar_month", title: "Study Planner",    desc: "Stay organized",    color: "text-[#0EA5E9]" },
-  { route: "/math",           icon: "calculate",      title: "Math Solver",      desc: "Step-by-step",      color: "text-[#10B981]" },
-  { route: "/teach-it",       icon: "psychology",     title: "Teach It",         desc: "Active learning",   color: "text-[#EC4899]" },
-  { route: "/timer",          icon: "timer",          title: "Focus Timer",      desc: "Pomodoro",          color: "text-[#6366F1]" },
-  { route: "/arcade",         icon: "sports_esports", title: "Arcade",           desc: "Mini-games",        color: "text-[#F43F5E]" },
-  { route: "/notes",          icon: "edit_document",  title: "My Notes",         desc: "Rich text editor",  color: "text-[#EAB308]" },
-  { route: "/settings",       icon: "settings",       title: "Settings",         desc: "Preferences",       color: "text-[#64748B]" },
-  { route: "/sources",        icon: "attach_file",    title: "Source Library",   desc: "Upload notes",      color: "text-[#78716C]" },
-  { route: "/mistakes",       icon: "playlist_remove",title: "Mistake Journal",  desc: "Review errors",     color: "text-[#ba1a1a]" },
-  { route: "/analytics",      icon: "bar_chart",      title: "Analytics",        desc: "Track progress",    color: "text-[#14B8A6]" },
-  { route: "/challenges",     icon: "emoji_events",   title: "Challenges",       desc: "Daily streaks",     color: "text-[#F5A623]" },
-  { route: "/arena",          icon: "sports_esports", title: "Arena",            desc: "Compete live",      color: "text-[#8B5CF6]" },
+// 4 Primary Core Study Tools (The essential daily academic workflow)
+const CORE_TOOLS = [
+  {
+    route: "/ai-tutor",
+    icon: "forum",
+    title: "Rex Tutor",
+    desc: "Interactive AI study coach & voice mentor",
+    color: "text-[#FF4D2E]",
+    badge: "AI Mentor",
+  },
+  {
+    route: "/practice",
+    icon: "assignment",
+    title: "Practice Tests",
+    desc: "Active recall quizzes & mock exams",
+    color: "text-[#F5A623]",
+    badge: "High Yield",
+  },
+  {
+    route: "/flashcards",
+    icon: "style",
+    title: "Flashcards",
+    desc: "Spaced repetition & memory reinforcement",
+    color: "text-[#8B5CF6]",
+    badge: "Spaced Recall",
+  },
+  {
+    route: "/notes",
+    icon: "edit_document",
+    title: "My Notes",
+    desc: "Rich text summaries & lecture syntheses",
+    color: "text-[#10B981]",
+    badge: "Synthesis",
+  },
 ] as const;
 
-// Mobile carousel: chunk into slides of 4
-const TOOL_SLIDES = [
-  ALL_TOOLS.slice(0, 4),
-  ALL_TOOLS.slice(4, 8),
-  ALL_TOOLS.slice(8, 12),
-  ALL_TOOLS.slice(12, 16),
-];
+// 12 Secondary Specialized Tools (expandable drawer)
+const SECONDARY_TOOLS = [
+  { route: "/community",      icon: "menu_book",      title: "Campus Vault",     desc: "Curated peer study guides",      color: "text-[#10B981]" },
+  { route: "/quick-study",    icon: "edit_note",      title: "Cram Mode",        desc: "High-yield last-minute sheets",  color: "text-[#b61b00]" },
+  { route: "/visual-learner", icon: "visibility",     title: "Visual Learner",   desc: "Mind maps & concept diagrams",   color: "text-[#8B5CF6]" },
+  { route: "/planner",        icon: "calendar_month", title: "Study Planner",    desc: "Schedules & revision deadlines", color: "text-[#0EA5E9]" },
+  { route: "/math",           icon: "calculate",      title: "Math Solver",      desc: "Step-by-step problem solver",    color: "text-[#10B981]" },
+  { route: "/teach-it",       icon: "psychology",     title: "Teach It",         desc: "Feynman technique practice",     color: "text-[#EC4899]" },
+  { route: "/timer",          icon: "timer",          title: "Focus Timer",      desc: "Tactile Pomodoro intervals",     color: "text-[#6366F1]" },
+  { route: "/arcade",         icon: "sports_esports", title: "Arcade",           desc: "Gamified academic challenges",   color: "text-[#F43F5E]" },
+  { route: "/mistakes",       icon: "playlist_remove",title: "Mistake Journal",  desc: "Targeted error review",          color: "text-[#ba1a1a]" },
+  { route: "/arena",          icon: "military_tech",  title: "Arena",            desc: "Compete in live study challenges",color: "text-[#8B5CF6]" },
+  { route: "/sources",        icon: "attach_file",    title: "Source Library",   desc: "Upload syllabus & PDFs",         color: "text-[#78716C]" },
+  { route: "/analytics",      icon: "bar_chart",      title: "Analytics",        desc: "Comprehensive progress charts",  color: "text-[#14B8A6]" },
+] as const;
+
 
 // Sub-components defined OUTSIDE Dashboard to prevent remount on every render
 
@@ -430,22 +456,21 @@ export default function Dashboard() {
   const primaryStyleId = userPrefs?.learningStyles?.[0] || "mixed";
   const primaryStyleMeta = STYLE_METADATA[primaryStyleId] || STYLE_METADATA.mixed;
 
-  const recommendedTools = useMemo(() => {
-    const preferredRoutes = new Set<string>();
-    if (primarySubjectMeta.recommendedTool) {
-      preferredRoutes.add(primarySubjectMeta.recommendedTool);
-    }
-    primaryStyleMeta.topTools.forEach((r) => preferredRoutes.add(r));
+  const [showAllTools, setShowAllTools] = useState(false);
 
-    const matched = ALL_TOOLS.filter((t) => preferredRoutes.has(t.route));
-    const remaining = ALL_TOOLS.filter((t) => !preferredRoutes.has(t.route));
-    return [...matched, ...remaining].slice(0, 4);
-  }, [primarySubjectMeta, primaryStyleMeta]);
+  const quizAccuracy = useMemo(() => {
+    try {
+      const total = parseInt(localStorage.getItem("pz_practice_total_count") || "0", 10);
+      const mastered = parseInt(localStorage.getItem("pz_practice_mastered_count") || "0", 10);
+      if (total > 0) return Math.min(100, Math.round((mastered / total) * 100));
+    } catch {}
+    return stats.avgScore || 0;
+  }, [sessions, stats.avgScore]);
 
-  const otherTools = useMemo(() => {
-    const recRoutes = new Set(recommendedTools.map((t) => t.route));
-    return ALL_TOOLS.filter((t) => !recRoutes.has(t.route));
-  }, [recommendedTools]);
+  const handleUpdateExamTarget = (target: ExamTarget | null) => {
+    saveExamTarget(target, user?.id);
+    setUserPrefs((prev) => (prev ? { ...prev, examTarget: target } : null));
+  };
 
   const fetchTasks = () => {
     setLoadingTasks(true);
@@ -592,6 +617,17 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {/* Exam Countdown Banner (Permanent: Active Countdown or 'No exam yet' empty state) */}
+        <div className="mb-8">
+          <ExamCountdownBanner
+            examTarget={userPrefs?.examTarget}
+            onUpdate={handleUpdateExamTarget}
+            quizAccuracy={quizAccuracy}
+            sessionsCount={sessions.length}
+            tasksCompleted={tasks.filter((t) => t.completed).length}
+          />
+        </div>
+
         {/* Desktop Top Command Deck */}
         <div className="grid grid-cols-12 gap-6 mb-8">
           
@@ -724,70 +760,94 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* Quick Tools — Redesigned Modern Study Hub */}
+          {/* 4-Tool Core Study Dock + Expandable 12-Tool Drawer */}
           <section className="col-span-8 border-2 border-black bg-white rounded-2xl p-6 shadow-[0px_4px_0px_#1A1A1A]">
             <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-[14px] font-black uppercase tracking-wider text-black">Recommended For You</h3>
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-[14px] font-black uppercase tracking-wider text-black">Core Study Dock</h3>
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-[#FAF7F2] text-black/60">
-                  Personalized
+                  4 Primary Actions
                 </span>
               </div>
               <button
                 type="button"
-                onClick={() => { playPop(); navigate("/tools"); }}
-                className="text-[12px] font-black text-black underline hover:text-[#FF4D2E] transition-colors cursor-pointer"
+                onClick={() => {
+                  playTap();
+                  setShowAllTools(!showAllTools);
+                }}
+                className="text-[12px] font-black text-black hover:text-[#FF4D2E] transition-colors flex items-center gap-1 cursor-pointer"
               >
-                View all 17 tools
+                <span>{showAllTools ? "Collapse Tools" : "+ More Tools (12)"}</span>
+                <span className="material-symbols-outlined text-[16px] transition-transform">
+                  {showAllTools ? "expand_less" : "expand_more"}
+                </span>
               </button>
             </div>
 
-            {/* Pinned 4 recommended tools with rich cards and forward bounce */}
-            <div className="grid grid-cols-4 gap-3.5 mb-5">
-              {recommendedTools.map((tool) => (
+            {/* 4 Primary Tools with generous padding and ZERO text truncation */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {CORE_TOOLS.map((tool) => (
                 <button
-                  key={"rec-" + tool.route}
-                  onClick={() => { playPop(); navigate(tool.route); }}
-                  className="border-2 border-black bg-[#FAF7F2] hover:bg-white p-3.5 flex flex-col justify-between h-[116px] rounded-xl text-left shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] transition-all group cursor-pointer"
+                  key={"core-" + tool.route}
+                  onClick={() => {
+                    playPop();
+                    navigate(tool.route);
+                  }}
+                  className="border-2 border-black bg-[#FAF7F2] hover:bg-white p-4 flex flex-col justify-between min-h-[136px] rounded-2xl text-left shadow-[0px_3px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[0px_5px_0px_#1A1A1A] active:translate-y-[2px] active:shadow-[0px_1px_0px_#1A1A1A] transition-all group cursor-pointer"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-black/15 flex items-center justify-center shadow-xs group-hover:border-black transition-colors">
-                      <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-11 h-11 rounded-xl bg-white border-2 border-black/15 group-hover:border-black flex items-center justify-center shadow-xs transition-colors">
+                      <span className={`material-symbols-outlined text-[24px] ${tool.color}`}>{tool.icon}</span>
                     </div>
-                    <span className="material-symbols-outlined text-[16px] text-black/30 group-hover:text-black transition-colors">north_east</span>
+                    <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-black/10 bg-white text-black/50 group-hover:border-black/30 transition-colors">
+                      {tool.badge}
+                    </span>
                   </div>
                   <div>
-                    <div className="text-[14px] font-black text-black leading-tight group-hover:text-[#FF4D2E] transition-colors">{tool.title}</div>
-                    <div className="text-[11px] font-bold text-black/55 mt-0.5 leading-snug truncate">{tool.desc}</div>
+                    <div className="text-[15px] font-black text-black leading-tight group-hover:text-[#FF4D2E] transition-colors">
+                      {tool.title}
+                    </div>
+                    <p className="text-[11.5px] font-bold text-black/60 mt-1 leading-snug">
+                      {tool.desc}
+                    </p>
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* Other tools grid — app dock style (zero duplication) */}
-            <div className="pt-4 border-t-2 border-black/10">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-black uppercase tracking-wider text-black/45">More Study Tools</span>
-                <span className="text-[10px] font-extrabold text-black/40">1-Tap Quick Launch</span>
+            {/* Expandable 12-Tool Drawer */}
+            {showAllTools && (
+              <div className="pt-5 mt-5 border-t-2 border-black/10 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-black/50">
+                    All Specialized Academic Tools
+                  </span>
+                  <span className="text-[10px] font-extrabold text-black/40">1-Tap Direct Launch</span>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {SECONDARY_TOOLS.map((tool) => (
+                    <button
+                      key={"sec-" + tool.route}
+                      onClick={() => {
+                        playPop();
+                        navigate(tool.route);
+                      }}
+                      className="border-2 border-black bg-white hover:bg-[#FAF7F2] p-2.5 flex items-center gap-2.5 rounded-xl shadow-[0px_2px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[0px_3px_0px_#1A1A1A] active:translate-y-[1px] active:shadow-none transition-all group text-left cursor-pointer"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] group-hover:bg-white border border-black/10 flex items-center justify-center shrink-0 transition-colors">
+                        <span className={`material-symbols-outlined text-[18px] ${tool.color}`}>{tool.icon}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[12px] font-black text-black truncate group-hover:text-[#FF4D2E] transition-colors">
+                          {tool.title}
+                        </div>
+                        <div className="text-[10px] font-bold text-black/45 truncate">{tool.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-4 gap-2.5">
-                {otherTools.slice(0, 8).map((tool) => (
-                  <button
-                    key={"all-" + tool.route}
-                    onClick={() => { playPop(); navigate(tool.route); }}
-                    className="border-2 border-black bg-white hover:bg-[#FAF7F2] p-2.5 flex items-center gap-2.5 rounded-xl shadow-[0px_2px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[0px_3px_0px_#1A1A1A] active:translate-y-[1px] active:shadow-[0px_0.5px_0px_#1A1A1A] transition-all group text-left cursor-pointer"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] group-hover:bg-white border border-black/10 flex items-center justify-center shrink-0 transition-colors">
-                      <span className={`material-symbols-outlined text-[18px] ${tool.color}`}>{tool.icon}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12px] font-black text-black truncate group-hover:text-[#FF4D2E] transition-colors">{tool.title}</div>
-                      <div className="text-[10px] font-bold text-black/45 truncate">{tool.desc}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
           </section>
 
           {/* Weekly Momentum */}
@@ -874,6 +934,15 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* Exam Countdown Banner (Permanent: Active Countdown or 'No exam yet' empty state) */}
+        <ExamCountdownBanner
+          examTarget={userPrefs?.examTarget}
+          onUpdate={handleUpdateExamTarget}
+          quizAccuracy={quizAccuracy}
+          sessionsCount={sessions.length}
+          tasksCompleted={tasks.filter((t) => t.completed).length}
+        />
+
         {/* 1-Tap Daily Focus Launcher */}
         <section className="border-2 border-black rounded-2xl bg-[#FF4D2E] text-white p-4 relative overflow-hidden shadow-[3px_3px_0px_#1A1A1A]">
           <div className="flex items-start justify-between gap-2 mb-2">
@@ -902,43 +971,76 @@ export default function Dashboard() {
           </button>
         </section>
 
-        {/* Recommended Study Tools — 4 Personalized Cards */}
+        {/* 4-Tool Core Study Dock — 4 Primary Actions */}
         <section className="flex flex-col gap-2">
           <div className="flex justify-between items-center px-0.5">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Recommended For You</span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Core Study Dock</span>
               <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-white text-black/60">
-                Personalized
+                4 Primary Tools
               </span>
             </div>
             <button
               type="button"
-              onClick={() => { playPop(); navigate("/tools"); }}
+              onClick={() => {
+                playTap();
+                setShowAllTools(!showAllTools);
+              }}
               className="text-[11px] font-black text-black underline hover:text-[#FF4D2E] transition-colors cursor-pointer"
             >
-              See all
+              {showAllTools ? "Collapse" : "+ More (12)"}
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            {recommendedTools.map((tool) => (
+            {CORE_TOOLS.map((tool) => (
               <button
-                key={"rec-mob-" + tool.title}
+                key={"core-mob-" + tool.title}
                 type="button"
-                onClick={() => { playPop(); navigate(tool.route); }}
-                className="h-[96px] border-2 border-black rounded-xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group cursor-pointer"
+                onClick={() => {
+                  playPop();
+                  navigate(tool.route);
+                }}
+                className="min-h-[116px] border-2 border-black rounded-xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group cursor-pointer"
               >
                 <div className="flex items-center justify-between">
-                  <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
-                  <span className="material-symbols-outlined text-[15px] opacity-25 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-black">arrow_forward</span>
+                  <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] border border-black/15 flex items-center justify-center">
+                    <span className={`material-symbols-outlined text-[20px] ${tool.color}`}>{tool.icon}</span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-black/15 bg-[#FAF7F2] text-black/60">
+                    {tool.badge}
+                  </span>
                 </div>
                 <div>
-                  <div className="text-[13px] font-black text-black leading-tight truncate">{tool.title}</div>
-                  <div className="text-[10.5px] text-black/55 font-bold mt-0.5 truncate">{tool.desc}</div>
+                  <div className="text-[13px] font-black text-black leading-tight">{tool.title}</div>
+                  <p className="text-[10.5px] text-black/60 font-bold mt-1 leading-snug">{tool.desc}</p>
                 </div>
               </button>
             ))}
           </div>
+
+          {showAllTools && (
+            <div className="p-3 border-2 border-black rounded-xl bg-white flex flex-col gap-2 mt-1 shadow-[2px_2px_0px_#1A1A1A] animate-in fade-in duration-150">
+              <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Specialized Tools</span>
+              <div className="grid grid-cols-2 gap-2">
+                {SECONDARY_TOOLS.map((tool) => (
+                  <button
+                    key={"sec-mob-" + tool.route}
+                    type="button"
+                    onClick={() => {
+                      playPop();
+                      navigate(tool.route);
+                    }}
+                    className="border-2 border-black bg-[#FAF7F2] hover:bg-white p-2.5 flex items-center gap-2 rounded-lg text-left transition-colors"
+                  >
+                    <span className={`material-symbols-outlined text-[18px] ${tool.color}`}>{tool.icon}</span>
+                    <span className="text-[11.5px] font-black text-black truncate">{tool.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
+
 
         {/* Talk to Rex Banner */}
         <div><CallRexBanner navigate={navigate} /></div>
