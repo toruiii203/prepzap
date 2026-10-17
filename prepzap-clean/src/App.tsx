@@ -113,6 +113,7 @@ import Challenges from "./pages/Challenges";
 import TeachIt from "./pages/TeachIt";
 import QuickStudy from "./pages/QuickStudy";
 import Community from "./pages/Community";
+import CampusVault from "./pages/CampusVault";
 
 
 
@@ -359,6 +360,8 @@ function AppRoutes() {
           <Route path="/leaderboard" element={<Arena />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/campus-vault" element={<CampusVault />} />
+          <Route path="/vault" element={<Navigate to="/campus-vault" replace />} />
           <Route path="/teach-it" element={<TeachIt />} />
           <Route path="/quick-study" element={<QuickStudy />} />
           

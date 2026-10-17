@@ -1,13 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import { useCommunity, CampusNote } from "@/hooks/useCommunity";
+import { useCommunity, StudyBuddy, CampusNote } from "@/hooks/useCommunity";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
-import { StudyGuideRenderer } from "@/components/StudyGuideRenderer";
-
-const SUBJECTS = ["All", "Biology", "Calculus", "Chemistry", "History", "Psychology"];
+import { FriendProfileModal } from "@/components/FriendProfileModal";
 
 export default function Community() {
   const navigate = useNavigate();
@@ -15,27 +13,14 @@ export default function Community() {
   const {
     notes,
     buddies,
-    toggleLikeNote,
     sendNudge,
-    publishNote,
-    addFriendByCode
+    addFriendByCode,
+    reportNote
   } = useCommunity();
 
-  const [activeTab, setActiveTab] = useState<"vault" | "buddies">("vault");
-  const [selectedSubject, setSelectedSubject] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const [activeReadingNote, setActiveReadingNote] = useState<CampusNote | null>(null);
-  const [showPublishModal, setShowPublishModal] = useState(false);
-
-  // Form State
-  const [pubTitle, setPubTitle] = useState("");
-  const [pubSubject, setPubSubject] = useState("Biology");
-  const [pubSummary, setPubSummary] = useState("");
-  const [pubContent, setPubContent] = useState("");
-  const [pubTags, setPubTags] = useState("");
-
   const [friendCodeInput, setFriendCodeInput] = useState("");
+  const [addingFriend, setAddingFriend] = useState(false);
+  const [selectedBuddy, setSelectedBuddy] = useState<StudyBuddy | null>(null);
 
   // User's own friend code
   const myFriendCode = useMemo(() => {
@@ -50,23 +35,23 @@ export default function Community() {
     playTap();
     navigator.clipboard.writeText(myFriendCode);
     toast.success("Friend Code copied!", {
-      description: "Send it to a classmate to connect on Studenius."
+      description: "Send it to a classmate so they can link streaks with you."
     });
   };
 
-  const filteredNotes = useMemo(() => {
-    return notes.filter((note) => {
-      const matchSubject = selectedSubject === "All" || note.subject.toLowerCase() === selectedSubject.toLowerCase();
-      const matchSearch =
-        searchQuery.trim() === "" ||
-        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchSubject && matchSearch;
-    });
-  }, [notes, selectedSubject, searchQuery]);
+  const handleAddFriendSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!friendCodeInput.trim()) return;
+    setAddingFriend(true);
+    playPop();
+    const ok = await addFriendByCode(friendCodeInput.trim());
+    setAddingFriend(false);
+    if (ok) {
+      setFriendCodeInput("");
+    }
+  };
 
-  const handleStudyWithRex = (note: CampusNote, mode: "practice" | "flashcards") => {
+  const handleLaunchStudy = (note: CampusNote, mode: "practice" | "flashcards") => {
     playPop();
     if (mode === "practice") {
       localStorage.setItem("qs_practice_export", JSON.stringify(note.content));
@@ -80,38 +65,17 @@ export default function Community() {
     }
   };
 
-  const handlePublishSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pubTitle.trim() || !pubContent.trim()) {
-      toast.error("Please provide both a title and study content.");
-      return;
-    }
-
-    const tagsArray = pubTags
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-
-    const success = publishNote({
-      title: pubTitle.trim(),
-      subject: pubSubject,
-      subjectBadgeColor: "bg-blue-50 text-blue-700 border-blue-300",
-      author: user?.email?.split("@")[0] || "Student Note",
-      authorAvatar: "📝",
-      readTime: `${Math.max(2, Math.ceil(pubContent.length / 400))} min read`,
-      tags: tagsArray.length > 0 ? tagsArray : [pubSubject],
-      summary: pubSummary.trim() || pubContent.slice(0, 160) + "...",
-      content: pubContent.trim()
-    });
-
-    if (success) {
-      setShowPublishModal(false);
-      setPubTitle("");
-      setPubSummary("");
-      setPubContent("");
-      setPubTags("");
-    }
-  };
+  // Find notes for the selected buddy (match author or authorCode)
+  const selectedBuddyNotes = useMemo(() => {
+    if (!selectedBuddy) return [];
+    return notes
+      .filter((n) => !n.isReported)
+      .filter((n) => 
+        (n.authorCode && n.authorCode === selectedBuddy.code) ||
+        n.author.toLowerCase().includes(selectedBuddy.name.toLowerCase().split(" ")[0]) ||
+        n.subject.toLowerCase() === selectedBuddy.subject.toLowerCase()
+      );
+  }, [selectedBuddy, notes]);
 
   return (
     <div className="w-full bg-[#FAF7F2] min-h-screen text-black flex flex-col font-body-md flex-1">
@@ -119,444 +83,192 @@ export default function Community() {
 
       {/* ── DESKTOP & TABLET WRAPPER ────────────────────────────────────────── */}
       <div className="md:ml-64 flex flex-col min-h-screen overflow-y-auto">
-        <div className="p-4 md:p-12 max-w-6xl w-full mx-auto space-y-8 pb-28 md:pb-12">
+        <div className="p-4 md:p-12 max-w-5xl w-full mx-auto space-y-7 pb-28 md:pb-12">
+
+          {/* Banner linking to Campus Vault */}
+          <div className="bg-[#FFFDF5] border-2 border-black rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[3px_3px_0px_#1A1A1A]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#3B82F6]/15 border border-black/15 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[22px] text-[#3B82F6]">menu_book</span>
+              </div>
+              <div>
+                <span className="text-[13.5px] font-black text-black">Looking for study guides & formulas?</span>
+                <p className="text-[11.5px] font-bold text-black/60">
+                  Search campus cheat sheets, flashcards, and verified guides in the Campus Vault.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => { playTap(); navigate("/campus-vault"); }}
+              className="px-4 py-2 bg-[#FF4D2E] hover:bg-black text-white font-black text-[12px] rounded-xl transition-colors cursor-pointer shrink-0 shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5"
+            >
+              Open Campus Vault &rarr;
+            </button>
+          </div>
 
           {/* Page Header */}
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b-2 border-black/10">
             <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-black/20 bg-white text-[10.5px] font-black uppercase tracking-wider text-black/60 mb-2">
+                <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">diversity_3</span>
+                Study Circle & Buddies
+              </div>
               <h1 className="text-[28px] md:text-[34px] font-black leading-tight text-black">
-                Campus Vault & Study Circle
+                Study Circle
               </h1>
-              <p className="text-[14px] font-bold text-black/60 mt-0.5">
-                Search high-yield academic cheat sheets, turn any note into quizzes, and study with friends.
+              <p className="text-[13.5px] font-bold text-black/60 mt-0.5">
+                Mutual accountability streaks with classmates. View friends' creator profiles and shared notes.
               </p>
             </div>
 
             {/* Friend Code Pill */}
-            <div className="bg-white border-2 border-black rounded-xl p-3 flex items-center gap-3 shadow-[2px_2px_0px_#1A1A1A]">
+            <div className="bg-white border-2 border-black rounded-2xl p-3.5 flex items-center gap-3 shadow-[3px_3px_0px_#1A1A1A] shrink-0">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-wider text-black/45">Your Friend Code</div>
-                <div className="text-[15px] font-black text-[#FF4D2E] tracking-wider">{myFriendCode}</div>
+                <div className="text-[9.5px] font-black uppercase tracking-wider text-black/45">Your Friend Code</div>
+                <div className="text-[16px] font-black text-[#FF4D2E] tracking-wider">{myFriendCode}</div>
               </div>
               <button
                 onClick={handleCopyCode}
-                className="px-3 py-1.5 bg-black text-white hover:bg-[#FF4D2E] text-[11px] font-black rounded-lg transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-black hover:bg-[#FF4D2E] text-white text-[11px] font-black rounded-xl transition-colors cursor-pointer shadow-xs active:scale-95"
               >
                 Copy
               </button>
             </div>
           </header>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center justify-between gap-3 border-b-2 border-black/10 pb-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { playTap(); setActiveTab("vault"); }}
-                className={`px-4 py-2 rounded-xl border-2 border-black font-black text-[13px] transition-all cursor-pointer flex items-center gap-2 ${
-                  activeTab === "vault"
-                    ? "bg-black text-white shadow-[2px_2px_0px_#1A1A1A]"
-                    : "bg-white hover:bg-[#F0EDE0] text-black"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]">menu_book</span>
-                <span>Campus Notes Vault ({notes.length})</span>
-              </button>
-
-              <button
-                onClick={() => { playTap(); setActiveTab("buddies"); }}
-                className={`px-4 py-2 rounded-xl border-2 border-black font-black text-[13px] transition-all cursor-pointer flex items-center gap-2 ${
-                  activeTab === "buddies"
-                    ? "bg-black text-white shadow-[2px_2px_0px_#1A1A1A]"
-                    : "bg-white hover:bg-[#F0EDE0] text-black"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
-                <span>Study Circle & Streaks ({buddies.length})</span>
-              </button>
+          {/* Add Study Partner Form */}
+          <section className="bg-white border-2 border-black rounded-2xl p-4 md:p-5 shadow-[3px_3px_0px_#1A1A1A]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+              <div>
+                <h3 className="text-[15px] font-black text-black">Link a Study Partner</h3>
+                <p className="text-[11.5px] font-bold text-black/55 mt-0.5">
+                  Enter a classmate's Friend Code to link streaks and motivate each other.
+                </p>
+              </div>
             </div>
 
-            {activeTab === "vault" && (
+            <form onSubmit={handleAddFriendSubmit} className="flex items-center gap-2 max-w-md">
+              <input
+                type="text"
+                value={friendCodeInput}
+                onChange={(e) => setFriendCodeInput(e.target.value)}
+                placeholder="Enter friend code (e.g., REX-69E6)..."
+                className="flex-1 px-3.5 py-2 border-2 border-black rounded-xl text-[13px] font-bold uppercase placeholder:capitalize placeholder:text-black/40 bg-[#FAF7F2] focus:bg-white focus:outline-none shadow-xs"
+              />
               <button
-                onClick={() => { playPop(); setShowPublishModal(true); }}
-                className="px-4 py-2 bg-[#FF4D2E] text-white hover:bg-[#e03d20] border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
+                type="submit"
+                disabled={addingFriend || !friendCodeInput.trim()}
+                className="px-4 py-2 bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
               >
-                <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                <span>Share Notes</span>
+                {addingFriend ? "Linking..." : "+ Add Partner"}
               </button>
-            )}
-          </div>
+            </form>
+          </section>
 
-          {/* ── TAB 1: CAMPUS VAULT (KNOWUNITY STYLE) ────────────────────────── */}
-          {activeTab === "vault" && (
-            <div className="space-y-6">
-              {/* Search & Subject Filters */}
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="relative w-full md:w-80">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-black/40 text-[20px]">
-                    search
-                  </span>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search study guides, topics..."
-                    className="w-full pl-9 pr-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold placeholder:text-black/40 focus:outline-none focus:ring-0 bg-white shadow-[2px_2px_0px_#1A1A1A]"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-black/40 hover:text-black text-[13px] font-bold"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
+          {/* Friends / Study Circle Grid */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[13px] font-black uppercase tracking-wider text-black/60">
+                Connected Partners ({buddies.length})
+              </h3>
+              <span className="text-[11px] font-extrabold text-black/45">
+                Tap profile to view notes & stats
+              </span>
+            </div>
 
-                {/* Chips */}
-                <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-                  {SUBJECTS.map((sub) => (
-                    <button
-                      key={sub}
-                      onClick={() => { playTap(); setSelectedSubject(sub); }}
-                      className={`px-3 py-1.5 rounded-lg border-2 border-black text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                        selectedSubject === sub
-                          ? "bg-[#FF4D2E] text-white shadow-[1px_1px_0px_#000]"
-                          : "bg-white hover:bg-[#F0EDE0] text-black shadow-[1px_1px_0px_#000]"
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
+            {buddies.length === 0 ? (
+              <div className="p-10 text-center border-2 border-dashed border-black/25 rounded-2xl bg-white space-y-3">
+                <span className="text-[36px] block">🤝</span>
+                <h4 className="text-[16px] font-black text-black">No study partners linked yet</h4>
+                <p className="text-[12.5px] font-semibold text-black/55 max-w-sm mx-auto leading-relaxed">
+                  Share your code (<strong className="text-black">{myFriendCode}</strong>) with a classmate or enter their code above to study together and start a friend streak!
+                </p>
               </div>
-
-              {/* Study Notes Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredNotes.map((note) => (
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {buddies.map((buddy) => (
                   <div
-                    key={note.id}
-                    className="border-2 border-black rounded-2xl bg-white p-5 shadow-[3px_3px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#1A1A1A] transition-all flex flex-col justify-between"
+                    key={buddy.id}
+                    onClick={() => { playPop(); setSelectedBuddy(buddy); }}
+                    className="border-2 border-black rounded-2xl p-4 bg-white hover:bg-[#FFFDF5] shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[5px_5px_0px_#1A1A1A] hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between"
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-2.5">
-                        <span className={`px-2 py-0.5 rounded border text-[9.5px] font-black uppercase tracking-wider ${note.subjectBadgeColor}`}>
-                          {note.subject}
-                        </span>
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-12 h-12 rounded-xl bg-[#FAF7F2] border-2 border-black flex items-center justify-center text-[24px] shadow-xs shrink-0">
+                            {buddy.avatar || "🎓"}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-[15px] font-black text-black truncate leading-tight">
+                                {buddy.name}
+                              </h4>
+                              <span className="material-symbols-outlined text-[15px] text-[#10B981]" title="Verified Student">
+                                check_circle
+                              </span>
+                            </div>
+                            <div className="text-[11px] font-bold text-black/50 truncate">
+                              {buddy.username || `@student_${buddy.code.slice(0, 4).toLowerCase()}`} &bull; {buddy.code}
+                            </div>
+                          </div>
+                        </div>
 
+                        {/* Nudge button */}
                         <button
-                          onClick={() => { playTap(); toggleLikeNote(note.id); }}
-                          className={`flex items-center gap-1 px-2 py-0.5 rounded border border-black/20 text-[11px] font-bold transition-colors cursor-pointer ${
-                            note.likedByUser ? "bg-rose-50 text-rose-600 border-rose-400" : "bg-[#FAF7F2] text-black/60"
-                          }`}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendNudge(buddy.id);
+                          }}
+                          className="px-3 py-1 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl text-[11px] font-black cursor-pointer shadow-[1px_1px_0px_#000] active:translate-y-0.5 shrink-0"
                         >
-                          <span>{note.likedByUser ? "❤️" : "🤍"}</span>
-                          <span>{note.likes}</span>
+                          Nudge 🔥
                         </button>
                       </div>
 
-                      <h3
-                        onClick={() => setActiveReadingNote(note)}
-                        className="text-[16px] font-black text-black leading-snug mb-1.5 hover:text-[#FF4D2E] transition-colors cursor-pointer"
-                      >
-                        {note.title}
-                      </h3>
-
-                      <div className="text-[11px] font-bold text-black/45 mb-2.5">
-                        {note.author} &bull; {note.readTime}
-                      </div>
-
-                      <p className="text-[12.5px] font-bold text-black/65 leading-relaxed line-clamp-3 mb-4">
-                        {note.summary}
+                      <p className="text-[11.5px] font-medium text-black/65 line-clamp-1 mt-1">
+                        {buddy.bio || "Active recall study partner on Studenius."}
                       </p>
-
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {note.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-2 py-0.5 bg-[#FAF7F2] border border-black/15 rounded text-[10px] font-bold text-black/60"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
                     </div>
 
-                    {/* Bottom Actions */}
-                    <div className="pt-3 border-t-2 border-black/10 flex flex-col gap-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => handleStudyWithRex(note, "practice")}
-                          className="py-1.5 bg-[#FF4D2E] hover:bg-[#e03d20] text-white border-2 border-black rounded-lg text-[11px] font-black shadow-[1px_1px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">quiz</span>
-                          <span>Practice Quiz</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleStudyWithRex(note, "flashcards")}
-                          className="py-1.5 bg-[#FFD13B] hover:bg-amber-400 text-black border-2 border-black rounded-lg text-[11px] font-black shadow-[1px_1px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">style</span>
-                          <span>Flashcards</span>
-                        </button>
+                    <div className="pt-3 mt-3 border-t border-black/10 flex items-center justify-between text-[11px] font-black">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#FF4D2E] flex items-center gap-0.5">
+                          <span>🔥</span>
+                          <span>{buddy.streakDays}d Streak</span>
+                        </span>
+                        <span className="text-black/35">&bull;</span>
+                        <span className="text-black/70">
+                          ⚡ LVL {buddy.level || 1}
+                        </span>
                       </div>
 
-                      <button
-                        onClick={() => { playPop(); setActiveReadingNote(note); }}
-                        className="w-full py-1.5 bg-[#FAF7F2] hover:bg-[#F0EDE0] border border-black/20 rounded-lg text-[11px] font-bold text-black/75 transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[13px]">visibility</span>
-                        <span>Read Study Guide</span>
-                      </button>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                        buddy.hasStudiedToday
+                          ? "bg-green-100 text-green-800 border border-green-600"
+                          : "bg-amber-100 text-amber-800 border border-amber-500"
+                      }`}>
+                        {buddy.hasStudiedToday ? "Studied Today ✅" : "Needs Study ⏳"}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* ── TAB 2: STUDY CIRCLE & STREAKS (GENUINE FRIENDS) ──────────────── */}
-          {activeTab === "buddies" && (
-            <div className="space-y-6">
-              {/* Connect card */}
-              <div className="border-2 border-black rounded-2xl bg-white p-5 shadow-[3px_3px_0px_#1A1A1A]">
-                <h3 className="text-[16px] font-black text-black">Connect with a Classmate</h3>
-                <p className="text-[12.5px] font-bold text-black/60 mt-0.5">
-                  Enter a friend's Friend Code to link study streaks together.
-                </p>
-                <div className="flex items-center gap-2 mt-3 max-w-md">
-                  <input
-                    type="text"
-                    value={friendCodeInput}
-                    onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
-                    placeholder="e.g. REX-4921"
-                    className="flex-1 px-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold uppercase bg-[#FAF7F2] outline-none"
-                  />
-                  <button
-                    onClick={() => {
-                      if (addFriendByCode(friendCodeInput)) {
-                        setFriendCodeInput("");
-                      }
-                    }}
-                    className="px-4 py-2 bg-black text-white hover:bg-[#FF4D2E] border-2 border-black rounded-xl text-[12px] font-black shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer"
-                  >
-                    Connect
-                  </button>
-                </div>
-              </div>
-
-              {/* Friends List or Empty State */}
-              {buddies.length === 0 ? (
-                <div className="border-2 border-black rounded-2xl bg-white p-8 text-center space-y-3 shadow-[3px_3px_0px_#1A1A1A]">
-                  <div className="w-14 h-14 rounded-2xl border-2 border-black bg-[#FAF7F2] mx-auto flex items-center justify-center text-[28px]">
-                    👥
-                  </div>
-                  <h4 className="text-[17px] font-black text-black">No study buddies connected yet</h4>
-                  <p className="text-[13px] font-bold text-black/55 max-w-sm mx-auto">
-                    Share your code <span className="text-[#FF4D2E] font-black">{myFriendCode}</span> with your classmates or study group to track mutual streaks!
-                  </p>
-                  <button
-                    onClick={handleCopyCode}
-                    className="px-4 py-2 bg-[#FFD13B] text-black border-2 border-black rounded-xl text-[12px] font-black shadow-[2px_2px_0px_#1A1A1A] cursor-pointer"
-                  >
-                    Copy Your Code
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {buddies.map((buddy) => (
-                    <div
-                      key={buddy.id}
-                      className="border-2 border-black rounded-xl bg-white p-4 shadow-[2px_2px_0px_#1A1A1A] flex items-center justify-between"
-                    >
-                      <div>
-                        <div className="text-[14px] font-black text-black">{buddy.name}</div>
-                        <div className="text-[11px] font-bold text-black/50">Code: {buddy.code}</div>
-                        <div className="text-[11.5px] font-black text-[#FF4D2E] mt-1">
-                          🔥 {buddy.streakDays} Day Streak
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => sendNudge(buddy.id)}
-                        className="px-3 py-1.5 bg-[#FF4D2E] text-white border-2 border-black rounded-lg text-[10.5px] font-black cursor-pointer shadow-[1px_1px_0px_#000]"
-                      >
-                        Nudge
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </section>
 
         </div>
       </div>
 
-      {/* ── MODAL: READ STUDY GUIDE ─────────────────────────────────────────── */}
-      {activeReadingNote && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white border-2 border-black rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-[6px_6px_0px_#000] overflow-hidden">
-            <div className="p-5 border-b-2 border-black bg-[#FAF7F2] flex items-center justify-between">
-              <div>
-                <span className={`px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${activeReadingNote.subjectBadgeColor}`}>
-                  {activeReadingNote.subject}
-                </span>
-                <h2 className="text-[20px] font-black text-black mt-1 leading-snug">
-                  {activeReadingNote.title}
-                </h2>
-                <div className="text-[11px] font-bold text-black/50 mt-0.5">
-                  {activeReadingNote.author} &bull; {activeReadingNote.readTime}
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveReadingNote(null)}
-                className="w-8 h-8 rounded-lg border-2 border-black bg-white hover:bg-rose-50 flex items-center justify-center font-bold text-black cursor-pointer shadow-[1px_1px_0px_#000]"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-4 md:p-6 overflow-y-auto max-h-[65vh] bg-[#FFFDF5]">
-              <div className="bg-[#FAF7F2] p-4 md:p-6 rounded-2xl border-2 border-black shadow-[2px_2px_0px_#1A1A1A]">
-                <StudyGuideRenderer content={activeReadingNote.content} />
-              </div>
-            </div>
-
-            <div className="p-4 border-t-2 border-black bg-white flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  handleStudyWithRex(activeReadingNote, "practice");
-                  setActiveReadingNote(null);
-                }}
-                className="px-4 py-2 bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
-              >
-                Launch Practice Quiz
-              </button>
-              <button
-                onClick={() => {
-                  handleStudyWithRex(activeReadingNote, "flashcards");
-                  setActiveReadingNote(null);
-                }}
-                className="px-4 py-2 bg-[#FFD13B] text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
-              >
-                Make Flashcards
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: SHARE NOTE ───────────────────────────────────────────────── */}
-      {showPublishModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white border-2 border-black rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-[6px_6px_0px_#000] overflow-hidden">
-            <div className="p-5 border-b-2 border-black bg-[#FAF7F2] flex items-center justify-between">
-              <div>
-                <h2 className="text-[18px] font-black text-black">Share Study Guide to Campus Vault</h2>
-                <p className="text-[12px] font-bold text-black/55 mt-0.5">
-                  Contribute your summary, cheat sheet, or formulas to help students study.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowPublishModal(false)}
-                className="w-8 h-8 rounded-lg border-2 border-black bg-white hover:bg-rose-50 flex items-center justify-center font-bold text-black cursor-pointer shadow-[1px_1px_0px_#000]"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handlePublishSubmit} className="p-6 overflow-y-auto space-y-4">
-              <div>
-                <label className="block text-[12px] font-black uppercase tracking-wider mb-1">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={pubTitle}
-                  onChange={(e) => setPubTitle(e.target.value)}
-                  placeholder="e.g. Mitosis vs Meiosis Master Comparison Sheet"
-                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold bg-[#FAF7F2] outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[12px] font-black uppercase tracking-wider mb-1">
-                    Subject *
-                  </label>
-                  <select
-                    value={pubSubject}
-                    onChange={(e) => setPubSubject(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold bg-[#FAF7F2] outline-none"
-                  >
-                    {SUBJECTS.filter((s) => s !== "All").map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-black uppercase tracking-wider mb-1">
-                    Tags (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={pubTags}
-                    onChange={(e) => setPubTags(e.target.value)}
-                    placeholder="e.g. Genetics, PMAT"
-                    className="w-full px-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold bg-[#FAF7F2] outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-black uppercase tracking-wider mb-1">
-                  Summary
-                </label>
-                <input
-                  type="text"
-                  value={pubSummary}
-                  onChange={(e) => setPubSummary(e.target.value)}
-                  placeholder="1-2 sentences summarizing this note..."
-                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold bg-[#FAF7F2] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-black uppercase tracking-wider mb-1">
-                  Content *
-                </label>
-                <textarea
-                  required
-                  rows={8}
-                  value={pubContent}
-                  onChange={(e) => setPubContent(e.target.value)}
-                  placeholder="Paste study material, key points, formulas..."
-                  className="w-full p-3 border-2 border-black rounded-xl text-[13px] font-medium bg-[#FAF7F2] outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPublishModal(false)}
-                  className="px-4 py-2 border-2 border-black rounded-xl text-[12px] font-black bg-[#FAF7F2] cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl text-[12px] font-black shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer"
-                >
-                  Publish Note
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+      {/* ── MODAL: CREATOR PROFILE (YOUTUBE / TIKTOK STYLE) ────────────────── */}
+      <FriendProfileModal
+        buddy={selectedBuddy}
+        buddyNotes={selectedBuddyNotes}
+        onClose={() => setSelectedBuddy(null)}
+        onNudge={sendNudge}
+        onLaunchStudy={handleLaunchStudy}
+        onReportNote={reportNote}
+      />
     </div>
   );
 }

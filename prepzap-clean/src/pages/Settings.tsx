@@ -19,15 +19,8 @@ function Section({ title, icon, children }: { title: string; icon: string; child
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#1c1c19", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</span>
       </div>
       <div style={{ padding: 16, background: "#FAF7F2" }}>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#1c1c19", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Display Name</label>
-                  <input type="text" value={profileDisplayName} onChange={(e) => setProfileDisplayName(e.target.value)} placeholder="How you appear in games" style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "'Quicksand', sans-serif", fontSize: 13 }} />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#1c1c19", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>@Username</label>
-                  <input type="text" value={profileUsername} onChange={(e) => setProfileUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="Unique handle" style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "'Quicksand', sans-serif", fontSize: 13 }} />
-                </div>
-{children}</div>
+        {children}
+      </div>
     </div>
   )
 }
@@ -96,6 +89,9 @@ export default function Settings() {
     if (!user) return
     setSaving(true)
     const { error } = await supabase.from("profiles").update({
+      full_name: profileDisplayName || userName,
+      display_name: profileDisplayName,
+      username: profileUsername,
       daily_goal_minutes: dailyGoal,
       subjects: Array.from(subjects),
       notif_streak:    notifs.streak,
@@ -177,6 +173,17 @@ export default function Settings() {
                   <p style={{ fontSize: 10, color: "#6b6b6b", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "'Quicksand', sans-serif" }}>{s.label}</p>
                 </div>
               ))}
+            </div>
+
+            <div style={{ marginTop: 16, borderTop: "2px solid #1c1c19", paddingTop: 14 }}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#1c1c19", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Display Name</label>
+                <input type="text" value={profileDisplayName} onChange={(e) => setProfileDisplayName(e.target.value)} placeholder="How you appear to friends" style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "'Quicksand', sans-serif", fontSize: 13, background: "#fff" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#1c1c19", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>@Username</label>
+                <input type="text" value={profileUsername} onChange={(e) => setProfileUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))} placeholder="Unique handle" style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "'Quicksand', sans-serif", fontSize: 13, background: "#fff" }} />
+              </div>
             </div>
           </Section>
 

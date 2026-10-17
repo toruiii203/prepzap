@@ -66,7 +66,7 @@ const PRIMARY_TOOLS = [
     color: "text-[#10B981]",
   },
   {
-    route: "/community",
+    route: "/campus-vault",
     icon: "menu_book",
     title: "Campus Vault",
     desc: "Curated peer study guides & notes",
