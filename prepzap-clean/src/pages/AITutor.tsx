@@ -1,5 +1,4 @@
-import { getRelevantContext } from "@/lib/rag";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useRef, useEffect } from "react";
 import { callGroq, callGroqWithMeta } from "@/lib/groq";
@@ -310,6 +309,8 @@ const generateTitle = (msgs: Message[]): string => {
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function AITutor() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPromptHandled = useRef(false);
   const tutorial = useTutorialModal("/ai-tutor");
   const { save: saveHistory } = useToolHistory("ai-tutor");
   const { isPro, canUse, remaining, logUsage, loading: planLoading } = usePlan();
@@ -685,6 +686,17 @@ export default function AITutor() {
       setIsLoading(false);
     }
   };
+
+  // Auto-send or populate prompt when arriving from Dashboard "Ask Rex" search bar
+  useEffect(() => {
+    const promptParam = searchParams.get("prompt");
+    if (promptParam && promptParam.trim() && !initialPromptHandled.current) {
+      initialPromptHandled.current = true;
+      const cleanPrompt = promptParam.trim();
+      setSearchParams({}, { replace: true });
+      handleSend(cleanPrompt);
+    }
+  }, [searchParams, setSearchParams]);
 
   const insertSuggestion = (title: string) => handleSend(`Can you make a study sheet or explain ${title}?`);
 
