@@ -481,37 +481,7 @@ function IntroHook({ onNext }: { onNext: () => void }) {
             <span>{loading ? "Redirecting..." : "Continue with Google"}</span>
           </button>
 
-          {/* Secondary Action: Start setup without Google right now */}
-          <button
-            onClick={onNext}
-            style={{
-              width: "100%",
-              height: 48,
-              background: CTA,
-              color: WHITE,
-              fontWeight: 700,
-              fontSize: 15,
-              borderRadius: 9999,
-              border: `2.5px solid ${BLACK}`,
-              boxShadow: `3px 3px 0 ${BLACK}`,
-              cursor: "pointer",
-              fontFamily: "'Quicksand', sans-serif",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              marginTop: 10,
-              position: "relative",
-              zIndex: 20,
-              boxSizing: "border-box",
-            }}
-            className="active:translate-y-0.5 active:shadow-[1px_1px_0_#1A1A1A] transition-all"
-          >
-            <span>Get Started</span>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
-          </button>
-
-          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.45, marginTop: 10, marginBottom: 0, fontWeight: 600 }}>
+          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.45, marginTop: 14, marginBottom: 0, fontWeight: 600 }}>
             By continuing, you agree to our <a href="/terms" style={{ color: BLACK, fontWeight: 700, textDecoration: "underline" }}>Terms</a>
           </p>
         </div>

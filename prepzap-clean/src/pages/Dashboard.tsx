@@ -700,6 +700,15 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
 
         <button
           type="button"
+          onClick={() => { playTap(); navigate("/source-library"); }}
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FFE566] border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer shadow-xs"
+          title="Open Source Library (Upload notes & documents)"
+        >
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]">attach_file</span>
+        </button>
+
+        <button
+          type="button"
           onClick={handleMic}
           className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FF4D2E] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer"
           title="Voice Talk with Rex"
@@ -1061,15 +1070,23 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           {/* Flame streak */}
-          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs">
+          <div
+            onClick={() => { playPop(); navigate("/challenges"); }}
+            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs cursor-pointer hover:bg-[#FAF7F2] transition-colors"
+            title={`${profile?.streak_days ?? 1} Day Streak`}
+          >
             <span className="text-[13px]">🔥</span>
             <span className="text-[11px] font-black text-black">{profile?.streak_days ?? 1}d</span>
           </div>
 
           {/* Level */}
-          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-[#FFE566] shadow-xs">
+          <div
+            onClick={() => { playPop(); navigate("/analytics"); }}
+            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-[#FFE566] shadow-xs cursor-pointer hover:bg-[#FFD13B] transition-colors"
+            title={`Level ${levelFromXp(profile?.total_xp ?? 0)} (${profile?.total_xp ?? 0} XP)`}
+          >
             <span className="text-[11px]">⚡</span>
-            <span className="text-[11px] font-black text-black">L{levelFromXp(profile?.total_xp ?? 0)}</span>
+            <span className="text-[11px] font-black text-black">LVL {levelFromXp(profile?.total_xp ?? 0)}</span>
           </div>
 
           {/* Pro Pill */}

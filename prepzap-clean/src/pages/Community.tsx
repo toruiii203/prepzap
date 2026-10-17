@@ -5,6 +5,7 @@ import { useCommunity, CampusNote } from "@/hooks/useCommunity";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
+import { StudyGuideRenderer } from "@/components/StudyGuideRenderer";
 
 const SUBJECTS = ["All", "Biology", "Calculus", "Chemistry", "History", "Psychology"];
 
@@ -118,7 +119,7 @@ export default function Community() {
 
       {/* ── DESKTOP & TABLET WRAPPER ────────────────────────────────────────── */}
       <div className="md:ml-64 flex flex-col min-h-screen overflow-y-auto">
-        <div className="p-6 md:p-12 max-w-6xl w-full mx-auto space-y-8">
+        <div className="p-4 md:p-12 max-w-6xl w-full mx-auto space-y-8 pb-28 md:pb-12">
 
           {/* Page Header */}
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b-2 border-black/10">
@@ -415,10 +416,10 @@ export default function Community() {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto font-body-md leading-relaxed text-[14px] text-black space-y-4">
-              <pre className="whitespace-pre-wrap font-sans text-[13.5px] font-medium leading-relaxed bg-[#FAF7F2] p-4 rounded-xl border border-black/15">
-                {activeReadingNote.content}
-              </pre>
+            <div className="p-4 md:p-6 overflow-y-auto max-h-[65vh] bg-[#FFFDF5]">
+              <div className="bg-[#FAF7F2] p-4 md:p-6 rounded-2xl border-2 border-black shadow-[2px_2px_0px_#1A1A1A]">
+                <StudyGuideRenderer content={activeReadingNote.content} />
+              </div>
             </div>
 
             <div className="p-4 border-t-2 border-black bg-white flex items-center justify-end gap-2">
