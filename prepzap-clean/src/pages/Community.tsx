@@ -123,9 +123,6 @@ export default function Community() {
           {/* Page Header */}
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b-2 border-black/10">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#FFD13B] text-black font-black uppercase text-[10px] tracking-wider rounded border border-black mb-1.5 shadow-[1px_1px_0px_#000]">
-                Knowunity Style
-              </div>
               <h1 className="text-[28px] md:text-[34px] font-black leading-tight text-black">
                 Campus Vault & Study Circle
               </h1>

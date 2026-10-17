@@ -50,7 +50,6 @@ const CORE_TOOLS = [
     title: "Practice Tests",
     desc: "Active recall quizzes & exam simulations",
     color: "text-[#FF4D2E]",
-    badge: "High Yield",
   },
   {
     route: "/flashcards",
@@ -58,7 +57,6 @@ const CORE_TOOLS = [
     title: "Flashcards",
     desc: "Spaced repetition & memory reinforcement",
     color: "text-[#8B5CF6]",
-    badge: "Spaced Recall",
   },
   {
     route: "/notes",
@@ -66,7 +64,6 @@ const CORE_TOOLS = [
     title: "My Notes",
     desc: "Rich text summaries & lecture syntheses",
     color: "text-[#10B981]",
-    badge: "Synthesis",
   },
   {
     route: "/community",
@@ -74,7 +71,6 @@ const CORE_TOOLS = [
     title: "Campus Vault",
     desc: "Curated peer study guides & notes",
     color: "text-[#0EA5E9]",
-    badge: "Community",
   },
 ] as const;
 
@@ -360,32 +356,15 @@ function RexHeroStage({
           </div>
         </div>
 
-        {/* Content Column: Speech Bubble + Dynamic Prompt + Primary Actions */}
+        {/* Content Column: Speech Bubble + Primary Actions */}
         <div className="flex-1 min-w-0 flex flex-col justify-between text-left">
-          {/* Top badges */}
-          <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 bg-black text-white font-black uppercase text-[9px] md:text-[10px] tracking-wider rounded-md md:rounded-lg border border-white/20 shadow-xs">
-              <span className="material-symbols-outlined text-[11px] md:text-[13px] text-[#FFE566]" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
-              <span className="hidden sm:inline">Rex AI Study Coach</span>
-              <span className="sm:hidden">Rex AI</span>
-            </span>
-            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg border-2 border-black bg-[#FFE566] text-black shadow-[1px_1px_0px_#1A1A1A]">
-              {primarySubjectMeta.name} Track
-            </span>
-            {examTarget?.examDate && readiness.daysLeft >= 0 && (
-              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider px-1.5 md:px-2 py-0.5 rounded-md md:rounded-full border border-black/20 bg-white text-black/70">
-                ⏳ {readiness.daysLeft}d &bull; {readiness.percent}%
-              </span>
-            )}
-          </div>
-
           {/* Neobrutalist Speech Bubble */}
-          <div className="relative bg-white border-2 border-black rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] mb-2 md:mb-3.5 text-left">
+          <div className="relative bg-white border-2 border-black rounded-xl md:rounded-2xl p-3 md:p-4 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] mb-2.5 md:mb-3.5 text-left">
             {/* Speech bubble pointer pointing toward Rex on the left */}
             <div className="absolute top-1/2 -left-2 md:-left-2.5 -translate-y-1/2 w-0 h-0 border-y-[6px] md:border-y-[8px] border-y-transparent border-r-[8px] md:border-r-[10px] border-r-black" />
             <div className="absolute top-1/2 -left-[5px] md:-left-[7px] -translate-y-1/2 w-0 h-0 border-y-[5px] md:border-y-[6px] border-y-transparent border-r-[6px] md:border-r-[8px] border-r-white" />
 
-            <p className="text-[12px] md:text-[15px] font-extrabold text-black leading-snug line-clamp-2 md:line-clamp-none">
+            <p className="text-[13px] md:text-[15px] font-extrabold text-black leading-snug line-clamp-2 md:line-clamp-none">
               {currentSpeech}
             </p>
           </div>
@@ -891,14 +870,11 @@ export default function Dashboard() {
             {/* Knowunity-style Persistent AI Composer Bar */}
             <AskRexBottomBar navigate={navigate} />
 
-            {/* Core Study Actions Shelf (Knowunity Frame 18 style) */}
+            {/* Core Study Actions Shelf */}
             <section className="border-2 border-black bg-white rounded-3xl p-5 md:p-6 shadow-[3px_3px_0px_#1A1A1A]">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2.5">
-                  <h3 className="text-[14px] font-black uppercase tracking-wider text-black">Core Study Shelf</h3>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-[#FAF7F2] text-black/60">
-                    4 Primary Tools
-                  </span>
+                  <h3 className="text-[14px] font-black uppercase tracking-wider text-black">Study Tools</h3>
                 </div>
                 <button
                   type="button"
@@ -908,7 +884,7 @@ export default function Dashboard() {
                   }}
                   className="text-[12px] font-black text-black hover:text-[#FF4D2E] transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  <span>{showAllTools ? "Collapse Tools" : "+ More Academic Tools (12)"}</span>
+                  <span>{showAllTools ? "Collapse Tools" : "+ More Tools (12)"}</span>
                   <span className="material-symbols-outlined text-[16px] transition-transform">
                     {showAllTools ? "expand_less" : "expand_more"}
                   </span>
@@ -924,15 +900,10 @@ export default function Dashboard() {
                       playPop();
                       navigate(tool.route);
                     }}
-                    className="border-2 border-black bg-[#FAF7F2] hover:bg-white p-4 flex flex-col justify-between min-h-[136px] rounded-2xl text-left shadow-[2px_2px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[4px_4px_0px_#1A1A1A] active:translate-y-[1px] active:shadow-none transition-all group cursor-pointer"
+                    className="border-2 border-black bg-[#FAF7F2] hover:bg-white p-4 flex flex-col justify-between min-h-[124px] rounded-2xl text-left shadow-[2px_2px_0px_#1A1A1A] hover:-translate-y-1 hover:shadow-[4px_4px_0px_#1A1A1A] active:translate-y-[1px] active:shadow-none transition-all group cursor-pointer"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-10 h-10 rounded-xl bg-white border-2 border-black/15 group-hover:border-black flex items-center justify-center shadow-xs transition-colors">
-                        <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
-                      </div>
-                      <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-black/10 bg-white text-black/50 group-hover:border-black/30 transition-colors">
-                        {tool.badge}
-                      </span>
+                    <div className="w-10 h-10 rounded-xl bg-white border-2 border-black/15 group-hover:border-black flex items-center justify-center shadow-xs transition-colors mb-3">
+                      <span className={`material-symbols-outlined text-[22px] ${tool.color}`}>{tool.icon}</span>
                     </div>
                     <div>
                       <div className="text-[14px] font-black text-black leading-tight group-hover:text-[#FF4D2E] transition-colors">
@@ -1100,12 +1071,7 @@ export default function Dashboard() {
         {/* 4-Tool Core Study Shelf — 4 Primary Actions (Visible Above the Fold) */}
         <section className="flex flex-col gap-2">
           <div className="flex justify-between items-center px-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-black/60">Core Study Shelf</span>
-              <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/15 bg-white text-black/60">
-                4 Primary Tools
-              </span>
-            </div>
+            <h3 className="text-[11px] font-black uppercase tracking-wider text-black/60">Study Tools</h3>
             <button
               type="button"
               onClick={() => {
@@ -1126,19 +1092,14 @@ export default function Dashboard() {
                   playPop();
                   navigate(tool.route);
                 }}
-                className="min-h-[104px] border-2 border-black rounded-2xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group cursor-pointer"
+                className="min-h-[96px] border-2 border-black rounded-2xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group cursor-pointer"
               >
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] border border-black/15 flex items-center justify-center">
-                    <span className={`material-symbols-outlined text-[20px] ${tool.color}`}>{tool.icon}</span>
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-black/15 bg-[#FAF7F2] text-black/60">
-                    {tool.badge}
-                  </span>
+                <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] border border-black/15 flex items-center justify-center mb-1.5">
+                  <span className={`material-symbols-outlined text-[20px] ${tool.color}`}>{tool.icon}</span>
                 </div>
                 <div>
                   <div className="text-[13px] font-black text-black leading-tight">{tool.title}</div>
-                  <p className="text-[10.5px] text-black/60 font-bold mt-1 leading-snug">{tool.desc}</p>
+                  <p className="text-[10.5px] text-black/60 font-bold mt-0.5 leading-snug">{tool.desc}</p>
                 </div>
               </button>
             ))}
