@@ -102,7 +102,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       bannerId: selectedBannerId,
     });
 
-    toast.success("Channel profile updated! ✨");
+    toast.success("Profile updated! ✨");
     onClose();
   };
 
@@ -115,7 +115,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[22px] text-black">edit_note</span>
             <h3 className="font-black text-[16px] text-black uppercase tracking-wider">
-              Edit Creator Channel & Bio
+              Edit Student Profile & Bio
             </h3>
           </div>
           <button
@@ -130,11 +130,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="p-5 md:p-6 overflow-y-auto space-y-5 flex-1">
           
-          {/* ── CHANNEL LIVE PREVIEW CARD ──────────────────────────────────── */}
+          {/* ── PROFILE LIVE PREVIEW CARD ──────────────────────────────────── */}
           <div className="border-2 border-black rounded-2xl overflow-hidden bg-white shadow-[3px_3px_0px_#1A1A1A]">
             <div className={`h-20 w-full ${currentBanner.className} border-b-2 border-black relative p-2 flex justify-end items-start`}>
               <span className="text-[10px] font-black uppercase tracking-wider bg-black/70 text-white px-2 py-0.5 rounded border border-white/20">
-                Channel Preview
+                Profile Preview
               </span>
             </div>
             <div className="px-4 pb-3.5 pt-0 -mt-8 flex items-end gap-3">
@@ -292,7 +292,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           {/* ── 2. COVER BANNER THEME ──────────────────────────────────────── */}
           <div>
             <label className="block text-[11px] font-black uppercase tracking-wider text-black/70 mb-2">
-              Channel Cover Theme
+              Profile Banner Theme
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {PRESET_BANNERS.map((banner) => (
@@ -313,7 +313,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
           </div>
 
-          {/* ── 3. CHANNEL IDENTITY & BIO ──────────────────────────────────── */}
+          {/* ── 3. PROFILE IDENTITY & BIO ──────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-black uppercase tracking-wider text-black/70 mb-1">
@@ -347,7 +347,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="text-[11px] font-black uppercase tracking-wider text-black/70">
-                Channel Bio & Study Focus
+                Bio & Study Focus
               </label>
               <span className="text-[10px] font-bold text-black/45">
                 {bio.length}/180
@@ -404,7 +404,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               type="submit"
               className="px-5 py-2 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer"
             >
-              Save Channel Profile
+              Save Profile
             </button>
           </div>
 

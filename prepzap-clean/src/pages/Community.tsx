@@ -21,7 +21,7 @@ export default function Community() {
   } = useCommunity();
 
   const fallbackName = authProfile?.full_name || (user as any)?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student Scholar";
-  const { profile: channelProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
+  const { profile: studentProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
 
   const [friendCodeInput, setFriendCodeInput] = useState("");
   const [addingFriend, setAddingFriend] = useState(false);
@@ -37,7 +37,7 @@ export default function Community() {
     return "REX-8491";
   }, [user?.id]);
 
-  const currentBanner = PRESET_BANNERS.find((b) => b.id === channelProfile.bannerId) || PRESET_BANNERS[0];
+  const currentBanner = PRESET_BANNERS.find((b) => b.id === studentProfile.bannerId) || PRESET_BANNERS[0];
 
   const handleCopyCode = () => {
     playTap();
@@ -173,11 +173,11 @@ export default function Community() {
             </div>
           </header>
 
-          {/* ── YOUR CHANNEL MINI HERO CARD ─────────────────────────────────── */}
+          {/* ── YOUR PROFILE MINI HERO CARD ─────────────────────────────────── */}
           <section className="border-2 border-black rounded-3xl bg-white shadow-[4px_4px_0px_#1A1A1A] overflow-hidden">
             <div className={`h-16 md:h-20 w-full ${currentBanner.className} border-b-2 border-black relative p-3 flex justify-between items-start`}>
               <span className="text-[10px] font-black uppercase tracking-wider bg-black/70 text-white px-2.5 py-0.5 rounded-lg border border-white/20">
-                Your Student Channel
+                Your Student Profile
               </span>
               <button
                 type="button"
@@ -192,25 +192,25 @@ export default function Community() {
             <div className="p-4 md:p-5 pt-0 -mt-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 <div className="w-16 h-16 rounded-2xl bg-white border-2 border-black flex items-center justify-center text-[28px] shadow-[3px_3px_0px_#1A1A1A] overflow-hidden bg-[#FAF7F2] shrink-0">
-                  {channelProfile.isAvatarImage ? (
-                    <img src={channelProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  {studentProfile.isAvatarImage ? (
+                    <img src={studentProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <span>{channelProfile.avatar || "🎓"}</span>
+                    <span>{studentProfile.avatar || "🎓"}</span>
                   )}
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <h3 className="font-black text-[16px] text-black truncate leading-tight">
-                      {channelProfile.displayName}
+                      {studentProfile.displayName}
                     </h3>
                     <span className="material-symbols-outlined text-[16px] text-[#10B981]">verified</span>
                   </div>
                   <div className="text-[11.5px] font-bold text-black/55 truncate">
-                    {channelProfile.username} &bull; {channelProfile.school || "Studenius Creator"}
+                    {studentProfile.username} &bull; {studentProfile.school || "Studenius Scholar"}
                   </div>
                   <p className="text-[11.5px] font-medium text-black/75 line-clamp-1 mt-0.5">
-                    {channelProfile.bio}
+                    {studentProfile.bio}
                   </p>
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function Community() {
                 onClick={() => navigate("/profile")}
                 className="px-4 py-2 bg-[#FAF7F2] hover:bg-black hover:text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer shrink-0 transition-colors"
               >
-                Open Full Channel Page &rarr;
+                View Full Profile &rarr;
               </button>
             </div>
           </section>
@@ -261,7 +261,7 @@ export default function Community() {
                 Connected Partners ({buddies.length})
               </h3>
               <span className="text-[11px] font-extrabold text-black/45">
-                Tap profile to view channel, duels & notes
+                Tap profile to view notes & duels
               </span>
             </div>
 
@@ -396,7 +396,7 @@ export default function Community() {
       {/* ── MODAL: EDIT USER'S OWN PROFILE / AVATAR / BANNER ───────────────── */}
       <EditProfileModal
         isOpen={isEditProfileOpen}
-        currentProfile={channelProfile}
+        currentProfile={studentProfile}
         onClose={() => setIsEditProfileOpen(false)}
         onSave={updateProfile}
       />

@@ -103,8 +103,8 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
           <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#000_2px,transparent_2px)] [background-size:16px_16px] pointer-events-none" />
           
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/70 backdrop-blur-xs text-white rounded-lg text-[10.5px] font-black uppercase tracking-wider border border-white/20">
-            <span className="material-symbols-outlined text-[13px] text-[#FFD13B]">tv</span>
-            Student Creator Channel
+            <span className="material-symbols-outlined text-[13px] text-[#FFD13B]">person</span>
+            Student Profile
           </div>
 
           <button
@@ -178,7 +178,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                 type="button"
                 onClick={handleCopyProfileLink}
                 className="w-8 h-8 rounded-xl border-2 border-black bg-white hover:bg-[#FAF7F2] flex items-center justify-center text-black shadow-[2px_2px_0px_#1A1A1A] cursor-pointer"
-                title="Share channel link"
+                title="Share profile link"
               >
                 <span className="material-symbols-outlined text-[16px]">share</span>
               </button>

@@ -28,7 +28,7 @@ export default function StudentProfile() {
   const { buddies, notes } = useCommunity();
 
   const fallbackName = authProfile?.full_name || (user as any)?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student Scholar";
-  const { profile: channelProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
+  const { profile: studentProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"notes" | "partners" | "tools">("notes");
@@ -39,7 +39,7 @@ export default function StudentProfile() {
 
   const myFriendCode = user?.id ? `REX-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "REX-8491";
 
-  const currentBanner = PRESET_BANNERS.find((b) => b.id === channelProfile.bannerId) || PRESET_BANNERS[0];
+  const currentBanner = PRESET_BANNERS.find((b) => b.id === studentProfile.bannerId) || PRESET_BANNERS[0];
 
   useEffect(() => {
     setSourceCount(loadLibrary().length);
@@ -53,7 +53,7 @@ export default function StudentProfile() {
   const handleCopyProfileLink = () => {
     playTap();
     navigator.clipboard.writeText(`${window.location.origin}/community?friend=${myFriendCode}`);
-    toast.success("Channel profile link copied!", {
+    toast.success("Profile link copied!", {
       description: "Classmates can use this link to visit your profile and study circle."
     });
   };
@@ -62,7 +62,7 @@ export default function StudentProfile() {
   const myNotes = notes.filter(
     (n) =>
       (n.authorCode && n.authorCode === myFriendCode) ||
-      n.author.toLowerCase().includes(channelProfile.displayName.toLowerCase().split(" ")[0])
+      n.author.toLowerCase().includes(studentProfile.displayName.toLowerCase().split(" ")[0])
   );
 
   return (
@@ -82,7 +82,7 @@ export default function StudentProfile() {
               <ArrowLeft className="w-5 h-5 text-black" />
             </button>
             <span className="font-black text-[15px] uppercase tracking-wider text-black">
-              Student Channel
+              Student Profile
             </span>
             <button
               onClick={() => setIsEditModalOpen(true)}
@@ -92,16 +92,16 @@ export default function StudentProfile() {
             </button>
           </div>
 
-          {/* ── YOUTUBE / TIKTOK CREATOR CHANNEL CONTAINER ────────────────────── */}
+          {/* ── STUDENT PROFILE CONTAINER ────────────────────────────────────── */}
           <div className="border-3 md:border-4 border-black rounded-3xl bg-white shadow-[6px_6px_0px_#1A1A1A] overflow-hidden">
             
-            {/* 1. CHANNEL COVER BANNER */}
+            {/* 1. PROFILE COVER BANNER */}
             <div className={`h-36 md:h-52 w-full ${currentBanner.className} border-b-4 border-black relative p-3 md:p-5 flex justify-between items-start`}>
               <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#000_2px,transparent_2px)] [background-size:16px_16px] pointer-events-none" />
               
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/75 backdrop-blur-xs text-white rounded-xl text-[11px] font-black uppercase tracking-wider border border-white/20">
-                <span className="material-symbols-outlined text-[15px] text-[#FFD13B]">tv</span>
-                <span>Creator Channel</span>
+                <span className="material-symbols-outlined text-[15px] text-[#FFD13B]">person</span>
+                <span>Student Profile</span>
               </div>
 
               <button
@@ -110,11 +110,11 @@ export default function StudentProfile() {
                 className="px-3.5 py-1.5 bg-white hover:bg-[#FAF7F2] text-black border-2 border-black rounded-xl font-black text-[11px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer z-10"
               >
                 <span className="material-symbols-outlined text-[15px]">brush</span>
-                <span>Customize Channel</span>
+                <span>Customize Profile</span>
               </button>
             </div>
 
-            {/* 2. CHANNEL HEADER & AVATAR */}
+            {/* 2. PROFILE HEADER & AVATAR */}
             <div className="px-5 md:px-8 pb-6 pt-0 relative">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 md:-mt-16 mb-4">
                 
@@ -122,15 +122,15 @@ export default function StudentProfile() {
                 <div className="flex items-end gap-4">
                   <div className="relative group">
                     <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl md:rounded-3xl bg-white border-3 md:border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_#1A1A1A] overflow-hidden bg-[#FAF7F2] shrink-0">
-                      {channelProfile.isAvatarImage ? (
+                      {studentProfile.isAvatarImage ? (
                         <img
-                          src={channelProfile.avatar}
-                          alt={channelProfile.displayName}
+                          src={studentProfile.avatar}
+                          alt={studentProfile.displayName}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <span className="text-[44px] md:text-[54px]">
-                          {channelProfile.avatar || "🎓"}
+                          {studentProfile.avatar || "🎓"}
                         </span>
                       )}
                     </div>
@@ -148,7 +148,7 @@ export default function StudentProfile() {
                   <div className="min-w-0 pb-1">
                     <div className="flex items-center gap-2">
                       <h1 className="text-[22px] md:text-[28px] font-black text-black leading-tight truncate">
-                        {channelProfile.displayName}
+                        {studentProfile.displayName}
                       </h1>
                       <span className="material-symbols-outlined text-[20px] text-[#10B981]" title="Verified Student Creator">
                         verified
@@ -156,13 +156,13 @@ export default function StudentProfile() {
                     </div>
 
                     <div className="text-[12.5px] font-bold text-black/60 truncate flex items-center gap-2 mt-0.5">
-                      <span>{channelProfile.username}</span>
+                      <span>{studentProfile.username}</span>
                       <span>&bull;</span>
                       <span className="text-[#FF4D2E] font-black">{myFriendCode}</span>
                     </div>
 
                     <div className="text-[11.5px] font-semibold text-black/50 truncate mt-0.5">
-                      {channelProfile.school || "Studenius Scholar"} &bull; Joined {getJoinDate(user?.created_at)}
+                      {studentProfile.school || "Studenius Scholar"} &bull; Joined {getJoinDate(user?.created_at)}
                     </div>
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default function StudentProfile() {
                     className="px-4 py-2 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 cursor-pointer flex items-center gap-1.5"
                   >
                     <span className="material-symbols-outlined text-[16px]">share</span>
-                    <span>Share Channel</span>
+                    <span>Share Profile</span>
                   </button>
                 </div>
               </div>
@@ -192,12 +192,12 @@ export default function StudentProfile() {
               {/* Bio & Academic Mission */}
               <div className="max-w-2xl bg-[#FAF7F2] border-2 border-black rounded-2xl p-3.5 mb-4 shadow-[2px_2px_0px_#1A1A1A]">
                 <p className="text-[13px] font-semibold text-black/80 leading-relaxed">
-                  {channelProfile.bio || "Student creator on Studenius prepping for upcoming exams with active recall and revision guides."}
+                  {studentProfile.bio || "Student creator on Studenius prepping for upcoming exams with active recall and revision guides."}
                 </p>
-                {channelProfile.targetExam && (
+                {studentProfile.targetExam && (
                   <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 bg-white border border-black/20 rounded-lg text-[11px] font-bold text-black/70">
                     <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">flag</span>
-                    <span>Target: <strong>{channelProfile.targetExam}</strong></span>
+                    <span>Target: <strong>{studentProfile.targetExam}</strong></span>
                   </div>
                 )}
               </div>
@@ -426,7 +426,7 @@ export default function StudentProfile() {
                             }}
                             className="px-3 py-1 bg-[#FAF7F2] hover:bg-black hover:text-white border border-black rounded-lg text-[11px] font-black transition-colors cursor-pointer shrink-0"
                           >
-                            View Channel
+                            View Profile
                           </button>
                         </div>
                       ))}
@@ -487,7 +487,7 @@ export default function StudentProfile() {
       {/* ── EDIT PROFILE MODAL ────────────────────────────────────────────── */}
       <EditProfileModal
         isOpen={isEditModalOpen}
-        currentProfile={channelProfile}
+        currentProfile={studentProfile}
         onClose={() => setIsEditModalOpen(false)}
         onSave={updateProfile}
       />
