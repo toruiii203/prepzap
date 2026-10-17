@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { playTap, playSuccess, playMastery } from "@/lib/soundFX";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface CampusNote {
   id: string;
@@ -231,6 +232,9 @@ $$\\Delta G = \\Delta H - T\\Delta S$$
 ];
 
 export function useCommunity() {
+  const { user, profile } = useAuth();
+  const userStorageKey = user?.id ? `${STORAGE_BUDDIES_KEY}_${user.id}` : STORAGE_BUDDIES_KEY;
+
   const [notes, setNotes] = useState<CampusNote[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_NOTES_KEY);
@@ -245,7 +249,8 @@ export function useCommunity() {
   // Only real buddies added by code (starts empty for new user)
   const [buddies, setBuddies] = useState<StudyBuddy[]>(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_BUDDIES_KEY);
+      const key = user?.id ? `${STORAGE_BUDDIES_KEY}_${user.id}` : STORAGE_BUDDIES_KEY;
+      const stored = localStorage.getItem(key) || localStorage.getItem(STORAGE_BUDDIES_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) return parsed;
@@ -253,6 +258,81 @@ export function useCommunity() {
     } catch {}
     return [];
   });
+
+  // Sync buddies from cloud and user-scoped storage when auth changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Load user-scoped local storage if switched user
+    try {
+      const stored = localStorage.getItem(userStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) setBuddies(parsed);
+      }
+    } catch {}
+
+    let isSubscribed = true;
+
+    async function loadCloudPartners() {
+      try {
+        const { data: cloudPartners, error } = await supabase
+          .from("study_partners")
+          .select("*")
+          .or(`user_id.eq.${user.id},partner_id.eq.${user.id}`);
+
+        if (!error && Array.isArray(cloudPartners) && isSubscribed) {
+          setBuddies((prev) => {
+            const map = new Map<string, StudyBuddy>();
+            prev.forEach((b) => map.set(b.code, b));
+
+            cloudPartners.forEach((cp: any) => {
+              const isMeSender = cp.user_id === user.id;
+              const partnerCode = isMeSender
+                ? cp.partner_code
+                : (cp.user_code || `REX-${cp.user_id.replace(/-/g, "").slice(0, 4).toUpperCase()}`);
+              const partnerName = isMeSender
+                ? cp.partner_name
+                : (cp.user_name || "Study Partner");
+
+              if (!map.has(partnerCode)) {
+                map.set(partnerCode, {
+                  id: `buddy-cloud-${cp.id}`,
+                  name: partnerName,
+                  username: `@${partnerName.toLowerCase().replace(/[\s,]+/g, "_")}`,
+                  code: partnerCode,
+                  avatar: "🎓",
+                  subject: "Study Partner",
+                  streakDays: 1,
+                  hasStudiedToday: false,
+                  lastActive: "Active today",
+                  bio: "Study partner linked on Studenius.",
+                  level: 1,
+                  totalXp: 0,
+                  notesCount: 1,
+                  likesCount: 12,
+                });
+              }
+            });
+
+            const merged = Array.from(map.values());
+            try {
+              localStorage.setItem(userStorageKey, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch {
+        // Table does not exist yet or offline
+      }
+    }
+
+    loadCloudPartners();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [user?.id, userStorageKey]);
 
   useEffect(() => {
     try {
@@ -262,9 +342,9 @@ export function useCommunity() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_BUDDIES_KEY, JSON.stringify(buddies));
+      localStorage.setItem(userStorageKey, JSON.stringify(buddies));
     } catch {}
-  }, [buddies]);
+  }, [buddies, userStorageKey]);
 
   const toggleLikeNote = useCallback((noteId: string) => {
     setNotes((prev) =>
@@ -360,6 +440,14 @@ export function useCommunity() {
       return false;
     }
 
+    const myCode = user?.id ? `REX-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "";
+    if (myCode && clean === myCode) {
+      toast.info("That's your own Friend Code! 💡", {
+        description: "Share this code with your classmate or enter their code to link together."
+      });
+      return false;
+    }
+
     const existing = buddies.find((b) => b.code === clean);
     if (existing) {
       toast.info(`${existing.name} is already in your study circle!`);
@@ -371,13 +459,13 @@ export function useCommunity() {
     let resolvedStreak = 1;
     let resolvedXp = 0;
     const resolvedAvatar = "🎓";
+    let matchedUserId: string | null = null;
 
     try {
       const rawHash = clean.replace("REX-", "").toLowerCase();
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, display_name, username, total_xp, streak_days")
-        .limit(30);
+        .select("id, full_name, display_name, username, total_xp, streak_days");
 
       if (data && data.length > 0) {
         const match = data.find((p: any) => {
@@ -386,6 +474,7 @@ export function useCommunity() {
         });
 
         if (match) {
+          matchedUserId = match.id;
           resolvedName = match.display_name || match.full_name || (match.username ? `@${match.username}` : "");
           resolvedUsername = match.username ? `@${match.username}` : `@student_${rawHash}`;
           resolvedStreak = match.streak_days || 1;
@@ -407,6 +496,23 @@ export function useCommunity() {
       resolvedUsername = `@${resolvedName.toLowerCase().replace(" ", "_")}`;
     }
 
+    // Attempt cloud save to study_partners table
+    if (user?.id && matchedUserId) {
+      try {
+        const myName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Study Partner";
+        await supabase.from("study_partners").upsert({
+          user_id: user.id,
+          partner_id: matchedUserId,
+          partner_code: clean,
+          partner_name: resolvedName,
+          user_code: myCode,
+          user_name: myName
+        }, { onConflict: "user_id,partner_id" });
+      } catch (err) {
+        console.warn("Supabase study_partners sync error:", err);
+      }
+    }
+
     const newBuddy: StudyBuddy = {
       id: `buddy-${Date.now()}`,
       name: resolvedName,
@@ -424,13 +530,20 @@ export function useCommunity() {
       likesCount: 16,
     };
 
-    setBuddies((prev) => [...prev, newBuddy]);
+    setBuddies((prev) => {
+      const updated = [...prev, newBuddy];
+      try {
+        localStorage.setItem(userStorageKey, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     playMastery();
     toast.success(`Connected with ${newBuddy.name}! 🔥`, {
       description: `Streak linked with ${newBuddy.code}.`
     });
     return true;
-  }, [buddies]);
+  }, [buddies, user, profile, userStorageKey]);
 
   return {
     notes,
