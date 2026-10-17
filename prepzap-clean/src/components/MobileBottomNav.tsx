@@ -16,8 +16,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
     { name: 'Community', path: '/community', icon: 'groups' },
     { name: 'Notes', path: '/notes', icon: 'edit_document' },
     { name: 'Home', path: '/dashboard', icon: 'home' },
+    { name: 'Library', path: '/sources', icon: 'folder' },
     { name: 'Planner', path: '/planner', icon: 'calendar_month' },
-    { name: 'Arena', path: '/arena', icon: 'sports_esports' },
   ];
 
   return (

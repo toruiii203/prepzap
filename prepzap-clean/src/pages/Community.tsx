@@ -6,10 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { FriendProfileModal } from "@/components/FriendProfileModal";
+import { useUserProfile, PRESET_BANNERS } from "@/lib/userProfileStore";
+import { EditProfileModal } from "@/components/EditProfileModal";
 
 export default function Community() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const {
     notes,
     buddies,
@@ -18,9 +20,13 @@ export default function Community() {
     reportNote
   } = useCommunity();
 
+  const fallbackName = authProfile?.full_name || (user as any)?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student Scholar";
+  const { profile: channelProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
+
   const [friendCodeInput, setFriendCodeInput] = useState("");
   const [addingFriend, setAddingFriend] = useState(false);
   const [selectedBuddy, setSelectedBuddy] = useState<StudyBuddy | null>(null);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   // User's own friend code
   const myFriendCode = useMemo(() => {
@@ -30,6 +36,8 @@ export default function Community() {
     }
     return "REX-8491";
   }, [user?.id]);
+
+  const currentBanner = PRESET_BANNERS.find((b) => b.id === channelProfile.bannerId) || PRESET_BANNERS[0];
 
   const handleCopyCode = () => {
     playTap();
@@ -51,6 +59,35 @@ export default function Community() {
     }
   };
 
+  const handleLaunchDuelWithBuddy = (buddy: StudyBuddy) => {
+    playPop();
+    localStorage.setItem("pz_duel_opponent", JSON.stringify({
+      id: buddy.id,
+      name: buddy.name,
+      avatar: buddy.avatar,
+      code: buddy.code,
+      subject: buddy.subject || "General Studies"
+    }));
+    toast.success(`Challenging ${buddy.name} to a 1v1 Quiz Duel! ⚔️`, {
+      description: "5 rapid recall questions to determine the high scorer."
+    });
+    navigate("/practice");
+  };
+
+  const handleLaunchCoStudyWithBuddy = (buddy: StudyBuddy) => {
+    playPop();
+    localStorage.setItem("pz_costudy_partner", JSON.stringify({
+      id: buddy.id,
+      name: buddy.name,
+      avatar: buddy.avatar,
+      code: buddy.code
+    }));
+    toast.success(`Starting a Co-Study session with ${buddy.name}! ⏱️`, {
+      description: "Focus timer activated. Stay locked in together!"
+    });
+    navigate("/timer");
+  };
+
   const handleLaunchStudy = (note: CampusNote, mode: "practice" | "flashcards") => {
     playPop();
     if (mode === "practice") {
@@ -65,7 +102,7 @@ export default function Community() {
     }
   };
 
-  // Find notes for the selected buddy (match author or authorCode)
+  // Find notes for the selected buddy
   const selectedBuddyNotes = useMemo(() => {
     if (!selectedBuddy) return [];
     return notes
@@ -83,7 +120,7 @@ export default function Community() {
 
       {/* ── DESKTOP & TABLET WRAPPER ────────────────────────────────────────── */}
       <div className="md:ml-64 flex flex-col min-h-screen overflow-y-auto">
-        <div className="p-4 md:p-12 max-w-5xl w-full mx-auto space-y-7 pb-28 md:pb-12">
+        <div className="p-4 md:p-10 max-w-5xl w-full mx-auto space-y-6 pb-28 md:pb-12">
 
           {/* Banner linking to Campus Vault */}
           <div className="bg-[#FFFDF5] border-2 border-black rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[3px_3px_0px_#1A1A1A]">
@@ -113,16 +150,16 @@ export default function Community() {
                 <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">diversity_3</span>
                 Study Circle & Buddies
               </div>
-              <h1 className="text-[28px] md:text-[34px] font-black leading-tight text-black">
-                Study Circle
+              <h1 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
+                Study Circle & Co-Op
               </h1>
-              <p className="text-[13.5px] font-bold text-black/60 mt-0.5">
-                Mutual accountability streaks with classmates. View friends' creator profiles and shared notes.
+              <p className="text-[13px] font-bold text-black/60 mt-0.5">
+                Mutual streak accountability, 1v1 quiz duels, co-study timers, and creator profiles.
               </p>
             </div>
 
             {/* Friend Code Pill */}
-            <div className="bg-white border-2 border-black rounded-2xl p-3.5 flex items-center gap-3 shadow-[3px_3px_0px_#1A1A1A] shrink-0">
+            <div className="bg-white border-2 border-black rounded-2xl p-3 flex items-center gap-3 shadow-[3px_3px_0px_#1A1A1A] shrink-0">
               <div>
                 <div className="text-[9.5px] font-black uppercase tracking-wider text-black/45">Your Friend Code</div>
                 <div className="text-[16px] font-black text-[#FF4D2E] tracking-wider">{myFriendCode}</div>
@@ -136,13 +173,65 @@ export default function Community() {
             </div>
           </header>
 
+          {/* ── YOUR CHANNEL MINI HERO CARD ─────────────────────────────────── */}
+          <section className="border-2 border-black rounded-3xl bg-white shadow-[4px_4px_0px_#1A1A1A] overflow-hidden">
+            <div className={`h-16 md:h-20 w-full ${currentBanner.className} border-b-2 border-black relative p-3 flex justify-between items-start`}>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-black/70 text-white px-2.5 py-0.5 rounded-lg border border-white/20">
+                Your Student Channel
+              </span>
+              <button
+                type="button"
+                onClick={() => { playTap(); setIsEditProfileOpen(true); }}
+                className="px-3 py-1 bg-white hover:bg-[#FAF7F2] text-black border-2 border-black rounded-xl font-black text-[11px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[14px]">edit</span>
+                <span>Edit Bio & Avatar</span>
+              </button>
+            </div>
+
+            <div className="p-4 md:p-5 pt-0 -mt-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-16 h-16 rounded-2xl bg-white border-2 border-black flex items-center justify-center text-[28px] shadow-[3px_3px_0px_#1A1A1A] overflow-hidden bg-[#FAF7F2] shrink-0">
+                  {channelProfile.isAvatarImage ? (
+                    <img src={channelProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{channelProfile.avatar || "🎓"}</span>
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-black text-[16px] text-black truncate leading-tight">
+                      {channelProfile.displayName}
+                    </h3>
+                    <span className="material-symbols-outlined text-[16px] text-[#10B981]">verified</span>
+                  </div>
+                  <div className="text-[11.5px] font-bold text-black/55 truncate">
+                    {channelProfile.username} &bull; {channelProfile.school || "Studenius Creator"}
+                  </div>
+                  <p className="text-[11.5px] font-medium text-black/75 line-clamp-1 mt-0.5">
+                    {channelProfile.bio}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate("/profile")}
+                className="px-4 py-2 bg-[#FAF7F2] hover:bg-black hover:text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer shrink-0 transition-colors"
+              >
+                Open Full Channel Page &rarr;
+              </button>
+            </div>
+          </section>
+
           {/* Add Study Partner Form */}
           <section className="bg-white border-2 border-black rounded-2xl p-4 md:p-5 shadow-[3px_3px_0px_#1A1A1A]">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
               <div>
                 <h3 className="text-[15px] font-black text-black">Link a Study Partner</h3>
                 <p className="text-[11.5px] font-bold text-black/55 mt-0.5">
-                  Enter a classmate's Friend Code to link streaks and motivate each other.
+                  Enter a classmate's Friend Code to link streaks, challenge to duels, and motivate each other.
                 </p>
               </div>
             </div>
@@ -172,7 +261,7 @@ export default function Community() {
                 Connected Partners ({buddies.length})
               </h3>
               <span className="text-[11px] font-extrabold text-black/45">
-                Tap profile to view notes & stats
+                Tap profile to view channel, duels & notes
               </span>
             </div>
 
@@ -181,78 +270,112 @@ export default function Community() {
                 <span className="text-[36px] block">🤝</span>
                 <h4 className="text-[16px] font-black text-black">No study partners linked yet</h4>
                 <p className="text-[12.5px] font-semibold text-black/55 max-w-sm mx-auto leading-relaxed">
-                  Share your code (<strong className="text-black">{myFriendCode}</strong>) with a classmate or enter their code above to study together and start a friend streak!
+                  Share your code (<strong className="text-black">{myFriendCode}</strong>) with a classmate or enter their code above to study together, start duels, and link friend streaks!
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {buddies.map((buddy) => (
-                  <div
-                    key={buddy.id}
-                    onClick={() => { playPop(); setSelectedBuddy(buddy); }}
-                    className="border-2 border-black rounded-2xl p-4 bg-white hover:bg-[#FFFDF5] shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[5px_5px_0px_#1A1A1A] hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded-xl bg-[#FAF7F2] border-2 border-black flex items-center justify-center text-[24px] shadow-xs shrink-0">
-                            {buddy.avatar || "🎓"}
+                {buddies.map((buddy) => {
+                  const isBuddyAvatarImg =
+                    buddy.avatar?.startsWith("/") ||
+                    buddy.avatar?.startsWith("http") ||
+                    buddy.avatar?.startsWith("data:");
+
+                  return (
+                    <div
+                      key={buddy.id}
+                      onClick={() => { playPop(); setSelectedBuddy(buddy); }}
+                      className="border-2 border-black rounded-2xl p-4 bg-white hover:bg-[#FFFDF5] shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[5px_5px_0px_#1A1A1A] hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-12 h-12 rounded-xl bg-[#FAF7F2] border-2 border-black flex items-center justify-center text-[24px] shadow-xs shrink-0 overflow-hidden">
+                              {isBuddyAvatarImg ? (
+                                <img src={buddy.avatar} alt={buddy.name} className="w-full h-full object-cover" />
+                              ) : (
+                                buddy.avatar || "🎓"
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h4 className="text-[15px] font-black text-black truncate leading-tight">
+                                  {buddy.name}
+                                </h4>
+                                <span className="material-symbols-outlined text-[15px] text-[#10B981]" title="Verified Student">
+                                  check_circle
+                                </span>
+                              </div>
+                              <div className="text-[11px] font-bold text-black/50 truncate">
+                                {buddy.username || `@student_${buddy.code.slice(0, 4).toLowerCase()}`} &bull; {buddy.code}
+                              </div>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <h4 className="text-[15px] font-black text-black truncate leading-tight">
-                                {buddy.name}
-                              </h4>
-                              <span className="material-symbols-outlined text-[15px] text-[#10B981]" title="Verified Student">
-                                check_circle
-                              </span>
-                            </div>
-                            <div className="text-[11px] font-bold text-black/50 truncate">
-                              {buddy.username || `@student_${buddy.code.slice(0, 4).toLowerCase()}`} &bull; {buddy.code}
-                            </div>
+
+                          {/* Quick Interactive Actions */}
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => handleLaunchDuelWithBuddy(buddy)}
+                              className="px-2.5 py-1 bg-[#FFD13B] hover:bg-[#FFE566] text-black border border-black rounded-lg text-[10.5px] font-black cursor-pointer shadow-xs active:translate-y-0.5 flex items-center gap-0.5"
+                              title="1v1 Quiz Duel"
+                            >
+                              <span>⚔️</span>
+                              <span>Duel</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => sendNudge(buddy.id)}
+                              className="px-2.5 py-1 bg-[#FF4D2E] hover:bg-black text-white border border-black rounded-lg text-[10.5px] font-black cursor-pointer shadow-xs active:translate-y-0.5 flex items-center gap-0.5"
+                              title="Send Streak Nudge"
+                            >
+                              <span>🔥</span>
+                              <span>Nudge</span>
+                            </button>
                           </div>
                         </div>
 
-                        {/* Nudge button */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            sendNudge(buddy.id);
-                          }}
-                          className="px-3 py-1 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl text-[11px] font-black cursor-pointer shadow-[1px_1px_0px_#000] active:translate-y-0.5 shrink-0"
-                        >
-                          Nudge 🔥
-                        </button>
+                        <p className="text-[11.5px] font-medium text-black/65 line-clamp-1 mt-1">
+                          {buddy.bio || "Active recall study partner on Studenius."}
+                        </p>
                       </div>
 
-                      <p className="text-[11.5px] font-medium text-black/65 line-clamp-1 mt-1">
-                        {buddy.bio || "Active recall study partner on Studenius."}
-                      </p>
-                    </div>
+                      {/* Card Footer with Co-Study CTA & Streak */}
+                      <div className="pt-2.5 mt-2 border-t border-black/10 flex items-center justify-between text-[11px] font-black">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#FF4D2E] flex items-center gap-0.5">
+                            <span>🔥</span>
+                            <span>{buddy.streakDays}d Streak</span>
+                          </span>
+                          <span className="text-black/35">&bull;</span>
+                          <span className="text-black/70">
+                            ⚡ LVL {buddy.level || 1}
+                          </span>
+                        </div>
 
-                    <div className="pt-3 mt-3 border-t border-black/10 flex items-center justify-between text-[11px] font-black">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#FF4D2E] flex items-center gap-0.5">
-                          <span>🔥</span>
-                          <span>{buddy.streakDays}d Streak</span>
-                        </span>
-                        <span className="text-black/35">&bull;</span>
-                        <span className="text-black/70">
-                          ⚡ LVL {buddy.level || 1}
-                        </span>
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => handleLaunchCoStudyWithBuddy(buddy)}
+                            className="text-[10px] font-black px-2 py-0.5 bg-[#10B981]/15 text-green-900 border border-green-700 rounded hover:bg-green-100 transition-colors cursor-pointer flex items-center gap-0.5"
+                            title="25-minute focus session together"
+                          >
+                            <span>⏱️ Co-Study</span>
+                          </button>
+
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                            buddy.hasStudiedToday
+                              ? "bg-green-100 text-green-800 border border-green-600"
+                              : "bg-amber-100 text-amber-800 border border-amber-500"
+                          }`}>
+                            {buddy.hasStudiedToday ? "Done ✅" : "Needs Study"}
+                          </span>
+                        </div>
                       </div>
-
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                        buddy.hasStudiedToday
-                          ? "bg-green-100 text-green-800 border border-green-600"
-                          : "bg-amber-100 text-amber-800 border border-amber-500"
-                      }`}>
-                        {buddy.hasStudiedToday ? "Studied Today ✅" : "Needs Study ⏳"}
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -268,6 +391,14 @@ export default function Community() {
         onNudge={sendNudge}
         onLaunchStudy={handleLaunchStudy}
         onReportNote={reportNote}
+      />
+
+      {/* ── MODAL: EDIT USER'S OWN PROFILE / AVATAR / BANNER ───────────────── */}
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        currentProfile={channelProfile}
+        onClose={() => setIsEditProfileOpen(false)}
+        onSave={updateProfile}
       />
     </div>
   );

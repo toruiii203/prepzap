@@ -76,6 +76,14 @@ export default function FocusTimer() {
   const [taskInput, setTaskInput] = useState("");
   const [quoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length));
 
+  const [coStudyPartner, setCoStudyPartner] = useState<{ id: string; name: string; avatar: string; code: string } | null>(() => {
+    try {
+      const raw = localStorage.getItem("pz_costudy_partner");
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  });
+
   const intervalRef = useRef<any>(null);
   const startTimeRef = useRef<number | null>(null);   // wall-clock ms when timer last started
   const savedTimeLeftRef = useRef<number>(settings.focusDuration * 60); // timeLeft at last start
@@ -460,7 +468,40 @@ export default function FocusTimer() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* LEFT COLUMN — Timer */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-8 px-12 overflow-y-auto">
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 px-12 overflow-y-auto">
+
+            {coStudyPartner && (
+              <div className="bg-[#FFFDF5] border-2 border-black rounded-2xl p-3 px-4 flex items-center justify-between gap-4 shadow-[3px_3px_0px_#1A1A1A] w-full max-w-sm animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#10B981]/20 border border-black flex items-center justify-center text-[20px] overflow-hidden shrink-0">
+                    {coStudyPartner.avatar?.startsWith("/") || coStudyPartner.avatar?.startsWith("http") ? (
+                      <img src={coStudyPartner.avatar} alt={coStudyPartner.name} className="w-full h-full object-cover" />
+                    ) : (
+                      coStudyPartner.avatar || "🎓"
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase text-green-700 tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span>Co-Study Session</span>
+                    </div>
+                    <div className="text-[13px] font-black text-black leading-tight">
+                      Locked in with {coStudyPartner.name}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem("pz_costudy_partner");
+                    setCoStudyPartner(null);
+                  }}
+                  className="text-[11px] font-bold text-black/50 hover:text-red-600 underline cursor-pointer"
+                >
+                  Leave
+                </button>
+              </div>
+            )}
 
             {/* Phase selector */}
             <div className="flex items-center gap-2">
@@ -662,7 +703,40 @@ export default function FocusTimer() {
           </header>
 
           {/* Mobile Main */}
-          <main className="flex-1 flex flex-col items-center justify-center py-8 px-5 gap-6 overflow-y-auto pb-10">
+          <main className="flex-1 flex flex-col items-center justify-center py-6 px-4 gap-5 overflow-y-auto pb-10">
+
+            {coStudyPartner && (
+              <div className="bg-[#FFFDF5] border-2 border-black rounded-2xl p-2.5 px-3 flex items-center justify-between gap-3 shadow-[2px_2px_0px_#1A1A1A] w-full max-w-xs animate-in fade-in">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#10B981]/20 border border-black flex items-center justify-center text-[18px] overflow-hidden shrink-0">
+                    {coStudyPartner.avatar?.startsWith("/") || coStudyPartner.avatar?.startsWith("http") ? (
+                      <img src={coStudyPartner.avatar} alt={coStudyPartner.name} className="w-full h-full object-cover" />
+                    ) : (
+                      coStudyPartner.avatar || "🎓"
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-[9.5px] font-black uppercase text-green-700 tracking-wider flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      <span>Co-Studying</span>
+                    </div>
+                    <div className="text-[12px] font-black text-black leading-tight truncate max-w-[150px]">
+                      {coStudyPartner.name}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem("pz_costudy_partner");
+                    setCoStudyPartner(null);
+                  }}
+                  className="text-[10px] font-bold text-black/50 hover:text-red-600 underline cursor-pointer"
+                >
+                  Leave
+                </button>
+              </div>
+            )}
 
             {/* Phase selector */}
             <div className="flex items-center gap-2">

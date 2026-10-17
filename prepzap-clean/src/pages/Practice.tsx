@@ -383,6 +383,21 @@ export default function Practice() {
   const [quizType, setQuizType] = useState<string>("mixed");
   const [difficulty, setDifficulty] = useState<string>("mixed");
 
+  const [duelOpponent, setDuelOpponent] = useState<{ id: string; name: string; avatar: string; code: string; subject: string } | null>(() => {
+    try {
+      const raw = localStorage.getItem("pz_duel_opponent");
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  });
+
+  useEffect(() => {
+    if (duelOpponent && duelOpponent.subject && !topicInput) {
+      setTopicInput(duelOpponent.subject);
+      setQuestionCount(5);
+    }
+  }, [duelOpponent]);
+
   const [showHistory, setShowHistory] = useState(false);
   const [reviewEntry, setReviewEntry] = useState<HistoryEntry | null>(null);
 
@@ -1023,6 +1038,42 @@ Each object MUST match this schema exactly:
             {view === "quiz" && (
               <main className="flex-1 flex flex-col p-8 max-w-4xl mx-auto w-full">
                 
+                {/* 1v1 Quiz Duel Opponent Banner */}
+                {duelOpponent && (
+                  <div className="bg-[#FFD13B] border-3 border-black rounded-2xl p-4 shadow-[4px_4px_0px_#1A1A1A] flex items-center justify-between gap-3 mb-5 animate-in fade-in">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-white border-2 border-black flex items-center justify-center text-[24px] overflow-hidden shadow-xs shrink-0">
+                        {duelOpponent.avatar?.startsWith("/") || duelOpponent.avatar?.startsWith("http") ? (
+                          <img src={duelOpponent.avatar} alt={duelOpponent.name} className="w-full h-full object-cover" />
+                        ) : (
+                          duelOpponent.avatar || "🎓"
+                        )}
+                      </div>
+                      <div>
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-black text-white text-[10px] font-black uppercase rounded tracking-wider">
+                          <span>⚔️ 1v1 Rapid Recall Duel</span>
+                        </div>
+                        <h4 className="text-[15px] font-black text-black leading-tight mt-0.5">
+                          Challenging {duelOpponent.name} ({duelOpponent.code})
+                        </h4>
+                        <p className="text-[11.5px] font-bold text-black/65">
+                          5 quick questions on <strong>{duelOpponent.subject || "General"}</strong>. Score higher accuracy to win!
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.removeItem("pz_duel_opponent");
+                        setDuelOpponent(null);
+                      }}
+                      className="text-[11px] font-bold text-black/55 hover:text-red-600 underline cursor-pointer"
+                    >
+                      Cancel Duel
+                    </button>
+                  </div>
+                )}
+
                 {/* Desktop Top Generator Banner */}
                 <DesktopBanner
                   isGenerating={isGenerating}
@@ -1340,6 +1391,39 @@ Each object MUST match this schema exactly:
           <>
             <main className="w-full px-4 py-5 flex flex-col gap-4 flex-1">
               
+              {/* Mobile 1v1 Quiz Duel Banner */}
+              {duelOpponent && (
+                <div className="bg-[#FFD13B] border-2 border-black rounded-xl p-3 shadow-[2px_2px_0px_#1A1A1A] flex items-center justify-between gap-2.5 animate-in fade-in">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-white border border-black flex items-center justify-center text-[20px] overflow-hidden shrink-0">
+                      {duelOpponent.avatar?.startsWith("/") || duelOpponent.avatar?.startsWith("http") ? (
+                        <img src={duelOpponent.avatar} alt={duelOpponent.name} className="w-full h-full object-cover" />
+                      ) : (
+                        duelOpponent.avatar || "🎓"
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[9.5px] font-black uppercase text-black/70 flex items-center gap-1">
+                        <span>⚔️ 1v1 Quiz Duel</span>
+                      </div>
+                      <div className="text-[13px] font-black text-black truncate leading-tight">
+                        vs {duelOpponent.name}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem("pz_duel_opponent");
+                      setDuelOpponent(null);
+                    }}
+                    className="text-[10.5px] font-bold text-black/55 hover:text-red-600 underline cursor-pointer shrink-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               {/* Mobile Generator Banner */}
               <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0 shadow-[2px_2px_0px_#000]">
                 <div className="flex items-center justify-between">

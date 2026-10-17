@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogOut } from "lucide-react";
@@ -7,444 +7,490 @@ import { loadLibrary } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyStats } from "@/hooks/useStudyStats";
-
-// ΓöÇΓöÇΓöÇ helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-
-function getLocalNumber(key: string, fallback = 0): number {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw === null) return fallback;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed === "number") return parsed;
-    if (Array.isArray(parsed)) return parsed.length;
-    return fallback;
-  } catch {
-    return fallback;
-  }
-}
+import { useCommunity } from "@/hooks/useCommunity";
+import { useUserProfile, PRESET_BANNERS } from "@/lib/userProfileStore";
+import { EditProfileModal } from "@/components/EditProfileModal";
+import { playPop, playTap, playSuccess } from "@/lib/soundFX";
+import { toast } from "sonner";
+import { levelFromXp, xpProgressPercent } from "@/lib/xp";
 
 function getJoinDate(isoString?: string): string {
-  if (!isoString) return "-";
+  if (!isoString) return "Recently joined";
   const d = new Date(isoString);
   return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
-// ΓöÇΓöÇΓöÇ Desktop sidebar ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-
-// ΓöÇΓöÇΓöÇ Hub card (shared) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-
-const HubCard = ({
-  icon,
-  label,
-  description,
-  onClick,
-}: {
-  icon: string;
-  label: string;
-  description: string;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className="group bg-[#FAF7F2] border-2 border-black p-8 flex flex-col text-left transition-all hover:bg-[#F0EDE0] active:translate-x-0.5 active:translate-y-0.5"
-    style={{ boxShadow: "5px 5px 0px #000", minHeight: 220 }}
-    onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translate(3px,3px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "2px 2px 0px #000"; }}
-    onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = ""; (e.currentTarget as HTMLButtonElement).style.boxShadow = "5px 5px 0px #000"; }}
-    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ""; (e.currentTarget as HTMLButtonElement).style.boxShadow = "5px 5px 0px #000"; }}
-  >
-    <div className="flex items-start justify-between mb-6">
-      <div className="w-14 h-14 bg-black flex items-center justify-center border-2 border-black shadow-[3px_3px_0px_#555]">
-        <span className="material-symbols-outlined text-white text-[28px]">{icon}</span>
-      </div>
-      <span className="material-symbols-outlined text-[20px] text-black/40 group-hover:translate-x-1 transition-transform">
-        arrow_forward
-      </span>
-    </div>
-    <h4 className="font-black text-[18px] mb-2">{label}</h4>
-    <p className="text-[14px] font-medium text-black/60 mt-auto leading-relaxed">{description}</p>
-  </button>
-);
-
-// ΓöÇΓöÇΓöÇ Stat card (shared) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-
-const StatCard = ({
-  label,
-  value,
-  sub,
-  accent,
-  icon,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-  icon?: string;
-}) => (
-  <div
-    className="bg-[#FAF7F2] border-2 border-black p-6 flex flex-col"
-    style={{ boxShadow: "5px 5px 0px #000" }}
-  >
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-[11px] font-black uppercase tracking-widest text-black/50">{label}</p>
-      {icon && (
-        <span className="material-symbols-outlined text-[20px]" style={{ color: accent || "#000" }}>
-          {icon}
-        </span>
-      )}
-    </div>
-    <p
-      className="font-black text-[32px] leading-none mt-1"
-      style={{ color: accent || "#000" }}
-    >
-      {value}
-    </p>
-    {sub && <p className="text-[12px] font-bold text-black/40 mt-2">{sub}</p>}
-  </div>
-);
-
-// ΓöÇΓöÇΓöÇ Main component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-
 export default function StudentProfile() {
   const navigate = useNavigate();
   const { isPro } = usePlan();
-  const { user, profile } = useAuth();
+  const { user, profile: authProfile } = useAuth();
+  const { stats } = useStudyStats();
+  const { buddies, notes } = useCommunity();
 
-  const [userName, setUserName] = useState("Student");
-  const [userEmail, setUserEmail] = useState("");
-  const [userInitial, setUserInitial] = useState("S");
-  const [joinDate, setJoinDate] = useState("-");
-  const [stats, setStats] = useState({ sessions: 0, studyHrs: 0, avgScore: 0, streak: 0 });
+  const fallbackName = authProfile?.full_name || (user as any)?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student Scholar";
+  const { profile: channelProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
 
-  const deriveStats = () => {
-    // Simple mock stats for now based on some local storage if needed,
-    // or just return some placeholders since we don't have a real stats engine yet.
-    return {
-      sessions: parseInt(localStorage.getItem('study_sessions') || '0', 10),
-      studyHrs: parseFloat(localStorage.getItem('study_hours') || '0.0'),
-      avgScore: parseInt(localStorage.getItem('avg_score') || '0', 10),
-      streak: parseInt(localStorage.getItem('streak') || '0', 10)
-    };
-  };
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"notes" | "partners" | "tools">("notes");
   const [sourceCount, setSourceCount] = useState(0);
 
+  const currentLevel = levelFromXp(authProfile?.total_xp ?? 0);
+  const progressPercent = xpProgressPercent(authProfile?.total_xp ?? 0);
+
+  const myFriendCode = user?.id ? `REX-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "REX-8491";
+
+  const currentBanner = PRESET_BANNERS.find((b) => b.id === channelProfile.bannerId) || PRESET_BANNERS[0];
+
   useEffect(() => {
-    // Auth
-    if (user) {
-      const name = profile?.full_name || (user as any)?.user_metadata?.full_name || user.email?.split("@")[0] || "Student";
-      setUserName(name);
-      setUserEmail(user.email || "");
-      setUserInitial(name.charAt(0).toUpperCase());
-      setJoinDate(getJoinDate(user.created_at));
-    }
-
-    
-
-    // Source library count
     setSourceCount(loadLibrary().length);
   }, []);
 
   const handleSignOut = async () => {
-    try { await supabase.auth.signOut() } catch(e) {} window.location.href = "/";;
-    navigate("/onboarding");
+    try { await supabase.auth.signOut(); } catch (e) {}
+    window.location.href = "/";
   };
 
-  const hubCards = [
-    { icon: "folder_open",   label: "Source Library", description: "Access your uploaded research papers and academic PDFs.", route: "/sources" },
-    { icon: "leaderboard",   label: "Leaderboard",    description: "See how you rank against other students globally.", route: "/leaderboard" },
-    { icon: "bar_chart",     label: "Analytics",      description: "Deep dive into your cognitive performance and subject mastery.", route: "/analytics" },
-    { icon: "timer",         label: "Focus History",  description: "Review your Deep Work logs and productivity patterns.", route: "/timer" },
-    { icon: "military_tech", label: "Achievements",   description: "Collected accolades for your academic excellence and consistency.", route: "/challenges" },
-    { icon: "settings",      label: "Account Settings", description: "Manage your subscription, security, and personal preferences.", route: "/settings" },
-  ];
+  const handleCopyProfileLink = () => {
+    playTap();
+    navigator.clipboard.writeText(`${window.location.origin}/community?friend=${myFriendCode}`);
+    toast.success("Channel profile link copied!", {
+      description: "Classmates can use this link to visit your profile and study circle."
+    });
+  };
 
-  // ΓöÇΓöÇ Mobile file count label ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-  const sourceLabel = sourceCount === 0 ? "No sources yet" : `${sourceCount} source${sourceCount !== 1 ? "s" : ""} uploaded`;
+  // Find user's own notes (matching author or authorCode)
+  const myNotes = notes.filter(
+    (n) =>
+      (n.authorCode && n.authorCode === myFriendCode) ||
+      n.author.toLowerCase().includes(channelProfile.displayName.toLowerCase().split(" ")[0])
+  );
 
   return (
-    <div className="w-full bg-[#FAF7F2] flex flex-col" style={{ minHeight: "100dvh" }}>
+    <div className="w-full bg-[#FAF7F2] min-h-screen text-black flex flex-col font-body-md flex-1">
       <SharedSidebar active="/profile" />
 
-      {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
-          DESKTOP LAYOUT
-      ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
-      <div className="hidden md:flex md:ml-64 flex-col min-h-screen">
-
-        {/* Header */}
-        <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
-          <div className="flex items-center gap-4">
-            <span className="text-[22px] font-black tracking-tight">PROFILE</span>
-            <div className="w-px h-6 bg-black/20" />
-            <span className="text-[13px] font-bold text-black/50">{userName}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div
-              onClick={() => navigate("/profile")}
-              className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer hover:opacity-90"
-            >
-              {userInitial}
-            </div>
-          </div>
-        </header>
-
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-10 py-10 pb-16 max-w-6xl w-full mx-auto flex flex-col gap-8">
-
-          {/* Profile hero */}
-          <section
-            className="bg-[#FAF7F2] border-2 border-black p-10 flex flex-col md:flex-row items-center gap-8"
-            style={{ boxShadow: "5px 5px 0px #000" }}
-          >
-            {/* Initial block */}
-            <div className="relative shrink-0">
-              <div
-                className="w-32 h-32 bg-black flex items-center justify-center border-2 border-black"
-                style={{ boxShadow: "4px 4px 0px #555" }}
-              >
-                <span className="text-[64px] font-black text-[#FAF7F2] leading-none">{userInitial}</span>
-              </div>
-              <div className="absolute -bottom-2 -right-2 bg-[#F5A623] border-2 border-black px-2 py-0.5 text-[11px] font-black uppercase tracking-widest" style={{ display: isPro ? "block" : "none" }}>
-                PRO
-              </div>
-            </div>
-
-            {/* Name + meta */}
-            <div className="flex-1 text-center md:text-left">
-              <h2 className="font-black text-[48px] leading-none tracking-tight">{userName}</h2>
-              {userEmail && (
-                <p className="text-[14px] font-semibold text-black/40 mt-1">{userEmail}</p>
-              )}
-              <div className="flex items-center justify-center md:justify-start gap-4 mt-3">
-                <p className="text-[14px] font-semibold text-black/60 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px]">calendar_month</span>
-                  Joined {joinDate}
-                </p>
-                <span className="w-1 h-1 bg-black/30 rounded-full" />
-                <p className="text-[14px] font-semibold text-black/60 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
-                  {isPro ? "Pro Scholar" : "Free Plan"}
-                </p>
-              </div>
-            </div>
-
-            {/* CTAs */}
-            <div className="flex gap-4 shrink-0">
-              <button
-                onClick={() => navigate("/settings")}
-                className="px-6 py-2.5 border-2 border-black font-extrabold text-[13px] bg-[#FAF7F2] hover:bg-[#E2E2E2] transition-colors shadow-[3px_3px_0px_#000]"
-              >
-                Edit Profile
-              </button>
-              <button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(window.location.origin + "/profile");
-                }}
-                className="px-6 py-2.5 border-2 border-black font-extrabold text-[13px] bg-black text-white hover:opacity-90 transition-opacity shadow-[3px_3px_0px_#555]"
-              >
-                Share Hub
-              </button>
-            </div>
-          </section>
-
-          {/* Stats grid - 4 equal columns */}
-          <section className="grid grid-cols-4 gap-6">
-            <StatCard
-              label="Total Sessions"
-              value={stats.sessions > 0 ? stats.sessions.toLocaleString() : "-"}
-              sub={stats.sessions > 0 ? "Focus sessions logged" : "Start a Focus Timer session"}
-            />
-            <StatCard
-              label="Study Time"
-              value={stats.studyHrs > 0 ? `${stats.studyHrs}hrs` : "-"}
-              sub={stats.studyHrs > 0 ? "Total tracked time" : "Time tracked via Focus Timer"}
-            />
-            <StatCard
-              label="Avg Score"
-              value={stats.avgScore > 0 ? `${stats.avgScore}%` : "-"}
-              accent={stats.avgScore > 0 ? "#FF4D2E" : undefined}
-              sub={stats.avgScore > 0 ? "Across all practice sets" : "Complete a Practice set"}
-            />
-            <StatCard
-              label="Current Streak"
-              value={stats.streak > 0 ? `${stats.streak}d` : "-"}
-              accent="#F5A623"
-              icon="local_fire_department"
-              sub={stats.streak > 0 ? "Days in a row" : "Keep studying daily!"}
-            />
-          </section>
-
-          {/* Hub cards grid - 2x3 */}
-          <section className="grid grid-cols-2 gap-6">
-            {hubCards.map(card => (
-              <HubCard
-                key={card.route}
-                icon={card.icon}
-                label={card.label}
-                description={card.description}
-                onClick={() => navigate(card.route)}
-              />
-            ))}
-          </section>
-
-          {/* Footer */}
-          <div className="flex justify-center pt-6 border-t-2 border-black">
+      {/* ── MAIN CONTENT (DESKTOP & MOBILE RESPONSIVE) ───────────────────────── */}
+      <div className="md:ml-64 flex flex-col min-h-screen overflow-y-auto">
+        <div className="p-3 md:p-10 max-w-5xl w-full mx-auto space-y-6 pb-28 md:pb-12">
+          
+          {/* Top Mobile Back Header */}
+          <div className="md:hidden flex items-center justify-between pb-2 border-b-2 border-black/10">
             <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 text-[#ba1a1a] font-black text-[16px] hover:underline transition-all"
+              onClick={() => navigate(-1)}
+              className="p-1.5 rounded-xl border-2 border-black bg-white shadow-xs cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[20px]">logout</span>
-              Log Out
+              <ArrowLeft className="w-5 h-5 text-black" />
+            </button>
+            <span className="font-black text-[15px] uppercase tracking-wider text-black">
+              Student Channel
+            </span>
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="p-1.5 rounded-xl border-2 border-black bg-[#FFD13B] shadow-xs cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[18px]">edit</span>
             </button>
           </div>
+
+          {/* ── YOUTUBE / TIKTOK CREATOR CHANNEL CONTAINER ────────────────────── */}
+          <div className="border-3 md:border-4 border-black rounded-3xl bg-white shadow-[6px_6px_0px_#1A1A1A] overflow-hidden">
+            
+            {/* 1. CHANNEL COVER BANNER */}
+            <div className={`h-36 md:h-52 w-full ${currentBanner.className} border-b-4 border-black relative p-3 md:p-5 flex justify-between items-start`}>
+              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#000_2px,transparent_2px)] [background-size:16px_16px] pointer-events-none" />
+              
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/75 backdrop-blur-xs text-white rounded-xl text-[11px] font-black uppercase tracking-wider border border-white/20">
+                <span className="material-symbols-outlined text-[15px] text-[#FFD13B]">tv</span>
+                <span>Creator Channel</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { playTap(); setIsEditModalOpen(true); }}
+                className="px-3.5 py-1.5 bg-white hover:bg-[#FAF7F2] text-black border-2 border-black rounded-xl font-black text-[11px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer z-10"
+              >
+                <span className="material-symbols-outlined text-[15px]">brush</span>
+                <span>Customize Channel</span>
+              </button>
+            </div>
+
+            {/* 2. CHANNEL HEADER & AVATAR */}
+            <div className="px-5 md:px-8 pb-6 pt-0 relative">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 md:-mt-16 mb-4">
+                
+                {/* Avatar & Identifiers */}
+                <div className="flex items-end gap-4">
+                  <div className="relative group">
+                    <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl md:rounded-3xl bg-white border-3 md:border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_#1A1A1A] overflow-hidden bg-[#FAF7F2] shrink-0">
+                      {channelProfile.isAvatarImage ? (
+                        <img
+                          src={channelProfile.avatar}
+                          alt={channelProfile.displayName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[44px] md:text-[54px]">
+                          {channelProfile.avatar || "🎓"}
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-[#FFD13B] border-2 border-black flex items-center justify-center shadow-xs cursor-pointer hover:bg-white"
+                      title="Change avatar"
+                    >
+                      <span className="material-symbols-outlined text-[15px] text-black">edit</span>
+                    </button>
+                  </div>
+
+                  <div className="min-w-0 pb-1">
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-[22px] md:text-[28px] font-black text-black leading-tight truncate">
+                        {channelProfile.displayName}
+                      </h1>
+                      <span className="material-symbols-outlined text-[20px] text-[#10B981]" title="Verified Student Creator">
+                        verified
+                      </span>
+                    </div>
+
+                    <div className="text-[12.5px] font-bold text-black/60 truncate flex items-center gap-2 mt-0.5">
+                      <span>{channelProfile.username}</span>
+                      <span>&bull;</span>
+                      <span className="text-[#FF4D2E] font-black">{myFriendCode}</span>
+                    </div>
+
+                    <div className="text-[11.5px] font-semibold text-black/50 truncate mt-0.5">
+                      {channelProfile.school || "Studenius Scholar"} &bull; Joined {getJoinDate(user?.created_at)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Action Buttons */}
+                <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => { playPop(); setIsEditModalOpen(true); }}
+                    className="px-4 py-2 bg-[#FAF7F2] hover:bg-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">tune</span>
+                    <span>Edit Profile</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyProfileLink}
+                    className="px-4 py-2 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">share</span>
+                    <span>Share Channel</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bio & Academic Mission */}
+              <div className="max-w-2xl bg-[#FAF7F2] border-2 border-black rounded-2xl p-3.5 mb-4 shadow-[2px_2px_0px_#1A1A1A]">
+                <p className="text-[13px] font-semibold text-black/80 leading-relaxed">
+                  {channelProfile.bio || "Student creator on Studenius prepping for upcoming exams with active recall and revision guides."}
+                </p>
+                {channelProfile.targetExam && (
+                  <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 bg-white border border-black/20 rounded-lg text-[11px] font-bold text-black/70">
+                    <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">flag</span>
+                    <span>Target: <strong>{channelProfile.targetExam}</strong></span>
+                  </div>
+                )}
+              </div>
+
+              {/* Channel Stats Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                <div className="bg-white border-2 border-black rounded-xl p-2.5 text-center shadow-[2px_2px_0px_#1A1A1A]">
+                  <div className="text-[10px] font-black uppercase text-black/45">Academic Streak</div>
+                  <div className="text-[18px] font-black text-[#FF4D2E] flex items-center justify-center gap-1 mt-0.5">
+                    <span>🔥</span>
+                    <span>{authProfile?.streak_days ?? 1}d</span>
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black rounded-xl p-2.5 text-center shadow-[2px_2px_0px_#1A1A1A]">
+                  <div className="text-[10px] font-black uppercase text-black/45">Scholar Level</div>
+                  <div className="text-[18px] font-black text-black flex items-center justify-center gap-1 mt-0.5">
+                    <span>⚡</span>
+                    <span>LVL {currentLevel}</span>
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black rounded-xl p-2.5 text-center shadow-[2px_2px_0px_#1A1A1A]">
+                  <div className="text-[10px] font-black uppercase text-black/45">Study Time</div>
+                  <div className="text-[18px] font-black text-black mt-0.5">
+                    {stats.studyTimeHours > 0 ? `${stats.studyTimeHours}h` : "1.2h"}
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black rounded-xl p-2.5 text-center shadow-[2px_2px_0px_#1A1A1A]">
+                  <div className="text-[10px] font-black uppercase text-black/45">Study Buddies</div>
+                  <div className="text-[18px] font-black text-black mt-0.5">
+                    {buddies.length}
+                  </div>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 bg-white border-2 border-black rounded-xl p-2.5 text-center shadow-[2px_2px_0px_#1A1A1A]">
+                  <div className="text-[10px] font-black uppercase text-black/45">Sources Linked</div>
+                  <div className="text-[18px] font-black text-blue-600 mt-0.5">
+                    {sourceCount}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. CHANNEL TABS */}
+            <div className="flex items-center gap-2 px-5 md:px-8 border-y-2 border-black bg-[#FFFDF5]">
+              <button
+                type="button"
+                onClick={() => { playTap(); setActiveTab("notes"); }}
+                className={`py-3 px-3 font-black text-[13px] border-b-3 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === "notes"
+                    ? "border-black text-black"
+                    : "border-transparent text-black/50 hover:text-black"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[17px]">menu_book</span>
+                <span>My Vault Guides ({myNotes.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { playTap(); setActiveTab("partners"); }}
+                className={`py-3 px-3 font-black text-[13px] border-b-3 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === "partners"
+                    ? "border-black text-black"
+                    : "border-transparent text-black/50 hover:text-black"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[17px]">groups</span>
+                <span>Study Circle ({buddies.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { playTap(); setActiveTab("tools"); }}
+                className={`py-3 px-3 font-black text-[13px] border-b-3 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === "tools"
+                    ? "border-black text-black"
+                    : "border-transparent text-black/50 hover:text-black"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[17px]">apps</span>
+                <span>Hub & Tools</span>
+              </button>
+            </div>
+
+            {/* 4. TAB CONTENTS */}
+            <div className="p-5 md:p-8 bg-[#FAF7F2]">
+              
+              {/* TAB 1: USER'S PUBLISHED NOTES / REVISION GUIDES */}
+              {activeTab === "notes" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[15px] font-black text-black">Your Published Guides</h3>
+                      <p className="text-[12px] font-bold text-black/50">
+                        Study sheets and summaries shared with classmates in Campus Vault.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate("/campus-vault")}
+                      className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">add</span>
+                      <span>Publish Guide</span>
+                    </button>
+                  </div>
+
+                  {myNotes.length === 0 ? (
+                    <div className="p-8 text-center border-2 border-dashed border-black/25 rounded-2xl bg-white space-y-2.5">
+                      <div className="text-[32px]">📚</div>
+                      <h4 className="text-[15px] font-black text-black">No study guides published yet</h4>
+                      <p className="text-[12px] font-medium text-black/55 max-w-md mx-auto leading-relaxed">
+                        Share your lecture summaries, formulas, or cheat sheets to the Campus Vault so classmates can study them and leave likes!
+                      </p>
+                      <button
+                        onClick={() => navigate("/campus-vault")}
+                        className="mt-1 px-4 py-2 bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
+                      >
+                        Explore Campus Vault &rarr;
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {myNotes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="border-2 border-black rounded-2xl bg-white p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col justify-between gap-3"
+                        >
+                          <div>
+                            <span className={`px-2 py-0.5 rounded border text-[9.5px] font-black uppercase tracking-wider ${note.subjectBadgeColor}`}>
+                              {note.subject}
+                            </span>
+                            <h4 className="text-[15px] font-black text-black mt-1.5 leading-snug">
+                              {note.title}
+                            </h4>
+                            <p className="text-[11.5px] font-medium text-black/60 line-clamp-2 mt-1">
+                              {note.summary}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-black/10">
+                            <span className="text-[11px] font-bold text-black/50">
+                              ❤️ {note.likes} likes &bull; {note.readTime}
+                            </span>
+                            <button
+                              onClick={() => {
+                                localStorage.setItem("qs_practice_export", JSON.stringify(note.content));
+                                navigate("/practice");
+                              }}
+                              className="px-3 py-1 bg-[#FAF7F2] hover:bg-white text-black border border-black rounded-lg font-black text-[11px] cursor-pointer"
+                            >
+                              Test with Quiz
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: STUDY CIRCLE PARTNERS */}
+              {activeTab === "partners" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[15px] font-black text-black">Connected Study Partners</h3>
+                      <p className="text-[12px] font-bold text-black/50">
+                        Classmates in your mutual accountability streak.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate("/community")}
+                      className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">person_add</span>
+                      <span>Link Partner</span>
+                    </button>
+                  </div>
+
+                  {buddies.length === 0 ? (
+                    <div className="p-8 text-center border-2 border-dashed border-black/25 rounded-2xl bg-white space-y-2.5">
+                      <div className="text-[32px]">🤝</div>
+                      <h4 className="text-[15px] font-black text-black">No study partners linked yet</h4>
+                      <p className="text-[12px] font-medium text-black/55 max-w-md mx-auto leading-relaxed">
+                        Share your friend code (<strong className="text-black">{myFriendCode}</strong>) with classmates to start mutual streak accountability.
+                      </p>
+                      <button
+                        onClick={() => navigate("/community")}
+                        className="mt-1 px-4 py-2 bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
+                      >
+                        Go to Study Circle &rarr;
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {buddies.map((buddy) => (
+                        <div
+                          key={buddy.id}
+                          className="border-2 border-black rounded-2xl p-4 bg-white shadow-[3px_3px_0px_#1A1A1A] flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-11 h-11 rounded-xl bg-[#FAF7F2] border-2 border-black flex items-center justify-center text-[22px] overflow-hidden shrink-0">
+                              {buddy.avatar?.startsWith("/") || buddy.avatar?.startsWith("http") ? (
+                                <img src={buddy.avatar} alt={buddy.name} className="w-full h-full object-cover" />
+                              ) : (
+                                buddy.avatar || "🎓"
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-[14px] font-black text-black truncate leading-tight">
+                                {buddy.name}
+                              </h4>
+                              <p className="text-[11px] font-bold text-black/50 truncate">
+                                🔥 {buddy.streakDays}d streak &bull; LVL {buddy.level || 1}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              playPop();
+                              navigate(`/community`);
+                            }}
+                            className="px-3 py-1 bg-[#FAF7F2] hover:bg-black hover:text-white border border-black rounded-lg text-[11px] font-black transition-colors cursor-pointer shrink-0"
+                          >
+                            View Channel
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 3: HUB & TOOLS */}
+              {activeTab === "tools" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {[
+                    { icon: "folder_open", label: "Source Library", desc: "Uploaded PDFs, slides, and syllabus notes", route: "/sources" },
+                    { icon: "timer", label: "Focus Timer", desc: "Pomodoro sessions & deep work tracking", route: "/timer" },
+                    { icon: "bar_chart", label: "Analytics", desc: "Subject mastery breakdown and quiz accuracy", route: "/analytics" },
+                    { icon: "groups", label: "Study Circle", desc: "Manage friends and mutual accountability", route: "/community" },
+                    { icon: "menu_book", label: "Campus Vault", desc: "Discover peer notes & study guides", route: "/campus-vault" },
+                    { icon: "settings", label: "Settings", desc: "Preferences, study goals, notifications", route: "/settings" },
+                  ].map((tool) => (
+                    <button
+                      key={tool.route}
+                      onClick={() => navigate(tool.route)}
+                      className="border-2 border-black rounded-2xl p-4 bg-white hover:bg-[#FFFDF5] shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[5px_5px_0px_#1A1A1A] transition-all text-left flex items-start gap-3.5 cursor-pointer"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0 border border-black">
+                        <span className="material-symbols-outlined text-[20px]">{tool.icon}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-black text-[14px] text-black">{tool.label}</h4>
+                        <p className="text-[11.5px] font-medium text-black/55 mt-0.5 line-clamp-1">{tool.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+            </div>
+
+            {/* 5. FOOTER LOGOUT */}
+            <div className="p-4 border-t-2 border-black bg-white flex items-center justify-between">
+              <span className="text-[11px] font-bold text-black/50">
+                Logged in as <strong>{user?.email || "Student"}</strong>
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="text-[12px] font-black text-red-600 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Log Out</span>
+              </button>
+            </div>
+
+          </div>
+
         </div>
       </div>
 
-      {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
-          MOBILE LAYOUT
-      ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
-      <div className="lg:hidden w-full flex flex-col bg-[#FAF7F2] pb-20">
-
-        {/* Mobile header */}
-        <header className="w-full sticky top-0 bg-[#FAF7F2] flex items-center justify-between px-5 h-16 z-40 border-b-2 border-black shrink-0">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full hover:bg-[#ebe8e3] transition-colors active:translate-y-0.5"
-          >
-            <ArrowLeft className="w-6 h-6 text-[#1A1A1A]" />
-          </button>
-          <h1 className="font-extrabold text-[20px] text-[#1A1A1A] tracking-tight text-center flex-1">
-            Profile
-          </h1>
-          <button
-            onClick={() => navigate("/settings")}
-            className="p-2 rounded-full hover:bg-[#ebe8e3] transition-colors"
-          >
-            <span className="material-symbols-outlined text-[22px]">settings</span>
-          </button>
-        </header>
-
-        <main className="flex-1 px-5 py-6 flex flex-col gap-6 pb-24 overflow-y-auto">
-
-          {/* Mobile hero */}
-          <div className="bg-white border-2 border-black rounded-2xl p-6 flex flex-col items-center gap-4 shadow-[4px_4px_0px_0px_#000]">
-            <div className="relative">
-              <div className="w-24 h-24 bg-black flex items-center justify-center border-2 border-black shadow-[3px_3px_0px_#555]">
-                <span className="text-[48px] font-black text-[#FAF7F2] leading-none">{userInitial}</span>
-              </div>
-              <div className="absolute -bottom-1 -right-1 bg-[#F5A623] border-2 border-black px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{ display: isPro ? "block" : "none" }}>
-                PRO
-              </div>
-            </div>
-            <div className="text-center">
-              <h2 className="font-extrabold text-[26px] tracking-tight leading-none">{userName}</h2>
-              {userEmail && (
-                <p className="text-[12px] font-semibold text-[#888] mt-1">{userEmail}</p>
-              )}
-              <div className="flex items-center justify-center gap-3 mt-2">
-                <span className="text-[12px] font-semibold text-[#888] flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">calendar_month</span>
-                  {joinDate}
-                </span>
-                <span className="w-1 h-1 bg-black/20 rounded-full" />
-                <span className="text-[12px] font-semibold text-[#888] flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">workspace_premium</span>
-                  {isPro ? "Pro Scholar" : "Free Plan"}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-3 w-full">
-              <button
-                onClick={() => navigate("/settings")}
-                className="flex-1 py-2.5 border-2 border-black font-bold text-[13px] bg-[#FAF7F2] hover:bg-[#E2E2E2] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all"
-              >
-                Edit Profile
-              </button>
-              <button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(window.location.origin + "/profile");
-                }}
-                className="flex-1 py-2.5 border-2 border-black font-bold text-[13px] bg-black text-white hover:opacity-90 shadow-[2px_2px_0px_#555] active:translate-y-0.5 transition-all"
-              >
-                Share Hub
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile stats - 2x2 grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Sessions",     value: stats.sessions > 0 ? stats.sessions.toLocaleString() : "-", accent: undefined,   icon: undefined },
-              { label: "Study Time",   value: stats.studyHrs > 0 ? `${stats.studyHrs}h` : "-",           accent: undefined,   icon: undefined },
-              { label: "Avg Score",    value: stats.avgScore > 0 ? `${stats.avgScore}%` : "-",           accent: "#FF4D2E",   icon: undefined },
-              { label: "Streak",       value: stats.streak > 0 ? `${stats.streak}d` : "-",               accent: "#F5A623",   icon: "local_fire_department" },
-            ].map(s => (
-              <div
-                key={s.label}
-                className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_0px_#000]"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black/40">{s.label}</p>
-                  {s.icon && (
-                    <span className="material-symbols-outlined text-[16px]" style={{ color: s.accent || "#000" }}>
-                      {s.icon}
-                    </span>
-                  )}
-                </div>
-                <p className="font-black text-[28px] leading-none" style={{ color: s.accent || "#1A1A1A" }}>
-                  {s.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile source count callout */}
-          <div className="bg-[#F0EDE0] border-2 border-black rounded-2xl p-4 flex items-center gap-3 shadow-[3px_3px_0px_0px_#000]">
-            <span className="material-symbols-outlined text-[24px]">folder_open</span>
-            <div>
-              <p className="font-black text-[14px]">Source Library</p>
-              <p className="text-[12px] font-semibold text-black/50">{sourceLabel}</p>
-            </div>
-            <button
-              onClick={() => navigate("/sources")}
-              className="ml-auto text-[12px] font-extrabold uppercase tracking-widest border-2 border-black px-3 py-1.5 bg-white shadow-[2px_2px_0px_#000] hover:bg-[#E2E2E2] active:translate-y-0.5 transition-all"
-            >
-              Open
-            </button>
-          </div>
-
-          {/* Mobile hub cards */}
-          <section className="flex flex-col gap-3">
-            <h2 className="font-extrabold text-[16px]">Quick Navigation</h2>
-            {hubCards.map(card => (
-              <button
-                key={card.route}
-                onClick={() => navigate(card.route)}
-                className="bg-white border-2 border-black rounded-2xl p-4 flex items-center gap-4 text-left shadow-[3px_3px_0px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all active:translate-x-0.5 active:translate-y-0.5"
-              >
-                <div className="w-12 h-12 bg-black flex items-center justify-center border-2 border-black shrink-0">
-                  <span className="material-symbols-outlined text-white text-[20px]">{card.icon}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-[15px]">{card.label}</p>
-                  <p className="text-[12px] font-semibold text-black/50 truncate">{card.description}</p>
-                </div>
-                <span className="material-symbols-outlined text-[18px] text-black/30">arrow_forward</span>
-              </button>
-            ))}
-          </section>
-
-          {/* Mobile sign out */}
-          <div className="flex justify-center pt-4 border-t-2 border-black">
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 text-[#ba1a1a] font-black text-[15px] hover:underline"
-            >
-              <LogOut className="w-5 h-5" />
-              Log Out
-            </button>
-          </div>
-        </main>
-      </div>
+      {/* ── EDIT PROFILE MODAL ────────────────────────────────────────────── */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        currentProfile={channelProfile}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={updateProfile}
+      />
     </div>
   );
 }
-
