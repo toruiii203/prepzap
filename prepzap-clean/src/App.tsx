@@ -367,6 +367,7 @@ function AppRoutes() {
           
           <Route path="/math" element={<MathSolver />} />
           <Route path="/sources" element={<SourceLibrary />} />
+          <Route path="/source-library" element={<Navigate to="/sources" replace />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/cram" element={<Navigate to="/quick-study" replace />} />
           <Route path="/recall" element={<Navigate to="/quick-study" replace />} />

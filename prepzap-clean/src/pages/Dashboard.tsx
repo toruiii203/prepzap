@@ -42,83 +42,147 @@ function AnimatedCounter({ value, duration = 1.5 }: { value: number; duration?: 
   return <span ref={nodeRef}>{value}</span>;
 }
 
-// Page 1: Core 4 Study Tools
-const PRIMARY_TOOLS = [
+// 4 Slides of 4 Tools Each (4x4 = 16 Study Tools)
+const STUDY_TOOLS_PAGES = [
   {
-    route: "/practice",
-    icon: "assignment",
-    title: "Practice Tests",
-    desc: "Active recall quizzes & exam simulations",
-    color: "text-[#FF4D2E]",
+    id: "core",
+    label: "Core Revision",
+    tools: [
+      {
+        route: "/practice",
+        icon: "assignment",
+        title: "Practice Tests",
+        desc: "Active recall quizzes & exam simulations",
+        color: "text-[#FF4D2E]",
+      },
+      {
+        route: "/flashcards",
+        icon: "style",
+        title: "Flashcards",
+        desc: "Spaced repetition & memory reinforcement",
+        color: "text-[#8B5CF6]",
+      },
+      {
+        route: "/notes",
+        icon: "edit_document",
+        title: "My Notes",
+        desc: "Rich text summaries & lecture syntheses",
+        color: "text-[#10B981]",
+      },
+      {
+        route: "/campus-vault",
+        icon: "menu_book",
+        title: "Campus Vault",
+        desc: "Curated peer study guides & notes",
+        color: "text-[#0EA5E9]",
+      },
+    ],
   },
   {
-    route: "/flashcards",
-    icon: "style",
-    title: "Flashcards",
-    desc: "Spaced repetition & memory reinforcement",
-    color: "text-[#8B5CF6]",
+    id: "focus",
+    label: "Focus & Solving",
+    tools: [
+      {
+        route: "/quick-study",
+        icon: "edit_note",
+        title: "Cram Mode",
+        desc: "High-yield last-minute sheets",
+        color: "text-[#b61b00]",
+      },
+      {
+        route: "/math",
+        icon: "calculate",
+        title: "Math Solver",
+        desc: "Step-by-step problem solver",
+        color: "text-[#10B981]",
+      },
+      {
+        route: "/timer",
+        icon: "timer",
+        title: "Focus Timer",
+        desc: "Tactile Pomodoro intervals",
+        color: "text-[#6366F1]",
+      },
+      {
+        route: "/visual-learner",
+        icon: "visibility",
+        title: "Visual Learner",
+        desc: "Mind maps & concept diagrams",
+        color: "text-[#8B5CF6]",
+      },
+    ],
   },
   {
-    route: "/notes",
-    icon: "edit_document",
-    title: "My Notes",
-    desc: "Rich text summaries & lecture syntheses",
-    color: "text-[#10B981]",
+    id: "coaching",
+    label: "AI Coaching & Strategy",
+    tools: [
+      {
+        route: "/ai-tutor",
+        icon: "forum",
+        title: "Rex Tutor",
+        desc: "Interactive AI study coach",
+        color: "text-[#FF4D2E]",
+      },
+      {
+        route: "/teach-it",
+        icon: "psychology",
+        title: "Teach It",
+        desc: "Feynman technique practice",
+        color: "text-[#EC4899]",
+      },
+      {
+        route: "/planner",
+        icon: "calendar_month",
+        title: "Study Planner",
+        desc: "Schedules & revision deadlines",
+        color: "text-[#0EA5E9]",
+      },
+      {
+        route: "/mistakes",
+        icon: "playlist_remove",
+        title: "Mistake Journal",
+        desc: "Targeted error review",
+        color: "text-[#ba1a1a]",
+      },
+    ],
   },
   {
-    route: "/campus-vault",
-    icon: "menu_book",
-    title: "Campus Vault",
-    desc: "Curated peer study guides & notes",
-    color: "text-[#0EA5E9]",
+    id: "arena-lib",
+    label: "Arcade & Library",
+    tools: [
+      {
+        route: "/arcade",
+        icon: "sports_esports",
+        title: "Arcade",
+        desc: "Gamified academic challenges",
+        color: "text-[#F43F5E]",
+      },
+      {
+        route: "/arena",
+        icon: "military_tech",
+        title: "Arena",
+        desc: "Compete in live study challenges",
+        color: "text-[#8B5CF6]",
+      },
+      {
+        route: "/sources",
+        icon: "attach_file",
+        title: "Source Library",
+        desc: "Upload syllabus & PDFs",
+        color: "text-[#78716C]",
+      },
+      {
+        route: "/analytics",
+        icon: "bar_chart",
+        title: "Analytics",
+        desc: "Comprehensive progress charts",
+        color: "text-[#14B8A6]",
+      },
+    ],
   },
 ] as const;
 
-// Page 2: The Other 4 Popular Academic Tools (Swipe to reveal)
-const SECONDARY_CAROUSEL_TOOLS = [
-  {
-    route: "/quick-study",
-    icon: "edit_note",
-    title: "Cram Mode",
-    desc: "High-yield last-minute sheets",
-    color: "text-[#b61b00]",
-  },
-  {
-    route: "/math",
-    icon: "calculate",
-    title: "Math Solver",
-    desc: "Step-by-step problem solver",
-    color: "text-[#10B981]",
-  },
-  {
-    route: "/timer",
-    icon: "timer",
-    title: "Focus Timer",
-    desc: "Tactile Pomodoro intervals",
-    color: "text-[#6366F1]",
-  },
-  {
-    route: "/visual-learner",
-    icon: "visibility",
-    title: "Visual Learner",
-    desc: "Mind maps & concept diagrams",
-    color: "text-[#8B5CF6]",
-  },
-] as const;
-
-// Remaining 8 Specialized Tools (Expandable Drawer)
-const REMAINING_TOOLS = [
-  { route: "/ai-tutor",       icon: "forum",          title: "Rex Tutor",        desc: "Interactive AI study coach",     color: "text-[#FF4D2E]" },
-  { route: "/teach-it",       icon: "psychology",     title: "Teach It",         desc: "Feynman technique practice",     color: "text-[#EC4899]" },
-  { route: "/planner",        icon: "calendar_month", title: "Study Planner",    desc: "Schedules & revision deadlines", color: "text-[#0EA5E9]" },
-  { route: "/mistakes",       icon: "playlist_remove",title: "Mistake Journal",  desc: "Targeted error review",          color: "text-[#ba1a1a]" },
-  { route: "/arcade",         icon: "sports_esports", title: "Arcade",           desc: "Gamified academic challenges",   color: "text-[#F43F5E]" },
-  { route: "/arena",          icon: "military_tech",  title: "Arena",            desc: "Compete in live study challenges",color: "text-[#8B5CF6]" },
-  { route: "/sources",        icon: "attach_file",    title: "Source Library",   desc: "Upload syllabus & PDFs",         color: "text-[#78716C]" },
-  { route: "/analytics",      icon: "bar_chart",      title: "Analytics",        desc: "Comprehensive progress charts",  color: "text-[#14B8A6]" },
-] as const;
-
-// ── Swipeable Study Tools Carousel Component ──────────────────────────────────
+// ── Swipeable Study Tools Carousel Component (4x4 = 16 Tools on Mobile & PC) ──
 function StudyToolsShelf({
   navigate,
   isMobile = false,
@@ -127,7 +191,6 @@ function StudyToolsShelf({
   isMobile?: boolean;
 }) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [showAllTools, setShowAllTools] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scrollToPage = (pageIndex: number) => {
@@ -144,16 +207,11 @@ function StudyToolsShelf({
     const { scrollLeft, clientWidth } = scrollRef.current;
     if (clientWidth > 0) {
       const page = Math.round(scrollLeft / clientWidth);
-      if ((page === 0 || page === 1) && page !== currentPage) {
+      if (page >= 0 && page < STUDY_TOOLS_PAGES.length && page !== currentPage) {
         setCurrentPage(page);
       }
     }
   };
-
-  const pages = [
-    { id: "core", tools: PRIMARY_TOOLS },
-    { id: "secondary", tools: SECONDARY_CAROUSEL_TOOLS },
-  ];
 
   const content = (
     <>
@@ -162,60 +220,50 @@ function StudyToolsShelf({
           <h3 className={isMobile ? "text-[11px] font-black uppercase tracking-wider text-black/60" : "text-[14px] font-black uppercase tracking-wider text-black"}>
             Study Tools
           </h3>
-          <span className="text-[10px] font-black text-black/50 bg-black/5 px-2 py-0.5 rounded-full border border-black/10">
-            {currentPage === 0 ? "1/2" : "2/2"}
+          <span className="text-[10px] font-black text-black/70 bg-black/5 px-2 py-0.5 rounded-full border border-black/10">
+            {currentPage + 1}/{STUDY_TOOLS_PAGES.length}
           </span>
+          <span className="hidden sm:inline-block text-[11px] font-bold text-black/45">
+            &bull; {STUDY_TOOLS_PAGES[currentPage].label}
+          </span>
+        </div>
 
-          {/* Quick page switch arrows */}
-          <div className="flex items-center gap-1 ml-0.5">
+        {/* Quick page switch arrows */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-extrabold text-black/40 hidden xs:inline">
+            Swipe or use arrows
+          </span>
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => scrollToPage(0)}
+              onClick={() => scrollToPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
-              className={`w-5 h-5 rounded flex items-center justify-center border border-black/20 transition-all ${
+              className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 border-black transition-all ${
                 currentPage === 0
-                  ? "opacity-30 cursor-not-allowed bg-black/5"
-                  : "bg-white hover:bg-black hover:text-white cursor-pointer shadow-xs"
+                  ? "opacity-25 cursor-not-allowed bg-black/5"
+                  : "bg-white hover:bg-black hover:text-white cursor-pointer shadow-[1px_1px_0px_#000] active:translate-y-0.5"
               }`}
-              title="Page 1"
+              title="Previous 4 Tools"
+              aria-label="Previous page"
             >
-              <span className="material-symbols-outlined text-[13px]">chevron_left</span>
+              <span className="material-symbols-outlined text-[15px]">chevron_left</span>
             </button>
             <button
               type="button"
-              onClick={() => scrollToPage(1)}
-              disabled={currentPage === 1}
-              className={`w-5 h-5 rounded flex items-center justify-center border border-black/20 transition-all ${
-                currentPage === 1
-                  ? "opacity-30 cursor-not-allowed bg-black/5"
-                  : "bg-white hover:bg-black hover:text-white cursor-pointer shadow-xs"
+              onClick={() => scrollToPage(Math.min(STUDY_TOOLS_PAGES.length - 1, currentPage + 1))}
+              disabled={currentPage === STUDY_TOOLS_PAGES.length - 1}
+              className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 border-black transition-all ${
+                currentPage === STUDY_TOOLS_PAGES.length - 1
+                  ? "opacity-25 cursor-not-allowed bg-black/5"
+                  : "bg-white hover:bg-black hover:text-white cursor-pointer shadow-[1px_1px_0px_#000] active:translate-y-0.5"
               }`}
-              title="Page 2"
+              title="Next 4 Tools"
+              aria-label="Next page"
             >
-              <span className="material-symbols-outlined text-[13px]">chevron_right</span>
+              <span className="material-symbols-outlined text-[15px]">chevron_right</span>
             </button>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            playTap();
-            setShowAllTools(!showAllTools);
-          }}
-          className={
-            isMobile
-              ? "text-[11px] font-black text-black underline hover:text-[#FF4D2E] transition-colors cursor-pointer"
-              : "text-[12px] font-black text-black hover:text-[#FF4D2E] transition-colors flex items-center gap-1 cursor-pointer"
-          }
-        >
-          <span>{showAllTools ? "Collapse" : "+ More (8)"}</span>
-          {!isMobile && (
-            <span className="material-symbols-outlined text-[16px] transition-transform">
-              {showAllTools ? "expand_less" : "expand_more"}
-            </span>
-          )}
-        </button>
       </div>
 
       {/* Swipeable Carousel Viewport */}
@@ -225,7 +273,7 @@ function StudyToolsShelf({
         className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none scroll-smooth w-full -mx-0.5"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {pages.map((page, pIdx) => (
+        {STUDY_TOOLS_PAGES.map((page, pIdx) => (
           <div key={`page-${pIdx}`} className="w-full shrink-0 snap-center px-0.5">
             <div className={isMobile ? "grid grid-cols-2 gap-2.5" : "grid grid-cols-2 lg:grid-cols-4 gap-3.5"}>
               {page.tools.map((tool) => (
@@ -280,64 +328,21 @@ function StudyToolsShelf({
         ))}
       </div>
 
-      {/* Pagination dots below carousel */}
-      <div className="flex items-center justify-center gap-1.5 pt-2.5 pb-0.5">
-        <button
-          type="button"
-          onClick={() => scrollToPage(0)}
-          className={`h-2 rounded-full transition-all cursor-pointer ${
-            currentPage === 0 ? "w-6 bg-black" : "w-2 bg-black/20 hover:bg-black/40"
-          }`}
-          aria-label="View first 4 tools"
-        />
-        <button
-          type="button"
-          onClick={() => scrollToPage(1)}
-          className={`h-2 rounded-full transition-all cursor-pointer ${
-            currentPage === 1 ? "w-6 bg-black" : "w-2 bg-black/20 hover:bg-black/40"
-          }`}
-          aria-label="View next 4 tools"
-        />
+      {/* Pagination dots below carousel (4 dots for the 4 slides) */}
+      <div className="flex items-center justify-center gap-1.5 pt-3 pb-0.5">
+        {STUDY_TOOLS_PAGES.map((page, idx) => (
+          <button
+            key={page.id}
+            type="button"
+            onClick={() => scrollToPage(idx)}
+            className={`h-2 rounded-full transition-all cursor-pointer ${
+              currentPage === idx ? "w-6 bg-black" : "w-2 bg-black/20 hover:bg-black/40"
+            }`}
+            aria-label={`View ${page.label} (${idx + 1}/4)`}
+            title={page.label}
+          />
+        ))}
       </div>
-
-      {/* Expandable Drawer for remaining 8 tools */}
-      {showAllTools && (
-        <div className={`pt-4 mt-3 border-t-2 border-black/10 animate-in fade-in duration-200 ${isMobile ? "p-3 border-2 border-black rounded-2xl bg-white flex flex-col gap-2 shadow-[2px_2px_0px_#1A1A1A]" : ""}`}>
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[10.5px] font-black uppercase tracking-wider text-black/50">
-              More Academic Tools
-            </span>
-            <span className="text-[10px] font-extrabold text-black/40">1-Tap Direct Launch</span>
-          </div>
-          <div className={isMobile ? "grid grid-cols-2 gap-2" : "grid grid-cols-2 lg:grid-cols-4 gap-2.5"}>
-            {REMAINING_TOOLS.map((tool) => (
-              <button
-                key={"rem-" + tool.route}
-                type="button"
-                onClick={() => {
-                  playPop();
-                  navigate(tool.route);
-                }}
-                className={
-                  isMobile
-                    ? "border-2 border-black bg-[#FAF7F2] hover:bg-white p-2.5 flex items-center gap-2 rounded-xl text-left transition-colors"
-                    : "border-2 border-black bg-white hover:bg-[#FAF7F2] p-2.5 flex items-center gap-2.5 rounded-xl shadow-[2px_2px_0px_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#1A1A1A] active:translate-y-[1px] active:shadow-none transition-all group text-left cursor-pointer"
-                }
-              >
-                <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] group-hover:bg-white border border-black/10 flex items-center justify-center shrink-0 transition-colors">
-                  <span className={`material-symbols-outlined text-[18px] ${tool.color}`}>{tool.icon}</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[12px] font-black text-black truncate group-hover:text-[#FF4D2E] transition-colors">
-                    {tool.title}
-                  </div>
-                  <div className="text-[10px] font-bold text-black/45 truncate">{tool.desc}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 
@@ -700,7 +705,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
 
         <button
           type="button"
-          onClick={() => { playTap(); navigate("/source-library"); }}
+          onClick={() => { playTap(); navigate("/sources"); }}
           className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FFE566] border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer shadow-xs"
           title="Open Source Library (Upload notes & documents)"
         >
