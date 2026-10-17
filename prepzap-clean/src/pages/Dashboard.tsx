@@ -311,86 +311,105 @@ function RexHeroStage({
   };
 
   return (
-    <div className="border-[2.5px] border-black rounded-3xl bg-[#FFFDF5] p-5 md:p-6 shadow-[4px_4px_0px_#1A1A1A] relative overflow-hidden transition-all">
+    <div className="border-2 md:border-[2.5px] border-black rounded-2xl md:rounded-3xl bg-[#FFFDF5] p-3.5 md:p-6 shadow-[3px_3px_0px_#1A1A1A] md:shadow-[4px_4px_0px_#1A1A1A] relative overflow-hidden transition-all">
       {/* Background soft ambient accents */}
       <div className="absolute -top-16 -right-16 w-60 h-60 rounded-full bg-[#FFE566]/20 pointer-events-none blur-2xl" />
       <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-48 h-48 rounded-full border border-black/5 pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col md:flex-row items-center gap-5 md:gap-7">
+      <div className="relative z-10 flex flex-row items-center gap-3 md:gap-7">
         {/* Grounded Character Pedestal (Rex stands physically on a stage) */}
         <div className="flex flex-col items-center justify-center shrink-0">
           <div className="relative flex flex-col items-center justify-center">
-            {/* Concentric spotlight halo behind Rex */}
-            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-b from-[#FFE566]/35 to-[#F0EDE0] border-2 border-black/15 flex items-center justify-center p-2 shadow-inner">
-              <AnimatedRex
-                state="idle"
-                size="lg"
-                interactive={true}
-                onClick={handleRexClick}
-              />
+            {/* Spotlight halo behind Rex - compact on mobile, large on desktop */}
+            <div
+              onClick={handleRexClick}
+              className="w-20 h-20 md:w-40 md:h-40 rounded-full bg-gradient-to-b from-[#FFE566]/35 to-[#F0EDE0] border-2 border-black/15 flex items-center justify-center p-1 md:p-2 shadow-inner cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+            >
+              <div className="md:hidden">
+                <AnimatedRex
+                  state="idle"
+                  size="sm"
+                  interactive={true}
+                  onClick={handleRexClick}
+                />
+              </div>
+              <div className="hidden md:block">
+                <AnimatedRex
+                  state="idle"
+                  size="lg"
+                  interactive={true}
+                  onClick={handleRexClick}
+                />
+              </div>
             </div>
+
             {/* Physical Grounded Pedestal Stand */}
-            <div className="w-28 md:w-36 h-4.5 bg-[#E8E4DC] border-2 border-black rounded-full shadow-[2px_2px_0px_#1A1A1A] mt-[-9px] flex items-center justify-center">
-              <span className="w-14 h-1 bg-black/20 rounded-full" />
+            <div className="w-16 md:w-36 h-3 md:h-4.5 bg-[#E8E4DC] border-[1.5px] md:border-2 border-black rounded-full shadow-[1px_1px_0px_#1A1A1A] md:shadow-[2px_2px_0px_#1A1A1A] mt-[-6px] md:mt-[-9px] flex items-center justify-center">
+              <span className="w-8 md:w-14 h-0.5 md:h-1 bg-black/20 rounded-full" />
             </div>
-            <span className="text-[9.5px] font-black uppercase tracking-widest text-black/45 mt-1.5 flex items-center gap-1 cursor-pointer" onClick={handleRexClick}>
+
+            {/* Compact interact hint */}
+            <span
+              onClick={handleRexClick}
+              className="text-[9px] md:text-[9.5px] font-black uppercase tracking-wider text-black/45 mt-1 flex items-center gap-1 cursor-pointer select-none"
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-              Tap Rex to interact
+              <span className="hidden md:inline">Tap Rex to interact</span>
+              <span className="md:hidden">Rex</span>
             </span>
           </div>
         </div>
 
         {/* Content Column: Speech Bubble + Dynamic Prompt + Primary Actions */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between text-center md:text-left w-full">
+        <div className="flex-1 min-w-0 flex flex-col justify-between text-left">
           {/* Top badges */}
-          <div className="flex items-center justify-center md:justify-start gap-2 mb-2.5 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black text-white font-black uppercase text-[10px] tracking-wider rounded-lg border border-white/20 shadow-xs">
-              <span className="material-symbols-outlined text-[13px] text-[#FFE566]" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
-              Rex AI Study Coach
+          <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 bg-black text-white font-black uppercase text-[9px] md:text-[10px] tracking-wider rounded-md md:rounded-lg border border-white/20 shadow-xs">
+              <span className="material-symbols-outlined text-[11px] md:text-[13px] text-[#FFE566]" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
+              <span className="hidden sm:inline">Rex AI Study Coach</span>
+              <span className="sm:hidden">Rex AI</span>
             </span>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border-2 border-black bg-[#FFE566] text-black shadow-[1px_1px_0px_#1A1A1A]">
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider px-2 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg border-2 border-black bg-[#FFE566] text-black shadow-[1px_1px_0px_#1A1A1A]">
               {primarySubjectMeta.name} Track
             </span>
             {examTarget?.examDate && readiness.daysLeft >= 0 && (
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/20 bg-white text-black/70">
-                ⏳ {readiness.daysLeft}d to exam &bull; {readiness.percent}% Ready
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider px-1.5 md:px-2 py-0.5 rounded-md md:rounded-full border border-black/20 bg-white text-black/70">
+                ⏳ {readiness.daysLeft}d &bull; {readiness.percent}%
               </span>
             )}
           </div>
 
           {/* Neobrutalist Speech Bubble */}
-          <div className="relative bg-white border-2 border-black rounded-2xl p-3.5 md:p-4 shadow-[3px_3px_0px_#1A1A1A] mb-3.5 text-left">
-            {/* Speech bubble pointer pointing toward Rex */}
-            <div className="hidden md:block absolute top-1/2 -left-2.5 -translate-y-1/2 w-0 h-0 border-y-[8px] border-y-transparent border-r-[10px] border-r-black" />
-            <div className="hidden md:block absolute top-1/2 -left-[7px] -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-white" />
-            <div className="md:hidden absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-[8px] border-x-transparent border-b-[8px] border-b-black" />
-            <div className="md:hidden absolute -top-[6px] left-1/2 -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-b-[7px] border-b-white" />
+          <div className="relative bg-white border-2 border-black rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] mb-2 md:mb-3.5 text-left">
+            {/* Speech bubble pointer pointing toward Rex on the left */}
+            <div className="absolute top-1/2 -left-2 md:-left-2.5 -translate-y-1/2 w-0 h-0 border-y-[6px] md:border-y-[8px] border-y-transparent border-r-[8px] md:border-r-[10px] border-r-black" />
+            <div className="absolute top-1/2 -left-[5px] md:-left-[7px] -translate-y-1/2 w-0 h-0 border-y-[5px] md:border-y-[6px] border-y-transparent border-r-[6px] md:border-r-[8px] border-r-white" />
 
-            <p className="text-[13.5px] md:text-[15px] font-extrabold text-black leading-snug">
+            <p className="text-[12px] md:text-[15px] font-extrabold text-black leading-snug line-clamp-2 md:line-clamp-none">
               {currentSpeech}
             </p>
           </div>
 
           {/* 2 Primary Action CTAs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+          <div className="grid grid-cols-2 gap-2 md:gap-2.5 pt-0.5">
             {/* Action 1: Call Rex (Voice Mentor) */}
             <button
               type="button"
               onClick={handleCall}
-              className="min-h-[46px] bg-[#FFE566] hover:bg-black hover:text-white text-black border-2 border-black font-black uppercase text-[12px] tracking-wider px-4 py-2.5 rounded-xl shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer group"
+              className="h-8.5 md:min-h-[46px] bg-[#FFE566] hover:bg-black hover:text-white text-black border-2 border-black font-black uppercase text-[10.5px] md:text-[12px] tracking-wider px-2 md:px-4 py-1 md:py-2.5 rounded-lg md:rounded-xl shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer group"
             >
-              <span className="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform">phone_in_talk</span>
-              <span>Talk with Rex</span>
+              <span className="material-symbols-outlined text-[15px] md:text-[18px] group-hover:rotate-12 transition-transform">phone_in_talk</span>
+              <span className="truncate">Talk</span>
             </button>
 
             {/* Action 2: Launch Daily Focus */}
             <button
               type="button"
               onClick={handleLaunchPractice}
-              className="min-h-[46px] bg-[#FF4D2E] hover:bg-black text-white border-2 border-black font-black uppercase text-[12px] tracking-wider px-4 py-2.5 rounded-xl shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="h-8.5 md:min-h-[46px] bg-[#FF4D2E] hover:bg-black text-white border-2 border-black font-black uppercase text-[10.5px] md:text-[12px] tracking-wider px-2 md:px-4 py-1 md:py-2.5 rounded-lg md:rounded-xl shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">bolt</span>
-              <span>Launch Daily Focus</span>
+              <span className="material-symbols-outlined text-[15px] md:text-[18px]">bolt</span>
+              <span className="truncate">Daily Focus</span>
             </button>
           </div>
         </div>
@@ -419,15 +438,15 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
     <div className="w-full">
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 bg-white border-2 border-black rounded-2xl md:rounded-full px-3.5 py-2 shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_#1A1A1A] transition-all"
+        className="flex items-center gap-2 bg-white border-2 border-black rounded-2xl md:rounded-full px-3 py-1.5 md:px-3.5 md:py-2 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_#1A1A1A] transition-all"
       >
         <button
           type="button"
           onClick={() => { playTap(); navigate("/ai-tutor"); }}
-          className="w-8 h-8 rounded-full bg-[#FFE566] border-2 border-black flex items-center justify-center text-black shrink-0 cursor-pointer shadow-xs hover:bg-[#FFD13B] transition-colors"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FFE566] border-2 border-black flex items-center justify-center text-black shrink-0 cursor-pointer shadow-xs hover:bg-[#FFD13B] transition-colors"
           title="Open AI Tutor"
         >
-          <span className="material-symbols-outlined text-[17px]">forum</span>
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]">forum</span>
         </button>
 
         <input
@@ -435,24 +454,24 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Ask Rex anything or type a topic to practice..."
-          className="flex-1 bg-transparent border-none text-[13px] md:text-[14px] font-bold text-black outline-none placeholder:text-black/40 font-['Quicksand']"
+          className="flex-1 bg-transparent border-none text-[12.5px] md:text-[14px] font-bold text-black outline-none placeholder:text-black/40"
         />
 
         <button
           type="button"
           onClick={handleMic}
-          className="w-8 h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FF4D2E] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FF4D2E] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer"
           title="Voice Talk with Rex"
         >
-          <span className="material-symbols-outlined text-[17px]">mic</span>
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]">mic</span>
         </button>
 
         <button
           type="submit"
-          className="w-8 h-8 rounded-full bg-black text-white hover:bg-[#FF4D2E] flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black text-white hover:bg-[#FF4D2E] flex items-center justify-center shrink-0 transition-colors cursor-pointer"
           title="Send"
         >
-          <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]">arrow_forward</span>
         </button>
       </form>
     </div>
@@ -793,21 +812,22 @@ export default function Dashboard() {
       <SharedSidebar active="/dashboard" />
 
       {/* ── MOBILE TOP BAR (Knowunity / Duolingo style) ───────────────────────────────────────────────────────── */}
-      <header className="md:hidden h-16 w-full px-4 flex items-center justify-between bg-[#FFFDF5] z-40 sticky top-0 border-b-2 border-black">
-        <div className="text-[20px] font-black tracking-tight text-black flex items-center gap-1.5 cursor-pointer" onClick={() => navigate("/dashboard")}>
+      {/* ── MOBILE TOP BAR (Knowunity / Duolingo style) ───────────────────────────────────────────────────────── */}
+      <header className="md:hidden h-14 w-full px-3.5 flex items-center justify-between bg-[#FFFDF5] z-40 sticky top-0 border-b-2 border-black">
+        <div className="text-[19px] font-black tracking-tight text-black flex items-center gap-1.5 cursor-pointer" onClick={() => navigate("/dashboard")}>
           <span>STUDENIUS</span>
           <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D2E]" />
         </div>
         <div className="flex items-center gap-2">
           {/* Flame streak */}
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border-2 border-black bg-white shadow-xs">
-            <span className="text-[14px]">🔥</span>
+          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs">
+            <span className="text-[13px]">🔥</span>
             <span className="text-[11px] font-black text-black">{profile?.streak_days ?? 1}d</span>
           </div>
 
           {/* Level */}
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border-2 border-black bg-[#FFE566] shadow-xs">
-            <span className="text-[12px]">⚡</span>
+          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-[#FFE566] shadow-xs">
+            <span className="text-[11px]">⚡</span>
             <span className="text-[11px] font-black text-black">L{levelFromXp(profile?.total_xp ?? 0)}</span>
           </div>
 
@@ -815,7 +835,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => { playPop(); navigate("/pro"); }}
-            className={`px-2.5 py-1 rounded-full border-2 border-black shadow-xs flex items-center gap-1 transition-all cursor-pointer font-black text-[10.5px] uppercase tracking-wider ${
+            className={`px-2.5 py-0.5 rounded-full border-2 border-black shadow-xs flex items-center gap-1 transition-all cursor-pointer font-black text-[10px] uppercase tracking-wider ${
               isPro ? "bg-[#10B981] text-white" : "bg-[#FFD13B] text-black"
             }`}
           >
@@ -829,15 +849,16 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => { playPop(); navigate("/profile"); }}
-            className="w-8 h-8 rounded-full bg-[#FF4D2E] text-white border-2 border-black shadow-xs flex items-center justify-center font-black text-[12px] cursor-pointer transition-all shrink-0"
+            className="w-7 h-7 rounded-full bg-[#FF4D2E] text-white border-2 border-black shadow-xs flex items-center justify-center font-black text-[11px] cursor-pointer transition-all shrink-0"
           >
             {displayName.slice(0, 1).toUpperCase()}
           </button>
         </div>
       </header>
 
-      {/* ── DESKTOP LAYOUT ──────────────────────────────────────────────────────── */}
-      <div className="hidden md:block md:ml-64 h-full overflow-y-auto p-8 lg:p-10 max-w-7xl mx-auto w-full box-border">
+      {/* ── DESKTOP LAYOUT (Perfect Centering between 256px sidebar and right window edge) ─────── */}
+      <div className="hidden md:block md:ml-64 min-h-screen overflow-y-auto">
+        <div className="p-6 lg:p-8 max-w-6xl xl:max-w-7xl w-full mx-auto space-y-6 box-border">
 
         {/* Top Header with greeting & gamification pills */}
         <DashboardHeader
@@ -1054,11 +1075,12 @@ export default function Dashboard() {
           </div>
 
         </div>
+        </div>
 
       </div>
 
       {/* ── MOBILE LAYOUT (Knowunity Frame 18/21 inspired) ───────────────────────── */}
-      <main className="md:hidden px-4 pt-3.5 pb-28 flex flex-col gap-4 overflow-y-auto h-full">
+      <main className="md:hidden px-3.5 pt-3 pb-24 flex flex-col gap-3.5 overflow-y-auto h-full">
 
         {/* Rex Grounded Companion Hero Stage */}
         <RexHeroStage
@@ -1075,16 +1097,7 @@ export default function Dashboard() {
         {/* Persistent Ask Rex Composer Bar */}
         <AskRexBottomBar navigate={navigate} />
 
-        {/* Exam Countdown Banner (Permanent: Active Countdown or 'No exam yet' empty state) */}
-        <ExamCountdownBanner
-          examTarget={userPrefs?.examTarget}
-          onUpdate={handleUpdateExamTarget}
-          quizAccuracy={quizAccuracy}
-          sessionsCount={sessions.length}
-          tasksCompleted={tasks.filter((t) => t.completed).length}
-        />
-
-        {/* 4-Tool Core Study Shelf — 4 Primary Actions */}
+        {/* 4-Tool Core Study Shelf — 4 Primary Actions (Visible Above the Fold) */}
         <section className="flex flex-col gap-2">
           <div className="flex justify-between items-center px-0.5">
             <div className="flex items-center gap-2">
@@ -1113,7 +1126,7 @@ export default function Dashboard() {
                   playPop();
                   navigate(tool.route);
                 }}
-                className="min-h-[116px] border-2 border-black rounded-2xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group cursor-pointer"
+                className="min-h-[104px] border-2 border-black rounded-2xl bg-white p-3 text-left shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none hover:bg-[#FFFDF5] flex flex-col justify-between transition-all group cursor-pointer"
               >
                 <div className="flex items-center justify-between">
                   <div className="w-8 h-8 rounded-lg bg-[#FAF7F2] border border-black/15 flex items-center justify-center">
@@ -1153,6 +1166,15 @@ export default function Dashboard() {
             </div>
           )}
         </section>
+
+        {/* Exam Countdown Banner (Permanent: Active Countdown or 'No exam yet' empty state) */}
+        <ExamCountdownBanner
+          examTarget={userPrefs?.examTarget}
+          onUpdate={handleUpdateExamTarget}
+          quizAccuracy={quizAccuracy}
+          sessionsCount={sessions.length}
+          tasksCompleted={tasks.filter((t) => t.completed).length}
+        />
 
         {/* Daily Quests & Progress */}
         <section className="flex flex-col gap-2.5">
