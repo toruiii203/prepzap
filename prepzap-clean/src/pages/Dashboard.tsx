@@ -12,6 +12,7 @@ import { usePlan } from "@/hooks/usePlan";
 import { motion, animate, useAnimation } from "framer-motion";
 import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
 import { ExamCountdownBanner, calculateExamReadiness } from "@/components/ExamCountdownBanner";
+import { loadLibrary } from "@/lib/sourceContext";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import {
   getStoredPreferences,
@@ -522,6 +523,7 @@ function RexHeroStage({
   primarySubjectMeta,
   activeGoalMeta,
   examTarget,
+  allSessions = [],
   quizAccuracy,
   sessionsCount,
   tasksCompleted,
@@ -531,14 +533,16 @@ function RexHeroStage({
   primarySubjectMeta: any;
   activeGoalMeta: any;
   examTarget?: ExamTarget | null;
+  allSessions?: any[];
   quizAccuracy: number;
   sessionsCount: number;
   tasksCompleted: number;
   navigate: any;
 }) {
+  const libraryFiles = useMemo(() => loadLibrary(), []);
   const readiness = useMemo(() => {
-    return calculateExamReadiness(examTarget?.examDate, quizAccuracy, sessionsCount, tasksCompleted);
-  }, [examTarget, quizAccuracy, sessionsCount, tasksCompleted]);
+    return calculateExamReadiness(examTarget, allSessions, libraryFiles, quizAccuracy, tasksCompleted);
+  }, [examTarget, allSessions, libraryFiles, quizAccuracy, tasksCompleted]);
 
   const [dialogueIndex, setDialogueIndex] = useState(0);
 
@@ -1145,6 +1149,7 @@ export default function Dashboard() {
               primarySubjectMeta={primarySubjectMeta}
               activeGoalMeta={activeGoalMeta}
               examTarget={userPrefs?.examTarget}
+              allSessions={sessions}
               quizAccuracy={quizAccuracy}
               sessionsCount={sessions.length}
               tasksCompleted={tasks.filter((t) => t.completed).length}
@@ -1161,6 +1166,7 @@ export default function Dashboard() {
             <ExamCountdownBanner
               examTarget={userPrefs?.examTarget}
               onUpdate={handleUpdateExamTarget}
+              allSessions={sessions}
               quizAccuracy={quizAccuracy}
               sessionsCount={sessions.length}
               tasksCompleted={tasks.filter((t) => t.completed).length}
@@ -1264,6 +1270,7 @@ export default function Dashboard() {
           primarySubjectMeta={primarySubjectMeta}
           activeGoalMeta={activeGoalMeta}
           examTarget={userPrefs?.examTarget}
+          allSessions={sessions}
           quizAccuracy={quizAccuracy}
           sessionsCount={sessions.length}
           tasksCompleted={tasks.filter((t) => t.completed).length}
@@ -1280,6 +1287,7 @@ export default function Dashboard() {
         <ExamCountdownBanner
           examTarget={userPrefs?.examTarget}
           onUpdate={handleUpdateExamTarget}
+          allSessions={sessions}
           quizAccuracy={quizAccuracy}
           sessionsCount={sessions.length}
           tasksCompleted={tasks.filter((t) => t.completed).length}

@@ -4,6 +4,7 @@ export interface ExamTarget {
   examTitle: string;
   examDate: string; // YYYY-MM-DD
   subject?: string;
+  attachedSourceIds?: string[];
 }
 
 export interface UserStudyPreferences {
