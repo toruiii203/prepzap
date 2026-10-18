@@ -1,510 +1,255 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { getCachedSession } from "@/lib/authSession";
+import { AnimatedRex } from "@/components/AnimatedRex";
 import {
-  saveUserPreferences,
-  generateSmartQuests,
-  GOAL_METADATA,
-  SUBJECT_METADATA,
-  type ExamTarget,
-  type UserStudyPreferences,
-} from "@/lib/userPreferences";
-import { playPop, playTap, playSuccess, playCelebration, triggerHaptic } from "@/lib/soundFX";
-import { AnimatedRex, type RexState } from "@/components/AnimatedRex";
+  playPop,
+  playTap,
+  playSuccess,
+  playCelebration,
+  triggerHaptic,
+  setSoundEnabled,
+  isSoundEnabled,
+} from "@/lib/soundFX";
+import {
+  getDiagnosticQuestion,
+  getOnboardingDraft,
+  saveOnboardingDraft,
+  clearOnboardingDraft,
+  type DiagnosticQuestion,
+} from "@/lib/onboardingBank";
 
-type Screen =
-  | "intro"
-  | "nameInput"
-  | "subjectSelection"
-  | "goalSelection"
-  | "firstWinChallenge"
-  | "learningStyle"
-  | "examTarget"
-  | "finalTransition";
-
-// Neobrutalist Palette
-const BG          = "#FFFBEA";
-const SURFACE     = "#F0EDE0";
-const BLACK       = "#1A1A1A";
-const CTA         = "#FF4D2E";
-const YELLOW      = "#FFE566";
-const GREEN       = "#10B981";
-const GREEN_LIGHT = "#D1FAE5";
-const WHITE       = "#FFFFFF";
-
-const HEADER_MAX  = 800;
-const CONTENT_MAX = 430;
-
-const s = {
-  page: {
-    position: "fixed" as const,
-    inset: 0,
-    background: BG,
-    display: "flex",
-    flexDirection: "column" as const,
-    fontFamily: "'Quicksand', sans-serif",
-    alignItems: "center",
-    overflowY: "hidden" as const,
-    overflowX: "hidden" as const,
-  },
-  header: {
-    height: 54,
-    background: BG,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "0 16px",
-    position: "sticky" as const,
-    top: 0,
-    zIndex: 40,
-    width: "100%",
-    boxSizing: "border-box" as const,
-  },
-  headerInner: {
-    maxWidth: HEADER_MAX,
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  backBtn: {
-    background: "none",
-    border: "none",
-    padding: "6px",
-    cursor: "pointer",
-    fontSize: 24,
-    color: BLACK,
-    fontFamily: "Material Symbols Outlined",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-  },
-  headerSkipBtn: {
-    background: "transparent",
-    border: "none",
-    padding: "4px 8px",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-    color: BLACK,
-    opacity: 0.7,
-    fontFamily: "'Quicksand', sans-serif",
-  },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    background: "rgba(26,26,26,0.08)",
-    borderRadius: 9999,
-    overflow: "hidden",
-    border: `1.5px solid ${BLACK}`,
-  },
-  progressFill: (pct: number) => ({
-    width: `${pct}%`,
-    height: "100%",
-    background: CTA,
-    borderRadius: 9999,
-    transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-  }),
-  content: {
-    maxWidth: CONTENT_MAX,
-    width: "100%",
-    display: "flex",
-    flexDirection: "column" as const,
-    flex: 1,
-    position: "relative" as const,
-    background: BG,
-    boxSizing: "border-box" as const,
-  },
-  bottomBar: {
-    position: "fixed" as const,
-    bottom: 0,
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "100%",
-    maxWidth: CONTENT_MAX,
-    display: "flex",
-    gap: 12,
-    padding: "16px 20px calc(16px + env(safe-area-inset-bottom))",
-    background: BG,
-    borderTop: `2px solid ${BLACK}`,
-    zIndex: 50,
-    boxSizing: "border-box" as const,
-  },
-  skipBtn: {
-    padding: "14px 18px",
-    borderRadius: 16,
-    color: BLACK,
-    fontWeight: 700,
-    fontSize: 15,
-    border: `2px solid ${BLACK}`,
-    borderBottom: `4px solid ${BLACK}`,
-    background: WHITE,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    cursor: "pointer",
-    fontFamily: "'Quicksand', sans-serif",
-    transition: "all 0.1s ease",
-  },
-  continueBtn: {
-    flex: 1,
-    padding: "15px 0",
-    borderRadius: 16,
-    background: CTA,
-    color: WHITE,
-    fontWeight: 800,
-    fontSize: 16,
-    border: `2.5px solid ${BLACK}`,
-    borderBottom: `5px solid ${BLACK}`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    cursor: "pointer",
-    fontFamily: "'Quicksand', sans-serif",
-    boxShadow: `0 3px 0 rgba(0,0,0,0.15)`,
-    transition: "all 0.1s ease",
-  },
-  continueBtnDisabled: {
-    opacity: 0.45,
-    cursor: "not-allowed",
-    borderBottom: `2.5px solid ${BLACK}`,
-    transform: "none",
-    boxShadow: "none",
-  },
-  continueBtnSuccess: {
-    flex: 1,
-    padding: "15px 0",
-    borderRadius: 16,
-    background: GREEN,
-    color: WHITE,
-    fontWeight: 800,
-    fontSize: 16,
-    border: `2.5px solid ${BLACK}`,
-    borderBottom: `5px solid ${BLACK}`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    cursor: "pointer",
-    fontFamily: "'Quicksand', sans-serif",
-    boxShadow: `0 3px 0 rgba(0,0,0,0.15)`,
-    transition: "all 0.1s ease",
-  },
-  mascotBubble: {
-    display: "flex",
-    flexDirection: "row" as const,
-    alignItems: "center",
-    gap: 14,
-    padding: "10px 0 16px",
-    width: "100%",
-    boxSizing: "border-box" as const,
-  },
-  speechBubble: {
-    position: "relative" as const,
-    background: WHITE,
-    border: `2.5px solid ${BLACK}`,
-    borderRadius: 18,
-    padding: "12px 16px",
-    flex: 1,
-    boxShadow: `0 3px 0 ${BLACK}`,
-  },
-  speechTailBorder: {
-    position: "absolute" as const,
-    left: -10,
-    top: 22,
-    width: 0,
-    height: 0,
-    borderTop: "7px solid transparent",
-    borderBottom: "7px solid transparent",
-    borderRight: `10px solid ${BLACK}`,
-  },
-  speechTailFill: {
-    position: "absolute" as const,
-    left: -7,
-    top: 22,
-    width: 0,
-    height: 0,
-    borderTop: "7px solid transparent",
-    borderBottom: "7px solid transparent",
-    borderRight: `10px solid ${WHITE}`,
-  },
-  optionCard: (selected: boolean) => ({
-    width: "100%",
-    padding: "14px 16px",
-    border: `2.5px solid ${BLACK}`,
-    borderBottom: selected ? `2.5px solid ${BLACK}` : `4.5px solid ${BLACK}`,
-    borderRadius: 16,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    cursor: "pointer",
-    background: selected ? YELLOW : WHITE,
-    transform: selected ? "translateY(2px)" : "translateY(0)",
-    boxShadow: selected ? "none" : `0 2px 0 rgba(0,0,0,0.1)`,
-    transition: "all 0.12s cubic-bezier(0.2, 0, 0, 1)",
-    fontFamily: "'Quicksand', sans-serif",
-    textAlign: "left" as const,
-    boxSizing: "border-box" as const,
-  }),
-  challengeCard: {
-    width: "100%",
-    padding: "14px 16px",
-    border: `2.5px solid ${BLACK}`,
-    borderBottom: `4.5px solid ${BLACK}`,
-    borderRadius: 16,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    cursor: "pointer",
-    background: WHITE,
-    transition: "all 0.15s ease",
-    fontFamily: "'Quicksand', sans-serif",
-    textAlign: "left" as const,
-    boxSizing: "border-box" as const,
-  },
-  challengeCardCorrect: {
-    background: GREEN_LIGHT,
-    borderColor: BLACK,
-    borderBottom: `2.5px solid ${BLACK}`,
-    transform: "translateY(2px)",
-  },
-  challengeCardIncorrect: {
-    background: "#FEE2E2",
-    borderColor: BLACK,
-    borderBottom: `2.5px solid ${BLACK}`,
-    transform: "translateY(2px)",
-  },
-  challengeIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    background: SURFACE,
-    border: `2px solid ${BLACK}`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  celebrationDrawer: {
-    position: "fixed" as const,
-    bottom: 0,
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "100%",
-    maxWidth: CONTENT_MAX,
-    background: GREEN_LIGHT,
-    borderTop: `2.5px solid ${BLACK}`,
-    padding: "18px 20px calc(20px + env(safe-area-inset-bottom))",
-    zIndex: 60,
-    boxSizing: "border-box" as const,
-    boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
-  },
-  celebrationBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    background: GREEN,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: `2px solid ${BLACK}`,
-  },
-};
-
-function Header({
-  progress,
-  onBack,
-  onSkip,
-}: {
-  progress?: number;
-  onBack?: () => void;
-  onSkip?: () => void;
-}) {
-  return (
-    <header style={s.header}>
-      <div style={s.headerInner}>
-        {onBack ? (
-          <button
-            style={s.backBtn}
-            onClick={() => {
-              playTap();
-              onBack();
-            }}
-            aria-label="Go back"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
-              arrow_back
-            </span>
-          </button>
-        ) : (
-          <div style={{ width: 36 }} />
-        )}
-        {progress !== undefined && (
-          <div style={s.progressBar}>
-            <div style={s.progressFill(progress)} />
-          </div>
-        )}
-        {onSkip ? (
-          <button
-            onClick={() => {
-              playTap();
-              onSkip();
-            }}
-            style={s.headerSkipBtn}
-          >
-            Skip
-          </button>
-        ) : (
-          <div style={{ width: 36 }} />
-        )}
-      </div>
-    </header>
-  );
+interface SubjectOption {
+  id: string;
+  name: string;
+  icon: string;
 }
 
-function MascotBubble({
-  mood = "idle",
-  dialogue,
-  subtitle,
-}: {
-  mood?: RexState;
-  dialogue: string;
-  subtitle?: string;
-}) {
-  return (
-    <div style={s.mascotBubble}>
-      <div style={{ flexShrink: 0 }}>
-        <AnimatedRex size="md" state={mood} interactive={true} />
-      </div>
-      <div style={s.speechBubble}>
-        <div style={s.speechTailBorder} />
-        <div style={s.speechTailFill} />
-        <p style={{ fontSize: 16, fontWeight: 800, color: BLACK, lineHeight: 1.3, margin: 0 }}>
-          {dialogue}
-        </p>
-        {subtitle && (
-          <p style={{ fontSize: 13, fontWeight: 600, color: BLACK, opacity: 0.6, marginTop: 4, marginBottom: 0 }}>
-            {subtitle}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
+const PRESET_SUBJECTS: SubjectOption[] = [
+  { id: "math", name: "Math", icon: "calculate" },
+  { id: "science", name: "Science", icon: "science" },
+  { id: "english", name: "English", icon: "menu_book" },
+  { id: "biology", name: "Biology", icon: "biotech" },
+  { id: "calculus", name: "Calculus", icon: "functions" },
+  { id: "chemistry", name: "Chemistry", icon: "experiment" },
+  { id: "history", name: "History", icon: "history_edu" },
+  { id: "psychology", name: "Psychology", icon: "psychology" },
+  { id: "computer science", name: "Computer Science", icon: "terminal" },
+  { id: "physics", name: "Physics", icon: "bolt" },
+  { id: "economics", name: "Economics", icon: "trending_up" },
+  { id: "general", name: "General Studies", icon: "school" },
+];
 
-function BottomBar({
-  onSkip,
-  onContinue,
-  continueLabel = "Continue",
-  continueDisabled = false,
-  continueLoading = false,
-  variant = "cta",
-}: {
-  onSkip?: () => void;
-  onContinue?: () => void;
-  continueLabel?: string;
-  continueDisabled?: boolean;
-  continueLoading?: boolean;
-  variant?: "cta" | "success";
-}) {
-  return (
-    <div style={s.bottomBar}>
-      {onSkip && (
-        <button
-          style={s.skipBtn}
-          onClick={() => {
-            playTap();
-            onSkip();
-          }}
-        >
-          Skip
-        </button>
-      )}
-      <button
-        style={{
-          ...(variant === "success" ? s.continueBtnSuccess : s.continueBtn),
-          ...(continueDisabled ? s.continueBtnDisabled : {}),
-        }}
-        disabled={continueDisabled || continueLoading}
-        onClick={() => {
-          if (continueDisabled || continueLoading) return;
-          playPop();
-          triggerHaptic("medium");
-          onContinue?.();
-        }}
-      >
-        <span>{continueLoading ? "Please wait..." : continueLabel}</span>
-        {!continueLoading && (
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-            arrow_forward
-          </span>
-        )}
-      </button>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 1: Intro Hook with Animated Rex & Google Auth
-// ─────────────────────────────────────────────────────────────────────────────
-function IntroHook({ onNext }: { onNext: () => void }) {
+export default function OnboardingFlow() {
   const navigate = useNavigate();
-  const { user, session } = useAuth();
-  const [slide, setSlide] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const { session, profile, refreshProfile } = useAuth();
 
+  // Redirect returning users immediately
   useEffect(() => {
-    const id = setInterval(() => setSlide((s) => (s + 1) % 3), 3500);
-    return () => clearInterval(id);
+    if (session && profile?.onboarding_complete !== false) {
+      clearOnboardingDraft();
+      navigate("/dashboard", { replace: true });
+    }
+  }, [session, profile, navigate]);
+
+  // Load persisted draft or default
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [subject, setSubject] = useState<string>("Math");
+  const [customSubject, setCustomSubject] = useState<string>("");
+  const [isCustom, setIsCustom] = useState<boolean>(false);
+
+  // Challenge state
+  const [challenge, setChallenge] = useState<DiagnosticQuestion | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+
+  // Goal & Exam state
+  const [dailyMinutes, setDailyMinutes] = useState<number>(15);
+  const [streakTarget, setStreakTarget] = useState<number>(7);
+  const [examTitle, setExamTitle] = useState<string>("");
+  const [examDate, setExamDate] = useState<string>("");
+  const [examDateError, setExamDateError] = useState<string>("");
+
+  // Consent & Auth state
+  const [ageConfirmed, setAgeConfirmed] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState<string>("");
+  const [showEmailForm, setShowEmailForm] = useState<boolean>(false);
+  const [emailSent, setEmailSent] = useState<boolean>(false);
+
+  // Login modal for returning users
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [loginEmail, setLoginEmail] = useState<string>("");
+  const [loginPassword, setLoginPassword] = useState<string>("");
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Audio mute state
+  const [audioMuted, setAudioMuted] = useState<boolean>(() => !isSoundEnabled());
+
+  // Streak counter animation
+  const [animatedStreak, setAnimatedStreak] = useState<number>(0);
+
+  // Restore draft on mount
+  useEffect(() => {
+    const draft = getOnboardingDraft();
+    if (draft) {
+      if (draft.subject) setSubject(draft.subject);
+      if (draft.customSubject) {
+        setCustomSubject(draft.customSubject);
+        setIsCustom(true);
+      }
+      if (draft.dailyGoalMinutes) setDailyMinutes(draft.dailyGoalMinutes);
+      if (draft.streakTargetDays) setStreakTarget(draft.streakTargetDays);
+      if (draft.examTitle) setExamTitle(draft.examTitle);
+      if (draft.examDate) setExamDate(draft.examDate);
+      if (draft.ageConfirmed) setAgeConfirmed(draft.ageConfirmed);
+      if (typeof draft.audioMuted === "boolean") {
+        setAudioMuted(draft.audioMuted);
+        setSoundEnabled(!draft.audioMuted);
+      }
+      if (draft.firstWinCompleted) {
+        setStep(4);
+      }
+    }
   }, []);
 
+  const toggleAudio = () => {
+    const nextMuted = !audioMuted;
+    setAudioMuted(nextMuted);
+    setSoundEnabled(!nextMuted);
+    saveOnboardingDraft({ audioMuted: nextMuted });
+    if (!nextMuted) playPop();
+  };
+
+  // Generate question when subject changes or when entering Step 2
+  const activeSubjectName = isCustom && customSubject.trim() ? customSubject.trim() : subject;
+
   useEffect(() => {
-    if (sliderRef.current) {
-      sliderRef.current.scrollTo({
-        left: sliderRef.current.offsetWidth * slide,
-        behavior: "smooth",
-      });
+    if (step === 2) {
+      const q = getDiagnosticQuestion(activeSubjectName);
+      setChallenge(q);
+      setSelectedAnswer(null);
+      setIsCorrect(null);
     }
-  }, [slide]);
+  }, [step, activeSubjectName]);
 
-  const handleAuth = async () => {
-    // If the user is already authenticated in this session (e.g. testing onboarding),
-    // smoothly advance directly to the onboarding questionnaire without kicking to dashboard!
-    if (user && session) {
-      playPop();
-      onNext();
+  // Handle streak ticker animation on Step 3
+  useEffect(() => {
+    if (step === 3) {
+      setAnimatedStreak(0);
+      const timer = setTimeout(() => {
+        setAnimatedStreak(1);
+        playCelebration();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
+  // Actions
+  const handleSelectPresetSubject = (sub: SubjectOption) => {
+    playTap();
+    setSubject(sub.name);
+    setIsCustom(false);
+    setCustomSubject("");
+    saveOnboardingDraft({ subject: sub.name, customSubject: "" });
+    setStep(2);
+  };
+
+  const handleSelectCustomSubject = () => {
+    playPop();
+    setIsCustom(true);
+  };
+
+  const handleConfirmCustomSubject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customSubject.trim()) return;
+    playTap();
+    saveOnboardingDraft({ subject: "Custom", customSubject: customSubject.trim() });
+    setStep(2);
+  };
+
+  const handleAnswerQuestion = (idx: number) => {
+    if (selectedAnswer !== null || !challenge) return;
+    playPop();
+    triggerHaptic("medium");
+    setSelectedAnswer(idx);
+
+    const correct = idx === challenge.correctIndex;
+    setIsCorrect(correct);
+
+    const todayLocal = new Date().toLocaleDateString("en-CA");
+    saveOnboardingDraft({
+      firstWinCompleted: true,
+      firstWinLocalDate: todayLocal,
+      subject: activeSubjectName,
+    });
+
+    if (correct) {
+      playSuccess();
+    }
+
+    setTimeout(() => {
+      setStep(3);
+    }, 700);
+  };
+
+  const handleExamDateChange = (val: string) => {
+    setExamDate(val);
+    if (!val) {
+      setExamDateError("");
       return;
     }
-
-    if ((import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
-      onNext();
-      return;
+    const today = new Date().toLocaleDateString("en-CA");
+    if (val < today) {
+      setExamDateError("Please pick an upcoming date or skip.");
+    } else {
+      setExamDateError("");
     }
+  };
 
-    setLoading(true);
-    setError(null);
+  const handleContinueFromGoal = () => {
+    if (examDate && examDateError) return;
+    playPop();
+    saveOnboardingDraft({
+      dailyGoalMinutes: dailyMinutes,
+      streakTargetDays: streakTarget,
+      examTitle: examTitle.trim() || undefined,
+      examDate: examDate || undefined,
+    });
+    setStep(5);
+  };
 
-    // Save intent to continue onboarding after returning from Google
-    try {
-      sessionStorage.setItem("post_auth_redirect", "/onboarding?step=nameInput");
-    } catch {}
+  const handleSkipExam = () => {
+    playPop();
+    setExamTitle("");
+    setExamDate("");
+    setExamDateError("");
+    saveOnboardingDraft({
+      dailyGoalMinutes: dailyMinutes,
+      streakTargetDays: streakTarget,
+      examTitle: undefined,
+      examDate: undefined,
+    });
+    setStep(5);
+  };
 
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 10000);
+  // Google OAuth
+  const handleGoogleSignIn = async () => {
+    if (!ageConfirmed) return;
+    playTap();
+    setAuthLoading(true);
+    setAuthError(null);
+
+    saveOnboardingDraft({ ageConfirmed: true });
 
     try {
       if (Capacitor.isNativePlatform()) {
-        const { data, error: e } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
             redirectTo: "studenius://auth/callback",
@@ -512,1612 +257,732 @@ function IntroHook({ onNext }: { onNext: () => void }) {
             queryParams: { prompt: "select_account" },
           },
         });
-
-        if (e) throw e;
+        if (error) throw error;
         if (data?.url) {
           await Browser.open({ url: data.url, windowName: "_self" });
         }
       } else {
-        const { error: e } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
             redirectTo: `${window.location.origin}/auth/callback`,
             queryParams: { prompt: "select_account" },
           },
         });
-        if (e) throw e;
+        if (error) throw error;
       }
-    } catch (e: any) {
-      console.error("Google sign-in error:", e);
-      setError(e.message || "Google sign-in failed. Please try again.");
-      setLoading(false);
-      clearTimeout(timer);
+    } catch (err: any) {
+      console.error("Google auth error:", err);
+      setAuthError(err.message || "Failed to start Google sign-in. Please try again.");
+      setAuthLoading(false);
     }
   };
 
-  const displayName =
-    user?.user_metadata?.full_name?.split(" ")[0] ||
-    user?.user_metadata?.name?.split(" ")[0] ||
-    "Scholar";
+  // Email Magic Link / Signup
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ageConfirmed || !emailInput.trim()) return;
+    playTap();
+    setAuthLoading(true);
+    setAuthError(null);
+
+    saveOnboardingDraft({ ageConfirmed: true });
+
+    try {
+      const redirectUrl = Capacitor.isNativePlatform()
+        ? "studenius://auth/callback"
+        : `${window.location.origin}/auth/callback`;
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email: emailInput.trim(),
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
+
+      if (error) throw error;
+      setEmailSent(true);
+    } catch (err: any) {
+      console.error("Email auth error:", err);
+      setAuthError(err.message || "Could not send login link. Check your email address.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Returning user email/password login
+  const handleReturningUserLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError(null);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      if (error) throw error;
+      if (data.session) {
+        clearOnboardingDraft();
+        await refreshProfile();
+        navigate("/dashboard", { replace: true });
+      }
+    } catch (err: any) {
+      setLoginError(err.message || "Invalid email or password.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // 7-day calendar row for Step 3
+  const weekdays = ["M", "T", "W", "T", "F", "S", "S"];
+  const todayDayIdx = (new Date().getDay() + 6) % 7; // 0 = Mon, 6 = Sun
 
   return (
-    <div style={s.page}>
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          maxWidth: CONTENT_MAX,
-          padding: "clamp(16px, 2.5vh, 28px) 24px clamp(16px, 2.5vh, 24px)",
-          position: "relative",
-          justifyContent: "space-between",
-          overflowY: "auto",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Animated Rex Hero & Headline */}
-        <div style={{ textAlign: "center", zIndex: 1, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
-          {/* Animated Rex Mascot Hero */}
-          <div style={{ marginBottom: 4, cursor: "pointer" }} onClick={() => playPop(1.2)}>
-            <AnimatedRex size="lg" state="idle" interactive={true} />
-          </div>
+    <div className="fixed inset-0 bg-[#FFFBEA] flex flex-col items-center overflow-hidden font-['Quicksand',sans-serif]">
+      {/* Header Bar */}
+      <header className="w-full max-w-[800px] h-[54px] flex items-center justify-between px-4 sticky top-0 z-40 bg-[#FFFBEA]">
+        <div className="flex items-center gap-2">
+          {step > 1 && step < 4 && (
+            <button
+              type="button"
+              onClick={() => {
+                playTap();
+                setStep((prev) => (prev > 1 ? ((prev - 1) as any) : 1));
+              }}
+              className="p-1 rounded-lg border-2 border-black hover:bg-white active:translate-y-0.5 cursor-pointer flex items-center justify-center bg-[#FAF7F2]"
+              title="Go Back"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            </button>
+          )}
 
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              background: YELLOW,
-              border: `2px solid ${BLACK}`,
-              borderRadius: 9999,
-              padding: "3px 12px",
-              marginBottom: 8,
-              boxShadow: `2px 2px 0 ${BLACK}`,
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 800, color: BLACK, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Studenius
-            </span>
-          </div>
-
-          <h1
-            style={{
-              fontSize: "clamp(26px, 6vw, 34px)",
-              fontWeight: 800,
-              color: BLACK,
-              lineHeight: 1.15,
-              margin: "4px 0 0",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Study Smarter.<br />Ace Your Classes.
-          </h1>
-          <p style={{ fontSize: 14, fontWeight: 600, color: BLACK, opacity: 0.65, margin: "6px 0 0" }}>
-            The fun, active-recall study companion with Rex.
-          </p>
-        </div>
-
-        {/* Carousel Feature Preview */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "8px 0",
-            minHeight: 0,
-          }}
-        >
-          <div
-            ref={sliderRef}
-            style={{
-              width: "100%",
-              maxWidth: 340,
-              display: "flex",
-              overflowX: "auto",
-              scrollSnapType: "x mandatory",
-              scrollBehavior: "smooth",
-              scrollbarWidth: "none",
-            }}
-          >
-            {/* Slide 1: Rex Tutor */}
-            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center", boxSizing: "border-box" }}>
+          {/* Progress Indicator */}
+          <div className="flex items-center gap-1.5 ml-1">
+            {[1, 2, 3, 4, 5].map((s) => (
               <div
-                style={{
-                  background: SURFACE,
-                  border: `2.5px solid ${BLACK}`,
-                  borderBottom: `5px solid ${BLACK}`,
-                  borderRadius: 20,
-                  padding: 16,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                  <span
-                    style={{
-                      background: YELLOW,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      padding: "4px 10px",
-                      borderRadius: 9999,
-                      border: `1.5px solid ${BLACK}`,
-                    }}
-                  >
-                    Rex AI Tutor
-                  </span>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: BLACK }}>
-                    psychology
-                  </span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <div
-                    style={{
-                      background: BLACK,
-                      color: WHITE,
-                      borderRadius: "14px 14px 4px 14px",
-                      padding: "8px 12px",
-                      maxWidth: "85%",
-                      fontSize: 13,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Break down Newton's 3rd Law
-                  </div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 8 }}>
-                  <div
-                    style={{
-                      background: WHITE,
-                      color: BLACK,
-                      border: `1.5px solid ${BLACK}`,
-                      borderRadius: "4px 14px 14px 14px",
-                      padding: "8px 12px",
-                      maxWidth: "95%",
-                      fontSize: 13,
-                      lineHeight: 1.4,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Every push creates an equal push back! When a swimmer kicks water back, water pushes them forward.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Slide 2: Active Recall */}
-            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center", boxSizing: "border-box" }}>
-              <div
-                style={{
-                  background: SURFACE,
-                  border: `2.5px solid ${BLACK}`,
-                  borderBottom: `5px solid ${BLACK}`,
-                  borderRadius: 20,
-                  padding: 16,
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-block",
-                    background: YELLOW,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    padding: "4px 10px",
-                    borderRadius: 9999,
-                    border: `1.5px solid ${BLACK}`,
-                    marginBottom: 10,
-                  }}
-                >
-                  Active Recall Practice
-                </span>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: BLACK, margin: "0 0 10px" }}>
-                  What creates long-term exam retention?
-                </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {[
-                    { text: "Testing yourself frequently", sel: true },
-                    { text: "Passive re-reading", sel: false },
-                  ].map((o) => (
-                    <div
-                      key={o.text}
-                      style={{
-                        background: o.sel ? GREEN_LIGHT : WHITE,
-                        color: BLACK,
-                        borderRadius: 10,
-                        padding: "8px 12px",
-                        border: `2px solid ${BLACK}`,
-                        borderBottom: o.sel ? `2px solid ${BLACK}` : `3px solid ${BLACK}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        fontSize: 13,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <span>{o.text}</span>
-                      {o.sel && <span className="material-symbols-outlined" style={{ fontSize: 18, color: GREEN }}>check</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Slide 3: Smart Roadmap */}
-            <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center", boxSizing: "border-box" }}>
-              <div
-                style={{
-                  background: SURFACE,
-                  border: `2.5px solid ${BLACK}`,
-                  borderBottom: `5px solid ${BLACK}`,
-                  borderRadius: 20,
-                  padding: 16,
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-block",
-                    background: YELLOW,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    padding: "4px 10px",
-                    borderRadius: 9999,
-                    border: `1.5px solid ${BLACK}`,
-                    marginBottom: 10,
-                  }}
-                >
-                  Personalized Study Sprints
-                </span>
-                <p style={{ fontSize: 14, fontWeight: 700, color: BLACK, margin: "0 0 8px", lineHeight: 1.3 }}>
-                  No more aimless cramming. Turn lecture notes into smart flashcards and 15-minute daily wins.
-                </p>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-                  {["Spaced Repetition", "1v1 Duels", "Daily Streak"].map((tag) => (
-                    <span
-                      key={tag}
-                      style={{
-                        background: WHITE,
-                        border: `1.5px solid ${BLACK}`,
-                        borderRadius: 9999,
-                        padding: "3px 8px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Dots */}
-          <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "center" }}>
-            {[0, 1, 2].map((i) => (
-              <button
-                key={i}
-                onClick={() => setSlide(i)}
-                aria-label={`Slide ${i + 1}`}
-                style={{
-                  width: i === slide ? 22 : 9,
-                  height: 9,
-                  borderRadius: 9999,
-                  background: i === slide ? CTA : "rgba(26,26,26,0.2)",
-                  border: `1.5px solid ${BLACK}`,
-                  padding: 0,
-                  cursor: "pointer",
-                  transition: "all 0.25s ease",
-                }}
+                key={s}
+                className={`h-2 rounded-full border border-black transition-all duration-300 ${
+                  s === step
+                    ? "w-7 bg-[#FF4D2E]"
+                    : s < step
+                    ? "w-2.5 bg-black"
+                    : "w-2.5 bg-black/10"
+                }`}
               />
             ))}
           </div>
         </div>
 
-        {/* Footer Actions — Single Primary Button */}
-        <div style={{ zIndex: 10, marginTop: "auto", flexShrink: 0, width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
-          {error && (
-            <div
-              style={{
-                background: "#FFF0F0",
-                border: `2px solid ${CTA}`,
-                borderRadius: 12,
-                padding: "8px 12px",
-                fontSize: 12,
-                color: CTA,
-                fontWeight: 700,
-                textAlign: "center",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {/* Primary Action: Google Auth */}
+        <div className="flex items-center gap-2">
+          {/* Mute/Sound Toggle */}
           <button
-            onClick={handleAuth}
-            disabled={loading}
-            style={{
-              width: "100%",
-              height: 54,
-              background: WHITE,
-              color: BLACK,
-              fontWeight: 800,
-              fontSize: 16,
-              borderRadius: 16,
-              border: `2.5px solid ${BLACK}`,
-              borderBottom: `5px solid ${BLACK}`,
-              cursor: loading ? "default" : "pointer",
-              fontFamily: "'Quicksand', sans-serif",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              opacity: loading ? 0.7 : 1,
-              boxSizing: "border-box",
-              boxShadow: `0 3px 0 rgba(0,0,0,0.15)`,
-              transition: "all 0.1s ease",
-            }}
+            type="button"
+            onClick={toggleAudio}
+            className="p-1.5 rounded-lg border-2 border-black bg-white hover:bg-[#FAF7F2] active:translate-y-0.5 cursor-pointer flex items-center justify-center shadow-[1px_1px_0px_#000]"
+            title={audioMuted ? "Unmute audio" : "Mute audio"}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            <span>
-              {loading
-                ? "Connecting..."
-                : user
-                ? `Continue as ${displayName}`
-                : "Continue with Google"}
+            <span className="material-symbols-outlined text-[18px]">
+              {audioMuted ? "volume_off" : "volume_up"}
             </span>
           </button>
 
-          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.5, margin: "4px 0 0", fontWeight: 600 }}>
-            By continuing, you agree to our <a href="/terms" style={{ color: BLACK, fontWeight: 700, textDecoration: "underline" }}>Terms</a>
-          </p>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 2: Name Input
-// ─────────────────────────────────────────────────────────────────────────────
-function NameInput({
-  onNext,
-  onBack,
-  initialName = "",
-}: {
-  onNext: (name: string) => void;
-  onBack: () => void;
-  initialName?: string;
-}) {
-  const [name, setName] = useState(initialName);
-
-  const mood: RexState = name.trim().length > 1 ? "excited" : "idle";
-  const dialogue = name.trim().length > 1
-    ? `${name.trim()}! Awesome name.`
-    : "Hey! What should Rex call you?";
-
-  return (
-    <div style={s.page}>
-      <Header onBack={onBack} progress={15} />
-      <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
-          <MascotBubble
-            mood={mood}
-            dialogue={dialogue}
-            subtitle="You can change this anytime in your student profile."
-          />
-
-          <div style={{ marginTop: 24 }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: 12,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                color: BLACK,
-                opacity: 0.7,
-                marginBottom: 8,
-              }}
-            >
-              Your Name or Nickname
-            </label>
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && name.trim()) {
-                  playPop();
-                  onNext(name.trim());
-                }
-              }}
-              placeholder="e.g. Alex, Sam, Jordan"
-              style={{
-                width: "100%",
-                background: WHITE,
-                border: `2.5px solid ${BLACK}`,
-                borderBottom: `4.5px solid ${BLACK}`,
-                borderRadius: 16,
-                padding: "16px 18px",
-                fontSize: 20,
-                fontWeight: 800,
-                color: BLACK,
-                fontFamily: "'Quicksand', sans-serif",
-                outline: "none",
-                boxSizing: "border-box",
-                transition: "border 0.2s ease",
-              }}
-            />
-          </div>
-        </main>
-
-        <BottomBar
-          onContinue={() => name.trim() && onNext(name.trim())}
-          continueLabel="Continue"
-          continueDisabled={!name.trim()}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 3: Subjects
-// ─────────────────────────────────────────────────────────────────────────────
-const SUBJECT_OPTIONS = [
-  { id: "math",        name: "Mathematics", icon: "calculate",       text: "Math? Number crunching superpower!" },
-  { id: "science",     name: "Science",     icon: "science",         text: "Science! Let's explore how things work." },
-  { id: "english",     name: "English",     icon: "menu_book",       text: "Literature & writing master!" },
-  { id: "history",     name: "History",     icon: "account_balance", text: "History! Learning from the greats." },
-  { id: "programming", name: "Programming", icon: "code",            text: "Hello, World! Building the future." },
-  { id: "arts",        name: "Arts & Design", icon: "palette",       text: "Creative spark activated!" },
-  { id: "other",       name: "General Studies", icon: "apps",        text: "Well rounded scholar!" },
-];
-
-function SubjectSelection({
-  onNext,
-  onBack,
-  initialSelected = [],
-}: {
-  onNext: (selected: string[]) => void;
-  onBack: () => void;
-  initialSelected?: string[];
-}) {
-  const [selected, setSelected] = useState<string[]>(initialSelected);
-
-  const toggle = (id: string) => {
-    playPop();
-    triggerHaptic("light");
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
-
-  const mood: RexState =
-    selected.length === 0
-      ? "idle"
-      : selected.length === 1
-      ? "responding"
-      : selected.length === 2
-      ? "excited"
-      : "dancing";
-
-  const dialogue =
-    selected.length === 0
-      ? "What subjects are you conquering?"
-      : selected.length === 1
-      ? (SUBJECT_OPTIONS.find((s) => s.id === selected[0])?.text ?? "Nice choice!")
-      : selected.length === 2
-      ? "Solid combination! We'll tailor your cards."
-      : "You're taking on big challenges! Love the ambition.";
-
-  return (
-    <div style={s.page}>
-      <Header onBack={onBack} onSkip={() => onNext([])} progress={35} />
-      <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
-          <MascotBubble
-            mood={mood}
-            dialogue={dialogue}
-            subtitle="Pick all that apply to set up your starter decks."
-          />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {SUBJECT_OPTIONS.map((subject) => {
-              const isSel = selected.includes(subject.id);
-              return (
-                <button
-                  key={subject.id}
-                  style={s.optionCard(isSel)}
-                  onClick={() => toggle(subject.id)}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        background: isSel ? BLACK : SURFACE,
-                        borderRadius: 12,
-                        border: `2px solid ${BLACK}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: 18, color: isSel ? YELLOW : BLACK }}
-                      >
-                        {subject.icon}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: BLACK }}>
-                      {subject.name}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      width: 24,
-                      height: 24,
-                      border: `2px solid ${BLACK}`,
-                      borderRadius: "50%",
-                      background: isSel ? BLACK : WHITE,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {isSel && (
-                      <span className="material-symbols-outlined" style={{ fontSize: 14, color: YELLOW }}>
-                        check
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </main>
-
-        <BottomBar
-          onContinue={() => onNext(selected.length > 0 ? selected : ["other"])}
-          continueLabel={selected.length > 0 ? `Continue (${selected.length})` : "Continue"}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 4: Goal Selection
-// ─────────────────────────────────────────────────────────────────────────────
-const GOAL_OPTIONS = [
-  {
-    id: "habits",
-    name: "Build a Daily Habit",
-    time: "15 min / day",
-    icon: "autorenew",
-    text: "Consistency beats intensity every single time!",
-  },
-  {
-    id: "faster",
-    name: "Study Faster & Retain More",
-    time: "20 min / day",
-    icon: "bolt",
-    text: "High-yield sprints for 2x retention. Let's go!",
-  },
-  {
-    id: "skill",
-    name: "Master New Skills",
-    time: "30 min / day",
-    icon: "psychology",
-    text: "Curiosity is your superpower. We'll build your toolkit.",
-  },
-  {
-    id: "grades",
-    name: "Boost Exam Grades",
-    time: "45 min / day",
-    icon: "trending_up",
-    text: "GPA mission locked in! High-yield mastery starts here.",
-  },
-];
-
-function GoalSelection({
-  onNext,
-  onBack,
-  initialGoal = "",
-}: {
-  onNext: (goal: string) => void;
-  onBack: () => void;
-  initialGoal?: string;
-}) {
-  const [selected, setSelected] = useState<string>(initialGoal || "faster");
-
-  const mood: RexState = selected ? "excited" : "idle";
-  const dialogue = selected
-    ? (GOAL_OPTIONS.find((g) => g.id === selected)?.text ?? "Great goal!")
-    : "What's your primary study mission?";
-
-  return (
-    <div style={s.page}>
-      <Header onBack={onBack} progress={55} />
-      <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
-          <MascotBubble
-            mood={mood}
-            dialogue={dialogue}
-            subtitle="Rex uses this to set your daily focus target and streak rewards."
-          />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {GOAL_OPTIONS.map((goal) => {
-              const isSel = selected === goal.id;
-              return (
-                <button
-                  key={goal.id}
-                  style={s.optionCard(isSel)}
-                  onClick={() => {
-                    playPop();
-                    triggerHaptic("light");
-                    setSelected(goal.id);
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        background: isSel ? BLACK : SURFACE,
-                        borderRadius: 12,
-                        border: `2px solid ${BLACK}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: 18, color: isSel ? YELLOW : BLACK }}
-                      >
-                        {goal.icon}
-                      </span>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: BLACK }}>{goal.name}</div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: BLACK, opacity: 0.6 }}>{goal.time}</div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      width: 22,
-                      height: 22,
-                      border: `2px solid ${BLACK}`,
-                      borderRadius: "50%",
-                      background: isSel ? BLACK : WHITE,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {isSel && (
-                      <span className="material-symbols-outlined" style={{ fontSize: 13, color: YELLOW }}>
-                        check
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </main>
-
-        <BottomBar
-          onContinue={() => onNext(selected || "faster")}
-          continueLabel="Continue"
-          continueDisabled={!selected}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 5: Duolingo Hook — Interactive First Win Challenge (Rex Celebrates!)
-// ─────────────────────────────────────────────────────────────────────────────
-function FirstWinChallenge({
-  onNext,
-  onBack,
-}: {
-  onNext: () => void;
-  onBack: () => void;
-}) {
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [showBanner, setShowBanner] = useState(false);
-  const [hintMessage, setHintMessage] = useState<string | null>(null);
-
-  const CHALLENGE_OPTIONS = [
-    {
-      id: 1,
-      text: "Re-reading notes 5 times passively",
-      icon: "auto_stories",
-      isCorrect: false,
-      hint: "Close! Re-reading creates an 'illusion of competence', but active testing is what makes memory permanent. Try again!",
-    },
-    {
-      id: 2,
-      text: "Active Recall & Testing Yourself",
-      icon: "psychology",
-      isCorrect: true,
-      hint: "Spot on! Active retrieval strengthens neural connections up to 150% more than re-reading.",
-    },
-    {
-      id: 3,
-      text: "Highlighting every single sentence",
-      icon: "border_color",
-      isCorrect: false,
-      hint: "Studies prove highlighting alone yields low exam recall. Look for the cognitive science winner!",
-    },
-    {
-      id: 4,
-      text: "All-night cramming with energy drinks",
-      icon: "bolt",
-      isCorrect: false,
-      hint: "Sleep is when memory actually consolidates! Look for the active recall superpower.",
-    },
-  ];
-
-  const handleSelect = (option: typeof CHALLENGE_OPTIONS[0]) => {
-    setSelectedId(option.id);
-    if (option.isCorrect) {
-      playSuccess();
-      triggerHaptic("success");
-      setShowBanner(true);
-      setHintMessage(null);
-    } else {
-      playTap();
-      triggerHaptic("light");
-      setShowBanner(false);
-      setHintMessage(option.hint);
-    }
-  };
-
-  const mood: RexState = showBanner ? "dancing" : hintMessage ? "processing" : "idle";
-  const dialogue = showBanner
-    ? "EXCELLENT! You nailed the cognitive science!"
-    : hintMessage || "Quick warmup! Which technique creates the highest retention on exam day?";
-
-  return (
-    <div style={s.page}>
-      <Header onBack={onBack} progress={75} />
-      <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 180px", overflowY: "auto" }}>
-          <MascotBubble
-            mood={mood}
-            dialogue={dialogue}
-            subtitle={showBanner ? "Active recall is the core engine of Studenius." : "Tap the superpower study technique:"}
-          />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 10 }}>
-            {CHALLENGE_OPTIONS.map((opt) => {
-              const isSelected = selectedId === opt.id;
-              const isCorrectSelection = isSelected && opt.isCorrect;
-              const isIncorrectSelection = isSelected && !opt.isCorrect;
-
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => handleSelect(opt)}
-                  style={{
-                    ...s.challengeCard,
-                    ...(isCorrectSelection ? s.challengeCardCorrect : {}),
-                    ...(isIncorrectSelection ? s.challengeCardIncorrect : {}),
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <div
-                      style={{
-                        ...s.challengeIconBox,
-                        ...(isCorrectSelection ? { background: GREEN, color: WHITE } : {}),
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                        {isCorrectSelection ? "check" : opt.icon}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: BLACK }}>
-                      {opt.text}
-                    </span>
-                  </div>
-
-                  {isCorrectSelection && (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        background: GREEN,
-                        color: WHITE,
-                        padding: "4px 8px",
-                        borderRadius: 8,
-                        border: `1.5px solid ${BLACK}`,
-                        flexShrink: 0,
-                      }}
-                    >
-                      WINNER!
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </main>
-
-        {/* Duolingo-style Celebration Bottom Drawer */}
-        {showBanner ? (
-          <div style={s.celebrationDrawer}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div style={s.celebrationBadge}>
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: WHITE }}>
-                  check
-                </span>
-              </div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: BLACK, margin: 0 }}>
-                SPOT ON! 🎯
-              </h3>
-            </div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: BLACK, opacity: 0.85, margin: "0 0 14px", lineHeight: 1.4 }}>
-              Testing yourself forces memory retrieval and boosts exam retention up to 150%. Studenius builds your entire daily study habit around it!
-            </p>
+          {/* Returning User Link */}
+          {step === 1 && (
             <button
+              type="button"
               onClick={() => {
-                playSuccess();
-                triggerHaptic("medium");
-                onNext();
+                playPop();
+                setShowLoginModal(true);
               }}
-              style={s.continueBtnSuccess}
+              className="px-2.5 py-1 text-[11.5px] font-black border-2 border-black rounded-lg bg-white hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000]"
             >
-              <span>CONTINUE</span>
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_forward</span>
+              Log In
             </button>
-          </div>
-        ) : (
-          <BottomBar
-            onContinue={onNext}
-            continueLabel="Continue"
-            continueDisabled={!selectedId}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
+          )}
+        </div>
+      </header>
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 6: Learning Style
-// ─────────────────────────────────────────────────────────────────────────────
-const LEARNING_STYLES = [
-  { id: "visual",     label: "Visual Learner",  icon: "visibility",    desc: "Diagrams & mental maps" },
-  { id: "tests",      label: "Practice Tests",  icon: "content_paste", desc: "Mock exams & active recall" },
-  { id: "flashcards", label: "Flashcards",      icon: "dynamic_feed",  desc: "Flipping & spaced repetition" },
-  { id: "reading",    label: "Deep Reading",    icon: "menu_book",     desc: "Structured notes & outlines" },
-  { id: "listening",  label: "Auditory / Talk", icon: "headphones",    desc: "Rex AI voice & discussions" },
-  { id: "mixed",      label: "Mixed Cocktails", icon: "shuffle",       desc: "A bit of everything" },
-];
-
-function LearningStyleStep({
-  onNext,
-  onBack,
-  initialStyles = [],
-}: {
-  onNext: (styles: string[]) => void;
-  onBack: () => void;
-  initialStyles?: string[];
-}) {
-  const [selected, setSelected] = useState<string[]>(initialStyles.length > 0 ? initialStyles : ["flashcards"]);
-
-  const toggle = (id: string) => {
-    playPop();
-    triggerHaptic("light");
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
-
-  const mood: RexState = selected.length > 0 ? "excited" : "idle";
-
-  return (
-    <div style={s.page}>
-      <Header onBack={onBack} onSkip={() => onNext(["mixed"])} progress={85} />
-      <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
-          <MascotBubble
-            mood={mood}
-            dialogue="How do you absorb concepts best?"
-            subtitle="Pick your favorites — Rex will personalize your tool shortcuts."
-          />
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 }}>
-            {LEARNING_STYLES.map((style) => {
-              const isSel = selected.includes(style.id);
-              return (
-                <button
-                  key={style.id}
-                  onClick={() => toggle(style.id)}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    justifyContent: "space-between",
-                    minHeight: 110,
-                    border: `2.5px solid ${BLACK}`,
-                    borderBottom: isSel ? `2.5px solid ${BLACK}` : `4.5px solid ${BLACK}`,
-                    borderRadius: 16,
-                    cursor: "pointer",
-                    padding: 14,
-                    boxSizing: "border-box",
-                    background: isSel ? YELLOW : WHITE,
-                    transform: isSel ? "translateY(2px)" : "none",
-                    boxShadow: isSel ? "none" : `0 2px 0 rgba(0,0,0,0.1)`,
-                    transition: "all 0.12s ease",
-                    textAlign: "left",
-                  }}
-                >
-                  <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 10,
-                        background: isSel ? BLACK : SURFACE,
-                        border: `1.5px solid ${BLACK}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: 18, color: isSel ? YELLOW : BLACK }}
-                      >
-                        {style.icon}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        border: `2px solid ${BLACK}`,
-                        borderRadius: "50%",
-                        background: isSel ? BLACK : "transparent",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {isSel && (
-                        <span className="material-symbols-outlined" style={{ fontSize: 12, color: YELLOW }}>
-                          check
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: BLACK }}>{style.label}</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: BLACK, opacity: 0.6, marginTop: 2 }}>{style.desc}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </main>
-
-        <BottomBar
-          onContinue={() => onNext(selected.length > 0 ? selected : ["mixed"])}
-          continueLabel="Continue"
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 7: Optional Exam Target
-// ─────────────────────────────────────────────────────────────────────────────
-function ExamTargetStep({
-  onNext,
-  onBack,
-  selectedSubjects,
-}: {
-  onNext: (target: ExamTarget | null) => void;
-  onBack: () => void;
-  selectedSubjects: string[];
-}) {
-  const [examTitle, setExamTitle] = useState("");
-  const [examDate, setExamDate] = useState("");
-  const [subject, setSubject] = useState(selectedSubjects[0] || "other");
-
-  const todayStr = new Date().toISOString().split("T")[0];
-  const PRESET_CHIPS = ["Midterm", "Finals", "Unit Test", "SAT / ACT", "AP Exam"];
-
-  const handleChipClick = (chip: string) => {
-    playPop();
-    const primarySubName = SUBJECT_METADATA[subject]?.name || "Exam";
-    setExamTitle(`${primarySubName} ${chip}`);
-  };
-
-  const handleContinue = () => {
-    if (!examTitle.trim() || !examDate) {
-      onNext(null);
-      return;
-    }
-    playSuccess();
-    onNext({
-      examTitle: examTitle.trim(),
-      examDate,
-      subject,
-    });
-  };
-
-  const handleSkip = () => {
-    playTap();
-    onNext(null);
-  };
-
-  const mood: RexState = examTitle ? "excited" : "idle";
-
-  return (
-    <div style={s.page}>
-      <Header onBack={onBack} onSkip={handleSkip} progress={95} />
-      <div style={s.content}>
-        <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
-          <MascotBubble
-            mood={mood}
-            dialogue={examTitle ? `Locked in! Rex will track ${examTitle}.` : "Got an upcoming exam or test?"}
-            subtitle="Optional — we'll set up your countdown and daily question goals."
-          />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 8 }}>
+      {/* Main Content Area */}
+      <main className="w-full max-w-[480px] flex-1 flex flex-col justify-between px-5 py-4 overflow-y-auto">
+        {/* STEP 1: Focus Subject */}
+        {step === 1 && (
+          <div className="flex-1 flex flex-col justify-between animate-fadeIn">
             <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: BLACK,
-                  opacity: 0.6,
-                  marginBottom: 8,
-                }}
-              >
-                Quick Presets
+              <div className="flex items-center gap-3 mb-4">
+                <AnimatedRex state="idle" size="sm" interactive={false} />
+                <div className="bg-white border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_#000]">
+                  <p className="text-[13px] font-black leading-tight text-black">
+                    What class are you studying for?
+                  </p>
+                  <p className="text-[11px] font-medium text-black/60">
+                    Pick your focus subject to begin.
+                  </p>
+                </div>
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {PRESET_CHIPS.map((chip) => {
-                  const isMatch = examTitle.includes(chip);
+
+              {/* Subject Presets Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                {PRESET_SUBJECTS.map((sub) => (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => handleSelectPresetSubject(sub)}
+                    className="p-3 bg-white hover:bg-[#FFD13B] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all text-left flex flex-col justify-between h-[84px] cursor-pointer group"
+                  >
+                    <span className="material-symbols-outlined text-[24px] text-black group-hover:scale-110 transition-transform">
+                      {sub.icon}
+                    </span>
+                    <span className="text-[12.5px] font-black text-black leading-tight">
+                      {sub.name}
+                    </span>
+                  </button>
+                ))}
+
+                {/* Custom Subject Button */}
+                <button
+                  type="button"
+                  onClick={handleSelectCustomSubject}
+                  className={`p-3 border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all text-left flex flex-col justify-between h-[84px] cursor-pointer ${
+                    isCustom ? "bg-[#FFD13B]" : "bg-white hover:bg-[#FFD13B]"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[24px] text-black">edit</span>
+                  <span className="text-[12.5px] font-black text-black leading-tight">
+                    + Custom
+                  </span>
+                </button>
+              </div>
+
+              {/* Inline Custom Subject Form */}
+              {isCustom && (
+                <form onSubmit={handleConfirmCustomSubject} className="mt-3.5 space-y-2">
+                  <label className="block text-[11px] font-black uppercase text-black/70">
+                    Enter Custom Subject Name:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      autoFocus
+                      required
+                      value={customSubject}
+                      onChange={(e) => setCustomSubject(e.target.value)}
+                      placeholder="e.g. Organic Chemistry, Nursing..."
+                      className="flex-1 px-3 py-2 border-2 border-black rounded-xl font-bold text-[13px] bg-white shadow-[1px_1px_0px_#000] focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-[#FF4D2E] hover:bg-black text-white font-black text-[12.5px] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors"
+                    >
+                      Start
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            <div className="pt-4 text-center">
+              <p className="text-[11px] font-medium text-black/50">
+                You can change or add more subjects at any time in your dashboard.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: 1-Minute Warm-Up Challenge */}
+        {step === 2 && challenge && (
+          <div className="flex-1 flex flex-col justify-between animate-fadeIn">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <AnimatedRex state="thinking" size="sm" interactive={false} />
+                <div className="bg-white border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_#000] flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-black text-white">
+                      {activeSubjectName}
+                    </span>
+                    <span className="text-[10.5px] font-bold text-black/55">1-Min Challenge</span>
+                  </div>
+                  <p className="text-[13px] font-black text-black mt-1">
+                    Quick Warm-Up Question
+                  </p>
+                </div>
+              </div>
+
+              {/* Question Card */}
+              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] mb-4">
+                <h2 className="text-[15px] font-black text-black leading-snug">
+                  {challenge.question}
+                </h2>
+              </div>
+
+              {/* Answer Choices */}
+              <div className="space-y-2.5">
+                {challenge.options.map((opt, idx) => {
+                  const isChosen = selectedAnswer === idx;
                   return (
                     <button
-                      key={chip}
+                      key={idx}
                       type="button"
-                      onClick={() => handleChipClick(chip)}
-                      style={{
-                        padding: "8px 14px",
-                        borderRadius: 12,
-                        border: `2px solid ${BLACK}`,
-                        borderBottom: isMatch ? `2px solid ${BLACK}` : `3.5px solid ${BLACK}`,
-                        background: isMatch ? YELLOW : WHITE,
-                        fontWeight: 800,
-                        fontSize: 13,
-                        cursor: "pointer",
-                        transform: isMatch ? "translateY(1.5px)" : "none",
-                        transition: "all 0.1s ease",
-                      }}
+                      disabled={selectedAnswer !== null}
+                      onClick={() => handleAnswerQuestion(idx)}
+                      className={`w-full p-3.5 border-2 border-black rounded-xl font-bold text-[13px] text-left transition-all flex items-center justify-between cursor-pointer ${
+                        isChosen
+                          ? "bg-black text-white shadow-[2px_2px_0px_#000]"
+                          : "bg-white hover:bg-[#FFD13B] text-black shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+                      }`}
                     >
-                      {chip}
+                      <span className="leading-snug">{opt}</span>
+                      <span className="w-5 h-5 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-black shrink-0 ml-2 bg-[#FAF7F2] text-black">
+                        {String.fromCharCode(65 + idx)}
+                      </span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: BLACK,
-                  opacity: 0.6,
-                  marginBottom: 6,
-                }}
-              >
-                Exam or Test Name
-              </label>
-              <input
-                type="text"
-                value={examTitle}
-                onChange={(e) => setExamTitle(e.target.value)}
-                placeholder="e.g. Biology Midterm, Calculus Final"
-                style={{
-                  width: "100%",
-                  padding: "14px 16px",
-                  borderRadius: 14,
-                  border: `2.5px solid ${BLACK}`,
-                  borderBottom: `4px solid ${BLACK}`,
-                  background: WHITE,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: BLACK,
-                  opacity: 0.6,
-                  marginBottom: 6,
-                }}
-              >
-                Target Date
-              </label>
-              <input
-                type="date"
-                min={todayStr}
-                value={examDate}
-                onChange={(e) => setExamDate(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "14px 16px",
-                  borderRadius: 14,
-                  border: `2.5px solid ${BLACK}`,
-                  borderBottom: `4px solid ${BLACK}`,
-                  background: WHITE,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  outline: "none",
-                  boxSizing: "border-box",
-                  cursor: "pointer",
-                }}
-              />
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: BLACK,
-                  opacity: 0.6,
-                  marginBottom: 6,
-                }}
-              >
-                Subject
-              </label>
-              <select
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "14px 16px",
-                  borderRadius: 14,
-                  border: `2.5px solid ${BLACK}`,
-                  borderBottom: `4px solid ${BLACK}`,
-                  background: WHITE,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  outline: "none",
-                  boxSizing: "border-box",
-                  cursor: "pointer",
-                }}
-              >
-                {Object.entries(SUBJECT_METADATA).map(([key, meta]) => (
-                  <option key={key} value={key}>
-                    {meta.name}
-                  </option>
-                ))}
-              </select>
+            <div className="text-center pt-3">
+              <p className="text-[11px] font-bold text-black/50">
+                Tap the best answer to test your recall.
+              </p>
             </div>
           </div>
-        </main>
+        )}
 
-        <BottomBar
-          onSkip={handleSkip}
-          onContinue={handleContinue}
-          continueLabel={examTitle && examDate ? "Set Target" : "Continue"}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen 8: Final Synthesis & Dashboard Launch (Rex Celebrates!)
-// ─────────────────────────────────────────────────────────────────────────────
-function FinalTransition({
-  onDone,
-  userName,
-  selectedSubjects,
-  selectedGoal,
-  selectedStyles,
-  examTarget,
-}: {
-  onDone: () => void;
-  userName: string;
-  selectedSubjects: string[];
-  selectedGoal: string;
-  selectedStyles: string[];
-  examTarget?: ExamTarget | null;
-}) {
-  const { refreshProfile, completeOnboarding } = useAuth();
-  const [stepIndex, setStepIndex] = useState(0);
-  const [doneReady, setDoneReady] = useState(false);
-  const hasFinishedRef = useRef(false);
-
-  // Trigger persistence immediately in parallel on mount
-  useEffect(() => {
-    const session = getCachedSession();
-    const userId = session?.user?.id;
-    const dailyMinutes = GOAL_METADATA[selectedGoal]?.dailyMinutes || 30;
-
-    const prefs: UserStudyPreferences = {
-      name: userName || session?.user?.user_metadata?.full_name || "Scholar",
-      subjects: selectedSubjects && selectedSubjects.length > 0 ? selectedSubjects : ["other"],
-      goal: selectedGoal || "grades",
-      learningStyles: selectedStyles && selectedStyles.length > 0 ? selectedStyles : ["mixed"],
-      dailyGoalMinutes: dailyMinutes,
-      completedAt: new Date().toISOString(),
-      examTarget: examTarget || null,
-    };
-
-    saveUserPreferences(prefs, userId);
-
-    const smartQuests = generateSmartQuests(prefs);
-    try {
-      localStorage.setItem("pz_checklist", JSON.stringify(smartQuests));
-      if (userId) {
-        localStorage.setItem(`pz_${userId}_checklist`, JSON.stringify(smartQuests));
-      }
-    } catch {}
-
-    if (session) {
-      supabase
-        .from("profiles")
-        .upsert(
-          {
-            id: session.user.id,
-            email: session.user.email,
-            full_name: userName || session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
-            daily_goal_minutes: dailyMinutes,
-            avatar_config: { study_preferences: prefs },
-            onboarding_complete: true,
-          },
-          { onConflict: "id" }
-        )
-        .then(() => {});
-    }
-  }, []);
-
-  const handleFinish = () => {
-    if (hasFinishedRef.current) return;
-    hasFinishedRef.current = true;
-    completeOnboarding();
-    onDone();
-    try {
-      refreshProfile();
-    } catch {}
-  };
-
-  // Snappy Duolingo-style staged checklist (total ~1.8 seconds)
-  useEffect(() => {
-    const t1 = setTimeout(() => {
-      setStepIndex(1);
-      playPop(1.1);
-    }, 450);
-
-    const t2 = setTimeout(() => {
-      setStepIndex(2);
-      playPop(1.25);
-    }, 950);
-
-    const t3 = setTimeout(() => {
-      setStepIndex(3);
-      playCelebration();
-      triggerHaptic("celebrate");
-      setDoneReady(true);
-    }, 1550);
-
-    // Auto-proceed after 3.2s if user hasn't clicked
-    const t4 = setTimeout(() => {
-      handleFinish();
-    }, 3200);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
-  }, []);
-
-  const CHECK_STEPS = [
-    { title: "Configuring daily study goal", icon: "timer" },
-    { title: "Calibrating Rex AI Tutor", icon: "psychology" },
-    { title: "Personalizing active recall decks", icon: "school" },
-  ];
-
-  return (
-    <div style={s.page}>
-      <Header progress={100} />
-      <div style={s.content}>
-        <main
-          style={{
-            flex: 1,
-            padding: "24px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 20,
-            boxSizing: "border-box",
-          }}
-        >
-          {/* Animated Rex Hero with celebration dance & sparkles */}
-          <div style={{ cursor: "pointer" }} onClick={() => playPop(1.2)}>
-            <AnimatedRex
-              size="lg"
-              state={doneReady ? "dancing" : "processing"}
-              interactive={true}
-            />
-          </div>
-
-          <div style={{ textAlign: "center" }}>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: BLACK, margin: "0 0 6px", letterSpacing: "-0.01em" }}>
-              {doneReady ? "You're All Set!" : "Building Your Study Plan..."}
-            </h1>
-            <p style={{ fontSize: 14, fontWeight: 600, color: BLACK, opacity: 0.65, margin: 0 }}>
-              {doneReady
-                ? "Welcome to Studenius. Let's make study sessions stick."
-                : "Personalizing your daily sprints and flashcards."}
-            </p>
-          </div>
-
-          {/* Staged Checklist */}
-          <div style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 10 }}>
-            {CHECK_STEPS.map((step, idx) => {
-              const isDone = stepIndex > idx;
-              return (
-                <div
-                  key={step.title}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "12px 16px",
-                    borderRadius: 14,
-                    border: `2px solid ${BLACK}`,
-                    background: isDone ? YELLOW : WHITE,
-                    boxShadow: isDone ? `0 2px 0 ${BLACK}` : "none",
-                    transform: isDone ? "scale(1)" : "scale(0.98)",
-                    opacity: isDone ? 1 : 0.45,
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: "50%",
-                      border: `2px solid ${BLACK}`,
-                      background: isDone ? GREEN : "transparent",
-                      color: WHITE,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {isDone ? (
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
-                    ) : (
-                      <span className="material-symbols-outlined" style={{ fontSize: 14, color: BLACK }}>{step.icon}</span>
-                    )}
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: BLACK }}>
-                    {step.title}
+        {/* STEP 3: Instant Feedback & Streak Awakening */}
+        {step === 3 && challenge && (
+          <div className="flex-1 flex flex-col justify-between animate-fadeIn">
+            <div className="space-y-4">
+              {/* Feedback Pill */}
+              <div
+                className={`p-3.5 border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] ${
+                  isCorrect
+                    ? "bg-[#10B981] text-white"
+                    : "bg-white text-black"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-symbols-outlined text-[20px] font-black">
+                    {isCorrect ? "check_circle" : "info"}
+                  </span>
+                  <span className="text-[14px] font-black">
+                    {isCorrect ? "Spot on!" : "Good try!"}
                   </span>
                 </div>
-              );
-            })}
+                <p className={`text-[12px] font-bold ${isCorrect ? "text-white/95" : "text-black/80"}`}>
+                  Testing yourself beats re-reading.
+                </p>
+                {!isCorrect && (
+                  <p className="text-[11.5px] font-medium text-black/75 mt-1 border-t border-black/20 pt-1">
+                    Correct answer: <strong className="font-black text-black">{challenge.options[challenge.correctIndex]}</strong>. {challenge.explanation}
+                  </p>
+                )}
+              </div>
+
+              {/* Streak Awakening Card */}
+              <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[3px_3px_0px_#000] text-center">
+                <div className="flex justify-center mb-2">
+                  <AnimatedRex state="excited" size="md" interactive={false} />
+                </div>
+
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#FFFBEA] border-2 border-black rounded-full mb-3 shadow-[1px_1px_0px_#000]">
+                  <span className="text-[20px]">🔥</span>
+                  <span className="text-[22px] font-black text-black tracking-tight">
+                    {animatedStreak}
+                  </span>
+                  <span className="text-[12px] font-black uppercase text-black/60">
+                    Day Streak
+                  </span>
+                </div>
+
+                <h3 className="text-[16px] font-black text-black">
+                  You've earned your 1-day study streak.
+                </h3>
+                <p className="text-[12px] font-medium text-black/65 max-w-xs mx-auto mt-1">
+                  Daily active recall builds durable memory that lasts until exam day.
+                </p>
+
+                {/* 7-Day Calendar Strip */}
+                <div className="flex justify-center gap-2 pt-4">
+                  {weekdays.map((day, idx) => {
+                    const isToday = idx === todayDayIdx;
+                    return (
+                      <div key={idx} className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] font-black text-black/50">{day}</span>
+                        <div
+                          className={`w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-[11px] font-black transition-all ${
+                            isToday && animatedStreak > 0
+                              ? "bg-black text-[#FFD13B] shadow-[1px_1px_0px_#000]"
+                              : "bg-[#FAF7F2] text-black/30"
+                          }`}
+                        >
+                          {isToday && animatedStreak > 0 ? "🔥" : "•"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  playPop();
+                  setStep(4);
+                }}
+                className="w-full py-3.5 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors"
+              >
+                Continue
+              </button>
+            </div>
           </div>
+        )}
 
-          {/* Action button */}
-          <button
-            onClick={() => {
-              playTap();
-              handleFinish();
-            }}
-            style={{
-              ...s.continueBtnSuccess,
-              marginTop: 12,
-              width: "100%",
-              maxWidth: 360,
-              opacity: doneReady ? 1 : 0.6,
-            }}
-          >
-            <span>START STUDYING 🚀</span>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_forward</span>
-          </button>
-        </main>
-      </div>
+        {/* STEP 4: Study Goal & Optional Exam Target */}
+        {step === 4 && (
+          <div className="flex-1 flex flex-col justify-between animate-fadeIn">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-[18px] font-black text-black">
+                  Set Your Study Habit
+                </h2>
+                <p className="text-[12px] font-medium text-black/65">
+                  A small amount of practice each day keeps your streak alive.
+                </p>
+              </div>
+
+              {/* Daily Study Time Goal */}
+              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000]">
+                <label className="block text-[11px] font-black uppercase text-black/70 mb-2">
+                  Daily Study Goal:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { min: 5, label: "5 Min", desc: "Quick Review" },
+                    { min: 15, label: "15 Min", desc: "Steady Progress" },
+                    { min: 30, label: "30 Min", desc: "Deep Mastery" },
+                  ].map((g) => (
+                    <button
+                      key={g.min}
+                      type="button"
+                      onClick={() => {
+                        playTap();
+                        setDailyMinutes(g.min);
+                      }}
+                      className={`p-2.5 border-2 border-black rounded-xl text-center transition-all cursor-pointer ${
+                        dailyMinutes === g.min
+                          ? "bg-black text-white shadow-[2px_2px_0px_#000]"
+                          : "bg-[#FAF7F2] hover:bg-white text-black shadow-[1px_1px_0px_#000]"
+                      }`}
+                    >
+                      <span className="block text-[13px] font-black">{g.label}</span>
+                      <span className="block text-[9.5px] opacity-75">{g.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Streak Target Commitment */}
+              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000]">
+                <label className="block text-[11px] font-black uppercase text-black/70 mb-2">
+                  Streak Target Commitment:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { days: 7, label: "7 Days" },
+                    { days: 14, label: "14 Days" },
+                    { days: 30, label: "30 Days" },
+                  ].map((t) => (
+                    <button
+                      key={t.days}
+                      type="button"
+                      onClick={() => {
+                        playTap();
+                        setStreakTarget(t.days);
+                      }}
+                      className={`py-2 px-2 border-2 border-black rounded-xl font-black text-[12.5px] text-center transition-all cursor-pointer ${
+                        streakTarget === t.days
+                          ? "bg-[#FFD13B] text-black shadow-[2px_2px_0px_#000]"
+                          : "bg-[#FAF7F2] hover:bg-white text-black shadow-[1px_1px_0px_#000]"
+                      }`}
+                    >
+                      🔥 {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Optional Exam Target */}
+              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-black uppercase text-black/70">
+                    Upcoming Exam (Optional):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSkipExam}
+                    className="text-[11px] font-bold text-black/55 hover:text-black underline cursor-pointer"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  value={examTitle}
+                  onChange={(e) => setExamTitle(e.target.value)}
+                  placeholder={`e.g. ${activeSubjectName} Midterm`}
+                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12.5px] font-bold bg-[#FAF7F2] focus:bg-white focus:outline-none"
+                />
+
+                <input
+                  type="date"
+                  value={examDate}
+                  onChange={(e) => handleExamDateChange(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12.5px] font-bold bg-[#FAF7F2] focus:bg-white focus:outline-none cursor-pointer"
+                />
+
+                {examDateError && (
+                  <p className="text-[11px] font-black text-[#EF4444]">
+                    {examDateError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="button"
+                disabled={Boolean(examDate && examDateError)}
+                onClick={handleContinueFromGoal}
+                className="w-full py-3.5 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: Keep Your Streak & Account Creation */}
+        {step === 5 && (
+          <div className="flex-1 flex flex-col justify-between animate-fadeIn">
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <AnimatedRex state="excited" size="md" interactive={false} />
+                </div>
+                <h2 className="text-[20px] font-black text-black">
+                  Keep Your Streak
+                </h2>
+                <p className="text-[12.5px] font-medium text-black/65 max-w-xs mx-auto mt-1">
+                  Create your free account so your 1-day study streak is saved.
+                </p>
+              </div>
+
+              {authError && (
+                <div className="p-3 bg-[#EF4444] text-white border-2 border-black rounded-xl text-[12px] font-bold shadow-[2px_2px_0px_#000]">
+                  {authError}
+                </div>
+              )}
+
+              {/* Age & Terms Consent Box */}
+              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000]">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ageConfirmed}
+                    onChange={(e) => {
+                      playTap();
+                      setAgeConfirmed(e.target.checked);
+                    }}
+                    className="mt-1 w-4 h-4 accent-black rounded border-2 border-black cursor-pointer shrink-0"
+                  />
+                  <span className="text-[11.5px] font-bold text-black/80 leading-snug">
+                    I am 13 or older (or studying with parent/guardian consent) and agree to the{" "}
+                    <Link to="/terms" target="_blank" className="underline font-black text-black hover:text-[#FF4D2E]">
+                      Terms
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/privacy" target="_blank" className="underline font-black text-black hover:text-[#FF4D2E]">
+                      Privacy Policy
+                    </Link>.
+                  </span>
+                </label>
+              </div>
+
+              {/* Continue with Google Button */}
+              <button
+                type="button"
+                disabled={!ageConfirmed || authLoading}
+                onClick={handleGoogleSignIn}
+                className="w-full py-3.5 px-4 bg-white hover:bg-[#FAF7F2] text-black font-black text-[13.5px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 cursor-pointer transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>{authLoading ? "Connecting..." : "Continue with Google"}</span>
+              </button>
+
+              {/* Email Form Toggle */}
+              {!showEmailForm ? (
+                <button
+                  type="button"
+                  disabled={!ageConfirmed || authLoading}
+                  onClick={() => {
+                    playPop();
+                    setShowEmailForm(true);
+                  }}
+                  className="w-full py-2.5 text-[12px] font-black text-black/70 hover:text-black underline cursor-pointer disabled:opacity-40"
+                >
+                  Or sign in with email
+                </button>
+              ) : emailSent ? (
+                <div className="p-4 bg-[#10B981] text-white border-2 border-black rounded-xl text-center shadow-[2px_2px_0px_#000]">
+                  <p className="font-black text-[13px]">Check your inbox!</p>
+                  <p className="text-[11.5px] mt-1 text-white/90">
+                    We sent a sign-in link to <strong>{emailInput}</strong>.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleEmailAuth} className="space-y-2 pt-1">
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      required
+                      placeholder="Enter your student email..."
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 border-2 border-black rounded-xl text-[12.5px] font-bold bg-white focus:outline-none shadow-[1px_1px_0px_#000]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!ageConfirmed || authLoading || !emailInput.trim()}
+                      className="px-4 py-2.5 bg-black hover:bg-[#FF4D2E] text-white font-black text-[12.5px] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors disabled:opacity-40"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            <div className="text-center pt-3">
+              <p className="text-[10.5px] font-medium text-black/45">
+                Studenius is free to start. No credit card required.
+              </p>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Returning User Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-[#FFFBEA] border-2 border-black rounded-2xl p-6 max-w-sm w-full shadow-[4px_4px_0px_#000] animate-fadeIn">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[17px] font-black text-black">Log in to Studenius</h3>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(false)}
+                className="w-7 h-7 rounded-lg border-2 border-black bg-white flex items-center justify-center font-black text-[12px] hover:bg-black hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loginError && (
+              <div className="mb-3 p-2.5 bg-[#EF4444] text-white border-2 border-black rounded-xl text-[11.5px] font-bold">
+                {loginError}
+              </div>
+            )}
+
+            {/* Google OAuth Shortcut */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="w-full py-2.5 px-4 mb-4 bg-white hover:bg-[#FAF7F2] text-black font-black text-[12.5px] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer flex items-center justify-center gap-2.5"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1 h-[1.5px] bg-black/20" />
+              <span className="text-[10px] font-black uppercase text-black/45">Or with Password</span>
+              <div className="flex-1 h-[1.5px] bg-black/20" />
+            </div>
+
+            <form onSubmit={handleReturningUserLogin} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-black uppercase text-black/70 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12.5px] font-bold bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase text-black/70 mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12.5px] font-bold bg-white focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-2.5 bg-black hover:bg-[#FF4D2E] text-white font-black text-[13px] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {loginLoading ? "Signing in..." : "Log In"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Onboarding Container
-// ─────────────────────────────────────────────────────────────────────────────
-export default function Onboarding() {
-  const navigate = useNavigate();
-  const { session, user } = useAuth();
-  const location = useLocation();
-
-  const [screen, setScreen] = useState<Screen>(() => {
-    const p = new URLSearchParams(location.search);
-    if (p.get("step") === "nameInput") return "nameInput";
-    return "intro";
-  });
-
-  const [userName, setUserName] = useState(() => {
-    return user?.user_metadata?.full_name || user?.user_metadata?.name || "";
-  });
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [selectedGoal, setSelectedGoal] = useState("");
-  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-  const [selectedExamTarget, setSelectedExamTarget] = useState<ExamTarget | null>(null);
-
-  const go = (s: Screen) => setScreen(s);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("step") === "nameInput") {
-      setScreen("nameInput");
-    }
-  }, [location.search]);
-
-  // If newly authenticated user comes with onboarding incomplete, advance to nameInput
-  useEffect(() => {
-    if (!user || !session) return;
-    if (screen !== "intro") return;
-
-    let isMounted = true;
-    supabase
-      .from("profiles")
-      .select("onboarding_complete")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data: profile }) => {
-        if (!isMounted) return;
-        // Only auto-advance if onboarding is explicitly not complete
-        if (profile?.onboarding_complete === false) {
-          setScreen("nameInput");
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user, session, screen]);
-
-  return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0&display=swap');
-        * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: ${BG}; }
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
-        }
-      `}</style>
-
-      {screen === "intro" && (
-        <IntroHook onNext={() => go("nameInput")} />
-      )}
-
-      {screen === "nameInput" && (
-        <NameInput
-          initialName={userName}
-          onNext={(n) => {
-            setUserName(n);
-            go("subjectSelection");
-          }}
-          onBack={() => go("intro")}
-        />
-      )}
-
-      {screen === "subjectSelection" && (
-        <SubjectSelection
-          initialSelected={selectedSubjects}
-          onNext={(subs) => {
-            setSelectedSubjects(subs);
-            go("goalSelection");
-          }}
-          onBack={() => go("nameInput")}
-        />
-      )}
-
-      {screen === "goalSelection" && (
-        <GoalSelection
-          initialGoal={selectedGoal}
-          onNext={(goal) => {
-            setSelectedGoal(goal);
-            go("firstWinChallenge");
-          }}
-          onBack={() => go("subjectSelection")}
-        />
-      )}
-
-      {screen === "firstWinChallenge" && (
-        <FirstWinChallenge
-          onNext={() => go("learningStyle")}
-          onBack={() => go("goalSelection")}
-        />
-      )}
-
-      {screen === "learningStyle" && (
-        <LearningStyleStep
-          initialStyles={selectedStyles}
-          onNext={(styles) => {
-            setSelectedStyles(styles);
-            go("examTarget");
-          }}
-          onBack={() => go("firstWinChallenge")}
-        />
-      )}
-
-      {screen === "examTarget" && (
-        <ExamTargetStep
-          selectedSubjects={selectedSubjects}
-          onNext={(target) => {
-            setSelectedExamTarget(target);
-            go("finalTransition");
-          }}
-          onBack={() => go("learningStyle")}
-        />
-      )}
-
-      {screen === "finalTransition" && (
-        <FinalTransition
-          onDone={() => navigate("/dashboard", { replace: true })}
-          userName={userName}
-          selectedSubjects={selectedSubjects}
-          selectedGoal={selectedGoal}
-          selectedStyles={selectedStyles}
-          examTarget={selectedExamTarget}
-        />
-      )}
-    </>
   );
 }

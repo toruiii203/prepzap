@@ -34,3 +34,7 @@ export class StudeniusDB extends Dexie {
 }
 
 export const db = new StudeniusDB();
+
+if (typeof window !== 'undefined' && navigator.storage?.persist) {
+  navigator.storage.persist().catch(() => {});
+}

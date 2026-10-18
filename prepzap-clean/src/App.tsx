@@ -96,6 +96,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Onboarding from "./pages/OnboardingFlow";
 import AuthCallback from "./pages/AuthCallback";
+import { applyOnboardingDraftIfAny, clearOnboardingDraft } from "./lib/onboardingBank";
 import Admin from "./pages/Admin";
 import SourceLibrary from "./pages/SourceLibrary";
 import Dashboard from "./pages/Dashboard";
@@ -173,7 +174,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (minLoading) return <AppSkeleton />;
 
   if (!session) return <Navigate to="/login" replace />;
-  if (needsOnboarding) return <Navigate to="/onboarding?step=nameInput" replace />;
+  if (needsOnboarding) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
 }
 
@@ -238,9 +239,11 @@ function AppRoutes() {
                 .select("onboarding_complete")
                 .eq("id", data.session.user.id)
                 .maybeSingle();
-              if (prof?.onboarding_complete === false) {
-                navigate("/onboarding?step=nameInput", { replace: true });
+              if (prof?.onboarding_complete) {
+                clearOnboardingDraft();
+                navigate("/dashboard", { replace: true });
               } else {
+                await applyOnboardingDraftIfAny(data.session.user);
                 navigate("/dashboard", { replace: true });
               }
             } catch {
@@ -272,9 +275,11 @@ function AppRoutes() {
                   .select("onboarding_complete")
                   .eq("id", data.session.user.id)
                   .maybeSingle();
-                if (prof?.onboarding_complete === false) {
-                  navigate("/onboarding?step=nameInput", { replace: true });
+                if (prof?.onboarding_complete) {
+                  clearOnboardingDraft();
+                  navigate("/dashboard", { replace: true });
                 } else {
+                  await applyOnboardingDraftIfAny(data.session.user);
                   navigate("/dashboard", { replace: true });
                 }
               } catch {

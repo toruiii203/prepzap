@@ -1,102 +1,119 @@
-import { useEffect, useState } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
-import { supabase } from "@/lib/supabase"
-import { getCachedSession } from "@/lib/authSession"
+﻿import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { type User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { getCachedSession } from "@/lib/authSession";
+import { applyOnboardingDraftIfAny, clearOnboardingDraft } from "@/lib/onboardingBank";
 
 // Handles redirect after:
 // - Google OAuth (sign in or sign up)
 // - Email confirmation link click
-// Checks onboarding_complete and routes accordingly.
+// If returning user (onboarding_complete), clears draft and routes to /dashboard.
+// If new user, applies onboarding draft, marks complete, and routes to /dashboard.
 export default function AuthCallback() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    let resolved = false
+    let resolved = false;
 
-    const getDestination = async (userId: string) => {
-      const redirect = sessionStorage.getItem("post_auth_redirect")
-      sessionStorage.removeItem("post_auth_redirect")
+    const getDestination = async (user: User) => {
+      const redirect = sessionStorage.getItem("post_auth_redirect");
+      sessionStorage.removeItem("post_auth_redirect");
+
       try {
         const { data: profile } = await supabase
           .from("profiles")
           .select("onboarding_complete")
-          .eq("id", userId)
-          .maybeSingle()
+          .eq("id", user.id)
+          .maybeSingle();
 
-        if (!profile?.onboarding_complete) {
-          return "/onboarding?step=nameInput"
+        // Returning user: never overwrite, clear draft to protect shared computers
+        if (profile?.onboarding_complete) {
+          clearOnboardingDraft();
+          return redirect || "/dashboard";
         }
-      } catch {}
-      return redirect || "/dashboard"
-    }
+
+        // New user or incomplete: apply any active draft
+        await applyOnboardingDraftIfAny(user);
+        return redirect || "/dashboard";
+      } catch (err) {
+        console.error("Error in getDestination:", err);
+        clearOnboardingDraft();
+        return redirect || "/dashboard";
+      }
+    };
 
     const processAuth = async () => {
       // 1. Check cached session first (instant, no lock)
-      const cached = getCachedSession()
-      if (cached) {
-        resolved = true
-        const dest = await getDestination(cached.user.id)
-        navigate(dest, { replace: true })
-        return
+      const cached = getCachedSession();
+      if (cached?.user) {
+        resolved = true;
+        const dest = await getDestination(cached.user);
+        navigate(dest, { replace: true });
+        return;
       }
 
-      // 2. Wait for Supabase to emit the session via onAuthStateChange.
-      // GoTrue automatically parses ?code= or #access_token= from the URL
-      // when detectSessionInUrl is true. We just wait for it.
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
-        if (s && !resolved) {
-          resolved = true
-          subscription.unsubscribe()
-          const dest = await getDestination(s.user.id)
-          navigate(dest, { replace: true })
+      // 2. Wait for Supabase to emit the session via onAuthStateChange
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (_event, s) => {
+        if (s?.user && !resolved) {
+          resolved = true;
+          subscription.unsubscribe();
+          const dest = await getDestination(s.user);
+          navigate(dest, { replace: true });
         }
-      })
+      });
 
-      // 5. Safety timeout: if after 8 seconds nothing resolved, show error and redirect
+      // 3. Safety timeout: after 8 seconds, show error and return to /onboarding
       setTimeout(() => {
         if (!resolved) {
-          resolved = true
-          subscription.unsubscribe()
-          setErrorMsg("Login timed out. Returning to login...")
-          setTimeout(() => navigate("/onboarding", { replace: true }), 1500)
+          resolved = true;
+          subscription.unsubscribe();
+          setErrorMsg("Login timed out. Returning to onboarding...");
+          setTimeout(() => navigate("/onboarding", { replace: true }), 1500);
         }
-      }, 8000)
-    }
+      }, 8000);
+    };
 
-    processAuth()
-  }, [navigate, searchParams])
+    processAuth();
+  }, [navigate, searchParams]);
 
   return (
-    <div style={{
-      minHeight: "100dvh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#FFFBEA",
-      fontFamily: "'Quicksand', sans-serif",
-      fontSize: 18,
-      fontWeight: 700,
-      color: "#1A1A1A",
-      gap: 12,
-    }}>
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#FFFBEA",
+        fontFamily: "'Quicksand', sans-serif",
+        fontSize: 18,
+        fontWeight: 700,
+        color: "#000000",
+        gap: 12,
+      }}
+    >
       {errorMsg ? (
-        <span style={{ color: "#E8534A" }}>{errorMsg}</span>
+        <span style={{ color: "#EF4444" }}>{errorMsg}</span>
       ) : (
         <>
-          <div style={{
-            width: 32,
-            height: 32,
-            border: "3px solid #1A1A1A",
-            borderTopColor: "transparent",
-            borderRadius: "50%",
-            animation: "spin 0.8s linear infinite"
-          }} />
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              border: "3px solid #000000",
+              borderTopColor: "transparent",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
           <span>Signing you in...</span>
         </>
       )}
     </div>
-  )
+  );
 }

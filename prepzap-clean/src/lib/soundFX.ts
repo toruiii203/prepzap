@@ -284,3 +284,11 @@ export function playMastery() {
     triggerHaptic("celebrate");
   } catch {}
 }
+
+export function setSoundEnabled(enabled: boolean): void {
+  soundEnabled = enabled;
+}
+
+export function isSoundEnabled(): boolean {
+  return soundEnabled;
+}

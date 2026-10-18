@@ -403,7 +403,11 @@ export default function CampusVault() {
                     <div className="pt-3.5 mt-4 border-t-2 border-black/10 space-y-3">
                       <div className="flex items-center justify-between text-[11px] font-bold text-black/55">
                         <div className="flex items-center gap-1.5 truncate max-w-[160px]">
-                          <span>{note.authorAvatar || "📝"}</span>
+                          {note.authorAvatar?.startsWith("/") || note.authorAvatar?.startsWith("http") ? (
+                            <img src={note.authorAvatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                          )}
                           <span className="truncate">{note.author}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[10.5px] text-black/45">

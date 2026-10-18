@@ -320,7 +320,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                         href={note.attachmentUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[9.5px] font-black px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 flex items-center gap-0.5 hover:underline"
+                        className="text-[9.5px] font-black px-1.5 py-0.5 rounded bg-black text-white flex items-center gap-0.5 hover:opacity-80"
                       >
                         <span className="material-symbols-outlined text-[11px]">attachment</span>
                         <span>File Link</span>
