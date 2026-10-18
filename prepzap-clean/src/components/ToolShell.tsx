@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   PanelLeftClose, PanelLeftOpen, Plus, Clock, Trash2,
   FileType, ImageIcon, Hash, X, ChevronDown, Zap, Globe, Sparkles,

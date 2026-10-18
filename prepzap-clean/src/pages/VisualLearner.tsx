@@ -1,4 +1,5 @@
-import { loadHistory, addHistoryEntry, deleteHistoryEntry } from "@/lib/historyStore";
+import { loadHistory, addHistoryEntry, deleteHistoryEntry, saveHistory } from "@/lib/historyStore";
+import type { HistoryEntry } from "@/components/ToolShell";
 /**
  * VisualLearner.tsx /// Studenius
  * Breaks any concept into 4 memorable visual scenes.
@@ -48,6 +49,7 @@ interface SceneWithPhoto extends Scene {
   photoUrl?: string
   photoAlt?: string
   photoLoading: boolean
+  svgContent?: string
 }
 
 // ////// Stable numeric seed from strings ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,11 +107,32 @@ async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string 
   return null
 }
 
+function urlLoads(url: string, timeout = 5000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const timer = setTimeout(() => {
+      img.src = "";
+      resolve(false);
+    }, timeout);
+    img.onload = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    img.src = url;
+  });
+}
+
 function unsplashUrl(scene: Scene): string {
   const keyword = encodeURIComponent(scene.unsplashQuery.split(" ").slice(0, 2).join(","));
   const seed = Math.abs((scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0));
   return `https://loremflickr.com/800/500/${keyword}?lock=${seed}`;
 }
+
+const loremFlickrUrl = unsplashUrl;
 
 function pollinationsUrl(concept: string, scene: Scene): string {
   const prompt = encodeURIComponent(`Educational illustration of ${concept}: ${scene.title}, flat vector art style`);
@@ -149,7 +172,7 @@ The SVG must have viewBox="0 0 400 300" and width="100%" height="100%".`;
       "You are an expert technical illustrator capable of writing clean, semantic, scalable inline SVG code directly.",
       model
     );
-    const content = typeof res === "string" ? res : (res.choices?.[0]?.message?.content || "");
+    const content = typeof res === "string" ? res : "";
     const svgMatch = content.match(/<svg[\s\S]*?<\/svg>/i);
     if (svgMatch) return svgMatch[0];
     throw new Error("No SVG found");
@@ -226,20 +249,21 @@ export default function VisualLearner() {
   }, []);
 
   const handleHistorySelect = (entry: HistoryEntry) => {
-        try {
-      const parsed: StoryboardResult = JSON.parse(entry.output)
-      setConcept(parsed.concept)
-      // Restore with Pollinations URL /// SceneCard onError will cascade to fallbacks if needed
+    try {
+      const parsed: StoryboardResult = typeof entry.data === "string" ? JSON.parse(entry.data) : (entry.data as StoryboardResult);
+      if (!parsed || !parsed.scenes) return;
+      setConcept(parsed.concept);
       const restored: SceneWithPhoto[] = parsed.scenes.map(s => ({
         ...s,
-        photoUrl: loremFlickrUrl(s),
+        photoUrl: unsplashUrl(s),
         photoAlt: `${parsed.concept} — ${s.title}`,
         photoLoading: false,
-      }))
-      setScenes(restored)
-      setPhase("result")
+      }));
+      setScenes(restored);
+      setPhase("result");
+      setSidebarOpen(false);
     } catch { /* ignore */ }
-  }
+  };
 
   // ////// Generate storyboard ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleGenerate = async (conceptToUse?: string) => {
@@ -315,21 +339,37 @@ If source material is provided, base the scenes on its actual content, not gener
         }
       })()
 
-      addHistoryEntry("visual", {
-        prompt: target,
-        preview: parsed.scenes[0]?.anchorPhrase ?? target,
-        output: JSON.stringify(parsed),
-        model,
-        meta: `${parsed.scenes.length}`,
-      });
-      setToolHistory(loadHistory("visual")); setConcept(""); setConceptInput(""); setScenes([]); setError(null)
+      const newEntry: HistoryEntry = {
+        id: Date.now().toString(),
+        title: target,
+        subtitle: parsed.scenes[0]?.anchorPhrase ?? target,
+        timestamp: new Date(),
+        data: parsed,
+      };
+      const nextHistory = addHistoryEntry("visual", newEntry, toolHistory);
+      setToolHistory(nextHistory);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error"
-      setError(`Error: ${msg}`)
-    } finally {
-      setIsLoading(false)
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setError(`Error: ${msg}`);
+      setPhase("setup");
     }
-  }
+  };
+
+  const handleRegenerateScene = async (index: number) => {
+    const scene = scenes[index];
+    if (!scene) return;
+    setScenes(prev => prev.map((s, idx) => idx === index ? { ...s, photoLoading: true } : s));
+    const svgData = await fetchSceneSVG(concept, scene, model);
+    setScenes(prev => prev.map((s, idx) => idx === index ? { ...s, svgContent: svgData, photoLoading: false } : s));
+  };
+
+  const resetAll = () => {
+    setConcept("");
+    setConceptInput("");
+    setScenes([]);
+    setError(null);
+    setPhase("setup");
+  };
 
   // ////// Shared header //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const HeaderRow = () => (
@@ -375,7 +415,7 @@ If source material is provided, base the scenes on its actual content, not gener
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {toolHistory.length > 0 && (
-              <button onClick={() => { deleteHistoryEntry("visual", "all"); setToolHistory([]); }}
+              <button onClick={() => { saveHistory("visual", []); setToolHistory([]); }}
                 style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}
                 onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
                 onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>Clear all</button>
@@ -401,6 +441,7 @@ If source material is provided, base the scenes on its actual content, not gener
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {[...toolHistory].reverse().map((entry) => (
                 <div key={entry.id}
+                  onClick={() => handleHistorySelect(entry)}
                   style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
@@ -557,7 +598,20 @@ If source material is provided, base the scenes on its actual content, not gener
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16, marginBottom: 32 }}>
           {scenes.map((scene, i) => (
-            <SceneCard key={scene.id} scene={scene} index={i} concept={concept} onRegenerate={() => handleRegenerateScene(i)} />
+            <SceneCard
+              key={scene.id}
+              scene={scene}
+              index={i}
+              concept={concept}
+              onRegenerate={() => handleRegenerateScene(i)}
+              onSave={(entry) => {
+                setSavedImages(prev => {
+                  const updated = [entry, ...prev.filter(s => s.url !== entry.url)];
+                  localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
+                  return updated;
+                });
+              }}
+            />
           ))}
         </div>
 
@@ -644,7 +698,19 @@ If source material is provided, base the scenes on its actual content, not gener
 }
 
 // ////// Scene card ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPhoto; index: number; concept: string; onRegenerate: () => void }) {
+function SceneCard({
+  scene,
+  index,
+  concept,
+  onRegenerate,
+  onSave,
+}: {
+  scene: SceneWithPhoto;
+  index: number;
+  concept: string;
+  onRegenerate: () => void;
+  onSave: (entry: { url: string; concept: string; anchor: string; savedAt: string }) => void;
+}) {
   const TEAL   = "#8b1a2a"
   const CARD   = "#1f0b13"
   const BORDER = "#252525"
@@ -711,15 +777,22 @@ function SceneCard({ scene, index, concept, onRegenerate }: { scene: SceneWithPh
             <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 5 }}>Why This Works</div>
             <p style={{ fontSize: 11, color: "#666", margin: 0, lineHeight: 1.55 }}>{scene.whyItWorks}</p>
           </div>
-          {scene.photoUrl && (
+          {(scene.photoUrl || scene.svgContent) && (
             <button
               onClick={() => {
-                const entry = { url: scene.svgContent?.startsWith("FALLBACK_IMG:") ? scene.svgContent.replace("FALLBACK_IMG:", "") : scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl!, concept, anchor: scene.anchorPhrase, savedAt: new Date().toISOString() };
-                setSavedImages(prev => {
-                  const updated = [entry, ...prev.filter(s => s.url !== (scene.svgContent?.startsWith("FALLBACK_IMG:") ? scene.svgContent.replace("FALLBACK_IMG:", "") : scene.svgContent ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent) : scene.photoUrl))];
-                  localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
-                  return updated;
-                });
+                const url = scene.svgContent?.startsWith("FALLBACK_IMG:")
+                  ? scene.svgContent.replace("FALLBACK_IMG:", "")
+                  : scene.svgContent
+                  ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent)
+                  : (scene.photoUrl || "");
+                if (url) {
+                  onSave({
+                    url,
+                    concept,
+                    anchor: scene.anchorPhrase,
+                    savedAt: new Date().toISOString(),
+                  });
+                }
               }}
               title="Save to my images"
               style={{ flexShrink: 0, padding: "4px 8px", fontSize: 10, background: "rgba(0,196,180,0.06)", border: "0.5px solid rgba(0,196,180,0.2)", color: "#8b1a2a", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}

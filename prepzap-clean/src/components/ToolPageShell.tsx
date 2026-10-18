@@ -1,6 +1,9 @@
 import { BuddyCompanion } from "@/components/BuddyCompanion";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 import { ChevronDown, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -48,7 +51,7 @@ function SourceSelectorPill() {
   }, []);
 
   const select = (s: SourceFile | null) => {
-    saveContext(s ? s.id : null);
+    saveContext(s ? { mode: "selected", selectedIds: [s.id] } : { mode: "none", selectedIds: [] });
     setActive(s);
     setOpen(false);
   };
