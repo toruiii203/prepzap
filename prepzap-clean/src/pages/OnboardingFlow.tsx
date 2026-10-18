@@ -21,6 +21,7 @@ import {
   clearOnboardingDraft,
   type DiagnosticQuestion,
 } from "@/lib/onboardingBank";
+import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
 
 interface SubjectOption {
   id: string;
@@ -551,91 +552,38 @@ export default function OnboardingFlow() {
         {/* STEP 3: Instant Feedback & Streak Awakening */}
         {step === 3 && challenge && (
           <div className="flex-1 flex flex-col justify-between animate-fadeIn">
-            <div className="space-y-4">
-              {/* Feedback Pill */}
-              <div
-                className={`p-3.5 border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] ${
-                  isCorrect
-                    ? "bg-[#10B981] text-white"
-                    : "bg-white text-black"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-[20px] font-black">
-                    {isCorrect ? "check_circle" : "info"}
-                  </span>
-                  <span className="text-[14px] font-black">
-                    {isCorrect ? "Spot on!" : "Good try!"}
-                  </span>
-                </div>
-                <p className={`text-[12px] font-bold ${isCorrect ? "text-white/95" : "text-black/80"}`}>
-                  Testing yourself beats re-reading.
-                </p>
-                {!isCorrect && (
-                  <p className="text-[11.5px] font-medium text-black/75 mt-1 border-t border-black/20 pt-1">
-                    Correct answer: <strong className="font-black text-black">{challenge.options[challenge.correctIndex]}</strong>. {challenge.explanation}
-                  </p>
-                )}
+            {/* Feedback Pill */}
+            <div
+              className={`p-3.5 border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] mb-2 ${
+                isCorrect
+                  ? "bg-[#10B981] text-white"
+                  : "bg-white text-black"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="material-symbols-outlined text-[20px] font-black">
+                  {isCorrect ? "check_circle" : "info"}
+                </span>
+                <span className="text-[14px] font-black">
+                  {isCorrect ? "Spot on!" : "Good try!"}
+                </span>
               </div>
-
-              {/* Streak Awakening Card */}
-              <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[3px_3px_0px_#000] text-center">
-                <div className="flex justify-center mb-2">
-                  <AnimatedRex state="excited" size="md" interactive={false} />
-                </div>
-
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#FFFBEA] border-2 border-black rounded-full mb-3 shadow-[1px_1px_0px_#000]">
-                  <span className="text-[20px]">🔥</span>
-                  <span className="text-[22px] font-black text-black tracking-tight">
-                    {animatedStreak}
-                  </span>
-                  <span className="text-[12px] font-black uppercase text-black/60">
-                    Day Streak
-                  </span>
-                </div>
-
-                <h3 className="text-[16px] font-black text-black">
-                  You've earned your 1-day study streak.
-                </h3>
-                <p className="text-[12px] font-medium text-black/65 max-w-xs mx-auto mt-1">
-                  Daily active recall builds durable memory that lasts until exam day.
+              <p className={`text-[12px] font-bold ${isCorrect ? "text-white/95" : "text-black/80"}`}>
+                Testing yourself beats re-reading.
+              </p>
+              {!isCorrect && (
+                <p className="text-[11.5px] font-medium text-black/75 mt-1 border-t border-black/20 pt-1">
+                  Correct answer: <strong className="font-black text-black">{challenge.options[challenge.correctIndex]}</strong>. {challenge.explanation}
                 </p>
-
-                {/* 7-Day Calendar Strip */}
-                <div className="flex justify-center gap-2 pt-4">
-                  {weekdays.map((day, idx) => {
-                    const isToday = idx === todayDayIdx;
-                    return (
-                      <div key={idx} className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] font-black text-black/50">{day}</span>
-                        <div
-                          className={`w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-[11px] font-black transition-all ${
-                            isToday && animatedStreak > 0
-                              ? "bg-black text-[#FFD13B] shadow-[1px_1px_0px_#000]"
-                              : "bg-[#FAF7F2] text-black/30"
-                          }`}
-                        >
-                          {isToday && animatedStreak > 0 ? "🔥" : "•"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              )}
             </div>
 
-            <div className="pt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  playPop();
-                  setStep(4);
-                }}
-                className="w-full py-3.5 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors"
-              >
-                Continue
-              </button>
-            </div>
+            {/* Duolingo-style Streak Celebration with Animated Dual-Core Flame, Floating Sparks, and Calendar */}
+            <StreakCelebrationModal
+              isEmbedded={true}
+              streakCount={1}
+              onContinue={() => setStep(4)}
+            />
           </div>
         )}
 

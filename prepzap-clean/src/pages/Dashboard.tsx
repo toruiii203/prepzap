@@ -14,6 +14,7 @@ import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
 import { ExamCountdownBanner, calculateExamReadiness } from "@/components/ExamCountdownBanner";
 import { loadLibrary } from "@/lib/sourceContext";
 import { AnimatedRex } from "@/components/AnimatedRex";
+import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
 import {
   getStoredPreferences,
@@ -751,6 +752,7 @@ function DashboardHeader({
   totalXp,
   isPro,
   onOpenHelp,
+  onStreakClick,
   navigate,
 }: {
   displayName: string;
@@ -758,6 +760,7 @@ function DashboardHeader({
   totalXp: number;
   isPro: boolean;
   onOpenHelp?: () => void;
+  onStreakClick?: () => void;
   navigate: any;
 }) {
   const level = levelFromXp(totalXp);
@@ -776,8 +779,11 @@ function DashboardHeader({
       <div className="flex items-center gap-2.5 flex-wrap">
         {/* Streak Flame Badge */}
         <div
-          onClick={() => { playPop(); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_#1A1A1A] cursor-pointer hover:bg-[#FFFDF5] transition-all"
+          onClick={() => {
+            playPop();
+            onStreakClick?.();
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_#000] cursor-pointer hover:bg-[#FFFDF5] active:translate-y-0.5 transition-all"
           title={`${streakDays} Day Streak`}
         >
           <span className="text-[15px]">🔥</span>
@@ -830,6 +836,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { isPro } = usePlan();
+  const [showStreakModal, setShowStreakModal] = useState(false);
 
   const rawName =
     user?.avatarConfig?.full_name ||
@@ -1085,7 +1092,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           {/* Flame streak */}
           <div
-            onClick={() => { playPop(); navigate("/challenges"); }}
+            onClick={() => { playPop(); setShowStreakModal(true); }}
             className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs cursor-pointer hover:bg-[#FAF7F2] transition-colors"
             title={`${profile?.streak_days ?? 1} Day Streak`}
           >
@@ -1139,6 +1146,7 @@ export default function Dashboard() {
           totalXp={profile?.total_xp ?? 0}
           isPro={isPro}
           onOpenHelp={() => tutorial.show()}
+          onStreakClick={() => setShowStreakModal(true)}
           navigate={navigate}
         />
 
@@ -1330,6 +1338,14 @@ export default function Dashboard() {
           <RecentSessionsRows sessions={sessions} loadingSessions={loadingSessions} />
         </section>
       </main>
+
+      {/* Streak Celebration Modal with Dual-Core Flame, Floating Sparks, and Calendar */}
+      <StreakCelebrationModal
+        isOpen={showStreakModal}
+        streakCount={profile?.streak_days ?? 1}
+        onClose={() => setShowStreakModal(false)}
+        onContinue={() => setShowStreakModal(false)}
+      />
 
     </div>
   );
