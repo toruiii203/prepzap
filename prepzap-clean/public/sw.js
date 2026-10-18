@@ -6,7 +6,7 @@
 // at that specific activation) would ever clean up. Bump SW_VERSION when
 // you actually change what's precached; the browser's own update algorithm
 // (byte-diffing this file) still handles detecting real deploys on its own.
-const SW_VERSION = "v10";
+const SW_VERSION = "v11";
 const CACHE_NAME = "studenius-" + SW_VERSION;
 
 // Assets to cache immediately on install
@@ -175,9 +175,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Images and fonts — cache first (these don't change often)
+  // Only intercept same-origin to prevent breaking cross-origin CDN images with 504
   if (
-    event.request.destination === "image" ||
-    event.request.destination === "font"
+    (event.request.destination === "image" || event.request.destination === "font") &&
+    event.request.url.startsWith(self.location.origin)
   ) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
