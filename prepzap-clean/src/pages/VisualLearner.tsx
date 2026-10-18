@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -12,26 +12,68 @@ import type { HistoryEntry } from "@/components/ToolShell";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
+import UpgradePrompt from "@/components/UpgradePrompt";
+import { fireConfetti } from "@/lib/confetti";
+import { toPng } from "html-to-image";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Scene {
+export type StructureType = "process" | "system" | "cycle" | "spectrum";
+
+export interface Scene {
   id: string;
+  stageNumber: number;
+  stageLabel: string;
   title: string;
   anchorPhrase: string;
   whyItWorks: string;
-  unsplashQuery: string;
+  examTip?: string;
+  photoKeywords: string[];
   exactWikipediaTitle?: string;
+  unsplashQuery?: string;
 }
 
-interface StoryboardResult {
+export interface StoryboardResult {
   concept: string;
+  rawTopic?: string;
+  sourceTag?: string;
+  structureType: StructureType;
+  bigPictureSummary: string;
   scenes: Scene[];
 }
 
-interface SceneWithPhoto extends Scene {
+export interface SceneWithPhoto extends Scene {
   candidateUrls: string[];
   photoAlt?: string;
   photoLoading: boolean;
+}
+
+// ── Title & Topic Sanitizer ──────────────────────────────────────────────────
+export function sanitizeTopic(raw: string): { cleanTitle: string; sourceTag?: string } {
+  let str = (raw || "").trim();
+  str = str.replace(/\.(pdf|docx?|pptx?|txt|md|epub|png|jpe?g)$/i, "");
+
+  // Match prefixes like "ETInCpE-3M-Artificial-Intelligence" or "BIO101_Lecture4_Mitosis"
+  const tokens = str.split(/[-_]+/);
+  if (tokens.length >= 2 && /^[A-Za-z0-9]{3,12}$/.test(tokens[0])) {
+    if (tokens.length >= 3 && /^[A-Za-z0-9]{1,6}$/.test(tokens[1])) {
+      const tag = `${tokens[0]}-${tokens[1]}`;
+      const title = tokens.slice(2).join(" ");
+      return {
+        cleanTitle: title.replace(/([a-z])([A-Z])/g, "$1 $2").trim() || str,
+        sourceTag: tag,
+      };
+    } else {
+      const tag = tokens[0];
+      const title = tokens.slice(1).join(" ");
+      return {
+        cleanTitle: title.replace(/([a-z])([A-Z])/g, "$1 $2").trim() || str,
+        sourceTag: tag,
+      };
+    }
+  }
+
+  const clean = str.replace(/[-_]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").trim();
+  return { cleanTitle: clean || raw };
 }
 
 interface SavedVisualItem {
@@ -56,7 +98,7 @@ const PRESET_CONCEPTS = [
   { label: "The Water Cycle", tag: "Earth" },
 ];
 
-// ── Educational SVG Generator ────────────────────────────────────────────────
+// ── Thematic Vector SVG Generator ────────────────────────────────────────────
 function generateThematicSvg(concept: string, scene: Scene, index: number): string {
   const palettes = [
     { bg: "#FDF8F0", card: "#FFF9E6", accent: "#f0a040", icon: "🔬" },
@@ -76,28 +118,42 @@ function generateThematicSvg(concept: string, scene: Scene, index: number): stri
     
     <!-- Title Text -->
     <text x="200" y="145" font-family="system-ui, sans-serif" font-weight="900" font-size="15" text-anchor="middle" fill="#000">${scene.title.slice(0, 36)}</text>
-    <text x="200" y="172" font-family="system-ui, sans-serif" font-weight="700" font-size="11" text-anchor="middle" fill="#8b1a2a">${concept.slice(0, 38)}</text>
+    <text x="200" y="172" font-family="system-ui, sans-serif" font-weight="700" font-size="11" text-anchor="middle" fill="#8b1a2a">${(scene.stageLabel || concept).slice(0, 38)}</text>
     
     <!-- Visual Deck Indicator -->
-    <rect x="160" y="195" width="80" height="12" fill="#000" rx="3"/>
-    <text x="200" y="204" font-family="system-ui, sans-serif" font-weight="800" font-size="8" text-anchor="middle" fill="#fff">SCENE ${index + 1} ANCHOR</text>
+    <rect x="150" y="195" width="100" height="14" fill="#000" rx="3"/>
+    <text x="200" y="205" font-family="system-ui, sans-serif" font-weight="800" font-size="9" text-anchor="middle" fill="#fff">FRAME ${index + 1} BLUEPRINT</text>
   </svg>`;
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-// ── Wikipedia Educational Image Fetcher ──────────────────────────────────────
+// ── Multi-Candidate Wikipedia/Wikimedia Image Fetcher ────────────────────────
 async function fetchWikipediaImage(query: string): Promise<string | null> {
+  if (!query || !query.trim()) return null;
   try {
-    const endpoint = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&pithumbsize=600&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&origin=*`;
-    const res = await fetch(endpoint, { headers: { "User-Agent": "Studenius/1.0" } });
+    const endpoint = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&pithumbsize=800&generator=search&gsrsearch=${encodeURIComponent(
+      query.trim()
+    )}&gsrlimit=6&origin=*`;
+    const res = await fetch(endpoint, {
+      headers: { "User-Agent": "Studenius/1.0 (contact@studenius.com)" },
+    });
     if (!res.ok) return null;
     const data = await res.json();
     const pages = data?.query?.pages;
     if (pages) {
-      for (const pid of Object.keys(pages)) {
-        const thumb = pages[pid]?.thumbnail?.source;
-        if (thumb) return thumb;
+      const pageList = Object.values(pages) as any[];
+      pageList.sort((a, b) => (a.index || 0) - (b.index || 0));
+      for (const p of pageList) {
+        const thumb = p?.thumbnail?.source;
+        if (
+          thumb &&
+          !thumb.toLowerCase().includes("disambig") &&
+          !thumb.toLowerCase().includes("question_book") &&
+          !thumb.toLowerCase().includes("portal")
+        ) {
+          return thumb;
+        }
       }
     }
   } catch {
@@ -106,46 +162,340 @@ async function fetchWikipediaImage(query: string): Promise<string | null> {
   return null;
 }
 
-// ── Smart Local Dual-Coding Storyboard Generator ─────────────────────────────
-function generateLocalStoryboard(concept: string): StoryboardResult {
+// ── Fallback Local Generator ─────────────────────────────────────────────────
+function generateLocalStoryboard(concept: string, sourceTag?: string): StoryboardResult {
   const c = concept.trim();
   return {
     concept: c,
+    sourceTag,
+    structureType: "process",
+    bigPictureSummary: `A 4-stage sequential model showing how ${c} initiates, functions, reacts, and stabilizes.`,
     scenes: [
       {
         id: "s1",
-        title: "The Core Foundation",
-        anchorPhrase: `Picture the starting trigger that activates ${c}.`,
+        stageNumber: 1,
+        stageLabel: "1. Core Foundation",
+        title: "The Initial Catalyst",
+        anchorPhrase: `Picture the primary physical spark that activates ${c}.`,
         whyItWorks: "Anchors the abstract principle to a concrete physical starting point.",
-        unsplashQuery: `${c} core start`,
+        examTip: `Exam Key: Pay attention to the initial conditions required before ${c} occurs.`,
+        photoKeywords: [`${c} foundation`, `${c} science`, "laboratory microscope"],
         exactWikipediaTitle: c,
       },
       {
         id: "s2",
-        title: "The Driving Mechanism",
-        anchorPhrase: `Watch how the components interlock like gears in a clock.`,
+        stageNumber: 2,
+        stageLabel: "2. Driving Mechanism",
+        title: "Interlocking Machinery",
+        anchorPhrase: `Watch the core components interact like synchronized mechanical gears.`,
         whyItWorks: "Dual-coding transforms logical relationships into spatial machinery.",
-        unsplashQuery: `${c} mechanism system`,
+        examTip: "Exam Watchout: Questions often test the rate-limiting step in this phase.",
+        photoKeywords: [`${c} system`, "mechanical clockwork gears", "circuit board microchip"],
         exactWikipediaTitle: c,
       },
       {
         id: "s3",
-        title: "The Turning Point",
-        anchorPhrase: `See the critical tipping point where everything balances or shifts.`,
+        stageNumber: 3,
+        stageLabel: "3. The Tipping Point",
+        title: "Equilibrium & Shift",
+        anchorPhrase: `See the critical balance tipping where the transformation takes effect.`,
         whyItWorks: "Associates conditional rules with a dramatic visual transition.",
-        unsplashQuery: `${c} reaction balance`,
+        examTip: "High-Yield: Identify what causes the shift versus what resists it.",
+        photoKeywords: [`${c} balance`, "scale balance weights", "chemical reaction flame"],
         exactWikipediaTitle: c,
       },
       {
         id: "s4",
-        title: "The Real-World Impact",
-        anchorPhrase: `Look at the lasting ripple effect across the surrounding system.`,
-        whyItWorks: "Reinforces retention by showing the ultimate outcome in reality.",
-        unsplashQuery: `${c} result impact`,
+        stageNumber: 4,
+        stageLabel: "4. Real-World Impact",
+        title: "The Steady State Outcome",
+        anchorPhrase: `Look at the lasting ripple effect established across the system.`,
+        whyItWorks: "Reinforces retention by connecting the cycle to its terminal result.",
+        examTip: "Exam Key: Summarize the net gain or final products of this stage.",
+        photoKeywords: [`${c} application`, "earth satellite view", "supercomputer server"],
         exactWikipediaTitle: c,
       },
     ],
   };
+}
+
+// ── Visual Blueprint Component (Connected Cognitive Map) ────────────────────
+function VisualBlueprint({
+  storyboard,
+  onSelectScene,
+}: {
+  storyboard: StoryboardResult;
+  onSelectScene: (idx: number) => void;
+}) {
+  const typeIcons: Record<StructureType, { label: string; icon: string; bg: string }> = {
+    process: { label: "Sequential Process", icon: "arrow_forward", bg: "bg-[#f0a040]" },
+    cycle: { label: "Feedback Loop / Cycle", icon: "refresh", bg: "bg-[#34d399]" },
+    system: { label: "System Architecture", icon: "account_tree", bg: "bg-[#38bdf8]" },
+    spectrum: { label: "Comparative Spectrum", icon: "compare_arrows", bg: "bg-[#f43f5e]" },
+  };
+
+  const currentType = typeIcons[storyboard.structureType] || typeIcons.process;
+
+  return (
+    <div className="bg-white border-2 sm:border-3 border-black shadow-[3px_3px_0px_0px_#000] p-3.5 sm:p-4 flex flex-col gap-3">
+      {/* Blueprint Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 pb-2.5">
+        <div className="flex items-center gap-2">
+          <span
+            className={`px-2 py-0.5 border border-black font-black text-[10px] sm:text-xs uppercase shadow-[1px_1px_0px_0px_#000] flex items-center gap-1 text-black ${currentType.bg}`}
+          >
+            <span className="material-symbols-outlined text-[13px] block">{currentType.icon}</span>
+            <span>{currentType.label}</span>
+          </span>
+          {storyboard.sourceTag && (
+            <span className="text-[10px] font-bold text-black/60 bg-black/5 px-1.5 py-0.5 border border-black/20 rounded">
+              Course: {storyboard.sourceTag}
+            </span>
+          )}
+        </div>
+        <span className="text-[11px] font-extrabold text-black/50">Cognitive Map • 4 Interlocking Anchors</span>
+      </div>
+
+      {/* Big Picture Summary */}
+      {storyboard.bigPictureSummary && (
+        <p className="text-xs sm:text-sm font-extrabold text-black/80 leading-relaxed bg-[#FFFDF5] p-2.5 border-l-3 border-black">
+          💡 <span className="font-black text-black">Gestalt Schema:</span> {storyboard.bigPictureSummary}
+        </p>
+      )}
+
+      {/* Connected Nodes Pipeline */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+        {storyboard.scenes.map((scene, idx) => {
+          const nodeColors = ["#f0a040", "#38bdf8", "#34d399", "#f43f5e"];
+          const col = nodeColors[idx % nodeColors.length];
+          return (
+            <button
+              key={scene.id || idx}
+              onClick={() => onSelectScene(idx)}
+              className="p-2 sm:p-2.5 bg-[#FAF7F2] hover:bg-white border-2 border-black shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 text-left transition-all flex flex-col justify-between group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  className="w-5 h-5 rounded-full border border-black text-[10px] font-black flex items-center justify-center text-black"
+                  style={{ backgroundColor: col }}
+                >
+                  {idx + 1}
+                </span>
+                <span className="text-[10px] font-black text-black/40 group-hover:text-black">Jump →</span>
+              </div>
+              <p className="font-black text-[11px] sm:text-xs text-black truncate leading-tight">{scene.stageLabel}</p>
+              <p className="text-[10px] font-bold text-black/60 truncate mt-0.5">{scene.title}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Active Recall Quiz Modal ─────────────────────────────────────────────────
+function ActiveRecallModal({
+  storyboard,
+  onClose,
+  onSessionLogged,
+}: {
+  storyboard: StoryboardResult;
+  onClose: () => void;
+  onSessionLogged: () => void;
+}) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isAnswered, setIsAnswered] = useState(false);
+  const [score, setScore] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+
+  const currentScene = storyboard.scenes[currentIdx];
+  const total = storyboard.scenes.length;
+
+  const handleSelect = (stageLabel: string) => {
+    if (isAnswered) return;
+    setSelectedOption(stageLabel);
+    setIsAnswered(true);
+
+    if (stageLabel === currentScene.stageLabel) {
+      setScore((s) => s + 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIdx + 1 < total) {
+      setCurrentIdx((c) => c + 1);
+      setSelectedOption(null);
+      setIsAnswered(false);
+    } else {
+      setIsComplete(true);
+      fireConfetti();
+      onSessionLogged();
+    }
+  };
+
+  if (isComplete) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white border-3 sm:border-4 border-black shadow-[6px_6px_0px_0px_#000] max-w-md w-full p-6 flex flex-col items-center text-center gap-4 animate-in zoom-in-95 duration-150">
+          <div className="w-16 h-16 rounded-full border-3 border-black bg-[#f0a040] flex items-center justify-center shadow-[3px_3px_0px_0px_#000]">
+            <span className="material-symbols-outlined text-3xl">psychology</span>
+          </div>
+
+          <div>
+            <h3 className="text-xl sm:text-2xl font-black">Visual Recall Complete!</h3>
+            <p className="text-xs sm:text-sm font-bold text-black/70 mt-1">
+              You scored <span className="font-black text-black">{score} / {total}</span> on your visual mental anchors.
+            </p>
+          </div>
+
+          <div className="w-full bg-[#FFF9E6] border-2 border-black p-3 text-left">
+            <span className="text-[10px] font-black uppercase text-[#8b1a2a] block mb-1">Retention Insight:</span>
+            <p className="text-xs font-bold text-black/80 leading-relaxed">
+              Dual-coding stores knowledge both visually and verbally. By actively retrieving the concept when shown the image, your exam retention rate increases by over 65%.
+            </p>
+          </div>
+
+          <div className="flex gap-2 w-full pt-2">
+            <button
+              onClick={() => {
+                setCurrentIdx(0);
+                setSelectedOption(null);
+                setIsAnswered(false);
+                setScore(0);
+                setIsComplete(false);
+              }}
+              className="flex-1 py-2 border-2 border-black bg-[#FAF7F2] hover:bg-black hover:text-white font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
+            >
+              Retake Quiz
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2 border-2 border-black bg-[#f0a040] hover:bg-[#e09030] font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
+            >
+              Back to Storyboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white border-3 sm:border-4 border-black shadow-[6px_6px_0px_0px_#000] max-w-lg w-full flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="bg-[#f0a040] border-b-2 sm:border-b-3 border-black p-3 sm:p-4 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider bg-black text-white px-1.5 py-0.5 rounded">
+              Active Recall Mode
+            </span>
+            <h3 className="font-black text-base sm:text-lg mt-0.5">
+              Frame {currentIdx + 1} of {total}
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 border-2 border-black bg-white hover:bg-black hover:text-white font-black flex items-center justify-center text-xs"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Question Prompt */}
+        <div className="p-3 sm:p-4 flex flex-col gap-3">
+          <p className="text-xs sm:text-sm font-extrabold text-black">
+            👀 <span className="underline decoration-2">Inspect the visual prompt:</span> Which stage or mechanism does this memory anchor trigger?
+          </p>
+
+          {/* Visual Stimulus Preview */}
+          <div className="h-44 sm:h-52 bg-black/5 border-2 border-black overflow-hidden relative flex items-center justify-center">
+            {currentScene.photoKeywords && currentScene.photoKeywords.length > 0 ? (
+              <img
+                src={
+                  (currentScene as any).candidateUrls?.[0] ||
+                  generateThematicSvg(storyboard.concept, currentScene, currentIdx)
+                }
+                alt="Visual stimulus"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: decodeURIComponent(
+                    generateThematicSvg(storyboard.concept, currentScene, currentIdx).replace(
+                      "data:image/svg+xml;utf8,",
+                      ""
+                    )
+                  ),
+                }}
+                className="w-full h-full"
+              />
+            )}
+          </div>
+
+          {/* 4 Stage Option Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            {storyboard.scenes.map((s, idx) => {
+              const isSelected = selectedOption === s.stageLabel;
+              const isCorrect = s.stageLabel === currentScene.stageLabel;
+              let btnClass = "bg-[#FAF7F2] hover:bg-white text-black";
+
+              if (isAnswered) {
+                if (isCorrect) {
+                  btnClass = "bg-green-400 text-black font-black border-green-700";
+                } else if (isSelected) {
+                  btnClass = "bg-red-400 text-white font-black border-red-700";
+                } else {
+                  btnClass = "opacity-40 bg-gray-100 text-black";
+                }
+              }
+
+              return (
+                <button
+                  key={s.id || idx}
+                  onClick={() => handleSelect(s.stageLabel)}
+                  disabled={isAnswered}
+                  className={`p-2.5 border-2 border-black shadow-[2px_2px_0px_0px_#000] text-left text-xs font-black transition-all ${btnClass}`}
+                >
+                  <span className="block text-[10px] opacity-60 mb-0.5">Stage {idx + 1}</span>
+                  <span>{s.stageLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Feedback & Reveal */}
+          {isAnswered && (
+            <div className="bg-[#FFF9E6] border-2 border-black p-3 flex flex-col gap-1.5 animate-in fade-in duration-200">
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-xs text-[#8b1a2a]">
+                  {selectedOption === currentScene.stageLabel ? " Correct!" : " Check Anchor:"}
+                </span>
+                <span className="text-xs font-extrabold text-black truncate">"{currentScene.title}"</span>
+              </div>
+              <p className="text-[11px] font-bold text-black/75 italic">"{currentScene.anchorPhrase}"</p>
+              {currentScene.examTip && (
+                <p className="text-[10px] font-black text-[#8b1a2a] pt-1 border-t border-black/10">
+                  ⚠️ {currentScene.examTip}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Next Button */}
+          {isAnswered && (
+            <button
+              onClick={handleNext}
+              className="w-full py-2 border-2 border-black bg-[#f0a040] hover:bg-[#e09030] font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5"
+            >
+              {currentIdx + 1 === total ? "Finish Recall Session →" : "Next Frame →"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Storyboard Image with Native Fallback Ladder ─────────────────────────────
@@ -200,17 +550,31 @@ function StoryboardImage({
 export default function VisualLearner() {
   const navigate = useNavigate();
   const tutorial = useTutorialModal("/visual-learner");
-  const { isPro, canUse, logUsage } = usePlan();
+  const { isPro, canUse, remaining, logUsage } = usePlan();
   const { logSession } = useStudySession();
 
   // State
   const [conceptInput, setConceptInput] = useState("");
   const [activeConcept, setActiveConcept] = useState("");
+  const [sourceTag, setSourceTag] = useState<string | undefined>(undefined);
+  const [structureType, setStructureType] = useState<StructureType>("process");
+  const [bigPictureSummary, setBigPictureSummary] = useState("");
   const [phase, setPhase] = useState<"setup" | "loading" | "result" | "gallery">("setup");
   const [scenes, setScenes] = useState<SceneWithPhoto[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string; anchor: string } | null>(null);
   const [activeSource, setActiveSource] = useState<string | null>(() => getActiveSource()?.name ?? null);
+
+  // Upgrade & Limits
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [remainingUses, setRemainingUses] = useState<number>(3);
+
+  // Active Recall Quiz Modal
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+
+  // Export Cheat Sheet
+  const [isExporting, setIsExporting] = useState(false);
+  const storyboardRef = useRef<HTMLDivElement>(null);
 
   // History & Saved Images
   const [toolHistory, setToolHistory] = useState<HistoryEntry[]>(() => loadHistory("visual"));
@@ -234,7 +598,8 @@ export default function VisualLearner() {
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
     if (prefill && prefill.trim()) {
-      setConceptInput(prefill.trim());
+      const sanitized = sanitizeTopic(prefill.trim());
+      setConceptInput(sanitized.cleanTitle);
       sessionStorage.removeItem("quicklaunch_prompt");
       sessionStorage.removeItem("quicklaunch_tool");
     }
@@ -270,9 +635,13 @@ export default function VisualLearner() {
   // Restore past session
   const handleHistorySelect = (entry: HistoryEntry) => {
     try {
-      const parsed: StoryboardResult = typeof entry.data === "string" ? JSON.parse(entry.data) : (entry.data as StoryboardResult);
+      const parsed: StoryboardResult =
+        typeof entry.data === "string" ? JSON.parse(entry.data) : (entry.data as StoryboardResult);
       if (!parsed || !parsed.scenes) return;
       setActiveConcept(parsed.concept);
+      setSourceTag(parsed.sourceTag);
+      setStructureType(parsed.structureType || "process");
+      setBigPictureSummary(parsed.bigPictureSummary || "");
       const restored: SceneWithPhoto[] = parsed.scenes.map((s, idx) => ({
         ...s,
         candidateUrls: [generateThematicSvg(parsed.concept, s, idx)],
@@ -285,63 +654,123 @@ export default function VisualLearner() {
     } catch {}
   };
 
-  // Build candidate image ladder for a scene
+  // Build candidate image ladder for a scene with deep multi-candidate search
   const buildCandidateUrls = async (concept: string, scene: Scene, index: number): Promise<string[]> => {
     const svgFallback = generateThematicSvg(concept, scene, index);
     const candidates: string[] = [];
 
-    // 1. Try exact Wikipedia article or query via Wikimedia Search API
-    const wikiQuery = scene.exactWikipediaTitle || scene.title || concept;
-    try {
-      const wikiThumb = await fetchWikipediaImage(wikiQuery);
-      if (wikiThumb) candidates.push(wikiThumb);
-    } catch {}
-
-    // 2. Try concept Wikipedia query
-    if (candidates.length === 0 && concept !== wikiQuery) {
-      try {
-        const conceptThumb = await fetchWikipediaImage(concept);
-        if (conceptThumb) candidates.push(conceptThumb);
-      } catch {}
+    // 1. Try concrete physical photoKeywords in order
+    if (scene.photoKeywords && Array.isArray(scene.photoKeywords)) {
+      for (const kw of scene.photoKeywords) {
+        if (kw && kw.trim()) {
+          const url = await fetchWikipediaImage(kw.trim());
+          if (url && !candidates.includes(url)) {
+            candidates.push(url);
+            break;
+          }
+        }
+      }
     }
 
-    // 3. Fallback to Thematic SVG (guaranteed 100% reliable)
-    candidates.push(svgFallback);
+    // 2. Try exact Wikipedia article title
+    if (candidates.length === 0 && scene.exactWikipediaTitle) {
+      const url = await fetchWikipediaImage(scene.exactWikipediaTitle);
+      if (url && !candidates.includes(url)) candidates.push(url);
+    }
 
+    // 3. Try scene title
+    if (candidates.length === 0 && scene.title) {
+      const url = await fetchWikipediaImage(scene.title);
+      if (url && !candidates.includes(url)) candidates.push(url);
+    }
+
+    // 4. Try concept
+    if (candidates.length === 0) {
+      const url = await fetchWikipediaImage(concept);
+      if (url && !candidates.includes(url)) candidates.push(url);
+    }
+
+    // 5. Fallback to Thematic SVG (guaranteed 100% reliable)
+    candidates.push(svgFallback);
     return candidates;
+  };
+
+  // 1-Click Export Visual Cheat Sheet
+  const handleExportCheatSheet = async () => {
+    if (!storyboardRef.current) return;
+    setIsExporting(true);
+    try {
+      const dataUrl = await toPng(storyboardRef.current, { cacheBust: true, pixelRatio: 2 });
+      const link = document.createElement("a");
+      const safeTitle = (activeConcept || "Visual_Storyboard").replace(/[^a-zA-Z0-9_-]/g, "_");
+      link.download = `${safeTitle}_Visual_CheatSheet.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("[VisualLearner] Export cheat sheet error:", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Main Storyboard Generator
   const handleGenerate = async (targetOverride?: string) => {
-    const target = (targetOverride ?? conceptInput).trim();
-    if (!target) return;
+    const rawTarget = (targetOverride ?? conceptInput).trim();
+    if (!rawTarget) return;
 
+    // Sanitize input topic (cleans up course code prefixes like "ETInCpE-3M-Artificial-Intelligence")
+    const sanitized = sanitizeTopic(rawTarget);
+    const target = sanitized.cleanTitle;
+
+    // Freemium Limit Check
     if (!isPro) {
       try {
         const allowed = await canUse("visual");
-        if (!allowed) return;
+        if (!allowed) {
+          const rem = await remaining("visual");
+          setRemainingUses(rem);
+          setShowUpgradeModal(true);
+          return;
+        }
       } catch {}
     }
 
     setActiveConcept(target);
+    setSourceTag(sanitized.sourceTag);
     setPhase("loading");
 
+    // Truncate context to safe limit (2500 chars) to prevent Groq 503 / token overflow
     const sourceContext = buildAIContext();
-    const systemPrompt = `You are a visual memory expert trained in cognitive dual-coding theory.
-Create 4 vivid, photographable scene associations that make abstract concepts permanently memorable.
-Each scene must be grounded in an intuitive real-world moment or concrete physical visual.
+    const safeContext = sourceContext ? sourceContext.slice(0, 2500) : "";
+
+    const systemPrompt = `You are a cognitive dual-coding and visual memory architecture expert.
+Deconstruct this concept into an interactive 4-stage visual schema for a university student.
+Determine the structureType:
+- "process" (sequential steps: 1 -> 2 -> 3 -> 4)
+- "system" (hierarchical architecture: foundation -> core engine -> application -> frontier)
+- "cycle" (feedback loop: trigger -> mechanism -> equilibrium -> reset)
+- "spectrum" (comparative spectrum or evolution)
+
+CRITICAL IMAGERY RULES:
+Do NOT search for abstract metaphors like "Dreaming Machine", "Photo Gallery", or "Kitchen Helper".
+Provide 2-3 CONCRETE, REAL-WORLD PHOTOGRAPHABLE PHYSICAL OBJECTS or ARTIFACTS in photoKeywords (e.g. ["Deep Blue supercomputer", "IBM server rack", "silicon microprocessor wafer"]).
 
 Return ONLY a raw JSON object (no markdown, no backticks):
 {
   "concept": "${target}",
+  "structureType": "process",
+  "bigPictureSummary": "<1 clear sentence explaining how the 4 stages connect visually as a whole>",
   "scenes": [
     {
       "id": "s1",
-      "title": "<3-5 word scene title>",
-      "anchorPhrase": "<1 clear sentence the student repeats when visualizing this moment>",
+      "stageNumber": 1,
+      "stageLabel": "1. <Stage/Layer Name>",
+      "title": "<3-5 word concrete title>",
+      "anchorPhrase": "<1 vivid sensory sentence student repeats when visualizing this scene>",
       "whyItWorks": "<1 sentence explaining why this visual triggers recall>",
-      "unsplashQuery": "<2-4 word specific photography search terms>",
-      "exactWikipediaTitle": "<exact Wikipedia article title for image lookup>"
+      "examTip": "<1 high-yield exam watchout, key formula, or distinction>",
+      "photoKeywords": ["<concrete physical object 1>", "<concrete physical object 2>", "<domain keyword>"],
+      "exactWikipediaTitle": "<exact Wikipedia article title>"
     }
   ]
 }`;
@@ -350,7 +779,14 @@ Return ONLY a raw JSON object (no markdown, no backticks):
 
     try {
       const raw = await callGroq(
-        [{ role: "user", content: `Generate a 4-scene visual memory storyboard for: "${target}"\n${sourceContext ? `Source Context:\n${sourceContext}` : ""}` }],
+        [
+          {
+            role: "user",
+            content: `Generate a 4-stage visual architecture storyboard for: "${target}"${
+              safeContext ? `\nCourse Material Excerpt:\n${safeContext}` : ""
+            }`,
+          },
+        ],
         systemPrompt,
         "openai/gpt-oss-20b",
         2048,
@@ -359,24 +795,28 @@ Return ONLY a raw JSON object (no markdown, no backticks):
 
       parsed = safeParseJSON<StoryboardResult>(raw);
     } catch (err: any) {
-      console.warn("[VisualLearner] Groq error or 503 hit, using intelligent local dual-coding storyboard:", err);
-      parsed = generateLocalStoryboard(target);
+      console.warn("[VisualLearner] Groq fallback triggered:", err);
+      parsed = generateLocalStoryboard(target, sanitized.sourceTag);
     }
 
     if (!parsed || !parsed.scenes || parsed.scenes.length === 0) {
-      parsed = generateLocalStoryboard(target);
+      parsed = generateLocalStoryboard(target, sanitized.sourceTag);
     }
+
+    setStructureType(parsed.structureType || "process");
+    setBigPictureSummary(parsed.bigPictureSummary || "");
 
     // Initialize scenes with instant SVGs so the screen is never blank
     const initialScenes: SceneWithPhoto[] = parsed.scenes.map((s, idx) => ({
       ...s,
-      candidateUrls: [generateThematicSvg(parsed.concept, s, idx)],
+      candidateUrls: [generateThematicSvg(parsed!.concept, s, idx)],
       photoLoading: true,
     }));
+
     setScenes(initialScenes);
     setPhase("result");
 
-    // Save history
+    // Save to history store
     const entry: HistoryEntry = {
       id: Date.now().toString(),
       title: target,
@@ -387,13 +827,13 @@ Return ONLY a raw JSON object (no markdown, no backticks):
     const nextHist = addHistoryEntry("visual", entry, toolHistory);
     setToolHistory(nextHist);
 
-    // Log study session
+    // Log study session & usage
     await logSession({ title: `Visual Story: ${target}`, durationMinutes: 6 });
     try {
       await logUsage("visual");
     } catch {}
 
-    // Resolve Wikipedia educational images in background
+    // Resolve Wikipedia/Wikimedia educational images in background
     for (let i = 0; i < parsed.scenes.length; i++) {
       const scene = parsed.scenes[i];
       buildCandidateUrls(parsed.concept, scene, i).then((urls) => {
@@ -410,6 +850,13 @@ Return ONLY a raw JSON object (no markdown, no backticks):
           )
         );
       });
+    }
+  };
+
+  const scrollToScene = (idx: number) => {
+    const el = document.getElementById(`scene-card-${idx}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
@@ -433,7 +880,38 @@ Return ONLY a raw JSON object (no markdown, no backticks):
 
   return (
     <div className="w-full bg-[#FAF7F2] min-h-screen flex flex-col font-['Nunito',system-ui,sans-serif] text-black">
-      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/visual-learner"] || []} title="Visual Learner" />
+      <TutorialModal
+        isOpen={tutorial.isOpen}
+        onDismiss={tutorial.dismiss}
+        features={TUTORIAL_CONTENT["/visual-learner"] || []}
+        title="Visual Learner"
+      />
+
+      {/* Upgrade Limit Drawer */}
+      {showUpgradeModal && (
+        <UpgradePrompt
+          feature="visual"
+          remaining={remainingUses}
+          onClose={() => setShowUpgradeModal(false)}
+        />
+      )}
+
+      {/* Active Recall Quiz Modal */}
+      {isQuizOpen && scenes.length > 0 && (
+        <ActiveRecallModal
+          storyboard={{
+            concept: activeConcept,
+            sourceTag,
+            structureType,
+            bigPictureSummary,
+            scenes,
+          }}
+          onClose={() => setIsQuizOpen(false)}
+          onSessionLogged={() => {
+            logSession({ title: `Visual Recall: ${activeConcept}`, durationMinutes: 5 });
+          }}
+        />
+      )}
 
       {/* Shared Sidebar for Desktop */}
       <SharedSidebar active="/visual-learner" />
@@ -480,7 +958,9 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                 <span>/</span>
                 <span className="text-black font-extrabold">Visual Learner</span>
               </div>
-              <h1 className="text-[20px] font-black tracking-tight leading-none text-black">Dual-Coding Memory Lab</h1>
+              <h1 className="text-[20px] font-black tracking-tight leading-none text-black">
+                Cognitive Dual-Coding Suite
+              </h1>
             </div>
 
             {activeSource && (
@@ -520,7 +1000,7 @@ Return ONLY a raw JSON object (no markdown, no backticks):
           </div>
         </header>
 
-        {/* ── Main Container (Compact & Responsive on Mobile) ── */}
+        {/* ── Main Container ── */}
         <main className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4 sm:gap-6">
           {/* ═══════════════════════════════════════════════════════════════
               GALLERY VIEW
@@ -530,7 +1010,9 @@ Return ONLY a raw JSON object (no markdown, no backticks):
               <div className="flex items-center justify-between border-b-2 border-black pb-3">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black">Saved Memory Gallery</h2>
-                  <p className="text-xs sm:text-sm font-bold text-black/60">Your saved visual anchors and scene snapshots</p>
+                  <p className="text-xs sm:text-sm font-bold text-black/60">
+                    Your saved visual anchors and scene snapshots
+                  </p>
                 </div>
                 <button
                   onClick={() => setPhase(scenes.length > 0 ? "result" : "setup")}
@@ -544,15 +1026,25 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                 <div className="border-3 border-dashed border-black/30 p-8 sm:p-12 text-center flex flex-col items-center justify-center gap-2">
                   <span className="material-symbols-outlined text-4xl text-black/40">photo_library</span>
                   <p className="font-black text-base">No saved images yet</p>
-                  <p className="text-xs font-bold text-black/60 max-w-sm">Hit "Save Anchor" on any scene card during your storyboard review to pin it here.</p>
+                  <p className="text-xs font-bold text-black/60 max-w-sm">
+                    Hit the bookmark button on any scene card during your storyboard review to pin it here.
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {savedImages.map((item) => (
-                    <div key={item.id} className="bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] flex flex-col overflow-hidden">
+                    <div
+                      key={item.id}
+                      className="bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] flex flex-col overflow-hidden"
+                    >
                       <div className="h-36 w-full bg-black/5 overflow-hidden relative border-b-2 border-black">
                         {item.url.startsWith("data:image/svg") ? (
-                          <div dangerouslySetInnerHTML={{ __html: decodeURIComponent(item.url.replace("data:image/svg+xml;utf8,", "")) }} className="w-full h-full" />
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: decodeURIComponent(item.url.replace("data:image/svg+xml;utf8,", "")),
+                            }}
+                            className="w-full h-full"
+                          />
                         ) : (
                           <img src={item.url} alt={item.title} className="w-full h-full object-cover" />
                         )}
@@ -563,7 +1055,9 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                             {item.concept}
                           </span>
                           <h4 className="font-black text-xs sm:text-sm mt-1">{item.title}</h4>
-                          <p className="text-[11px] font-bold text-black/70 italic mt-1 bg-[#FFF9E6] p-1.5 border border-black/20">"{item.anchor}"</p>
+                          <p className="text-[11px] font-bold text-black/70 italic mt-1 bg-[#FFF9E6] p-1.5 border border-black/20">
+                            "{item.anchor}"
+                          </p>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-black/10">
                           <button
@@ -588,18 +1082,21 @@ Return ONLY a raw JSON object (no markdown, no backticks):
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
-              SETUP HERO CARD (Compact & Mobile-Optimized)
+              SETUP HERO CARD (Compact & Clean)
               ═══════════════════════════════════════════════════════════════ */}
           {phase !== "gallery" && (
             <div className="bg-white border-2 sm:border-4 border-black shadow-[3px_3px_0px_0px_#000] sm:shadow-[5px_5px_0px_0px_#000] p-3.5 sm:p-6 flex flex-col gap-3.5 sm:gap-5">
               {/* Badge & Title */}
               <div className="flex items-center justify-between gap-2">
                 <span className="px-2.5 py-0.5 bg-[#f0a040] border-2 border-black font-black text-[10px] sm:text-xs uppercase tracking-wider shadow-[1.5px_1.5px_0px_0px_#000]">
-                  Vision Dual-Coding
+                  Visual Architecture & Dual-Coding
                 </span>
                 {activeSource && (
                   <button
-                    onClick={() => setConceptInput(activeSource.replace(/\.[^/.]+$/, ""))}
+                    onClick={() => {
+                      const clean = sanitizeTopic(activeSource);
+                      setConceptInput(clean.cleanTitle);
+                    }}
                     className="text-[11px] font-bold border-2 border-black px-2 py-0.5 bg-[#FAF7F2] hover:bg-[#8b1a2a] hover:text-white transition-colors"
                   >
                     Paste Active Source
@@ -609,10 +1106,10 @@ Return ONLY a raw JSON object (no markdown, no backticks):
 
               <div>
                 <h2 className="text-lg sm:text-2xl font-black text-black tracking-tight leading-snug">
-                  What concept do you want to visualize?
+                  What concept do you want to master visually?
                 </h2>
                 <p className="text-xs sm:text-sm font-bold text-black/60 mt-0.5">
-                  Rex breaks down any lesson into 4 photographic mnemonic scenes linked with memorable memory anchor phrases.
+                  Rex breaks down any lesson into a connected cognitive architecture with 4 real-world visual anchors and active recall testing.
                 </p>
               </div>
 
@@ -624,7 +1121,7 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                     value={conceptInput}
                     onChange={(e) => setConceptInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                    placeholder="e.g. Organ Systems, Mitosis, Supply & Demand..."
+                    placeholder="e.g. Artificial Intelligence, Mitosis, Supply & Demand, Krebs Cycle..."
                     className="w-full bg-[#FAF7F2] border-2 border-black px-3.5 py-2.5 text-sm sm:text-base font-extrabold focus:outline-none focus:bg-white focus:shadow-[2px_2px_0px_0px_#000] transition-all placeholder:text-black/35"
                   />
                   {conceptInput && (
@@ -642,14 +1139,16 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                   disabled={!conceptInput.trim() || phase === "loading"}
                   className="bg-[#f0a040] hover:bg-[#e09030] disabled:opacity-50 disabled:cursor-not-allowed border-2 border-black px-6 py-2.5 font-black uppercase tracking-wider text-xs sm:text-sm shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-1.5 shrink-0"
                 >
-                  <span className="material-symbols-outlined text-[18px]">movie</span>
-                  <span>{phase === "loading" ? "Building..." : "Build Visual Story"}</span>
+                  <span className="material-symbols-outlined text-[18px]">account_tree</span>
+                  <span>{phase === "loading" ? "Synthesizing..." : "Build Visual Blueprint"}</span>
                 </button>
               </div>
 
-              {/* Preset Chips (Single Horizontal Scrollable Row for Mobile) */}
+              {/* Preset Chips */}
               <div className="flex flex-col gap-1.5 pt-2 border-t border-black/10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/50">Quick-Launch Inspiration:</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-black/50">
+                  Quick-Launch Inspiration:
+                </span>
                 <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
                   {PRESET_CONCEPTS.map((p) => (
                     <button
@@ -678,8 +1177,10 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                 <span className="material-symbols-outlined text-2xl">psychology</span>
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-black">Synthesizing Visual Anchors for "{activeConcept}"</h3>
-                <p className="text-xs font-bold text-black/60 mt-0.5">Formulating 4-scene cognitive dual-coding associations...</p>
+                <h3 className="text-base sm:text-lg font-black">Building Visual Blueprint for "{activeConcept}"</h3>
+                <p className="text-xs font-bold text-black/60 mt-0.5">
+                  Analyzing conceptual structure, mapping 4 sensory anchors, and fetching verified imagery...
+                </p>
               </div>
               <div className="w-full max-w-xs h-2.5 border-2 border-black bg-[#FAF7F2] overflow-hidden p-0.5">
                 <div className="h-full bg-[#8b1a2a] animate-pulse w-3/4" />
@@ -688,23 +1189,49 @@ Return ONLY a raw JSON object (no markdown, no backticks):
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
-              STORYBOARD RESULTS (Responsive 2x2 Grid)
+              STORYBOARD RESULTS & BLUEPRINT
               ═══════════════════════════════════════════════════════════════ */}
           {phase === "result" && scenes.length > 0 && (
-            <div className="flex flex-col gap-4">
-              {/* Header Bar */}
-              <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-2.5">
+            <div ref={storyboardRef} className="flex flex-col gap-4">
+              {/* Header Bar with Action Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-black pb-2.5">
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="bg-[#8b1a2a] text-white font-black text-[9px] sm:text-[10px] px-2 py-0.5 border border-black uppercase tracking-wider">
                       Storyboard
                     </span>
                     <span className="text-[11px] font-bold text-black/50">4 Memory Frames</span>
+                    {sourceTag && (
+                      <span className="bg-black text-white font-extrabold text-[9px] px-1.5 py-0.2 rounded">
+                        {sourceTag}
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-lg sm:text-2xl font-black tracking-tight mt-0.5">{activeConcept}</h3>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                {/* Primary Action Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {/* Active Recall Quiz Button */}
+                  <button
+                    onClick={() => setIsQuizOpen(true)}
+                    className="px-3 py-1.5 border-2 border-black bg-[#8b1a2a] hover:bg-[#701522] text-white font-black text-[11px] shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">psychology</span>
+                    <span>Test Recall</span>
+                  </button>
+
+                  {/* Export Cheat Sheet Button */}
+                  <button
+                    onClick={handleExportCheatSheet}
+                    disabled={isExporting}
+                    className="px-2.5 py-1.5 border-2 border-black bg-white hover:bg-[#FAF7F2] font-black text-[11px] shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">download</span>
+                    <span className="hidden sm:inline">{isExporting ? "Exporting..." : "Cheat Sheet"}</span>
+                  </button>
+
+                  {/* Regenerate Button */}
                   <button
                     onClick={() => handleGenerate(activeConcept)}
                     className="px-2.5 py-1.5 border-2 border-black bg-[#FAF7F2] hover:bg-black hover:text-white font-black text-[11px] shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center gap-1"
@@ -712,6 +1239,8 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                     <span className="material-symbols-outlined text-[14px]">refresh</span>
                     <span className="hidden sm:inline">Regenerate</span>
                   </button>
+
+                  {/* New Topic Button */}
                   <button
                     onClick={() => {
                       setConceptInput("");
@@ -725,7 +1254,19 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                 </div>
               </div>
 
-              {/* 4 Storyboard Scenes Grid */}
+              {/* 1. Connected Cognitive Blueprint (Gestalt Scheme) */}
+              <VisualBlueprint
+                storyboard={{
+                  concept: activeConcept,
+                  sourceTag,
+                  structureType,
+                  bigPictureSummary,
+                  scenes,
+                }}
+                onSelectScene={scrollToScene}
+              />
+
+              {/* 2. 4 Storyboard Scenes Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
                 {scenes.map((scene, index) => {
                   const badgeColors = ["bg-[#f0a040]", "bg-[#38bdf8]", "bg-[#34d399]", "bg-[#f43f5e]"];
@@ -733,16 +1274,21 @@ Return ONLY a raw JSON object (no markdown, no backticks):
 
                   return (
                     <div
+                      id={`scene-card-${index}`}
                       key={scene.id || index}
                       className="bg-white border-2 sm:border-3 border-black shadow-[3px_3px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] flex flex-col overflow-hidden transition-all"
                     >
                       {/* Scene Header */}
                       <div className="bg-[#FAF7F2] border-b-2 border-black px-3 py-1.5 flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <span className={`px-2 py-0.5 border border-black font-black text-[10px] sm:text-xs uppercase shadow-[1px_1px_0px_0px_#000] ${badgeColor}`}>
-                            Scene {index + 1}
+                          <span
+                            className={`px-2 py-0.5 border border-black font-black text-[10px] sm:text-xs uppercase shadow-[1px_1px_0px_0px_#000] ${badgeColor}`}
+                          >
+                            Stage {index + 1}
                           </span>
-                          <span className="font-extrabold text-[11px] text-black/60">Frame {index + 1} of 4</span>
+                          <span className="font-extrabold text-[11px] text-black/60 truncate max-w-[160px]">
+                            {scene.stageLabel || `Frame ${index + 1} of 4`}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-1">
@@ -764,7 +1310,7 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                         </div>
                       </div>
 
-                      {/* Image Frame Viewport (Responsive Height) */}
+                      {/* Image Frame Viewport */}
                       <div
                         onClick={() => {
                           const url = scene.candidateUrls[0] || "";
@@ -776,10 +1322,11 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                           candidates={scene.candidateUrls}
                           alt={scene.photoAlt || scene.title}
                           onImageLoaded={(loadedUrl) => {
-                            // Keep loadedUrl at front of candidates
                             setScenes((prev) =>
                               prev.map((s, idx) =>
-                                idx === index ? { ...s, candidateUrls: [loadedUrl, ...s.candidateUrls.filter((u) => u !== loadedUrl)] } : s
+                                idx === index
+                                  ? { ...s, candidateUrls: [loadedUrl, ...s.candidateUrls.filter((u) => u !== loadedUrl)] }
+                                  : s
                               )
                             );
                           }}
@@ -806,12 +1353,23 @@ Return ONLY a raw JSON object (no markdown, no backticks):
                           </div>
                         </div>
 
-                        {/* Cognitive Connection */}
-                        <div className="pt-2 border-t border-black/10">
-                          <span className="text-[9px] font-black uppercase tracking-wider text-black/50 block mb-0.5">
-                            Why this works:
-                          </span>
-                          <p className="text-[11px] font-bold text-black/75 leading-relaxed">{scene.whyItWorks}</p>
+                        {/* Cognitive Mechanism & Exam Tip */}
+                        <div className="pt-2 border-t border-black/10 flex flex-col gap-1.5">
+                          <div>
+                            <span className="text-[9px] font-black uppercase tracking-wider text-black/50 block mb-0.5">
+                              Why this works:
+                            </span>
+                            <p className="text-[11px] font-bold text-black/75 leading-relaxed">{scene.whyItWorks}</p>
+                          </div>
+
+                          {scene.examTip && (
+                            <div className="bg-[#FAF7F2] border-l-2 border-[#8b1a2a] pl-2 py-0.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-[#8b1a2a] block">
+                                Exam Key:
+                              </span>
+                              <p className="text-[10px] font-bold text-black/80">{scene.examTip}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
