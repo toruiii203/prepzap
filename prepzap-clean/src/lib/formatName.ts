@@ -37,3 +37,30 @@ export function getLocalGreeting(): string {
   if (hour >= 12 && hour < 17) return "Good afternoon";
   return "Good evening";
 }
+
+/**
+ * Returns a clean, pleasant handle without double underscores or raw institutional formatting.
+ * Example: "@trinidad__miguel_alfonso" with rawName "TRINIDAD, MIGUEL ALFONSO" -> "@miguel"
+ */
+export function formatCleanHandle(rawHandle?: string | null, rawName?: string | null): string {
+  const friendly = formatFriendlyName(rawName);
+  
+  if (!rawHandle || rawHandle === "@student" || rawHandle === "@scholar" || rawHandle === "@student_scholar") {
+    return friendly && friendly !== "Scholar" ? `@${friendly.toLowerCase()}` : "@scholar";
+  }
+
+  let clean = rawHandle.trim().replace(/^@/, "");
+
+  // If the handle was generated from a raw "LAST, FIRST" name, it often has double underscores
+  // or contains both the surname and given name. Simplify to given name.
+  if (clean.includes("__") || (friendly && friendly !== "Scholar" && clean.toLowerCase().includes(friendly.toLowerCase()))) {
+    if (friendly && friendly !== "Scholar") {
+      return `@${friendly.toLowerCase()}`;
+    }
+  }
+
+  // Collapse consecutive underscores and strip edge underscores
+  clean = clean.replace(/[^a-zA-Z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+  if (!clean) return friendly && friendly !== "Scholar" ? `@${friendly.toLowerCase()}` : "@scholar";
+  return `@${clean}`;
+}

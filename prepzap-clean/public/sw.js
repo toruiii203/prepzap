@@ -6,7 +6,7 @@
 // at that specific activation) would ever clean up. Bump SW_VERSION when
 // you actually change what's precached; the browser's own update algorithm
 // (byte-diffing this file) still handles detecting real deploys on its own.
-const SW_VERSION = "v14";
+const SW_VERSION = "v15";
 const CACHE_NAME = "studenius-" + SW_VERSION;
 
 // Assets to cache immediately on install

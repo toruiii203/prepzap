@@ -91,43 +91,78 @@ export interface StudentProfileData {
   totalLikes?: number;
 }
 
+import { formatFriendlyName, formatCleanHandle } from "@/lib/formatName";
+
 const DEFAULT_PROFILE: StudentProfileData = {
-  displayName: "Student Scholar",
-  username: "@studenius_student",
-  bio: "Prepping for upcoming exams with active recall summaries, flashcard drills, and high-yield study guides.",
+  displayName: "Scholar",
+  username: "@scholar",
+  bio: "",
   avatar: "/buddies/fox_scholar.png",
   isAvatarImage: true,
   bannerId: "amber_sunset",
-  school: "Studenius Academy",
-  targetExam: "Midterm Exams",
-  targetSubject: "General Studies",
-  verifiedStudent: true,
-  notesCount: 2,
-  totalLikes: 24
+  school: "",
+  targetExam: "",
+  targetSubject: "",
+  verifiedStudent: false,
+  notesCount: 0,
+  totalLikes: 0
 };
 
 function getStorageKey(userId?: string) {
   return userId ? `studenius_student_profile_v2_${userId}` : "studenius_student_profile_v2";
 }
 
-export function getStoredUserProfile(userId?: string, fallbackName = "Student Scholar"): StudentProfileData {
+export function getStoredUserProfile(userId?: string, fallbackName = "Scholar"): StudentProfileData {
   try {
     const raw = localStorage.getItem(getStorageKey(userId));
     if (raw) {
       const parsed = JSON.parse(raw);
-      return {
+      const rawDisplay = parsed.displayName || fallbackName;
+      const cleanDisplay = formatFriendlyName(rawDisplay);
+      const cleanUser = formatCleanHandle(parsed.username, cleanDisplay);
+
+      // Clean out fake default bio or fake default school if previously persisted
+      const cleanBio = parsed.bio === "Prepping for upcoming exams with active recall summaries, flashcard drills, and high-yield study guides."
+        ? ""
+        : (parsed.bio || "");
+      const cleanSchool = parsed.school === "Studenius Academy" ? "" : (parsed.school || "");
+
+      const normalized: StudentProfileData = {
         ...DEFAULT_PROFILE,
         ...parsed,
-        displayName: parsed.displayName || fallbackName,
+        displayName: cleanDisplay,
+        username: cleanUser,
+        bio: cleanBio,
+        school: cleanSchool,
+        verifiedStudent: false // no self-verified badges
       };
+
+      // If anything was migrated, persist back so it's clean permanently
+      if (
+        parsed.displayName !== cleanDisplay ||
+        parsed.username !== cleanUser ||
+        parsed.bio !== cleanBio ||
+        parsed.school !== cleanSchool ||
+        parsed.verifiedStudent === true
+      ) {
+        try {
+          localStorage.setItem(getStorageKey(userId), JSON.stringify(normalized));
+        } catch {}
+      }
+
+      return normalized;
     }
   } catch (e) {
     console.error("Error reading student profile from localStorage:", e);
   }
+
+  const cleanDisplay = formatFriendlyName(fallbackName);
+  const cleanUser = formatCleanHandle(null, cleanDisplay);
+
   return {
     ...DEFAULT_PROFILE,
-    displayName: fallbackName,
-    username: `@${fallbackName.toLowerCase().replace(/[^a-z0-9]/g, "_")}`
+    displayName: cleanDisplay,
+    username: cleanUser
   };
 }
 

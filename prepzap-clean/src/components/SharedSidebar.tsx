@@ -10,9 +10,9 @@ const NAV_SECTIONS = [
     label: "Main",
     items: [
       { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
-      { icon: "groups",         label: "Community Hub",  route: "/community" },
+      { icon: "groups",         label: "Friends",        route: "/friends" },
       { icon: "edit_document",  label: "Notes",          route: "/notes" },
-      { icon: "forum",      label: "Rex Tutor",       route: "/ai-tutor" },
+      { icon: "forum",          label: "Rex Tutor",      route: "/ai-tutor" },
       { icon: "style",          label: "Flashcards",     route: "/flashcards" },
       { icon: "assignment",     label: "Practice",       route: "/practice" },
       { icon: "timer",          label: "Focus Timer",    route: "/timer" },
@@ -28,13 +28,14 @@ const NAV_SECTIONS = [
       { icon: "auto_stories",   label: "Mistake Journal",route: "/mistakes" },
       { icon: "military_tech",  label: "Challenges",     route: "/challenges" },
       { icon: "sports_esports", label: "Arena",          route: "/arena" },
-        { icon: "stadia_controller", label: "Arcade",         route: "/arcade" },
+      { icon: "stadia_controller", label: "Arcade",      route: "/arcade" },
     ],
   },
   {
     label: "Resources",
     items: [
       { icon: "folder_open",    label: "Source Library", route: "/sources" },
+      { icon: "menu_book",      label: "Campus Vault",   route: "/campus-vault" },
       { icon: "bar_chart",      label: "Analytics",      route: "/analytics" },
     ],
   },
@@ -48,7 +49,9 @@ const ROUTE_TO_TOOL_NAME: Record<string, string> = Object.fromEntries(
 );
 // DO NOT log time for non-study tools just because they are in the nav.
 delete ROUTE_TO_TOOL_NAME["/dashboard"];
+delete ROUTE_TO_TOOL_NAME["/friends"];
 delete ROUTE_TO_TOOL_NAME["/community"];
+delete ROUTE_TO_TOOL_NAME["/campus-vault"];
 delete ROUTE_TO_TOOL_NAME["/sources"];
 delete ROUTE_TO_TOOL_NAME["/analytics"];
 delete ROUTE_TO_TOOL_NAME["/planner"];

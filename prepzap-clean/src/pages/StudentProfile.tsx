@@ -150,9 +150,11 @@ export default function StudentProfile() {
                       <h1 className="text-[22px] md:text-[28px] font-black text-black leading-tight truncate">
                         {studentProfile.displayName}
                       </h1>
-                      <span className="material-symbols-outlined text-[20px] text-[#10B981]" title="Verified Student Creator">
-                        verified
-                      </span>
+                      {studentProfile.verifiedStudent && (
+                        <span className="material-symbols-outlined text-[20px] text-[#10B981]" title="Verified Student Creator">
+                          verified
+                        </span>
+                      )}
                     </div>
 
                     <div className="text-[12.5px] font-bold text-black/60 truncate flex items-center gap-2 mt-0.5">

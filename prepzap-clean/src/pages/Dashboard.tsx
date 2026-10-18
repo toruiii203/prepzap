@@ -72,7 +72,7 @@ const STUDY_TOOLS_PAGES = [
         color: "text-black",
       },
       {
-        route: "/community?tab=vault",
+        route: "/campus-vault",
         icon: "menu_book",
         title: "Campus Vault",
         desc: "Search & clone classmate study guides",
