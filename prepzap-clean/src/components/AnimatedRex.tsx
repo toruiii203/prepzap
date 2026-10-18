@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { playPop } from "@/lib/soundFX";
 
-export type RexState = "idle" | "listening" | "processing" | "responding" | "excited";
+export type RexState = "idle" | "listening" | "processing" | "responding" | "excited" | "dancing";
 
 interface AnimatedRexProps {
   state?: RexState;
@@ -89,8 +89,8 @@ export function AnimatedRex({
       return;
     }
 
-    if (state === "excited") {
-      setSprite(SPRITES.excited);
+    if (state === "excited" || state === "dancing") {
+      setSprite(state === "dancing" ? SPRITES.laughing : SPRITES.excited);
       return;
     }
 
@@ -162,6 +162,28 @@ export function AnimatedRex({
           50% {
             transform: rotate(3deg) translateY(-6px);
           }
+        }
+        @keyframes rex-dance {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg) scale(1);
+          }
+          20% {
+            transform: translateY(-16px) rotate(-6deg) scale(1.08, 0.94);
+          }
+          40% {
+            transform: translateY(2px) rotate(4deg) scale(0.95, 1.05);
+          }
+          60% {
+            transform: translateY(-12px) rotate(-4deg) scale(1.05, 0.96);
+          }
+          80% {
+            transform: translateY(0px) rotate(2deg) scale(0.98, 1.02);
+          }
+        }
+        @keyframes rex-confetti {
+          0% { transform: translateY(0px) scale(0) rotate(0deg); opacity: 0; }
+          30% { opacity: 1; transform: translateY(-22px) scale(1.2) rotate(60deg); }
+          100% { transform: translateY(-50px) scale(0.8) rotate(180deg); opacity: 0; }
         }
         @keyframes rex-jump-spring {
           0% { transform: translateY(0px) scale(1); }
@@ -255,6 +277,8 @@ export function AnimatedRex({
               ? "rex-jump-spring 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
               : !isTabVisible
               ? "none"
+              : state === "dancing"
+              ? "rex-dance 0.75s ease-in-out infinite"
               : state === "processing"
               ? "rex-thinking-sway 2.5s ease-in-out infinite"
               : state === "responding" || speaking
@@ -276,6 +300,15 @@ export function AnimatedRex({
               className="absolute top-[32%] left-[28%] right-[28%] h-[6px] bg-[#2D1B14] rounded-full z-20 pointer-events-none transition-all duration-75"
               style={{ opacity: 0.95 }}
             />
+          )}
+
+          {/* Celebration Confetti Sparkles */}
+          {state === "dancing" && (
+            <div className="absolute -top-6 inset-x-0 flex justify-between pointer-events-none z-30 px-1">
+              <span className="text-xl" style={{ animation: "rex-confetti 1.1s ease-out infinite" }}>✨</span>
+              <span className="text-2xl" style={{ animation: "rex-confetti 1.4s ease-out infinite 0.3s" }}>🎉</span>
+              <span className="text-xl" style={{ animation: "rex-confetti 1.2s ease-out infinite 0.6s" }}>⭐</span>
+            </div>
           )}
         </div>
 

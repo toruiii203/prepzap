@@ -14,6 +14,7 @@ import {
   type UserStudyPreferences,
 } from "@/lib/userPreferences";
 import { playPop, playTap, playSuccess, playCelebration, triggerHaptic } from "@/lib/soundFX";
+import { AnimatedRex, type RexState } from "@/components/AnimatedRex";
 
 type Screen =
   | "intro"
@@ -24,16 +25,6 @@ type Screen =
   | "learningStyle"
   | "examTarget"
   | "finalTransition";
-
-const FOX = {
-  neutral:   "/fox/fox-neutral.png",
-  happy:     "/fox/fox-happy.png",
-  excited:   "/fox/fox-excited.png",
-  surprised: "/fox/fox-surprised.png",
-  thinking:  "/fox/fox-thinking.png",
-  peeking:   "/fox/fox-peeking.png",
-  laughing:  "/fox/fox-laughing.png",
-};
 
 // Neobrutalist Palette
 const BG          = "#FFFBEA";
@@ -169,7 +160,7 @@ const s = {
     color: WHITE,
     fontWeight: 800,
     fontSize: 16,
-    border: `2px solid ${BLACK}`,
+    border: `2.5px solid ${BLACK}`,
     borderBottom: `5px solid ${BLACK}`,
     display: "flex",
     alignItems: "center",
@@ -195,7 +186,7 @@ const s = {
     color: WHITE,
     fontWeight: 800,
     fontSize: 16,
-    border: `2px solid ${BLACK}`,
+    border: `2.5px solid ${BLACK}`,
     borderBottom: `5px solid ${BLACK}`,
     display: "flex",
     alignItems: "center",
@@ -210,35 +201,16 @@ const s = {
     display: "flex",
     flexDirection: "row" as const,
     alignItems: "center",
-    gap: 12,
-    padding: "12px 0 18px",
+    gap: 14,
+    padding: "10px 0 16px",
     width: "100%",
     boxSizing: "border-box" as const,
-  },
-  mascotCircle: {
-    width: 68,
-    height: 68,
-    minWidth: 68,
-    borderRadius: "50%",
-    border: `2.5px solid ${BLACK}`,
-    overflow: "hidden",
-    flexShrink: 0,
-    background: YELLOW,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: `0 3px 0 ${BLACK}`,
-  },
-  mascotImg: {
-    width: "88%",
-    height: "88%",
-    objectFit: "contain" as const,
   },
   speechBubble: {
     position: "relative" as const,
     background: WHITE,
     border: `2.5px solid ${BLACK}`,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: "12px 16px",
     flex: 1,
     boxShadow: `0 3px 0 ${BLACK}`,
@@ -398,25 +370,18 @@ function Header({
 }
 
 function MascotBubble({
-  src,
+  mood = "idle",
   dialogue,
   subtitle,
 }: {
-  src: string;
+  mood?: RexState;
   dialogue: string;
   subtitle?: string;
 }) {
   return (
     <div style={s.mascotBubble}>
-      <div style={s.mascotCircle}>
-        <img
-          src={src}
-          alt="Rex the Fox"
-          style={s.mascotImg}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
-        />
+      <div style={{ flexShrink: 0 }}>
+        <AnimatedRex size="md" state={mood} interactive={true} />
       </div>
       <div style={s.speechBubble}>
         <div style={s.speechTailBorder} />
@@ -487,10 +452,11 @@ function BottomBar({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen 1: Intro Hook & Sign-In
+// Screen 1: Intro Hook with Animated Rex & Google Auth
 // ─────────────────────────────────────────────────────────────────────────────
 function IntroHook({ onNext }: { onNext: () => void }) {
   const navigate = useNavigate();
+  const { user, session } = useAuth();
   const [slide, setSlide] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -510,14 +476,27 @@ function IntroHook({ onNext }: { onNext: () => void }) {
     }
   }, [slide]);
 
-  const handleGoogle = async () => {
+  const handleAuth = async () => {
+    // If the user is already authenticated in this session (e.g. testing onboarding),
+    // smoothly advance directly to the onboarding questionnaire without kicking to dashboard!
+    if (user && session) {
+      playPop();
+      onNext();
+      return;
+    }
+
     if ((import.meta.env.VITE_SUPABASE_URL || "").includes("your-project-id")) {
-      navigate("/dashboard", { replace: true });
+      onNext();
       return;
     }
 
     setLoading(true);
     setError(null);
+
+    // Save intent to continue onboarding after returning from Google
+    try {
+      sessionStorage.setItem("post_auth_redirect", "/onboarding?step=nameInput");
+    } catch {}
 
     const timer = setTimeout(() => {
       setLoading(false);
@@ -556,6 +535,11 @@ function IntroHook({ onNext }: { onNext: () => void }) {
     }
   };
 
+  const displayName =
+    user?.user_metadata?.full_name?.split(" ")[0] ||
+    user?.user_metadata?.name?.split(" ")[0] ||
+    "Scholar";
+
   return (
     <div style={s.page}>
       <main
@@ -565,14 +549,20 @@ function IntroHook({ onNext }: { onNext: () => void }) {
           flexDirection: "column",
           width: "100%",
           maxWidth: CONTENT_MAX,
-          padding: "clamp(20px, 3vh, 32px) 24px clamp(16px, 3vh, 28px)",
+          padding: "clamp(16px, 2.5vh, 28px) 24px clamp(16px, 2.5vh, 24px)",
           position: "relative",
           justifyContent: "space-between",
           overflowY: "auto",
           boxSizing: "border-box",
         }}
       >
-        <div style={{ textAlign: "center", zIndex: 1, flexShrink: 0 }}>
+        {/* Animated Rex Hero & Headline */}
+        <div style={{ textAlign: "center", zIndex: 1, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          {/* Animated Rex Mascot Hero */}
+          <div style={{ marginBottom: 4, cursor: "pointer" }} onClick={() => playPop(1.2)}>
+            <AnimatedRex size="lg" state="idle" interactive={true} />
+          </div>
+
           <div
             style={{
               display: "inline-flex",
@@ -581,30 +571,34 @@ function IntroHook({ onNext }: { onNext: () => void }) {
               background: YELLOW,
               border: `2px solid ${BLACK}`,
               borderRadius: 9999,
-              padding: "4px 12px",
-              marginBottom: 10,
+              padding: "3px 12px",
+              marginBottom: 8,
               boxShadow: `2px 2px 0 ${BLACK}`,
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 800, color: BLACK, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: BLACK, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Studenius
             </span>
           </div>
+
           <h1
             style={{
               fontSize: "clamp(26px, 6vw, 34px)",
               fontWeight: 800,
               color: BLACK,
-              lineHeight: 1.18,
-              margin: "6px 0 0",
+              lineHeight: 1.15,
+              margin: "4px 0 0",
               letterSpacing: "-0.02em",
             }}
           >
-            The Tactile Study Tool<br />Engineered for Retention
+            Study Smarter.<br />Ace Your Classes.
           </h1>
+          <p style={{ fontSize: 14, fontWeight: 600, color: BLACK, opacity: 0.65, margin: "6px 0 0" }}>
+            The fun, active-recall study companion with Rex.
+          </p>
         </div>
 
-        {/* Carousel Preview */}
+        {/* Carousel Feature Preview */}
         <div
           style={{
             flex: 1,
@@ -612,7 +606,7 @@ function IntroHook({ onNext }: { onNext: () => void }) {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            padding: "12px 0",
+            padding: "8px 0",
             minHeight: 0,
           }}
         >
@@ -798,7 +792,7 @@ function IntroHook({ onNext }: { onNext: () => void }) {
           </div>
 
           {/* Dots */}
-          <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "center" }}>
             {[0, 1, 2].map((i) => (
               <button
                 key={i}
@@ -819,7 +813,7 @@ function IntroHook({ onNext }: { onNext: () => void }) {
           </div>
         </div>
 
-        {/* Footer Actions */}
+        {/* Footer Actions — Single Primary Button */}
         <div style={{ zIndex: 10, marginTop: "auto", flexShrink: 0, width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
           {error && (
             <div
@@ -840,11 +834,11 @@ function IntroHook({ onNext }: { onNext: () => void }) {
 
           {/* Primary Action: Google Auth */}
           <button
-            onClick={handleGoogle}
+            onClick={handleAuth}
             disabled={loading}
             style={{
               width: "100%",
-              height: 52,
+              height: 54,
               background: WHITE,
               color: BLACK,
               fontWeight: 800,
@@ -860,6 +854,7 @@ function IntroHook({ onNext }: { onNext: () => void }) {
               gap: 12,
               opacity: loading ? 0.7 : 1,
               boxSizing: "border-box",
+              boxShadow: `0 3px 0 rgba(0,0,0,0.15)`,
               transition: "all 0.1s ease",
             }}
           >
@@ -869,39 +864,16 @@ function IntroHook({ onNext }: { onNext: () => void }) {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            <span>{loading ? "Connecting..." : "Continue with Google"}</span>
+            <span>
+              {loading
+                ? "Connecting..."
+                : user
+                ? `Continue as ${displayName}`
+                : "Continue with Google"}
+            </span>
           </button>
 
-          {/* Secondary Action: Start setup right now */}
-          <button
-            onClick={() => {
-              playTap();
-              onNext();
-            }}
-            style={{
-              width: "100%",
-              height: 48,
-              background: YELLOW,
-              color: BLACK,
-              fontWeight: 800,
-              fontSize: 15,
-              borderRadius: 16,
-              border: `2px solid ${BLACK}`,
-              borderBottom: `4px solid ${BLACK}`,
-              cursor: "pointer",
-              fontFamily: "'Quicksand', sans-serif",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              transition: "all 0.1s ease",
-            }}
-          >
-            <span>Get Started (Quick Setup)</span>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
-          </button>
-
-          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.5, margin: "6px 0 0", fontWeight: 600 }}>
+          <p style={{ textAlign: "center", fontSize: 11, color: BLACK, opacity: 0.5, margin: "4px 0 0", fontWeight: 600 }}>
             By continuing, you agree to our <a href="/terms" style={{ color: BLACK, fontWeight: 700, textDecoration: "underline" }}>Terms</a>
           </p>
         </div>
@@ -924,7 +896,7 @@ function NameInput({
 }) {
   const [name, setName] = useState(initialName);
 
-  const foxSrc = name.trim().length > 1 ? FOX.happy : FOX.neutral;
+  const mood: RexState = name.trim().length > 1 ? "excited" : "idle";
   const dialogue = name.trim().length > 1
     ? `${name.trim()}! Awesome name.`
     : "Hey! What should Rex call you?";
@@ -935,7 +907,7 @@ function NameInput({
       <div style={s.content}>
         <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
           <MascotBubble
-            src={foxSrc}
+            mood={mood}
             dialogue={dialogue}
             subtitle="You can change this anytime in your student profile."
           />
@@ -1027,14 +999,14 @@ function SubjectSelection({
     );
   };
 
-  const foxSrc =
+  const mood: RexState =
     selected.length === 0
-      ? FOX.neutral
+      ? "idle"
       : selected.length === 1
-      ? FOX.happy
+      ? "responding"
       : selected.length === 2
-      ? FOX.excited
-      : FOX.surprised;
+      ? "excited"
+      : "dancing";
 
   const dialogue =
     selected.length === 0
@@ -1051,7 +1023,7 @@ function SubjectSelection({
       <div style={s.content}>
         <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
           <MascotBubble
-            src={foxSrc}
+            mood={mood}
             dialogue={dialogue}
             subtitle="Pick all that apply to set up your starter decks."
           />
@@ -1168,7 +1140,7 @@ function GoalSelection({
 }) {
   const [selected, setSelected] = useState<string>(initialGoal || "faster");
 
-  const foxSrc = selected ? FOX.happy : FOX.neutral;
+  const mood: RexState = selected ? "excited" : "idle";
   const dialogue = selected
     ? (GOAL_OPTIONS.find((g) => g.id === selected)?.text ?? "Great goal!")
     : "What's your primary study mission?";
@@ -1179,7 +1151,7 @@ function GoalSelection({
       <div style={s.content}>
         <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
           <MascotBubble
-            src={foxSrc}
+            mood={mood}
             dialogue={dialogue}
             subtitle="Rex uses this to set your daily focus target and streak rewards."
           />
@@ -1258,7 +1230,7 @@ function GoalSelection({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen 5: Duolingo Hook — Interactive First Win Challenge
+// Screen 5: Duolingo Hook — Interactive First Win Challenge (Rex Celebrates!)
 // ─────────────────────────────────────────────────────────────────────────────
 function FirstWinChallenge({
   onNext,
@@ -1317,7 +1289,7 @@ function FirstWinChallenge({
     }
   };
 
-  const foxSrc = showBanner ? FOX.excited : hintMessage ? FOX.thinking : FOX.neutral;
+  const mood: RexState = showBanner ? "dancing" : hintMessage ? "processing" : "idle";
   const dialogue = showBanner
     ? "EXCELLENT! You nailed the cognitive science!"
     : hintMessage || "Quick warmup! Which technique creates the highest retention on exam day?";
@@ -1328,7 +1300,7 @@ function FirstWinChallenge({
       <div style={s.content}>
         <main style={{ flex: 1, padding: "0 24px 180px", overflowY: "auto" }}>
           <MascotBubble
-            src={foxSrc}
+            mood={mood}
             dialogue={dialogue}
             subtitle={showBanner ? "Active recall is the core engine of Studenius." : "Tap the superpower study technique:"}
           />
@@ -1458,7 +1430,7 @@ function LearningStyleStep({
     );
   };
 
-  const foxSrc = selected.length > 0 ? FOX.happy : FOX.neutral;
+  const mood: RexState = selected.length > 0 ? "excited" : "idle";
 
   return (
     <div style={s.page}>
@@ -1466,7 +1438,7 @@ function LearningStyleStep({
       <div style={s.content}>
         <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
           <MascotBubble
-            src={foxSrc}
+            mood={mood}
             dialogue="How do you absorb concepts best?"
             subtitle="Pick your favorites — Rex will personalize your tool shortcuts."
           />
@@ -1600,7 +1572,7 @@ function ExamTargetStep({
     onNext(null);
   };
 
-  const foxSrc = examTitle ? FOX.excited : FOX.peeking;
+  const mood: RexState = examTitle ? "excited" : "idle";
 
   return (
     <div style={s.page}>
@@ -1608,7 +1580,7 @@ function ExamTargetStep({
       <div style={s.content}>
         <main style={{ flex: 1, padding: "0 24px 140px", overflowY: "auto" }}>
           <MascotBubble
-            src={foxSrc}
+            mood={mood}
             dialogue={examTitle ? `Locked in! Rex will track ${examTitle}.` : "Got an upcoming exam or test?"}
             subtitle="Optional — we'll set up your countdown and daily question goals."
           />
@@ -1780,7 +1752,7 @@ function ExamTargetStep({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen 8: Final Synthesis & Dashboard Launch (Snappy Duolingo Pacing)
+// Screen 8: Final Synthesis & Dashboard Launch (Rex Celebrates!)
 // ─────────────────────────────────────────────────────────────────────────────
 function FinalTransition({
   onDone,
@@ -1798,7 +1770,6 @@ function FinalTransition({
   examTarget?: ExamTarget | null;
 }) {
   const { refreshProfile, completeOnboarding } = useAuth();
-  const [foxSrc, setFoxSrc] = useState(FOX.thinking);
   const [stepIndex, setStepIndex] = useState(0);
   const [doneReady, setDoneReady] = useState(false);
   const hasFinishedRef = useRef(false);
@@ -1871,16 +1842,15 @@ function FinalTransition({
 
     const t3 = setTimeout(() => {
       setStepIndex(3);
-      setFoxSrc(FOX.happy);
       playCelebration();
       triggerHaptic("celebrate");
       setDoneReady(true);
     }, 1550);
 
-    // Auto-proceed after 2.8s if user hasn't clicked
+    // Auto-proceed after 3.2s if user hasn't clicked
     const t4 = setTimeout(() => {
       handleFinish();
-    }, 2800);
+    }, 3200);
 
     return () => {
       clearTimeout(t1);
@@ -1908,29 +1878,16 @@ function FinalTransition({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 22,
+            gap: 20,
             boxSizing: "border-box",
           }}
         >
-          {/* Rex Center Avatar */}
-          <div
-            style={{
-              width: 108,
-              height: 108,
-              borderRadius: "50%",
-              border: `3px solid ${BLACK}`,
-              background: YELLOW,
-              boxShadow: `0 4px 0 ${BLACK}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            <img
-              src={foxSrc}
-              alt="Rex"
-              style={{ width: "90%", height: "90%", objectFit: "contain" }}
+          {/* Animated Rex Hero with celebration dance & sparkles */}
+          <div style={{ cursor: "pointer" }} onClick={() => playPop(1.2)}>
+            <AnimatedRex
+              size="lg"
+              state={doneReady ? "dancing" : "processing"}
+              interactive={true}
             />
           </div>
 
@@ -2031,7 +1988,9 @@ export default function Onboarding() {
     return "intro";
   });
 
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState(() => {
+    return user?.user_metadata?.full_name || user?.user_metadata?.name || "";
+  });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedGoal, setSelectedGoal] = useState("");
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
@@ -2041,18 +2000,13 @@ export default function Onboarding() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.toString()) {
-      navigate("/onboarding", { replace: true });
+    if (params.get("step") === "nameInput") {
+      setScreen("nameInput");
     }
-  }, []);
+  }, [location.search]);
 
-  // Preload mascot assets for buttery smooth animations
+  // If newly authenticated user comes with onboarding incomplete, advance to nameInput
   useEffect(() => {
-    Object.values(FOX).forEach((src) => {
-      const img = new Image();
-      img.src = src;
-    });
-
     if (!user || !session) return;
     if (screen !== "intro") return;
 
@@ -2064,20 +2018,17 @@ export default function Onboarding() {
       .maybeSingle()
       .then(({ data: profile }) => {
         if (!isMounted) return;
+        // Only auto-advance if onboarding is explicitly not complete
         if (profile?.onboarding_complete === false) {
           setScreen("nameInput");
-        } else {
-          navigate("/dashboard", { replace: true });
         }
       })
-      .catch(() => {
-        if (isMounted) navigate("/dashboard", { replace: true });
-      });
+      .catch(() => {});
 
     return () => {
       isMounted = false;
     };
-  }, [user, session, screen, navigate]);
+  }, [user, session, screen]);
 
   return (
     <>
