@@ -46,11 +46,23 @@ export default function CampusVault() {
   // Publish Modal State
   const [pubTitle, setPubTitle] = useState("");
   const [pubSubject, setPubSubject] = useState("Biology");
+  const [customSubjectText, setCustomSubjectText] = useState("");
   const [pubSummary, setPubSummary] = useState("");
   const [pubContent, setPubContent] = useState("");
   const [pubTags, setPubTags] = useState("");
   const [pubAttachmentUrl, setPubAttachmentUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dynamically include any custom subjects published by users
+  const availableSubjects = useMemo(() => {
+    const set = new Set<string>(VAULT_SUBJECTS);
+    notes.forEach((n) => {
+      if (n.subject && n.subject.trim()) {
+        set.add(n.subject.trim());
+      }
+    });
+    return Array.from(set);
+  }, [notes]);
 
   // Helper to update URL params
   const updateParams = (newSubject?: string, newSort?: "recent" | "liked") => {
@@ -116,6 +128,13 @@ export default function CampusVault() {
 
   const handlePublishSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const finalSubject = (pubSubject === "Custom" ? customSubjectText.trim() : pubSubject) || "General";
+    if (pubSubject === "Custom" && !customSubjectText.trim()) {
+      toast.error("Please enter a custom subject name.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const tagsArray = pubTags
@@ -125,12 +144,12 @@ export default function CampusVault() {
 
     const ok = await publishNote({
       title: pubTitle,
-      subject: pubSubject,
-      subjectBadgeColor: SUBJECT_BADGE_COLORS[pubSubject] || "bg-blue-50 text-blue-700 border-blue-300",
+      subject: finalSubject,
+      subjectBadgeColor: "bg-white text-black border-2 border-black font-black",
       summary: pubSummary,
       content: pubContent,
       author: user?.user_metadata?.full_name || (user as any)?.name || user?.email?.split("@")[0] || "Classmate",
-      authorAvatar: "📝",
+      authorAvatar: "/buddies/fox_scholar.png",
       tags: tagsArray,
       readTime: `${Math.max(2, Math.round(pubContent.split(/\s+/).length / 150))} min read`,
       attachmentUrl: pubAttachmentUrl.trim() || undefined
@@ -140,6 +159,8 @@ export default function CampusVault() {
     if (ok) {
       setShowPublishModal(false);
       setPubTitle("");
+      setPubSubject("Biology");
+      setCustomSubjectText("");
       setPubSummary("");
       setPubContent("");
       setPubTags("");
@@ -158,10 +179,6 @@ export default function CampusVault() {
           {/* Top Header */}
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b-2 border-black/10">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-black/20 bg-white text-[10.5px] font-black uppercase tracking-wider text-black/60 mb-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#3B82F6]">menu_book</span>
-                Student Knowledge Base
-              </div>
               <h1 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
                 Campus Vault
               </h1>
@@ -237,8 +254,8 @@ export default function CampusVault() {
 
             {/* Subject Filters — Wrapping cleanly so no subject cuts off */}
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              {VAULT_SUBJECTS.map((sub) => {
-                const isActive = currentSubject === sub;
+              {availableSubjects.map((sub) => {
+                const isActive = currentSubject.toLowerCase() === sub.toLowerCase();
                 return (
                   <button
                     key={sub}
@@ -249,7 +266,7 @@ export default function CampusVault() {
                     }}
                     className={`px-3 py-1.5 rounded-lg border-2 border-black text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                       isActive
-                        ? "bg-[#3B82F6] text-white shadow-[2px_2px_0px_#000]"
+                        ? "bg-black text-white shadow-[2px_2px_0px_#000]"
                         : "bg-white hover:bg-[#FAF7F2] text-black shadow-[1px_1px_0px_#000]"
                     }`}
                   >
@@ -270,8 +287,8 @@ export default function CampusVault() {
             </div>
           ) : filteredNotes.length === 0 ? (
             <div className="border-2 border-dashed border-black/30 rounded-3xl bg-white p-10 md:p-14 text-center max-w-lg mx-auto space-y-3.5 my-6">
-              <div className="w-16 h-16 rounded-2xl bg-[#FFFDF5] border-2 border-black mx-auto flex items-center justify-center text-[30px] shadow-[3px_3px_0px_#000]">
-                📚
+              <div className="w-16 h-16 rounded-2xl bg-[#FFFDF5] border-2 border-black mx-auto flex items-center justify-center shadow-[3px_3px_0px_#000]">
+                <span className="material-symbols-outlined text-[32px] text-black">menu_book</span>
               </div>
               <h3 className="text-[18px] font-black text-black">
                 {searchQuery || currentSubject !== "All"
@@ -323,9 +340,7 @@ export default function CampusVault() {
                       {/* Top Header: Subject Badge + High-Contrast Like Button */}
                       <div className="flex items-center justify-between gap-2 mb-3">
                         <span
-                          className={`px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${
-                            note.subjectBadgeColor || "bg-blue-50 text-blue-700 border-blue-300"
-                          }`}
+                          className="px-2.5 py-0.5 rounded-lg border-2 border-black text-[10px] font-black uppercase tracking-wider bg-white text-black shadow-[1px_1px_0px_#000]"
                         >
                           {note.subject}
                         </span>
@@ -451,9 +466,7 @@ export default function CampusVault() {
             <div className="p-4 md:p-5 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
               <div className="flex items-center gap-2 min-w-0 pr-3">
                 <span
-                  className={`px-2 py-0.5 rounded border text-[9.5px] font-black uppercase tracking-wider shrink-0 ${
-                    activeReadingNote.subjectBadgeColor || "bg-blue-50 text-blue-700 border-blue-300"
-                  }`}
+                  className="px-2.5 py-0.5 rounded-lg border-2 border-black text-[9.5px] font-black uppercase tracking-wider shrink-0 bg-white text-black shadow-[1px_1px_0px_#000]"
                 >
                   {activeReadingNote.subject}
                 </span>
@@ -547,12 +560,24 @@ export default function CampusVault() {
                   <select
                     value={pubSubject}
                     onChange={(e) => setPubSubject(e.target.value)}
-                    className="w-full px-3.5 py-2 border-2 border-black rounded-xl text-[13px] font-bold focus:outline-none bg-[#FAF7F2] focus:bg-white"
+                    className="w-full px-3.5 py-2 border-2 border-black rounded-xl text-[13px] font-bold focus:outline-none bg-[#FAF7F2] focus:bg-white cursor-pointer"
                   >
                     {VAULT_SUBJECTS.filter((s) => s !== "All").map((sub) => (
                       <option key={sub} value={sub}>{sub}</option>
                     ))}
+                    <option value="Custom">+ Custom Subject...</option>
                   </select>
+                  {pubSubject === "Custom" && (
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={customSubjectText}
+                      onChange={(e) => setCustomSubjectText(e.target.value)}
+                      placeholder="Type custom subject name..."
+                      className="w-full px-3.5 py-2 mt-2 border-2 border-black rounded-xl text-[12.5px] font-bold focus:outline-none bg-white shadow-xs"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-black uppercase text-black/70 mb-1">Tags (Comma-separated)</label>

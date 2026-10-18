@@ -50,16 +50,16 @@ const STORAGE_NOTES_KEY = "studenius_campus_notes_v3";
 const STORAGE_BUDDIES_KEY = "studenius_study_buddies_v3";
 
 export const SUBJECT_BADGE_COLORS: Record<string, string> = {
-  Biology: "bg-emerald-50 text-emerald-700 border-emerald-300",
-  Calculus: "bg-blue-50 text-blue-700 border-blue-300",
-  Chemistry: "bg-amber-50 text-amber-700 border-amber-300",
-  History: "bg-rose-50 text-rose-700 border-rose-300",
-  Psychology: "bg-purple-50 text-purple-700 border-purple-300",
-  "Computer Science": "bg-cyan-50 text-cyan-700 border-cyan-300",
-  Physics: "bg-indigo-50 text-indigo-700 border-indigo-300",
-  Economics: "bg-teal-50 text-teal-700 border-teal-300",
-  Medicine: "bg-red-50 text-red-700 border-red-300",
-  General: "bg-stone-50 text-stone-700 border-stone-300"
+  Biology: "bg-white text-black border-2 border-black font-black",
+  Calculus: "bg-white text-black border-2 border-black font-black",
+  Chemistry: "bg-white text-black border-2 border-black font-black",
+  History: "bg-white text-black border-2 border-black font-black",
+  Psychology: "bg-white text-black border-2 border-black font-black",
+  "Computer Science": "bg-white text-black border-2 border-black font-black",
+  Physics: "bg-white text-black border-2 border-black font-black",
+  Economics: "bg-white text-black border-2 border-black font-black",
+  Medicine: "bg-white text-black border-2 border-black font-black",
+  General: "bg-white text-black border-2 border-black font-black"
 };
 
 export function useCommunity(options?: { loadNotes?: boolean }) {
@@ -118,10 +118,10 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
             user_id: row.user_id,
             title: row.title,
             subject: row.subject,
-            subjectBadgeColor: row.subject_badge_color || SUBJECT_BADGE_COLORS[row.subject] || "bg-blue-50 text-blue-700 border-blue-300",
+            subjectBadgeColor: "bg-white text-black border-2 border-black font-black",
             author: row.author_name,
             authorCode: row.author_code,
-            authorAvatar: row.author_avatar || "📝",
+            authorAvatar: row.author_avatar || "/buddies/fox_scholar.png",
             date: new Date(row.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
             readTime: row.read_time || "5 min read",
             likes: row.likes_count ?? 0,

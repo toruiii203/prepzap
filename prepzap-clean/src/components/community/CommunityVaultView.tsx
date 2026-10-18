@@ -50,11 +50,22 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
   // Publish Form State
   const [pubTitle, setPubTitle] = useState("");
   const [pubSubject, setPubSubject] = useState("Biology");
+  const [customSubjectText, setCustomSubjectText] = useState("");
   const [pubSummary, setPubSummary] = useState("");
   const [pubContent, setPubContent] = useState("");
   const [pubTags, setPubTags] = useState("");
   const [pubAttachmentUrl, setPubAttachmentUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const availableSubjects = useMemo(() => {
+    const set = new Set<string>(VAULT_SUBJECTS);
+    notes.forEach((n) => {
+      if (n.subject && n.subject.trim()) {
+        set.add(n.subject.trim());
+      }
+    });
+    return Array.from(set);
+  }, [notes]);
 
   const filteredNotes = useMemo(() => {
     return notes
@@ -95,6 +106,13 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
 
   const handlePublishSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const finalSubject = (pubSubject === "Custom" ? customSubjectText.trim() : pubSubject) || "General";
+    if (pubSubject === "Custom" && !customSubjectText.trim()) {
+      toast.error("Please enter a custom subject name.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const tagsArray = pubTags
@@ -111,12 +129,12 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
 
     const success = await onPublishNote({
       title: pubTitle.trim(),
-      subject: pubSubject,
-      subjectBadgeColor: SUBJECT_BADGE_COLORS[pubSubject] || "bg-blue-50 text-blue-700 border-blue-300",
+      subject: finalSubject,
+      subjectBadgeColor: "bg-white text-black border-2 border-black font-black",
       author: authorName,
       authorAvatar: profile?.avatar_url || "/buddies/fox_scholar.png",
       readTime: `${Math.max(2, Math.ceil(pubContent.length / 400))} min read`,
-      tags: tagsArray.length > 0 ? tagsArray : [pubSubject],
+      tags: tagsArray.length > 0 ? tagsArray : [finalSubject],
       summary: pubSummary.trim() || pubContent.slice(0, 150) + "...",
       content: pubContent.trim(),
       attachmentUrl: pubAttachmentUrl.trim() || undefined
@@ -127,6 +145,8 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
     if (success) {
       setShowPublishModal(false);
       setPubTitle("");
+      setPubSubject("Biology");
+      setCustomSubjectText("");
       setPubSummary("");
       setPubContent("");
       setPubTags("");
@@ -198,7 +218,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
 
         {/* Horizontal Subject Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          {VAULT_SUBJECTS.map((sub) => (
+          {availableSubjects.map((sub) => (
             <button
               key={sub}
               onClick={() => {
@@ -206,8 +226,8 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                 setSelectedSubject(sub);
               }}
               className={`px-3 py-1.5 rounded-lg border-2 border-black text-[10.5px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                selectedSubject === sub
-                  ? "bg-[#3B82F6] text-white shadow-[2px_2px_0px_#000]"
+                selectedSubject.toLowerCase() === sub.toLowerCase()
+                  ? "bg-black text-white shadow-[2px_2px_0px_#000]"
                   : "bg-white hover:bg-[#FAF7F2] text-black shadow-[1px_1px_0px_#000]"
               }`}
             >
@@ -239,9 +259,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                   {/* Top Note Badges */}
                   <div className="flex items-center justify-between gap-2 mb-2.5">
                     <span
-                      className={`px-2 py-0.5 rounded border text-[9.5px] font-black uppercase tracking-wider ${
-                        note.subjectBadgeColor || "bg-blue-50 text-blue-700 border-blue-300"
-                      }`}
+                      className="px-2.5 py-0.5 rounded-lg border-2 border-black text-[9.5px] font-black uppercase tracking-wider bg-white text-black shadow-[1px_1px_0px_#000]"
                     >
                       {note.subject}
                     </span>
@@ -372,9 +390,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
             <div className="p-5 border-b-2 border-black bg-[#FAF7F2] flex items-center justify-between">
               <div>
                 <span
-                  className={`px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${
-                    activeReadingNote.subjectBadgeColor || "bg-blue-50 text-blue-700 border-blue-300"
-                  }`}
+                  className="px-2.5 py-0.5 rounded-lg border-2 border-black text-[10px] font-black uppercase tracking-wider bg-white text-black shadow-[1px_1px_0px_#000]"
                 >
                   {activeReadingNote.subject}
                 </span>
@@ -475,14 +491,26 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                   <select
                     value={pubSubject}
                     onChange={(e) => setPubSubject(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold focus:outline-none bg-[#FAF7F2]"
+                    className="w-full px-3 py-2 border-2 border-black rounded-xl text-[13px] font-bold focus:outline-none bg-[#FAF7F2] cursor-pointer"
                   >
                     {VAULT_SUBJECTS.filter((s) => s !== "All").map((sub) => (
                       <option key={sub} value={sub}>
                         {sub}
                       </option>
                     ))}
+                    <option value="Custom">+ Custom Subject...</option>
                   </select>
+                  {pubSubject === "Custom" && (
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={customSubjectText}
+                      onChange={(e) => setCustomSubjectText(e.target.value)}
+                      placeholder="Type custom subject name..."
+                      className="w-full px-3 py-2 mt-2 border-2 border-black rounded-xl text-[12.5px] font-bold focus:outline-none bg-white shadow-xs"
+                    />
+                  )}
                 </div>
 
                 <div>

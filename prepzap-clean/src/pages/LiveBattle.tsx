@@ -497,10 +497,6 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
               {/* Header */}
               <header className="pb-1 border-b-2 border-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-black/20 bg-white text-[10.5px] font-black uppercase tracking-wider text-black/60 mb-1.5">
-                    <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">sensors</span>
-                    Live Battle
-                  </div>
                   <h1 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
                     Live Battle Rooms
                   </h1>
@@ -616,8 +612,8 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
                             <span className="px-2 py-0.5 rounded-md border border-black/20 bg-[#FFE566] text-black text-[10px] font-black uppercase tracking-wide">
                               PIN: {room.code}
                             </span>
-                            <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase text-black bg-white px-2.5 py-0.5 rounded-full border-2 border-black flex items-center gap-1.5 shadow-[1px_1px_0px_#000]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
                               Waiting
                             </span>
                           </div>

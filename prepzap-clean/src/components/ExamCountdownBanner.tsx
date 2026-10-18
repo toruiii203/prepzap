@@ -327,9 +327,9 @@ export function ExamCountdownBanner({
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-black bg-black text-white">
                   Exam Countdown
                 </span>
-                {subjectMeta && (
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-black/20 ${subjectMeta.bg} ${subjectMeta.color}`}>
-                    {subjectMeta.name}
+                {(examTarget.subject || subjectMeta) && (
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border-2 border-black bg-white text-black shadow-[1px_1px_0px_#000]">
+                    {subjectMeta?.name || examTarget.subject}
                   </span>
                 )}
                 <span className="text-[11px] font-extrabold text-black/50">
@@ -471,6 +471,14 @@ function ExamModal({
   onClear,
   navigate,
 }: ExamModalProps) {
+  const isKnownSubject = Object.keys(SUBJECT_METADATA).includes(subjectInput);
+  const [selectedDropdown, setSelectedDropdown] = useState<string>(
+    isKnownSubject ? subjectInput : "custom"
+  );
+  const [customText, setCustomText] = useState<string>(
+    isKnownSubject ? "" : subjectInput
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
       <div className="bg-[#FAF7F2] border-4 border-black w-full max-w-lg shadow-[8px_8px_0px_0px_#000] flex flex-col rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh]">
@@ -511,8 +519,16 @@ function ExamModal({
                 Subject Category
               </label>
               <select
-                value={subjectInput}
-                onChange={(e) => setSubjectInput(e.target.value)}
+                value={selectedDropdown}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedDropdown(val);
+                  if (val === "custom") {
+                    setSubjectInput(customText.trim() || "Custom Subject");
+                  } else {
+                    setSubjectInput(val);
+                  }
+                }}
                 className="w-full bg-white border-2 border-black px-3 py-2 text-[13px] font-bold rounded-xl outline-none cursor-pointer"
               >
                 {Object.entries(SUBJECT_METADATA).map(([key, meta]) => (
@@ -520,7 +536,23 @@ function ExamModal({
                     {meta.name}
                   </option>
                 ))}
+                <option value="custom">+ Custom Subject...</option>
               </select>
+              {selectedDropdown === "custom" && (
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Type custom subject (e.g. Criminal Law, Anatomy)..."
+                  value={customText}
+                  onChange={(e) => {
+                    const text = e.target.value;
+                    setCustomText(text);
+                    setSubjectInput(text);
+                  }}
+                  className="w-full bg-white border-2 border-black px-3 py-2 text-[12.5px] font-bold rounded-xl outline-none focus:border-[#FF4D2E] mt-2 shadow-xs"
+                />
+              )}
             </div>
 
             <div>

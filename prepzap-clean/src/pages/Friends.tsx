@@ -425,8 +425,8 @@ export default function Friends() {
                       Your Friends ({buddies.length})
                     </h2>
                     {otherPeers.length > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10.5px] font-black">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black text-white border-2 border-black text-[10.5px] font-black shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-[#FFD13B] animate-pulse" />
                         {otherPeers.length} active now
                       </span>
                     )}
@@ -900,10 +900,10 @@ export default function Friends() {
                         className="border-2 border-black rounded-xl p-3.5 bg-white flex items-center justify-between gap-3 shadow-xs"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border-2 border-black ${
                             duel.won
-                              ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                              : "bg-stone-100 text-stone-700 border-stone-300"
+                              ? "bg-[#FFD13B] text-black"
+                              : "bg-white text-black"
                           }`}>
                             {duel.won ? "Victory" : "Completed"}
                           </span>
