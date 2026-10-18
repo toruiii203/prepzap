@@ -12,6 +12,7 @@ interface FriendProfileModalProps {
   onNudge: (buddyId: string) => void;
   onLaunchStudy: (note: CampusNote, mode: "practice" | "flashcards") => void;
   onReportNote: (noteId: string, reason: string) => void;
+  onCloneNote?: (note: CampusNote) => void;
 }
 
 export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
@@ -20,7 +21,8 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
   onClose,
   onNudge,
   onLaunchStudy,
-  onReportNote
+  onReportNote,
+  onCloneNote
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"notes" | "duels" | "activity">("notes");
@@ -482,14 +484,25 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
               </div>
             </div>
 
-            <div className="p-3 border-t-2 border-black bg-white flex items-center justify-end gap-2">
+            <div className="p-3 border-t-2 border-black bg-white flex items-center justify-between gap-2">
+              {onCloneNote && (
+                <button
+                  onClick={() => {
+                    onCloneNote(readingNote);
+                  }}
+                  className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#ffe270] text-black border-2 border-black rounded-xl font-black text-[11px] shadow-[2px_2px_0px_#000] cursor-pointer flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                  <span>Clone to Notes</span>
+                </button>
+              )}
               <button
                 onClick={() => {
                   onLaunchStudy(readingNote, "practice");
                   setReadingNote(null);
                   onClose();
                 }}
-                className="px-3.5 py-1.5 bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer"
+                className="px-3.5 py-1.5 bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer ml-auto"
               >
                 Launch Practice Quiz
               </button>

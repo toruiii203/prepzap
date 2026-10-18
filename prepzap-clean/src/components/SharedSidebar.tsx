@@ -8,8 +8,7 @@ const NAV_SECTIONS = [
     label: "Main",
     items: [
       { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
-      { icon: "menu_book",      label: "Campus Vault",   route: "/campus-vault" },
-      { icon: "groups",         label: "Study Circle",   route: "/community" },
+      { icon: "groups",         label: "Community Hub",  route: "/community" },
       { icon: "edit_document",  label: "Notes",          route: "/notes" },
       { icon: "forum",      label: "Rex Tutor",       route: "/ai-tutor" },
       { icon: "style",          label: "Flashcards",     route: "/flashcards" },
@@ -47,6 +46,7 @@ const ROUTE_TO_TOOL_NAME: Record<string, string> = Object.fromEntries(
 );
 // DO NOT log time for non-study tools just because they are in the nav.
 delete ROUTE_TO_TOOL_NAME["/dashboard"];
+delete ROUTE_TO_TOOL_NAME["/community"];
 delete ROUTE_TO_TOOL_NAME["/sources"];
 delete ROUTE_TO_TOOL_NAME["/analytics"];
 delete ROUTE_TO_TOOL_NAME["/planner"];

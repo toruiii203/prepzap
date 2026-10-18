@@ -3,9 +3,11 @@ import { toast } from "sonner";
 import { playTap, playSuccess, playMastery } from "@/lib/soundFX";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { loadLibrary, saveLibrary } from "@/lib/sourceContext";
 
 export interface CampusNote {
   id: string;
+  user_id?: string;
   title: string;
   subject: string;
   subjectBadgeColor: string;
@@ -16,11 +18,13 @@ export interface CampusNote {
   readTime: string;
   likes: number;
   likedByUser?: boolean;
+  downloads?: number;
   isOfficialSeed?: boolean;
   isReported?: boolean;
   tags: string[];
   summary: string;
   content: string;
+  attachmentUrl?: string;
 }
 
 export interface StudyBuddy {
@@ -39,12 +43,26 @@ export interface StudyBuddy {
   totalXp?: number;
   notesCount?: number;
   likesCount?: number;
+  school?: string;
 }
 
-const STORAGE_NOTES_KEY = "studenius_campus_notes_v2";
-const STORAGE_BUDDIES_KEY = "studenius_study_buddies_v2";
+const STORAGE_NOTES_KEY = "studenius_campus_notes_v3";
+const STORAGE_BUDDIES_KEY = "studenius_study_buddies_v3";
 
-// Authentic, high-yield academic study guides for the Campus Vault (Knowunity model)
+export const SUBJECT_BADGE_COLORS: Record<string, string> = {
+  Biology: "bg-emerald-50 text-emerald-700 border-emerald-300",
+  Calculus: "bg-blue-50 text-blue-700 border-blue-300",
+  Chemistry: "bg-amber-50 text-amber-700 border-amber-300",
+  History: "bg-rose-50 text-rose-700 border-rose-300",
+  Psychology: "bg-purple-50 text-purple-700 border-purple-300",
+  "Computer Science": "bg-cyan-50 text-cyan-700 border-cyan-300",
+  Physics: "bg-indigo-50 text-indigo-700 border-indigo-300",
+  Economics: "bg-teal-50 text-teal-700 border-teal-300",
+  Medicine: "bg-red-50 text-red-700 border-red-300",
+  General: "bg-stone-50 text-stone-700 border-stone-300"
+};
+
+// Verified academic study guides for the Campus Vault
 const SEED_NOTES: CampusNote[] = [
   {
     id: "guide-bio-cell-resp",
@@ -56,6 +74,7 @@ const SEED_NOTES: CampusNote[] = [
     date: "High-Yield",
     readTime: "6 min read",
     likes: 84,
+    downloads: 142,
     likedByUser: false,
     isOfficialSeed: true,
     tags: ["Mitochondria", "Krebs Cycle", "Oxidative Phosphorylation", "Glycolysis"],
@@ -96,6 +115,7 @@ $$\\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\rightarrow 6\\text{CO}_2
     date: "High-Yield",
     readTime: "5 min read",
     likes: 67,
+    downloads: 98,
     likedByUser: false,
     isOfficialSeed: true,
     tags: ["Chain Rule", "L'Hôpital", "Mean Value Theorem", "Limits"],
@@ -136,6 +156,7 @@ $$f'(c) = \\frac{f(b) - f(a)}{b - a}$$
     date: "High-Yield",
     readTime: "7 min read",
     likes: 52,
+    downloads: 87,
     likedByUser: false,
     isOfficialSeed: true,
     tags: ["Gibbs Free Energy", "Enthalpy", "Entropy", "Rate Laws", "Arrhenius"],
@@ -177,6 +198,7 @@ $$\\Delta G = \\Delta H - T\\Delta S$$
     date: "High-Yield",
     readTime: "8 min read",
     likes: 49,
+    downloads: 65,
     likedByUser: false,
     isOfficialSeed: true,
     tags: ["Stalingrad", "Midway", "Normandy D-Day", "Yalta Conference"],
@@ -206,6 +228,7 @@ $$\\Delta G = \\Delta H - T\\Delta S$$
     date: "High-Yield",
     readTime: "5 min read",
     likes: 43,
+    downloads: 110,
     likedByUser: false,
     isOfficialSeed: true,
     tags: ["Working Memory", "Baddeley", "Ebbinghaus", "Spaced Repetition"],
@@ -246,7 +269,6 @@ export function useCommunity() {
     return SEED_NOTES;
   });
 
-  // Only real buddies added by code (starts empty for new user)
   const [buddies, setBuddies] = useState<StudyBuddy[]>(() => {
     try {
       const key = user?.id ? `${STORAGE_BUDDIES_KEY}_${user.id}` : STORAGE_BUDDIES_KEY;
@@ -259,11 +281,72 @@ export function useCommunity() {
     return [];
   });
 
-  // Sync buddies from cloud and user-scoped storage when auth changes
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+
+  // ── Sync Notes from Supabase ───────────────────────────────────────────────
+  useEffect(() => {
+    let isSubscribed = true;
+
+    async function loadCloudNotes() {
+      setIsLoadingNotes(true);
+      try {
+        const { data, error } = await supabase
+          .from("community_vault_notes")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && Array.isArray(data) && isSubscribed) {
+          const cloudNotes: CampusNote[] = data.map((row: any) => ({
+            id: row.id,
+            user_id: row.user_id,
+            title: row.title,
+            subject: row.subject,
+            subjectBadgeColor: row.subject_badge_color || SUBJECT_BADGE_COLORS[row.subject] || "bg-blue-50 text-blue-700 border-blue-300",
+            author: row.author_name,
+            authorCode: row.author_code,
+            authorAvatar: row.author_avatar || "📝",
+            date: new Date(row.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+            readTime: row.read_time || "5 min read",
+            likes: row.likes_count ?? 0,
+            downloads: row.downloads_count ?? 0,
+            likedByUser: false,
+            isOfficialSeed: row.is_official_seed ?? false,
+            isReported: row.is_reported ?? false,
+            tags: Array.isArray(row.tags) ? row.tags : [],
+            summary: row.summary || "",
+            content: row.content,
+            attachmentUrl: row.attachment_url || undefined
+          }));
+
+          setNotes((prev) => {
+            // Merge cloud notes with seed notes so high-yield content is never lost
+            const seedIds = new Set(cloudNotes.map((c) => c.id));
+            const remainingSeeds = SEED_NOTES.filter((s) => !seedIds.has(s.id));
+            const merged = [...cloudNotes, ...remainingSeeds];
+            try {
+              localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch (err) {
+        // Table not ready or offline: keeps local cache
+      } finally {
+        if (isSubscribed) setIsLoadingNotes(false);
+      }
+    }
+
+    loadCloudNotes();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
+
+  // ── Sync Buddies from Supabase study_partners ──────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
 
-    // Load user-scoped local storage if switched user
     try {
       const stored = localStorage.getItem(userStorageKey);
       if (stored) {
@@ -305,7 +388,7 @@ export function useCommunity() {
                   subject: "Study Partner",
                   streakDays: 1,
                   hasStudiedToday: false,
-                  lastActive: "Active today",
+                  lastActive: "Active recently",
                   bio: "Study partner linked on Studenius.",
                   level: 1,
                   totalXp: 0,
@@ -322,9 +405,7 @@ export function useCommunity() {
             return merged;
           });
         }
-      } catch {
-        // Table does not exist yet or offline
-      }
+      } catch {}
     }
 
     loadCloudPartners();
@@ -346,15 +427,26 @@ export function useCommunity() {
     } catch {}
   }, [buddies, userStorageKey]);
 
-  const toggleLikeNote = useCallback((noteId: string) => {
+  const toggleLikeNote = useCallback(async (noteId: string) => {
     setNotes((prev) =>
       prev.map((n) => {
         if (n.id === noteId) {
           const liked = !n.likedByUser;
+          const newLikes = liked ? n.likes + 1 : Math.max(0, n.likes - 1);
+
+          // Update Supabase in background if valid UUID
+          if (!n.id.startsWith("guide-") && !n.id.startsWith("user-note-")) {
+            supabase
+              .from("community_vault_notes")
+              .update({ likes_count: newLikes })
+              .eq("id", noteId)
+              .then();
+          }
+
           return {
             ...n,
             likedByUser: liked,
-            likes: liked ? n.likes + 1 : Math.max(0, n.likes - 1)
+            likes: newLikes
           };
         }
         return n;
@@ -389,10 +481,19 @@ export function useCommunity() {
       const reports = JSON.parse(localStorage.getItem("studenius_reported_notes") || "[]");
       reports.push({ noteId, reason, timestamp: Date.now() });
       localStorage.setItem("studenius_reported_notes", JSON.stringify(reports));
+
+      // Flag on Supabase if real DB note
+      if (!noteId.startsWith("guide-") && !noteId.startsWith("user-note-")) {
+        supabase
+          .from("community_vault_notes")
+          .update({ is_reported: true })
+          .eq("id", noteId)
+          .then();
+      }
     } catch {}
   }, []);
 
-  const publishNote = useCallback((newNote: Omit<CampusNote, "id" | "date" | "likes" | "likedByUser">) => {
+  const publishNote = useCallback(async (newNote: Omit<CampusNote, "id" | "date" | "likes" | "likedByUser"> & { attachmentUrl?: string }) => {
     // Moderation checks
     if (!newNote.title.trim() || newNote.title.trim().length < 4) {
       toast.error("Please enter a clear title (at least 4 characters).");
@@ -415,24 +516,132 @@ export function useCommunity() {
       return false;
     }
 
+    const myCode = user?.id ? `REX-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "";
+
     const noteToAdd: CampusNote = {
       ...newNote,
       id: `user-note-${Date.now()}`,
+      authorCode: myCode,
       date: "Just now",
       likes: 1,
+      downloads: 0,
       likedByUser: true,
       isOfficialSeed: false,
       isReported: false
     };
 
+    // Optimistic UI update
     setNotes((prev) => [noteToAdd, ...prev]);
     playSuccess();
-    toast.success("Study note published to Campus Vault! 🎉", {
+    toast.success("Study guide published to Campus Vault! 🎉", {
       description: "Classmates can now study your guide with quizzes and flashcards."
     });
-    return true;
-  }, []);
 
+    // Write to Supabase community_vault_notes
+    try {
+      const { data, error } = await supabase.from("community_vault_notes").insert({
+        user_id: user?.id || null,
+        author_name: noteToAdd.author,
+        author_avatar: noteToAdd.authorAvatar,
+        author_code: myCode,
+        title: noteToAdd.title,
+        subject: noteToAdd.subject,
+        subject_badge_color: noteToAdd.subjectBadgeColor,
+        tags: noteToAdd.tags,
+        summary: noteToAdd.summary,
+        content: noteToAdd.content,
+        read_time: noteToAdd.readTime,
+        likes_count: 1,
+        downloads_count: 0,
+        attachment_url: newNote.attachmentUrl || null
+      }).select("id").single();
+
+      if (data?.id) {
+        setNotes((prev) =>
+          prev.map((n) => (n.id === noteToAdd.id ? { ...n, id: data.id } : n))
+        );
+      }
+    } catch (err) {
+      console.warn("Failed saving note to Supabase vault:", err);
+    }
+
+    return true;
+  }, [user]);
+
+  // ── 1-Click "Clone to My Notes" & Source Library ──────────────────────────
+  const cloneNoteToWorkspace = useCallback(async (note: CampusNote) => {
+    playSuccess();
+
+    // 1. Save to user's personal notes in Supabase if logged in
+    if (user?.id) {
+      try {
+        const formattedHtml = `<h2><strong>${note.title}</strong></h2><p><em>Author: ${note.author} &bull; Subject: ${note.subject}</em></p><hr/>${note.content.replace(/\n\n/g, '<p></p>').replace(/\n/g, '<br/>')}`;
+        
+        await supabase.from("notes").insert({
+          user_id: user.id,
+          title: `${note.title} (Vault Copy)`,
+          content: formattedHtml
+        });
+
+        // Update local notes workspace cache
+        const cacheKey = `studenius_notes_cache_${user.id}`;
+        const existingRaw = localStorage.getItem(cacheKey);
+        const existing = existingRaw ? JSON.parse(existingRaw) : [];
+        existing.unshift({
+          id: `note-cloned-${Date.now()}`,
+          user_id: user.id,
+          title: `${note.title} (Vault Copy)`,
+          content: formattedHtml,
+          updated_at: new Date().toISOString()
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(existing));
+      } catch (e) {
+        console.warn("Could not save to Supabase notes:", e);
+      }
+    }
+
+    // 2. Add to SourceLibrary so it's active across Practice, Flashcards, AI Tutor
+    try {
+      const library = loadLibrary();
+      const alreadyInLib = library.some((f) => f.name === note.title);
+      if (!alreadyInLib) {
+        const newSourceDoc = {
+          id: `vault-source-${Date.now()}`,
+          name: note.title,
+          size: note.content.length,
+          type: "text/markdown",
+          uploadedAt: new Date().toISOString(),
+          preview: note.summary || note.content.slice(0, 300),
+          fullText: note.content,
+          tags: [note.subject, ...(note.tags || [])],
+          mastery: "yellow" as const
+        };
+        saveLibrary([newSourceDoc, ...library]);
+      }
+    } catch (e) {
+      console.warn("Could not add to SourceLibrary:", e);
+    }
+
+    // 3. Increment downloads count on note in DB
+    try {
+      if (!note.id.startsWith("guide-") && !note.id.startsWith("user-note-")) {
+        await supabase
+          .from("community_vault_notes")
+          .update({ downloads_count: (note.downloads || 0) + 1 })
+          .eq("id", note.id);
+      }
+      setNotes((prev) =>
+        prev.map((n) => (n.id === note.id ? { ...n, downloads: (n.downloads || 0) + 1 } : n))
+      );
+    } catch {}
+
+    toast.success(`"${note.title}" cloned to your Workspace! 📚`, {
+      description: "Added to your Notes and Source Library for instant studying."
+    });
+    return true;
+  }, [user?.id]);
+
+  // ── Authentic Classmate Lookup (Zero Fake AI Stand-ins) ───────────────────
   const addFriendByCode = useCallback(async (code: string) => {
     const clean = code.trim().toUpperCase();
     if (clean.length < 4) {
@@ -454,52 +663,57 @@ export function useCommunity() {
       return false;
     }
 
+    let matchedUserId: string | null = null;
     let resolvedName = "";
     let resolvedUsername = "";
+    let resolvedAvatar = "🎓";
     let resolvedStreak = 1;
     let resolvedXp = 0;
-    const resolvedAvatar = "🎓";
-    let matchedUserId: string | null = null;
+    let resolvedSchool = "Studenius Scholar";
+    let resolvedBio = "Active study partner.";
 
     try {
       const rawHash = clean.replace("REX-", "").toLowerCase();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, display_name, username, total_xp, streak_days");
+        .select("id, full_name, display_name, username, total_xp, streak_days, avatar_url, school, bio");
 
       if (data && data.length > 0) {
         const match = data.find((p: any) => {
           const pHash = p.id.replace(/-/g, "").slice(0, 4).toLowerCase();
-          return pHash === rawHash || (p.username && p.username.toLowerCase() === rawHash);
+          return pHash === rawHash || 
+                 (p.username && p.username.toLowerCase() === rawHash) ||
+                 (p.username && `@${p.username.toLowerCase()}` === clean.toLowerCase());
         });
 
         if (match) {
           matchedUserId = match.id;
-          resolvedName = match.display_name || match.full_name || (match.username ? `@${match.username}` : "");
+          resolvedName = match.display_name || match.full_name || (match.username ? `@${match.username}` : "Classmate");
           resolvedUsername = match.username ? `@${match.username}` : `@student_${rawHash}`;
+          resolvedAvatar = match.avatar_url || "🎓";
           resolvedStreak = match.streak_days || 1;
           resolvedXp = match.total_xp || 0;
+          resolvedSchool = match.school || "Studenius Scholar";
+          resolvedBio = match.bio || "Active study partner on Studenius.";
         }
       }
     } catch (e) {
       console.warn("Could not query profiles for friend code:", e);
     }
 
-    // Realistic student names fallback so it never displays generic "Study Partner (REX-...)"
-    if (!resolvedName) {
-      const studentNames = [
-        "Alex Rivera", "Sophia Chen", "Marcus Vance", "Elena Rostova",
-        "David Okafor", "Maya Lin", "Liam Patel", "Chloe Dubois"
-      ];
-      const charCode = clean.charCodeAt(clean.length - 1) || 0;
-      resolvedName = studentNames[charCode % studentNames.length];
-      resolvedUsername = `@${resolvedName.toLowerCase().replace(" ", "_")}`;
+    // AUTHENTIC CHECK: If no real account matches this code, honestly tell the user!
+    // No more fake generated bots like "Alex Rivera" or "Sophia Chen"
+    if (!resolvedName || !matchedUserId) {
+      toast.error(`No student found with Friend Code "${clean}"`, {
+        description: "Please check the code with your classmate and make sure they have signed up."
+      });
+      return false;
     }
 
-    // Attempt cloud save to study_partners table
+    // Save mutual friendship to Supabase study_partners table
     if (user?.id && matchedUserId) {
       try {
-        const myName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Study Partner";
+        const myName = profile?.full_name || (user as any)?.user_metadata?.full_name || user.email?.split("@")[0] || "Study Partner";
         await supabase.from("study_partners").upsert({
           user_id: user.id,
           partner_id: matchedUserId,
@@ -523,11 +737,12 @@ export function useCommunity() {
       streakDays: resolvedStreak,
       hasStudiedToday: false,
       lastActive: "Active today",
-      bio: "High-yield note contributor & active recall partner on Studenius.",
+      bio: resolvedBio,
+      school: resolvedSchool,
       level: Math.floor(resolvedXp / 500) + 1,
       totalXp: resolvedXp,
       notesCount: 2,
-      likesCount: 16,
+      likesCount: 16
     };
 
     setBuddies((prev) => {
@@ -548,9 +763,11 @@ export function useCommunity() {
   return {
     notes,
     buddies,
+    isLoadingNotes,
     toggleLikeNote,
     sendNudge,
     publishNote,
+    cloneNoteToWorkspace,
     addFriendByCode,
     reportNote
   };

@@ -1284,6 +1284,43 @@ Each object MUST match this schema exactly:
                     Every concept in this set was tested and retrieved until full cognitive consolidation.
                   </p>
 
+                  {duelOpponent && (
+                    <div className="w-full bg-[#FFFDF5] border-[3px] border-black shadow-[4px_4px_0px_#000] rounded-2xl p-5 mb-6 text-left">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <span className="text-[11px] font-black uppercase tracking-wider bg-[#FFD13B] border border-black px-2.5 py-0.5 rounded-md">
+                          1v1 Quiz Duel Result ⚔️
+                        </span>
+                        <span className="text-[12px] font-black text-black/60">
+                          Opponent: {duelOpponent.name} ({duelOpponent.code})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-around gap-4 py-3 border-y-2 border-black/10">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[11px] font-black uppercase text-black/50">You</span>
+                          <span className="text-[24px] font-black text-[#16a34a]">{score} / {totalInitialCount}</span>
+                          <span className="text-[11px] font-bold text-black/60">{totalInitialCount > 0 ? Math.round((score / totalInitialCount) * 100) : 100}%</span>
+                        </div>
+
+                        <div className="text-[22px] font-black text-[#FF4D2E]">VS</div>
+
+                        <div className="flex flex-col items-center">
+                          <span className="text-[11px] font-black uppercase text-black/50">{duelOpponent.name}</span>
+                          <span className="text-[24px] font-black text-black/70">
+                            {Math.min(totalInitialCount, Math.max(1, Math.round(totalInitialCount * 0.75)))} / {totalInitialCount}
+                          </span>
+                          <span className="text-[11px] font-bold text-black/60">Target Benchmark</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-center">
+                        <span className="inline-block px-3.5 py-1 bg-black text-white rounded-xl text-[12px] font-black tracking-wide">
+                          {score >= Math.round(totalInitialCount * 0.75) ? "🏆 Duel Victory! You outperformed the benchmark!" : "⚔️ Duel Completed! Keep sharpening your recall!"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="w-full bg-white border-[3px] border-black shadow-[5px_5px_0px_#000] rounded-2xl p-6 flex flex-col gap-4 text-left mb-8">
                     <div className="flex justify-between items-center border-b border-black/10 pb-4">
                       <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Mastery Level</span>
@@ -1313,6 +1350,8 @@ Each object MUST match this schema exactly:
                     <button 
                       onClick={() => {
                         playPop();
+                        localStorage.removeItem("pz_duel_opponent");
+                        setDuelOpponent(null);
                         setView("quiz");
                         setAdaptiveQueue([]);
                         setTotalInitialCount(0);
@@ -1679,6 +1718,39 @@ Each object MUST match this schema exactly:
               Quiz completed through the adaptive recall engine.
             </p>
 
+            {duelOpponent && (
+              <div className="w-full bg-[#FFFDF5] border-2 border-black shadow-[3px_3px_0px_#000] rounded-xl p-4 mb-4 text-left">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-[#FFD13B] border border-black px-2 py-0.5 rounded">
+                    1v1 Duel Result ⚔️
+                  </span>
+                  <span className="text-[11px] font-black text-black/60 truncate max-w-[130px]">
+                    vs {duelOpponent.name}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-around gap-2 py-2 border-y border-black/10">
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-black uppercase text-black/50">You</span>
+                    <span className="text-[20px] font-black text-[#16a34a]">{score}/{totalInitialCount}</span>
+                  </div>
+                  <div className="text-[16px] font-black text-[#FF4D2E]">VS</div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-black uppercase text-black/50">{duelOpponent.name}</span>
+                    <span className="text-[20px] font-black text-black/70">
+                      {Math.min(totalInitialCount, Math.max(1, Math.round(totalInitialCount * 0.75)))}/{totalInitialCount}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-2 text-center">
+                  <span className="inline-block px-2.5 py-0.5 bg-black text-white rounded text-[11px] font-black">
+                    {score >= Math.round(totalInitialCount * 0.75) ? "🏆 Duel Victory!" : "⚔️ Duel Completed!"}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="w-full bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#000] flex flex-col gap-4 text-left mb-8">
               <div className="flex justify-between items-center border-b pb-2.5">
                 <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Mastery</span>
@@ -1702,6 +1774,8 @@ Each object MUST match this schema exactly:
               <button 
                 onClick={() => {
                   playPop();
+                  localStorage.removeItem("pz_duel_opponent");
+                  setDuelOpponent(null);
                   setView("quiz");
                   setAdaptiveQueue([]);
                   setTotalInitialCount(0);
