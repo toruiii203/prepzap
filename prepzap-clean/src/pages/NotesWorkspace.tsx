@@ -12,6 +12,7 @@ import KnowledgeGraph from "@/components/KnowledgeGraph";
 import KnowledgeBaseChat from "@/components/KnowledgeBaseChat";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { useNavigate } from "react-router-dom";
+import { ShareModal } from "@/components/ShareModal";
 
 interface Note {
   id: string;
@@ -53,7 +54,7 @@ const NOTE_TEMPLATES = [
     badge: "Test Prep",
     icon: "local_fire_department",
     description: "Distill high-yield facts, mnemonics, and frequent exam traps.",
-    content: `<h2><strong>🔥 Exam High-Yield Sheet: [Subject]</strong></h2><p><strong>Exam Date:</strong> </p><h3><strong>⚡ Must-Know Facts & Rules</strong></h3><ul><li>Must-know rule #1: </li><li>Must-know rule #2: </li></ul><h3><strong>⚠️ Common Traps & Pitfalls</strong></h3><ul><li>Watch out for: </li><li>Common calculation mistake: </li></ul><h3><strong>🧠 Mnemonics & Memory Triggers</strong></h3><p>Write associations or rhymes to quickly remember sequences.</p>`,
+    content: `<h2><strong>Exam High-Yield Sheet: [Subject]</strong></h2><p><strong>Exam Date:</strong> </p><h3><strong>Must-Know Facts & Rules</strong></h3><ul><li>Must-know rule #1: </li><li>Must-know rule #2: </li></ul><h3><strong>Common Traps & Pitfalls</strong></h3><ul><li>Watch out for: </li><li>Common calculation mistake: </li></ul><h3><strong>Mnemonics & Memory Triggers</strong></h3><p>Write associations or rhymes to quickly remember sequences.</p>`,
   },
 ];
 
@@ -70,6 +71,7 @@ export default function NotesWorkspace() {
   const [syncStatus, setSyncStatus] = useState<"saved" | "saving" | "offline">("saved");
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showBrainChat, setShowBrainChat] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cacheKey = user ? `studenius_notes_cache_${user.id}` : null;
@@ -606,6 +608,18 @@ export default function NotesWorkspace() {
                   </button>
 
                   <button
+                    onClick={() => {
+                      playPop();
+                      setIsShareModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#FFD13B] text-black font-black text-[12px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    title="Share note with public view and clone link"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">share</span>
+                    <span className="hidden sm:inline">Share</span>
+                  </button>
+
+                  <button
                     onClick={() => handleDeleteNote(activeNote.id)}
                     className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-[#AE2925] hover:text-white text-black/70 transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                     title="Delete Note"
@@ -750,6 +764,25 @@ export default function NotesWorkspace() {
 
       {/* Knowledge Base Chat Sidecar / Drawer */}
       <KnowledgeBaseChat isOpen={showBrainChat} onClose={() => setShowBrainChat(false)} />
+
+      {/* Share Modal for Note */}
+      {isShareModalOpen && activeNote && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          itemType="guide"
+          title={activeNote.title || "Untitled Note"}
+          subject="General Studies"
+          payload={{
+            content: activeNote.content,
+            tags: ["notes", "studenius"]
+          }}
+          creator={{
+            id: user?.id,
+            name: (user as any)?.user_metadata?.full_name || user?.email?.split("@")[0] || "Scholar"
+          }}
+        />
+      )}
     </div>
   );
 }

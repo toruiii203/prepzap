@@ -4,7 +4,7 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 
 const MESSAGES = [
   "Nice answer!", "You're on fire!", "Keep going!", "Big brain energy!", 
-  "Almost there!", "Nailed it!", "Focus mode: on 🎯", "You got this!"
+  "Almost there!", "Nailed it!", "Focus mode: on", "You got this!"
 ];
 
 export function BuddyCompanion() {

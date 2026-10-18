@@ -299,10 +299,10 @@ export function ExamCountdownBanner({
   let daysPillText = "";
   let daysPillBg = "bg-[#FFE566] text-black";
   if (daysLeft === 0) {
-    daysPillText = "Today! 🔥";
+    daysPillText = "Today!";
     daysPillBg = "bg-[#FF4D2E] text-white";
   } else if (daysLeft === 1) {
-    daysPillText = "Tomorrow! ⚡";
+    daysPillText = "Tomorrow";
     daysPillBg = "bg-[#FF4D2E] text-white";
   } else if (daysLeft > 1) {
     daysPillText = `In ${daysLeft} Days`;

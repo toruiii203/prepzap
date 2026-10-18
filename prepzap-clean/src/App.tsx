@@ -146,6 +146,8 @@ import ArenaRoom from "./pages/ArenaRoom";
 import ArenaQuiz from "./pages/ArenaQuiz";
 import ArenaResults from "./pages/ArenaResults";
 import ArenaInvite from "./pages/ArenaInvite";
+import LiveBattle from "./pages/LiveBattle";
+import PublicShareView from "./pages/PublicShareView";
 
 // ── Still removed (files deleted): ───────────────────────────────────────────
 // FeynmanMode, ToolArchitect, Daily5, FlipScript, SpotError, BuildDef,
@@ -345,6 +347,7 @@ function AppRoutes() {
         
         <Route path="/invite/:code" element={safe(<ArenaInvite />)} />
         <Route path="/flashcards/shared/:id" element={safe(<FlashcardsShared />)} />
+        <Route path="/share/:type/:slug" element={safe(<PublicShareView />)} />
 
         {/* Protected — inside shell layout */}
         <Route element={safe(<ProtectedStudeniusLayout />)}>
@@ -383,7 +386,9 @@ function AppRoutes() {
           <Route path="/high-yield" element={<Navigate to="/quick-study" replace />} />
           <Route path="/mistakes" element={<MistakeJournal />} />
 
-          {/* Arena */}
+          {/* Arena & Live Battle */}
+          <Route path="/rooms" element={<LiveBattle />} />
+          <Route path="/live-battle" element={<Navigate to="/rooms" replace />} />
           <Route path="/arena" element={<Arena />} />
           <Route path="/arena/room/:code" element={<ArenaRoom />} />
           <Route path="/arena/quiz/:code" element={<ArenaQuiz />} />

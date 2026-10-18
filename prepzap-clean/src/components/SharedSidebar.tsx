@@ -12,7 +12,7 @@ const NAV_SECTIONS = [
       { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
       { icon: "groups",         label: "Friends",        route: "/friends" },
       { icon: "edit_document",  label: "Notes",          route: "/notes" },
-      { icon: "forum",          label: "AI Tutor",       route: "/ai-tutor" },
+      { icon: "forum",          label: "Tutor",          route: "/ai-tutor" },
       { icon: "style",          label: "Flashcards",     route: "/flashcards" },
       { icon: "assignment",     label: "Practice",       route: "/practice" },
       { icon: "timer",          label: "Focus Timer",    route: "/timer" },
@@ -27,6 +27,12 @@ const NAV_SECTIONS = [
       { icon: "menu_book",      label: "Quick Study",    route: "/quick-study" },
       { icon: "auto_stories",   label: "Mistake Journal",route: "/mistakes" },
       { icon: "military_tech",  label: "Challenges",     route: "/challenges" },
+    ],
+  },
+  {
+    label: "Play",
+    items: [
+      { icon: "sensors",        label: "Live Battle",    route: "/rooms" },
       { icon: "sports_esports", label: "Arena",          route: "/arena" },
       { icon: "stadia_controller", label: "Arcade",      route: "/arcade" },
     ],
@@ -55,6 +61,7 @@ delete ROUTE_TO_TOOL_NAME["/campus-vault"];
 delete ROUTE_TO_TOOL_NAME["/sources"];
 delete ROUTE_TO_TOOL_NAME["/analytics"];
 delete ROUTE_TO_TOOL_NAME["/planner"];
+delete ROUTE_TO_TOOL_NAME["/rooms"];
 
 interface SharedSidebarProps {
   active: string;

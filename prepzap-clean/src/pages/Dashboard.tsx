@@ -67,8 +67,8 @@ const STUDY_TOOLS_PAGES = [
       {
         route: "/ai-tutor",
         icon: "forum",
-        title: "AI Tutor",
-        desc: "24/7 concept breakdown & Socratic tutor",
+        title: "Study Tutor",
+        desc: "24/7 concept breakdown & Socratic dialogue",
         color: "text-black",
       },
       {
@@ -167,10 +167,10 @@ const STUDY_TOOLS_PAGES = [
         color: "text-black",
       },
       {
-        route: "/arena",
-        icon: "sports_esports",
-        title: "Arena",
-        desc: "Exam rooms & multiplayer challenges",
+        route: "/rooms",
+        icon: "sensors",
+        title: "Live Battle",
+        desc: "Kahoot-style 6-digit PIN multiplayer",
         color: "text-black",
       },
       {
@@ -555,13 +555,23 @@ function RexHeroStage({
       list.push(
         `Your ${examTarget.subject || primarySubjectMeta.name} exam is in ${readiness.daysLeft} days! Let's lock in 5 minutes of practice.`
       );
+    } else if (libraryFiles && libraryFiles.length > 0) {
+      const topDoc = libraryFiles[0].name.replace(/\.[^/.]+$/, "");
+      list.push(`Pick up where you left off with "${topDoc}". Ready for a quick review?`);
+    } else if (allSessions && allSessions.length > 0 && allSessions[0]?.title) {
+      list.push(`Ready to continue with "${allSessions[0].title}"? Let's keep the momentum going.`);
+    } else {
+      list.push(`Welcome! Add your syllabus or notes in Library, or pick a study tool below to get started.`);
     }
+
     const subjectLabel = primarySubjectMeta.name === "General Studies" ? "your courses" : primarySubjectMeta.name;
     list.push(`${getLocalGreeting()}, ${displayName}! Ready to study ${subjectLabel} today?`);
-    list.push(`"${activeGoalMeta.rexQuote}"`);
-    list.push(`Speak out loud with me or launch a high-yield practice set!`);
+    if (activeGoalMeta?.rexQuote) {
+      list.push(`"${activeGoalMeta.rexQuote}"`);
+    }
+    list.push(`Tap Talk to speak out loud with me, or launch a practice set!`);
     return list;
-  }, [displayName, examTarget, readiness.daysLeft, primarySubjectMeta.name, activeGoalMeta.rexQuote]);
+  }, [displayName, examTarget, readiness.daysLeft, primarySubjectMeta.name, activeGoalMeta?.rexQuote, libraryFiles, allSessions]);
 
   const currentSpeech = dialogues[dialogueIndex % dialogues.length];
 
@@ -581,89 +591,82 @@ function RexHeroStage({
     navigate(primarySubjectMeta.recommendedTool || "/practice");
   };
 
+  const examLabel = examTarget?.examDate && readiness.daysLeft >= 0
+    ? `${examTarget.subject || primarySubjectMeta.name} Exam in ${readiness.daysLeft}d`
+    : (libraryFiles && libraryFiles.length > 0
+        ? `${libraryFiles[0].name.replace(/\.[^/.]+$/, "").slice(0, 18)}`
+        : `${primarySubjectMeta.name} Focus`);
+
   return (
-    <div className="border-2 md:border-[2.5px] border-black rounded-2xl md:rounded-3xl bg-[#FFFDF5] p-3.5 md:p-6 shadow-[3px_3px_0px_#1A1A1A] md:shadow-[4px_4px_0px_#1A1A1A] relative overflow-hidden transition-all">
-      {/* Background soft ambient accents */}
-      <div className="absolute -top-16 -right-16 w-60 h-60 rounded-full bg-[#FFE566]/20 pointer-events-none blur-2xl" />
-      <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-48 h-48 rounded-full border border-black/5 pointer-events-none" />
-
-      <div className="relative z-10 flex flex-row items-center gap-3 md:gap-7">
-        {/* Grounded Character Pedestal (Rex stands physically on a stage) */}
-        <div className="flex flex-col items-center justify-center shrink-0">
-          <div className="relative flex flex-col items-center justify-center">
-            {/* Spotlight halo behind Rex - compact on mobile, large on desktop */}
-            <div
-              onClick={handleRexClick}
-              className="w-20 h-20 md:w-40 md:h-40 rounded-full bg-gradient-to-b from-[#FFE566]/35 to-[#F0EDE0] border-2 border-black/15 flex items-center justify-center p-1 md:p-2 shadow-inner cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-            >
-              <div className="md:hidden">
-                <AnimatedRex
-                  state="idle"
-                  size="sm"
-                  interactive={true}
-                  onClick={handleRexClick}
-                />
-              </div>
-              <div className="hidden md:block">
-                <AnimatedRex
-                  state="idle"
-                  size="lg"
-                  interactive={true}
-                  onClick={handleRexClick}
-                />
-              </div>
-            </div>
-
-            {/* Physical Grounded Pedestal Stand */}
-            <div className="w-16 md:w-36 h-3 md:h-4.5 bg-[#E8E4DC] border-[1.5px] md:border-2 border-black rounded-full shadow-[1px_1px_0px_#1A1A1A] md:shadow-[2px_2px_0px_#1A1A1A] mt-[-6px] md:mt-[-9px] flex items-center justify-center">
-              <span className="w-8 md:w-14 h-0.5 md:h-1 bg-black/20 rounded-full" />
-            </div>
-
-            {/* Compact interact hint */}
-            <span
-              onClick={handleRexClick}
-              className="text-[9px] md:text-[9.5px] font-black uppercase tracking-wider text-black/45 mt-1 flex items-center gap-1 cursor-pointer select-none"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="hidden md:inline">Tap Rex to interact</span>
-              <span className="md:hidden">Rex</span>
+    <div className="border-2 md:border-[2.5px] border-black rounded-2xl md:rounded-3xl bg-[#FFFDF5] p-4 md:p-6 shadow-[3px_3px_0px_#1A1A1A] md:shadow-[4px_4px_0px_#1A1A1A] relative overflow-hidden transition-all">
+      {/* Top Header Pill Bar */}
+      <div className="flex items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-black/10">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FFE566] text-black font-extrabold text-[11px] md:text-xs border border-black shadow-[1.5px_1.5px_0px_#1A1A1A]">
+            <span className="material-symbols-outlined text-[14px]">event</span>
+            <span>{examLabel}</span>
+          </span>
+          {readiness.score > 0 && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-black/60">
+              <span>Readiness:</span>
+              <strong className="text-black font-black">{readiness.score}%</strong>
             </span>
-          </div>
+          )}
         </div>
 
-        {/* Content Column: Speech Bubble + Primary Actions */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between text-left">
-          {/* Neobrutalist Speech Bubble */}
-          <div className="relative bg-white border-2 border-black rounded-xl md:rounded-2xl p-3 md:p-4 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] mb-2.5 md:mb-3.5 text-left">
-            {/* Speech bubble pointer pointing toward Rex on the left */}
-            <div className="absolute top-1/2 -left-2 md:-left-2.5 -translate-y-1/2 w-0 h-0 border-y-[6px] md:border-y-[8px] border-y-transparent border-r-[8px] md:border-r-[10px] border-r-black" />
-            <div className="absolute top-1/2 -left-[5px] md:-left-[7px] -translate-y-1/2 w-0 h-0 border-y-[5px] md:border-y-[6px] border-y-transparent border-r-[6px] md:border-r-[8px] border-r-white" />
+        <button
+          type="button"
+          onClick={handleRexClick}
+          className="text-[10px] md:text-[11px] font-bold text-black/50 hover:text-black flex items-center gap-1 cursor-pointer transition-colors"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Tap Rex to change dialogue</span>
+        </button>
+      </div>
 
-            <p className="text-[13px] md:text-[15px] font-extrabold text-black leading-snug line-clamp-2 md:line-clamp-none">
+      {/* Main Row: Standing Rex + Speech & Action Column */}
+      <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+        {/* Animated Rex Character (Standing naturally on soft floor shadow) */}
+        <div
+          onClick={handleRexClick}
+          className="shrink-0 flex flex-col items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          title="Tap Rex to interact"
+        >
+          <AnimatedRex
+            state="idle"
+            size="md"
+            interactive={true}
+            onClick={handleRexClick}
+          />
+        </div>
+
+        {/* Content Column */}
+        <div className="flex-1 min-w-0 w-full flex flex-col justify-between gap-3 text-left">
+          {/* Neobrutalist Speech Bubble */}
+          <div className="relative bg-white border-2 border-black rounded-xl md:rounded-2xl p-3.5 md:p-4 shadow-[2px_2px_0px_#1A1A1A]">
+            <p className="text-[13px] md:text-[15px] font-extrabold text-black leading-snug">
               {currentSpeech}
             </p>
           </div>
 
-          {/* 2 Primary Action CTAs */}
-          <div className="grid grid-cols-2 gap-2 md:gap-2.5 pt-0.5">
-            {/* Action 1: Call Rex (Voice Mentor) */}
+          {/* Action Buttons Row */}
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
               onClick={handleCall}
-              className="h-8.5 md:min-h-[46px] bg-[#FFE566] hover:bg-black hover:text-white text-black border-2 border-black font-black uppercase text-[10.5px] md:text-[12px] tracking-wider px-2 md:px-4 py-1 md:py-2.5 rounded-lg md:rounded-xl shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer group"
+              className="min-h-[42px] md:min-h-[46px] bg-[#FFE566] hover:bg-black hover:text-white text-black border-2 border-black font-black uppercase text-[11px] md:text-[12px] tracking-wider px-3 md:px-4 py-2 rounded-xl shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer group"
             >
-              <span className="material-symbols-outlined text-[15px] md:text-[18px] group-hover:rotate-12 transition-transform">phone_in_talk</span>
-              <span className="truncate">Talk</span>
+              <span className="material-symbols-outlined text-[17px] group-hover:rotate-12 transition-transform">phone_in_talk</span>
+              <span>Talk</span>
             </button>
 
-            {/* Action 2: Launch Daily Focus */}
             <button
               type="button"
               onClick={handleLaunchPractice}
-              className="h-8.5 md:min-h-[46px] bg-[#FF4D2E] hover:bg-black text-white border-2 border-black font-black uppercase text-[10.5px] md:text-[12px] tracking-wider px-2 md:px-4 py-1 md:py-2.5 rounded-lg md:rounded-xl shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="min-h-[42px] md:min-h-[46px] bg-[#FF4D2E] hover:bg-black text-white border-2 border-black font-black uppercase text-[11px] md:text-[12px] tracking-wider px-3 md:px-4 py-2 rounded-xl shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[15px] md:text-[18px]">bolt</span>
-              <span className="truncate">Daily Focus</span>
+              <span className="material-symbols-outlined text-[17px]">bolt</span>
+              <span>Daily Focus</span>
             </button>
           </div>
         </div>
@@ -787,7 +790,7 @@ function DashboardHeader({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-[#FFE566] shadow-[2px_2px_0px_#1A1A1A] cursor-pointer hover:bg-[#FFD13B] transition-all"
           title={`Level ${level} (${totalXp} XP)`}
         >
-          <span className="text-[13px]">⚡</span>
+          <span className="material-symbols-outlined text-[15px] font-black leading-none">bolt</span>
           <span className="text-[12px] font-black text-black">LVL {level}</span>
         </div>
 
@@ -1096,7 +1099,7 @@ export default function Dashboard() {
             className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-[#FFE566] shadow-xs cursor-pointer hover:bg-[#FFD13B] transition-colors"
             title={`Level ${levelFromXp(profile?.total_xp ?? 0)} (${profile?.total_xp ?? 0} XP)`}
           >
-            <span className="text-[11px]">⚡</span>
+            <span className="material-symbols-outlined text-[13px] font-black leading-none">bolt</span>
             <span className="text-[11px] font-black text-black">LVL {levelFromXp(profile?.total_xp ?? 0)}</span>
           </div>
 
@@ -1230,24 +1233,6 @@ export default function Dashboard() {
               />
             </section>
 
-            {/* Academic Streak Card */}
-            <section className="border-2 border-black bg-[#FF4D2E] text-white p-5 flex flex-col justify-between rounded-3xl shadow-[3px_3px_0px_#1A1A1A]">
-              <div className="flex justify-between items-start">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-black text-white font-black uppercase text-[10px] tracking-wider rounded-lg border border-white/20">
-                  <span>🔥 Academic Streak</span>
-                </div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-white/80">Daily Habit</span>
-              </div>
-              <div className="flex items-baseline gap-2 my-3">
-                <span className="text-[52px] font-black leading-none"><AnimatedCounter value={profile?.streak_days ?? 1} /></span>
-                <span className="text-[20px] font-black uppercase">Days</span>
-              </div>
-              <p className="text-[12px] font-bold text-white/90 leading-snug">
-                {(profile?.streak_days ?? 1) > 1
-                  ? `${profile?.streak_days} days strong! Complete a session today to extend your streak.`
-                  : "Complete 1 study session today to protect your streak."}
-              </p>
-            </section>
 
             {/* Recent Sessions */}
             <section className="border-2 border-black bg-[#FAF7F2] overflow-hidden rounded-3xl shadow-[3px_3px_0px_#1A1A1A]">

@@ -302,12 +302,12 @@ export function AnimatedRex({
             />
           )}
 
-          {/* Celebration Confetti Sparkles */}
+          {/* Celebration Confetti Shapes */}
           {state === "dancing" && (
             <div className="absolute -top-6 inset-x-0 flex justify-between pointer-events-none z-30 px-1">
-              <span className="text-xl" style={{ animation: "rex-confetti 1.1s ease-out infinite" }}>✨</span>
-              <span className="text-2xl" style={{ animation: "rex-confetti 1.4s ease-out infinite 0.3s" }}>🎉</span>
-              <span className="text-xl" style={{ animation: "rex-confetti 1.2s ease-out infinite 0.6s" }}>⭐</span>
+              <span className="w-2.5 h-2.5 bg-[#FFD13B] border border-black rotate-12" style={{ animation: "rex-confetti 1.1s ease-out infinite" }} />
+              <span className="w-3 h-3 bg-[#FF4D2E] border border-black rounded-full" style={{ animation: "rex-confetti 1.4s ease-out infinite 0.3s" }} />
+              <span className="w-2.5 h-2.5 bg-[#10B981] border border-black -rotate-12" style={{ animation: "rex-confetti 1.2s ease-out infinite 0.6s" }} />
             </div>
           )}
         </div>

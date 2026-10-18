@@ -200,7 +200,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
                   name: partnerName,
                   username: `@${partnerName.toLowerCase().replace(/[\s,]+/g, "_")}`,
                   code: partnerCode,
-                  avatar: "🎓",
+                  avatar: "/buddies/fox_scholar.png",
                   subject: "Study Partner",
                   streakDays: 1,
                   hasStudiedToday: false,
@@ -350,7 +350,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
     // Optimistic UI update
     setNotes((prev) => [noteToAdd, ...prev]);
     playSuccess();
-    toast.success("Study guide published to Campus Vault! 🎉", {
+    toast.success("Study guide published to Campus Vault!", {
       description: "Classmates can now study your guide with quizzes and flashcards."
     });
 
@@ -452,7 +452,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
       );
     } catch {}
 
-    toast.success(`"${note.title}" cloned to your Workspace! 📚`, {
+    toast.success(`"${note.title}" cloned to your Workspace!`, {
       description: "Added to your Notes and Source Library for instant studying."
     });
     return true;
@@ -468,7 +468,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
 
     const myCode = user?.id ? `REX-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "";
     if (myCode && clean === myCode) {
-      toast.info("That's your own Friend Code! 💡", {
+      toast.info("That's your own Friend Code!", {
         description: "Share this code with your classmate or enter their code to link together."
       });
       return false;
@@ -483,7 +483,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
     let matchedUserId: string | null = null;
     let resolvedName = "";
     let resolvedUsername = "";
-    let resolvedAvatar = "🎓";
+    let resolvedAvatar = "/buddies/fox_scholar.png";
     let resolvedStreak = 1;
     let resolvedXp = 0;
     let resolvedSchool = "";
@@ -507,7 +507,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
           matchedUserId = match.id;
           resolvedName = match.display_name || match.full_name || (match.username ? `@${match.username}` : "Classmate");
           resolvedUsername = match.username ? `@${match.username}` : `@student_${rawHash}`;
-          resolvedAvatar = match.avatar_url || "🎓";
+          resolvedAvatar = match.avatar_url || "/buddies/fox_scholar.png";
           resolvedStreak = match.streak_days || 1;
           resolvedXp = match.total_xp || 0;
           resolvedSchool = match.school || "";
@@ -599,8 +599,42 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
         console.warn("Could not delete partner from Supabase:", e);
       }
     }
+  }, [buddies, userStorageKey, user?.id]);
 
-    toast.info(`Removed ${target.name} from your friends.`);
+  const blockFriend = useCallback(async (buddyId: string) => {
+    const target = buddies.find((b) => b.id === buddyId);
+    if (!target) return;
+
+    setBuddies((prev) => {
+      const updated = prev.filter((b) => b.id !== buddyId);
+      try {
+        localStorage.setItem(userStorageKey, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    try {
+      const blockedKey = `studenius_blocked_${user?.id || "guest"}`;
+      const blockedRaw = localStorage.getItem(blockedKey) || "[]";
+      const blocked = JSON.parse(blockedRaw);
+      if (!blocked.includes(target.code)) {
+        blocked.push(target.code);
+        localStorage.setItem(blockedKey, JSON.stringify(blocked));
+      }
+    } catch {}
+
+    if (user?.id) {
+      try {
+        await supabase
+          .from("study_partners")
+          .update({ status: "blocked" })
+          .or(`and(user_id.eq.${user.id},partner_code.eq.${target.code}),and(partner_id.eq.${user.id},user_code.eq.${target.code})`);
+      } catch (e) {
+        console.warn("Could not block partner in Supabase:", e);
+      }
+    }
+
+    toast.info(`Blocked ${target.name}. They will not see your study activity.`);
   }, [buddies, userStorageKey, user?.id]);
 
   return {
@@ -613,6 +647,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
     cloneNoteToWorkspace,
     addFriendByCode,
     removeFriend,
+    blockFriend,
     reportNote
   };
 }

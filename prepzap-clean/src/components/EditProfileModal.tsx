@@ -59,6 +59,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   // Banner state
   const [selectedBannerId, setSelectedBannerId] = useState(profileToUse.bannerId || "amber_sunset");
 
+  // Privacy state
+  const [hideHearts, setHideHearts] = useState(profileToUse.hideHearts ?? false);
+
   // Keep state synchronized when profile prop updates
   React.useEffect(() => {
     if (isOpen) {
@@ -75,6 +78,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setSelectedAvatar(profileToUse.avatar || "/buddies/fox_scholar.png");
       setIsAvatarImage(profileToUse.isAvatarImage ?? true);
       setSelectedBannerId(profileToUse.bannerId || "amber_sunset");
+      setHideHearts(profileToUse.hideHearts ?? false);
     }
   }, [isOpen, profileToUse]);
 
@@ -94,8 +98,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error("Image file is too large (max 3MB)");
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload a valid image file (PNG, JPG, WebP).");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image file is too large (maximum 2MB allowed).");
       return;
     }
 
@@ -138,9 +147,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       avatar: selectedAvatar,
       isAvatarImage,
       bannerId: selectedBannerId,
+      hideHearts
     });
 
-    toast.success("Profile updated! ✨");
+    toast.success("Profile updated!");
     onClose();
   };
 
@@ -218,17 +228,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => { playTap(); setAvatarTab("emoji"); }}
-                className={`flex-1 py-1.5 text-[11px] font-black rounded-lg transition-all cursor-pointer ${
-                  avatarTab === "emoji"
-                    ? "bg-[#FFD13B] text-black border border-black shadow-xs"
-                    : "text-black/60 hover:text-black"
-                }`}
-              >
-                Academic Emojis
-              </button>
-              <button
-                type="button"
                 onClick={() => { playTap(); setAvatarTab("upload"); }}
                 className={`flex-1 py-1.5 text-[11px] font-black rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   avatarTab === "upload"
@@ -257,27 +256,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     title={a.name}
                   >
                     <img src={a.src} alt={a.name} className="w-10 h-10 object-contain" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Tab 2: Academic Emojis */}
-            {avatarTab === "emoji" && (
-              <div className="grid grid-cols-5 gap-2.5 max-h-36 overflow-y-auto p-2 bg-white border-2 border-black rounded-xl">
-                {PRESET_AVATARS.filter((a) => a.category === "emoji").map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => handleSelectPresetAvatar(a)}
-                    className={`h-14 rounded-xl border-2 flex items-center justify-center text-[26px] transition-all cursor-pointer ${
-                      selectedAvatar === a.src
-                        ? "border-[#FF4D2E] bg-[#FFE566]/40 shadow-[2px_2px_0px_#1A1A1A] scale-105"
-                        : "border-black/20 hover:border-black bg-[#FAF7F2]"
-                    }`}
-                    title={a.name}
-                  >
-                    <span>{a.src}</span>
                   </button>
                 ))}
               </div>
@@ -427,6 +405,22 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 className="w-full bg-white border-2 border-black px-3 py-2 text-[12.5px] font-bold rounded-xl outline-none focus:border-[#FF4D2E]"
               />
             </div>
+          </div>
+
+          {/* Privacy Controls */}
+          <div className="p-3 bg-[#FAF7F2] border-2 border-black rounded-xl flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[12px] font-black text-black">Hide Hearts on Profile</div>
+              <div className="text-[10.5px] font-semibold text-black/55">
+                Keep peer appreciation count private on your public profile.
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={hideHearts}
+              onChange={(e) => setHideHearts(e.target.checked)}
+              className="w-4 h-4 accent-[#FF4D2E] rounded cursor-pointer"
+            />
           </div>
 
           {/* Footer Submit Buttons */}

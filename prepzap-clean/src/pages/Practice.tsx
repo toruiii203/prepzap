@@ -450,6 +450,31 @@ export default function Practice() {
     return () => clearInterval(interval);
   }, [view, adaptiveQueue.length]);
 
+  // Record duel match to duel history upon completion
+  const duelRecordedRef = useRef(false);
+  useEffect(() => {
+    if (view === "complete" && duelOpponent && !duelRecordedRef.current) {
+      duelRecordedRef.current = true;
+      try {
+        const raw = localStorage.getItem("pz_duel_history");
+        const list = raw ? JSON.parse(raw) : [];
+        const record = {
+          id: "duel_" + Date.now(),
+          opponentName: duelOpponent.name,
+          opponentAvatar: duelOpponent.avatar,
+          opponentCode: duelOpponent.code,
+          subject: duelOpponent.subject || "General",
+          userScore: score,
+          totalQuestions: totalInitialCount,
+          won: score >= Math.round(totalInitialCount * 0.75),
+          date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" })
+        };
+        list.unshift(record);
+        localStorage.setItem("pz_duel_history", JSON.stringify(list.slice(0, 30)));
+      } catch {}
+    }
+  }, [view, duelOpponent, score, totalInitialCount]);
+
   // Active question derived from queue head
   const currentItem: AdaptiveItem | undefined = adaptiveQueue[0];
   const currentQuestion: Question | undefined = currentItem?.question;
@@ -1046,12 +1071,13 @@ Each object MUST match this schema exactly:
                         {duelOpponent.avatar?.startsWith("/") || duelOpponent.avatar?.startsWith("http") ? (
                           <img src={duelOpponent.avatar} alt={duelOpponent.name} className="w-full h-full object-cover" />
                         ) : (
-                          duelOpponent.avatar || "🎓"
+                          <img src="/buddies/fox_scholar.png" alt={duelOpponent.name} className="w-full h-full object-cover" />
                         )}
                       </div>
                       <div>
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-black text-white text-[10px] font-black uppercase rounded tracking-wider">
-                          <span>⚔️ 1v1 Rapid Recall Duel</span>
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-black text-white text-[10px] font-black uppercase rounded tracking-wider">
+                          <span className="material-symbols-outlined text-[13px]">sports_kabaddi</span>
+                          <span>1v1 Rapid Recall Duel</span>
                         </div>
                         <h4 className="text-[15px] font-black text-black leading-tight mt-0.5">
                           Challenging {duelOpponent.name} ({duelOpponent.code})
@@ -1288,7 +1314,7 @@ Each object MUST match this schema exactly:
                     <div className="w-full bg-[#FFFDF5] border-[3px] border-black shadow-[4px_4px_0px_#000] rounded-2xl p-5 mb-6 text-left">
                       <div className="flex items-center justify-between gap-3 mb-3">
                         <span className="text-[11px] font-black uppercase tracking-wider bg-[#FFD13B] border border-black px-2.5 py-0.5 rounded-md">
-                          1v1 Quiz Duel Result ⚔️
+                          1v1 Quiz Duel Result
                         </span>
                         <span className="text-[12px] font-black text-black/60">
                           Opponent: {duelOpponent.name} ({duelOpponent.code})
@@ -1315,7 +1341,7 @@ Each object MUST match this schema exactly:
 
                       <div className="mt-3 text-center">
                         <span className="inline-block px-3.5 py-1 bg-black text-white rounded-xl text-[12px] font-black tracking-wide">
-                          {score >= Math.round(totalInitialCount * 0.75) ? "🏆 Duel Victory! You outperformed the benchmark!" : "⚔️ Duel Completed! Keep sharpening your recall!"}
+                          {score >= Math.round(totalInitialCount * 0.75) ? "Duel Victory! You outperformed the benchmark!" : "Duel Completed! Keep sharpening your recall!"}
                         </span>
                       </div>
                     </div>
@@ -1438,12 +1464,13 @@ Each object MUST match this schema exactly:
                       {duelOpponent.avatar?.startsWith("/") || duelOpponent.avatar?.startsWith("http") ? (
                         <img src={duelOpponent.avatar} alt={duelOpponent.name} className="w-full h-full object-cover" />
                       ) : (
-                        duelOpponent.avatar || "🎓"
+                        <img src="/buddies/fox_scholar.png" alt={duelOpponent.name} className="w-full h-full object-cover" />
                       )}
                     </div>
                     <div className="min-w-0">
                       <div className="text-[9.5px] font-black uppercase text-black/70 flex items-center gap-1">
-                        <span>⚔️ 1v1 Quiz Duel</span>
+                        <span className="material-symbols-outlined text-[13px]">sports_kabaddi</span>
+                        <span>1v1 Quiz Duel</span>
                       </div>
                       <div className="text-[13px] font-black text-black truncate leading-tight">
                         vs {duelOpponent.name}
@@ -1722,7 +1749,7 @@ Each object MUST match this schema exactly:
               <div className="w-full bg-[#FFFDF5] border-2 border-black shadow-[3px_3px_0px_#000] rounded-xl p-4 mb-4 text-left">
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="text-[10px] font-black uppercase tracking-wider bg-[#FFD13B] border border-black px-2 py-0.5 rounded">
-                    1v1 Duel Result ⚔️
+                    1v1 Duel Result
                   </span>
                   <span className="text-[11px] font-black text-black/60 truncate max-w-[130px]">
                     vs {duelOpponent.name}
@@ -1745,7 +1772,7 @@ Each object MUST match this schema exactly:
 
                 <div className="mt-2 text-center">
                   <span className="inline-block px-2.5 py-0.5 bg-black text-white rounded text-[11px] font-black">
-                    {score >= Math.round(totalInitialCount * 0.75) ? "🏆 Duel Victory!" : "⚔️ Duel Completed!"}
+                    {score >= Math.round(totalInitialCount * 0.75) ? "Duel Victory!" : "Duel Completed!"}
                   </span>
                 </div>
               </div>

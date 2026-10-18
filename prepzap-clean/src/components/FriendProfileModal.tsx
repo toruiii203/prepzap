@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { StudyBuddy, CampusNote } from "@/hooks/useCommunity";
+import { useAuth } from "@/contexts/AuthContext";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { toast } from "sonner";
 import { StudyGuideRenderer } from "@/components/StudyGuideRenderer";
+import { hasGivenHeart, toggleHeartOnProfile } from "@/lib/userProfileStore";
 
 interface FriendProfileModalProps {
   buddy: StudyBuddy | null;
@@ -25,26 +27,47 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
   onCloneNote
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"notes" | "duels" | "activity">("notes");
   const [readingNote, setReadingNote] = useState<CampusNote | null>(null);
   const [reportingNoteId, setReportingNoteId] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("inappropriate");
-  const [highFived, setHighFived] = useState(false);
+  const [hasHearted, setHasHearted] = useState(false);
+  const [heartCount, setHeartCount] = useState(0);
+
+  useEffect(() => {
+    if (buddy && user?.id) {
+      setHasHearted(hasGivenHeart(buddy.id, user.id));
+      setHeartCount(buddy.likesCount || 0);
+    }
+  }, [buddy, user?.id]);
 
   if (!buddy) return null;
+
+  const isSelf = user?.id === buddy.id;
 
   const isAvatarImage =
     buddy.avatar?.startsWith("/") ||
     buddy.avatar?.startsWith("http") ||
     buddy.avatar?.startsWith("data:");
 
-  const handleHighFive = () => {
-    if (highFived) return;
-    playSuccess();
-    setHighFived(true);
-    toast.success(`You sent a High-Five to ${buddy.name}! ✋`, {
-      description: "Both of you earned +5 Study Motivation!"
-    });
+  const handleToggleHeart = async () => {
+    if (isSelf) {
+      toast.info("You cannot heart your own profile.");
+      return;
+    }
+    playPop();
+    const result = await toggleHeartOnProfile(buddy.id, heartCount, user?.id);
+    setHasHearted(result.hearted);
+    setHeartCount(result.newCount);
+    if (result.hearted) {
+      playSuccess();
+      toast.success(`You gave a heart to ${buddy.name}!`, {
+        description: "Peer appreciation recorded."
+      });
+    } else {
+      toast.info(`Removed heart from ${buddy.name}.`);
+    }
   };
 
   const handleCopyProfileLink = () => {
@@ -63,7 +86,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
       code: buddy.code,
       subject: duelSubject
     }));
-    toast.success(`Challenging ${buddy.name} to a 1v1 Quiz Duel! ⚔️`, {
+    toast.success(`Challenging ${buddy.name} to a 1v1 Quiz Duel!`, {
       description: `Topic: ${duelSubject}. 5 questions to test your mastery.`
     });
     onClose();
@@ -78,7 +101,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
       avatar: buddy.avatar,
       code: buddy.code
     }));
-    toast.success(`Starting a Co-Study session with ${buddy.name}! ⏱️`, {
+    toast.success(`Starting a Co-Study session with ${buddy.name}!`, {
       description: "Focus timer activated. Stay locked in together!"
     });
     onClose();
@@ -125,7 +148,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                 {isAvatarImage ? (
                   <img src={buddy.avatar} alt={buddy.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-[38px] md:text-[46px]">{buddy.avatar || "🎓"}</span>
+                  <img src="/buddies/fox_scholar.png" alt={buddy.name} className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="min-w-0">
@@ -145,10 +168,10 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleLaunchDuel()}
-                className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
+                className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Challenge to a 1v1 Quiz Duel"
               >
-                <span>⚔️</span>
+                <span className="material-symbols-outlined text-[15px]">sports_kabaddi</span>
                 <span>Duel</span>
               </button>
 
@@ -156,22 +179,27 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                 type="button"
                 onClick={() => onNudge(buddy.id)}
                 className="px-3 py-1.5 bg-[#FF4D2E] hover:bg-[#E03D20] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
+                title="Send a streak reminder nudge"
               >
                 <span>🔥</span>
                 <span>Nudge</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleHighFive}
-                disabled={highFived}
-                className={`px-3 py-1.5 border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] transition-all flex items-center gap-1 cursor-pointer ${
-                  highFived ? "bg-[#10B981] text-white" : "bg-white hover:bg-[#FAF7F2] text-black"
-                }`}
-              >
-                <span>✋</span>
-                <span>{highFived ? "Sent!" : "High Five"}</span>
-              </button>
+              {/* Heart System Peer Appreciation Button */}
+              {!isSelf && (
+                <button
+                  type="button"
+                  onClick={handleToggleHeart}
+                  className={`px-3 py-1.5 border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer ${
+                    hasHearted ? "bg-rose-500 text-white" : "bg-white hover:bg-rose-50 text-black"
+                  }`}
+                  title={hasHearted ? "Remove heart" : "Give a heart"}
+                >
+                  <span className="material-symbols-outlined text-[15px]">favorite</span>
+                  <span>{hasHearted ? "Hearted" : "Heart"}</span>
+                  {heartCount > 0 && <span className="text-[11px] font-mono">({heartCount})</span>}
+                </button>
+              )}
 
               <button
                 type="button"
@@ -192,19 +220,19 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
           )}
 
           {/* Creator Channel Stats Row */}
-          <div className="grid grid-cols-4 gap-2 mt-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5">
             <div className="bg-[#FAF7F2] border-2 border-black rounded-xl p-2 text-center shadow-[1px_1px_0px_#1A1A1A]">
               <div className="text-[10px] font-black uppercase text-black/45">Streak</div>
               <div className="text-[14px] md:text-[15px] font-black text-[#FF4D2E] flex items-center justify-center gap-0.5">
                 <span>🔥</span>
-                <span>{buddy.streakDays}d</span>
+                <span>{buddy.streakDays || 1}d</span>
               </div>
             </div>
 
             <div className="bg-[#FAF7F2] border-2 border-black rounded-xl p-2 text-center shadow-[1px_1px_0px_#1A1A1A]">
               <div className="text-[10px] font-black uppercase text-black/45">Level</div>
-              <div className="text-[14px] md:text-[15px] font-black text-black flex items-center justify-center gap-0.5">
-                <span>⚡</span>
+              <div className="text-[14px] md:text-[15px] font-black text-black flex items-center justify-center gap-1">
+                <span className="material-symbols-outlined text-[15px]">bolt</span>
                 <span>LVL {buddy.level || 1}</span>
               </div>
             </div>
@@ -217,10 +245,10 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
             </div>
 
             <div className="bg-[#FAF7F2] border-2 border-black rounded-xl p-2 text-center shadow-[1px_1px_0px_#1A1A1A]">
-              <div className="text-[10px] font-black uppercase text-black/45">Likes</div>
-              <div className="text-[14px] md:text-[15px] font-black text-rose-600 flex items-center justify-center gap-0.5">
-                <span>❤️</span>
-                <span>{buddy.likesCount || 0}</span>
+              <div className="text-[10px] font-black uppercase text-black/45">Hearts</div>
+              <div className="text-[14px] md:text-[15px] font-black text-rose-600 flex items-center justify-center gap-1">
+                <span className="material-symbols-outlined text-[15px]">favorite</span>
+                <span>{heartCount}</span>
               </div>
             </div>
           </div>
@@ -276,7 +304,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
             <div className="space-y-3">
               {buddyNotes.length === 0 ? (
                 <div className="p-6 text-center border-2 border-dashed border-black/25 rounded-2xl bg-white">
-                  <div className="text-[28px] mb-1">📝</div>
+                  <span className="material-symbols-outlined text-[32px] text-black/40 block mb-1">edit_note</span>
                   <div className="text-[13px] font-black text-black">No public notes published yet</div>
                   <p className="text-[11.5px] font-semibold text-black/55 mt-0.5">
                     When {buddy.name} shares notes to Campus Vault, they will appear here.
@@ -312,8 +340,11 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                     </div>
 
                     <div className="flex items-center justify-between pt-2.5 border-t border-black/10">
-                      <span className="text-[11.5px] font-bold text-black/50">
-                        {note.readTime} &bull; ❤️ {note.likes} likes
+                      <span className="text-[11.5px] font-bold text-black/50 flex items-center gap-1">
+                        <span>{note.readTime}</span>
+                        <span>&bull;</span>
+                        <span className="material-symbols-outlined text-[14px] text-rose-500">favorite</span>
+                        <span>{note.likes} likes</span>
                       </span>
 
                       <div className="flex items-center gap-2">
@@ -346,8 +377,8 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
               {/* 1v1 Quiz Duel Banner */}
               <div className="border-2 border-black rounded-2xl bg-white p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[24px] shadow-xs shrink-0">
-                    ⚔️
+                  <div className="w-12 h-12 rounded-xl bg-[#FFD13B] border-2 border-black flex items-center justify-center shadow-xs shrink-0">
+                    <span className="material-symbols-outlined text-[24px]">sports_kabaddi</span>
                   </div>
                   <div>
                     <h4 className="text-[14.5px] font-black text-black">1v1 Rapid Recall Duel</h4>
@@ -368,8 +399,8 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
               {/* Co-Study Timer Banner */}
               <div className="border-2 border-black rounded-2xl bg-white p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-[#10B981]/20 border-2 border-black flex items-center justify-center text-[24px] shadow-xs shrink-0">
-                    ⏱️
+                  <div className="w-12 h-12 rounded-xl bg-[#10B981]/20 border-2 border-black flex items-center justify-center shadow-xs shrink-0">
+                    <span className="material-symbols-outlined text-[24px]">timer</span>
                   </div>
                   <div>
                     <h4 className="text-[14.5px] font-black text-black">25-Minute Co-Study Sprint</h4>
@@ -410,7 +441,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                     <div className="text-[13px] font-black text-[#FF4D2E] mt-1">{buddy.streakDays}d 🔥</div>
                     <div className="text-[13px] font-black text-black mt-2">LVL {buddy.level || 1}</div>
                     <div className="text-[13px] font-black text-black mt-2">
-                      {buddy.hasStudiedToday ? "Done ✅" : "Studying ⏳"}
+                      {buddy.hasStudiedToday ? "Done" : "Studying"}
                     </div>
                   </div>
                 </div>
@@ -439,7 +470,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                       Streak Status
                     </span>
                     <span className="font-black text-[#10B981]">
-                      {buddy.hasStudiedToday ? "Completed today ✅" : "Needs practice today ⏳"}
+                      {buddy.hasStudiedToday ? "Completed today" : "Needs practice today"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-1">

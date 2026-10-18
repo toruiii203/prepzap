@@ -28,18 +28,6 @@ export const PRESET_AVATARS: PresetAvatar[] = [
   { id: "cat_chef", name: "Baking Cat", category: "character", src: "/buddies/cat_chef.png", isImage: true },
   { id: "fox_happy", name: "Excited Fox", category: "character", src: "/fox/fox-happy.png", isImage: true },
   { id: "fox_thinking", name: "Focus Fox", category: "character", src: "/fox/fox-thinking.png", isImage: true },
-
-  // Classic Academic & Neobrutalist Emojis
-  { id: "emoji_grad", name: "Scholar", category: "emoji", src: "🎓", isImage: false },
-  { id: "emoji_lightning", name: "High Voltage", category: "emoji", src: "⚡", isImage: false },
-  { id: "emoji_microscope", name: "Lab Lead", category: "emoji", src: "🔬", isImage: false },
-  { id: "emoji_brain", name: "Big Brain", category: "emoji", src: "🧠", isImage: false },
-  { id: "emoji_rocket", name: "Grindset", category: "emoji", src: "🚀", isImage: false },
-  { id: "emoji_books", name: "Bibliophile", category: "emoji", src: "📚", isImage: false },
-  { id: "emoji_latte", name: "Study Cafe", category: "emoji", src: "☕", isImage: false },
-  { id: "emoji_coder", name: "Hacker", category: "emoji", src: "💻", isImage: false },
-  { id: "emoji_crown", name: "Top of Class", category: "emoji", src: "👑", isImage: false },
-  { id: "emoji_fire", name: "On Streak", category: "emoji", src: "🔥", isImage: false },
 ];
 
 export const PRESET_BANNERS: PresetBanner[] = [
@@ -79,7 +67,7 @@ export interface StudentProfileData {
   displayName: string;
   username: string;
   bio: string;
-  avatar: string; // Image URL or emoji string
+  avatar: string; // Image URL or illustrated character path
   isAvatarImage: boolean;
   bannerId: string;
   customBannerUrl?: string;
@@ -89,6 +77,8 @@ export interface StudentProfileData {
   verifiedStudent: boolean;
   notesCount?: number;
   totalLikes?: number;
+  heartsCount?: number;
+  hideHearts?: boolean; // Privacy toggle to hide social heart counters
 }
 
 import { formatFriendlyName, formatCleanHandle } from "@/lib/formatName";
@@ -105,7 +95,9 @@ const DEFAULT_PROFILE: StudentProfileData = {
   targetSubject: "",
   verifiedStudent: false,
   notesCount: 0,
-  totalLikes: 0
+  totalLikes: 0,
+  heartsCount: 0,
+  hideHearts: false
 };
 
 function getStorageKey(userId?: string) {
@@ -227,4 +219,67 @@ export function useUserProfile(userId?: string, initialFallbackName = "Student")
   );
 
   return { profile, updateProfile };
+}
+
+export function hasGivenHeart(targetUserId: string, currentUserId?: string): boolean {
+  if (!targetUserId || !currentUserId || targetUserId === currentUserId) return false;
+  try {
+    const raw = localStorage.getItem(`pz_given_hearts_${currentUserId}`) || "[]";
+    const list = JSON.parse(raw);
+    return Array.isArray(list) && list.includes(targetUserId);
+  } catch {
+    return false;
+  }
+}
+
+export async function toggleHeartOnProfile(
+  targetUserId: string,
+  targetInitialHearts: number,
+  currentUserId?: string
+): Promise<{ hearted: boolean; newCount: number }> {
+  if (!targetUserId || !currentUserId || targetUserId === currentUserId) {
+    return { hearted: false, newCount: targetInitialHearts };
+  }
+
+  const storageKey = `pz_given_hearts_${currentUserId}`;
+  let givenList: string[] = [];
+  try {
+    const raw = localStorage.getItem(storageKey) || "[]";
+    givenList = JSON.parse(raw);
+    if (!Array.isArray(givenList)) givenList = [];
+  } catch {}
+
+  const alreadyHearted = givenList.includes(targetUserId);
+  const willHeart = !alreadyHearted;
+
+  if (willHeart) {
+    givenList.push(targetUserId);
+  } else {
+    givenList = givenList.filter((id) => id !== targetUserId);
+  }
+
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(givenList));
+  } catch {}
+
+  const newCount = willHeart ? targetInitialHearts + 1 : Math.max(0, targetInitialHearts - 1);
+
+  // Sync with Supabase if online
+  if (currentUserId && targetUserId) {
+    try {
+      if (willHeart) {
+        await supabase
+          .from("profile_hearts")
+          .insert({ giver_id: currentUserId, receiver_id: targetUserId });
+      } else {
+        await supabase
+          .from("profile_hearts")
+          .delete()
+          .eq("giver_id", currentUserId)
+          .eq("receiver_id", targetUserId);
+      }
+    } catch {}
+  }
+
+  return { hearted: willHeart, newCount };
 }

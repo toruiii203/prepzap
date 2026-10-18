@@ -206,7 +206,7 @@ export function ConceptChipSelector({
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,196,180,0.12)" }}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,196,180,0.06)" }}
         >
-          🎲
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>shuffle</span>
         </button>
       </div>
 

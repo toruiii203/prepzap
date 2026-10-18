@@ -114,7 +114,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
       subject: pubSubject,
       subjectBadgeColor: SUBJECT_BADGE_COLORS[pubSubject] || "bg-blue-50 text-blue-700 border-blue-300",
       author: authorName,
-      authorAvatar: profile?.avatar_url || "📝",
+      authorAvatar: profile?.avatar_url || "/buddies/fox_scholar.png",
       readTime: `${Math.max(2, Math.ceil(pubContent.length / 400))} min read`,
       tags: tagsArray.length > 0 ? tagsArray : [pubSubject],
       summary: pubSummary.trim() || pubContent.slice(0, 150) + "...",
@@ -221,7 +221,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredNotes.length === 0 ? (
           <div className="col-span-full p-10 text-center border-2 border-dashed border-black/25 rounded-2xl bg-white">
-            <span className="text-[36px] mb-2 block">📚</span>
+            <span className="material-symbols-outlined text-[36px] mb-2 block text-black/40">menu_book</span>
             <h3 className="text-[16px] font-black text-black">No study notes match your search</h3>
             <p className="text-[12.5px] font-medium text-black/60 mt-1 max-w-sm mx-auto">
               Try another keyword or subject, or be the first to publish a guide for this topic!
@@ -258,7 +258,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                             : "bg-[#FAF7F2] text-black/60"
                         }`}
                       >
-                        <span>{note.likedByUser ? "❤️" : "🤍"}</span>
+                        <span className="material-symbols-outlined text-[13px] text-rose-500">{note.likedByUser ? "favorite" : "favorite_border"}</span>
                         <span>{note.likes}</span>
                       </button>
 
@@ -315,10 +315,17 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                 <div className="pt-3.5 mt-4 border-t-2 border-black/10">
                   <div className="flex items-center justify-between text-[11px] font-bold text-black/55 mb-2.5">
                     <div className="flex items-center gap-1.5 truncate max-w-[150px]">
-                      <span className="text-[14px]">{note.authorAvatar || "📝"}</span>
+                      {note.authorAvatar?.startsWith("/") || note.authorAvatar?.startsWith("http") ? (
+                        <img src={note.authorAvatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                      ) : (
+                        <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                      )}
                       <span className="truncate">{note.author}</span>
                     </div>
-                    <span>📥 {note.downloads || 0} Clones</span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px]">download</span>
+                      <span>{note.downloads || 0} Clones</span>
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5">

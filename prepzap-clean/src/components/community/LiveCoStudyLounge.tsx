@@ -65,7 +65,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
         subject: peer.subject
       })
     );
-    toast.success(`Joining co-study session with ${peer.name}! ⏱️`, {
+    toast.success(`Joining co-study session with ${peer.name}!`, {
       description: `Targeting: ${peer.subject}. Stay locked in together!`
     });
     navigate("/timer");
@@ -75,7 +75,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
     if (highFivedIds.has(peer.userId)) return;
     playSuccess();
     setHighFivedIds((prev) => new Set(prev).add(peer.userId));
-    toast.success(`You sent a High-Five to ${peer.name}! ✋`, {
+    toast.success(`You sent a study nudge to ${peer.name}!`, {
       description: "Both of you earned +5 Focus Motivation."
     });
   };
@@ -142,8 +142,12 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
         {/* ── MY CURRENT FOCUS BROADCAST CARD ────────────────────────────────── */}
         <div className="mt-5 pt-5 border-t-2 border-black/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#FFFDF5] p-4 rounded-2xl border-2 border-black/15 shadow-[2px_2px_0px_#1A1A1A]">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white border-2 border-black flex items-center justify-center text-[22px] shadow-[2px_2px_0px_#000] shrink-0">
-              {selfPeer?.avatar || "🎓"}
+            <div className="w-12 h-12 rounded-xl bg-white border-2 border-black flex items-center justify-center text-[22px] shadow-[2px_2px_0px_#000] shrink-0 overflow-hidden">
+              {selfPeer?.avatar?.startsWith("/") || selfPeer?.avatar?.startsWith("http") ? (
+                <img src={selfPeer.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <img src="/buddies/fox_scholar.png" alt="Avatar" className="w-full h-full object-cover" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -231,8 +235,8 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
       <section className="bg-[#FFFDF5] border-2 border-black rounded-2xl p-5 shadow-[3px_3px_0px_#1A1A1A]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[20px] shadow-[2px_2px_0px_#000] shrink-0">
-              🎯
+            <div className="w-10 h-10 rounded-xl bg-[#FFD13B] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] shrink-0">
+              <span className="material-symbols-outlined text-[20px]">track_changes</span>
             </div>
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider text-[#FF4D2E]">Shared Accountability</span>
@@ -256,7 +260,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
           <span>85 minutes left this week to complete the quest!</span>
           <span className="flex items-center gap-1 text-black font-black">
             <span>Reward: Circle Master Badge</span>
-            <span className="text-[14px]">🏅</span>
+            <span className="material-symbols-outlined text-[15px]">military_tech</span>
           </span>
         </div>
       </section>
@@ -275,8 +279,8 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
 
         {otherPeers.length === 0 ? (
           <div className="border-2 border-dashed border-black/25 rounded-2xl bg-white p-8 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#FFF9E6] border-2 border-black flex items-center justify-center text-[26px] shadow-[2px_2px_0px_#000] mb-3">
-              ☕
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#FFF9E6] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] mb-3">
+              <span className="material-symbols-outlined text-[26px]">local_cafe</span>
             </div>
             <h4 className="text-[16px] font-black text-black">The Lounge is Quiet Right Now</h4>
             <p className="text-[12.5px] font-medium text-black/60 max-w-md mx-auto mt-1 mb-4">
@@ -342,8 +346,8 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
                         hasHighFived ? "bg-emerald-100 text-emerald-800 border-emerald-900" : "bg-white hover:bg-[#FAF7F2] text-black"
                       }`}
                     >
-                      <span>{hasHighFived ? "High-Fived!" : "High-Five"}</span>
-                      <span>✋</span>
+                      <span>{hasHighFived ? "Nudged!" : "Nudge"}</span>
+                      <span className="material-symbols-outlined text-[14px]">waving_hand</span>
                     </button>
 
                     <button

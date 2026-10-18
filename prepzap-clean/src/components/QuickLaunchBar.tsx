@@ -13,7 +13,7 @@ const TEXT3  = "rgba(245,237,232,0.28)"
 interface Tool {
   href: string
   label: string
-  emoji: string
+  icon: string
   prompts: string[]
   color: string
 }
@@ -22,7 +22,7 @@ const TOOLS: Tool[] = [
   {
     href: "/practice",
     label: "Practice",
-    emoji: "📝",
+    icon: "edit_document",
     color: "#3b82f6",
     prompts: [
       "Give me 5 hard MCQs on cellular respiration",
@@ -34,7 +34,7 @@ const TOOLS: Tool[] = [
   {
     href: "/flashcards",
     label: "Flashcards",
-    emoji: "🃏",
+    icon: "style",
     color: "#8b5cf6",
     prompts: [
       "Make flashcards for the periodic table trends",
@@ -44,12 +44,12 @@ const TOOLS: Tool[] = [
     ],
   },
   {
-    href: "/feynman",
-    label: "Feynman",
-    emoji: "🧠",
+    href: "/teach-it",
+    label: "Teach It",
+    icon: "psychology",
     color: "#10b981",
     prompts: [
-      "Explain quantum entanglement like I'm 10",
+      "Explain quantum entanglement simply",
       "Break down how DNA replication works",
       "Teach me compound interest in simple terms",
       "Explain recursion using a real-world analogy",
@@ -58,7 +58,7 @@ const TOOLS: Tool[] = [
   {
     href: "/ai-tutor",
     label: "Rex Tutor",
-    emoji: "🤖",
+    icon: "forum",
     color: GOLD,
     prompts: [
       "Why do I keep getting integration wrong?",
@@ -70,7 +70,7 @@ const TOOLS: Tool[] = [
   {
     href: "/math",
     label: "Math Solver",
-    emoji: "🔢",
+    icon: "calculate",
     color: "#f59e0b",
     prompts: [
       "Solve x² + 5x + 6 = 0 step by step",
@@ -80,33 +80,21 @@ const TOOLS: Tool[] = [
     ],
   },
   {
-    href: "/recall",
-    label: "Recall",
-    emoji: "💭",
+    href: "/quick-study",
+    label: "Quick Study",
+    icon: "bolt",
     color: "#06b6d4",
     prompts: [
       "Test my recall on the French Revolution",
-      "Brain dump everything I know about enzymes",
+      "Review high-yield facts about enzymes",
       "Recall practice for the Bill of Rights",
-      "Memory test on WWII key dates",
-    ],
-  },
-  {
-    href: "/cram",
-    label: "Cram Mode",
-    emoji: "⚡",
-    color: "#ef4444",
-    prompts: [
-      "I have an exam tomorrow, help me cram Organic Chem",
-      "30-minute cram session on the Civil War",
-      "Emergency review of macroeconomics concepts",
-      "Last-minute prep for statistics exam",
+      "Key dates review",
     ],
   },
   {
     href: "/visual-learner",
     label: "Visual Learner",
-    emoji: "👁️",
+    icon: "visibility",
     color: "#ec4899",
     prompts: [
       "Show me how photosynthesis works visually",
@@ -211,7 +199,7 @@ export function QuickLaunchBar() {
               transform: activeTool.href === tool.href ? "scale(1.04)" : "scale(1)",
             }}
           >
-            <span style={{ fontSize: 13 }}>{tool.emoji}</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{tool.icon}</span>
             {tool.label}
           </button>
         ))}

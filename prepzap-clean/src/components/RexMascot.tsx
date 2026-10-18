@@ -32,11 +32,11 @@ const SIZE_CLASSES = {
 };
 
 const FUN_QUOTES = [
-  "Study 10 mins today and your brain will consolidate it while you sleep! 🧠",
+  "Study 10 mins today and your brain will consolidate it while you sleep!",
   "High five! Let's keep the streak burning! 🔥",
-  "Mistakes don't hurt your score here—they make your recall stronger! ✨",
-  "Rex is proud of you! Ready for a quick 3-minute quiz? 🦊",
-  "Spaced repetition is science. Trust the process! 🚀",
+  "Mistakes don't hurt your score here—they make your recall stronger!",
+  "Rex is ready! Pick a deck or practice quiz whenever you want.",
+  "Spaced repetition works. Lock in today's review session.",
 ];
 
 export function RexMascot({
