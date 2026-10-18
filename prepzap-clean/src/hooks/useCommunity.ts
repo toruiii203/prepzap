@@ -577,6 +577,32 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
     return true;
   }, [buddies, user, profile, userStorageKey]);
 
+  const removeFriend = useCallback(async (buddyId: string) => {
+    const target = buddies.find((b) => b.id === buddyId);
+    if (!target) return;
+
+    setBuddies((prev) => {
+      const updated = prev.filter((b) => b.id !== buddyId);
+      try {
+        localStorage.setItem(userStorageKey, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (user?.id) {
+      try {
+        await supabase
+          .from("study_partners")
+          .delete()
+          .or(`and(user_id.eq.${user.id},partner_code.eq.${target.code}),and(partner_id.eq.${user.id},user_code.eq.${target.code})`);
+      } catch (e) {
+        console.warn("Could not delete partner from Supabase:", e);
+      }
+    }
+
+    toast.info(`Removed ${target.name} from your friends.`);
+  }, [buddies, userStorageKey, user?.id]);
+
   return {
     notes,
     buddies,
@@ -586,6 +612,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
     publishNote,
     cloneNoteToWorkspace,
     addFriendByCode,
+    removeFriend,
     reportNote
   };
 }

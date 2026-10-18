@@ -65,17 +65,17 @@ const STUDY_TOOLS_PAGES = [
         color: "text-black",
       },
       {
+        route: "/ai-tutor",
+        icon: "forum",
+        title: "AI Tutor",
+        desc: "24/7 concept breakdown & Socratic tutor",
+        color: "text-black",
+      },
+      {
         route: "/notes",
         icon: "edit_document",
         title: "My Notes",
         desc: "Organize lecture notes & study docs",
-        color: "text-black",
-      },
-      {
-        route: "/campus-vault",
-        icon: "menu_book",
-        title: "Campus Vault",
-        desc: "Search & clone classmate study guides",
         color: "text-black",
       },
     ],
@@ -119,13 +119,6 @@ const STUDY_TOOLS_PAGES = [
     label: "Coaching & Strategy",
     tools: [
       {
-        route: "/ai-tutor",
-        icon: "forum",
-        title: "Rex Tutor",
-        desc: "Study questions & concept breakdown",
-        color: "text-black",
-      },
-      {
         route: "/teach-it",
         icon: "psychology",
         title: "Teach It",
@@ -146,6 +139,13 @@ const STUDY_TOOLS_PAGES = [
         desc: "Targeted error review",
         color: "text-black",
       },
+      {
+        route: "/challenges",
+        icon: "military_tech",
+        title: "Challenges",
+        desc: "Daily quests & milestone rewards",
+        color: "text-black",
+      },
     ],
   },
   {
@@ -153,17 +153,10 @@ const STUDY_TOOLS_PAGES = [
     label: "Multiplayer & Library",
     tools: [
       {
-        route: "/arcade",
-        icon: "stadia_controller",
-        title: "Arcade",
-        desc: "Speed drills & memory games",
-        color: "text-black",
-      },
-      {
-        route: "/arena",
-        icon: "sports_esports",
-        title: "Arena",
-        desc: "Exam rooms & multiplayer challenges",
+        route: "/campus-vault",
+        icon: "menu_book",
+        title: "Campus Vault",
+        desc: "Search & clone classmate study guides",
         color: "text-black",
       },
       {
@@ -174,10 +167,17 @@ const STUDY_TOOLS_PAGES = [
         color: "text-black",
       },
       {
-        route: "/analytics",
-        icon: "bar_chart",
-        title: "Analytics",
-        desc: "Study time & accuracy insights",
+        route: "/arena",
+        icon: "sports_esports",
+        title: "Arena",
+        desc: "Exam rooms & multiplayer challenges",
+        color: "text-black",
+      },
+      {
+        route: "/arcade",
+        icon: "stadia_controller",
+        title: "Arcade",
+        desc: "Speed drills & memory games",
         color: "text-black",
       },
     ],

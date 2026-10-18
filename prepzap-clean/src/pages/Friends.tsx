@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { FriendProfileModal } from "@/components/FriendProfileModal";
-import { useUserProfile, PRESET_BANNERS } from "@/lib/userProfileStore";
+import { useUserProfile } from "@/lib/userProfileStore";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { useCoStudyPresence } from "@/hooks/useCoStudyPresence";
 
@@ -16,7 +16,8 @@ export default function Friends() {
   const {
     buddies,
     sendNudge,
-    addFriendByCode
+    addFriendByCode,
+    removeFriend
   } = useCommunity();
 
   const { activePeers } = useCoStudyPresence();
@@ -31,6 +32,7 @@ export default function Friends() {
   const [friendCodeInput, setFriendCodeInput] = useState("");
   const [addingFriend, setAddingFriend] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [activeMenuBuddyId, setActiveMenuBuddyId] = useState<string | null>(null);
 
   // Compute user's real focus minutes logged this week from localStorage sessions
   const [weeklyFocusMinutes, setWeeklyFocusMinutes] = useState(0);
@@ -59,8 +61,6 @@ export default function Friends() {
     }
     return "REX-GUEST";
   }, [user?.id]);
-
-  const currentBanner = PRESET_BANNERS.find((b) => b.id === (studentProfile?.bannerId || "amber_sunset")) || PRESET_BANNERS[0];
 
   const handleCopyCode = () => {
     playTap();
@@ -97,6 +97,13 @@ export default function Friends() {
     navigate("/practice");
   };
 
+  const handleRemoveFriend = (buddy: StudyBuddy) => {
+    setActiveMenuBuddyId(null);
+    if (window.confirm(`Are you sure you want to remove ${buddy.name} from your friends?`)) {
+      removeFriend(buddy.id);
+    }
+  };
+
   const goalTargetMinutes = 300;
   const goalPercent = Math.min(100, Math.round((weeklyFocusMinutes / goalTargetMinutes) * 100));
 
@@ -106,45 +113,64 @@ export default function Friends() {
 
       {/* Main Content Area */}
       <div className="md:ml-64 flex flex-col min-h-screen overflow-y-auto">
-        <div className="p-4 md:p-8 max-w-5xl w-full mx-auto space-y-7 pb-28 md:pb-12">
+        <div className="p-4 md:p-8 max-w-4xl w-full mx-auto space-y-6 pb-28 md:pb-12">
 
           {/* Top Header */}
-          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b-2 border-black/10">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-black/20 bg-white text-[10.5px] font-black uppercase tracking-wider text-black/60 mb-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">groups</span>
-                Study Partners
-              </div>
-              <h1 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
-                Friends
-              </h1>
-              <p className="text-[13px] font-bold text-black/60 mt-0.5">
-                Stay accountable with classmates, start 1v1 recall duels, and track weekly focus goals.
-              </p>
+          <header className="pb-1 border-b-2 border-black/10">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-black/20 bg-white text-[10.5px] font-black uppercase tracking-wider text-black/60 mb-1.5">
+              <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">groups</span>
+              Friends
             </div>
+            <h1 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
+              Friends
+            </h1>
+            <p className="text-[13px] font-bold text-black/60 mt-0.5">
+              Study together, challenge friends to 1v1 duels, and stay accountable.
+            </p>
+          </header>
 
-            {/* Friend Code Pill */}
-            <div className="bg-white border-2 border-black rounded-2xl p-3 flex items-center gap-3 shadow-[3px_3px_0px_#1A1A1A] shrink-0">
+          {/* ── 1. UNIFIED CONNECTION BAR (Your Code + Add Friend in 1 row) ── */}
+          <div className="bg-white border-2 border-black rounded-2xl p-3.5 md:p-4 shadow-[3px_3px_0px_#1A1A1A] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Left: Your Code */}
+            <div className="flex items-center justify-between md:justify-start gap-3 bg-[#FAF7F2] border border-black/15 px-3 py-2 rounded-xl shrink-0">
               <div>
                 <div className="text-[9px] font-black uppercase tracking-wider text-black/45">Your Friend Code</div>
-                <div className="text-[15px] font-black text-[#FF4D2E] tracking-wider">{myFriendCode}</div>
+                <div className="text-[14px] font-black text-[#FF4D2E] tracking-wider font-mono">{myFriendCode}</div>
               </div>
               <button
                 type="button"
                 onClick={handleCopyCode}
-                className="px-3 py-1.5 bg-black hover:bg-[#FF4D2E] text-white text-[11px] font-black rounded-xl transition-colors cursor-pointer shadow-xs active:scale-95"
+                className="px-3 py-1 bg-black hover:bg-[#FF4D2E] text-white text-[11px] font-black rounded-lg transition-colors cursor-pointer shadow-xs active:scale-95 shrink-0"
               >
                 Copy
               </button>
             </div>
-          </header>
 
-          {/* ── 1. CONNECTED FRIENDS LIST (TOP PRIORITY) ────────────────────── */}
-          <section className="space-y-3.5">
+            {/* Right: Add Friend Input */}
+            <form onSubmit={handleAddFriendSubmit} className="flex-1 flex items-center gap-2 max-w-lg">
+              <input
+                type="text"
+                value={friendCodeInput}
+                onChange={(e) => setFriendCodeInput(e.target.value)}
+                placeholder="Enter friend code (e.g. REX-4B21)..."
+                className="flex-1 px-3 py-2 border-2 border-black rounded-xl text-[12.5px] font-bold uppercase placeholder:capitalize placeholder:text-black/40 bg-[#FAF7F2] focus:bg-white focus:outline-none shadow-xs"
+              />
+              <button
+                type="submit"
+                disabled={addingFriend || !friendCodeInput.trim()}
+                className="px-4 py-2 bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                {addingFriend ? "Linking..." : "+ Add Friend"}
+              </button>
+            </form>
+          </div>
+
+          {/* ── 2. FULL-WIDTH FRIENDS LIST ─────────────────────────────────── */}
+          <section className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h2 className="text-[16px] font-black uppercase tracking-wider text-black">
-                  Your Study Partners ({buddies.length})
+                <h2 className="text-[15px] font-black uppercase tracking-wider text-black">
+                  Your Friends ({buddies.length})
                 </h2>
                 {otherPeers.length > 0 && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10.5px] font-black">
@@ -153,27 +179,28 @@ export default function Friends() {
                   </span>
                 )}
               </div>
-              <span className="text-[11.5px] font-bold text-black/50">
-                Tap card to view partner profile
+              <span className="text-[11px] font-bold text-black/45">
+                Click friend to view profile
               </span>
             </div>
 
             {buddies.length === 0 ? (
-              <div className="border-2 border-dashed border-black/25 rounded-3xl bg-white p-8 md:p-12 text-center space-y-3">
-                <span className="text-[40px] block">🤝</span>
-                <h3 className="text-[17px] font-black text-black">No study partners linked yet</h3>
-                <p className="text-[13px] font-medium text-black/60 max-w-md mx-auto leading-relaxed">
-                  Share your code (<strong className="text-black font-black">{myFriendCode}</strong>) with a classmate or enter their code below to start 1v1 recall duels and motivate each other.
+              <div className="border-2 border-dashed border-black/25 rounded-2xl bg-white p-8 md:p-10 text-center space-y-2.5">
+                <span className="text-[36px] block">🤝</span>
+                <h3 className="text-[16px] font-black text-black">No friends added yet</h3>
+                <p className="text-[12.5px] font-medium text-black/60 max-w-md mx-auto leading-relaxed">
+                  Share your code above (<strong className="text-black font-black">{myFriendCode}</strong>) with classmates or enter theirs to compare study goals and start 1v1 duels.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2.5">
                 {buddies.map((buddy) => {
                   const isLivePeer = otherPeers.some((p) => p.code === buddy.code);
                   const isAvatarImg =
                     buddy.avatar?.startsWith("/") ||
                     buddy.avatar?.startsWith("http") ||
                     buddy.avatar?.startsWith("data:");
+                  const isMenuOpen = activeMenuBuddyId === buddy.id;
 
                   return (
                     <div
@@ -182,79 +209,132 @@ export default function Friends() {
                         playPop();
                         setSelectedBuddy(buddy);
                       }}
-                      className="border-2 border-black rounded-2xl p-4 bg-white hover:bg-[#FFFDF5] shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[5px_5px_0px_#1A1A1A] hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between gap-3.5"
+                      className="border-2 border-black rounded-2xl p-3.5 md:p-4 bg-white hover:bg-[#FFFDF5] shadow-[2px_2px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_#1A1A1A] transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Avatar with Live Dot */}
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-xl bg-[#FAF7F2] border-2 border-black flex items-center justify-center text-[22px] shadow-xs shrink-0 overflow-hidden">
-                              {isAvatarImg ? (
-                                <img src={buddy.avatar} alt={buddy.name} className="w-full h-full object-cover" />
-                              ) : (
-                                buddy.avatar || "🎓"
-                              )}
-                            </div>
-                            {isLivePeer && (
-                              <span
-                                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"
-                                title="Active right now"
-                              />
+                      {/* Left: Avatar & Info */}
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="relative shrink-0">
+                          <div className="w-12 h-12 rounded-xl bg-[#FAF7F2] border-2 border-black flex items-center justify-center text-[22px] shadow-xs overflow-hidden">
+                            {isAvatarImg ? (
+                              <img src={buddy.avatar} alt={buddy.name} className="w-full h-full object-cover" />
+                            ) : (
+                              buddy.avatar || "🎓"
                             )}
                           </div>
-
-                          <div className="min-w-0">
-                            <h4 className="text-[15px] font-black text-black truncate leading-tight">
-                              {buddy.name}
-                            </h4>
-                            <div className="text-[11px] font-bold text-black/50 truncate mt-0.5">
-                              {buddy.username || `@student_${buddy.code.slice(0, 4).toLowerCase()}`} &bull; {buddy.code}
-                            </div>
-                            <div className="text-[10.5px] font-extrabold text-black/60 mt-0.5 flex items-center gap-1.5">
-                              {isLivePeer ? (
-                                <span className="text-emerald-700 font-black">Active now</span>
-                              ) : (
-                                <span>{buddy.streakDays}d streak</span>
-                              )}
-                              {buddy.school && (
-                                <>
-                                  <span>&bull;</span>
-                                  <span className="truncate">{buddy.school}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
+                          {isLivePeer && (
+                            <span
+                              className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"
+                              title="Active right now"
+                            />
+                          )}
                         </div>
 
-                        {/* Interactive Duel & Nudge Buttons */}
-                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={() => handleLaunchDuelWithBuddy(buddy)}
-                            className="px-2.5 py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-xl text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 flex items-center gap-1 transition-all"
-                            title="Start a 1v1 Quiz Duel"
-                          >
-                            <span>⚔️</span>
-                            <span>Duel</span>
-                          </button>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-[14.5px] font-black text-black truncate leading-tight">
+                              {buddy.name}
+                            </h4>
+                            <span className="text-[11px] font-bold text-black/45 font-mono">
+                              {buddy.code}
+                            </span>
+                          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => sendNudge(buddy.id)}
-                            className="px-2.5 py-1.5 bg-white hover:bg-rose-50 text-black border-2 border-black rounded-xl text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 flex items-center gap-1 transition-all"
-                            title="Send a streak reminder nudge"
-                          >
-                            <span>👋</span>
-                            <span>Nudge</span>
-                          </button>
+                          <div className="text-[11.5px] font-bold text-black/60 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className="inline-flex items-center gap-1 text-[#FF4D2E] font-black">
+                              <span>🔥</span>
+                              <span>{buddy.streakDays}d streak</span>
+                            </span>
+                            <span>&bull;</span>
+                            <span className={buddy.hasStudiedToday ? "text-emerald-700 font-black" : "text-black/60"}>
+                              {isLivePeer ? "Studying in Lounge 🟢" : buddy.hasStudiedToday ? "Studied today ✅" : "Needs study today ⏳"}
+                            </span>
+                            {buddy.school && (
+                              <>
+                                <span>&bull;</span>
+                                <span className="truncate text-black/50">{buddy.school}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {buddy.bio && !buddy.bio.includes("linked on Studenius") && !buddy.bio.includes("Active study partner") && (
-                        <p className="text-[11.5px] font-medium text-black/70 line-clamp-2 bg-[#FAF7F2] p-2 rounded-xl border border-black/10">
-                          {buddy.bio}
-                        </p>
-                      )}
+                      {/* Right: Action Buttons & Menu */}
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleLaunchDuelWithBuddy(buddy)}
+                          className="px-3 py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-xl text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 flex items-center gap-1 transition-all"
+                          title="Start a 1v1 Quiz Duel"
+                        >
+                          <span>⚔️</span>
+                          <span>Duel</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => sendNudge(buddy.id)}
+                          className="px-3 py-1.5 bg-white hover:bg-rose-50 text-black border-2 border-black rounded-xl text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 flex items-center gap-1 transition-all"
+                          title="Send a streak reminder nudge"
+                        >
+                          <span>👋</span>
+                          <span>Nudge</span>
+                        </button>
+
+                        {/* Menu Trigger */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveMenuBuddyId(isMenuOpen ? null : buddy.id)}
+                            className="w-8 h-8 rounded-xl border-2 border-black bg-[#FAF7F2] hover:bg-white flex items-center justify-center text-black font-black text-[14px] cursor-pointer shadow-xs"
+                            title="More options"
+                          >
+                            ⋯
+                          </button>
+
+                          {/* Popover Menu */}
+                          {isMenuOpen && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setActiveMenuBuddyId(null)}
+                              />
+                              <div className="absolute right-0 top-9 z-50 bg-white border-2 border-black rounded-xl shadow-[4px_4px_0px_#000] py-1 min-w-[140px] flex flex-col">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMenuBuddyId(null);
+                                    setSelectedBuddy(buddy);
+                                  }}
+                                  className="px-3 py-1.5 text-left text-[12px] font-bold hover:bg-[#FAF7F2] text-black flex items-center gap-2 cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">person</span>
+                                  <span>View Profile</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMenuBuddyId(null);
+                                    handleLaunchDuelWithBuddy(buddy);
+                                  }}
+                                  className="px-3 py-1.5 text-left text-[12px] font-bold hover:bg-[#FAF7F2] text-black flex items-center gap-2 cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">swords</span>
+                                  <span>Start Duel</span>
+                                </button>
+                                <div className="border-t border-black/10 my-0.5" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFriend(buddy)}
+                                  className="px-3 py-1.5 text-left text-[12px] font-bold hover:bg-rose-50 text-rose-600 flex items-center gap-2 cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">person_remove</span>
+                                  <span>Remove Friend</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -262,132 +342,135 @@ export default function Friends() {
             )}
           </section>
 
-          {/* ── 2. ADD FRIEND BY CODE ────────────────────────────────────────── */}
-          <section className="bg-white border-2 border-black rounded-2xl p-5 shadow-[3px_3px_0px_#1A1A1A]">
-            <div className="mb-3">
-              <h3 className="text-[15px] font-black text-black">Link a Study Partner</h3>
-              <p className="text-[12px] font-medium text-black/60 mt-0.5">
-                Enter a classmate&apos;s Friend Code to link with them and start 1v1 duels.
-              </p>
-            </div>
-
-            <form onSubmit={handleAddFriendSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-md">
-              <input
-                type="text"
-                value={friendCodeInput}
-                onChange={(e) => setFriendCodeInput(e.target.value)}
-                placeholder="Enter friend code (e.g., REX-69E6)..."
-                className="flex-1 px-3.5 py-2.5 border-2 border-black rounded-xl text-[13px] font-bold uppercase placeholder:capitalize placeholder:text-black/40 bg-[#FAF7F2] focus:bg-white focus:outline-none shadow-xs"
-              />
-              <button
-                type="submit"
-                disabled={addingFriend || !friendCodeInput.trim()}
-                className="px-5 py-2.5 bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
-              >
-                {addingFriend ? "Searching..." : "+ Add Partner"}
-              </button>
-            </form>
-          </section>
-
-          {/* ── 3. WEEKLY FOCUS GOAL (HONEST LOGGED MINUTES) ─────────────────── */}
-          <section className="bg-white border-2 border-black rounded-2xl p-5 shadow-[3px_3px_0px_#1A1A1A]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[20px] shadow-[2px_2px_0px_#000] shrink-0">
+          {/* ── 3. SOCIAL WEEKLY FOCUS ACCOUNTABILITY ───────────────────────── */}
+          <section className="bg-white border-2 border-black rounded-2xl p-4 md:p-5 shadow-[3px_3px_0px_#1A1A1A] space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-black/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[18px] shadow-xs shrink-0">
                   🎯
                 </div>
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#FF4D2E]">Focus Goal</span>
-                  <h3 className="text-[16px] font-black text-black">Weekly Focus Goal: 300 Focus Minutes</h3>
+                  <h3 className="text-[15px] font-black text-black">Weekly Focus Accountability</h3>
+                  <p className="text-[11.5px] font-bold text-black/55">
+                    Compare study time logged this week with your friends (300 min goal).
+                  </p>
                 </div>
               </div>
-              <div className="text-[12px] font-black text-black/70 bg-[#FAF7F2] border border-black/20 px-3 py-1 rounded-xl shrink-0">
-                Progress: <span className="text-[#FF4D2E] font-black">{weeklyFocusMinutes} / {goalTargetMinutes} min</span> ({goalPercent}%)
-              </div>
-            </div>
 
-            {/* Progress Bar */}
-            <div className="w-full bg-[#FAF7F2] border-2 border-black rounded-full h-3.5 overflow-hidden p-0.5 shadow-inner">
-              <div
-                className="bg-[#10B981] h-full rounded-full transition-all duration-500 border-r border-black"
-                style={{ width: `${goalPercent}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between mt-2.5 text-[11px] font-bold text-black/60">
-              <span>
-                {weeklyFocusMinutes >= goalTargetMinutes
-                  ? "🎉 Weekly goal achieved! Fantastic work."
-                  : `${goalTargetMinutes - weeklyFocusMinutes} minutes left to reach your weekly goal.`}
-              </span>
               <button
                 type="button"
                 onClick={() => navigate("/timer")}
-                className="text-[11px] font-black text-[#FF4D2E] hover:underline cursor-pointer"
+                className="px-3.5 py-1.5 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11px] shadow-xs active:translate-y-0.5 cursor-pointer shrink-0 transition-colors"
               >
-                Start Focus Session &rarr;
+                + Log Focus Session &rarr;
               </button>
+            </div>
+
+            {/* Social Progress Comparison List */}
+            <div className="space-y-2.5">
+              {/* Current User Row */}
+              <div className="p-3 bg-[#FFFDF5] border-2 border-black rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-black text-[12px] border border-black">
+                    You
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-black text-black">
+                      {studentProfile.displayName} (You)
+                    </div>
+                    <div className="text-[11px] font-bold text-black/60">
+                      Logged <strong className="text-[#FF4D2E]">{weeklyFocusMinutes}</strong> of {goalTargetMinutes} min ({goalPercent}%)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full sm:w-44 bg-white border border-black rounded-full h-3 overflow-hidden p-0.5">
+                  <div
+                    className="bg-[#10B981] h-full rounded-full transition-all duration-500"
+                    style={{ width: `${goalPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Linked Friends Accountability Rows */}
+              {buddies.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  {buddies.map((buddy) => (
+                    <div
+                      key={buddy.id}
+                      className="p-2.5 bg-[#FAF7F2] border border-black/20 rounded-xl flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[16px]">{buddy.avatar || "🎓"}</span>
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-black text-black truncate">{buddy.name}</div>
+                          <div className="text-[10.5px] font-bold text-black/50">
+                            {buddy.hasStudiedToday ? "Completed today's goal ✅" : "Streak on the line ⏳"}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-black text-[#FF4D2E] shrink-0">
+                        {buddy.streakDays}d 🔥
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
 
-          {/* ── 4. YOUR STUDENT PROFILE CARD ─────────────────────────────────── */}
-          <section className="border-2 border-black rounded-3xl bg-white shadow-[4px_4px_0px_#1A1A1A] overflow-hidden">
-            <div className={`h-16 md:h-20 w-full ${currentBanner.className} border-b-2 border-black p-3.5 flex justify-between items-start`}>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-black/80 text-white px-2.5 py-0.5 rounded-lg border border-white/20">
-                Your Student Profile
-              </span>
+          {/* ── 4. COMPACT STUDENT PROFILE BAR (Replaces heavy gradient banner) ─ */}
+          <footer className="border-2 border-black rounded-2xl bg-white p-3.5 md:p-4 shadow-[2px_2px_0px_#1A1A1A] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-[#FAF7F2] border-2 border-black flex items-center justify-center text-[22px] overflow-hidden shrink-0">
+                {studentProfile.isAvatarImage ? (
+                  <img src={studentProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{studentProfile.avatar || "🎓"}</span>
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-black text-[14px] text-black truncate leading-tight">
+                    {studentProfile.displayName}
+                  </h4>
+                  <span className="text-[11px] font-bold text-black/50 font-mono">
+                    {studentProfile.username}
+                  </span>
+                </div>
+                {studentProfile.bio ? (
+                  <p className="text-[11.5px] font-medium text-black/70 line-clamp-1 mt-0.5">
+                    {studentProfile.bio}
+                  </p>
+                ) : (
+                  <p className="text-[11px] font-medium text-black/40 italic mt-0.5">
+                    Your profile is visible to linked friends.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
               <button
                 type="button"
                 onClick={() => {
                   playTap();
                   setIsEditProfileOpen(true);
                 }}
-                className="px-3 py-1 bg-white hover:bg-[#FAF7F2] text-black border-2 border-black rounded-xl font-black text-[11px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 bg-[#FAF7F2] hover:bg-stone-200 text-black border-2 border-black rounded-xl font-black text-[11px] cursor-pointer shadow-xs active:translate-y-0.5"
               >
-                <span className="material-symbols-outlined text-[14px]">edit</span>
-                <span>Edit Profile</span>
+                Edit
               </button>
-            </div>
-
-            <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-white border-2 border-black flex items-center justify-center text-[26px] shadow-[2px_2px_0px_#1A1A1A] overflow-hidden bg-[#FAF7F2] shrink-0">
-                  {studentProfile.isAvatarImage ? (
-                    <img src={studentProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{studentProfile.avatar || "🎓"}</span>
-                  )}
-                </div>
-
-                <div className="min-w-0">
-                  <h3 className="font-black text-[17px] text-black truncate leading-tight">
-                    {studentProfile.displayName}
-                  </h3>
-                  <div className="text-[12px] font-bold text-black/55 truncate mt-0.5">
-                    {studentProfile.username}
-                    {studentProfile.school ? ` • ${studentProfile.school}` : ""}
-                  </div>
-                  {studentProfile.bio ? (
-                    <p className="text-[12px] font-medium text-black/75 line-clamp-1 mt-0.5">
-                      {studentProfile.bio}
-                    </p>
-                  ) : (
-                    <p className="text-[11.5px] font-medium text-black/40 italic mt-0.5">
-                      No bio yet. Tap &apos;Edit Profile&apos; to introduce yourself.
-                    </p>
-                  )}
-                </div>
-              </div>
-
               <button
                 type="button"
                 onClick={() => navigate("/profile")}
-                className="px-4 py-2 bg-[#FAF7F2] hover:bg-black hover:text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer shrink-0 transition-colors"
+                className="px-3 py-1.5 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[11px] cursor-pointer shadow-xs active:translate-y-0.5 transition-colors"
               >
-                View Full Profile &rarr;
+                Full Profile &rarr;
               </button>
             </div>
-          </section>
+          </footer>
 
         </div>
       </div>

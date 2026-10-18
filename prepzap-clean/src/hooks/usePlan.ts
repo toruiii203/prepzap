@@ -60,8 +60,9 @@ function readCachedPlan(): { plan: "free" | "pro"; isPro: boolean } | null {
 
 export function usePlan(): PlanState {
   const { user } = useAuth() as { user: { id: string } | null };
-  const [plan, setPlan] = useState<"free" | "pro">("free");
-  const [isPro, setIsPro] = useState(false);
+  const cached = readCachedPlan();
+  const [plan, setPlan] = useState<"free" | "pro">(cached?.plan || "free");
+  const [isPro, setIsPro] = useState<boolean>(cached?.isPro || false);
   const [loading, setLoading] = useState(true);
 
   // ── Fetch plan info from profiles ──────────────────────────────────────────

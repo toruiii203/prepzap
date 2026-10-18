@@ -12,7 +12,7 @@ const NAV_SECTIONS = [
       { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
       { icon: "groups",         label: "Friends",        route: "/friends" },
       { icon: "edit_document",  label: "Notes",          route: "/notes" },
-      { icon: "forum",          label: "Rex Tutor",      route: "/ai-tutor" },
+      { icon: "forum",          label: "AI Tutor",       route: "/ai-tutor" },
       { icon: "style",          label: "Flashcards",     route: "/flashcards" },
       { icon: "assignment",     label: "Practice",       route: "/practice" },
       { icon: "timer",          label: "Focus Timer",    route: "/timer" },
@@ -63,7 +63,7 @@ interface SharedSidebarProps {
 export function SharedSidebar({ active }: SharedSidebarProps) {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
-  const { isPro } = usePlan();
+  const { isPro, loading: planLoading } = usePlan();
 
   // Centralized time tracking: this one hook instance covers every route that
   // renders SharedSidebar (i.e. the whole app), so no per-page wiring needed.
@@ -135,7 +135,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
 
       {/* Footer */}
       <div className="mt-auto border-t-[1.5px] border-black pt-4 flex flex-col gap-2">
-        {!isPro && (
+        {!planLoading && !isPro && (
           <button
             onClick={() => navigate("/pro")}
             className="flex items-center justify-center gap-2 px-3 py-2.5 mx-3 mb-1 bg-[#ae2925] border-2 border-black text-white text-[12px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:bg-black hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
