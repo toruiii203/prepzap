@@ -185,65 +185,44 @@ export default function Friends() {
 
             {/* Profile Info & Overlapping Avatar */}
             <div className="px-4 sm:px-6 md:px-8 pb-5">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-16 md:-mt-20 mb-4">
-                {/* Overlapping Avatar */}
-                <div className="flex items-end gap-4">
-                  <div className="relative group shrink-0">
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-black bg-white shadow-[3px_3px_0px_#1A1A1A] overflow-hidden flex items-center justify-center">
-                      {studentProfile.isAvatarImage ? (
-                        <img
-                          src={studentProfile.avatar}
-                          alt={studentProfile.displayName}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/buddies/fox_scholar.png";
-                          }}
-                        />
-                      ) : (
-                        <img
-                          src="/buddies/fox_scholar.png"
-                          alt={studentProfile.displayName}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    {/* Quick Avatar Edit Badge */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        playTap();
-                        setIsEditProfileOpen(true);
-                      }}
-                      className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black flex items-center justify-center shadow-xs cursor-pointer transition-colors"
-                      title="Change avatar"
-                    >
-                      <span className="material-symbols-outlined text-[15px]">photo_camera</span>
-                    </button>
+              {/* Top Row: Avatar overlapping banner on left, Action buttons on right */}
+              <div className="flex items-end justify-between gap-4 -mt-12 sm:-mt-16 md:-mt-20 mb-3">
+                {/* Overlapping Avatar (Only the avatar gets the negative margin) */}
+                <div className="relative group shrink-0">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-black bg-white shadow-[3px_3px_0px_#1A1A1A] overflow-hidden flex items-center justify-center">
+                    {studentProfile.isAvatarImage ? (
+                      <img
+                        src={studentProfile.avatar}
+                        alt={studentProfile.displayName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/buddies/fox_scholar.png";
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src="/buddies/fox_scholar.png"
+                        alt={studentProfile.displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                   </div>
-
-                  {/* Desktop Title & Handle */}
-                  <div className="hidden sm:block pb-1 min-w-0">
-                    <h1 className="text-[24px] md:text-[28px] font-black text-black leading-tight truncate">
-                      {studentProfile.displayName}
-                    </h1>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[12px] md:text-[13px] font-bold text-black/55 font-mono">
-                        {studentProfile.username}
-                      </span>
-                      {studentProfile.school && (
-                        <>
-                          <span className="text-black/30">&bull;</span>
-                          <span className="text-[12px] font-bold text-black/60 truncate">
-                            {studentProfile.school}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  {/* Quick Avatar Edit Badge */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playTap();
+                      setIsEditProfileOpen(true);
+                    }}
+                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black flex items-center justify-center shadow-xs cursor-pointer transition-colors"
+                    title="Change avatar"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">photo_camera</span>
+                  </button>
                 </div>
 
                 {/* Top Action Buttons */}
-                <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto pt-2 sm:pt-0">
+                <div className="flex items-center gap-2 shrink-0 pt-2 pb-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -268,23 +247,20 @@ export default function Friends() {
                 </div>
               </div>
 
-              {/* Mobile Title & Handle (visible on small screens) */}
-              <div className="sm:hidden mb-2">
-                <h1 className="text-[20px] font-black text-black leading-tight truncate">
-                  {studentProfile.displayName}
-                </h1>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-[12px] font-bold text-black/55 font-mono">
-                    {studentProfile.username}
-                  </span>
+              {/* Title, Handle & School (Positioned below avatar row with zero clipping risk) */}
+              <div className="mb-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-[22px] sm:text-[26px] md:text-[30px] font-black text-black leading-tight">
+                    {studentProfile.displayName}
+                  </h1>
                   {studentProfile.school && (
-                    <>
-                      <span className="text-black/30">&bull;</span>
-                      <span className="text-[11.5px] font-bold text-black/60 truncate">
-                        {studentProfile.school}
-                      </span>
-                    </>
+                    <span className="text-[11.5px] md:text-[12px] font-bold text-black/60 bg-black/5 px-2.5 py-0.5 rounded-full border border-black/10">
+                      {studentProfile.school}
+                    </span>
                   )}
+                </div>
+                <div className="text-[12px] sm:text-[13px] font-bold text-black/55 font-mono mt-0.5">
+                  {studentProfile.username}
                 </div>
               </div>
 
