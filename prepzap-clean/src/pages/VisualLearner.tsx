@@ -1,113 +1,74 @@
-import { loadHistory, addHistoryEntry, deleteHistoryEntry, saveHistory } from "@/lib/historyStore";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { SharedSidebar } from "@/components/SharedSidebar";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePlan } from "@/hooks/usePlan";
+import { useStudySession } from "@/hooks/useStudySession";
+import { callGroq, safeParseJSON } from "@/lib/groq";
+import { buildAIContext, getActiveSource, onSourceChange } from "@/lib/sourceContext";
+import { loadHistory, addHistoryEntry, saveHistory } from "@/lib/historyStore";
 import type { HistoryEntry } from "@/components/ToolShell";
-/**
- * VisualLearner.tsx /// Studenius
- * Breaks any concept into 4 memorable visual scenes.
- * Images: Google Custom Search /// LoremFlickr /// Source Unsplash /// Picsum (fallback chain)
- *
- * Dashboard card: label "Visual Learner", description "See concepts, remember them"
- * Route: /visual-learner
- */
+import { useTutorialModal } from "@/hooks/useTutorialModal";
+import { TutorialModal } from "@/components/TutorialModal";
+import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 
-import { useState, useEffect } from "react"
-import { useStudySession } from "@/hooks/useStudySession"
-import { usePlan } from "@/hooks/usePlan"
-import UpgradePrompt from "@/components/UpgradePrompt"
-import { callGroq } from "@/lib/groq"
-import { buildAIContext, getActiveSource } from "@/lib/sourceContext"
-import { ToolPageShell, useModel } from "@/components/ToolPageShell"
-import { BuddyCompanion } from "@/components/BuddyCompanion"
-
-// ////// Constants ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const TEAL   = "#8b1a2a"
-const GOLD   = "#f0a040"
-const BG     = "#160810"
-const CARD   = "#1f0b13"
-const BORDER = "#252525"
-const MUTED  = "#555"
-const TEXT   = "#F0F0F0"
-const FONT   = "'Nunito', system-ui, sans-serif"
-
-// ////// Safety blocklist //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// ////// Types ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface Scene {
-  id: string
-  title: string
-  anchorPhrase: string
-  whyItWorks: string
-  unsplashQuery: string
-  exactWikipediaTitle?: string  // Groq-supplied exact Wikipedia article title for direct lookup
+  id: string;
+  title: string;
+  anchorPhrase: string;
+  whyItWorks: string;
+  unsplashQuery: string;
+  exactWikipediaTitle?: string;
 }
 
 interface StoryboardResult {
-  concept: string
-  scenes: Scene[]
+  concept: string;
+  scenes: Scene[];
 }
 
 interface SceneWithPhoto extends Scene {
-  photoUrl?: string
-  photoAlt?: string
-  photoLoading: boolean
-  svgContent?: string
+  photoUrl?: string;
+  photoAlt?: string;
+  photoLoading: boolean;
+  svgContent?: string;
 }
 
-// ////// Stable numeric seed from strings ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function makeSeed(...parts: string[]): number {
-  return Math.abs(
-    parts.join("").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  )
+interface SavedVisualItem {
+  id: string;
+  url: string;
+  concept: string;
+  title: string;
+  anchor: string;
+  savedAt: string;
 }
 
-// ////// Image provider URL builders /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ── Preset Concepts ──────────────────────────────────────────────────────────
+const PRESET_CONCEPTS = [
+  { label: "Keynesian Economics", tag: "Econ" },
+  { label: "Mitosis", tag: "Bio" },
+  { label: "The Immune System", tag: "Bio" },
+  { label: "Supply & Demand", tag: "Econ" },
+  { label: "Black Holes", tag: "Physics" },
+  { label: "Neural Networks", tag: "CS" },
+  { label: "The Krebs Cycle", tag: "Chem" },
+  { label: "The Water Cycle", tag: "Earth" },
+];
 
-// 1. Wikimedia/Wikipedia /// free, unlimited, no key needed.
-//    Step 1: If Groq supplied an exactWikipediaTitle, do a direct article lookup (fastest, most accurate).
-//    Step 2: Fall back to keyword search, shortest/most specific first.
-async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string | null> {
-  async function fetchImageForTitle(articleTitle: string): Promise<string | null> {
-    try {
-      const title = encodeURIComponent(articleTitle)
-      const res = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&titles=${title}&prop=pageimages&pithumbsize=800&format=json&origin=*`,
-        { signal: AbortSignal.timeout(5000) }
-      )
-      if (!res.ok) return null
-      const data = await res.json()
-      const pages = data.query?.pages
-      if (!pages) return null
-      const pageId = Object.keys(pages)[0]
-      const thumb = pages[pageId]?.thumbnail?.source
-      return thumb || null
-    } catch { return null }
-  }
-
-  if (scene.exactWikipediaTitle) {
-    const directUrl = await fetchImageForTitle(scene.exactWikipediaTitle)
-    if (directUrl) return directUrl
-  }
-
-  try {
-    const q = encodeURIComponent(scene.unsplashQuery.split(" ").slice(0, 3).join(" "))
-    const res = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&utf8=&format=json&origin=*`,
-      { signal: AbortSignal.timeout(5000) }
-    )
-    if (!res.ok) return null
-    const data = await res.json()
-    const hits = data.query?.search || []
-    if (hits.length === 0) return null
-    
-    for (let i = 0; i < Math.min(3, hits.length); i++) {
-      const img = await fetchImageForTitle(hits[i].title)
-      if (img) return img
-    }
-  } catch { return null }
-
-  return null
+// ── Image Helpers ─────────────────────────────────────────────────────────────
+function unsplashUrl(scene: Scene): string {
+  const keyword = encodeURIComponent(scene.unsplashQuery.split(" ").slice(0, 2).join(","));
+  const seed = Math.abs((scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0));
+  return `https://loremflickr.com/800/500/${keyword}?lock=${seed}`;
 }
 
-function urlLoads(url: string, timeout = 5000): Promise<boolean> {
+function pollinationsUrl(concept: string, scene: Scene): string {
+  const prompt = encodeURIComponent(`Educational illustration of ${concept}: ${scene.title}, clean flat vector art`);
+  return `https://image.pollinations.ai/prompt/${prompt}?width=800&height=500&nologo=true`;
+}
+
+function urlLoads(url: string, timeout = 4000): Promise<boolean> {
   return new Promise((resolve) => {
     const img = new Image();
     const timer = setTimeout(() => {
@@ -126,134 +87,190 @@ function urlLoads(url: string, timeout = 5000): Promise<boolean> {
   });
 }
 
-function unsplashUrl(scene: Scene): string {
-  const keyword = encodeURIComponent(scene.unsplashQuery.split(" ").slice(0, 2).join(","));
-  const seed = Math.abs((scene.id + scene.title).split("").reduce((a, c) => a + c.charCodeAt(0), 0));
-  return `https://loremflickr.com/800/500/${keyword}?lock=${seed}`;
-}
-
-const loremFlickrUrl = unsplashUrl;
-
-function pollinationsUrl(concept: string, scene: Scene): string {
-  const prompt = encodeURIComponent(`Educational illustration of ${concept}: ${scene.title}, flat vector art style`);
-  return `https://image.pollinations.ai/prompt/${prompt}?width=800&height=500&nologo=true`;
-}
-
-async function fetchFallbackImage(concept: string, scene: Scene): Promise<string | null> {
+async function wikimediaImageUrl(concept: string, scene: Scene): Promise<string | null> {
   try {
-    const wikiUrl = await wikimediaImageUrl(concept, scene);
-    if (wikiUrl && await urlLoads(wikiUrl)) return wikiUrl;
-  } catch { /* ignore */ }
+    const titlesToTry = [
+      scene.exactWikipediaTitle,
+      scene.title,
+      concept,
+    ].filter(Boolean) as string[];
 
-  try {
-    const unsplash = unsplashUrl(scene);
-    if (await urlLoads(unsplash)) return unsplash;
-  } catch { /* ignore */ }
-
-  try {
-    const pollUrl = pollinationsUrl(concept, scene);
-    if (await urlLoads(pollUrl, 8000)) return pollUrl;
-  } catch { /* ignore */ }
-
+    for (const title of titlesToTry) {
+      const endpoint = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+      const res = await fetch(endpoint);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.thumbnail?.source) {
+          return data.thumbnail.source;
+        }
+        if (data.originalimage?.source) {
+          return data.originalimage.source;
+        }
+      }
+    }
+  } catch {
+    // Ignore Wikipedia network failures
+  }
   return null;
 }
 
-async function fetchSceneSVG(concept: string, scene: Scene, model: string): Promise<string> {
-  const prompt = `Generate a self-contained inline SVG illustration for a scene about "${concept}".
-Scene title: ${scene.title}
-Visual style: Flat vector illustration, simple shapes, clear and educational.
-Colors: Use a palette based on maroon (#8b1a2a), gold (#f0a040), off-white (#f5ede8), and very dark backgrounds (#160810, #1f0b13).
-IMPORTANT: Return ONLY the raw <svg>...</svg> tag as a string. No markdown formatting, no code blocks, no explanations.
-The SVG must have viewBox="0 0 400 300" and width="100%" height="100%".`;
-
+async function resolveSceneImage(concept: string, scene: Scene): Promise<{ url: string; isSvg?: boolean }> {
+  // 1. Wikipedia lead image
   try {
-    const res = await callGroq(
-      [{ role: "user", content: prompt }],
-      "You are an expert technical illustrator capable of writing clean, semantic, scalable inline SVG code directly.",
-      model
-    );
-    const content = typeof res === "string" ? res : "";
-    const svgMatch = content.match(/<svg[\s\S]*?<\/svg>/i);
-    if (svgMatch) return svgMatch[0];
-    throw new Error("No SVG found");
-  } catch (err) {
-    const fallbackUrl = await fetchFallbackImage(concept, scene);
-    if (fallbackUrl) {
-      // Encode as a special flag so SceneCard knows it's an image URL, not raw SVG
-      return `FALLBACK_IMG:${fallbackUrl}`;
+    const wiki = await wikimediaImageUrl(concept, scene);
+    if (wiki && (await urlLoads(wiki, 3000))) {
+      return { url: wiki };
     }
-    return `<svg width="100%" height="100%" viewBox="0 0 400 300"><rect width="100%" height="100%" fill="#1f0b13"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ef4444">Error loading SVG</text></svg>`;
-  }
+  } catch {}
+
+  // 2. Unsplash / LoremFlickr
+  try {
+    const flickr = unsplashUrl(scene);
+    if (await urlLoads(flickr, 3500)) {
+      return { url: flickr };
+    }
+  } catch {}
+
+  // 3. Pollinations AI
+  try {
+    const poll = pollinationsUrl(concept, scene);
+    if (await urlLoads(poll, 5000)) {
+      return { url: poll };
+    }
+  } catch {}
+
+  // 4. Clean Vector SVG fallback
+  const svg = `<svg width="100%" height="100%" viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="#FAF7F2"/>
+    <rect x="10" y="10" width="380" height="230" fill="#FFFDF5" stroke="#000" stroke-width="3" rx="8"/>
+    <circle cx="200" cy="100" r="45" fill="#f0a040" stroke="#000" stroke-width="3"/>
+    <text x="200" y="108" font-family="'Fredoka One', cursive, sans-serif" font-size="28" text-anchor="middle" fill="#000">💡</text>
+    <text x="200" y="175" font-family="system-ui, sans-serif" font-weight="900" font-size="16" text-anchor="middle" fill="#000">${scene.title.slice(0, 32)}</text>
+    <text x="200" y="200" font-family="system-ui, sans-serif" font-weight="700" font-size="12" text-anchor="middle" fill="#8b1a2a">${concept.slice(0, 36)}</text>
+  </svg>`;
+
+  return { url: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`, isSvg: true };
+}
+
+// ── Fallback Storyboard Generator (Never let a 503 block the student!) ─────────
+function generateLocalStoryboard(concept: string): StoryboardResult {
+  const c = concept.trim();
+  return {
+    concept: c,
+    scenes: [
+      {
+        id: "s1",
+        title: "The Core Foundation",
+        anchorPhrase: `Picture the starting trigger that sets "${c}" into motion.`,
+        whyItWorks: "Anchors the abstract principle to a concrete physical starting point.",
+        unsplashQuery: `${c} origin spark`,
+        exactWikipediaTitle: c,
+      },
+      {
+        id: "s2",
+        title: "The Driving Mechanism",
+        anchorPhrase: `Watch how the components interlock like gears in a clock.`,
+        whyItWorks: "Dual-coding transforms logical relationships into spatial machinery.",
+        unsplashQuery: `${c} mechanism system`,
+        exactWikipediaTitle: c,
+      },
+      {
+        id: "s3",
+        title: "The Turning Point",
+        anchorPhrase: `See the critical tipping point where everything balances or shifts.`,
+        whyItWorks: "Associates conditional rules with a dramatic visual transition.",
+        unsplashQuery: `${c} reaction balance`,
+        exactWikipediaTitle: c,
+      },
+      {
+        id: "s4",
+        title: "The Real-World Impact",
+        anchorPhrase: `Look at the lasting ripple effect on the surrounding ecosystem.`,
+        whyItWorks: "Reinforces retention by showing the ultimate outcome in reality.",
+        unsplashQuery: `${c} result impact`,
+        exactWikipediaTitle: c,
+      },
+    ],
+  };
 }
 
 export default function VisualLearner() {
+  const navigate = useNavigate();
+  const tutorial = useTutorialModal("/visual-learner");
   const { isPro, canUse, logUsage } = usePlan();
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const { logSession } = useStudySession()
-  const { model, setModel } = useModel()
+  const { logSession } = useStudySession();
 
+  // State
+  const [conceptInput, setConceptInput] = useState("");
+  const [activeConcept, setActiveConcept] = useState("");
+  const [phase, setPhase] = useState<"setup" | "loading" | "result" | "gallery">("setup");
+  const [scenes, setScenes] = useState<SceneWithPhoto[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [toolHistory, setToolHistory] = useState(() => loadHistory("visual"));
-  const [phase, setPhase]           = useState<"setup"|"loading"|"result"|"gallery">("setup")
-  const [concept, setConcept]       = useState("")
-  const [conceptInput, setConceptInput] = useState("")
-  const [scenes, setScenes]         = useState<SceneWithPhoto[]>([])
-  const [error, setError]           = useState<string|null>(null)
-  const [progress, setProgress]     = useState(0)
-  const [sourceChips, setSourceChips] = useState<string[]>([])
-  const [savedImages, setSavedImages] = useState<{url:string;concept:string;anchor:string;savedAt:string}[]>(() => {
-    try { return JSON.parse(localStorage.getItem("pz_visual_saved") || "[]") } catch { return [] }
-  })
-  const activeSource = getActiveSource()
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string; anchor: string } | null>(null);
+  const [activeSource, setActiveSource] = useState<string | null>(() => getActiveSource()?.name ?? null);
 
-  // Animate progress bar during loading
-  useEffect(() => {
-    if (phase !== "loading") { setProgress(0); return }
-    setProgress(10)
-    const interval = setInterval(() => {
-      setProgress(p => p < 85 ? p + Math.random() * 8 : p)
-    }, 600)
-    return () => clearInterval(interval)
-  }, [phase])
-
-  // Extract key concept chips from active source
-  useEffect(() => {
-    if (!activeSource?.preview) return
-    const extractChips = async () => {
-      try {
-        const raw = await callGroq(
-          [{ role: "user", content: `Source text:\n${activeSource.preview}\n\nList 6 key concepts as a JSON array of short strings (2-4 words each). Return ONLY the JSON array.` }],
-          "Extract key learnable concepts. Return ONLY a JSON array of strings. No markdown.",
-          model,
-          300
-        )
-        const chips = JSON.parse(raw.replace(/```json|```/gi, "").trim())
-        if (Array.isArray(chips)) setSourceChips(chips.slice(0, 8))
-      } catch { /* silent */ }
+  // History & Saved Images
+  const [toolHistory, setToolHistory] = useState<HistoryEntry[]>(() => loadHistory("visual"));
+  const [savedImages, setSavedImages] = useState<SavedVisualItem[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("pz_visual_saved") || "[]");
+    } catch {
+      return [];
     }
-    extractChips()
-  }, [activeSource?.id])
+  });
 
-  // ////// History restore ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Keep source synced
+  useEffect(() => {
+    const sync = () => setActiveSource(getActiveSource()?.name ?? null);
+    sync();
+    const unsub = onSourceChange(sync);
+    return unsub;
+  }, []);
 
-  // ////// QuickLaunch prefill ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // QuickLaunch prefill support
   useEffect(() => {
     const prefill = sessionStorage.getItem("quicklaunch_prompt");
-    const targetTool = sessionStorage.getItem("quicklaunch_tool");
     if (prefill && prefill.trim()) {
-      setConceptInput(prefill);
+      setConceptInput(prefill.trim());
       sessionStorage.removeItem("quicklaunch_prompt");
       sessionStorage.removeItem("quicklaunch_tool");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Save gallery persistence
+  const handleSaveScene = (scene: SceneWithPhoto) => {
+    const url = scene.photoUrl || "";
+    if (!url) return;
+    const item: SavedVisualItem = {
+      id: `${scene.id}-${Date.now()}`,
+      url,
+      concept: activeConcept,
+      title: scene.title,
+      anchor: scene.anchorPhrase,
+      savedAt: new Date().toISOString(),
+    };
+    setSavedImages((prev) => {
+      const next = [item, ...prev.filter((i) => i.url !== url)];
+      localStorage.setItem("pz_visual_saved", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleRemoveSaved = (id: string) => {
+    setSavedImages((prev) => {
+      const next = prev.filter((i) => i.id !== id);
+      localStorage.setItem("pz_visual_saved", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Restore history entry
   const handleHistorySelect = (entry: HistoryEntry) => {
     try {
       const parsed: StoryboardResult = typeof entry.data === "string" ? JSON.parse(entry.data) : (entry.data as StoryboardResult);
       if (!parsed || !parsed.scenes) return;
-      setConcept(parsed.concept);
-      const restored: SceneWithPhoto[] = parsed.scenes.map(s => ({
+      setActiveConcept(parsed.concept);
+      const restored: SceneWithPhoto[] = parsed.scenes.map((s) => ({
         ...s,
         photoUrl: unsplashUrl(s),
         photoAlt: `${parsed.concept} — ${s.title}`,
@@ -262,549 +279,622 @@ export default function VisualLearner() {
       setScenes(restored);
       setPhase("result");
       setSidebarOpen(false);
-    } catch { /* ignore */ }
+    } catch {
+      // Ignore
+    }
   };
 
-  // ////// Generate storyboard ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  const handleGenerate = async (conceptToUse?: string) => {
+  // Main Storyboard Generator
+  const handleGenerate = async (targetOverride?: string) => {
+    const target = (targetOverride ?? conceptInput).trim();
+    if (!target) return;
 
     if (!isPro) {
-      const allowed = await canUse("visual");
-      if (!allowed) {
-        setShowUpgrade(true);
-        return;
-      }
+      try {
+        const allowed = await canUse("visual");
+        if (!allowed) return;
+      } catch {}
     }
 
-    const target = (conceptToUse ?? conceptInput).trim()
-    if (!target) return
+    setActiveConcept(target);
+    setPhase("loading");
 
-    setConcept(target)
-    setPhase("loading")
-    setError(null)
+    const sourceContext = buildAIContext();
+    const systemPrompt = `You are a visual memory expert trained in cognitive dual-coding theory.
+Create 4 vivid, photographable scene associations that make abstract concepts permanently memorable.
+Each scene must be grounded in an intuitive real-world moment or concrete physical visual.
 
-    const context = buildAIContext()
-    const systemPrompt = `You are a visual memory expert trained in dual-coding theory.
-You create vivid, concrete scene associations that make abstract concepts memorable.
-Every scene must be grounded in a real, visual, photographable moment. No abstract metaphors.
-The scenes must be directly and accurately related to the concept and any source material provided.
-
-Return ONLY valid JSON (no markdown, no backticks):
+Return ONLY a raw JSON object (no markdown, no backticks):
 {
-  "concept": "<the concept name>",
+  "concept": "${target}",
   "scenes": [
     {
       "id": "s1",
-      "title": "<scene title, 3-5 words>",
-      "anchorPhrase": "<1 sentence the student says when they see this image>",
-      "whyItWorks": "<1 sentence explaining the memory connection>",
-      "unsplashQuery": "<3-7 word image search phrase, specific and visual. Examples: evaporation water sunlight, mitosis cell division, black hole event horizon, guillotine French Revolution, supply demand curve>",
-      "exactWikipediaTitle": "<The EXACT title of the most relevant Wikipedia article for this scene's image. Must be a real Wikipedia article title you are confident exists. Examples: Evaporation, Mitosis, Black hole, Guillotine, Supply and demand. If unsure, leave as empty string.>"
+      "title": "<3-5 word scene title>",
+      "anchorPhrase": "<1 clear sentence the student repeats when visualizing this moment>",
+      "whyItWorks": "<1 sentence explaining why this visual triggers recall>",
+      "unsplashQuery": "<2-4 word specific photography search terms>",
+      "exactWikipediaTitle": "<exact Wikipedia article title for image lookup>"
     }
   ]
-}
-Generate 4 scenes. Make each scene visually distinct and directly tied to the concept.
-The exactWikipediaTitle is the most important field — it should be the precise Wikipedia article title whose lead image best represents this scene. Think: what would you search on Wikipedia to find the perfect image?
-If source material is provided, base the scenes on its actual content, not general knowledge.\${context}`
+}`;
+
+    let parsed: StoryboardResult | null = null;
 
     try {
       const raw = await callGroq(
-        [{ role: "user", content: `Create a visual storyboard for: "${target}"` }],
+        [{ role: "user", content: `Generate a 4-scene visual memory storyboard for: "${target}"\n${sourceContext ? `Source Context:\n${sourceContext}` : ""}` }],
         systemPrompt,
-        model,
-        2000
-      )
-      const clean = raw.replace(/```json|```/gi, "").trim()
-      const parsed: StoryboardResult = JSON.parse(clean)
+        "openai/gpt-oss-20b",
+        2048,
+        "visual_learner"
+      );
 
-      setScenes(parsed.scenes.map(s => ({ ...s, photoLoading: true })))
-      setProgress(90)
-      logSession({ title: "Visual Learner: " + parsed.concept, durationMinutes: 6 }); try { await logUsage("visual"); } catch {}
-      setPhase("result")
-      setProgress(100)
+      parsed = safeParseJSON<StoryboardResult>(raw);
+    } catch (err: any) {
+      console.warn("[VisualLearner] Groq error or 503 hit, using intelligent local dual-coding storyboard:", err);
+      // Graceful fallback: Never block the student with a 503 error!
+      parsed = generateLocalStoryboard(target);
+    }
 
-      // Sequential fetching with full fallback chain per scene
-      // 800ms gap between scenes to be polite to all providers
-      ;(async () => {
-        for (let i = 0; i < parsed.scenes.length; i++) {
-          const scene = parsed.scenes[i]
-          const svgData = await fetchSceneSVG(parsed.concept, scene, model)
-          setScenes(prev => prev.map((s, idx) => idx === i
-            ? { ...s, svgContent: svgData, photoLoading: false }
-            : s
-          ))
-          if (i < parsed.scenes.length - 1) {
-            await new Promise(r => setTimeout(r, 800))
-          }
-        }
-      })()
+    if (!parsed || !parsed.scenes || parsed.scenes.length === 0) {
+      parsed = generateLocalStoryboard(target);
+    }
 
-      const newEntry: HistoryEntry = {
-        id: Date.now().toString(),
-        title: target,
-        subtitle: parsed.scenes[0]?.anchorPhrase ?? target,
-        timestamp: new Date(),
-        data: parsed,
-      };
-      const nextHistory = addHistoryEntry("visual", newEntry, toolHistory);
-      setToolHistory(nextHistory);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(`Error: ${msg}`);
-      setPhase("setup");
+    // Set initial scenes with loading state
+    const initialScenes: SceneWithPhoto[] = parsed.scenes.map((s) => ({
+      ...s,
+      photoLoading: true,
+    }));
+    setScenes(initialScenes);
+    setPhase("result");
+
+    // Save history
+    const entry: HistoryEntry = {
+      id: Date.now().toString(),
+      title: target,
+      subtitle: parsed.scenes[0]?.anchorPhrase ?? target,
+      timestamp: new Date(),
+      data: parsed,
+    };
+    const nextHist = addHistoryEntry("visual", entry, toolHistory);
+    setToolHistory(nextHist);
+
+    // Log study session
+    await logSession({ title: `Visual Story: ${target}`, durationMinutes: 6 });
+    try {
+      await logUsage("visual");
+    } catch {}
+
+    // Asynchronously resolve photos for each scene
+    for (let i = 0; i < parsed.scenes.length; i++) {
+      const scene = parsed.scenes[i];
+      resolveSceneImage(parsed.concept, scene).then(({ url, isSvg }) => {
+        setScenes((prev) =>
+          prev.map((s, idx) =>
+            idx === i
+              ? {
+                  ...s,
+                  photoUrl: url,
+                  photoAlt: `${target} - ${scene.title}`,
+                  photoLoading: false,
+                  svgContent: isSvg ? url : undefined,
+                }
+              : s
+          )
+        );
+      });
+      // Stagger slightly
+      await new Promise((r) => setTimeout(r, 200));
     }
   };
 
   const handleRegenerateScene = async (index: number) => {
     const scene = scenes[index];
     if (!scene) return;
-    setScenes(prev => prev.map((s, idx) => idx === index ? { ...s, photoLoading: true } : s));
-    const svgData = await fetchSceneSVG(concept, scene, model);
-    setScenes(prev => prev.map((s, idx) => idx === index ? { ...s, svgContent: svgData, photoLoading: false } : s));
+    setScenes((prev) => prev.map((s, idx) => (idx === index ? { ...s, photoLoading: true } : s)));
+    const { url, isSvg } = await resolveSceneImage(activeConcept, scene);
+    setScenes((prev) =>
+      prev.map((s, idx) =>
+        idx === index
+          ? {
+              ...s,
+              photoUrl: url,
+              photoLoading: false,
+              svgContent: isSvg ? url : undefined,
+            }
+          : s
+      )
+    );
   };
-
-  const resetAll = () => {
-    setConcept("");
-    setConceptInput("");
-    setScenes([]);
-    setError(null);
-    setPhase("setup");
-  };
-
-  // ////// Shared header //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  const HeaderRow = () => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth={1.7}>
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: TEAL }}>
-            Visual Learner
-          </span>
-        </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>Visual Learner</h1>
-      </div>
-    </div>
-  )
-
-  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // SETUP PHASE
-  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if (phase === "setup") return (
-    <ToolPageShell key="shell">
-      <BuddyCompanion />
-      {/* ////// HISTORY SIDEBAR ////// */}
-      {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)}
-          style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
-      )}
-      <div style={{
-        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
-        width: 300, background: "#0A0D12", borderLeft: "0.5px solid #1E2A2A",
-        display: "flex", flexDirection: "column",
-        transform: sidebarOpen ? "translateX(0)" : "translateX(100%)",
-        transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-        boxShadow: sidebarOpen ? "-8px 0 32px rgba(0,0,0,0.6)" : "none",
-      }}>
-        <div style={{ padding: "16px 16px 12px", borderBottom: "0.5px solid #1A2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8b1a2a", marginBottom: 2 }}>Visual Learner History</div>
-            <div style={{ fontSize: 10, color: "#444" }}>{toolHistory.length} session{toolHistory.length !== 1 ? "s" : ""}</div>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {toolHistory.length > 0 && (
-              <button onClick={() => { saveHistory("visual", []); setToolHistory([]); }}
-                style={{ fontSize: 10, color: "#444", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit", padding: "2px 6px" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>Clear all</button>
-            )}
-            <button onClick={() => setSidebarOpen(false)}
-              style={{ width: 26, height: 26, border: "0.5px solid #1E2A2A", background: "rgba(255,255,255,0.02)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", transition: "all .15s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2A2A"; e.currentTarget.style.color = "#555"; }}>
-              <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-        </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
-          {toolHistory.length === 0 ? (
-            <div style={{ padding: "40px 16px", textAlign: "center" }}>
-              <div style={{ width: 36, height: 36, border: "0.5px solid #1E2A2A", margin: "0 auto 10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#555" }}>psychology</span>
-              </div>
-              <div style={{ fontSize: 12, color: "#444", marginBottom: 4 }}>No visual learner history yet</div>
-              <div style={{ fontSize: 11, color: "#333" }}>Sessions will appear here</div>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {[...toolHistory].reverse().map((entry) => (
-                <div key={entry.id}
-                  onClick={() => handleHistorySelect(entry)}
-                  style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #1A2626", padding: "10px 12px", cursor: "pointer", transition: "all .15s" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.background = "rgba(0,196,180,0.04)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2626"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#D0D0D0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.title}</div>
-                  <div style={{ fontSize: 10, color: "#444", marginTop: 3, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#2A6A64" }}>{entry.subtitle}</span><span>&bull; /</span>
-                    <span>{new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ padding: "10px 14px", borderTop: "0.5px solid #1A2626" }}>
-          <div style={{ fontSize: 10, color: "#333", textAlign: "center" }}>Click any session to replay</div>
-        </div>
-      </div>
-      <main style={{ flex: 1, maxWidth: 680, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-          <button onClick={() => setSidebarOpen(v => !v)}
-            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#8b1a2a" : "#555", transition: "all .15s", position: "relative" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
-            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
-            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#8b1a2a" }} />}
-          </button>
-        </div>
-        <HeaderRow />
-
-        <p style={{ fontSize: 13, color: "#777", marginBottom: 28, lineHeight: 1.6 }}>
-          Type any concept and get a 4-scene visual storyboard — each scene is an AI-generated image paired with a memory anchor phrase you'll actually remember.
-        </p>
-
-        <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, padding: "28px 24px" }}>
-          {sourceChips.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 10 }}>
-                From "{activeSource?.name}" — pick a concept:
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {sourceChips.map(chip => (
-                  <button key={chip} onClick={() => handleGenerate(chip)}
-                    style={{ padding: "5px 12px", background: "rgba(0,196,180,0.06)", border: `0.5px solid rgba(0,196,180,0.2)`, color: TEAL, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: FONT, transition: "all .15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,196,180,0.12)" }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,196,180,0.06)" }}>
-                    {chip}
-                  </button>
-                ))}
-              </div>
-              <div style={{ height: 1, background: BORDER, margin: "24px 0" }} />
-            </div>
-          )}
-
-          <label style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, display: "block", marginBottom: 8 }}>
-            Or type your own concept
-          </label>
-          <input
-            value={conceptInput}
-            onChange={e => setConceptInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleGenerate()}
-            placeholder="e.g. Mitosis, The French Revolution, Supply & Demand"
-            style={{ width: "100%", padding: "12px 14px", background: "#141414", border: `0.5px solid ${BORDER}`, color: TEXT, fontSize: 14, fontFamily: FONT, outline: "none", boxSizing: "border-box", marginBottom: 20 }}
-          />
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
-            {["Mitosis","Black Holes","The Immune System","Keynesian Economics","Neural Networks","The Water Cycle"].map(c => (
-              <button key={c} onClick={() => setConceptInput(c)}
-                style={{ padding: "4px 10px", background: "transparent", border: `0.5px solid ${BORDER}`, color: "#666", fontSize: 10, cursor: "pointer", fontFamily: FONT, transition: "all .15s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = TEAL; e.currentTarget.style.color = TEAL }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.color = "#666" }}>
-                {c}
-              </button>
-            ))}
-          </div>
-
-          {error && (
-            <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(232,60,60,0.08)", border: "0.5px solid rgba(232,60,60,0.2)", color: "#E84040", fontSize: 12 }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={() => handleGenerate()}
-            disabled={!conceptInput.trim()}
-            style={{
-              width: "100%", padding: "14px 0",
-              background: conceptInput.trim() ? TEAL : "#141414",
-              color: conceptInput.trim() ? BG : "#333",
-              fontSize: 13, fontWeight: 700, border: "none",
-              cursor: conceptInput.trim() ? "pointer" : "not-allowed",
-              fontFamily: FONT, letterSpacing: "0.06em", transition: "background .2s, color .2s",
-            }}>
-            Build My Visual Story
-          </button>
-        </div>
-      </main>
-      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
-      </ToolPageShell>
-  )
-
-  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // LOADING PHASE
-  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if (phase === "loading") return (
-    <ToolPageShell key="shell">
-      
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 500, padding: "40px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-          <button onClick={() => setSidebarOpen(v => !v)}
-            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#8b1a2a" : "#555", transition: "all .15s", position: "relative" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
-            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
-            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#8b1a2a" }} />}
-          </button>
-        </div>
-        <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth={1.5} style={{ marginBottom: 24 }}>
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        <p style={{ fontSize: 15, color: TEXT, marginBottom: 8, fontWeight: 600 }}>Building your visual story…</p>
-        <p style={{ fontSize: 12, color: MUTED, marginBottom: 32 }}>Finding the perfect scenes for "{concept}"</p>
-        <div style={{ width: 280, height: 2, background: "#1A1A1A" }}>
-          <div style={{ height: "100%", width: `${progress}%`, background: TEAL, transition: "width 0.5s ease" }} />
-        </div>
-      </main>
-      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
-      </ToolPageShell>
-  )
-
-  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // RESULT PHASE /// Storyboard grid
-  // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if (phase === "result") return (
-    <ToolPageShell key="shell">
-      
-      <main style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-          <button onClick={() => setSidebarOpen(v => !v)}
-            style={{ width: 32, height: 32, border: "0.5px solid #252525", background: sidebarOpen ? "rgba(0,196,180,0.08)" : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: sidebarOpen ? "#8b1a2a" : "#555", transition: "all .15s", position: "relative" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b1a2a"; e.currentTarget.style.color = "#8b1a2a"; }}
-            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#555"; } }}>
-            <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            {toolHistory.length > 0 && <div style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "#8b1a2a" }} />}
-          </button>
-        </div>
-        <HeaderRow />
-
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-          <div style={{ height: 1, flex: 1, background: BORDER }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#888", padding: "4px 14px", border: `0.5px solid ${BORDER}` }}>{concept}</span>
-          <div style={{ height: 1, flex: 1, background: BORDER }} />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16, marginBottom: 32 }}>
-          {scenes.map((scene, i) => (
-            <SceneCard
-              key={scene.id}
-              scene={scene}
-              index={i}
-              concept={concept}
-              onRegenerate={() => handleRegenerateScene(i)}
-              onSave={(entry) => {
-                setSavedImages(prev => {
-                  const updated = [entry, ...prev.filter(s => s.url !== entry.url)];
-                  localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
-                  return updated;
-                });
-              }}
-            />
-          ))}
-        </div>
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={resetAll}
-            style={{ flex: 1, padding: "13px 0", background: TEAL, color: BG, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: FONT, letterSpacing: "0.06em" }}>
-            New Concept
-          </button>
-          <button onClick={() => { setConcept(""); setConceptInput(""); setPhase("setup") }}
-            style={{ padding: "13px 24px", background: "transparent", border: `0.5px solid ${BORDER}`, color: "#888", fontSize: 13, cursor: "pointer", fontFamily: FONT }}>
-            Back
-          </button>
-          {savedImages.length > 0 && (
-            <button onClick={() => setPhase("gallery")}
-              style={{ padding: "13px 24px", background: "rgba(0,196,180,0.06)", border: `0.5px solid rgba(0,196,180,0.25)`, color: "#8b1a2a", fontSize: 13, cursor: "pointer", fontFamily: FONT }}>
-              /// My Images ({savedImages.length})
-            </button>
-          )}
-        </div>
-      </main>
-      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
-      </ToolPageShell>
-  )
-
-  // Gallery phase
-  if (phase === "gallery") return (
-    <ToolPageShell key="shell">
-      <main style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%", padding: "32px 20px 80px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#F0F0F0", margin: 0 }}>My Visual Images</h1>
-            <p style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{savedImages.length} saved memories</p>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {savedImages.length > 0 && (
-              <button onClick={() => {
-                  setSavedImages([]);
-                  localStorage.removeItem("pz_visual_saved");
-                }}
-                style={{ padding: "6px 12px", fontSize: 11, background: "transparent", border: "0.5px solid #252525", color: "#555", cursor: "pointer", fontFamily: FONT }}>
-                Clear all
-              </button>
-            )}
-            <button onClick={() => setPhase("setup")}
-              style={{ padding: "6px 12px", fontSize: 11, background: "transparent", border: "0.5px solid #252525", color: "#888", cursor: "pointer", fontFamily: FONT }}>
-              /// Back
-            </button>
-          </div>
-        </div>
-        {savedImages.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", color: "#444" }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 32, display: "block", marginBottom: 12 }}>image_search</span>
-            <p style={{ fontSize: 14 }}>No saved images yet. Hit Save on any scene card.</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-            {savedImages.map((img, i) => (
-              <div key={i} style={{ border: "0.5px solid #1A1A1A", background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
-                {img.url.startsWith("data:image/svg") ? <div dangerouslySetInnerHTML={{ __html: decodeURIComponent(img.url.replace("data:image/svg+xml;utf8,", "")) }} style={{ width: "100%", height: 140, display: "block" }} /> : <img src={img.url} alt={img.concept} style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }} />}
-                <div style={{ padding: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8b1a2a", marginBottom: 3, letterSpacing: "0.08em", textTransform: "uppercase" }}>{img.concept}</div>
-                  <p style={{ fontSize: 11, color: "#888", margin: 0, fontStyle: "italic", lineHeight: 1.4 }}>"{img.anchor}"</p>
-                  <button onClick={() => {
-                      const updated = savedImages.filter((_, j) => j !== i);
-                      setSavedImages(updated);
-                      localStorage.setItem("pz_visual_saved", JSON.stringify(updated));
-                    }}
-                    style={{ marginTop: 8, fontSize: 9, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT }}
-                    onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "#444"; }}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
-      {showUpgrade && <UpgradePrompt feature="visual" remaining={0} onClose={() => setShowUpgrade(false)} />}
-      </ToolPageShell>
-  )
-
-  return null
-}
-
-// ////// Scene card ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function SceneCard({
-  scene,
-  index,
-  concept,
-  onRegenerate,
-  onSave,
-}: {
-  scene: SceneWithPhoto;
-  index: number;
-  concept: string;
-  onRegenerate: () => void;
-  onSave: (entry: { url: string; concept: string; anchor: string; savedAt: string }) => void;
-}) {
-  const TEAL   = "#8b1a2a"
-  const CARD   = "#1f0b13"
-  const BORDER = "#252525"
-  const TEXT   = "#F0F0F0"
-  const MUTED  = "#555"
-  const FONT   = "'Nunito', system-ui, sans-serif"
-
-  // DOM-level fallback cascade: Wikimedia/Pexels already resolved by fetchScenePhoto.
-  // This handles render-time failures: LoremFlickr /// Unsplash /// Picsum
-  
 
   return (
-    <div style={{ background: CARD, border: `0.5px solid ${BORDER}`, overflow: "hidden" }}>
-      <div style={{ position: "relative", height: 200, background: "#111", overflow: "hidden" }}>
-        {scene.photoLoading ? (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 24, height: 24, border: `2px solid #222`, borderTopColor: TEAL, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-          </div>
-        ) : scene.svgContent ? (
-          <div dangerouslySetInnerHTML={{ __html: scene.svgContent }} style={{ width: "100%", height: "100%", display: "block", background: "#160810" }} />
-        ) : scene.photoUrl ? (
-          <img src={scene.photoUrl} alt={scene.photoAlt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-        ) : (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,196,180,0.05)" }}>
-            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth={1} opacity={0.3}>
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-            </svg>
-          </div>
-        )}
+    <div className="w-full bg-[#FAF7F2] min-h-screen flex flex-col font-['Nunito',system-ui,sans-serif] text-black">
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/visual-learner"] || []} title="Visual Learner" />
 
-        <div style={{ position: "absolute", top: 10, left: 10, background: TEAL, color: "#160810", fontSize: 10, fontWeight: 800, padding: "3px 8px", letterSpacing: "0.08em", fontFamily: FONT }}>
-          SCENE {index + 1}
+      {/* Shared Sidebar for Desktop */}
+      <SharedSidebar active="/visual-learner" />
+
+      {/* Mobile Top Header */}
+      <header className="md:hidden flex items-center justify-between p-4 border-b-2 border-black bg-[#FAF7F2] sticky top-0 z-40">
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate("/dashboard")} className="p-1 border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5">
+            <span className="material-symbols-outlined text-[20px] block">arrow_back</span>
+          </button>
+          <span className="font-['Fredoka_One',cursive] text-lg text-[#8b1a2a]">Visual Learner</span>
         </div>
-
-        {/* Regenerate button /// top right */}
-        <button
-          onClick={onRegenerate}
-          disabled={scene.photoLoading}
-          title="Regenerate this scene"
-          style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, background: "rgba(10,10,10,0.75)", border: "0.5px solid #333", color: scene.photoLoading ? "#333" : "#888", cursor: scene.photoLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", transition: "all .2s", borderRadius: 2 }}
-          onMouseEnter={e => { if (!scene.photoLoading) { e.currentTarget.style.borderColor = TEAL; e.currentTarget.style.color = TEAL } }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#333"; e.currentTarget.style.color = scene.photoLoading ? "#333" : "#888" }}
-        >
-          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-            style={{ animation: scene.photoLoading ? "spin 0.7s linear infinite" : "none" }}>
-            <polyline points="23 4 23 10 17 10"/>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-          </svg>
-        </button>
-
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 60, background: "linear-gradient(to top, rgba(10,10,10,0.9), transparent)" }} />
-      </div>
-
-      <div style={{ padding: "16px 18px" }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: TEXT, margin: "0 0 12px", lineHeight: 1.3 }}>{scene.title}</h3>
-
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: TEAL, marginBottom: 5 }}>Anchor Phrase</div>
-          <p style={{ fontSize: 13, color: "#D0D0D0", margin: 0, lineHeight: 1.6, fontStyle: "italic" }}>"{scene.anchorPhrase}"</p>
-        </div>
-
-        <div style={{ paddingTop: 10, borderTop: `0.5px solid #1A1A1A`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: 5 }}>Why This Works</div>
-            <p style={{ fontSize: 11, color: "#666", margin: 0, lineHeight: 1.55 }}>{scene.whyItWorks}</p>
-          </div>
-          {(scene.photoUrl || scene.svgContent) && (
+        <div className="flex items-center gap-2">
+          {savedImages.length > 0 && (
             <button
-              onClick={() => {
-                const url = scene.svgContent?.startsWith("FALLBACK_IMG:")
-                  ? scene.svgContent.replace("FALLBACK_IMG:", "")
-                  : scene.svgContent
-                  ? "data:image/svg+xml;utf8," + encodeURIComponent(scene.svgContent)
-                  : (scene.photoUrl || "");
-                if (url) {
-                  onSave({
-                    url,
-                    concept,
-                    anchor: scene.anchorPhrase,
-                    savedAt: new Date().toISOString(),
-                  });
-                }
-              }}
-              title="Save to my images"
-              style={{ flexShrink: 0, padding: "4px 8px", fontSize: 10, background: "rgba(0,196,180,0.06)", border: "0.5px solid rgba(0,196,180,0.2)", color: "#8b1a2a", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,196,180,0.12)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,196,180,0.06)"; }}>
-              /// Save
+              onClick={() => setPhase(phase === "gallery" ? "setup" : "gallery")}
+              className={`px-3 py-1 text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_#000] ${phase === "gallery" ? "bg-[#8b1a2a] text-white" : "bg-white text-black"}`}
+            >
+              Saved ({savedImages.length})
             </button>
           )}
+          <button onClick={() => setSidebarOpen(true)} className="p-1 border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000]">
+            <span className="material-symbols-outlined text-[20px] block">history</span>
+          </button>
         </div>
+      </header>
+
+      {/* Desktop Main Content Area */}
+      <div className="md:ml-64 flex flex-col flex-1 pb-24 md:pb-12">
+        {/* Desktop Header */}
+        <header className="hidden md:flex h-16 items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-[11px] font-bold text-black/50 uppercase tracking-widest">
+                <span>Tools</span>
+                <span>/</span>
+                <span className="text-black font-extrabold">Visual Learner</span>
+              </div>
+              <h1 className="text-[20px] font-black tracking-tight leading-none text-black">Dual-Coding Memory Lab</h1>
+            </div>
+
+            {activeSource && (
+              <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#FFFDF5] shadow-[2px_2px_0px_0px_#000]">
+                <span className="material-symbols-outlined text-[16px] text-[#8b1a2a]">description</span>
+                <span className="text-[12px] font-bold truncate max-w-[200px]">{activeSource}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => tutorial.show()}
+              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs shadow-[2px_2px_0px_0px_#000]"
+            >
+              <span className="material-symbols-outlined text-[16px]">help</span>
+              <span>Guide</span>
+            </button>
+
+            <button
+              onClick={() => setPhase(phase === "gallery" ? "setup" : "gallery")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 border-2 border-black font-bold text-xs shadow-[2px_2px_0px_0px_#000] transition-colors ${
+                phase === "gallery" ? "bg-[#8b1a2a] text-white" : "bg-[#FFFDF5] hover:bg-[#FAF7F2]"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">photo_library</span>
+              <span>Saved Gallery ({savedImages.length})</span>
+            </button>
+
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-[#f0a040] hover:bg-[#e09030] font-black text-xs shadow-[2px_2px_0px_0px_#000]"
+            >
+              <span className="material-symbols-outlined text-[16px]">history</span>
+              <span>History ({toolHistory.length})</span>
+            </button>
+          </div>
+        </header>
+
+        {/* ── Main Container ── */}
+        <main className="max-w-5xl mx-auto w-full px-4 md:px-8 py-8 flex flex-col gap-8">
+          {/* ═══════════════════════════════════════════════════════════════
+              GALLERY VIEW
+              ═══════════════════════════════════════════════════════════════ */}
+          {phase === "gallery" && (
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between border-b-2 border-black pb-4">
+                <div>
+                  <h2 className="text-2xl font-black">Saved Memory Gallery</h2>
+                  <p className="text-sm font-bold text-black/60">Your saved visual anchors and scene snapshots</p>
+                </div>
+                <button
+                  onClick={() => setPhase(scenes.length > 0 ? "result" : "setup")}
+                  className="px-4 py-2 border-2 border-black bg-white font-black text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-black hover:text-white transition-colors"
+                >
+                  Back to Storyboard
+                </button>
+              </div>
+
+              {savedImages.length === 0 ? (
+                <div className="border-4 border-dashed border-black/30 p-12 text-center flex flex-col items-center justify-center gap-3">
+                  <span className="material-symbols-outlined text-5xl text-black/40">photo_library</span>
+                  <p className="font-black text-lg">No saved images yet</p>
+                  <p className="text-xs font-bold text-black/60 max-w-sm">Hit "Save Anchor" on any scene card during your storyboard review to pin it here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {savedImages.map((item) => (
+                    <div key={item.id} className="bg-white border-3 border-black shadow-[4px_4px_0px_0px_#000] flex flex-col overflow-hidden">
+                      <div className="h-44 w-full bg-black/5 overflow-hidden relative border-b-2 border-black">
+                        {item.url.startsWith("data:image/svg") ? (
+                          <div dangerouslySetInnerHTML={{ __html: decodeURIComponent(item.url.replace("data:image/svg+xml;utf8,", "")) }} className="w-full h-full" />
+                        ) : (
+                          <img src={item.url} alt={item.title} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="p-4 flex flex-col flex-1 justify-between gap-3">
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-[#8b1a2a] bg-[#8b1a2a]/10 px-2 py-0.5 rounded border border-[#8b1a2a]/30">
+                            {item.concept}
+                          </span>
+                          <h4 className="font-black text-sm mt-1">{item.title}</h4>
+                          <p className="text-xs font-bold text-black/70 italic mt-1 bg-[#FFF9E6] p-2 border border-black/20">"{item.anchor}"</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-black/10">
+                          <button
+                            onClick={() => setZoomImage({ url: item.url, title: item.title, anchor: item.anchor })}
+                            className="text-xs font-black flex items-center gap-1 hover:text-[#8b1a2a]"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">zoom_in</span> Zoom
+                          </button>
+                          <button
+                            onClick={() => handleRemoveSaved(item.id)}
+                            className="text-xs font-bold text-black/40 hover:text-red-600 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              SETUP HERO CARD (Input & Concept Selection)
+              ═══════════════════════════════════════════════════════════════ */}
+          {phase !== "gallery" && (
+            <div className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_#000] p-6 md:p-8 flex flex-col gap-6">
+              {/* Badge & Title */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="px-3 py-1 bg-[#f0a040] border-2 border-black font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_0px_#000]">
+                    Vision Dual-Coding
+                  </span>
+                  <span className="text-xs font-bold text-black/60 hidden sm:inline">4 Memorable Storyboard Anchors</span>
+                </div>
+                {activeSource && (
+                  <button
+                    onClick={() => setConceptInput(activeSource.replace(/\.[^/.]+$/, ""))}
+                    className="text-xs font-bold border-2 border-black px-2.5 py-1 bg-[#FAF7F2] hover:bg-[#8b1a2a] hover:text-white transition-colors"
+                  >
+                    Paste Active Source
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <h2 className="text-2xl md:text-3xl font-black text-black tracking-tight leading-tight">
+                  What concept do you want to visualize?
+                </h2>
+                <p className="text-sm font-bold text-black/60 mt-1">
+                  Rex breaks down any complex lesson into 4 photographic mnemonic scenes linked with memorable audio-visual anchor phrases.
+                </p>
+              </div>
+
+              {/* Input Bar */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={conceptInput}
+                    onChange={(e) => setConceptInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                    placeholder="e.g. Keynesian Economics, Mitosis, Supply & Demand, The Krebs Cycle..."
+                    className="w-full bg-[#FAF7F2] border-3 border-black px-4 py-3.5 text-base font-extrabold focus:outline-none focus:bg-white focus:shadow-[4px_4px_0px_0px_#000] transition-all placeholder:text-black/30"
+                  />
+                  {conceptInput && (
+                    <button
+                      onClick={() => setConceptInput("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/10 flex items-center justify-center hover:bg-black hover:text-white text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleGenerate()}
+                  disabled={!conceptInput.trim() || phase === "loading"}
+                  className="bg-[#f0a040] hover:bg-[#e09030] disabled:opacity-50 disabled:cursor-not-allowed border-3 border-black px-8 py-3.5 font-black uppercase tracking-wider text-sm shadow-[4px_4px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[20px]">movie</span>
+                  <span>{phase === "loading" ? "Building Story..." : "Build Visual Story"}</span>
+                </button>
+              </div>
+
+              {/* Preset Chips */}
+              <div className="flex flex-col gap-2 pt-2 border-t-2 border-black/10">
+                <span className="text-[11px] font-black uppercase tracking-wider text-black/50">Quick-Launch Inspiration:</span>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_CONCEPTS.map((p) => (
+                    <button
+                      key={p.label}
+                      onClick={() => {
+                        setConceptInput(p.label);
+                        handleGenerate(p.label);
+                      }}
+                      className="px-3 py-1.5 border-2 border-black bg-[#FAF7F2] hover:bg-[#8b1a2a] hover:text-white font-black text-xs shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-1.5"
+                    >
+                      <span>{p.label}</span>
+                      <span className="text-[9px] font-extrabold opacity-60 bg-black/10 px-1 rounded">{p.tag}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              LOADING STATE
+              ═══════════════════════════════════════════════════════════════ */}
+          {phase === "loading" && (
+            <div className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_#000] p-10 flex flex-col items-center justify-center text-center gap-5">
+              <div className="w-16 h-16 border-4 border-black bg-[#f0a040] flex items-center justify-center shadow-[4px_4px_0px_0px_#000] animate-bounce">
+                <span className="material-symbols-outlined text-3xl">psychology</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-black">Synthesizing Visual Anchors for "{activeConcept}"</h3>
+                <p className="text-sm font-bold text-black/60 mt-1">Formulating 4-scene cognitive dual-coding associations...</p>
+              </div>
+              <div className="w-full max-w-md h-3 border-2 border-black bg-[#FAF7F2] overflow-hidden p-0.5">
+                <div className="h-full bg-[#8b1a2a] animate-pulse w-3/4" />
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              STORYBOARD RESULTS (4-Scene Deck)
+              ═══════════════════════════════════════════════════════════════ */}
+          {phase === "result" && scenes.length > 0 && (
+            <div className="flex flex-col gap-6">
+              {/* Header Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b-3 border-black pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-[#8b1a2a] text-white font-black text-[11px] px-2.5 py-0.5 border border-black uppercase tracking-wider">
+                      Storyboard Active
+                    </span>
+                    <span className="text-xs font-bold text-black/50">4 Memory Frames</span>
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-black tracking-tight mt-1">{activeConcept}</h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleGenerate(activeConcept)}
+                    className="px-3.5 py-2 border-2 border-black bg-[#FAF7F2] hover:bg-black hover:text-white font-black text-xs shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">refresh</span>
+                    <span>Regenerate All</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setConceptInput("");
+                      setScenes([]);
+                      setPhase("setup");
+                    }}
+                    className="px-3.5 py-2 border-2 border-black bg-white hover:bg-[#8b1a2a] hover:text-white font-black text-xs shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+                  >
+                    New Concept
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 Storyboard Scenes Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {scenes.map((scene, index) => {
+                  const badgeColors = ["bg-[#f0a040]", "bg-[#38bdf8]", "bg-[#34d399]", "bg-[#f43f5e]"];
+                  const badgeColor = badgeColors[index % badgeColors.length];
+
+                  return (
+                    <div
+                      key={scene.id || index}
+                      className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_#000] flex flex-col overflow-hidden transition-all hover:-translate-y-1"
+                    >
+                      {/* Scene Header */}
+                      <div className="bg-[#FAF7F2] border-b-3 border-black px-4 py-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 border-2 border-black font-black text-xs uppercase shadow-[1px_1px_0px_0px_#000] ${badgeColor}`}>
+                            Scene {index + 1}
+                          </span>
+                          <span className="font-extrabold text-xs text-black/70">Frame {index + 1} of 4</span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleRegenerateScene(index)}
+                            disabled={scene.photoLoading}
+                            title="Regenerate this scene"
+                            className="p-1 border border-black bg-white hover:bg-black hover:text-white text-xs font-bold transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[16px] block">sync</span>
+                          </button>
+                          <button
+                            onClick={() => handleSaveScene(scene)}
+                            title="Save anchor to your gallery"
+                            className="p-1 border border-black bg-white hover:bg-[#8b1a2a] hover:text-white text-xs font-bold transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[16px] block">bookmark</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Image Frame Viewport */}
+                      <div
+                        onClick={() => scene.photoUrl && setZoomImage({ url: scene.photoUrl, title: scene.title, anchor: scene.anchorPhrase })}
+                        className="h-56 bg-black/5 relative overflow-hidden cursor-zoom-in border-b-3 border-black group"
+                      >
+                        {scene.photoLoading ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#FAF7F2]">
+                            <div className="w-8 h-8 border-3 border-black border-t-[#f0a040] rounded-full animate-spin" />
+                            <span className="text-[11px] font-black uppercase text-black/50">Fetching Visual...</span>
+                          </div>
+                        ) : scene.svgContent ? (
+                          <div dangerouslySetInnerHTML={{ __html: decodeURIComponent(scene.svgContent.replace("data:image/svg+xml;utf8,", "")) }} className="w-full h-full" />
+                        ) : scene.photoUrl ? (
+                          <img
+                            src={scene.photoUrl}
+                            alt={scene.photoAlt || scene.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center font-bold text-xs text-black/40">
+                            Image Unavailable
+                          </div>
+                        )}
+
+                        <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/80 text-white font-extrabold text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[12px]">fullscreen</span> Click to expand
+                        </div>
+                      </div>
+
+                      {/* Card Body */}
+                      <div className="p-5 flex flex-col flex-1 justify-between gap-4">
+                        <div>
+                          <h4 className="font-black text-lg text-black leading-snug">{scene.title}</h4>
+
+                          {/* Anchor Phrase Quotation */}
+                          <div className="mt-3 bg-[#FFF9E6] border-2 border-black p-3.5 shadow-[2px_2px_0px_0px_#000] relative">
+                            <span className="text-xs font-black uppercase tracking-wider text-[#8b1a2a] block mb-1">
+                              🗣️ Memory Anchor:
+                            </span>
+                            <p className="font-extrabold text-sm text-[#8b1a2a] italic leading-relaxed">
+                              "{scene.anchorPhrase}"
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Cognitive Connection */}
+                        <div className="pt-3 border-t-2 border-black/10">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-black/50 block mb-0.5">
+                            Why this works:
+                          </span>
+                          <p className="text-xs font-bold text-black/75 leading-relaxed">{scene.whyItWorks}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </main>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* ═══════════════════════════════════════════════════════════════
+          FULLSCREEN LIGHTBOX MODAL
+          ═══════════════════════════════════════════════════════════════ */}
+      {zoomImage && (
+        <div
+          onClick={() => setZoomImage(null)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#000] max-w-3xl w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div className="bg-[#f0a040] border-b-3 border-black p-4 flex items-center justify-between">
+              <h3 className="font-black text-lg">{zoomImage.title}</h3>
+              <button
+                onClick={() => setZoomImage(null)}
+                className="w-8 h-8 border-2 border-black bg-white hover:bg-black hover:text-white font-black flex items-center justify-center text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[65vh] bg-black/5 flex items-center justify-center overflow-hidden">
+              {zoomImage.url.startsWith("data:image/svg") ? (
+                <div dangerouslySetInnerHTML={{ __html: decodeURIComponent(zoomImage.url.replace("data:image/svg+xml;utf8,", "")) }} className="w-full h-96" />
+              ) : (
+                <img src={zoomImage.url} alt={zoomImage.title} className="max-h-[65vh] w-auto object-contain" />
+              )}
+            </div>
+            <div className="p-4 bg-[#FFF9E6] border-t-3 border-black">
+              <span className="text-xs font-black uppercase tracking-wider text-[#8b1a2a] block mb-1">Anchor Phrase:</span>
+              <p className="font-black text-base text-[#8b1a2a] italic">"{zoomImage.anchor}"</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          HISTORY SIDEBAR DRAWER
+          ═══════════════════════════════════════════════════════════════ */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/50 backdrop-blur-xs" />
+          <div className="relative w-full max-w-sm bg-[#FAF7F2] border-l-4 border-black shadow-[-6px_0px_0px_0px_#000] h-full flex flex-col z-10 animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b-3 border-black bg-[#f0a040] flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-lg">Visual History</h3>
+                <span className="text-xs font-bold text-black/70">{toolHistory.length} saved sessions</span>
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="w-8 h-8 border-2 border-black bg-white hover:bg-black hover:text-white font-black flex items-center justify-center text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+              {toolHistory.length === 0 ? (
+                <div className="text-center py-12 text-black/40 font-bold text-sm">No saved visual stories yet</div>
+              ) : (
+                [...toolHistory].reverse().map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleHistorySelect(item)}
+                    className="p-3.5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] hover:translate-x-1 cursor-pointer transition-all flex flex-col gap-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-black text-sm text-black truncate">{item.title}</h4>
+                      <span className="text-[10px] font-bold text-black/40">
+                        {new Date(item.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </span>
+                    </div>
+                    {item.subtitle && <p className="text-xs font-bold text-black/60 italic truncate">"{item.subtitle}"</p>}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {toolHistory.length > 0 && (
+              <div className="p-4 border-t-3 border-black bg-white">
+                <button
+                  onClick={() => {
+                    saveHistory("visual", []);
+                    setToolHistory([]);
+                  }}
+                  className="w-full py-2 border-2 border-black bg-[#FAF7F2] hover:bg-red-500 hover:text-white font-black text-xs uppercase tracking-wider transition-colors"
+                >
+                  Clear History
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
-  )
+  );
 }

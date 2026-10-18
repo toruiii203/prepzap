@@ -6,10 +6,13 @@ import { ensureFreshAccessToken } from "@/lib/authSession";
 
 const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.YOUR_DOMAIN.workers.dev";
 // API key removed for security; requests are routed through Cloudflare Worker
-const DEFAULT_MODEL = "google/gemini-flash-1.5-8b";
+const DEFAULT_MODEL = "openai/gpt-oss-20b";
 const VISION_MODEL = "google/gemini-flash-1.5-8b";
 
 function getTieredModel(model: string): string {
+  if (!model || model === "default" || model === "internal") {
+    return "openai/gpt-oss-20b";
+  }
   return model;
 }
 
@@ -235,6 +238,15 @@ async function _callGroqCore(
         return await _callGroqCoreWithToken(fullMessages, resolvedModel, maxTokens, feature, freshToken);
       } catch (refreshErr) {
         console.error("[groq] Failed to refresh token during 401 retry:", refreshErr);
+      }
+    }
+
+    if ((err?.message?.includes("503") || err?.message?.includes("502")) && !isRetry) {
+      console.warn("[groq] API returned 503/502, attempting fallback model retry...");
+      try {
+        return await _callGroqCoreWithToken(fullMessages, "llama-3.3-70b-versatile", maxTokens, feature, token);
+      } catch (fallbackErr) {
+        console.error("[groq] Fallback model retry also failed:", fallbackErr);
       }
     }
 
