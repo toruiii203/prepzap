@@ -52,7 +52,7 @@ export default function StudentProfile() {
 
   const handleCopyProfileLink = () => {
     playTap();
-    navigator.clipboard.writeText(`${window.location.origin}/community?friend=${myFriendCode}`);
+    navigator.clipboard.writeText(`${window.location.origin}/friends?friend=${myFriendCode}`);
     toast.success("Profile link copied!", {
       description: "Classmates can use this link to visit your profile and study circle."
     });
@@ -374,7 +374,7 @@ export default function StudentProfile() {
                       </p>
                     </div>
                     <button
-                      onClick={() => navigate("/community")}
+                      onClick={() => navigate("/friends")}
                       className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer flex items-center gap-1"
                     >
                       <span className="material-symbols-outlined text-[15px]">person_add</span>
@@ -390,10 +390,10 @@ export default function StudentProfile() {
                         Share your friend code (<strong className="text-black">{myFriendCode}</strong>) with classmates to start mutual streak accountability.
                       </p>
                       <button
-                        onClick={() => navigate("/community")}
+                        onClick={() => navigate("/friends")}
                         className="mt-1 px-4 py-2 bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
                       >
-                        Go to Study Circle &rarr;
+                        Go to Friends &rarr;
                       </button>
                     </div>
                   ) : (
@@ -424,7 +424,7 @@ export default function StudentProfile() {
                           <button
                             onClick={() => {
                               playPop();
-                              navigate(`/community`);
+                              navigate(`/friends`);
                             }}
                             className="px-3 py-1 bg-[#FAF7F2] hover:bg-black hover:text-white border border-black rounded-lg text-[11px] font-black transition-colors cursor-pointer shrink-0"
                           >
@@ -444,7 +444,7 @@ export default function StudentProfile() {
                     { icon: "folder_open", label: "Source Library", desc: "Uploaded PDFs, slides, and syllabus notes", route: "/sources" },
                     { icon: "timer", label: "Focus Timer", desc: "Pomodoro sessions & deep work tracking", route: "/timer" },
                     { icon: "bar_chart", label: "Analytics", desc: "Subject mastery breakdown and quiz accuracy", route: "/analytics" },
-                    { icon: "groups", label: "Study Circle", desc: "Manage friends and mutual accountability", route: "/community" },
+                    { icon: "groups", label: "Friends", desc: "Manage friends and mutual accountability", route: "/friends" },
                     { icon: "menu_book", label: "Campus Vault", desc: "Discover peer notes & study guides", route: "/campus-vault" },
                     { icon: "settings", label: "Settings", desc: "Preferences, study goals, notifications", route: "/settings" },
                   ].map((tool) => (

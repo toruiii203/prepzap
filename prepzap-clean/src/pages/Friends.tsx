@@ -250,7 +250,7 @@ export default function Friends() {
                         </div>
                       </div>
 
-                      {buddy.bio && (
+                      {buddy.bio && !buddy.bio.includes("linked on Studenius") && !buddy.bio.includes("Active study partner") && (
                         <p className="text-[11.5px] font-medium text-black/70 line-clamp-2 bg-[#FAF7F2] p-2 rounded-xl border border-black/10">
                           {buddy.bio}
                         </p>

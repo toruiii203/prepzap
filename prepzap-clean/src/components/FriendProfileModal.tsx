@@ -49,7 +49,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 
   const handleCopyProfileLink = () => {
     playTap();
-    navigator.clipboard.writeText(`${window.location.origin}/community?friend=${buddy.code}`);
+    navigator.clipboard.writeText(`${window.location.origin}/friends?friend=${buddy.code}`);
     toast.success("Profile link copied!");
   };
 
@@ -133,9 +133,6 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                   <h2 className="text-[19px] md:text-[22px] font-black text-black leading-tight truncate">
                     {buddy.name}
                   </h2>
-                  <span className="material-symbols-outlined text-[18px] text-[#10B981]" title="Verified Student Creator">
-                    verified
-                  </span>
                 </div>
                 <div className="text-[12.5px] font-bold text-black/60 truncate">
                   {buddy.username || `@student_${buddy.code.slice(0, 4).toLowerCase()}`} &bull; {buddy.code}
@@ -188,9 +185,11 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
           </div>
 
           {/* Bio */}
-          <p className="text-[13px] font-semibold text-black/75 leading-relaxed max-w-xl">
-            {buddy.bio || "Student creator sharing revision guides, active recall summaries, and formulas on Studenius."}
-          </p>
+          {buddy.bio && !buddy.bio.includes("linked on Studenius") && !buddy.bio.includes("Active study partner") && (
+            <p className="text-[13px] font-semibold text-black/75 leading-relaxed max-w-xl">
+              {buddy.bio}
+            </p>
+          )}
 
           {/* Creator Channel Stats Row */}
           <div className="grid grid-cols-4 gap-2 mt-3.5">
@@ -213,7 +212,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
             <div className="bg-[#FAF7F2] border-2 border-black rounded-xl p-2 text-center shadow-[1px_1px_0px_#1A1A1A]">
               <div className="text-[10px] font-black uppercase text-black/45">Notes</div>
               <div className="text-[14px] md:text-[15px] font-black text-black">
-                {buddyNotes.length > 0 ? buddyNotes.length : (buddy.notesCount || 2)}
+                {buddyNotes.length > 0 ? buddyNotes.length : (buddy.notesCount || 0)}
               </div>
             </div>
 
@@ -221,7 +220,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
               <div className="text-[10px] font-black uppercase text-black/45">Likes</div>
               <div className="text-[14px] md:text-[15px] font-black text-rose-600 flex items-center justify-center gap-0.5">
                 <span>❤️</span>
-                <span>{buddy.likesCount || 24}</span>
+                <span>{buddy.likesCount || 0}</span>
               </div>
             </div>
           </div>
@@ -239,7 +238,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">menu_book</span>
-            <span>Published Notes ({buddyNotes.length > 0 ? buddyNotes.length : 2})</span>
+            <span>Published Notes ({buddyNotes.length})</span>
           </button>
 
           <button
@@ -445,10 +444,10 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                   </div>
                   <div className="flex items-center justify-between py-1">
                     <span className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[16px] text-[#3B82F6]">verified_user</span>
+                      <span className="material-symbols-outlined text-[16px] text-[#3B82F6]">handshake</span>
                       Community Standing
                     </span>
-                    <span className="font-black text-blue-700">Verified Study Partner</span>
+                    <span className="font-black text-blue-700">Linked Study Partner</span>
                   </div>
                 </div>
               </div>

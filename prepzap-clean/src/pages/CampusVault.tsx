@@ -32,7 +32,7 @@ export default function CampusVault() {
     publishNote,
     cloneNoteToWorkspace,
     reportNote
-  } = useCommunity();
+  } = useCommunity({ loadNotes: true });
 
   // URL-driven filters
   const currentSubject = searchParams.get("subject") || "All";
@@ -166,7 +166,7 @@ export default function CampusVault() {
                 Campus Vault
               </h1>
               <p className="text-[13px] font-bold text-black/60 mt-0.5">
-                Browse student-shared guides, cheat sheets, and active recall summaries.
+                Save, organize, and practice your study guides and active recall summaries.
               </p>
             </div>
 
@@ -281,7 +281,7 @@ export default function CampusVault() {
               <p className="text-[12.5px] font-medium text-black/60 leading-relaxed max-w-sm mx-auto">
                 {searchQuery || currentSubject !== "All"
                   ? "Try clearing your search query or switching to 'All' subjects to see all notes."
-                  : "Upload or publish notes from your workspace to help your classmates study."}
+                  : "Publish revision guides and cheat sheets from your study workspace to practice with flashcards and quizzes."}
               </p>
               <div className="pt-2 flex justify-center gap-2">
                 {searchQuery || currentSubject !== "All" ? (

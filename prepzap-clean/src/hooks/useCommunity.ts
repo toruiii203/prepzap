@@ -62,7 +62,7 @@ export const SUBJECT_BADGE_COLORS: Record<string, string> = {
   General: "bg-stone-50 text-stone-700 border-stone-300"
 };
 
-export function useCommunity() {
+export function useCommunity(options?: { loadNotes?: boolean }) {
   const { user, profile } = useAuth();
   const userStorageKey = user?.id ? `${STORAGE_BUDDIES_KEY}_${user.id}` : STORAGE_BUDDIES_KEY;
 
@@ -85,7 +85,13 @@ export function useCommunity() {
       const stored = localStorage.getItem(key) || localStorage.getItem(STORAGE_BUDDIES_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map((b: any) => ({
+            ...b,
+            bio: (b.bio && !b.bio.includes("linked on Studenius") && !b.bio.includes("Active study partner")) ? b.bio : "",
+            school: (b.school && b.school !== "Studenius Scholar") ? b.school : ""
+          }));
+        }
       }
     } catch {}
     return [];
@@ -93,8 +99,9 @@ export function useCommunity() {
 
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
 
-  // ── Sync Notes from Supabase ───────────────────────────────────────────────
+  // ── Sync Notes from Supabase (Only when loadNotes option is true) ────────────
   useEffect(() => {
+    if (!options?.loadNotes) return;
     let isSubscribed = true;
 
     async function loadCloudNotes() {
@@ -198,11 +205,12 @@ export function useCommunity() {
                   streakDays: 1,
                   hasStudiedToday: false,
                   lastActive: "Active recently",
-                  bio: "Study partner linked on Studenius.",
+                  bio: "",
+                  school: "",
                   level: 1,
                   totalXp: 0,
-                  notesCount: 1,
-                  likesCount: 12,
+                  notesCount: 0,
+                  likesCount: 0,
                 });
               }
             });
@@ -478,8 +486,8 @@ export function useCommunity() {
     let resolvedAvatar = "🎓";
     let resolvedStreak = 1;
     let resolvedXp = 0;
-    let resolvedSchool = "Studenius Scholar";
-    let resolvedBio = "Active study partner.";
+    let resolvedSchool = "";
+    let resolvedBio = "";
 
     try {
       const rawHash = clean.replace("REX-", "").toLowerCase();
@@ -502,8 +510,8 @@ export function useCommunity() {
           resolvedAvatar = match.avatar_url || "🎓";
           resolvedStreak = match.streak_days || 1;
           resolvedXp = match.total_xp || 0;
-          resolvedSchool = match.school || "Studenius Scholar";
-          resolvedBio = match.bio || "Active study partner on Studenius.";
+          resolvedSchool = match.school || "";
+          resolvedBio = match.bio || "";
         }
       }
     } catch (e) {
@@ -550,8 +558,8 @@ export function useCommunity() {
       school: resolvedSchool,
       level: Math.floor(resolvedXp / 500) + 1,
       totalXp: resolvedXp,
-      notesCount: 2,
-      likesCount: 16
+      notesCount: 0,
+      likesCount: 0
     };
 
     setBuddies((prev) => {

@@ -13,7 +13,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
   if (hide) return null;
 
   const tabs = [
-    { name: 'Community', path: '/community', icon: 'groups' },
+    { name: 'Friends', path: '/friends', icon: 'groups' },
     { name: 'Notes', path: '/notes', icon: 'edit_document' },
     { name: 'Home', path: '/dashboard', icon: 'home' },
     { name: 'Library', path: '/sources', icon: 'folder' },
@@ -28,7 +28,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
       {tabs.map((tab) => {
         const isActive = tab.path === '/dashboard'
           ? location.pathname === '/dashboard' || location.pathname === '/'
-          : location.pathname.startsWith(tab.path);
+          : tab.path === '/friends'
+            ? location.pathname.startsWith('/friends') || location.pathname.startsWith('/community')
+            : location.pathname.startsWith(tab.path);
         return (
           <button
             key={tab.name}
