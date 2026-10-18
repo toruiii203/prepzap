@@ -4,7 +4,7 @@ import { bumpStreakIfNeeded } from "@/lib/streak";
 
 const FLUSH_INTERVAL_MS = 20_000; // push accumulated time to the server every 20s
 const TICK_MS = 1_000;
-const MIN_SECONDS_TO_FLUSH = 3; // don't bother the DB for a stray 1-2s blip
+const MIN_SECONDS_TO_FLUSH = 45; // require at least 45s of active focus so quick page clicks don't log 0m clutter
 
 /**
  * Silently tracks how long a user is ACTIVELY viewing a page/tool (tab visible

@@ -14,6 +14,7 @@ import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
 import { ExamCountdownBanner, calculateExamReadiness } from "@/components/ExamCountdownBanner";
 import { loadLibrary } from "@/lib/sourceContext";
 import { AnimatedRex } from "@/components/AnimatedRex";
+import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
 import {
   getStoredPreferences,
   saveExamTarget,
@@ -67,14 +68,14 @@ const STUDY_TOOLS_PAGES = [
         route: "/notes",
         icon: "edit_document",
         title: "My Notes",
-        desc: "Rich text summaries & lecture syntheses",
+        desc: "Organize lecture notes & study docs",
         color: "text-black",
       },
       {
-        route: "/campus-vault",
+        route: "/community?tab=vault",
         icon: "menu_book",
         title: "Campus Vault",
-        desc: "Curated peer study guides & notes",
+        desc: "Search & clone classmate study guides",
         color: "text-black",
       },
     ],
@@ -86,8 +87,8 @@ const STUDY_TOOLS_PAGES = [
       {
         route: "/quick-study",
         icon: "edit_note",
-        title: "Cram Mode",
-        desc: "High-yield last-minute sheets",
+        title: "Quick Study",
+        desc: "High-yield cheat sheets & summaries",
         color: "text-black",
       },
       {
@@ -101,7 +102,7 @@ const STUDY_TOOLS_PAGES = [
         route: "/timer",
         icon: "timer",
         title: "Focus Timer",
-        desc: "Tactile Pomodoro intervals",
+        desc: "Pomodoro timer & study breaks",
         color: "text-black",
       },
       {
@@ -115,20 +116,20 @@ const STUDY_TOOLS_PAGES = [
   },
   {
     id: "coaching",
-    label: "AI Coaching & Strategy",
+    label: "Coaching & Strategy",
     tools: [
       {
         route: "/ai-tutor",
         icon: "forum",
         title: "Rex Tutor",
-        desc: "Interactive AI study coach",
+        desc: "Study questions & concept breakdown",
         color: "text-black",
       },
       {
         route: "/teach-it",
         icon: "psychology",
         title: "Teach It",
-        desc: "Feynman technique practice",
+        desc: "Feynman explanation technique",
         color: "text-black",
       },
       {
@@ -149,34 +150,34 @@ const STUDY_TOOLS_PAGES = [
   },
   {
     id: "arena-lib",
-    label: "Arcade & Library",
+    label: "Multiplayer & Library",
     tools: [
       {
         route: "/arcade",
-        icon: "sports_esports",
+        icon: "stadia_controller",
         title: "Arcade",
-        desc: "Gamified academic challenges",
+        desc: "Speed drills & memory games",
         color: "text-black",
       },
       {
         route: "/arena",
-        icon: "military_tech",
+        icon: "sports_esports",
         title: "Arena",
-        desc: "Compete in live study challenges",
+        desc: "Exam rooms & multiplayer challenges",
         color: "text-black",
       },
       {
         route: "/sources",
-        icon: "attach_file",
+        icon: "folder_open",
         title: "Source Library",
-        desc: "Upload syllabus & PDFs",
+        desc: "Upload syllabus, notes & PDFs",
         color: "text-black",
       },
       {
         route: "/analytics",
         icon: "bar_chart",
         title: "Analytics",
-        desc: "Comprehensive progress charts",
+        desc: "Study time & accuracy insights",
         color: "text-black",
       },
     ],
@@ -444,14 +445,16 @@ interface RecentSessionsRowsProps {
 }
 
 function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsProps) {
+  const filteredSessions = sessions.filter((s) => Number(s.duration_minutes || 0) >= 0.5);
+
   return (
     <div className="divide-y-2 divide-black">
       {loadingSessions ? (
         <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
-      ) : sessions.length === 0 ? (
+      ) : filteredSessions.length === 0 ? (
         <div className="p-4 text-center text-xs font-bold text-slate-400">No sessions yet. Start studying!</div>
       ) : (
-        sessions.slice(0, 3).map((session, sIdx) => {
+        filteredSessions.slice(0, 3).map((session, sIdx) => {
           const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
           const icons = ["science", "calculate", "history_edu"];
           const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
@@ -553,7 +556,8 @@ function RexHeroStage({
         `Your ${examTarget.subject || primarySubjectMeta.name} exam is in ${readiness.daysLeft} days! Let's lock in 5 minutes of practice.`
       );
     }
-    list.push(`Good day, ${displayName}! Ready to master ${primarySubjectMeta.name} today?`);
+    const subjectLabel = primarySubjectMeta.name === "General Studies" ? "your courses" : primarySubjectMeta.name;
+    list.push(`${getLocalGreeting()}, ${displayName}! Ready to study ${subjectLabel} today?`);
     list.push(`"${activeGoalMeta.rexQuote}"`);
     list.push(`Speak out loud with me or launch a high-yield practice set!`);
     return list;
@@ -759,10 +763,10 @@ function DashboardHeader({
     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 mb-6 md:mb-8">
       <div>
         <h2 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
-          Good morning, {displayName}.
+          {getLocalGreeting()}, {displayName}.
         </h2>
         <p className="text-[13px] md:text-[15px] font-bold text-black/60 mt-0.5">
-          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Keep your streak alive!
+          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Daily Study Hub
         </p>
       </div>
 
@@ -824,8 +828,6 @@ export default function Dashboard() {
   const { user, profile } = useAuth();
   const { isPro } = usePlan();
 
-  const toTitleCase = (s: string) =>
-    s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
   const rawName =
     user?.avatarConfig?.full_name ||
     (user as any)?.user_metadata?.full_name ||
@@ -834,7 +836,7 @@ export default function Dashboard() {
     user?.name ||
     user?.email?.split("@")[0] ||
     "Scholar";
-  const displayName = toTitleCase(rawName);
+  const displayName = formatFriendlyName(rawName);
 
   const [tasks, setTasks] = useState<{ id: any; title: string; completed: boolean; time?: string }[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -1049,7 +1051,7 @@ export default function Dashboard() {
   };
 
   const completedCount = tasks.filter((t) => t.completed).length;
-  const goalCount = tasks.length > 5 ? tasks.length : 5;
+  const goalCount = tasks.length > 0 ? tasks.length : 1;
   const progressPercent = Math.min(100, Math.round((completedCount / goalCount) * 100));
   const circumference = 2 * Math.PI * 42;
   const dashOffset = circumference - (progressPercent / 100) * circumference;
@@ -1177,7 +1179,11 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-[13px] font-black uppercase tracking-wider text-black">Weekly Momentum</h3>
-                  <p className="text-[11px] font-bold text-black/50 mt-0.5">{stats.studyTimeHours}h total study time logged</p>
+                  <p className="text-[11px] font-bold text-black/50 mt-0.5">
+                    {dayMinutes.reduce((a, b) => a + b, 0) >= 60
+                      ? `${Math.round((dayMinutes.reduce((a, b) => a + b, 0) / 60) * 10) / 10}h logged this week · ${stats.studyTimeHours}h all-time`
+                      : `${dayMinutes.reduce((a, b) => a + b, 0)}m logged this week · ${stats.studyTimeHours}h all-time`}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <span className="px-3 py-1 bg-black text-white text-[11px] font-black uppercase tracking-wider rounded-lg">Study Hours</span>
@@ -1238,7 +1244,7 @@ export default function Dashboard() {
               </div>
               <p className="text-[12px] font-bold text-white/90 leading-snug">
                 {(profile?.streak_days ?? 1) > 1
-                  ? `${profile?.streak_days} days strong! Study today to keep the flame burning.`
+                  ? `${profile?.streak_days} days strong! Complete a session today to extend your streak.`
                   : "Complete 1 study session today to protect your streak."}
               </p>
             </section>

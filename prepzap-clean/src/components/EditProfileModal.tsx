@@ -11,34 +11,72 @@ import { toast } from "sonner";
 
 interface EditProfileModalProps {
   isOpen: boolean;
-  currentProfile: StudentProfileData;
+  currentProfile?: StudentProfileData;
+  initialProfile?: StudentProfileData;
   onClose: () => void;
   onSave: (updated: Partial<StudentProfileData>) => void;
 }
 
+const FALLBACK_PROFILE: StudentProfileData = {
+  displayName: "Student Scholar",
+  username: "@studenius_student",
+  bio: "Prepping for upcoming exams.",
+  avatar: "/buddies/fox_scholar.png",
+  isAvatarImage: true,
+  bannerId: "amber_sunset",
+  school: "Studenius Academy",
+  targetExam: "Midterm Exams",
+  targetSubject: "General Studies",
+  verifiedStudent: true
+};
+
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   isOpen,
   currentProfile,
+  initialProfile,
   onClose,
   onSave,
 }) => {
-  const [displayName, setDisplayName] = useState(currentProfile.displayName);
+  const profileToUse = currentProfile || initialProfile || FALLBACK_PROFILE;
+
+  const [displayName, setDisplayName] = useState(profileToUse.displayName || "Student Scholar");
   const [username, setUsername] = useState(
-    currentProfile.username.startsWith("@") ? currentProfile.username : `@${currentProfile.username}`
+    (profileToUse.username || "@student").startsWith("@")
+      ? profileToUse.username || "@student"
+      : `@${profileToUse.username || "student"}`
   );
-  const [bio, setBio] = useState(currentProfile.bio || "");
-  const [school, setSchool] = useState(currentProfile.school || "");
-  const [targetExam, setTargetExam] = useState(currentProfile.targetExam || "");
-  const [targetSubject, setTargetSubject] = useState(currentProfile.targetSubject || "");
+  const [bio, setBio] = useState(profileToUse.bio || "");
+  const [school, setSchool] = useState(profileToUse.school || "");
+  const [targetExam, setTargetExam] = useState(profileToUse.targetExam || "");
+  const [targetSubject, setTargetSubject] = useState(profileToUse.targetSubject || "");
 
   // Avatar state
-  const [selectedAvatar, setSelectedAvatar] = useState(currentProfile.avatar);
-  const [isAvatarImage, setIsAvatarImage] = useState(currentProfile.isAvatarImage);
+  const [selectedAvatar, setSelectedAvatar] = useState(profileToUse.avatar || "/buddies/fox_scholar.png");
+  const [isAvatarImage, setIsAvatarImage] = useState(profileToUse.isAvatarImage ?? true);
   const [avatarTab, setAvatarTab] = useState<"character" | "emoji" | "upload">("character");
   const [customImageUrl, setCustomImageUrl] = useState("");
 
   // Banner state
-  const [selectedBannerId, setSelectedBannerId] = useState(currentProfile.bannerId || "amber_sunset");
+  const [selectedBannerId, setSelectedBannerId] = useState(profileToUse.bannerId || "amber_sunset");
+
+  // Keep state synchronized when profile prop updates
+  React.useEffect(() => {
+    if (isOpen) {
+      setDisplayName(profileToUse.displayName || "Student Scholar");
+      setUsername(
+        (profileToUse.username || "@student").startsWith("@")
+          ? profileToUse.username || "@student"
+          : `@${profileToUse.username || "student"}`
+      );
+      setBio(profileToUse.bio || "");
+      setSchool(profileToUse.school || "");
+      setTargetExam(profileToUse.targetExam || "");
+      setTargetSubject(profileToUse.targetSubject || "");
+      setSelectedAvatar(profileToUse.avatar || "/buddies/fox_scholar.png");
+      setIsAvatarImage(profileToUse.isAvatarImage ?? true);
+      setSelectedBannerId(profileToUse.bannerId || "amber_sunset");
+    }
+  }, [isOpen, profileToUse]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 

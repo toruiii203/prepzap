@@ -602,7 +602,15 @@ export default function Arena() {
         }
 
         const { data } = await withTimeout(query, 4000, "exam rooms");
-        if (!cancelled) setRooms(data ?? []);
+        if (!cancelled) {
+          const now = Date.now();
+          const validRooms = (data ?? []).filter((r: any) => {
+            if (user && r.host_id === user.id) return true;
+            const ageMs = now - new Date(r.created_at).getTime();
+            return ageMs < 48 * 60 * 60 * 1000;
+          });
+          setRooms(validRooms);
+        }
       } catch (err) {
         console.warn("Exam rooms fetch error:", err);
         if (!cancelled) setRoomsError(true);

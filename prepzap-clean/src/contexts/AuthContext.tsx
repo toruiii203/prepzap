@@ -136,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
   // Track if we're mid-fetch so ProtectedRoute waits instead of redirecting
   const fetchingRef = useRef(false)
+  const refreshTimerRef = useRef<any>(null)
 
   const lsKey = useCallback(
     (base: string) => `pz_${user?.id ?? "anon"}_${base}`,

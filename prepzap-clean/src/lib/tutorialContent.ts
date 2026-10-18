@@ -1,4 +1,4 @@
-﻿export interface TutorialFeature {
+export interface TutorialFeature {
   icon: string;
   title: string;
   desc: string;
@@ -47,12 +47,12 @@ export const TUTORIAL_CONTENT: Record<string, TutorialFeature[]> = {
   ],
   "/arena": [
     { icon: "sports_esports", title: "Live Matches", desc: "Compete against friends in real-time." },
-    { icon: "leaderboard", title: "Global Ranks", desc: "Climb the leaderboard with the Daily Quiz." },
+    { icon: "leaderboard", title: "Daily Leaderboard", desc: "Climb the daily rankings with the Daily Arena Challenge." },
     { icon: "diversity_3", title: "Custom Rooms", desc: "Host private rooms with your own study material." }
   ],
   "/sources": [
     { icon: "upload_file", title: "Upload Anything", desc: "Add PDFs, docs, or paste raw text." },
-    { icon: "memory", title: "Context Engine", desc: "Powers all AI tools with your specific materials." },
+    { icon: "memory", title: "Context Engine", desc: "Powers flashcards, quizzes, and tutor sessions with your course materials." },
     { icon: "search", title: "Smart Search", desc: "Find concepts across all your uploaded documents." }
   ],
   "/mistakes": [

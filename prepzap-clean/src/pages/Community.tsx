@@ -28,7 +28,20 @@ export default function Community() {
   } = useCommunity();
 
   const fallbackName = authProfile?.full_name || (user as any)?.user_metadata?.full_name || user?.email?.split("@")[0] || "Student Scholar";
-  const { profile: studentProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
+  const { profile: rawProfile, updateProfile } = useUserProfile(user?.id, fallbackName);
+
+  const studentProfile = rawProfile || {
+    displayName: fallbackName,
+    username: `@${fallbackName.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
+    bio: "Prepping for upcoming exams.",
+    avatar: "/buddies/fox_scholar.png",
+    isAvatarImage: true,
+    bannerId: "amber_sunset",
+    school: "Studenius Academy",
+    targetExam: "Midterm Exams",
+    targetSubject: "General Studies",
+    verifiedStudent: true
+  };
 
   // Active Tab state synced with URL: "circle" | "vault"
   const tabParam = searchParams.get("tab");
@@ -53,7 +66,7 @@ export default function Community() {
     return "REX-GUEST";
   }, [user?.id]);
 
-  const currentBanner = PRESET_BANNERS.find((b) => b.id === studentProfile.bannerId) || PRESET_BANNERS[0];
+  const currentBanner = PRESET_BANNERS.find((b) => b.id === (studentProfile?.bannerId || "amber_sunset")) || PRESET_BANNERS[0];
 
   const handleCopyCode = () => {
     playTap();
@@ -443,6 +456,7 @@ export default function Community() {
       <EditProfileModal
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}
+        currentProfile={studentProfile}
         initialProfile={studentProfile}
         onSave={(updated) => {
           updateProfile(updated);

@@ -372,12 +372,12 @@ function IntroHook({ onNext }: { onNext: () => void }) {
             {/* Slide 1 */}
             <div style={{ flex: "0 0 100%", padding: 4, scrollSnapAlign: "center", boxSizing: "border-box" }}>
               <div style={{ background: SURFACE, border: `2.5px solid ${BLACK}`, borderRadius: 20, padding: 14, boxShadow: `4px 4px 0 ${BLACK}` }}>
-                <span style={{ display: "inline-block", background: YELLOW, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 10 }}>AI Chat</span>
+                <span style={{ display: "inline-block", background: YELLOW, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 9999, border: `1.5px solid ${BLACK}`, marginBottom: 10 }}>Rex Tutor</span>
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <div style={{ background: BLACK, color: WHITE, borderRadius: "14px 14px 4px 14px", padding: "7px 12px", maxWidth: "85%", fontSize: 13, fontWeight: 600 }}>Explain Newton's 3rd Law</div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 8 }}>
-                  <div style={{ background: WHITE, color: BLACK, border: `1.5px solid ${BLACK}`, borderRadius: "4px 14px 14px 14px", padding: "7px 12px", maxWidth: "95%", fontSize: 13, lineHeight: 1.45, fontWeight: 600 }}>For every action, there is an equal and opposite reaction. Like jumping off a skateboard!</div>
+                  <div style={{ background: WHITE, color: BLACK, border: `1.5px solid ${BLACK}`, borderRadius: "4px 14px 14px 14px", padding: "7px 12px", maxWidth: "95%", fontSize: 13, lineHeight: 1.45, fontWeight: 600 }}>When you push off a wall or ground, it pushes back with equal force — Newton's 3rd Law in action.</div>
                 </div>
                 <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                   {["Math", "Science", "English"].map(t => (
