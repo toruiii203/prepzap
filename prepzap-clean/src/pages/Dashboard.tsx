@@ -551,6 +551,7 @@ function RexHeroStage({
   }, [examTarget, allSessions, libraryFiles, quizAccuracy, tasksCompleted]);
 
   const [dialogueIndex, setDialogueIndex] = useState(0);
+  const [rexState, setRexState] = useState<any>("idle");
 
   const dialogues = useMemo(() => {
     const list: string[] = [];
@@ -581,6 +582,12 @@ function RexHeroStage({
   const handleRexClick = () => {
     playPop(1.2);
     setDialogueIndex((prev) => prev + 1);
+    const reactions = ["waving", "excited", "nodding"];
+    const nextReaction = reactions[dialogueIndex % reactions.length];
+    setRexState(nextReaction);
+    setTimeout(() => {
+      setRexState("idle");
+    }, 1800);
   };
 
   const handleCall = () => {
@@ -636,10 +643,11 @@ function RexHeroStage({
           title="Tap Rex to interact"
         >
           <AnimatedRex
-            state="idle"
+            state={rexState}
             size="md"
             interactive={true}
             onClick={handleRexClick}
+            preferAnimatedWebP={true}
           />
         </div>
 

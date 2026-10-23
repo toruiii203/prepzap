@@ -22,6 +22,7 @@ import {
   playMastery 
 } from "@/lib/soundFX";
 import { fireConfetti } from "@/lib/confetti";
+import { AnimatedRex } from "@/components/AnimatedRex";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 export interface Question {
@@ -948,13 +949,11 @@ Each object MUST match this schema exactly:
           {hasAnsweredCurrent ? (
             <>
               <div className="relative shrink-0">
-                <img 
-                  src={isCurrentCorrect 
-                    ? (comboStreak >= 3 ? "/fox/fox-excited.png" : "/fox/fox-happy.png")
-                    : "/fox/fox-neutral.png"
-                  } 
-                  alt="Rex Mascot" 
-                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md animate-bounce-short"
+                <AnimatedRex
+                  state={isCurrentCorrect ? (comboStreak >= 2 ? "excited" : "nodding") : "thinking"}
+                  size="sm"
+                  interactive={false}
+                  preferAnimatedWebP={true}
                 />
               </div>
               <div className="flex flex-col">
@@ -982,10 +981,11 @@ Each object MUST match this schema exactly:
             </>
           ) : (
             <div className="flex items-center gap-3">
-              <img 
-                src="/fox/fox-happy.png" 
-                alt="Rex" 
-                className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+              <AnimatedRex
+                state="idle"
+                size="sm"
+                interactive={false}
+                preferAnimatedWebP={true}
               />
               <div className="hidden sm:flex flex-col">
                 <span className="text-[12px] font-black uppercase tracking-wider text-black/40">Duolingo × Gizmo Super-Loop</span>
@@ -1299,10 +1299,11 @@ Each object MUST match this schema exactly:
               <div className="flex flex-col bg-[#FAF7F2] items-center justify-center p-12 overflow-y-auto flex-1">
                 <div className="max-w-xl w-full flex flex-col items-center text-center">
                   <div className="relative mb-6">
-                    <img 
-                      src="/fox/fox-excited.png" 
-                      alt="Rex Mascot Celebrating" 
-                      className="w-32 h-32 object-contain animate-bounce-short"
+                    <AnimatedRex
+                      state="excited"
+                      size="lg"
+                      interactive={true}
+                      preferAnimatedWebP={true}
                     />
                   </div>
                   <h2 className="text-[36px] font-black mb-2">100% Concept Mastery!</h2>
@@ -1735,11 +1736,14 @@ Each object MUST match this schema exactly:
         {/* Mobile View: Results */}
         {view === "results" && (
           <main className="flex-1 w-full px-5 py-8 flex flex-col items-center justify-center text-center overflow-y-auto">
-            <img 
-              src="/fox/fox-excited.png" 
-              alt="Rex Mascot Celebrating" 
-              className="w-24 h-24 object-contain mb-4 animate-bounce-short"
-            />
+            <div className="mb-4">
+              <AnimatedRex
+                state="excited"
+                size="md"
+                interactive={true}
+                preferAnimatedWebP={true}
+              />
+            </div>
             <h2 className="font-black mb-1.5 text-[24px]">100% Mastery!</h2>
             <p className="text-black/50 font-bold max-w-[280px] mb-6 text-[13px]">
               Quiz completed through the adaptive recall engine.

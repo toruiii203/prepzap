@@ -41,12 +41,13 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   return (
     <motion.div
+      key={location.pathname}
       initial="initial"
       animate="in"
       exit="out"
       variants={pageVariants}
       transition={getTransition()}
-      style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}
+      style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}
     >
       {children}
     </motion.div>

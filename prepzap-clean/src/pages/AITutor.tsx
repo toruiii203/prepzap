@@ -10,6 +10,7 @@ import { RexDisclaimer } from "@/components/RexDisclaimer";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
+import { AnimatedRex } from "@/components/AnimatedRex";
 
 const FOX = {
   neutral:   "/fox/fox-neutral.png",
@@ -921,8 +922,13 @@ export default function AITutor() {
         <main className="flex-1 overflow-y-auto px-4 py-4 bg-[#FAF7F2]">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-full gap-4 pb-2">
-              <div className="w-28 h-28 border-2 border-black rounded-2xl overflow-hidden shadow-[2px_2px_0px_#000] bg-white">
-                <img src={foxImg} alt="Rex" className="w-full h-full object-contain" />
+              <div className="mb-2">
+                <AnimatedRex
+                  state={isLoading ? "processing" : "waving"}
+                  size="lg"
+                  interactive={true}
+                  preferAnimatedWebP={true}
+                />
               </div>
               <h2 className="font-black text-[22px] text-center">Ready to study?</h2>
               <p className="text-[13px] text-center text-black/50 max-w-[260px]">
@@ -1018,3 +1024,4 @@ export default function AITutor() {
     </div>
   );
 }
+

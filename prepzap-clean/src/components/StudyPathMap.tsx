@@ -143,17 +143,25 @@ export function StudyPathMap({
             >
               {/* If active node: Rex stands next to it cheering with speech bubble! */}
               {isCurrent && (
-                <div className="absolute -top-12 left-1 sm:left-4 z-20 flex items-center gap-2 pointer-events-none animate-bounce">
-                  <AnimatedRex
-                    state="excited"
-                    size="sm"
-                    interactive={false}
-                    preferAnimatedWebP={true}
-                  />
-                  <div className="bg-white border-2 border-black rounded-xl px-2.5 py-1 text-[11px] font-black shadow-[2px_2px_0px_#000] whitespace-nowrap">
-                    START HERE! ⚡
+                <div className="absolute -top-14 left-0 sm:left-2 z-20 flex items-center gap-2 pointer-events-none">
+                  <div className="animate-bounce" style={{ animationDuration: "2.2s" }}>
+                    <AnimatedRex
+                      state="excited"
+                      size="sm"
+                      interactive={false}
+                      preferAnimatedWebP={true}
+                    />
+                  </div>
+                  <div className="bg-white border-2 border-black rounded-xl px-2.5 py-1 text-[10.5px] font-black shadow-[2px_2px_0px_#000] whitespace-nowrap flex items-center gap-1">
+                    <span>START HERE!</span>
+                    <span className="text-[#FF9600]">⚡</span>
                   </div>
                 </div>
+              )}
+
+              {/* Concentric radar pulse wave on active node */}
+              {isCurrent && (
+                <span className="absolute w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-[#FF4D2E]/60 animate-ping pointer-events-none" />
               )}
 
               {/* 3D Stepping Stone Button */}
@@ -169,6 +177,9 @@ export function StudyPathMap({
                 }`}
                 title={`${node.title} (${node.status})`}
               >
+                {/* 3D Gloss Highlight Arc */}
+                <span className="absolute top-1.5 left-2.5 right-2.5 h-2 rounded-full bg-white/30 pointer-events-none" />
+
                 <span className="material-symbols-outlined text-[26px] sm:text-[30px] font-black">
                   {node.icon}
                 </span>
@@ -197,8 +208,16 @@ export function StudyPathMap({
 
       {/* Selected Node Details Card / Launch Popover */}
       {selectedNode && (
-        <div className="mt-4 bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 animate-fadeIn">
-          <div>
+        <div className="mt-4 bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 animate-fadeIn relative">
+          <button
+            type="button"
+            onClick={() => setSelectedNode(null)}
+            className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/5 hover:bg-black hover:text-white flex items-center justify-center text-[11px] font-black transition-colors"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+          <div className="pr-4">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-black uppercase text-black/50">
                 {selectedNode.status.toUpperCase()}
@@ -206,7 +225,7 @@ export function StudyPathMap({
               <span className="text-[10px] font-bold text-black/40">&bull;</span>
               <span className="text-[10px] font-black text-[#FF9600]">+{selectedNode.xpReward} XP</span>
             </div>
-            <h4 className="text-[14px] font-black text-black leading-tight">
+            <h4 className="text-[14px] font-black text-black leading-tight mt-0.5">
               {selectedNode.title}
             </h4>
             <p className="text-[11.5px] font-medium text-black/65 mt-0.5">
@@ -223,10 +242,12 @@ export function StudyPathMap({
                 navigate(selectedNode.route);
               }
             }}
-            className={`px-4 py-2 rounded-xl border-2 border-black font-black text-[12.5px] uppercase tracking-wider shrink-0 shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all ${
+            className={`px-4 py-2 rounded-xl border-2 border-black font-black text-[12.5px] uppercase tracking-wider shrink-0 transition-all ${
               selectedNode.status === "locked"
                 ? "bg-black/10 text-black/30 cursor-not-allowed border-black/20 shadow-none"
-                : "bg-[#FF4D2E] text-white hover:bg-black cursor-pointer"
+                : selectedNode.status === "completed"
+                ? "bg-[#10B981] text-white hover:bg-black shadow-[0px_3px_0px_#047857,0px_4px_0px_#000] active:translate-y-1 active:shadow-none cursor-pointer"
+                : "bg-[#FF4D2E] text-white hover:bg-black shadow-[0px_3px_0px_#B91C1C,0px_4px_0px_#000] active:translate-y-1 active:shadow-none cursor-pointer"
             }`}
           >
             {selectedNode.status === "completed" ? "Review" : "Start"}

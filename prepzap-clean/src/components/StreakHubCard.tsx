@@ -42,12 +42,15 @@ export function StreakHubCard({
       {/* Top Header Row */}
       <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#FFE566] border-2 border-black flex items-center justify-center text-[16px] shadow-[1px_1px_0px_#000]">
-            🔥
+          <div className="w-8 h-8 rounded-xl bg-[#FFE566] border-2 border-black flex items-center justify-center text-[16px] shadow-[1.5px_1.5px_0px_#000] hover:scale-110 active:scale-95 transition-transform cursor-pointer">
+            <span className="inline-block animate-pulse">🔥</span>
           </div>
           <div>
-            <h3 className="text-[14px] sm:text-[15px] font-black text-black leading-tight">
-              {streakDays} Day Study Streak
+            <h3 className="text-[14px] sm:text-[15px] font-black text-black leading-tight flex items-center gap-1.5">
+              <span>{streakDays} Day Study Streak</span>
+              {!studiedToday && (
+                <span className="w-2 h-2 rounded-full bg-[#FF4D2E] animate-ping" />
+              )}
             </h3>
             <p className="text-[11px] font-bold text-black/55">
               {studiedToday
@@ -85,9 +88,9 @@ export function StreakHubCard({
               <div
                 className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-black flex items-center justify-center font-black transition-all ${
                   day.wasChecked
-                    ? "bg-[#FF9600] text-white shadow-[1px_1px_0px_#000]"
+                    ? "bg-[#FF9600] text-white shadow-[1px_1px_0px_#000] scale-105"
                     : day.isToday
-                    ? "bg-white text-black border-dashed border-[#FF9600]"
+                    ? "bg-white text-black border-dashed border-[#FF9600] ring-2 ring-[#FF9600]/40 animate-pulse"
                     : "bg-white text-black/20 border-black/20"
                 }`}
               >
@@ -114,17 +117,17 @@ export function StreakHubCard({
           </span>
         </div>
 
-        {/* Action Button: Keep Streak Alive or Practice */}
+        {/* Action Button: Keep Streak Alive or Practice (Tactile 3D Button) */}
         <button
           type="button"
           onClick={() => {
             playTap();
             onLaunchPractice();
           }}
-          className={`px-4 py-2 text-[12.5px] font-black uppercase tracking-wider border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+          className={`px-4 py-2 text-[12.5px] font-black uppercase tracking-wider border-2 border-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             studiedToday
-              ? "bg-[#10B981] text-white hover:bg-black"
-              : "bg-[#FF4D2E] text-white hover:bg-black"
+              ? "bg-[#10B981] text-white hover:bg-black shadow-[0px_3px_0px_#047857,0px_4px_0px_#000] active:translate-y-1 active:shadow-none"
+              : "bg-[#FF4D2E] text-white hover:bg-black shadow-[0px_3px_0px_#B91C1C,0px_4px_0px_#000] active:translate-y-1 active:shadow-none"
           }`}
         >
           <span className="material-symbols-outlined text-[16px]">
