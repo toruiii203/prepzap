@@ -357,20 +357,17 @@ export default function OnboardingFlow() {
             </button>
           )}
 
-          {/* Progress Indicator */}
-          <div className="flex items-center gap-1.5 ml-1">
-            {[1, 2, 3, 4, 5].map((s) => (
+          {/* Goal Gradient Progress Indicator: Never starts at 0% (Columbia car wash principle) */}
+          <div className="flex items-center gap-2 ml-1">
+            <div className="w-24 sm:w-28 h-2 rounded-full border border-black bg-white overflow-hidden p-[1px] shadow-[1px_1px_0px_#000]">
               <div
-                key={s}
-                className={`h-2 rounded-full border border-black transition-all duration-300 ${
-                  s === step
-                    ? "w-7 bg-[#FF4D2E]"
-                    : s < step
-                    ? "w-2.5 bg-black"
-                    : "w-2.5 bg-black/10"
-                }`}
+                className="h-full rounded-full bg-[#FF4D2E] transition-all duration-500 ease-out"
+                style={{ width: `${step * 20}%` }}
               />
-            ))}
+            </div>
+            <span className="text-[11px] font-black text-black">
+              {step * 20}%
+            </span>
           </div>
         </div>
 
@@ -410,7 +407,7 @@ export default function OnboardingFlow() {
           <div className="flex-1 flex flex-col justify-between animate-fadeIn">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <AnimatedRex state="idle" size="sm" interactive={false} />
+                <AnimatedRex state="waving" size="sm" interactive={false} />
                 <div className="bg-white border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_#000]">
                   <p className="text-[13px] font-black leading-tight text-black">
                     What class are you studying for?
@@ -715,17 +712,43 @@ export default function OnboardingFlow() {
         {/* STEP 5: Keep Your Streak & Account Creation */}
         {step === 5 && (
           <div className="flex-1 flex flex-col justify-between animate-fadeIn">
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="text-center">
-                <div className="flex justify-center mb-2">
+                <div className="flex justify-center mb-1">
                   <AnimatedRex state="excited" size="md" interactive={false} />
                 </div>
                 <h2 className="text-[20px] font-black text-black">
-                  Keep Your Streak
+                  Lock In Your 1-Day Streak
                 </h2>
-                <p className="text-[12.5px] font-medium text-black/65 max-w-xs mx-auto mt-1">
-                  Create your free account so your 1-day study streak is saved.
+                <p className="text-[12px] font-medium text-black/70 max-w-xs mx-auto mt-0.5">
+                  Don't let your streak reset to 0 tomorrow. Save your progress so Rex keeps your momentum alive.
                 </p>
+              </div>
+
+              {/* IKEA Effect & Endowment Card: Shows what the user already built */}
+              <div className="bg-[#FFD13B] border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0px_#000]">
+                <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-2">
+                  <span className="text-[11px] font-black uppercase text-black/70 tracking-wider">
+                    Your Unlocked Progress
+                  </span>
+                  <span className="px-2 py-0.5 bg-black text-[#FFD13B] rounded-full text-[10.5px] font-black">
+                    🔥 1-Day Streak
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-black">
+                  <div className="bg-white border border-black rounded-xl p-1.5">
+                    <span className="block text-[9.5px] font-bold opacity-60">Focus Class</span>
+                    <span className="block text-[11.5px] font-black truncate">{activeSubjectName}</span>
+                  </div>
+                  <div className="bg-white border border-black rounded-xl p-1.5">
+                    <span className="block text-[9.5px] font-bold opacity-60">First Win</span>
+                    <span className="block text-[11.5px] font-black text-[#10B981]">Complete ✓</span>
+                  </div>
+                  <div className="bg-white border border-black rounded-xl p-1.5">
+                    <span className="block text-[9.5px] font-bold opacity-60">Daily Goal</span>
+                    <span className="block text-[11.5px] font-black">{dailyMinutes}m / day</span>
+                  </div>
+                </div>
               </div>
 
               {authError && (
@@ -735,7 +758,7 @@ export default function OnboardingFlow() {
               )}
 
               {/* Age & Terms Consent Box */}
-              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000]">
+              <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[2px_2px_0px_#000]">
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -784,7 +807,7 @@ export default function OnboardingFlow() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>{authLoading ? "Connecting..." : "Continue with Google"}</span>
+                <span>{authLoading ? "Connecting..." : "Save My Streak with Google"}</span>
               </button>
 
               {/* Email Form Toggle */}
@@ -798,7 +821,7 @@ export default function OnboardingFlow() {
                   }}
                   className="w-full py-2.5 text-[12px] font-black text-black/70 hover:text-black underline cursor-pointer disabled:opacity-40"
                 >
-                  Or sign in with email
+                  Or save progress with email
                 </button>
               ) : emailSent ? (
                 <div className="p-4 bg-[#10B981] text-white border-2 border-black rounded-xl text-center shadow-[2px_2px_0px_#000]">
@@ -823,7 +846,7 @@ export default function OnboardingFlow() {
                       disabled={!ageConfirmed || authLoading || !emailInput.trim()}
                       className="px-4 py-2.5 bg-black hover:bg-[#FF4D2E] text-white font-black text-[12.5px] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors disabled:opacity-40"
                     >
-                      Send
+                      Save
                     </button>
                   </div>
                 </form>

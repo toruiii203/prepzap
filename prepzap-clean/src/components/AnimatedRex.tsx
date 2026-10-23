@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { playPop } from "@/lib/soundFX";
 
-export type RexState = "idle" | "listening" | "processing" | "responding" | "excited" | "dancing";
+export type RexState = "idle" | "listening" | "processing" | "responding" | "excited" | "dancing" | "waving" | "thinking" | "nodding";
 
 interface AnimatedRexProps {
   state?: RexState;
@@ -13,7 +13,20 @@ interface AnimatedRexProps {
   speechText?: string;
   className?: string;
   onClick?: () => void;
+  preferAnimatedWebP?: boolean; // When true, uses our smooth transparent WebP animations
 }
+
+const WEBP_ANIMATIONS: Record<string, string> = {
+  idle: "/animations/rex_idle.webp",
+  waving: "/animations/rex_waving.webp",
+  listening: "/animations/rex_listening.webp",
+  processing: "/animations/rex_thinking.webp",
+  thinking: "/animations/rex_thinking.webp",
+  responding: "/animations/rex_speaking.webp",
+  excited: "/animations/rex_celebrating.webp",
+  dancing: "/animations/rex_celebrating.webp",
+  nodding: "/animations/rex_nodding.webp",
+};
 
 const SPRITES = {
   neutral: "/fox/fox-neutral.png",
@@ -43,12 +56,16 @@ export function AnimatedRex({
   speechText,
   className = "",
   onClick,
+  preferAnimatedWebP = true,
 }: AnimatedRexProps) {
   const [sprite, setSprite] = useState<string>(SPRITES.happy);
   const [isJumping, setIsJumping] = useState(false);
   const [isBlinking, setIsBlinking] = useState(false);
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [mouthOpen, setMouthOpen] = useState(false);
+
+  // Active animation asset (WebP vs sprite fallback)
+  const activeWebP = preferAnimatedWebP && isTabVisible ? WEBP_ANIMATIONS[state] : null;
 
   // Lip-sync / speaking animation cycle
   useEffect(() => {
@@ -286,13 +303,23 @@ export function AnimatedRex({
               : "rex-breathe 3.5s ease-in-out infinite",
           }}
         >
-          {/* Main Fox Character Sprite */}
-          <img
-            src={sprite}
-            alt="Rex Mascot"
-            className="w-full h-full object-contain drop-shadow-[0px_6px_12px_rgba(0,0,0,0.2)]"
-            draggable={false}
-          />
+          {/* Main Fox Character Animation (Lossless Animated WebP with PNG fallback) */}
+          <picture>
+            {activeWebP && (
+              <source
+                type="image/webp"
+                srcSet={activeWebP}
+                media="(prefers-reduced-motion: no-preference)"
+              />
+            )}
+            <img
+              src={activeWebP || sprite}
+              alt="Rex Mascot"
+              className="w-full h-full object-contain drop-shadow-[0px_6px_12px_rgba(0,0,0,0.2)]"
+              draggable={false}
+              loading="eager"
+            />
+          </picture>
 
           {/* Smooth Eyelid Blink Overlay */}
           {isBlinking && state !== "processing" && (
