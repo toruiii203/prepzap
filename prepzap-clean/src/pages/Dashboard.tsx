@@ -15,6 +15,8 @@ import { ExamCountdownBanner, calculateExamReadiness } from "@/components/ExamCo
 import { loadLibrary } from "@/lib/sourceContext";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
+import { StreakHubCard } from "@/components/StreakHubCard";
+import { StudyPathMap } from "@/components/StudyPathMap";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
 import {
   getStoredPreferences,
@@ -983,6 +985,15 @@ export default function Dashboard() {
     return stats.avgScore || 0;
   }, [sessions, stats.avgScore]);
 
+  const studiedToday = useMemo(() => {
+    const todayStr = new Date().toDateString();
+    return (
+      studiedDays[6] === true ||
+      sessions.some((s) => new Date(s.created_at).toDateString() === todayStr) ||
+      Boolean(profile?.last_active_at && new Date(profile.last_active_at).toDateString() === todayStr)
+    );
+  }, [studiedDays, sessions, profile?.last_active_at]);
+
   const handleUpdateExamTarget = (target: ExamTarget | null) => {
     saveExamTarget(target, user?.id);
     setUserPrefs((prev) => (prev ? { ...prev, examTarget: target } : null));
@@ -1169,6 +1180,25 @@ export default function Dashboard() {
               navigate={navigate}
             />
 
+            {/* Streak Hub Card */}
+            <StreakHubCard
+              streakDays={profile?.streak_days ?? 1}
+              studiedToday={studiedToday}
+              streakFreezes={1}
+              primarySubject={primarySubjectMeta.name}
+              onOpenModal={() => setShowStreakModal(true)}
+              onLaunchPractice={() => navigate(primarySubjectMeta.recommendedTool || "/practice")}
+            />
+
+            {/* Duolingo-style Tactile Learning Path */}
+            <StudyPathMap
+              subjectName={primarySubjectMeta.name}
+              onSelectNode={(node) => {
+                if (node.route) navigate(node.route);
+              }}
+              navigate={navigate}
+            />
+
             {/* Knowunity-style Persistent AI Composer Bar */}
             <AskRexBottomBar navigate={navigate} />
 
@@ -1273,6 +1303,25 @@ export default function Dashboard() {
           quizAccuracy={quizAccuracy}
           sessionsCount={sessions.length}
           tasksCompleted={tasks.filter((t) => t.completed).length}
+          navigate={navigate}
+        />
+
+        {/* Streak Hub Card */}
+        <StreakHubCard
+          streakDays={profile?.streak_days ?? 1}
+          studiedToday={studiedToday}
+          streakFreezes={1}
+          primarySubject={primarySubjectMeta.name}
+          onOpenModal={() => setShowStreakModal(true)}
+          onLaunchPractice={() => navigate(primarySubjectMeta.recommendedTool || "/practice")}
+        />
+
+        {/* Duolingo-style Tactile Learning Path */}
+        <StudyPathMap
+          subjectName={primarySubjectMeta.name}
+          onSelectNode={(node) => {
+            if (node.route) navigate(node.route);
+          }}
           navigate={navigate}
         />
 

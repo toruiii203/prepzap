@@ -548,37 +548,38 @@ export default function OnboardingFlow() {
 
         {/* STEP 3: Instant Feedback & Streak Awakening */}
         {step === 3 && challenge && (
-          <div className="flex-1 flex flex-col justify-between animate-fadeIn">
+          <div className="flex-1 flex flex-col justify-center items-center gap-3 animate-fadeIn my-auto py-2">
             {/* Feedback Pill */}
             <div
-              className={`p-3.5 border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] mb-2 ${
+              className={`w-full max-w-[380px] p-3 border-2 border-black rounded-2xl shadow-[2px_2px_0px_#000] ${
                 isCorrect
                   ? "bg-[#10B981] text-white"
                   : "bg-white text-black"
               }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="material-symbols-outlined text-[20px] font-black">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="material-symbols-outlined text-[18px] font-black">
                   {isCorrect ? "check_circle" : "info"}
                 </span>
-                <span className="text-[14px] font-black">
+                <span className="text-[13px] font-black">
                   {isCorrect ? "Spot on!" : "Good try!"}
                 </span>
               </div>
-              <p className={`text-[12px] font-bold ${isCorrect ? "text-white/95" : "text-black/80"}`}>
+              <p className={`text-[11.5px] font-bold ${isCorrect ? "text-white/95" : "text-black/80"}`}>
                 Testing yourself beats re-reading.
               </p>
               {!isCorrect && (
-                <p className="text-[11.5px] font-medium text-black/75 mt-1 border-t border-black/20 pt-1">
+                <p className="text-[11px] font-medium text-black/75 mt-1 border-t border-black/20 pt-1">
                   Correct answer: <strong className="font-black text-black">{challenge.options[challenge.correctIndex]}</strong>. {challenge.explanation}
                 </p>
               )}
             </div>
 
-            {/* Duolingo-style Streak Celebration with Animated Dual-Core Flame, Floating Sparks, and Calendar */}
+            {/* Duolingo-style Streak Celebration with Celebrating Rex, Flame, and Fixed Calendar */}
             <StreakCelebrationModal
               isEmbedded={true}
               streakCount={1}
+              showRex={true}
               onContinue={() => setStep(4)}
             />
           </div>

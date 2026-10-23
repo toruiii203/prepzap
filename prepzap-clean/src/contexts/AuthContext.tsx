@@ -308,6 +308,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error
         if (cancelled) return
 
+        if (!s) {
+          const cached = readAuthCache()
+          if (cached && isAccessTokenFresh(cached.session?.access_token)) {
+            setSession(cached.session)
+            setCachedSession(cached.session)
+            setUser(cached.user)
+            setProfile(cached.profile)
+            setNeedsOnboarding(false)
+            return
+          }
+        }
+
         setSession(s)
         setCachedSession(s)
         setUser(s?.user ?? null)

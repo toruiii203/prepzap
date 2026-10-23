@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { playCelebration, playPop, triggerHaptic, isSoundEnabled } from "@/lib/soundFX";
+import { AnimatedRex } from "@/components/AnimatedRex";
 
 interface StreakCelebrationModalProps {
   isOpen?: boolean;
@@ -9,6 +10,7 @@ interface StreakCelebrationModalProps {
   onClose?: () => void;
   title?: string;
   isEmbedded?: boolean; // When true, renders directly in the flow instead of fixed backdrop
+  showRex?: boolean;
 }
 
 export function StreakCelebrationModal({
@@ -18,6 +20,7 @@ export function StreakCelebrationModal({
   onClose,
   title,
   isEmbedded = false,
+  showRex = true,
 }: StreakCelebrationModalProps) {
   const [animatedNumber, setAnimatedNumber] = useState<number>(0);
   const [showCheckmark, setShowCheckmark] = useState<boolean>(false);
@@ -34,9 +37,9 @@ export function StreakCelebrationModal({
     // Confetti burst
     try {
       confetti({
-        particleCount: 65,
-        spread: 65,
-        origin: { y: 0.55 },
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.6 },
         colors: ["#FF9600", "#FFD13B", "#FF4D2E", "#10B981", "#000000"],
       });
     } catch {}
@@ -44,12 +47,12 @@ export function StreakCelebrationModal({
     // Number roll-up animation
     const numTimer = setTimeout(() => {
       setAnimatedNumber(streakCount);
-    }, 250);
+    }, 200);
 
     // Checkmark pop animation for today
     const checkTimer = setTimeout(() => {
       setShowCheckmark(true);
-    }, 550);
+    }, 450);
 
     return () => {
       clearTimeout(numTimer);
@@ -59,12 +62,11 @@ export function StreakCelebrationModal({
 
   if (!isOpen) return null;
 
-  // Generate rolling 7 days ending with upcoming days, centered on today
+  // Generate rolling 7 days centered on today
   const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   const now = new Date();
-  const todayIdx = now.getDay(); // 0 = Su, 1 = Mo, etc.
 
-  // 7-day window with today at position 4 or 5 (like Duolingo Th, Fr, Sa, Su, Mo, Tu, We)
+  // 7-day window ending with today at position 4 or 5
   const windowOffset = -4; // 4 days prior, today, 2 days after
   const daysList = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -72,41 +74,51 @@ export function StreakCelebrationModal({
     const isToday = windowOffset + i === 0;
     const isPast = windowOffset + i < 0;
     const isFuture = windowOffset + i > 0;
+    
+    // Only past days within the streak count are marked checked!
+    // e.g. If streakCount == 1, 0 past days were in the streak.
+    // If streakCount == 3, the 2 immediately preceding days were in the streak.
+    const daysBeforeToday = -(windowOffset + i);
+    const wasCheckedInStreak = isPast && daysBeforeToday < streakCount;
+
     return {
       label: dayNames[d.getDay()],
       isToday,
       isPast,
       isFuture,
+      wasCheckedInStreak,
     };
   });
 
   const content = (
-    <div className="w-full max-w-[390px] flex flex-col items-center justify-between min-h-[540px] px-5 py-6 font-['Quicksand',sans-serif] select-none">
+    <div className="w-full max-w-[380px] mx-auto flex flex-col items-center gap-4 py-2 font-['Quicksand',sans-serif] select-none">
       {/* Top Bar with optional Close */}
-      <div className="w-full flex items-center justify-between mb-2">
-        {onClose ? (
-          <button
-            type="button"
-            onClick={() => {
-              playPop();
-              onClose();
-            }}
-            className="w-8 h-8 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-[14px] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000]"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        ) : (
+      {!isEmbedded && (
+        <div className="w-full flex items-center justify-between mb-1">
+          {onClose ? (
+            <button
+              type="button"
+              onClick={() => {
+                playPop();
+                onClose();
+              }}
+              className="w-8 h-8 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-[14px] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000]"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          ) : (
+            <div className="w-8 h-8" />
+          )}
+          <span className="text-[11px] font-black uppercase tracking-wider text-black/50">
+            Daily Commitment
+          </span>
           <div className="w-8 h-8" />
-        )}
-        <span className="text-[11px] font-black uppercase tracking-wider text-black/40">
-          Daily Commitment
-        </span>
-        <div className="w-8 h-8" />
-      </div>
+        </div>
+      )}
 
-      {/* Main Flame Hero */}
-      <div className="flex flex-col items-center justify-center my-auto relative">
+      {/* Main Victory Stage: Rex + Flame Hero */}
+      <div className="w-full flex flex-col items-center justify-center relative">
         {/* Floating Sparks Animation */}
         <div className="absolute inset-0 pointer-events-none overflow-visible">
           <span
@@ -123,59 +135,69 @@ export function StreakCelebrationModal({
           />
         </div>
 
-        {/* Animated Dual-Core Flame Graphic */}
-        <div className="relative mb-2 animate-flamePulse">
-          <svg
-            className="w-28 h-28 sm:w-32 sm:h-32 drop-shadow-[0_4px_12px_rgba(255,150,0,0.35)]"
-            viewBox="0 0 100 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Outer Flame Shadow / Border */}
-            <path
-              d="M50 5C50 5 66 28 66 48C66 52 74 52 78 44C84 56 86 68 86 80C86 102 70 115 50 115C30 115 14 102 14 80C14 58 28 42 36 28C40 21 44 14 50 5Z"
-              fill="#000000"
+        {/* Celebrating Rex Mascot */}
+        {showRex && (
+          <div className="mb-2 hover:scale-105 transition-transform">
+            <AnimatedRex
+              state="excited"
+              size="md"
+              interactive={false}
+              preferAnimatedWebP={true}
             />
-            {/* Outer Vibrant Orange Flame */}
-            <path
-              d="M50 8C50 8 64 30 64 49C64 54 72 54 76 46C81 57 83 68 83 79C83 99 68 112 50 112C32 112 17 99 17 79C17 59 30 44 38 31C41 24 45 17 50 8Z"
-              fill="#FF9600"
-            />
-            {/* Inner Golden-Yellow Core Flame */}
-            <path
-              d="M50 48C50 48 58 62 58 72C58 76 62 76 64 71C67 78 68 84 68 90C68 102 59 108 50 108C41 108 32 102 32 90C32 78 40 70 44 62C46 58 48 53 50 48Z"
-              fill="#FFD13B"
-            />
-          </svg>
-        </div>
-
-        {/* Big Chunky Number & "day streak!" Headline */}
-        <div className="text-center">
-          <div
-            className={`font-black text-[76px] sm:text-[90px] text-[#FF9600] leading-none tracking-tight transition-transform duration-500 ${
-              animatedNumber > 0 ? "scale-100" : "scale-50 opacity-0"
-            }`}
-            style={{
-              textShadow: "3px 3px 0px #000000, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000",
-            }}
-          >
-            {animatedNumber}
           </div>
-          <h2
-            className="text-[26px] sm:text-[30px] font-black text-[#FF9600] tracking-tight mt-1"
-            style={{
-              textShadow: "1.5px 1.5px 0px #000000",
-            }}
-          >
-            {title || `${animatedNumber === 1 ? "day streak!" : "days streak!"}`}
-          </h2>
+        )}
+
+        {/* Animated Dual-Core Flame Graphic & Number */}
+        <div className="flex items-center justify-center gap-3">
+          <div className="relative animate-flamePulse">
+            <svg
+              className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-[0_4px_12px_rgba(255,150,0,0.35)]"
+              viewBox="0 0 100 120"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M50 5C50 5 66 28 66 48C66 52 74 52 78 44C84 56 86 68 86 80C86 102 70 115 50 115C30 115 14 102 14 80C14 58 28 42 36 28C40 21 44 14 50 5Z"
+                fill="#000000"
+              />
+              <path
+                d="M50 8C50 8 64 30 64 49C64 54 72 54 76 46C81 57 83 68 83 79C83 99 68 112 50 112C32 112 17 99 17 79C17 59 30 44 38 31C41 24 45 17 50 8Z"
+                fill="#FF9600"
+              />
+              <path
+                d="M50 48C50 48 58 62 58 72C58 76 62 76 64 71C67 78 68 84 68 90C68 102 59 108 50 108C41 108 32 102 32 90C32 78 40 70 44 62C46 58 48 53 50 48Z"
+                fill="#FFD13B"
+              />
+            </svg>
+          </div>
+
+          <div className="text-left">
+            <div
+              className={`font-black text-[56px] sm:text-[68px] text-[#FF9600] leading-none tracking-tight transition-transform duration-500 ${
+                animatedNumber > 0 ? "scale-100" : "scale-50 opacity-0"
+              }`}
+              style={{
+                textShadow: "2.5px 2.5px 0px #000000, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000",
+              }}
+            >
+              {animatedNumber}
+            </div>
+            <h2
+              className="text-[20px] sm:text-[24px] font-black text-[#FF9600] tracking-tight -mt-1"
+              style={{
+                textShadow: "1.5px 1.5px 0px #000000",
+              }}
+            >
+              {title || `${animatedNumber === 1 ? "day streak!" : "days streak!"}`}
+            </h2>
+          </div>
         </div>
 
         {/* 7-Day Calendar Card */}
-        <div className="w-full mt-6 bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000000] text-center">
-          <div className="flex items-center justify-between px-1 mb-3">
+        <div className="w-full mt-4 bg-white border-2 border-black rounded-2xl p-3.5 shadow-[3px_3px_0px_#000000] text-center">
+          <div className="flex items-center justify-between px-1 mb-2.5">
             {daysList.map((day, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-1.5">
+              <div key={idx} className="flex flex-col items-center gap-1">
                 <span
                   className={`text-[11px] font-black ${
                     day.isToday ? "text-[#FF9600]" : "text-black/50"
@@ -185,22 +207,22 @@ export function StreakCelebrationModal({
                 </span>
 
                 <div
-                  className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-black transition-all duration-300 ${
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-black flex items-center justify-center font-black transition-all duration-300 ${
                     day.isToday
                       ? showCheckmark
                         ? "bg-[#FF9600] text-white scale-110 shadow-[1px_1px_0px_#000000]"
                         : "bg-white text-black"
-                      : day.isPast
+                      : day.wasCheckedInStreak
                       ? "bg-[#FF9600] text-white"
-                      : "bg-[#FAF7F2] text-black/20 border-black/30"
+                      : "bg-[#FAF7F2] text-black/20 border-black/25"
                   }`}
                 >
                   {day.isToday && showCheckmark ? (
-                    <span className="material-symbols-outlined text-[18px] font-black">check</span>
-                  ) : day.isPast ? (
                     <span className="material-symbols-outlined text-[16px] font-black">check</span>
+                  ) : day.wasCheckedInStreak ? (
+                    <span className="material-symbols-outlined text-[15px] font-black">check</span>
                   ) : (
-                    <span className="w-2 h-2 rounded-full bg-black/15" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-black/15" />
                   )}
                 </div>
               </div>
@@ -208,8 +230,8 @@ export function StreakCelebrationModal({
           </div>
 
           {/* Authentic Warning Rule */}
-          <div className="pt-2 border-t-2 border-black/10">
-            <p className="text-[12.5px] font-bold text-black/70">
+          <div className="pt-2 border-t border-black/10">
+            <p className="text-[12px] font-bold text-black/75">
               Miss a day, and it resets to 0.
             </p>
           </div>
@@ -217,14 +239,14 @@ export function StreakCelebrationModal({
       </div>
 
       {/* Bottom CTA Button */}
-      <div className="w-full pt-6">
+      <div className="w-full pt-2">
         <button
           type="button"
           onClick={() => {
             playPop();
             onContinue();
           }}
-          className="w-full py-4 bg-[#FF4D2E] hover:bg-black text-white font-black text-[15px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000000] active:translate-y-0.5 cursor-pointer transition-colors"
+          className="w-full py-3.5 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000000] active:translate-y-0.5 cursor-pointer transition-colors"
         >
           Continue
         </button>
