@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { AnimatedRex } from "@/components/AnimatedRex";
+import { triggerXPBurst } from "@/components/FloatingXPBurst";
 
 export interface PathNode {
   id: string;
@@ -87,13 +88,14 @@ export function StudyPathMap({
     "justify-center",
   ];
 
-  const handleNodeClick = (node: PathNode) => {
+  const handleNodeClick = (node: PathNode, e: React.MouseEvent) => {
     if (node.status === "locked") {
       playTap();
       setSelectedNode(node);
       return;
     }
     playPop();
+    triggerXPBurst(e.clientX, e.clientY - 25, `+${node.xpReward} XP`, "⚡");
     setSelectedNode(node);
     if (node.status === "active" && node.route) {
       navigate(node.route);
@@ -119,7 +121,7 @@ export function StudyPathMap({
             playPop();
             navigate("/quick-study");
           }}
-          className="px-3 py-1.5 bg-white hover:bg-black hover:text-white border-2 border-black rounded-xl text-[11.5px] font-black transition-colors cursor-pointer shadow-[1.5px_1.5px_0px_#000] flex items-center gap-1.5"
+          className="px-3 py-1.5 bg-white hover:bg-black hover:text-white border-2 border-black rounded-xl text-[11.5px] font-black transition-colors cursor-pointer shadow-[1.5px_1.5px_0px_#000] flex items-center gap-1.5 active:translate-y-0.5"
         >
           <span className="material-symbols-outlined text-[16px]">menu_book</span>
           <span>Guidebook</span>
@@ -128,8 +130,29 @@ export function StudyPathMap({
 
       {/* The Winding Stepping Stone Path */}
       <div className="relative py-4 flex flex-col gap-6 sm:gap-8 max-w-sm mx-auto">
-        {/* Background Connecting Path Line */}
-        <div className="absolute top-8 bottom-8 left-1/2 -translate-x-1/2 w-3 border-x-2 border-black/15 bg-black/5 rounded-full pointer-events-none" />
+        {/* Animated Connecting Marching Path */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M 50,6 Q 78,16 78,26 T 50,48 T 22,70 T 50,92"
+            fill="none"
+            stroke="#E5DFD3"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 50,6 Q 78,16 78,26 T 50,48 T 22,70 T 50,92"
+            fill="none"
+            stroke="#000000"
+            strokeWidth="3.5"
+            strokeDasharray="2 4"
+            className="animate-dash-march opacity-35"
+            strokeLinecap="round"
+          />
+        </svg>
 
         {nodes.map((node, idx) => {
           const isCurrent = node.status === "active";
@@ -167,12 +190,12 @@ export function StudyPathMap({
               {/* 3D Stepping Stone Button */}
               <button
                 type="button"
-                onClick={() => handleNodeClick(node)}
+                onClick={(e) => handleNodeClick(node, e)}
                 className={`relative w-16 h-16 sm:w-18 sm:h-18 rounded-full border-3 border-black flex items-center justify-center cursor-pointer transition-all ${
                   isDone
-                    ? "bg-[#10B981] text-white shadow-[0px_4px_0px_#047857,0px_6px_0px_#000] hover:brightness-105 active:translate-y-1 active:shadow-[0px_1px_0px_#000]"
+                    ? "bg-[#10B981] text-white shadow-[0px_4px_0px_#047857,0px_6px_0px_#000] hover:scale-105 active:scale-95 active:translate-y-1 active:shadow-[0px_1px_0px_#000]"
                     : isCurrent
-                    ? "bg-[#FF4D2E] text-white shadow-[0px_5px_0px_#B91C1C,0px_7px_0px_#000] hover:scale-105 active:translate-y-1.5 active:shadow-[0px_1px_0px_#000] ring-4 ring-[#FFD13B]"
+                    ? "bg-[#FF4D2E] text-white shadow-[0px_5px_0px_#B91C1C,0px_7px_0px_#000] hover:scale-110 active:scale-95 active:translate-y-1.5 active:shadow-[0px_1px_0px_#000] ring-4 ring-[#FFD13B]"
                     : "bg-[#E2DDD3] text-black/35 shadow-[0px_4px_0px_#BFB8AA,0px_6px_0px_#000] hover:brightness-95 active:translate-y-0.5 cursor-not-allowed"
                 }`}
                 title={`${node.title} (${node.status})`}
@@ -186,7 +209,7 @@ export function StudyPathMap({
 
                 {/* Star / Crown Badge on Node */}
                 {isDone && (
-                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[12px] shadow-[1px_1px_0px_#000]">
+                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[12px] shadow-[1px_1px_0px_#000] hover:rotate-12 transition-transform">
                     ★
                   </span>
                 )}
@@ -236,9 +259,10 @@ export function StudyPathMap({
           <button
             type="button"
             disabled={selectedNode.status === "locked"}
-            onClick={() => {
+            onClick={(e) => {
               if (selectedNode.route) {
                 playSuccess();
+                triggerXPBurst(e.clientX, e.clientY - 20, `+${selectedNode.xpReward} XP`, "⚡");
                 navigate(selectedNode.route);
               }
             }}

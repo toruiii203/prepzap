@@ -11,6 +11,8 @@ import { supabase } from "@/lib/supabase";
 import { usePlan } from "@/hooks/usePlan";
 import { motion, animate, useAnimation } from "framer-motion";
 import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
+import { triggerXPBurst } from "@/components/FloatingXPBurst";
+import confetti from "canvas-confetti";
 import { ExamCountdownBanner, calculateExamReadiness } from "@/components/ExamCountdownBanner";
 import { loadLibrary } from "@/lib/sourceContext";
 import { AnimatedRex } from "@/components/AnimatedRex";
@@ -796,7 +798,7 @@ function DashboardHeader({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_#000] cursor-pointer hover:bg-[#FFFDF5] active:translate-y-0.5 transition-all"
           title={`${streakDays} Day Streak`}
         >
-          <span className="text-[15px]">🔥</span>
+          <span className="text-[15px] inline-block animate-flame">🔥</span>
           <span className="text-[12px] font-black text-black">{streakDays}d Streak</span>
         </div>
 

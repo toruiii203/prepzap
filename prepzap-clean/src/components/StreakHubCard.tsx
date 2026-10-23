@@ -1,5 +1,6 @@
 import React from "react";
 import { playPop, playTap } from "@/lib/soundFX";
+import { triggerXPBurst } from "@/components/FloatingXPBurst";
 
 interface StreakHubCardProps {
   streakDays: number;
@@ -38,12 +39,19 @@ export function StreakHubCard({
   });
 
   return (
-    <div className="border-2 border-black rounded-3xl bg-white p-4 sm:p-5 shadow-[3px_3px_0px_#1A1A1A] relative overflow-hidden transition-all">
+    <div className="border-2 border-black rounded-3xl bg-white p-4 sm:p-5 shadow-[3px_3px_0px_#1A1A1A] relative overflow-hidden transition-all select-none font-['Quicksand',sans-serif]">
       {/* Top Header Row */}
       <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#FFE566] border-2 border-black flex items-center justify-center text-[16px] shadow-[1.5px_1.5px_0px_#000] hover:scale-110 active:scale-95 transition-transform cursor-pointer">
-            <span className="inline-block animate-pulse">🔥</span>
+          <div
+            onClick={() => {
+              playPop();
+              onOpenModal();
+            }}
+            className="w-9 h-9 rounded-xl bg-[#FFE566] border-2 border-black flex items-center justify-center text-[18px] shadow-[1.5px_1.5px_0px_#000] hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+            title="View full streak calendar"
+          >
+            <span className="inline-block animate-flame">🔥</span>
           </div>
           <div>
             <h3 className="text-[14px] sm:text-[15px] font-black text-black leading-tight flex items-center gap-1.5">
@@ -97,7 +105,7 @@ export function StreakHubCard({
                 {day.wasChecked ? (
                   <span className="material-symbols-outlined text-[15px] font-black">check</span>
                 ) : day.isToday ? (
-                  <span className="text-[12px]">🔥</span>
+                  <span className="text-[12px] animate-flame inline-block">🔥</span>
                 ) : (
                   <span className="w-1.5 h-1.5 rounded-full bg-black/15" />
                 )}
@@ -120,8 +128,9 @@ export function StreakHubCard({
         {/* Action Button: Keep Streak Alive or Practice (Tactile 3D Button) */}
         <button
           type="button"
-          onClick={() => {
+          onClick={(e) => {
             playTap();
+            triggerXPBurst(e.clientX, e.clientY - 20, "+30 Streak XP", "🔥");
             onLaunchPractice();
           }}
           className={`px-4 py-2 text-[12.5px] font-black uppercase tracking-wider border-2 border-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
