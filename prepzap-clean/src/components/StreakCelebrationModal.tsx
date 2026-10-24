@@ -135,55 +135,61 @@ export function StreakCelebrationModal({
           />
         </div>
 
-        {/* Celebrating Rex Mascot */}
-        {showRex && (
-          <div className="mb-2 hover:scale-105 transition-transform">
-            <AnimatedRex
-              state="excited"
-              size="md"
-              interactive={false}
-              preferAnimatedWebP={true}
-            />
-          </div>
-        )}
-
-        {/* Animated Dual-Core Flame Graphic & Number */}
-        <div className="flex items-center justify-center gap-3">
-          <div className="relative animate-flamePulse">
-            <svg
-              className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-[0_4px_12px_rgba(255,150,0,0.35)]"
-              viewBox="0 0 100 120"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M50 5C50 5 66 28 66 48C66 52 74 52 78 44C84 56 86 68 86 80C86 102 70 115 50 115C30 115 14 102 14 80C14 58 28 42 36 28C40 21 44 14 50 5Z"
-                fill="#000000"
+        {/* Unified Duolingo-style Victory Stage: Grounded Solid Rex + Hero Flame */}
+        <div className="w-full flex items-end justify-center gap-3 sm:gap-6 py-2 my-1">
+          {/* Solid Rex Mascot standing large & grounded (No floating, zero ghost marks) */}
+          {showRex && (
+            <div className="shrink-0 flex flex-col items-center">
+              <AnimatedRex
+                state="excited"
+                size="lg"
+                interactive={true}
+                grounded={true}
+                preferAnimatedWebP={false}
               />
-              <path
-                d="M50 8C50 8 64 30 64 49C64 54 72 54 76 46C81 57 83 68 83 79C83 99 68 112 50 112C32 112 17 99 17 79C17 59 30 44 38 31C41 24 45 17 50 8Z"
-                fill="#FF9600"
-              />
-              <path
-                d="M50 48C50 48 58 62 58 72C58 76 62 76 64 71C67 78 68 84 68 90C68 102 59 108 50 108C41 108 32 102 32 90C32 78 40 70 44 62C46 58 48 53 50 48Z"
-                fill="#FFD13B"
-              />
-            </svg>
-          </div>
-
-          <div className="text-left">
-            <div
-              className={`font-black text-[56px] sm:text-[68px] text-[#FF9600] leading-none tracking-tight transition-transform duration-500 ${
-                animatedNumber > 0 ? "scale-100" : "scale-50 opacity-0"
-              }`}
-              style={{
-                textShadow: "2.5px 2.5px 0px #000000, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000",
-              }}
-            >
-              {animatedNumber}
             </div>
+          )}
+
+          {/* Hero Flame Graphic & Streak Counter */}
+          <div className="flex flex-col items-start justify-end pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="relative animate-flamePulse select-none">
+                <svg
+                  className="w-14 h-14 sm:w-18 sm:h-18 drop-shadow-[0_4px_12px_rgba(255,150,0,0.35)]"
+                  viewBox="0 0 100 120"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M50 5C50 5 66 28 66 48C66 52 74 52 78 44C84 56 86 68 86 80C86 102 70 115 50 115C30 115 14 102 14 80C14 58 28 42 36 28C40 21 44 14 50 5Z"
+                    fill="#000000"
+                  />
+                  <path
+                    d="M50 8C50 8 64 30 64 49C64 54 72 54 76 46C81 57 83 68 83 79C83 99 68 112 50 112C32 112 17 99 17 79C17 59 30 44 38 31C41 24 45 17 50 8Z"
+                    fill="#FF9600"
+                  />
+                  <path
+                    d="M50 48C50 48 58 62 58 72C58 76 62 76 64 71C67 78 68 84 68 90C68 102 59 108 50 108C41 108 32 102 32 90C32 78 40 70 44 62C46 58 48 53 50 48Z"
+                    fill="#FFD13B"
+                  />
+                </svg>
+              </div>
+
+              <div
+                className={`font-black text-[54px] sm:text-[66px] text-[#FF9600] leading-none tracking-tight transition-transform duration-500 ${
+                  animatedNumber > 0 ? "scale-100" : "scale-50 opacity-0"
+                }`}
+                style={{
+                  textShadow:
+                    "2.5px 2.5px 0px #000000, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000",
+                }}
+              >
+                {animatedNumber}
+              </div>
+            </div>
+
             <h2
-              className="text-[20px] sm:text-[24px] font-black text-[#FF9600] tracking-tight -mt-1"
+              className="text-[19px] sm:text-[23px] font-black text-[#FF9600] tracking-tight mt-0.5"
               style={{
                 textShadow: "1.5px 1.5px 0px #000000",
               }}
