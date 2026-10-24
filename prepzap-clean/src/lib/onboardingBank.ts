@@ -1,4 +1,4 @@
-﻿export interface DiagnosticQuestion {
+export interface DiagnosticQuestion {
   question: string;
   options: string[];
   correctIndex: number;
@@ -117,6 +117,8 @@ export interface OnboardingDraft {
   firstWinCompleted: boolean;
   ageConfirmed: boolean;
   audioMuted: boolean;
+  selectedGoals?: string[];
+  reminderWindow?: "morning" | "afternoon" | "evening" | "night";
 }
 
 const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -201,7 +203,7 @@ export async function applyOnboardingDraftIfAny(user: User): Promise<boolean> {
     const prefs: UserStudyPreferences = {
       name: user.user_metadata?.full_name?.split(" ")[0] || "Student",
       subjects: [finalSubject],
-      goal: "grades",
+      goal: (draft.selectedGoals && draft.selectedGoals[0]) || "grades",
       learningStyles: ["mixed"],
       dailyGoalMinutes: draft.dailyGoalMinutes || 15,
       completedAt: new Date().toISOString(),
@@ -222,6 +224,8 @@ export async function applyOnboardingDraftIfAny(user: User): Promise<boolean> {
       daily_goal_minutes: draft.dailyGoalMinutes || 15,
       avatar_config: {
         study_preferences: prefs,
+        selected_goals: draft.selectedGoals || [],
+        reminder_window: draft.reminderWindow || "evening",
       },
     }, { onConflict: "id" });
 

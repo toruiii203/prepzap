@@ -44,6 +44,34 @@ const PRESET_SUBJECTS: SubjectOption[] = [
   { id: "general", name: "General Studies", icon: "school" },
 ];
 
+export interface StudyGoal {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+export const STUDY_GOALS: StudyGoal[] = [
+  { id: "ace_exams", label: "Ace Upcoming Exams", icon: "emoji_events" },
+  { id: "daily_habit", label: "Build Daily Study Streak", icon: "local_fire_department" },
+  { id: "active_recall", label: "Master Active Recall (4x Retention)", icon: "psychology" },
+  { id: "stop_cramming", label: "Stop Last-Minute Cramming", icon: "alarm_off" },
+  { id: "flashcards_notes", label: "Turn Notes into Flashcards", icon: "auto_stories" },
+];
+
+export interface ReminderWindowOption {
+  id: "morning" | "afternoon" | "evening" | "night";
+  label: string;
+  time: string;
+  icon: string;
+}
+
+export const REMINDER_WINDOWS: ReminderWindowOption[] = [
+  { id: "morning", label: "Morning", time: "8:00 AM", icon: "wb_sunny" },
+  { id: "afternoon", label: "Afternoon", time: "2:00 PM", icon: "light_mode" },
+  { id: "evening", label: "Evening", time: "7:00 PM", icon: "nights_stay" },
+  { id: "night", label: "Night", time: "10:00 PM", icon: "bedtime" },
+];
+
 export default function OnboardingFlow() {
   const navigate = useNavigate();
   const { session, profile, refreshProfile } = useAuth();
@@ -61,6 +89,8 @@ export default function OnboardingFlow() {
   const [subject, setSubject] = useState<string>("Math");
   const [customSubject, setCustomSubject] = useState<string>("");
   const [isCustom, setIsCustom] = useState<boolean>(false);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(["ace_exams", "daily_habit"]);
+  const [reminderWindow, setReminderWindow] = useState<"morning" | "afternoon" | "evening" | "night">("evening");
 
   // Challenge state
   const [challenge, setChallenge] = useState<DiagnosticQuestion | null>(null);
@@ -95,6 +125,15 @@ export default function OnboardingFlow() {
   // Streak counter animation
   const [animatedStreak, setAnimatedStreak] = useState<number>(0);
 
+  // Outcome projection calculation (BytePal & Speak pattern)
+  const daysToMastery = dailyMinutes === 30 ? 10 : dailyMinutes === 15 ? 18 : 30;
+  const projectedTargetDate = new Date();
+  projectedTargetDate.setDate(projectedTargetDate.getDate() + daysToMastery);
+  const formattedProjectedDate = projectedTargetDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
   // Restore draft on mount
   useEffect(() => {
     const draft = getOnboardingDraft();
@@ -103,6 +142,12 @@ export default function OnboardingFlow() {
       if (draft.customSubject) {
         setCustomSubject(draft.customSubject);
         setIsCustom(true);
+      }
+      if (draft.selectedGoals && Array.isArray(draft.selectedGoals) && draft.selectedGoals.length > 0) {
+        setSelectedGoals(draft.selectedGoals);
+      }
+      if (draft.reminderWindow) {
+        setReminderWindow(draft.reminderWindow);
       }
       if (draft.dailyGoalMinutes) setDailyMinutes(draft.dailyGoalMinutes);
       if (draft.streakTargetDays) setStreakTarget(draft.streakTargetDays);
@@ -157,8 +202,7 @@ export default function OnboardingFlow() {
     setSubject(sub.name);
     setIsCustom(false);
     setCustomSubject("");
-    saveOnboardingDraft({ subject: sub.name, customSubject: "" });
-    setStep(2);
+    saveOnboardingDraft({ subject: sub.name, customSubject: "", selectedGoals, reminderWindow });
   };
 
   const handleSelectCustomSubject = () => {
@@ -166,12 +210,38 @@ export default function OnboardingFlow() {
     setIsCustom(true);
   };
 
+  const handleToggleGoal = (id: string) => {
+    playPop();
+    triggerHaptic("light");
+    setSelectedGoals((prev) => {
+      const exists = prev.includes(id);
+      const next = exists
+        ? prev.length > 1
+          ? prev.filter((g) => g !== id)
+          : prev
+        : [...prev, id];
+      saveOnboardingDraft({ selectedGoals: next, reminderWindow });
+      return next;
+    });
+  };
+
+  const handleStartWarmup = () => {
+    if (isCustom && !customSubject.trim()) return;
+    playPop();
+    triggerHaptic("medium");
+    saveOnboardingDraft({
+      subject: isCustom ? "Custom" : subject,
+      customSubject: isCustom ? customSubject.trim() : "",
+      selectedGoals,
+      reminderWindow,
+    });
+    setStep(2);
+  };
+
   const handleConfirmCustomSubject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customSubject.trim()) return;
-    playTap();
-    saveOnboardingDraft({ subject: "Custom", customSubject: customSubject.trim() });
-    setStep(2);
+    handleStartWarmup();
   };
 
   const handleAnswerQuestion = (idx: number) => {
@@ -188,6 +258,8 @@ export default function OnboardingFlow() {
       firstWinCompleted: true,
       firstWinLocalDate: todayLocal,
       subject: activeSubjectName,
+      selectedGoals,
+      reminderWindow,
     });
 
     if (correct) {
@@ -219,6 +291,8 @@ export default function OnboardingFlow() {
     saveOnboardingDraft({
       dailyGoalMinutes: dailyMinutes,
       streakTargetDays: streakTarget,
+      reminderWindow,
+      selectedGoals,
       examTitle: examTitle.trim() || undefined,
       examDate: examDate || undefined,
     });
@@ -233,6 +307,8 @@ export default function OnboardingFlow() {
     saveOnboardingDraft({
       dailyGoalMinutes: dailyMinutes,
       streakTargetDays: streakTarget,
+      reminderWindow,
+      selectedGoals,
       examTitle: undefined,
       examDate: undefined,
     });
@@ -402,13 +478,13 @@ export default function OnboardingFlow() {
 
       {/* Main Content Area */}
       <main className="w-full max-w-[480px] flex-1 flex flex-col justify-between px-5 py-4 overflow-y-auto">
-        {/* STEP 1: Focus Subject */}
+        {/* STEP 1: Focus Subject & Multi-Intent Goals (Headspace pattern) */}
         {step === 1 && (
           <div className="flex-1 flex flex-col justify-between animate-fadeIn">
             <div>
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-3">
                 <AnimatedRex state="waving" size="sm" interactive={false} />
-                <div className="bg-white border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_#000]">
+                <div className="bg-white border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_#000] flex-1">
                   <p className="text-[13px] font-black leading-tight text-black">
                     What class are you studying for?
                   </p>
@@ -419,33 +495,56 @@ export default function OnboardingFlow() {
               </div>
 
               {/* Subject Presets Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-                {PRESET_SUBJECTS.map((sub) => (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    onClick={() => handleSelectPresetSubject(sub)}
-                    className="p-3 bg-white hover:bg-[#FFD13B] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all text-left flex flex-col justify-between h-[84px] cursor-pointer group"
-                  >
-                    <span className="material-symbols-outlined text-[24px] text-black group-hover:scale-110 transition-transform">
-                      {sub.icon}
-                    </span>
-                    <span className="text-[12.5px] font-black text-black leading-tight">
-                      {sub.name}
-                    </span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-0.5">
+                {PRESET_SUBJECTS.map((sub) => {
+                  const isSelected = !isCustom && subject === sub.name;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => handleSelectPresetSubject(sub)}
+                      className={`p-2.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all text-left flex flex-col justify-between h-[78px] cursor-pointer group relative ${
+                        isSelected
+                          ? "bg-[#FFD13B] ring-2 ring-black"
+                          : "bg-white hover:bg-[#FAF7F2]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="material-symbols-outlined text-[22px] text-black group-hover:scale-110 transition-transform">
+                          {sub.icon}
+                        </span>
+                        {isSelected && (
+                          <span className="w-4 h-4 rounded-full bg-black text-[#FFD13B] flex items-center justify-center text-[10px] font-black">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[12px] font-black text-black leading-tight">
+                        {sub.name}
+                      </span>
+                    </button>
+                  );
+                })}
 
                 {/* Custom Subject Button */}
                 <button
                   type="button"
                   onClick={handleSelectCustomSubject}
-                  className={`p-3 border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all text-left flex flex-col justify-between h-[84px] cursor-pointer ${
-                    isCustom ? "bg-[#FFD13B]" : "bg-white hover:bg-[#FFD13B]"
+                  className={`p-2.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all text-left flex flex-col justify-between h-[78px] cursor-pointer relative ${
+                    isCustom
+                      ? "bg-[#FFD13B] ring-2 ring-black"
+                      : "bg-white hover:bg-[#FAF7F2]"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[24px] text-black">edit</span>
-                  <span className="text-[12.5px] font-black text-black leading-tight">
+                  <div className="flex items-center justify-between w-full">
+                    <span className="material-symbols-outlined text-[22px] text-black">edit</span>
+                    {isCustom && (
+                      <span className="w-4 h-4 rounded-full bg-black text-[#FFD13B] flex items-center justify-center text-[10px] font-black">
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[12px] font-black text-black leading-tight">
                     + Custom
                   </span>
                 </button>
@@ -453,9 +552,9 @@ export default function OnboardingFlow() {
 
               {/* Inline Custom Subject Form */}
               {isCustom && (
-                <form onSubmit={handleConfirmCustomSubject} className="mt-3.5 space-y-2">
+                <form onSubmit={handleConfirmCustomSubject} className="mt-3 space-y-1.5">
                   <label className="block text-[11px] font-black uppercase text-black/70">
-                    Enter Custom Subject Name:
+                    Custom Subject Name:
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -465,22 +564,59 @@ export default function OnboardingFlow() {
                       value={customSubject}
                       onChange={(e) => setCustomSubject(e.target.value)}
                       placeholder="e.g. Organic Chemistry, Nursing..."
-                      className="flex-1 px-3 py-2 border-2 border-black rounded-xl font-bold text-[13px] bg-white shadow-[1px_1px_0px_#000] focus:outline-none"
+                      className="flex-1 px-3 py-2 border-2 border-black rounded-xl font-bold text-[12.5px] bg-white shadow-[1px_1px_0px_#000] focus:outline-none"
                     />
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-[#FF4D2E] hover:bg-black text-white font-black text-[12.5px] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors"
-                    >
-                      Start
-                    </button>
                   </div>
                 </form>
               )}
+
+              {/* Multi-Intent Study Goals (Headspace pattern: +10% conversion) */}
+              <div className="mt-3.5 pt-3 border-t-2 border-black/10">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[11px] font-black uppercase text-black/75 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]">track_changes</span>
+                    Study Goals (Pick all that apply):
+                  </label>
+                  <span className="text-[9.5px] font-bold text-black/45">Multi-select</span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {STUDY_GOALS.map((goal) => {
+                    const active = selectedGoals.includes(goal.id);
+                    return (
+                      <button
+                        key={goal.id}
+                        type="button"
+                        onClick={() => handleToggleGoal(goal.id)}
+                        className={`px-2.5 py-1.5 rounded-xl border-2 border-black text-[11px] font-black transition-all flex items-center gap-1.5 cursor-pointer active:translate-y-0.5 ${
+                          active
+                            ? "bg-black text-white shadow-[2px_2px_0px_#FFD13B]"
+                            : "bg-white text-black/85 hover:bg-[#FAF7F2] shadow-[1px_1px_0px_#000]"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[14px]">
+                          {goal.icon}
+                        </span>
+                        <span>{goal.label}</span>
+                        {active && <span className="text-[11px] text-[#10B981] font-black">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
-            <div className="pt-4 text-center">
-              <p className="text-[11px] font-medium text-black/50">
-                You can change or add more subjects at any time in your dashboard.
+            <div className="pt-4 space-y-2">
+              <button
+                type="button"
+                onClick={handleStartWarmup}
+                disabled={isCustom && !customSubject.trim()}
+                className="w-full py-3.5 bg-[#FF4D2E] hover:bg-black text-white font-black text-[13.5px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors disabled:opacity-40"
+              >
+                Start 1-Min Warm-Up ➔
+              </button>
+              <p className="text-[10.5px] font-medium text-black/50 text-center">
+                Instant diagnostic • 60 seconds • Unlocks your 1-day streak
               </p>
             </div>
           </div>
@@ -585,21 +721,21 @@ export default function OnboardingFlow() {
           </div>
         )}
 
-        {/* STEP 4: Study Goal & Optional Exam Target */}
+        {/* STEP 4: Study Goal, Outcome Projection & Habit Priming (BytePal & Speak pattern) */}
         {step === 4 && (
           <div className="flex-1 flex flex-col justify-between animate-fadeIn">
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div>
                 <h2 className="text-[18px] font-black text-black">
-                  Set Your Study Habit
+                  Set Your Habit & Projected Plan
                 </h2>
                 <p className="text-[12px] font-medium text-black/65">
-                  A small amount of practice each day keeps your streak alive.
+                  Consistent micro-practice builds long-term recall and protects your streak.
                 </p>
               </div>
 
               {/* Daily Study Time Goal */}
-              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000]">
+              <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[2px_2px_0px_#000]">
                 <label className="block text-[11px] font-black uppercase text-black/70 mb-2">
                   Daily Study Goal:
                 </label>
@@ -616,51 +752,123 @@ export default function OnboardingFlow() {
                         playTap();
                         setDailyMinutes(g.min);
                       }}
-                      className={`p-2.5 border-2 border-black rounded-xl text-center transition-all cursor-pointer ${
+                      className={`p-2 border-2 border-black rounded-xl text-center transition-all cursor-pointer ${
                         dailyMinutes === g.min
                           ? "bg-black text-white shadow-[2px_2px_0px_#000]"
                           : "bg-[#FAF7F2] hover:bg-white text-black shadow-[1px_1px_0px_#000]"
                       }`}
                     >
-                      <span className="block text-[13px] font-black">{g.label}</span>
-                      <span className="block text-[9.5px] opacity-75">{g.desc}</span>
+                      <span className="block text-[12.5px] font-black">{g.label}</span>
+                      <span className="block text-[9px] opacity-75">{g.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Streak Target Commitment */}
-              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000]">
-                <label className="block text-[11px] font-black uppercase text-black/70 mb-2">
-                  Streak Target Commitment:
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { days: 7, label: "7 Days" },
-                    { days: 14, label: "14 Days" },
-                    { days: 30, label: "30 Days" },
-                  ].map((t) => (
-                    <button
-                      key={t.days}
-                      type="button"
-                      onClick={() => {
-                        playTap();
-                        setStreakTarget(t.days);
-                      }}
-                      className={`py-2 px-2 border-2 border-black rounded-xl font-black text-[12.5px] text-center transition-all cursor-pointer ${
-                        streakTarget === t.days
-                          ? "bg-[#FFD13B] text-black shadow-[2px_2px_0px_#000]"
-                          : "bg-[#FAF7F2] hover:bg-white text-black shadow-[1px_1px_0px_#000]"
-                      }`}
-                    >
-                      🔥 {t.label}
-                    </button>
-                  ))}
+              {/* BytePal / Speak Outcome Projection Card */}
+              <div className="bg-[#FAF7F2] border-2 border-black rounded-2xl p-3.5 shadow-[2px_2px_0px_#000] space-y-2.5">
+                <div className="flex items-center justify-between border-b border-black/15 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[18px] text-[#10B981]">verified</span>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-black">
+                      Projected Exam Readiness
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 bg-black text-[#FFD13B] rounded-full text-[10px] font-black">
+                    Target: {formattedProjectedDate}
+                  </span>
+                </div>
+
+                <p className="text-[12px] font-bold text-black/85 leading-snug">
+                  At <strong className="font-black text-black">{dailyMinutes}m/day</strong> in <strong className="font-black text-black">{activeSubjectName}</strong>, Rex projects <strong className="font-black text-[#10B981]">92%+ exam mastery</strong> by <strong className="underline decoration-2">{formattedProjectedDate}</strong>.
+                </p>
+
+                {/* Speak-style Retention Efficiency Graph */}
+                <div className="space-y-1.5 pt-0.5">
+                  <div className="space-y-0.5">
+                    <div className="flex justify-between text-[10px] font-black text-black">
+                      <span className="flex items-center gap-1">
+                        <span className="text-[#10B981]">●</span> Prepzap Active Recall
+                      </span>
+                      <span className="text-[#10B981]">88% 30-Day Retention</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full border border-black bg-white overflow-hidden p-[0.5px]">
+                      <div className="h-full rounded-full bg-[#10B981]" style={{ width: "88%" }} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <div className="flex justify-between text-[10px] font-bold text-black/55">
+                      <span className="flex items-center gap-1">
+                        <span className="text-black/40">●</span> Passive Re-reading Notes
+                      </span>
+                      <span>21% Retention</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full border border-black/40 bg-black/10 overflow-hidden p-[0.5px]">
+                      <div className="h-full rounded-full bg-black/30" style={{ width: "21%" }} />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[9.5px] font-medium text-black/55 leading-tight italic">
+                  *Active recall testing creates durable neural pathways 4.2x faster than highlighting notes.
+                </p>
+              </div>
+
+              {/* Brilliant / Center Habit Reminder Window Priming */}
+              <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[2px_2px_0px_#000] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-black uppercase text-black/70">
+                    When should Rex remind you?
+                  </label>
+                  <span className="text-[9.5px] font-bold text-black/45">1 gentle daily nudge</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {REMINDER_WINDOWS.map((win) => {
+                    const isActive = reminderWindow === win.id;
+                    return (
+                      <button
+                        key={win.id}
+                        type="button"
+                        onClick={() => {
+                          playTap();
+                          setReminderWindow(win.id);
+                        }}
+                        className={`p-2 border-2 border-black rounded-xl text-center transition-all cursor-pointer ${
+                          isActive
+                            ? "bg-black text-white shadow-[2px_2px_0px_#FFD13B]"
+                            : "bg-[#FAF7F2] hover:bg-white text-black shadow-[1px_1px_0px_#000]"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[16px] block mb-0.5">
+                          {win.icon}
+                        </span>
+                        <span className="block text-[11px] font-black leading-none">{win.label}</span>
+                        <span className="block text-[9px] opacity-75 mt-0.5">{win.time}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Live Push Notification Preview Card */}
+                <div className="p-2.5 bg-[#FFFBEA] border-2 border-dashed border-black/40 rounded-xl flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg border border-black bg-[#FFD13B] flex items-center justify-center shrink-0">
+                    <span className="text-[13px]">🦖</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-black/60">
+                      <span>Studenius • Daily Habit</span>
+                      <span>{REMINDER_WINDOWS.find((w) => w.id === reminderWindow)?.time}</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-black mt-0.5 leading-snug truncate">
+                      Hey! Ready for your {dailyMinutes}m {activeSubjectName} practice? Keep your 1-day streak alive! 🔥
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Optional Exam Target */}
-              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000] space-y-2.5">
+              <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[2px_2px_0px_#000] space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-[11px] font-black uppercase text-black/70">
                     Upcoming Exam (Optional):
@@ -674,20 +882,22 @@ export default function OnboardingFlow() {
                   </button>
                 </div>
 
-                <input
-                  type="text"
-                  value={examTitle}
-                  onChange={(e) => setExamTitle(e.target.value)}
-                  placeholder={`e.g. ${activeSubjectName} Midterm`}
-                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12.5px] font-bold bg-[#FAF7F2] focus:bg-white focus:outline-none"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={examTitle}
+                    onChange={(e) => setExamTitle(e.target.value)}
+                    placeholder={`e.g. ${activeSubjectName} Midterm`}
+                    className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12px] font-bold bg-[#FAF7F2] focus:bg-white focus:outline-none"
+                  />
 
-                <input
-                  type="date"
-                  value={examDate}
-                  onChange={(e) => handleExamDateChange(e.target.value)}
-                  className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12.5px] font-bold bg-[#FAF7F2] focus:bg-white focus:outline-none cursor-pointer"
-                />
+                  <input
+                    type="date"
+                    value={examDate}
+                    onChange={(e) => handleExamDateChange(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-black rounded-xl text-[12px] font-bold bg-[#FAF7F2] focus:bg-white focus:outline-none cursor-pointer"
+                  />
+                </div>
 
                 {examDateError && (
                   <p className="text-[11px] font-black text-[#EF4444]">
@@ -704,7 +914,7 @@ export default function OnboardingFlow() {
                 onClick={handleContinueFromGoal}
                 className="w-full py-3.5 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors disabled:opacity-50"
               >
-                Next
+                Lock In My Custom Plan ➔
               </button>
             </div>
           </div>
@@ -727,8 +937,8 @@ export default function OnboardingFlow() {
               </div>
 
               {/* IKEA Effect & Endowment Card: Shows what the user already built */}
-              <div className="bg-[#FFD13B] border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0px_#000]">
-                <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-2">
+              <div className="bg-[#FFD13B] border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0px_#000] space-y-2.5">
+                <div className="flex items-center justify-between border-b-2 border-black pb-2">
                   <span className="text-[11px] font-black uppercase text-black/70 tracking-wider">
                     Your Unlocked Progress
                   </span>
@@ -736,19 +946,60 @@ export default function OnboardingFlow() {
                     🔥 1-Day Streak
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-black">
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-black">
                   <div className="bg-white border border-black rounded-xl p-1.5">
-                    <span className="block text-[9.5px] font-bold opacity-60">Focus Class</span>
+                    <span className="block text-[9px] font-bold opacity-60">Focus Class</span>
                     <span className="block text-[11.5px] font-black truncate">{activeSubjectName}</span>
                   </div>
                   <div className="bg-white border border-black rounded-xl p-1.5">
-                    <span className="block text-[9.5px] font-bold opacity-60">First Win</span>
+                    <span className="block text-[9px] font-bold opacity-60">Active Recall</span>
                     <span className="block text-[11.5px] font-black text-[#10B981]">Complete ✓</span>
                   </div>
                   <div className="bg-white border border-black rounded-xl p-1.5">
-                    <span className="block text-[9.5px] font-bold opacity-60">Daily Goal</span>
+                    <span className="block text-[9px] font-bold opacity-60">Daily Habit</span>
                     <span className="block text-[11.5px] font-black">{dailyMinutes}m / day</span>
                   </div>
+                  <div className="bg-white border border-black rounded-xl p-1.5">
+                    <span className="block text-[9px] font-bold opacity-60">Target Ready</span>
+                    <span className="block text-[11.5px] font-black">{formattedProjectedDate}</span>
+                  </div>
+                </div>
+
+                {/* Unlocked Study Goals Chips */}
+                {selectedGoals.length > 0 && (
+                  <div className="pt-1 flex flex-wrap gap-1">
+                    {selectedGoals.map((gid) => {
+                      const match = STUDY_GOALS.find((g) => g.id === gid);
+                      if (!match) return null;
+                      return (
+                        <span
+                          key={gid}
+                          className="px-2 py-0.5 bg-black text-white rounded-lg text-[9.5px] font-bold flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-[11px]">
+                            {match.icon}
+                          </span>
+                          {match.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Rex's 100% Free Learning Promise */}
+              <div className="p-3 bg-[#FAF7F2] border-2 border-black rounded-xl flex items-center gap-2.5 shadow-[2px_2px_0px_#000]">
+                <div className="w-8 h-8 rounded-lg bg-[#10B981] border border-black text-white flex items-center justify-center shrink-0 font-black">
+                  ✓
+                </div>
+                <div className="text-left">
+                  <p className="text-[11.5px] font-black text-black leading-tight">
+                    Rex's 100% Free Learning Promise
+                  </p>
+                  <p className="text-[10px] font-medium text-black/65 leading-tight mt-0.5">
+                    Core active recall quizzes, spaced flashcards, and streak tracking are free forever. No surprise paywalls.
+                  </p>
                 </div>
               </div>
 
