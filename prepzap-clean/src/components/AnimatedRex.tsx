@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { playPop } from "@/lib/soundFX";
 
 export type RexState = "idle" | "listening" | "processing" | "responding" | "excited" | "dancing" | "waving" | "thinking" | "nodding";
@@ -13,8 +13,9 @@ interface AnimatedRexProps {
   speechText?: string;
   className?: string;
   onClick?: () => void;
-  preferAnimatedWebP?: boolean; // When true, uses WebP animations; defaults to false for solid clean Duolingo-style render
-  grounded?: boolean; // When true, Rex stands solid on ground with no floating/hovering (Duolingo style)
+  useGif?: boolean; // When true (default), uses clean, ghost-free animated GIFs
+  grounded?: boolean; // When true (default), Rex stands solid on ground with no floating/hovering
+  pedestal?: boolean; // When true, renders a solid 3D Duolingo-style stage podium directly under paws
 }
 
 export const REX_SOLID_POSES: Record<RexState, string> = {
@@ -29,6 +30,30 @@ export const REX_SOLID_POSES: Record<RexState, string> = {
   nodding: "/fox/rex_calm_solid.png",
 };
 
+export const GIF_ANIMATIONS: Record<RexState, string> = {
+  idle: "/animations/rex_idle.gif",
+  waving: "/animations/rex_waving.gif",
+  listening: "/animations/rex_listening.gif",
+  processing: "/animations/rex_thinking.gif",
+  thinking: "/animations/rex_thinking.gif",
+  responding: "/animations/rex_speaking.gif",
+  excited: "/animations/rex_celebrating.gif",
+  dancing: "/animations/rex_celebrating.gif",
+  nodding: "/animations/rex_nodding.gif",
+};
+
+export const WEBP_ANIMATIONS: Record<RexState, string> = {
+  idle: "/animations/rex_idle.webp",
+  waving: "/animations/rex_waving.webp",
+  listening: "/animations/rex_listening.webp",
+  processing: "/animations/rex_thinking.webp",
+  thinking: "/animations/rex_thinking.webp",
+  responding: "/animations/rex_speaking.webp",
+  excited: "/animations/rex_celebrating.webp",
+  dancing: "/animations/rex_celebrating.webp",
+  nodding: "/animations/rex_nodding.webp",
+};
+
 const SPRITES = {
   neutral: "/fox/fox-neutral.png",
   happy: "/fox/fox-happy.png",
@@ -39,13 +64,13 @@ const SPRITES = {
   laughing: "/fox/fox-laughing.png",
 };
 
-// Sized proportionally to Rex's natural portrait aspect ratio (width:height ~ 1:1.9)
+// Sized generously to Rex's natural portrait aspect ratio (width:height ~ 1:1.9)
 const SIZE_STYLES = {
-  sm: { container: "w-12 h-20", shadow: "w-10 h-1.5" },
-  md: { container: "w-20 h-32", shadow: "w-16 h-2" },
-  lg: { container: "w-32 h-48 sm:w-36 sm:h-54", shadow: "w-28 h-2.5" },
-  xl: { container: "w-44 h-64 sm:w-52 sm:h-76", shadow: "w-40 h-3" },
-  hero: { container: "w-56 h-80 sm:w-64 sm:h-92", shadow: "w-50 h-3.5" },
+  sm: { container: "w-16 h-28 sm:w-20 sm:h-34", shadow: "w-14 sm:w-16 h-2", pedestal: "w-24 h-4" },
+  md: { container: "w-24 h-40 sm:w-28 sm:h-46", shadow: "w-20 sm:w-24 h-2.5", pedestal: "w-32 h-5" },
+  lg: { container: "w-36 h-56 sm:w-44 sm:h-68", shadow: "w-32 sm:w-36 h-3", pedestal: "w-44 h-6" },
+  xl: { container: "w-48 h-72 sm:w-56 sm:h-84", shadow: "w-40 sm:w-48 h-3.5", pedestal: "w-54 h-7" },
+  hero: { container: "w-60 h-92 sm:w-72 sm:h-110", shadow: "w-52 sm:w-60 h-4", pedestal: "w-68 h-8" },
 };
 
 export function AnimatedRex({
@@ -58,8 +83,9 @@ export function AnimatedRex({
   speechText,
   className = "",
   onClick,
-  preferAnimatedWebP = false, // Default to pristine solid pose (0 ghost marks, 0 trails)
-  grounded = true, // Default to grounded solid posture like Duolingo
+  useGif = true, // Default to clean, ghost-free animated GIFs (Duolingo style)
+  grounded = true, // Default to grounded solid posture
+  pedestal = false, // Optional built-in 3D stage
 }: AnimatedRexProps) {
   const [sprite, setSprite] = useState<string>(SPRITES.happy);
   const [isJumping, setIsJumping] = useState(false);
@@ -67,9 +93,10 @@ export function AnimatedRex({
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [mouthOpen, setMouthOpen] = useState(false);
 
-  // Active image asset: Uses ultra-crisp solid poses by default (zero ghost marks or accumulation trails)
+  // Active image asset: Uses ultra-crisp transparent animated GIF by default
+  const activeGif = useGif && isTabVisible ? GIF_ANIMATIONS[state] : null;
+  const activeWebP = isTabVisible ? WEBP_ANIMATIONS[state] : null;
   const activeSolidPose = REX_SOLID_POSES[state] || sprite;
-  const activeWebP = preferAnimatedWebP && isTabVisible ? WEBP_ANIMATIONS[state] : null;
 
   // Lip-sync / speaking animation cycle
   useEffect(() => {
@@ -78,7 +105,6 @@ export function AnimatedRex({
       return;
     }
 
-    // Toggle mouth every 140ms while speaking to create organic talking animation
     const interval = setInterval(() => {
       setMouthOpen((prev) => !prev);
     }, 150);
@@ -155,7 +181,7 @@ export function AnimatedRex({
   const soundScale = 1 + (amplitude / 255) * 0.45;
 
   return (
-    <div className={`relative flex flex-col items-center justify-center select-none ${className}`}>
+    <div className={`relative flex flex-col items-center justify-end select-none ${className}`}>
       <style>{`
         /* Grounded Duolingo-style Animations: Feet remain anchored to baseline */
         @keyframes rex-grounded-breathe {
@@ -171,13 +197,13 @@ export function AnimatedRex({
             transform: translateY(0px) scale(1, 1);
           }
           20% {
-            transform: translateY(-10px) scale(1.04, 0.96) rotate(-1.5deg);
+            transform: translateY(-8px) scale(1.04, 0.96) rotate(-1deg);
           }
           40% {
-            transform: translateY(0px) scale(0.97, 1.03) rotate(1deg);
+            transform: translateY(0px) scale(0.97, 1.03) rotate(0.8deg);
           }
           60% {
-            transform: translateY(-6px) scale(1.02, 0.98) rotate(-0.5deg);
+            transform: translateY(-4px) scale(1.02, 0.98) rotate(-0.5deg);
           }
           80% {
             transform: translateY(0px) scale(0.99, 1.01) rotate(0deg);
@@ -193,16 +219,16 @@ export function AnimatedRex({
         }
         @keyframes rex-grounded-sway {
           0%, 100% {
-            transform: rotate(-2.5deg) scale(1, 1);
+            transform: rotate(-2deg) scale(1, 1);
           }
           50% {
-            transform: rotate(2.5deg) scale(1.01, 0.99);
+            transform: rotate(2deg) scale(1.01, 0.99);
           }
         }
         @keyframes rex-spring-pop {
           0% { transform: scale(1, 1); }
           25% { transform: scale(1.08, 0.92); }
-          50% { transform: translateY(-16px) scale(0.94, 1.06) rotate(-2deg); }
+          50% { transform: translateY(-14px) scale(0.94, 1.06) rotate(-2deg); }
           75% { transform: translateY(2px) scale(1.03, 0.97) rotate(1deg); }
           100% { transform: translateY(0px) scale(1, 1) rotate(0deg); }
         }
@@ -263,7 +289,7 @@ export function AnimatedRex({
               : !isTabVisible
               ? "none"
               : state === "excited" || state === "dancing"
-              ? "rex-solid-cheer 1.2s ease-in-out infinite"
+              ? "rex-solid-cheer 1.4s ease-in-out infinite"
               : state === "processing" || state === "thinking"
               ? "rex-grounded-sway 2.5s ease-in-out infinite"
               : state === "responding" || speaking
@@ -271,7 +297,7 @@ export function AnimatedRex({
               : "rex-grounded-breathe 3.2s ease-in-out infinite",
           }}
         >
-          {/* Main Fox Character (Crisp Solid High-DPI PNG with zero ghosting or artifacts) */}
+          {/* Main Fox Character: Clean, ghost-free transparent animated GIF / WebP */}
           <picture className="w-full h-full flex items-end justify-center">
             {activeWebP && (
               <source
@@ -281,7 +307,7 @@ export function AnimatedRex({
               />
             )}
             <img
-              src={activeWebP || activeSolidPose}
+              src={activeGif || activeWebP || activeSolidPose}
               alt="Rex Mascot"
               className="w-full h-full object-contain filter drop-shadow-[0px_4px_8px_rgba(0,0,0,0.12)]"
               draggable={false}
@@ -289,8 +315,8 @@ export function AnimatedRex({
             />
           </picture>
 
-          {/* Smooth Eyelid Blink Overlay */}
-          {isBlinking && state !== "processing" && (
+          {/* Smooth Eyelid Blink Overlay (when not in animated GIF) */}
+          {!activeGif && isBlinking && state !== "processing" && (
             <div
               className="absolute top-[32%] left-[28%] right-[28%] h-[5px] bg-[#2D1B14] rounded-full z-20 pointer-events-none transition-all duration-75"
               style={{ opacity: 0.92 }}
@@ -308,10 +334,18 @@ export function AnimatedRex({
         </div>
 
         {/* Solid Ground Contact Shadow directly under feet (Anchored, not floating) */}
-        {grounded && (
+        {grounded && !pedestal && (
           <div
-            className={`${SIZE_STYLES[size].shadow} bg-black/20 rounded-full mt-[-3px] mx-auto transition-all`}
+            className={`${SIZE_STYLES[size].shadow} bg-black/25 rounded-full mt-[-3px] mx-auto transition-all`}
           />
+        )}
+
+        {/* Optional 3D Duolingo Stage Platform Podium */}
+        {pedestal && (
+          <div className="relative w-full flex flex-col items-center mt-[-4px] z-0">
+            <div className={`${SIZE_STYLES[size].pedestal} bg-[#E5E7EB] border-2 border-black rounded-t-xl shadow-inner relative`} />
+            <div className={`${SIZE_STYLES[size].pedestal} h-2.5 bg-[#CBD5E1] border-2 border-t-0 border-black rounded-b-xl shadow-[0_3px_0_#000]`} />
+          </div>
         )}
       </div>
 
