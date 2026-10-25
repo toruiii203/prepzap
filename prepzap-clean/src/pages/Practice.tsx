@@ -1100,23 +1100,25 @@ Each object MUST match this schema exactly:
                   </div>
                 )}
 
-                {/* Desktop Top Generator Banner */}
-                <DesktopBanner
-                  isGenerating={isGenerating}
-                  topicInput={topicInput}
-                  setTopicInput={setTopicInput}
-                  onGenerate={handleGenerateQuiz}
-                  onNavigate={navigate}
-                  libraryFiles={libraryFiles}
-                  questionCount={questionCount}
-                  setQuestionCount={setQuestionCount}
-                  activeSourceObj={activeSourceObj}
-                  setActiveSourceObj={setActiveSourceObj}
-                  quizType={quizType}
-                  setQuizType={setQuizType}
-                  difficulty={difficulty}
-                  setDifficulty={setDifficulty}
-                />
+                {/* Desktop Top Generator Banner: only shown when no active quiz */}
+                {(adaptiveQueue.length === 0 || isGenerating) && (
+                  <DesktopBanner
+                    isGenerating={isGenerating}
+                    topicInput={topicInput}
+                    setTopicInput={setTopicInput}
+                    onGenerate={handleGenerateQuiz}
+                    onNavigate={navigate}
+                    libraryFiles={libraryFiles}
+                    questionCount={questionCount}
+                    setQuestionCount={setQuestionCount}
+                    activeSourceObj={activeSourceObj}
+                    setActiveSourceObj={setActiveSourceObj}
+                    quizType={quizType}
+                    setQuizType={setQuizType}
+                    difficulty={difficulty}
+                    setDifficulty={setDifficulty}
+                  />
+                )}
 
                 {/* Loading state */}
                 {isGenerating && (
@@ -1128,16 +1130,24 @@ Each object MUST match this schema exactly:
 
                 {/* Empty State */}
                 {adaptiveQueue.length === 0 && !isGenerating && (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-4">
-                    <div className="w-24 h-24 bg-[#E2E2E2] border-2 border-black shadow-[4px_4px_0px_#000] rounded-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[48px] text-black opacity-40">school</span>
+                  <div className="flex-1 flex flex-col items-center justify-center text-center py-12 gap-5">
+                    <div className="w-20 h-20 bg-[#FFE566] border-2 border-black shadow-[4px_4px_0px_#000] rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[40px] text-black" aria-hidden="true">school</span>
                     </div>
-                    <h2 className="font-extrabold text-[22px]">Ready to test your mastery?</h2>
-                    <p className="text-black/60 font-bold text-[14px] max-w-[340px]">
-                      {(libraryFiles || []).length > 0
-                        ? `${(libraryFiles || []).length} source(s) detected in your library. Select one or type a topic, then click Generate!`
-                        : "Type a topic above, choose your question type, and start testing."}
-                    </p>
+                    <div>
+                      <h2 className="font-black text-[22px] text-black">Ready to test your recall?</h2>
+                      <p className="text-black/60 font-bold text-[14px] max-w-[360px] mt-1">
+                        Use the generator above to build a custom quiz, or jump directly into your daily learning path!
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/dashboard")}
+                      className="px-6 py-3 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
+                    >
+                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">route</span>
+                      <span>Go to Learning Path</span>
+                    </button>
                   </div>
                 )}
 
@@ -1145,18 +1155,34 @@ Each object MUST match this schema exactly:
                 {adaptiveQueue.length > 0 && !isGenerating && currentQuestion && (
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
-                      {/* Top Bar: Progress + Flame Combo Badge + Timer */}
+                      {/* Top Bar: Exit + Progress + Flame Combo Badge + Timer */}
                       <div className="flex items-center justify-between mb-6 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm("Leave this lesson? Your progress for this session will be lost.")) {
+                              localStorage.removeItem('pz_practice_queue');
+                              localStorage.removeItem('pz_practice_questions');
+                              navigate("/dashboard");
+                            }
+                          }}
+                          className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black text-[16px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+                          title="Exit Lesson to Learning Path"
+                          aria-label="Exit Lesson"
+                        >
+                          ✕
+                        </button>
+
                         <div className="flex-1 flex flex-col gap-1.5">
                           <div className="flex justify-between items-center text-[12px] font-extrabold">
-                            <span className="uppercase tracking-wider text-black/50">
+                            <span className="uppercase tracking-wider text-black/60 font-black">
                               Mastery Progress ({masteredCount} of {totalInitialCount})
                             </span>
-                            <span className="text-[#FF4D2E] font-black">{progressPercent}%</span>
+                            <span className="text-[#10B981] font-black">{progressPercent}%</span>
                           </div>
                           <div className="h-3.5 w-full bg-[#E8E4DC] border-[2px] border-black rounded-full overflow-hidden">
                             <div 
-                              className="h-full bg-[#FF4D2E] transition-all duration-300" 
+                              className="h-full bg-[#10B981] transition-all duration-300" 
                               style={{ width: `${progressPercent}%` }} 
                             />
                           </div>
@@ -1173,7 +1199,7 @@ Each object MUST match this schema exactly:
 
                           {/* Countdown Timer */}
                           <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#F0EDE0] border-[2px] border-black shadow-[2px_2px_0px_#000] rounded-full text-[13px] font-bold">
-                            <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">timer</span>
+                            <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">timer</span>
                             <span>{formatTime(timeLeft)}</span>
                           </div>
                         </div>
@@ -1394,9 +1420,10 @@ Each object MUST match this schema exactly:
                     </button>
                     <button 
                       onClick={() => navigate("/dashboard")}
-                      className="flex-1 bg-[#FF4D2E] border-[3px] border-black text-white py-4 font-extrabold hover:opacity-95 active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer rounded-xl"
+                      className="flex-1 bg-[#10B981] hover:bg-[#059669] border-[3px] border-black text-white py-4 font-black hover:opacity-95 active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer rounded-xl flex items-center justify-center gap-2 uppercase tracking-wider"
                     >
-                      Dashboard
+                      <span>Continue to Learning Path</span>
+                      <span className="material-symbols-outlined text-[20px]" aria-hidden="true">arrow_forward</span>
                     </button>
                   </div>
                 </div>
@@ -1409,10 +1436,12 @@ Each object MUST match this schema exactly:
             )}
           </div>
 
-          {/* Persistent Desktop Quiz History Sidebar */}
-          <aside className="w-[280px] border-l-2 border-black bg-white flex flex-col shrink-0" style={{ minHeight: "100vh" }}>
-            <HistoryDrawerContent />
-          </aside>
+          {/* Desktop Quiz History Sidebar: only shown when not in an active quiz */}
+          {(adaptiveQueue.length === 0 || isGenerating) && (
+            <aside className="w-[280px] border-l-2 border-black bg-white flex flex-col shrink-0" style={{ minHeight: "100vh" }}>
+              <HistoryDrawerContent />
+            </aside>
+          )}
         </div>
       </div>
 
@@ -1421,16 +1450,27 @@ Each object MUST match this schema exactly:
         {/* Header */}
         <header className="w-full sticky top-0 z-40 bg-[#FAF7F2] border-b-[2px] border-black flex items-center justify-between px-4 h-16 shrink-0">
           <button 
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+            onClick={() => {
+              if (adaptiveQueue.length > 0 && masteredCount < totalInitialCount) {
+                if (window.confirm("Leave this lesson? Your progress for this session will be lost.")) {
+                  localStorage.removeItem('pz_practice_queue');
+                  localStorage.removeItem('pz_practice_questions');
+                  navigate("/dashboard");
+                }
+              } else {
+                navigate("/dashboard");
+              }
+            }}
+            aria-label="Exit Lesson"
+            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer font-black text-[16px]"
           >
-            <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+            {adaptiveQueue.length > 0 ? "✕" : <span className="material-symbols-outlined text-[22px]" aria-hidden="true">arrow_back</span>}
           </button>
           
-          <div className="flex items-center gap-1.5 font-extrabold text-[18px]">
-            <span>Practice</span>
+          <div className="flex items-center gap-1.5 font-black text-[16px] truncate max-w-[200px]">
+            <span className="truncate">{adaptiveQueue.length > 0 && currentQuestion ? currentQuestion.subject : "Practice"}</span>
             {comboStreak > 1 && (
-              <span className="bg-[#FFF275] border border-black rounded-full px-2 py-0.5 text-[11px] font-black">
+              <span className="bg-[#FFF275] border border-black rounded-full px-2 py-0.5 text-[11px] font-black shrink-0">
                 🔥 {comboStreak}
               </span>
             )}
@@ -1439,15 +1479,17 @@ Each object MUST match this schema exactly:
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setShowHistory(true)}
-              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+              aria-label="Attempt History"
+              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[20px]">history</span>
+              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">history</span>
             </button>
             <button 
               onClick={() => tutorial.show()} 
-              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+              aria-label="Practice Tutorial"
+              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">help</span>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">help</span>
             </button>
           </div>
         </header>
@@ -1491,104 +1533,106 @@ Each object MUST match this schema exactly:
                 </div>
               )}
 
-              {/* Mobile Generator Banner */}
-              <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0 shadow-[2px_2px_0px_#000]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]">school</span>
-                    <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">Quiz Generator</span>
-                  </div>
-                  <span className="px-2 py-0.5 bg-[#FFF275] border border-black rounded text-[9px] font-black uppercase">
-                    Adaptive
-                  </span>
-                </div>
-
-                <textarea
-                  value={topicInput}
-                  onChange={e => setTopicInput(e.target.value)}
-                  className="w-full h-20 bg-[#FAF7F2] border-2 border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none"
-                  placeholder="Paste notes or type a topic..."
-                />
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0">Questions</span>
-                  <div className="flex border-2 border-black rounded-lg overflow-hidden">
-                    {QUESTION_COUNT_OPTIONS.map((n, i) => (
-                      <button
-                        key={n}
-                        onClick={() => setQuestionCount(n)}
-                        className={`px-3 py-1 text-[12px] font-extrabold transition-colors ${i > 0 ? "border-l-2 border-black" : ""} ${
-                          questionCount === n ? "bg-black text-white" : "bg-white text-black"
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    ))}
+              {/* Mobile Generator Banner: only when no active quiz */}
+              {(adaptiveQueue.length === 0 || isGenerating) && (
+                <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0 shadow-[2px_2px_0px_#000]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]" aria-hidden="true">school</span>
+                      <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">Quiz Generator</span>
+                    </div>
+                    <span className="px-2 py-0.5 bg-[#FFF275] border border-black rounded text-[9px] font-black uppercase">
+                      Adaptive
+                    </span>
                   </div>
 
-                  <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0 ml-1">Type</span>
-                  <select
-                    value={quizType}
-                    onChange={(e) => setQuizType(e.target.value)}
-                    className="border-2 border-black rounded-lg px-2 py-1 bg-white text-[12px] font-extrabold focus:outline-none cursor-pointer"
-                  >
-                    <option value="mixed">Mixed</option>
-                    <option value="multiple-choice">MC</option>
-                    <option value="identification">Ident</option>
-                    <option value="fill-in-the-blank">Blank</option>
-                  </select>
+                  <textarea
+                    value={topicInput}
+                    onChange={e => setTopicInput(e.target.value)}
+                    className="w-full h-20 bg-[#FAF7F2] border-2 border-black rounded-lg p-3 text-[13px] font-medium resize-none focus:outline-none"
+                    placeholder="Paste notes or type a topic..."
+                  />
 
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                    className="border-2 border-black rounded-lg px-2 py-1 bg-white text-[12px] font-extrabold focus:outline-none cursor-pointer"
-                  >
-                    <option value="mixed">All Diff</option>
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
-                </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0">Questions</span>
+                    <div className="flex border-2 border-black rounded-lg overflow-hidden">
+                      {QUESTION_COUNT_OPTIONS.map((n, i) => (
+                        <button
+                          key={n}
+                          onClick={() => setQuestionCount(n)}
+                          className={`px-3 py-1 text-[12px] font-extrabold transition-colors ${i > 0 ? "border-l-2 border-black" : ""} ${
+                            questionCount === n ? "bg-black text-white" : "bg-white text-black"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
 
-                <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center px-1">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Source Context</span>
-                    <button 
-                      onClick={() => navigate("/library")}
-                      className="text-[10px] font-bold text-[#FF4D2E] hover:underline flex items-center"
+                    <span className="text-[10px] font-black uppercase tracking-widest text-black/40 shrink-0 ml-1">Type</span>
+                    <select
+                      value={quizType}
+                      onChange={(e) => setQuizType(e.target.value)}
+                      className="border-2 border-black rounded-lg px-2 py-1 bg-white text-[12px] font-extrabold focus:outline-none cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[12px] mr-1">add_circle</span>
-                      Add Source
+                      <option value="mixed">Mixed</option>
+                      <option value="multiple-choice">MC</option>
+                      <option value="identification">Ident</option>
+                      <option value="fill-in-the-blank">Blank</option>
+                    </select>
+
+                    <select
+                      value={difficulty}
+                      onChange={(e) => setDifficulty(e.target.value)}
+                      className="border-2 border-black rounded-lg px-2 py-1 bg-white text-[12px] font-extrabold focus:outline-none cursor-pointer"
+                    >
+                      <option value="mixed">All Diff</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Source Context</span>
+                      <button 
+                        onClick={() => navigate("/library")}
+                        className="text-[10px] font-bold text-[#FF4D2E] hover:underline flex items-center"
+                      >
+                        <span className="material-symbols-outlined text-[12px] mr-1" aria-hidden="true">add_circle</span>
+                        Add Source
+                      </button>
+                    </div>
+                    <select
+                      value={activeSourceObj ? activeSourceObj.id : "all"}
+                      onChange={(e) => {
+                        if (e.target.value === "all") {
+                          setActiveSourceObj(null);
+                        } else {
+                          const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
+                          setActiveSourceObj(source);
+                        }
+                      }}
+                      className="w-full border-2 border-black rounded-lg px-3 py-2 bg-[#F0EDE0] text-[12px] font-bold focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">General Study (No Source)</option>
+                      {(libraryFiles || []).map((file: any) => (
+                        <option key={file.id} value={file.id}>{file.name}</option>
+                      ))}
+                    </select>
+
+                    <button 
+                      onClick={handleGenerateQuiz} 
+                      disabled={isGenerating}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[13px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">bolt</span>
+                      {isGenerating ? "Building Quiz..." : "Generate Mastery Quiz"}
                     </button>
                   </div>
-                  <select
-                    value={activeSourceObj ? activeSourceObj.id : "all"}
-                    onChange={(e) => {
-                      if (e.target.value === "all") {
-                        setActiveSourceObj(null);
-                      } else {
-                        const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
-                        setActiveSourceObj(source);
-                      }
-                    }}
-                    className="w-full border-2 border-black rounded-lg px-3 py-2 bg-[#F0EDE0] text-[12px] font-bold focus:outline-none cursor-pointer"
-                  >
-                    <option value="all">General Study (No Source)</option>
-                    {(libraryFiles || []).map((file: any) => (
-                      <option key={file.id} value={file.id}>{file.name}</option>
-                    ))}
-                  </select>
-
-                  <button 
-                    onClick={handleGenerateQuiz} 
-                    disabled={isGenerating}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[13px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">bolt</span>
-                    {isGenerating ? "Building Quiz..." : "Generate Mastery Quiz"}
-                  </button>
-                </div>
-              </section>
+                </section>
+              )}
 
               {/* Mobile Loading */}
               {isGenerating && (
@@ -1601,13 +1645,21 @@ Each object MUST match this schema exactly:
               {/* Mobile Empty */}
               {adaptiveQueue.length === 0 && !isGenerating && (
                 <div className="flex flex-col items-center text-center gap-3 py-8">
-                  <div className="w-20 h-20 bg-[#E2E2E2] border-[1.5px] border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_#000]">
-                    <span className="material-symbols-outlined text-[40px] text-black opacity-40">school</span>
+                  <div className="w-18 h-18 bg-[#FFE566] border-2 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_#000]">
+                    <span className="material-symbols-outlined text-[36px] text-black" aria-hidden="true">school</span>
                   </div>
-                  <h2 className="font-extrabold text-[18px]">No active quiz</h2>
-                  <p className="font-bold text-[12px] text-black/50 max-w-[240px]">
-                    Choose options above and tap Generate to begin adaptive recall.
+                  <h2 className="font-black text-[18px]">No active lesson</h2>
+                  <p className="font-bold text-[12px] text-black/60 max-w-[260px]">
+                    Create a quiz above, or jump back to your study path to continue your streak!
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard")}
+                    className="mt-2 px-5 py-2.5 bg-[#FF4D2E] text-white rounded-xl border-2 border-black font-black text-[12.5px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 uppercase tracking-wider flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">route</span>
+                    <span>Go to Learning Path</span>
+                  </button>
                 </div>
               )}
 
@@ -1822,9 +1874,10 @@ Each object MUST match this schema exactly:
               </button>
               <button 
                 onClick={() => navigate("/dashboard")}
-                className="flex-1 bg-[#FF4D2E] border-2 border-black text-white py-3.5 rounded-xl font-bold active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer"
+                className="flex-1 bg-[#10B981] hover:bg-[#059669] border-2 border-black text-white py-3.5 rounded-xl font-black active:translate-y-0.5 shadow-[2px_2px_0px_#000] text-[13px] cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5"
               >
-                Dashboard
+                <span>Continue</span>
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
               </button>
             </div>
           </main>

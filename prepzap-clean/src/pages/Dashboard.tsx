@@ -13,11 +13,9 @@ import { motion, animate, useAnimation } from "framer-motion";
 import { playPop, playTap, playSuccess, playCelebration } from "@/lib/soundFX";
 import { triggerXPBurst } from "@/components/FloatingXPBurst";
 import confetti from "canvas-confetti";
-import { ExamCountdownBanner, calculateExamReadiness } from "@/components/ExamCountdownBanner";
-import { loadLibrary } from "@/lib/sourceContext";
+import { ExamCountdownBanner } from "@/components/ExamCountdownBanner";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
-import { StreakHubCard } from "@/components/StreakHubCard";
 import { StudyPathMap } from "@/components/StudyPathMap";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
 import {
@@ -384,9 +382,9 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
         {loadingTasks ? (
           <div className="text-center py-4 text-xs font-bold text-slate-400">Loading checklist...</div>
         ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-40">
-            <span className="material-symbols-outlined text-[48px] mb-2">task_alt</span>
-            <p className="text-sm font-bold">No quests yet.<br />Add your first target below.</p>
+          <div className="flex flex-col items-center justify-center h-full text-center py-8 opacity-50">
+            <span className="material-symbols-outlined text-[40px] mb-2" aria-hidden="true">task_alt</span>
+            <p className="text-xs font-bold">No quests yet.<br />Add your first target below.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -396,13 +394,14 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
                   <button
                     type="button"
                     onClick={() => handleToggleTask(task.id, task.completed)}
+                    aria-label={task.completed ? `Mark "${task.title}" incomplete` : `Mark "${task.title}" complete`}
                     className={`w-5 h-5 rounded-full border-2 border-black flex-shrink-0 cursor-pointer flex items-center justify-center transition-all active:scale-90 ${
                       task.completed ? "bg-[#10B981] shadow-none" : "bg-white hover:bg-[#FFFBEA] shadow-[1px_1px_0px_#000]"
                     }`}
                   >
-                    {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black">check</span>}
+                    {task.completed && <span className="material-symbols-outlined text-[13px] text-white font-black" aria-hidden="true">check</span>}
                   </button>
-                  <div className={`text-[14px] font-extrabold truncate transition-opacity ${task.completed ? "line-through opacity-40 text-black" : "text-black"}`}>
+                  <div className={`text-[13.5px] font-extrabold truncate transition-opacity ${task.completed ? "line-through opacity-40 text-black" : "text-black"}`}>
                     {task.title}
                     {task.time && (
                       <span className="text-[11px] font-bold opacity-60 ml-1.5 bg-[#FFFBEA] px-2 py-0.5 rounded-full border border-black/15">
@@ -414,9 +413,10 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
                 <button
                   type="button"
                   onClick={() => handleDeleteTask(task.id)}
-                  className="material-symbols-outlined text-[18px] text-black/30 hover:text-[#FF4D2E] cursor-pointer transition-colors p-1"
+                  aria-label={`Delete quest "${task.title}"`}
+                  className="text-black/30 hover:text-[#FF4D2E] cursor-pointer transition-colors p-1"
                 >
-                  delete
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">delete</span>
                 </button>
               </div>
             ))}
@@ -434,9 +434,10 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
           />
           <button
             type="submit"
-            className="border-2 border-black bg-black text-white px-3.5 flex items-center justify-center hover:bg-[#FF4D2E] transition-colors rounded-lg shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+            aria-label="Add quest"
+            className="border-2 border-black bg-black text-white px-3.5 flex items-center justify-center hover:bg-[#FF4D2E] transition-colors rounded-lg shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[20px]">add</span>
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
           </button>
         </form>
       </div>
@@ -457,21 +458,23 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
       {loadingSessions ? (
         <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
       ) : filteredSessions.length === 0 ? (
-        <div className="p-4 text-center text-xs font-bold text-slate-400">No sessions yet. Start studying!</div>
+        <div className="p-4 text-center text-xs font-bold text-slate-500">
+          Ready for your first session! Tap START on Unit 1.
+        </div>
       ) : (
         filteredSessions.slice(0, 3).map((session, sIdx) => {
           const formattedDate = new Date(session.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
           const icons = ["science", "calculate", "history_edu"];
           const bgs = ["bg-black", "bg-[#b61b00]", "bg-[#858480]"];
           return (
-            <div key={session.id || sIdx} className="p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-11 h-11 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
-                  style={{ boxShadow: "2px 2px 0px #000" }}>
-                  <span className="material-symbols-outlined text-[20px]">{icons[sIdx % 3]}</span>
+            <div key={session.id || sIdx} className="p-3.5 sm:p-4 flex justify-between items-center bg-white hover:bg-[#f3f3f3] transition-colors">
+              <div className="flex items-center gap-3.5">
+                <div className={`w-10 h-10 border-2 border-black flex items-center justify-center text-white flex-shrink-0 ${bgs[sIdx % 3]}`}
+                  style={{ boxShadow: "1.5px 1.5px 0px #000" }}>
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{icons[sIdx % 3]}</span>
                 </div>
                 <div>
-                  <div className="text-[14px] font-extrabold text-black">{session.title}</div>
+                  <div className="text-[13.5px] font-extrabold text-black leading-tight">{session.title}</div>
                   <div className="text-[11px] font-bold text-black/50">{formatDuration(Number(session.duration_minutes || 0))} &bull; {formattedDate}</div>
                 </div>
               </div>
@@ -524,169 +527,6 @@ const formatDuration = (mins: number) => {
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 };
-
-// ── Grounded Rex Hero Stage (Grounded Mascot Pedestal & Speech Bubble, Knowunity + Airlearn inspired)
-function RexHeroStage({
-  displayName,
-  primarySubjectMeta,
-  activeGoalMeta,
-  examTarget,
-  allSessions = [],
-  quizAccuracy,
-  sessionsCount,
-  tasksCompleted,
-  navigate,
-}: {
-  displayName: string;
-  primarySubjectMeta: any;
-  activeGoalMeta: any;
-  examTarget?: ExamTarget | null;
-  allSessions?: any[];
-  quizAccuracy: number;
-  sessionsCount: number;
-  tasksCompleted: number;
-  navigate: any;
-}) {
-  const libraryFiles = useMemo(() => loadLibrary(), []);
-  const readiness = useMemo(() => {
-    return calculateExamReadiness(examTarget, allSessions, libraryFiles, quizAccuracy, tasksCompleted);
-  }, [examTarget, allSessions, libraryFiles, quizAccuracy, tasksCompleted]);
-
-  const [dialogueIndex, setDialogueIndex] = useState(0);
-  const [rexState, setRexState] = useState<any>("idle");
-
-  const dialogues = useMemo(() => {
-    const list: string[] = [];
-    if (examTarget?.examDate && readiness.daysLeft >= 0) {
-      list.push(
-        `Your ${examTarget.subject || primarySubjectMeta.name} exam is in ${readiness.daysLeft} days! Let's lock in 5 minutes of practice.`
-      );
-    } else if (libraryFiles && libraryFiles.length > 0) {
-      const topDoc = libraryFiles[0].name.replace(/\.[^/.]+$/, "");
-      list.push(`Pick up where you left off with "${topDoc}". Ready for a quick review?`);
-    } else if (allSessions && allSessions.length > 0 && allSessions[0]?.title) {
-      list.push(`Ready to continue with "${allSessions[0].title}"? Let's keep the momentum going.`);
-    } else {
-      list.push(`Welcome! Add your syllabus or notes in Library, or pick a study tool below to get started.`);
-    }
-
-    const subjectLabel = primarySubjectMeta.name === "General Studies" ? "your courses" : primarySubjectMeta.name;
-    list.push(`${getLocalGreeting()}, ${displayName}! Ready to study ${subjectLabel} today?`);
-    if (activeGoalMeta?.rexQuote) {
-      list.push(`"${activeGoalMeta.rexQuote}"`);
-    }
-    list.push(`Tap Talk to speak out loud with me, or launch a practice set!`);
-    return list;
-  }, [displayName, examTarget, readiness.daysLeft, primarySubjectMeta.name, activeGoalMeta?.rexQuote, libraryFiles, allSessions]);
-
-  const currentSpeech = dialogues[dialogueIndex % dialogues.length];
-
-  const handleRexClick = () => {
-    playPop(1.2);
-    setDialogueIndex((prev) => prev + 1);
-    const reactions = ["waving", "excited", "nodding"];
-    const nextReaction = reactions[dialogueIndex % reactions.length];
-    setRexState(nextReaction);
-    setTimeout(() => {
-      setRexState("idle");
-    }, 1800);
-  };
-
-  const handleCall = () => {
-    playSuccess();
-    localStorage.setItem("pz_has_called_rex", "true");
-    navigate("/call");
-  };
-
-  const handleLaunchPractice = () => {
-    playSuccess();
-    navigate(primarySubjectMeta.recommendedTool || "/practice");
-  };
-
-  const examLabel = examTarget?.examDate && readiness.daysLeft >= 0
-    ? `${examTarget.subject || primarySubjectMeta.name} Exam in ${readiness.daysLeft}d`
-    : (libraryFiles && libraryFiles.length > 0
-        ? `${libraryFiles[0].name.replace(/\.[^/.]+$/, "").slice(0, 18)}`
-        : `${primarySubjectMeta.name} Focus`);
-
-  return (
-    <div className="border-2 md:border-[2.5px] border-black rounded-2xl md:rounded-3xl bg-[#FFFDF5] p-4 md:p-6 shadow-[3px_3px_0px_#1A1A1A] md:shadow-[4px_4px_0px_#1A1A1A] relative overflow-hidden transition-all">
-      {/* Top Header Pill Bar */}
-      <div className="flex items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-black/10">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FFE566] text-black font-extrabold text-[11px] md:text-xs border border-black shadow-[1.5px_1.5px_0px_#1A1A1A]">
-            <span className="material-symbols-outlined text-[14px]">event</span>
-            <span>{examLabel}</span>
-          </span>
-          {readiness.score > 0 && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-black/60">
-              <span>Readiness:</span>
-              <strong className="text-black font-black">{readiness.score}%</strong>
-            </span>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={handleRexClick}
-          className="text-[10px] md:text-[11px] font-bold text-black/50 hover:text-black flex items-center gap-1 cursor-pointer transition-colors"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Tap Rex to change dialogue</span>
-        </button>
-      </div>
-
-      {/* Main Row: Standing Rex + Speech & Action Column */}
-      <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 md:gap-6">
-        {/* Animated Rex Character (Standing naturally on soft floor shadow) */}
-        <div
-          onClick={handleRexClick}
-          className="shrink-0 flex flex-col items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-          title="Tap Rex to interact"
-        >
-          <AnimatedRex
-            state={rexState}
-            size="md"
-            interactive={true}
-            onClick={handleRexClick}
-            preferAnimatedWebP={true}
-          />
-        </div>
-
-        {/* Content Column */}
-        <div className="flex-1 min-w-0 w-full flex flex-col justify-between gap-3 text-left">
-          {/* Neobrutalist Speech Bubble */}
-          <div className="relative bg-white border-2 border-black rounded-xl md:rounded-2xl p-3.5 md:p-4 shadow-[2px_2px_0px_#1A1A1A]">
-            <p className="text-[13px] md:text-[15px] font-extrabold text-black leading-snug">
-              {currentSpeech}
-            </p>
-          </div>
-
-          {/* Action Buttons Row */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={handleCall}
-              className="min-h-[42px] md:min-h-[46px] bg-[#FFE566] hover:bg-black hover:text-white text-black border-2 border-black font-black uppercase text-[11px] md:text-[12px] tracking-wider px-3 md:px-4 py-2 rounded-xl shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer group"
-            >
-              <span className="material-symbols-outlined text-[17px] group-hover:rotate-12 transition-transform">phone_in_talk</span>
-              <span>Talk</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleLaunchPractice}
-              className="min-h-[42px] md:min-h-[46px] bg-[#FF4D2E] hover:bg-black text-white border-2 border-black font-black uppercase text-[11px] md:text-[12px] tracking-wider px-3 md:px-4 py-2 rounded-xl shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[17px]">bolt</span>
-              <span>Daily Focus</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Persistent "Ask Rex" AI Composer Bar (Knowunity Frame 18/21 inspired)
 function AskRexBottomBar({ navigate }: { navigate: any }) {
@@ -788,7 +628,8 @@ function DashboardHeader({
         </p>
       </div>
 
-      <div className="flex items-center gap-2.5 flex-wrap">
+      {/* Gamification Pills (shown on sm+, since mobile has them in the shell header) */}
+      <div className="hidden sm:flex items-center gap-2.5 flex-wrap">
         {/* Streak Flame Badge */}
         <div
           onClick={() => {
@@ -807,8 +648,10 @@ function DashboardHeader({
           onClick={() => { playPop(); navigate("/analytics"); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-[#FFE566] shadow-[2px_2px_0px_#1A1A1A] cursor-pointer hover:bg-[#FFD13B] transition-all"
           title={`Level ${level} (${totalXp} XP)`}
+          aria-label={`Level ${level}, ${totalXp} XP`}
+          role="button"
         >
-          <span className="material-symbols-outlined text-[15px] font-black leading-none">bolt</span>
+          <span className="material-symbols-outlined text-[15px] font-black leading-none" aria-hidden="true">bolt</span>
           <span className="text-[12px] font-black text-black">LVL {level}</span>
         </div>
 
@@ -816,11 +659,12 @@ function DashboardHeader({
         <button
           type="button"
           onClick={() => { playPop(); navigate("/pro"); }}
+          aria-label={isPro ? "Pro Account Active" : "Get Pro"}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer font-black text-[11px] uppercase tracking-wider ${
             isPro ? "bg-[#10B981] text-white" : "bg-[#FF4D2E] text-white hover:bg-black"
           }`}
         >
-          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">
             {isPro ? "verified" : "workspace_premium"}
           </span>
           <span>{isPro ? "PRO" : "GET PRO"}</span>
@@ -833,8 +677,9 @@ function DashboardHeader({
             onClick={onOpenHelp}
             className="w-9 h-9 flex items-center justify-center border-2 border-black bg-white hover:bg-black hover:text-white transition-colors rounded-xl shadow-[2px_2px_0px_#1A1A1A] cursor-pointer"
             title="Help"
+            aria-label="Help & Tutorial"
           >
-            <span className="material-symbols-outlined text-[18px]">help</span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">help</span>
           </button>
         )}
       </div>
@@ -865,7 +710,7 @@ export default function Dashboard() {
   const [loadingTasks, setLoadingTasks] = useState(true);
 
   const [sessions, setSessions] = useState<{ id: any; title: string; duration_minutes: number; created_at: string }[]>([]);
-  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [loadingSessions, setLoadingSessions] = useState(false);
 
   const [stats, setStats] = useState({ totalSessions: 0, studyTimeHours: 0, avgScore: 0 });
   const [studiedDays, setStudiedDays] = useState<boolean[]>([false, false, false, false, false, false, false]);
@@ -873,7 +718,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTasks();
-    if (user?.id) fetchSessions();
+    if (user?.id) {
+      fetchSessions();
+    } else {
+      setLoadingSessions(false);
+    }
   }, [user?.id]);
 
   useEffect(() => {
@@ -1156,247 +1005,123 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ── DESKTOP LAYOUT (Perfect Centering between 256px sidebar and right window edge) ─────── */}
-      <div className="hidden md:block md:ml-64 min-h-screen overflow-y-auto">
-        <div className="p-6 lg:p-8 max-w-6xl xl:max-w-7xl w-full mx-auto space-y-6 box-border">
+      {/* ── RESPONSIVE UNIFIED LAYOUT (Duolingo Learning Path Hero) ────────── */}
+      <div className="md:ml-64 min-h-screen">
+        <main className="p-4 sm:p-6 lg:p-8 max-w-6xl xl:max-w-7xl w-full mx-auto space-y-6 box-border pb-24 md:pb-8">
 
-        {/* Top Header with greeting & gamification pills */}
-        <DashboardHeader
-          displayName={displayName}
-          streakDays={profile?.streak_days ?? 1}
-          totalXp={profile?.total_xp ?? 0}
-          isPro={isPro}
-          onOpenHelp={() => tutorial.show()}
-          onStreakClick={() => setShowStreakModal(true)}
-          navigate={navigate}
-        />
+          {/* Top Header with greeting & gamification pills */}
+          <DashboardHeader
+            displayName={displayName}
+            streakDays={profile?.streak_days ?? 1}
+            totalXp={profile?.total_xp ?? 0}
+            isPro={isPro}
+            onOpenHelp={() => tutorial.show()}
+            onStreakClick={() => setShowStreakModal(true)}
+            navigate={navigate}
+          />
 
-        {/* Main 2-Column Grid (8 cols + 4 cols) */}
-        <div className="grid grid-cols-12 gap-7">
+          {/* Main Responsive Grid: Single column on mobile, 12 cols (8 + 4) on md+ */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-7 items-start">
 
-          {/* Left Column (8 cols): Companion Hero + Ask Bar + Study Shelf + Exam Countdown + Momentum */}
-          <div className="col-span-8 flex flex-col gap-6">
+            {/* Main Hero Column: Learning Path Hero + Ask Rex + Tools Shelf */}
+            <div className="md:col-span-8 flex flex-col gap-6">
 
-            {/* Rex Grounded Companion Hero Stage */}
-            <RexHeroStage
-              displayName={displayName}
-              primarySubjectMeta={primarySubjectMeta}
-              activeGoalMeta={activeGoalMeta}
-              examTarget={userPrefs?.examTarget}
-              allSessions={sessions}
-              quizAccuracy={quizAccuracy}
-              sessionsCount={sessions.length}
-              tasksCompleted={tasks.filter((t) => t.completed).length}
-              navigate={navigate}
-            />
-
-            {/* Streak Hub Card */}
-            <StreakHubCard
-              streakDays={profile?.streak_days ?? 1}
-              studiedToday={studiedToday}
-              streakFreezes={1}
-              primarySubject={primarySubjectMeta.name}
-              onOpenModal={() => setShowStreakModal(true)}
-              onLaunchPractice={() => navigate(primarySubjectMeta.recommendedTool || "/practice")}
-            />
-
-            {/* Duolingo-style Tactile Learning Path */}
-            <StudyPathMap
-              subjectName={primarySubjectMeta.name}
-              onSelectNode={(node) => {
-                if (node.route) navigate(node.route);
-              }}
-              navigate={navigate}
-            />
-
-            {/* Knowunity-style Persistent AI Composer Bar */}
-            <AskRexBottomBar navigate={navigate} />
-
-            {/* Swipeable Study Tools Carousel */}
-            <StudyToolsShelf navigate={navigate} isMobile={false} />
-
-            {/* Exam Countdown Banner (Permanent: Active Countdown or 'No exam yet' empty state) */}
-            <ExamCountdownBanner
-              examTarget={userPrefs?.examTarget}
-              onUpdate={handleUpdateExamTarget}
-              allSessions={sessions}
-              quizAccuracy={quizAccuracy}
-              sessionsCount={sessions.length}
-              tasksCompleted={tasks.filter((t) => t.completed).length}
-            />
-
-            {/* Weekly Momentum */}
-            <section className="border-2 border-black bg-white p-5 rounded-3xl shadow-[3px_3px_0px_#1A1A1A]">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-[13px] font-black uppercase tracking-wider text-black">Weekly Momentum</h3>
-                  <p className="text-[11px] font-bold text-black/50 mt-0.5">
-                    {dayMinutes.reduce((a, b) => a + b, 0) >= 60
-                      ? `${Math.round((dayMinutes.reduce((a, b) => a + b, 0) / 60) * 10) / 10}h logged this week · ${stats.studyTimeHours}h all-time`
-                      : `${dayMinutes.reduce((a, b) => a + b, 0)}m logged this week · ${stats.studyTimeHours}h all-time`}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-black text-white text-[11px] font-black uppercase tracking-wider rounded-lg">Study Hours</span>
-                </div>
-              </div>
-              <WeeklyBars daysOfWeek={daysOfWeek} dayMinutes={dayMinutes} studiedDays={studiedDays} />
-            </section>
-
-          </div>
-
-          {/* Right Column (4 cols): Quest Log + Academic Streak + Recent Sessions */}
-          <div className="col-span-4 flex flex-col gap-6">
-
-            {/* Today's Quest Checklist */}
-            <section className="border-2 border-black bg-white flex flex-col rounded-3xl shadow-[3px_3px_0px_#1A1A1A] overflow-hidden">
-              <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px] text-[#FF4D2E]">checklist</span>
-                  <h3 className="text-[13px] font-black uppercase tracking-wider">Today's Quests</h3>
-                </div>
-                <span className="text-[11px] font-black text-black/60 bg-white px-2 py-0.5 rounded-full border border-black/15">
-                  {completedCount}/{goalCount}
-                </span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="px-4 pt-3 pb-1">
-                <div className="h-2 bg-[#F0EDE0] rounded-full overflow-hidden border border-black/20">
-                  <div
-                    className="h-full bg-[#10B981] rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.round((completedCount / goalCount) * 100))}%` }}
-                  />
-                </div>
-              </div>
-
-              <QuestLogBody
-                tasks={tasks}
-                loadingTasks={loadingTasks}
-                newTaskTitle={newTaskTitle}
-                setNewTaskTitle={setNewTaskTitle}
-                handleAddTask={handleAddTask}
-                handleToggleTask={handleToggleTask}
-                handleDeleteTask={handleDeleteTask}
+              {/* The Learning Path Hero (Rendered ONCE, immediately above the fold) */}
+              <StudyPathMap
+                subjectName={primarySubjectMeta.name}
+                onSelectNode={(node) => {
+                  if (node.route) navigate(node.route);
+                }}
+                navigate={navigate}
               />
-            </section>
 
+              {/* Knowunity-style Persistent AI Composer Bar */}
+              <AskRexBottomBar navigate={navigate} />
 
-            {/* Recent Sessions */}
-            <section className="border-2 border-black bg-[#FAF7F2] overflow-hidden rounded-3xl shadow-[3px_3px_0px_#1A1A1A]">
-              <div className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
-                <h3 className="text-[12px] font-black uppercase tracking-wider">Recent Sessions</h3>
-                <button onClick={() => navigate("/analytics")} className="text-[11px] font-black text-[#FF4D2E] hover:underline cursor-pointer">
-                  View All
-                </button>
-              </div>
-              <RecentSessionsRows sessions={sessions} loadingSessions={loadingSessions} />
-            </section>
+              {/* Swipeable Study Tools Carousel */}
+              <StudyToolsShelf navigate={navigate} isMobile={false} />
+            </div>
+
+            {/* Right Column / Secondary Rail (4 cols on desktop, flows below on mobile) */}
+            <div className="md:col-span-4 flex flex-col gap-6">
+
+              {/* Today's Quest Checklist */}
+              <section className="border-2 border-black bg-white flex flex-col rounded-3xl shadow-[3px_3px_0px_#1A1A1A] overflow-hidden">
+                <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-[#FF4D2E]" aria-hidden="true">checklist</span>
+                    <h3 className="text-[13px] font-black uppercase tracking-wider">Today's Quests</h3>
+                  </div>
+                  <span className="text-[11px] font-black text-black/60 bg-white px-2 py-0.5 rounded-full border border-black/15">
+                    {completedCount}/{goalCount}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="px-4 pt-3 pb-1">
+                  <div className="h-2 bg-[#F0EDE0] rounded-full overflow-hidden border border-black/20">
+                    <div
+                      className="h-full bg-[#10B981] rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, Math.round((completedCount / goalCount) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+
+                <QuestLogBody
+                  tasks={tasks}
+                  loadingTasks={loadingTasks}
+                  newTaskTitle={newTaskTitle}
+                  setNewTaskTitle={setNewTaskTitle}
+                  handleAddTask={handleAddTask}
+                  handleToggleTask={handleToggleTask}
+                  handleDeleteTask={handleDeleteTask}
+                />
+              </section>
+
+              {/* Weekly Momentum */}
+              <section className="border-2 border-black bg-white p-5 rounded-3xl shadow-[3px_3px_0px_#1A1A1A]">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-[13px] font-black uppercase tracking-wider text-black">Weekly Momentum</h3>
+                    <p className="text-[11px] font-bold text-black/50 mt-0.5">
+                      {dayMinutes.reduce((a, b) => a + b, 0) >= 60
+                        ? `${Math.round((dayMinutes.reduce((a, b) => a + b, 0) / 60) * 10) / 10}h logged this week`
+                        : dayMinutes.reduce((a, b) => a + b, 0) > 0
+                        ? `${dayMinutes.reduce((a, b) => a + b, 0)}m logged this week`
+                        : "Start Unit 1 to log your first minutes!"}
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-0.5 bg-black text-white text-[10px] font-black uppercase tracking-wider rounded-md">Hours</span>
+                </div>
+                <WeeklyBars daysOfWeek={daysOfWeek} dayMinutes={dayMinutes} studiedDays={studiedDays} />
+              </section>
+
+              {/* Compact Exam Target Countdown Banner */}
+              <ExamCountdownBanner
+                examTarget={userPrefs?.examTarget}
+                onUpdate={handleUpdateExamTarget}
+                allSessions={sessions}
+                quizAccuracy={quizAccuracy}
+                sessionsCount={sessions.length}
+                tasksCompleted={tasks.filter((t) => t.completed).length}
+              />
+
+              {/* Recent Sessions */}
+              <section className="border-2 border-black bg-[#FAF7F2] overflow-hidden rounded-3xl shadow-[3px_3px_0px_#1A1A1A]">
+                <div className="p-3.5 border-b-2 border-black flex justify-between items-center bg-white">
+                  <h3 className="text-[12px] font-black uppercase tracking-wider">Recent Sessions</h3>
+                  <button onClick={() => navigate("/analytics")} className="text-[11px] font-black text-[#FF4D2E] hover:underline cursor-pointer">
+                    View All
+                  </button>
+                </div>
+                <RecentSessionsRows sessions={sessions} loadingSessions={loadingSessions} />
+              </section>
+
+            </div>
 
           </div>
-
-        </div>
-        </div>
-
+        </main>
       </div>
-
-      {/* ── MOBILE LAYOUT (Knowunity Frame 18/21 inspired) ───────────────────────── */}
-      <main className="md:hidden px-3.5 pt-3 pb-24 flex flex-col gap-3.5 overflow-y-auto h-full">
-
-        {/* Rex Grounded Companion Hero Stage */}
-        <RexHeroStage
-          displayName={displayName}
-          primarySubjectMeta={primarySubjectMeta}
-          activeGoalMeta={activeGoalMeta}
-          examTarget={userPrefs?.examTarget}
-          allSessions={sessions}
-          quizAccuracy={quizAccuracy}
-          sessionsCount={sessions.length}
-          tasksCompleted={tasks.filter((t) => t.completed).length}
-          navigate={navigate}
-        />
-
-        {/* Streak Hub Card */}
-        <StreakHubCard
-          streakDays={profile?.streak_days ?? 1}
-          studiedToday={studiedToday}
-          streakFreezes={1}
-          primarySubject={primarySubjectMeta.name}
-          onOpenModal={() => setShowStreakModal(true)}
-          onLaunchPractice={() => navigate(primarySubjectMeta.recommendedTool || "/practice")}
-        />
-
-        {/* Duolingo-style Tactile Learning Path */}
-        <StudyPathMap
-          subjectName={primarySubjectMeta.name}
-          onSelectNode={(node) => {
-            if (node.route) navigate(node.route);
-          }}
-          navigate={navigate}
-        />
-
-        {/* Persistent Ask Rex Composer Bar */}
-        <AskRexBottomBar navigate={navigate} />
-
-        {/* Swipeable Study Tools Carousel */}
-        <StudyToolsShelf navigate={navigate} isMobile={true} />
-
-        {/* Exam Countdown Banner (Permanent: Active Countdown or 'No exam yet' empty state) */}
-        <ExamCountdownBanner
-          examTarget={userPrefs?.examTarget}
-          onUpdate={handleUpdateExamTarget}
-          allSessions={sessions}
-          quizAccuracy={quizAccuracy}
-          sessionsCount={sessions.length}
-          tasksCompleted={tasks.filter((t) => t.completed).length}
-        />
-
-        {/* Daily Quests & Progress */}
-        <section className="flex flex-col gap-2.5">
-          <div className="border-2 border-black rounded-2xl bg-white p-3.5 shadow-[2px_2px_0px_#1A1A1A]">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[11px] opacity-60 font-black uppercase tracking-wider">Today's Quest Target</span>
-              <span className="text-[13px] font-black">{completedCount} of {goalCount} completed</span>
-            </div>
-            <div className="h-2.5 bg-[#E8E4DC] rounded-full overflow-hidden border-2 border-black">
-              <div
-                className="h-full bg-[#10B981] rounded-r-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.round((completedCount / goalCount) * 100))}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="border-2 border-black rounded-2xl bg-white overflow-hidden shadow-[3px_3px_0px_#1A1A1A]">
-            <div className="p-3 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
-              <span className="text-[12px] font-black uppercase tracking-wider flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">checklist</span>
-                Daily Quests
-              </span>
-              <span className="text-[10.5px] font-bold text-black/50">Keep your streak</span>
-            </div>
-            <QuestLogBody
-              tasks={tasks}
-              loadingTasks={loadingTasks}
-              newTaskTitle={newTaskTitle}
-              setNewTaskTitle={setNewTaskTitle}
-              handleAddTask={handleAddTask}
-              handleToggleTask={handleToggleTask}
-              handleDeleteTask={handleDeleteTask}
-            />
-          </div>
-        </section>
-
-        {/* Recent Sessions */}
-        <section className="border-2 border-black bg-[#FAF7F2] overflow-hidden rounded-2xl shadow-[2px_2px_0px_#1A1A1A]">
-          <div className="p-3.5 border-b-2 border-black flex justify-between items-center bg-white">
-            <h3 className="text-[12px] font-black uppercase tracking-wider">Recent Sessions</h3>
-            <button onClick={() => navigate("/analytics")} className="text-[11px] font-black text-[#FF4D2E] hover:underline cursor-pointer">
-              View All
-            </button>
-          </div>
-          <RecentSessionsRows sessions={sessions} loadingSessions={loadingSessions} />
-        </section>
-      </main>
 
       {/* Streak Celebration Modal with Dual-Core Flame, Floating Sparks, and Calendar */}
       <StreakCelebrationModal

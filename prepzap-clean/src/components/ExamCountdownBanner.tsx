@@ -217,28 +217,23 @@ export function ExamCountdownBanner({
     setIsModalOpen(false);
   };
 
-  // ── EMPTY STATE (BANNER NEVER DISAPPEARS) ──────────────────────────────────
+  // ── EMPTY STATE (COMPACT, NON-INTRUSIVE) ──────────────────────────────────
   if (!examTarget || !examTarget.examDate) {
     return (
       <>
         <div
-          className={`border-2 border-black rounded-2xl bg-[#FFFDF5] p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0px_4px_0px_#1A1A1A] transition-all hover:bg-white ${className}`}
+          className={`border-2 border-black rounded-2xl bg-[#FFFDF5] p-3 sm:p-3.5 flex items-center justify-between gap-3 shadow-[2px_2px_0px_#1A1A1A] transition-all hover:bg-white ${className}`}
         >
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl border-2 border-black bg-[#FFD13B] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#1A1A1A]">
-              <span className="material-symbols-outlined text-[26px] text-black">event_available</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg border border-black bg-[#FFD13B] flex items-center justify-center shrink-0 shadow-[1px_1px_0px_#1A1A1A]">
+              <span className="material-symbols-outlined text-[18px] text-black" aria-hidden="true">event_available</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[14px] md:text-[15px] font-black text-black">
-                  No exam yet &bull; Add your next test
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-black/20 bg-[#FAF7F2] text-black/60">
-                  Target
-                </span>
-              </div>
-              <p className="text-[12px] md:text-[12.5px] font-bold text-black/55 mt-0.5">
-                Set your next midterm, final, or quiz to unlock countdowns and real readiness tracking with Rex.
+            <div className="min-w-0">
+              <span className="text-[13px] font-black text-black block truncate">
+                Target an upcoming exam?
+              </span>
+              <p className="text-[11px] font-bold text-black/50 truncate">
+                Set a date for automated countdowns & readiness tracking.
               </p>
             </div>
           </div>
@@ -246,10 +241,10 @@ export function ExamCountdownBanner({
           <button
             type="button"
             onClick={openModal}
-            className="border-2 border-black bg-black text-white hover:bg-[#FF4D2E] px-4 py-2 rounded-xl font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+            className="border-2 border-black bg-white hover:bg-black hover:text-white px-3 py-1.5 rounded-xl font-black text-[11.5px] uppercase tracking-wider shadow-[1.5px_1.5px_0px_#1A1A1A] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">add_circle</span>
-            Set Exam Target
+            <span className="material-symbols-outlined text-[14px]" aria-hidden="true">add_circle</span>
+            Set Date
           </button>
         </div>
 

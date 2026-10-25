@@ -17,7 +17,6 @@ export function StudeniusLayout() {
         <Outlet />
       </PageTransition>
       <FloatingXPOverlay />
-      <PeekingRexCompanion />
     </StudeniusShell>
   );
 }
