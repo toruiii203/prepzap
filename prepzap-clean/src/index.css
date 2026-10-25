@@ -468,3 +468,24 @@ html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
 .animate-shimmer-fast {
   animation: liquid-shimmer 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+@keyframes flame-flicker {
+  0%, 100% {
+    transform: scale(1) rotate(-1deg);
+    filter: drop-shadow(0 0 4px #FF4D2E) hue-rotate(0deg);
+  }
+  50% {
+    transform: scale(1.14) rotate(2deg);
+    filter: drop-shadow(0 0 10px #FFD13B) hue-rotate(15deg);
+  }
+}
+
+.animate-flame-flicker {
+  animation: flame-flicker 1.4s ease-in-out infinite;
+  display: inline-block;
+}
+
+.animate-flame-risk {
+  animation: flame-flicker 0.6s ease-in-out infinite;
+  display: inline-block;
+}

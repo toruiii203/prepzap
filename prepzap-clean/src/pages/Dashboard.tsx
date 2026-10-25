@@ -16,6 +16,7 @@ import confetti from "canvas-confetti";
 import { ExamCountdownBanner } from "@/components/ExamCountdownBanner";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
+import { StreakRiskBanner } from "@/components/StreakRiskBanner";
 import { StudyPathMap } from "@/components/StudyPathMap";
 import { launchPathLesson } from "@/lib/lessonLauncher";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
@@ -1174,7 +1175,7 @@ function DashboardHeader({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_#000] cursor-pointer hover:bg-[#FFFDF5] active:translate-y-0.5 transition-all"
           title={`${streakDays} Day Streak`}
         >
-          <span className="text-[15px] inline-block animate-flame">🔥</span>
+          <span className="text-[15px] inline-block animate-flame-flicker">🔥</span>
           <span className="text-[12px] font-black text-black">{streakDays}d Streak</span>
         </div>
 
@@ -1518,7 +1519,7 @@ export default function Dashboard() {
             className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs cursor-pointer hover:bg-[#FAF7F2] transition-colors"
             title={`${liveStreakDays} Day Streak`}
           >
-            <span className="text-[13px]">🔥</span>
+            <span className="text-[13px] animate-flame-flicker">🔥</span>
             <span className="text-[11px] font-black text-black">{liveStreakDays}d</span>
           </div>
 
@@ -1570,6 +1571,13 @@ export default function Dashboard() {
             onOpenHelp={() => tutorial.show()}
             onStreakClick={() => setShowStreakModal(true)}
             navigate={navigate}
+          />
+
+          {/* Streak At Risk Banner (shown after 8 PM if user hasn't studied today) */}
+          <StreakRiskBanner
+            streakDays={liveStreakDays}
+            studiedToday={studiedDays[6] || false}
+            onSaveStreak={() => navigate("/practice?autostart=true&subject=math")}
           />
 
           {/* Main Responsive Grid: Single column on mobile, 12 cols (8 + 4) on md+ */}

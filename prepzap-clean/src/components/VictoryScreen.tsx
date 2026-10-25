@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import { SpringButton } from "@/components/ui/SpringButton";
 
 export interface VictoryScreenProps {
   xpEarned: number;
@@ -205,26 +206,26 @@ export function VictoryScreen({
           </div>
         </motion.div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons with tactile spring physics */}
         <motion.div
           {...(reducedMotion ? {} : { ...cardVariants, animate: { ...((cardVariants as any).animate || {}), transition: { ...(((cardVariants as any).animate || {}) as any).transition, delay: 0.45 } } })}
           className="w-full flex flex-col gap-3"
         >
-          <button
+          <SpringButton
             onClick={onContinue}
             className="w-full py-4 bg-[#FF4D2E] text-white font-black text-[16px] border-2 border-black rounded-xl shadow-[4px_4px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer hover:bg-black"
           >
             <span>Continue Learning</span>
             <span className="text-[18px]">→</span>
-          </button>
+          </SpringButton>
 
-          <button
+          <SpringButton
             onClick={handleShare}
             className="w-full py-3.5 bg-white text-black font-black text-[15px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer hover:bg-[#FAF7F2]"
           >
             <span>Share Result</span>
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">share</span>
-          </button>
+          </SpringButton>
         </motion.div>
       </div>
     </div>

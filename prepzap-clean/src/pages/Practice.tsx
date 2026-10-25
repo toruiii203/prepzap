@@ -25,6 +25,8 @@ import { fireConfetti } from "@/lib/confetti";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { VictoryScreen } from "@/components/VictoryScreen";
 import { getQuestionsForLesson } from "@/lib/lessonLauncher";
+import { getComboTier } from "@/lib/streakRisk";
+import { SpringButton } from "@/components/ui/SpringButton";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 export interface Question {
@@ -331,6 +333,7 @@ export default function Practice() {
   const [showVictory, setShowVictory] = useState(false);
   const [lessonXpEarned, setLessonXpEarned] = useState(0);
   const [lessonAccuracy, setLessonAccuracy] = useState(100);
+  const [screenFlashColor, setScreenFlashColor] = useState<string | null>(null);
 
   // Global Quiz View
   const [view, setView] = useState<"quiz" | "results">(() => 
@@ -710,6 +713,11 @@ Each object MUST match this schema exactly:
         const newStreak = comboStreak + 1;
         setComboStreak(newStreak);
         setHighestStreak(prev => Math.max(prev, newStreak));
+        if (newStreak >= 3) {
+          const tier = getComboTier(newStreak);
+          setScreenFlashColor(tier.flashColor);
+          setTimeout(() => setScreenFlashColor(null), 350);
+        }
         if (currentItem.isReTest) {
           playMastery();
         } else {
@@ -742,6 +750,11 @@ Each object MUST match this schema exactly:
         const newStreak = comboStreak + 1;
         setComboStreak(newStreak);
         setHighestStreak(prev => Math.max(prev, newStreak));
+        if (newStreak >= 3) {
+          const tier = getComboTier(newStreak);
+          setScreenFlashColor(tier.flashColor);
+          setTimeout(() => setScreenFlashColor(null), 350);
+        }
         if (currentItem.isReTest) {
           playMastery();
         } else {
@@ -1092,6 +1105,16 @@ Each object MUST match this schema exactly:
       {showUpgrade && <UpgradePrompt feature="practice" remaining={0} onClose={() => setShowUpgrade(false)} />}
       <ReviewModal />
 
+      {/* Screen edge color flash for combo bursts */}
+      {screenFlashColor && (
+        <div
+          className="fixed inset-0 pointer-events-none z-[65] transition-opacity duration-300"
+          style={{
+            boxShadow: `inset 0 0 70px 20px ${screenFlashColor}`,
+          }}
+        />
+      )}
+
       {/* ── Victory Celebration Overlay (Duolingo Style) ── */}
       {showVictory && (
         <VictoryScreen
@@ -1315,10 +1338,15 @@ Each object MUST match this schema exactly:
             <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
               {hasAnsweredCurrent ? (
                 <div className="flex flex-col gap-1 w-full sm:w-auto">
-                  <div className="flex items-center gap-2 font-black text-[18px] sm:text-[20px]">
+                  <div className="flex items-center gap-2 font-black text-[18px] sm:text-[20px] flex-wrap">
                     <span>{isCurrentCorrect ? "✓ Correct!" : "✗ Incorrect"}</span>
-                    {isCurrentCorrect && comboStreak >= 2 && (
-                      <span className="text-[13px] bg-white/20 px-2.5 py-0.5 rounded-full">🔥 {comboStreak} streak</span>
+                    {isCurrentCorrect && comboStreak >= 3 && (
+                      <span className="text-[12px] bg-black text-[#FFD13B] px-2.5 py-0.5 rounded-full font-black border border-black/20 shadow-xs">
+                        {getComboTier(comboStreak).icon} {getComboTier(comboStreak).label}
+                      </span>
+                    )}
+                    {isCurrentCorrect && comboStreak === 2 && (
+                      <span className="text-[13px] bg-white/20 px-2.5 py-0.5 rounded-full">🔥 2 streak</span>
                     )}
                   </div>
                   <div className="text-[12.5px] font-medium text-white/90 leading-snug max-w-md">
@@ -1342,17 +1370,15 @@ Each object MUST match this schema exactly:
 
               <div className="w-full sm:w-auto flex items-center justify-end">
                 {hasAnsweredCurrent ? (
-                  <button
-                    type="button"
+                  <SpringButton
                     onClick={handleContinue}
                     className="w-full sm:w-auto px-8 py-3 bg-white text-black font-black text-[15px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-1 active:shadow-none transition-all cursor-pointer hover:bg-neutral-100 flex items-center justify-center gap-2 uppercase tracking-wider"
                   >
                     <span>CONTINUE</span>
                     <span className="text-[16px]">→</span>
-                  </button>
+                  </SpringButton>
                 ) : (
-                  <button
-                    type="button"
+                  <SpringButton
                     onClick={handleCheck}
                     disabled={!canCheck || isEvaluating}
                     className={`w-full sm:w-auto px-8 py-3 rounded-xl border-2 border-black font-black text-[15px] flex items-center justify-center gap-2 uppercase tracking-wider transition-all ${
@@ -1369,7 +1395,7 @@ Each object MUST match this schema exactly:
                         <span className="material-symbols-outlined text-[18px]" aria-hidden="true">check</span>
                       </>
                     )}
-                  </button>
+                  </SpringButton>
                 )}
               </div>
             </div>
