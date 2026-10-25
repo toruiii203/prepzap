@@ -18,6 +18,9 @@ import { AnimatedRex } from "@/components/AnimatedRex";
 import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
 import { StreakRiskBanner } from "@/components/StreakRiskBanner";
 import { StudyPathMap } from "@/components/StudyPathMap";
+import { MasteryRingsRow } from "@/components/MasteryRingsRow";
+import { SessionSummaryCard } from "@/components/SessionSummaryCard";
+import { getRexContext } from "@/lib/rexContext";
 import { launchPathLesson } from "@/lib/lessonLauncher";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
 import {
@@ -1152,6 +1155,7 @@ function DashboardHeader({
   navigate: any;
 }) {
   const level = levelFromXp(totalXp);
+  const rexContext = getRexContext({ streakDays });
 
   return (
     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 mb-6 md:mb-8">
@@ -1159,9 +1163,14 @@ function DashboardHeader({
         <h2 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
           {getLocalGreeting()}, {displayName}.
         </h2>
-        <p className="text-[13px] md:text-[15px] font-bold text-black/60 mt-0.5">
-          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Daily Study Hub
-        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <p className="text-[12.5px] md:text-[13.5px] font-extrabold text-black/70 flex items-center gap-1.5 flex-wrap">
+            <span>{rexContext.badgeEmoji}</span>
+            <span>{rexContext.headline}</span>
+            <span className="text-black/30">&bull;</span>
+            <span className="text-black/55">{rexContext.speechBubble}</span>
+          </p>
+        </div>
       </div>
 
       {/* Gamification Pills (shown on sm+, since mobile has them in the shell header) */}
@@ -1605,6 +1614,9 @@ export default function Dashboard() {
             {/* Right Column / Secondary Rail (4 cols on desktop, flows below on mobile) */}
             <div className="md:col-span-4 flex flex-col gap-6">
 
+              {/* Phase 4A: Subject Mastery Rings */}
+              <MasteryRingsRow onSelectSubject={(subId) => navigate(`/practice?subject=${subId}`)} />
+
               {/* Today's Quest Checklist */}
               <section className="border-2 border-black bg-white flex flex-col rounded-3xl shadow-[3px_3px_0px_#1A1A1A] overflow-hidden">
                 <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
@@ -1690,6 +1702,9 @@ export default function Dashboard() {
         onClose={() => setShowStreakModal(false)}
         onContinue={() => setShowStreakModal(false)}
       />
+
+      {/* Phase 4C: Gentle Session Summary Card */}
+      <SessionSummaryCard />
 
     </div>
   );

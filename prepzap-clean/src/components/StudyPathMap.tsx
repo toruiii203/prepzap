@@ -3,6 +3,7 @@ import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { triggerXPBurst } from "@/components/FloatingXPBurst";
 import { launchPathLesson, PathNodeInfo } from "@/lib/lessonLauncher";
+import { getRexContext } from "@/lib/rexContext";
 
 export interface PathNode {
   id: string;
@@ -27,6 +28,11 @@ export function StudyPathMap({
   navigate,
 }: StudyPathMapProps) {
   const [selectedNode, setSelectedNode] = useState<PathNode | null>(null);
+
+  // Phase 4B: Context-Aware Rex
+  const rexContext = getRexContext({
+    streakDays: 3,
+  });
 
   const nodes: PathNode[] = [
     {
@@ -248,20 +254,19 @@ export function StudyPathMap({
               key={node.id}
               className={`relative flex items-center w-full ${alignments[idx % alignments.length]}`}
             >
-              {/* If active node: Rex stands next to it cheering with speech bubble! */}
+              {/* If active node: Rex stands next to it with context-aware greeting & speech bubble! */}
               {isCurrent && (
                 <div className="absolute -top-14 left-0 sm:left-2 z-20 flex items-center gap-2 pointer-events-none">
-                  <div className="animate-bounce" style={{ animationDuration: "2.2s" }}>
-                    <AnimatedRex
-                      state="excited"
-                      size="sm"
-                      interactive={false}
-                      preferAnimatedWebP={true}
+                  <div className="animate-bounce" style={{ animationDuration: "2.4s" }}>
+                    <img
+                      src={rexContext.animation}
+                      alt="Rex mascot"
+                      className="w-12 h-12 object-contain drop-shadow-[1px_2px_0px_#000]"
                     />
                   </div>
                   <div className="bg-white border-2 border-black rounded-xl px-2.5 py-1 text-[11px] font-black shadow-[2px_2px_0px_#000] whitespace-nowrap flex items-center gap-1">
-                    <span>START HERE!</span>
-                    <span className="text-[#FF9600]">⚡</span>
+                    <span>{rexContext.speechBubble}</span>
+                    <span className="text-[#FF9600]">{rexContext.badgeEmoji}</span>
                   </div>
                 </div>
               )}

@@ -155,6 +155,7 @@ export function VictoryScreen({
 
   return (
     <div
+      data-victory-screen="true"
       className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[#FAF7F2] overflow-y-auto"
       role="dialog"
       aria-modal="true"

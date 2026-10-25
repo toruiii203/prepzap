@@ -21,6 +21,7 @@ import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 import { motion, AnimatePresence } from "framer-motion";
 import { playCardFlip, playTap } from "@/lib/soundFX";
 import { SpringButton } from "@/components/ui/SpringButton";
+import { triggerSessionSummary } from "@/components/SessionSummaryCard";
 
 interface Flashcard {
   id?: string;
@@ -528,6 +529,13 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           }
         }
         setView("results");
+        triggerSessionSummary({
+          minutes: Math.max(2, Math.round(cards.length * 0.75)),
+          xpEarned: xpEarned,
+          streakDays: profile?.streak_days || 1,
+          toolName: "Flashcards",
+          message: "Spaced repetition locks memories in.",
+        });
         const deckLabel = activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : (topic || "General Study");
         saveHistory({ prompt: deckLabel, preview: `${cards.length} cards`, output: deckLabel, model: "rex-ai", meta: `${nextScores.gotIt} got it / ${nextScores.forgot} forgot` });
       }
