@@ -18,6 +18,9 @@ import { getDueCount as getSRDueCount, getOrCreateSRCard, reviewCard, getDueCard
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
+import { motion, AnimatePresence } from "framer-motion";
+import { playCardFlip, playTap } from "@/lib/soundFX";
+import { SpringButton } from "@/components/ui/SpringButton";
 
 interface Flashcard {
   id?: string;
@@ -41,49 +44,114 @@ interface DesktopFlashcardProps {
 }
 
 function DesktopFlashcard({ currentCard, isFlipped, setIsFlipped }: DesktopFlashcardProps) {
+  const handleFlip = () => {
+    playCardFlip();
+    setIsFlipped(!isFlipped);
+  };
+
   return (
     <div
-      onClick={() => setIsFlipped(!isFlipped)}
-      className="relative w-full cursor-pointer"
-      style={{ perspective: "1000px", height: "340px" }}
+      onClick={handleFlip}
+      className="relative w-full cursor-pointer select-none"
+      style={{ perspective: "1200px", height: "340px" }}
     >
-      <div
-        className="transition-transform duration-500 w-full h-full relative"
-        style={{
-          transformStyle: "preserve-3d",
-          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+      <motion.div
+        className="w-full h-full relative"
+        style={{ transformStyle: "preserve-3d" }}
+        animate={{
+          rotateY: isFlipped ? 180 : 0,
         }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 22,
+        }}
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
       >
+        {/* Front (Question) */}
         <div
-          className="absolute inset-0 border-2 border-black bg-white shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center p-10 text-center rounded-xl"
+          className={`absolute inset-0 border-2 border-black bg-white flex flex-col items-center justify-center p-10 text-center rounded-2xl transition-shadow duration-300 ${
+            isFlipped ? "shadow-[-5px_5px_0px_#000]" : "shadow-[5px_5px_0px_#000]"
+          }`}
           style={{ backfaceVisibility: "hidden" }}
         >
           <div className="absolute top-5 left-5 opacity-20">
-            <span className="material-symbols-outlined">style</span>
+            <span className="material-symbols-outlined text-[28px]">style</span>
           </div>
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-black/40 mb-4">Question</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#FF4D2E] mb-4">Question</p>
           <h3 className="text-[22px] font-black leading-snug max-w-[480px]">{currentCard.front}</h3>
-          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/30">
+          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/40">
             <span className="material-symbols-outlined text-[16px]">touch_app</span>
-            <span className="text-[12px] font-bold uppercase tracking-wider">Click to flip</span>
+            <span className="text-[12px] font-bold uppercase tracking-wider">Click or Space to flip</span>
           </div>
         </div>
+
+        {/* Back (Answer) */}
         <div
-          className="absolute inset-0 border-2 border-black bg-[#F0EDE0] shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center p-10 text-center rounded-xl"
+          className={`absolute inset-0 border-2 border-black bg-[#F0EDE0] flex flex-col items-center justify-center p-10 text-center rounded-2xl transition-shadow duration-300 ${
+            isFlipped ? "shadow-[5px_5px_0px_#000]" : "shadow-[-5px_5px_0px_#000]"
+          }`}
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
-          <span className="material-symbols-outlined text-black text-[40px] mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+          <span className="material-symbols-outlined text-black text-[38px] mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
           <p className="text-[24px] font-black leading-snug mb-3">{currentCard.back}</p>
-          <p className="text-[14px] font-bold text-black/60 max-w-[400px] leading-relaxed">{currentCard.explanation}</p>
-          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/30">
+          {currentCard.explanation && (
+            <p className="text-[14px] font-bold text-black/60 max-w-[440px] leading-relaxed">{currentCard.explanation}</p>
+          )}
+          <div className="absolute bottom-5 flex items-center gap-1.5 text-black/40">
             <span className="material-symbols-outlined text-[16px]">touch_app</span>
             <span className="text-[12px] font-bold uppercase tracking-wider">Click to see question</span>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
+
+// Standard Flashcards to show as fallback
+const mockCards: Flashcard[] = [
+  {
+    front: "What is the primary function of Mitochondria in a cell?",
+    back: "ATP Production (Cellular Respiration)",
+    explanation: "They generate most of the chemical energy needed to power the cell's biochemical reactions.",
+  },
+  {
+    front: "What happens during crossing over in Prophase I of Meiosis?",
+    back: "Genetic Recombination",
+    explanation: "Homologous chromosomes pair up and exchange segments of their genetic material, increasing genetic diversity.",
+  },
+  {
+    front: "What are the stages of Mitosis in order?",
+    back: "Prophase, Metaphase, Anaphase, Telophase",
+    explanation: "Often remembered by PMAT. Followed by cytokinesis which splits the physical cell.",
+  },
+  {
+    front: "What is the function of the ribosome?",
+    back: "Protein Synthesis",
+    explanation: "Ribosomes translate messenger RNA (mRNA) into polypeptide chains of amino acids to form proteins.",
+  },
+  {
+    front: "What are the key ingredients required for Photosynthesis?",
+    back: "Water, Carbon Dioxide, and Sunlight",
+    explanation: "Occurs within chloroplasts to yield glucose and oxygen as a byproduct.",
+  },
+  {
+    front: "Define active transport.",
+    back: "Energy-requiring movement of molecules",
+    explanation: "Movement of substances across a membrane against their concentration gradient, requiring ATP (e.g. Sodium-Potassium pump).",
+  },
+  {
+    front: "What does DNA stand for?",
+    back: "Deoxyribonucleic Acid",
+    explanation: "The hereditary material in humans and almost all other organisms containing genetic instructions.",
+  },
+  {
+    front: "What is the purpose of tRNA?",
+    back: "To carry amino acids to ribosomes",
+    explanation: "Matches its anticodon with the codon of mRNA to append the correct amino acid during translation.",
+  }
+];
 
 export default function Flashcards() {
   const tutorial = useTutorialModal("/flashcards");
@@ -104,13 +172,20 @@ export default function Flashcards() {
   const { logSession } = useStudySession();
   const { save: saveHistory, history: deckHistory } = useToolHistory("flashcards");
   const { isPro, canUse, remaining, logUsage } = usePlan();
-  const [view, setView] = useState<"setup" | "study" | "results">("setup");
+  const [view, setView] = useState<"setup" | "study" | "results">(() => {
+    return (searchParams.get("view") as any) || "setup";
+  });
   const [topic, setTopic] = useState("");
   const [cardCount, setCardCount] = useState(8);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [cards, setCards] = useState<Flashcard[]>(() => {
+    if (searchParams.get("view") === "study") {
+      return mockCards;
+    }
+    return [];
+  });
   const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
   const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
 
@@ -201,50 +276,6 @@ export default function Flashcards() {
 
   // Game scores
   const [scores, setScores] = useState({ gotIt: 0, unsure: 0, forgot: 0 });
-
-  // Standard Flashcards to show as fallback
-  const mockCards: Flashcard[] = [
-    {
-      front: "What is the primary function of Mitochondria in a cell?",
-      back: "ATP Production (Cellular Respiration)",
-      explanation: "They generate most of the chemical energy needed to power the cell's biochemical reactions.",
-    },
-    {
-      front: "What happens during crossing over in Prophase I of Meiosis?",
-      back: "Genetic Recombination",
-      explanation: "Homologous chromosomes pair up and exchange segments of their genetic material, increasing genetic diversity.",
-    },
-    {
-      front: "What are the stages of Mitosis in order?",
-      back: "Prophase, Metaphase, Anaphase, Telophase",
-      explanation: "Often remembered by PMAT. Followed by cytokinesis which splits the physical cell.",
-    },
-    {
-      front: "What is the function of the ribosome?",
-      back: "Protein Synthesis",
-      explanation: "Ribosomes translate messenger RNA (mRNA) into polypeptide chains of amino acids to form proteins.",
-    },
-    {
-      front: "What are the key ingredients required for Photosynthesis?",
-      back: "Water, Carbon Dioxide, and Sunlight",
-      explanation: "Occurs within chloroplasts to yield glucose and oxygen as a byproduct.",
-    },
-    {
-      front: "Define active transport.",
-      back: "Energy-requiring movement of molecules",
-      explanation: "Movement of substances across a membrane against their concentration gradient, requiring ATP (e.g. Sodium-Potassium pump).",
-    },
-    {
-      front: "What does DNA stand for?",
-      back: "Deoxyribonucleic Acid",
-      explanation: "The hereditary material in humans and almost all other organisms containing genetic instructions.",
-    },
-    {
-      front: "What is the purpose of tRNA?",
-      back: "To carry amino acids to ribosomes",
-      explanation: "Matches its anticodon with the codon of mRNA to append the correct amino acid during translation.",
-    }
-  ];
 
   // Load the initial setup variables if source is active
   useEffect(() => {
@@ -878,29 +909,40 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 {/* Card */}
                 <DesktopFlashcard currentCard={currentCard} isFlipped={isFlipped} setIsFlipped={setIsFlipped} />
 
-                {/* Response buttons */}
+                {/* 4 Anki-style response buttons */}
                 <div className="grid grid-cols-4 gap-4">
-                  <button
-                    onClick={() => handleResponse("forgot")}
-                    className="py-5 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-red-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex flex-col items-center gap-2"
+                  <SpringButton
+                    onClick={() => handleRate("again")}
+                    className="py-4 px-2 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-red-50 flex flex-col items-center gap-1.5 rounded-xl cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[#FF4D2E] text-[28px]">sentiment_very_dissatisfied</span>
-                    <span className="text-[13px] font-extrabold uppercase">Forgot</span>
-                  </button>
-                  <button
-                    onClick={() => handleResponse("unsure")}
-                    className="py-5 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-yellow-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex flex-col items-center gap-2"
+                    <span className="material-symbols-outlined text-[#FF4D2E] text-[26px]">sentiment_very_dissatisfied</span>
+                    <span className="text-[13px] font-black uppercase text-black">Again</span>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black/30 bg-black/5 text-black/60">Key 1</span>
+                  </SpringButton>
+                  <SpringButton
+                    onClick={() => handleRate("hard")}
+                    className="py-4 px-2 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-amber-50 flex flex-col items-center gap-1.5 rounded-xl cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[#F5A623] text-[28px]">sentiment_neutral</span>
-                    <span className="text-[13px] font-extrabold uppercase">Unsure</span>
-                  </button>
-                  <button
-                    onClick={() => handleResponse("gotIt")}
-                    className="py-5 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-green-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex flex-col items-center gap-2"
+                    <span className="material-symbols-outlined text-[#F5A623] text-[26px]">sentiment_neutral</span>
+                    <span className="text-[13px] font-black uppercase text-black">Hard</span>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black/30 bg-black/5 text-black/60">Key 2</span>
+                  </SpringButton>
+                  <SpringButton
+                    onClick={() => handleRate("good")}
+                    className="py-4 px-2 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-blue-50 flex flex-col items-center gap-1.5 rounded-xl cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-green-600 text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>sentiment_very_satisfied</span>
-                    <span className="text-[13px] font-extrabold uppercase">Got It</span>
-                  </button>
+                    <span className="material-symbols-outlined text-[#3B82F6] text-[26px]">sentiment_satisfied</span>
+                    <span className="text-[13px] font-black uppercase text-black">Good</span>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black/30 bg-black/5 text-black/60">Key 3</span>
+                  </SpringButton>
+                  <SpringButton
+                    onClick={() => handleRate("easy")}
+                    className="py-4 px-2 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-emerald-50 flex flex-col items-center gap-1.5 rounded-xl cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-green-600 text-[26px]" style={{ fontVariationSettings: "'FILL' 1" }}>sentiment_very_satisfied</span>
+                    <span className="text-[13px] font-black uppercase text-black">Easy</span>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black/30 bg-black/5 text-black/60">Key 4</span>
+                  </SpringButton>
                 </div>
               </div>
             )}
@@ -1237,9 +1279,12 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
               </div>
 
-                            {/* Flashcard Container (3D Flip) */}
+                            {/* Flashcard Container (3D Flip & Drag-to-grade preview) */}
               <div
-                onClick={() => setIsFlipped(!isFlipped)}
+                onClick={() => {
+                  playCardFlip();
+                  setIsFlipped(!isFlipped);
+                }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
@@ -1250,6 +1295,17 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   transition: touchStart ? "none" : "transform 0.3s ease-out"
                 }}
               >
+                {/* Drag-to-grade indicator badges */}
+                {isFlipped && touchStart && touchDelta.x < -30 && (
+                  <div className="absolute top-4 left-4 z-20 border-2 border-black bg-[#FF4D2E] text-white px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000] -rotate-12 pointer-events-none">
+                    ← Again
+                  </div>
+                )}
+                {isFlipped && touchStart && touchDelta.x > 30 && (
+                  <div className="absolute top-4 right-4 z-20 border-2 border-black bg-[#10B981] text-white px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000] rotate-12 pointer-events-none">
+                    Easy →
+                  </div>
+                )}
                 <div
                   className="transition-transform duration-500 w-full h-full relative"
                   style={{
@@ -1304,29 +1360,36 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 </div>
               </div>
 
-              {/* Action Buttons (Feedback) */}
-              <div className="mt-auto w-full flex justify-between gap-3 pt-6 pb-2">
-                <button
-                  onClick={() => handleResponse("forgot")}
-                  className="flex-1 h-[76px] rounded-xl border-2 border-error bg-white text-error font-label-md text-label-md flex flex-col items-center justify-center shadow-ink-sm hover:bg-red-50 hover:translate-y-0.5 active:scale-95 transition-all text-[13px]"
+              {/* Action Buttons (4 Anki-style Buttons) */}
+              <div className="mt-auto w-full grid grid-cols-4 gap-2 pt-6 pb-2">
+                <SpringButton
+                  onClick={() => handleRate("again")}
+                  className="h-[68px] rounded-xl border-2 border-black bg-white flex flex-col items-center justify-center shadow-[2px_2px_0px_#000] hover:bg-red-50 text-[12px] font-black cursor-pointer"
                 >
-                  <span className="material-symbols-outlined mb-1 text-[24px]">close</span>
-                  Forgot
-                </button>
-                <button
-                  onClick={() => handleResponse("unsure")}
-                  className="flex-1 h-[76px] rounded-xl border-2 border-outline bg-white text-outline font-label-md text-label-md flex flex-col items-center justify-center shadow-ink-sm hover:bg-neutral-50 hover:translate-y-0.5 active:scale-95 transition-all text-[13px]"
+                  <span className="material-symbols-outlined mb-0.5 text-[22px] text-[#FF4D2E]">close</span>
+                  Again
+                </SpringButton>
+                <SpringButton
+                  onClick={() => handleRate("hard")}
+                  className="h-[68px] rounded-xl border-2 border-black bg-white flex flex-col items-center justify-center shadow-[2px_2px_0px_#000] hover:bg-amber-50 text-[12px] font-black cursor-pointer"
                 >
-                  <span className="material-symbols-outlined mb-1 text-[24px]">question_mark</span>
-                  Unsure
-                </button>
-                <button
-                  onClick={() => handleResponse("gotIt")}
-                  className="flex-1 h-[76px] rounded-xl border-2 border-tertiary bg-white text-tertiary font-label-md text-label-md flex flex-col items-center justify-center shadow-ink-sm hover:bg-teal-50 hover:translate-y-0.5 active:scale-95 transition-all text-[13px]"
+                  <span className="material-symbols-outlined mb-0.5 text-[22px] text-[#F59E0B]">sentiment_neutral</span>
+                  Hard
+                </SpringButton>
+                <SpringButton
+                  onClick={() => handleRate("good")}
+                  className="h-[68px] rounded-xl border-2 border-black bg-white flex flex-col items-center justify-center shadow-[2px_2px_0px_#000] hover:bg-blue-50 text-[12px] font-black cursor-pointer"
                 >
-                  <span className="material-symbols-outlined mb-1 text-[24px]">check</span>
-                  Got It
-                </button>
+                  <span className="material-symbols-outlined mb-0.5 text-[22px] text-[#3B82F6]">sentiment_satisfied</span>
+                  Good
+                </SpringButton>
+                <SpringButton
+                  onClick={() => handleRate("easy")}
+                  className="h-[68px] rounded-xl border-2 border-black bg-white flex flex-col items-center justify-center shadow-[2px_2px_0px_#000] hover:bg-emerald-50 text-[12px] font-black cursor-pointer"
+                >
+                  <span className="material-symbols-outlined mb-0.5 text-[22px] text-[#10B981]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                  Easy
+                </SpringButton>
               </div>
             </main>
           )}

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { playPop } from '@/lib/soundFX';
+import { getDueCount } from '@/lib/spacedRepetition';
 
 interface MobileBottomNavProps {
   hide?: boolean;
@@ -9,6 +10,13 @@ interface MobileBottomNavProps {
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [dueCount, setDueCount] = useState(0);
+
+  useEffect(() => {
+    try {
+      setDueCount(getDueCount());
+    } catch {}
+  }, []);
 
   if (hide) return null;
 
@@ -47,11 +55,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
                 : 'text-black/60 hover:text-black'
             }`}
           >
-            <div className={`flex flex-col items-center justify-center rounded-xl transition-all ${
+            <div className={`flex flex-col items-center justify-center rounded-xl transition-all relative ${
               isActive 
                 ? 'bg-[#FFD13B] px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_#1A1A1A] -translate-y-0.5' 
                 : 'py-0.5'
             }`}>
+              {tab.path === '/practice' && dueCount > 0 && (
+                <span className="absolute -top-1 -right-1 border border-black bg-[#FF4D2E] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
+                  {dueCount}
+                </span>
+              )}
               <span
                 className={`material-symbols-outlined text-[20px] ${isActive ? 'text-black font-black' : ''}`}
                 aria-hidden="true"

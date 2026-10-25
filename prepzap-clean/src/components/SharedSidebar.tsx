@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTimeTracker } from "@/hooks/useStudyTimeTracker";
 import { usePlan } from "@/hooks/usePlan";
 import { formatFriendlyName } from "@/lib/formatName";
 import { playTap } from "@/lib/soundFX";
+import { getDueCount } from "@/lib/spacedRepetition";
 
 // 5 Core Top-Level Destinations (Duolingo-grade simplified hierarchy)
 const PRIMARY_NAV = [
@@ -62,6 +63,28 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
   const [showMoreTools, setShowMoreTools] = useState<boolean>(() => {
     return isMoreToolActive || localStorage.getItem("pz_sidebar_more_open") === "true";
   });
+
+  // Phase 3D: Due-cards badge & pulse effect
+  const [dueCount, setDueCount] = useState<number>(0);
+  const [isPulsing, setIsPulsing] = useState<boolean>(false);
+  const prevCountRef = useRef<number>(0);
+
+  useEffect(() => {
+    const checkDue = () => {
+      try {
+        const count = getDueCount();
+        if (count !== prevCountRef.current && count > 0) {
+          setIsPulsing(true);
+          setTimeout(() => setIsPulsing(false), 800);
+        }
+        prevCountRef.current = count;
+        setDueCount(count);
+      } catch {}
+    };
+    checkDue();
+    window.addEventListener("focus", checkDue);
+    return () => window.removeEventListener("focus", checkDue);
+  }, []);
 
   useEffect(() => {
     if (isMoreToolActive) {
@@ -146,6 +169,15 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                     {item.icon}
                   </span>
                   <span>{item.label}</span>
+                  {item.route === "/practice" && dueCount > 0 && (
+                    <span
+                      className={`ml-auto border border-black bg-[#FF4D2E] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full transition-transform ${
+                        isPulsing ? "scale-125" : "scale-100"
+                      }`}
+                    >
+                      {dueCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -159,7 +191,12 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
               className="flex items-center justify-between px-2 py-1.5 text-[11px] font-black uppercase tracking-wider text-black/50 hover:text-black rounded-lg hover:bg-black/5 transition-colors cursor-pointer w-full text-left"
               aria-expanded={showMoreTools}
             >
-              <span>More Tools ({MORE_TOOLS.length})</span>
+              <div className="flex items-center gap-1.5">
+                <span>More Tools ({MORE_TOOLS.length})</span>
+                {!showMoreTools && dueCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-[#FF4D2E] border border-black inline-block" />
+                )}
+              </div>
               <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
                 {showMoreTools ? "expand_less" : "expand_more"}
               </span>
@@ -191,6 +228,15 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                         {tool.icon}
                       </span>
                       <span className="truncate">{tool.label}</span>
+                      {tool.route === "/flashcards" && dueCount > 0 && (
+                        <span
+                          className={`ml-auto border border-black bg-[#FF4D2E] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full transition-transform ${
+                            isPulsing ? "scale-125" : "scale-100"
+                          }`}
+                        >
+                          {dueCount}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

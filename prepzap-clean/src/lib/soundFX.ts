@@ -251,6 +251,36 @@ export function playComboStreak(streak: number = 1) {
 }
 
 /**
+ * Swift tactile paper whoosh when flipping a flashcard (3D flip sound)
+ */
+export function playCardFlip() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(340, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.07);
+
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.07);
+
+    triggerHaptic("light");
+  } catch {}
+}
+
+/**
  * Resonant crystalline chime when a previously missed card reaches 100% Mastery
  */
 export function playMastery() {

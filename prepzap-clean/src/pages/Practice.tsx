@@ -524,6 +524,21 @@ export default function Practice() {
   const currentItem: AdaptiveItem | undefined = adaptiveQueue[0];
   const currentQuestion: Question | undefined = currentItem?.question;
 
+  // Phase 3A: Session / Question Timer Ring
+  const [questionElapsedSeconds, setQuestionElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    setQuestionElapsedSeconds(0);
+  }, [currentItem?.id, currentItem?.question?.q]);
+
+  useEffect(() => {
+    if (!isLessonMode || hasAnsweredCurrent || showVictory) return;
+    const interval = setInterval(() => {
+      setQuestionElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isLessonMode, hasAnsweredCurrent, showVictory, currentItem?.id]);
+
   // Rex AI Semantic Grading via Groq with typo allowance
   const evaluateAnswer = async (
     userText: string, 
@@ -1201,6 +1216,37 @@ Each object MUST match this schema exactly:
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {/* Phase 3A: Question Timer Ring */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_#000] ${
+                  comboStreak >= 3 ? "animate-pulse" : ""
+                }`}
+                title={`Time on question: ${questionElapsedSeconds}s (turns amber after 45s)`}
+              >
+                <svg className="w-4 h-4 -rotate-90 transform" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" stroke="#E5E7EB" strokeWidth="3" fill="none" />
+                  <circle
+                    cx="14"
+                    cy="14"
+                    r="11"
+                    stroke={questionElapsedSeconds >= 45 ? "#F59E0B" : "#10B981"}
+                    strokeWidth="3"
+                    fill="none"
+                    strokeDasharray={69.115}
+                    strokeDashoffset={69.115 - (Math.min(questionElapsedSeconds, 60) / 60) * 69.115}
+                    strokeLinecap="round"
+                    className="transition-all duration-300"
+                  />
+                </svg>
+                <span
+                  className={`text-[11px] font-black tabular-nums ${
+                    questionElapsedSeconds >= 45 ? "text-[#D97706]" : "text-black"
+                  }`}
+                >
+                  {questionElapsedSeconds}s
+                </span>
+              </div>
+
               {comboStreak > 1 && (
                 <div className="hidden sm:flex items-center gap-1.5 bg-[#FFF275] border-2 border-black px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000]">
                   <span>🔥</span>
