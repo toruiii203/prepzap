@@ -279,6 +279,30 @@ export function StudyPathMap({
                 />
               )}
 
+              {/* Phase 5A: Pure CSS Floating Sparkles on Active Node */}
+              {isCurrent && (
+                <div className="absolute inset-0 pointer-events-none overflow-visible">
+                  <span
+                    className="absolute -top-3 left-0 text-[13px] animate-float-sparkle-1"
+                    aria-hidden="true"
+                  >
+                    ✨
+                  </span>
+                  <span
+                    className="absolute -bottom-2 -left-2 text-[11px] animate-float-sparkle-2"
+                    aria-hidden="true"
+                  >
+                    ✦
+                  </span>
+                  <span
+                    className="absolute top-1 -right-3 text-[12px] animate-float-sparkle-3"
+                    aria-hidden="true"
+                  >
+                    ✨
+                  </span>
+                </div>
+              )}
+
               {/* Shimmer keyframes for legendary — inline style injected once */}
               {isLegendary && (
                 <style>{`

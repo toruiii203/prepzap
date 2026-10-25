@@ -16,6 +16,7 @@ import { StudeniusLayout } from "@/components/StudeniusLayout";
 import { App as CapApp } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { CommandPalette } from "@/components/CommandPalette";
 import { supabase } from "@/lib/supabase";
 
 
@@ -423,6 +424,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <CommandPalette />
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>

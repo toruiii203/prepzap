@@ -20,6 +20,7 @@ import { StreakRiskBanner } from "@/components/StreakRiskBanner";
 import { StudyPathMap } from "@/components/StudyPathMap";
 import { MasteryRingsRow } from "@/components/MasteryRingsRow";
 import { SessionSummaryCard } from "@/components/SessionSummaryCard";
+import { AmbientSoundToggle } from "@/components/AmbientSoundToggle";
 import { getRexContext } from "@/lib/rexContext";
 import { launchPathLesson } from "@/lib/lessonLauncher";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
@@ -1214,6 +1215,9 @@ function DashboardHeader({
           </span>
           <span>{isPro ? "PRO" : "GET PRO"}</span>
         </button>
+
+        {/* Phase 5B: Ambient Focus Rain Sound Toggle */}
+        <AmbientSoundToggle />
 
         {/* Help button */}
         {onOpenHelp && (
