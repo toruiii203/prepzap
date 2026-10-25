@@ -9,7 +9,7 @@ export interface PathNode {
   title: string;
   description: string;
   icon: string;
-  status: "completed" | "active" | "locked";
+  status: "completed" | "active" | "locked" | "legendary";
   type: "lesson" | "practice" | "chest" | "boss";
   route?: string;
   xpReward: number;
@@ -145,6 +145,27 @@ export function StudyPathMap({
     setSelectedNode(node);
   };
 
+  /** Returns Tailwind classes for a node button based on its status */
+  const getNodeButtonClass = (node: PathNode, isSelected: boolean): string => {
+    const base = "relative w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-black flex items-center justify-center cursor-pointer transition-all";
+    let stateClass = "";
+    switch (node.status) {
+      case "completed":
+        stateClass = "bg-[#FFD13B] border-2 border-black shadow-[3px_3px_0px_#000] hover:scale-105 active:scale-95 active:translate-y-1 active:shadow-[0px_1px_0px_#000]";
+        break;
+      case "active":
+        stateClass = "bg-[#FF4D2E] text-white border-2 border-black shadow-[4px_4px_0px_#000] hover:scale-110 active:scale-95 active:translate-y-1.5 active:shadow-[0px_1px_0px_#000] ring-4 ring-[#FFD13B]";
+        break;
+      case "locked":
+        stateClass = "bg-gray-200 border-2 border-black/40 shadow-[2px_2px_0px_rgba(0,0,0,0.2)] opacity-60 cursor-not-allowed";
+        break;
+      case "legendary":
+        stateClass = "bg-[#FFD13B] border-2 border-black shadow-[4px_4px_0px_#000] hover:scale-105 active:scale-95 active:translate-y-1 active:shadow-[0px_1px_0px_#000] legendary-shimmer";
+        break;
+    }
+    return `${base} ${stateClass} ${isSelected ? "ring-4 ring-black ring-offset-2" : ""}`;
+  };
+
   return (
     <div className="border-2 border-black rounded-3xl bg-[#FFFDF5] p-5 sm:p-6 shadow-[3px_3px_0px_#1A1A1A] relative select-none font-['Quicksand',sans-serif]">
       {/* Unit Banner (Duolingo Header style) */}
@@ -219,6 +240,7 @@ export function StudyPathMap({
           const isCurrent = node.status === "active";
           const isDone = node.status === "completed";
           const isLocked = node.status === "locked";
+          const isLegendary = node.status === "legendary";
           const isSelected = selectedNode?.id === node.id;
 
           return (
@@ -244,9 +266,29 @@ export function StudyPathMap({
                 </div>
               )}
 
-              {/* Concentric radar pulse wave on active node */}
+              {/* Pulse ring on active node */}
               {isCurrent && (
-                <span className="absolute w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-[#FF4D2E]/60 animate-ping pointer-events-none" />
+                <span
+                  className="absolute w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-[#FF4D2E]/60 animate-ping pointer-events-none"
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* Shimmer keyframes for legendary — inline style injected once */}
+              {isLegendary && (
+                <style>{`
+                  @keyframes legendary-shimmer {
+                    0%   { box-shadow: 4px 4px 0px #000, 0 0 0 0 rgba(255,209,59,0.0); }
+                    50%  { box-shadow: 4px 4px 0px #000, 0 0 18px 6px rgba(255,209,59,0.7); }
+                    100% { box-shadow: 4px 4px 0px #000, 0 0 0 0 rgba(255,209,59,0.0); }
+                  }
+                  .legendary-shimmer { animation: legendary-shimmer 2s infinite; }
+                  @keyframes pulse-ring {
+                    0%   { opacity: 1; transform: scale(1); }
+                    100% { opacity: 0; transform: scale(1.3); }
+                  }
+                  .active-pulse-ring { animation: pulse-ring 1.5s infinite; }
+                `}</style>
               )}
 
               {/* 3D Stepping Stone Button */}
@@ -254,13 +296,17 @@ export function StudyPathMap({
                 type="button"
                 onClick={(e) => handleNodeClick(node, e)}
                 aria-label={`${node.title}: ${node.status}`}
-                className={`relative w-16 h-16 sm:w-18 sm:h-18 rounded-full border-3 border-black flex items-center justify-center cursor-pointer transition-all ${
-                  isDone
-                    ? "bg-[#10B981] text-white shadow-[0px_4px_0px_#047857,0px_6px_0px_#000] hover:scale-105 active:scale-95 active:translate-y-1 active:shadow-[0px_1px_0px_#000]"
+                className={
+                  "relative w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center transition-all " +
+                  (isDone
+                    ? "bg-[#FFD13B] border-2 border-black shadow-[3px_3px_0px_#000] hover:scale-105 active:scale-95 active:translate-y-1 cursor-pointer"
                     : isCurrent
-                    ? "bg-[#FF4D2E] text-white shadow-[0px_5px_0px_#B91C1C,0px_7px_0px_#000] hover:scale-110 active:scale-95 active:translate-y-1.5 active:shadow-[0px_1px_0px_#000] ring-4 ring-[#FFD13B]"
-                    : "bg-[#E2DDD3] text-black/35 shadow-[0px_4px_0px_#BFB8AA,0px_6px_0px_#000] hover:brightness-95 active:translate-y-0.5 cursor-not-allowed"
-                } ${isSelected ? "ring-4 ring-black ring-offset-2" : ""}`}
+                    ? "bg-[#FF4D2E] text-white border-2 border-black shadow-[4px_4px_0px_#000] hover:scale-110 active:scale-95 active:translate-y-1.5 ring-4 ring-[#FFD13B] cursor-pointer"
+                    : isLegendary
+                    ? "bg-[#FFD13B] border-2 border-black shadow-[4px_4px_0px_#000] hover:scale-105 active:scale-95 legendary-shimmer cursor-pointer"
+                    : "bg-gray-200 border-2 border-black/40 shadow-[2px_2px_0px_rgba(0,0,0,0.2)] opacity-60 cursor-not-allowed") +
+                  (isSelected ? " ring-4 ring-black ring-offset-2" : "")
+                }
               >
                 {/* 3D Gloss Highlight Arc */}
                 <span className="absolute top-1.5 left-2.5 right-2.5 h-2 rounded-full bg-white/30 pointer-events-none" />
@@ -269,20 +315,28 @@ export function StudyPathMap({
                   {node.icon}
                 </span>
 
-                {/* Star / Crown Badge on Node */}
+                {/* Completed: checkmark badge */}
                 {isDone && (
-                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[12px] shadow-[1px_1px_0px_#000] hover:rotate-12 transition-transform">
-                    ★
+                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border-2 border-black flex items-center justify-center text-[13px] shadow-[1px_1px_0px_#000]">
+                    ✓
                   </span>
                 )}
+                {/* Active: XP badge */}
                 {isCurrent && (
                   <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#FFE566] text-black border-2 border-black text-[9px] font-black shadow-[1px_1px_0px_#000]">
                     +{node.xpReward} XP
                   </span>
                 )}
+                {/* Locked: lock icon */}
                 {isLocked && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-black/10 border border-black/30 flex items-center justify-center text-black/50">
                     <span className="material-symbols-outlined text-[13px]" aria-hidden="true">lock</span>
+                  </span>
+                )}
+                {/* Legendary: star badge top-right */}
+                {isLegendary && (
+                  <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white border-2 border-black flex items-center justify-center text-[13px] shadow-[1px_1px_0px_#000]">
+                    ⭐
                   </span>
                 )}
               </button>

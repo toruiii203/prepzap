@@ -381,6 +381,7 @@ export function launchPathLesson(
     localStorage.setItem("pz_practice_score", "0");
     localStorage.setItem("pz_practice_answers", JSON.stringify([]));
     localStorage.setItem("pz_practice_view", "quiz");
+    localStorage.setItem("pz_practice_mode", "lesson");
     localStorage.setItem("pz_practice_topic", `${subjectName}: ${node.title}`);
     localStorage.setItem("pz_practice_time", "300");
     // Suppress tutorial modal since user is doing a direct lesson

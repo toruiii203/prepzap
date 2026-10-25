@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,8 @@ import {
 } from "@/lib/soundFX";
 import { fireConfetti } from "@/lib/confetti";
 import { AnimatedRex } from "@/components/AnimatedRex";
+import { VictoryScreen } from "@/components/VictoryScreen";
+import { getQuestionsForLesson } from "@/lib/lessonLauncher";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 export interface Question {
@@ -316,9 +318,19 @@ export default function Practice() {
   const { isPro, canUse, logUsage } = usePlan();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, profile, refreshProfile } = useAuth();
   const { logSession } = useStudySession();
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
+
+  // Duolingo 1-Tap Lesson Shell & Overlay States
+  const [isLessonMode, setIsLessonMode] = useState<boolean>(() => {
+    return searchParams.get("autostart") === "true" || localStorage.getItem("pz_practice_mode") === "lesson";
+  });
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showVictory, setShowVictory] = useState(false);
+  const [lessonXpEarned, setLessonXpEarned] = useState(0);
+  const [lessonAccuracy, setLessonAccuracy] = useState(100);
 
   // Global Quiz View
   const [view, setView] = useState<"quiz" | "results">(() => 
@@ -432,6 +444,35 @@ export default function Practice() {
       }
     }
   }, []);
+
+  // Handle autostart query parameter (Duolingo 1-tap entry)
+  useEffect(() => {
+    if (searchParams.get("autostart") === "true") {
+      setIsLessonMode(true);
+      localStorage.setItem("pz_practice_mode", "lesson");
+      const subjectParam = searchParams.get("subject") || "General";
+      const nodeParam = searchParams.get("node") || "node-1";
+      if (adaptiveQueue.length === 0) {
+        const fallbackQs = getQuestionsForLesson(subjectParam);
+        const queueItems: AdaptiveItem[] = fallbackQs.map((q, idx) => ({
+          id: `node-${nodeParam}-q-${Date.now()}-${idx}`,
+          question: q,
+          originalIndex: idx,
+          mastery: 0,
+          attempts: 0,
+          isReTest: false,
+        }));
+        setQuestions(fallbackQs);
+        setAdaptiveQueue(queueItems);
+        setTotalInitialCount(fallbackQs.length);
+        setMasteredCount(0);
+        setComboStreak(0);
+        setScore(0);
+        setAnswers([]);
+        setView("quiz");
+      }
+    }
+  }, [searchParams]);
 
   // Library sync
   useEffect(() => {
@@ -808,7 +849,17 @@ Each object MUST match this schema exactly:
       model:   "rex-ai-mastery",
       meta:    `${totalInitialCount}/${totalInitialCount} Mastered (Streak: ${highestStreak})`,
     });
-    setView("results");
+    const accuracyPct = totalInitialCount > 0 
+      ? Math.min(100, Math.round((finalScore / totalInitialCount) * 100))
+      : 100;
+    setLessonXpEarned(xpAwarded);
+    setLessonAccuracy(accuracyPct);
+
+    if (isLessonMode) {
+      setShowVictory(true);
+    } else {
+      setView("results");
+    }
   };
 
   // Progress metrics
@@ -1040,6 +1091,291 @@ Each object MUST match this schema exactly:
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/practice"] || []} title="Practice" />
       {showUpgrade && <UpgradePrompt feature="practice" remaining={0} onClose={() => setShowUpgrade(false)} />}
       <ReviewModal />
+
+      {/* ── Victory Celebration Overlay (Duolingo Style) ── */}
+      {showVictory && (
+        <VictoryScreen
+          xpEarned={lessonXpEarned}
+          accuracy={lessonAccuracy}
+          streakDays={profile?.streak_days || 1}
+          onContinue={() => {
+            localStorage.removeItem("pz_practice_queue");
+            localStorage.removeItem("pz_practice_questions");
+            localStorage.removeItem("pz_practice_mode");
+            setShowVictory(false);
+            setIsLessonMode(false);
+            navigate("/dashboard");
+          }}
+          onShare={() => {}}
+        />
+      )}
+
+      {/* ── Leave Lesson Confirmation Modal ── */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs select-none">
+          <div className="bg-[#FAF7F2] border-3 border-black p-6 rounded-2xl shadow-[6px_6px_0px_#000] max-w-sm w-full flex flex-col gap-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-[#FFE566] border-2 border-black mx-auto flex items-center justify-center text-[22px]">
+              🤔
+            </div>
+            <div>
+              <h3 className="font-black text-[18px] text-black">Leave lesson?</h3>
+              <p className="text-[13px] font-bold text-black/60 mt-1">
+                Your progress for this lesson session will not be saved.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => setShowLeaveModal(false)}
+                className="w-full py-3 bg-[#FF4D2E] text-white font-black text-[14px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none hover:bg-black cursor-pointer uppercase tracking-wider"
+              >
+                Keep Learning
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLeaveModal(false);
+                  setIsLessonMode(false);
+                  localStorage.removeItem("pz_practice_queue");
+                  localStorage.removeItem("pz_practice_questions");
+                  localStorage.removeItem("pz_practice_mode");
+                  navigate("/dashboard");
+                }}
+                className="w-full py-2.5 bg-white text-black font-black text-[13px] border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] active:translate-y-0.5 active:shadow-none hover:bg-gray-100 cursor-pointer uppercase tracking-wider"
+              >
+                Leave Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ FULL-SCREEN LESSON SHELL (Duolingo 1-Tap Experience) ══ */}
+      {isLessonMode && adaptiveQueue.length > 0 && !isGenerating && !showVictory && currentQuestion && (
+        <div className="fixed inset-0 z-50 bg-[#FAF7F2] flex flex-col justify-between overflow-y-auto select-none font-['Quicksand',sans-serif]">
+          {/* Top Bar */}
+          <div className="sticky top-0 z-50 bg-[#FAF7F2] border-b-2 border-black px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowLeaveModal(true)}
+              className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black text-[16px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+              aria-label="Exit Lesson"
+            >
+              ✕
+            </button>
+
+            <div className="flex-1 max-w-xl flex flex-col gap-1">
+              <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-wider text-black/60">
+                <span>Question {Math.min(totalInitialCount, masteredCount + 1)} of {totalInitialCount}</span>
+                <span className="text-[#10B981] font-black">{progressPercent}%</span>
+              </div>
+              <div className="h-3.5 w-full bg-[#E8E4DC] border-2 border-black rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#10B981] transition-all duration-300 rounded-full"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {comboStreak > 1 && (
+                <div className="hidden sm:flex items-center gap-1.5 bg-[#FFF275] border-2 border-black px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000]">
+                  <span>🔥</span>
+                  <span>{comboStreak}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  playTap();
+                  setIsLessonMode(false);
+                  localStorage.removeItem("pz_practice_mode");
+                }}
+                className="text-[11px] font-extrabold text-black/50 hover:text-black hover:underline cursor-pointer px-2 py-1"
+                title="Open Advanced Quiz Generator"
+              >
+                ⚙ Advanced
+              </button>
+            </div>
+          </div>
+
+          {/* Centered Question Content */}
+          <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 sm:py-8 flex flex-col justify-center">
+            {currentItem && currentItem.isReTest && (
+              <div className="mb-4 bg-[#85f5eb] border-2 border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#000]">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-black" aria-hidden="true">refresh</span>
+                  <span className="text-[11.5px] font-black uppercase tracking-wider text-black">
+                    Adaptive Recall · Re-Test
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-black/70">Attempt {currentItem.attempts + 1}</span>
+              </div>
+            )}
+
+            <div className="bg-white border-2 border-black p-6 sm:p-8 shadow-[4px_4px_0px_#000] rounded-2xl mb-6 relative">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                    {currentQuestion.subject || "Subject"}
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                    {currentQuestion.difficulty || "Medium"}
+                  </span>
+                </div>
+
+                {currentQuestion.hint && (
+                  <button
+                    type="button"
+                    onClick={() => { playPop(); setShowHint(prev => !prev); }}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 border border-black rounded-full text-[11px] font-black text-yellow-900 shadow-[1px_1px_0px_#000] hover:bg-yellow-200 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">lightbulb</span>
+                    {showHint ? "Hide Hint" : "Hint"}
+                  </button>
+                )}
+              </div>
+
+              <h2 className="text-[20px] sm:text-[24px] font-black leading-snug mb-3 text-black">
+                {currentQuestion.q}
+              </h2>
+
+              {showHint && currentQuestion.hint && (
+                <div className="mt-3 bg-amber-50 border-2 border-black p-3 rounded-xl text-[12.5px] font-bold text-black/80">
+                  <span className="text-[#FF4D2E] uppercase tracking-wider text-[10px] font-black block mb-0.5">Hint</span>
+                  {currentQuestion.hint}
+                </div>
+              )}
+
+              {currentItem && currentItem.isReTest && currentItem.scaffoldHint && (
+                <div className="mt-3 bg-[#FFF9E6] border-2 border-black p-3 rounded-xl text-[12.5px] font-bold text-black/80 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-[#F5A623] text-[18px] shrink-0" aria-hidden="true">psychology</span>
+                  <div>
+                    <span className="text-[#B45309] text-[10px] font-black uppercase tracking-wider block mb-0.5">Recall Clue</span>
+                    <p className="text-black font-extrabold">{currentItem.scaffoldHint}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {isMc ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
+                {(currentQuestion.options || []).map((option, idx) => {
+                  const label = ["A", "B", "C", "D"][idx];
+                  const isSelected = selectedOption === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        if (hasAnsweredCurrent) return;
+                        playTap();
+                        setSelectedOption(idx);
+                      }}
+                      disabled={hasAnsweredCurrent}
+                      className={`text-left border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-[#FF4D2E] text-white"
+                          : "bg-white hover:bg-neutral-50 text-black"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className={`text-[12px] font-black px-2.5 py-0.5 border border-black rounded shrink-0 ${
+                          isSelected ? "bg-white text-black" : "bg-black text-white"
+                        }`}>
+                          {label}
+                        </span>
+                        <span className="text-[14.5px] sm:text-[15px] font-bold leading-snug">{option}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={textInput}
+                  disabled={hasAnsweredCurrent}
+                  onChange={e => setTextInput(e.target.value)}
+                  placeholder="Type your answer here..."
+                  autoFocus
+                  className="w-full bg-white border-2 border-black rounded-xl p-4 text-[16px] font-extrabold shadow-[4px_4px_0px_#000] focus:outline-none"
+                />
+              </div>
+            )}
+          </main>
+
+          {/* Bottom Feedback Bar */}
+          <div className={`sticky bottom-0 w-full border-t-3 border-black transition-all z-40 ${
+            hasAnsweredCurrent
+              ? (isCurrentCorrect ? "bg-[#10B981] text-white" : "bg-[#FF4D2E] text-white")
+              : "bg-white border-t-2 border-black"
+          }`}>
+            <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {hasAnsweredCurrent ? (
+                <div className="flex flex-col gap-1 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 font-black text-[18px] sm:text-[20px]">
+                    <span>{isCurrentCorrect ? "✓ Correct!" : "✗ Incorrect"}</span>
+                    {isCurrentCorrect && comboStreak >= 2 && (
+                      <span className="text-[13px] bg-white/20 px-2.5 py-0.5 rounded-full">🔥 {comboStreak} streak</span>
+                    )}
+                  </div>
+                  <div className="text-[12.5px] font-medium text-white/90 leading-snug max-w-md">
+                    {isCurrentCorrect ? (
+                      semanticFeedback || currentQuestion.explanation || "Great work! Keep it up."
+                    ) : (
+                      <div>
+                        <p className="font-extrabold">Correct answer: <span className="underline decoration-2">{expectedAnswerText}</span></p>
+                        {currentQuestion.explanation && (
+                          <p className="text-white/85 text-[11.5px] mt-0.5">{currentQuestion.explanation}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="hidden sm:flex items-center gap-2 text-black/50 text-[12px] font-bold">
+                  <span>Press <kbd className="px-1.5 py-0.5 bg-gray-100 border border-black/30 rounded font-mono text-[11px]">Enter ↵</kbd> to check</span>
+                </div>
+              )}
+
+              <div className="w-full sm:w-auto flex items-center justify-end">
+                {hasAnsweredCurrent ? (
+                  <button
+                    type="button"
+                    onClick={handleContinue}
+                    className="w-full sm:w-auto px-8 py-3 bg-white text-black font-black text-[15px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-1 active:shadow-none transition-all cursor-pointer hover:bg-neutral-100 flex items-center justify-center gap-2 uppercase tracking-wider"
+                  >
+                    <span>CONTINUE</span>
+                    <span className="text-[16px]">→</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleCheck}
+                    disabled={!canCheck || isEvaluating}
+                    className={`w-full sm:w-auto px-8 py-3 rounded-xl border-2 border-black font-black text-[15px] flex items-center justify-center gap-2 uppercase tracking-wider transition-all ${
+                      canCheck && !isEvaluating
+                        ? "bg-[#FF4D2E] text-white shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none cursor-pointer hover:bg-black"
+                        : "bg-gray-200 text-black/40 border-black/30 pointer-events-none opacity-60"
+                    }`}
+                  >
+                    {isEvaluating ? (
+                      <span>Evaluating...</span>
+                    ) : (
+                      <>
+                        <span>CHECK</span>
+                        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">check</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Mobile History Drawer Overlay ─────────────────────────────────── */}
       {showHistory && (
