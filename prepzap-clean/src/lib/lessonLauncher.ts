@@ -7,6 +7,7 @@
  */
 
 import { Question, AdaptiveItem } from "@/pages/Practice";
+import { setCurrentLessonNodeId } from "@/lib/studyPathStorage";
 
 export interface PathNodeInfo {
   id: string;
@@ -17,6 +18,25 @@ export interface PathNodeInfo {
   xpReward: number;
   status: "completed" | "active" | "locked";
   route?: string;
+}
+
+/**
+ * Sanitizes questions to remove giveaways (such as parenthetical clauses that only appear in one option)
+ * and strips hints completely as requested.
+ */
+export function sanitizeQuestion(q: Question): Question {
+  let options = q.options ? [...q.options] : undefined;
+  if (options && options.length > 0) {
+    const withParens = options.filter(opt => /\([^)]+\)/.test(opt));
+    if (withParens.length > 0 && withParens.length < options.length) {
+      options = options.map(opt => opt.replace(/\s*\([^)]*\)\s*$/, "").trim());
+    }
+  }
+  return {
+    ...q,
+    options,
+    hint: undefined,
+  };
 }
 
 export const SUBJECT_LESSON_BANKS: Record<string, Question[]> = {
@@ -80,11 +100,10 @@ export const SUBJECT_LESSON_BANKS: Record<string, Question[]> = {
     },
     {
       q: "What is the primary gas found in Earth's atmosphere?",
-      options: ["Nitrogen (~78%)", "Oxygen (~21%)", "Carbon Dioxide (~0.04%)", "Argon (~0.93%)"],
+      options: ["Nitrogen", "Oxygen", "Carbon Dioxide", "Argon"],
       correct: 0,
       subject: "Science",
       difficulty: "Easy",
-      hint: "It makes up over three quarters of the air we breathe.",
       explanation: "Nitrogen comprises approximately 78% of Earth's atmosphere, followed by oxygen at about 21%.",
     },
     {
@@ -251,11 +270,10 @@ export const SUBJECT_LESSON_BANKS: Record<string, Question[]> = {
     },
     {
       q: "Which layer of the OSI model handles end-to-end communication, flow control, and error recovery (e.g. TCP)?",
-      options: ["Transport Layer (Layer 4)", "Network Layer (Layer 3)", "Data Link Layer (Layer 2)", "Application Layer (Layer 7)"],
+      options: ["Transport Layer", "Network Layer", "Data Link Layer", "Application Layer"],
       correct: 0,
       subject: "Computer Science",
       difficulty: "Medium",
-      hint: "TCP and UDP live on this layer.",
       explanation: "Layer 4, the Transport Layer, manages host-to-host communication, segment reordering, error checking, and flow control.",
     },
   ],
@@ -263,20 +281,18 @@ export const SUBJECT_LESSON_BANKS: Record<string, Question[]> = {
   general: [
     {
       q: "Which study technique has the highest scientific evidence for long-term knowledge retention?",
-      options: ["Active retrieval practice (testing yourself)", "Passive re-reading of highlighted text", "Cramming the night before an exam", "Copying textbook paragraphs verbatim"],
+      options: ["Active retrieval practice", "Passive re-reading of notes", "Cramming before an exam", "Copying textbook paragraphs"],
       correct: 0,
       subject: "Learning Science",
       difficulty: "Easy",
-      hint: "Forcing your brain to pull information out builds stronger neural pathways.",
       explanation: "Empirical cognitive science consistently demonstrates that active recall (retrieval practice) strengthens memory consolidation far more than passive review.",
     },
     {
       q: "What cognitive phenomenon describes how forgetting slows down when study sessions are spaced out over time?",
-      options: ["The Spacing Effect (Distributed Practice)", "The Hawthorne Effect", "Confirmation Bias", "The Primacy Effect"],
+      options: ["The Spacing Effect", "The Hawthorne Effect", "Confirmation Bias", "The Primacy Effect"],
       correct: 0,
       subject: "Learning Science",
       difficulty: "Easy",
-      hint: "Studying 20 minutes a day beats a 3-hour binge.",
       explanation: "The spacing effect shows that learning is far more durable when study events are distributed across intervals rather than massed in one session.",
     },
     {
@@ -285,16 +301,14 @@ export const SUBJECT_LESSON_BANKS: Record<string, Question[]> = {
       correct: 0,
       subject: "Learning Science",
       difficulty: "Medium",
-      hint: "'Meta' refers to beyond or about itself.",
       explanation: "Metacognition is awareness and understanding of one's own thought processes, such as recognizing what you know vs what you don't know.",
     },
     {
       q: "During which phase of sleep does the brain consolidate declarative facts into long-term cortical storage?",
-      options: ["Slow-Wave Sleep (Deep NREM)", "Light NREM Stage 1", "Hypnagogic State", "Awake Rest state"],
+      options: ["Slow-Wave Sleep", "Light NREM Stage 1", "Hypnagogic State", "Awake Rest State"],
       correct: 0,
       subject: "Learning Science",
       difficulty: "Medium",
-      hint: "Characterized by delta waves on EEG.",
       explanation: "Slow-wave sleep coordinates sharp-wave ripples from the hippocampus to replay and consolidate facts into the neocortex.",
     },
     {
@@ -303,7 +317,6 @@ export const SUBJECT_LESSON_BANKS: Record<string, Question[]> = {
       correct: 0,
       subject: "Learning Science",
       difficulty: "Easy",
-      hint: "If you cannot explain it simply, you don't understand it well enough.",
       explanation: "Physicist Richard Feynman advocated articulating ideas in simple terms without jargon to instantly expose gaps in understanding.",
     },
   ],
@@ -344,8 +357,8 @@ export function getQuestionsForLesson(subjectName: string, node?: PathNodeInfo):
     bank = matchKey ? SUBJECT_LESSON_BANKS[matchKey] : SUBJECT_LESSON_BANKS.general;
   }
 
-  // Shuffle options for all questions
-  const questions = bank.slice(0, 5).map(q => shuffleQuestionOptions(q));
+  // Shuffle options for all questions and sanitize giveaways/hints
+  const questions = bank.slice(0, 5).map(q => sanitizeQuestion(shuffleQuestionOptions(q)));
   return questions;
 }
 
@@ -360,6 +373,9 @@ export function launchPathLesson(
   navigate: (path: string) => void
 ) {
   const questions = getQuestionsForLesson(subjectName, node);
+
+  // Track the active path node so completion triggers unlocking the next node
+  setCurrentLessonNodeId(node.id);
 
   const queueItems: AdaptiveItem[] = questions.map((q, idx) => ({
     id: `node-${node.id}-q-${Date.now()}-${idx}`,

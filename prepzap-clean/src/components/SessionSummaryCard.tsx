@@ -82,7 +82,9 @@ export const SessionSummaryCard: React.FC = () => {
                 <span className="text-[#FF9600]">+{data.xpEarned || 20} XP</span>
                 <span className="text-black/30">&bull;</span>
                 <span className="text-black/80 flex items-center gap-1">
-                  <span>🔥</span>
+                  <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]" aria-hidden="true">
+                    local_fire_department
+                  </span>
                   <span>{data.streakDays || 1}d Streak Kept</span>
                 </span>
               </div>
@@ -91,10 +93,10 @@ export const SessionSummaryCard: React.FC = () => {
             <button
               type="button"
               onClick={handleDismiss}
-              className="text-black/40 hover:text-black font-black text-[13px] -mt-1 -mr-1"
+              className="w-6 h-6 rounded-md bg-white border border-black/30 hover:border-black flex items-center justify-center text-black/60 hover:text-black font-black text-[13px] -mt-1 -mr-1 transition-colors"
               aria-label="Dismiss summary"
             >
-              ✕
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">close</span>
             </button>
           </div>
         </motion.div>

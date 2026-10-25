@@ -32,10 +32,10 @@ export function getHoursUntilMidnight(): number {
 
 /**
  * Returns the combo tier icon, label, and screen edge glow for Practice mode.
- * Tier:
- * - 3 correct: ⚡ Combo Bonus ✨
- * - 4 correct: 🔥 Mega Combo Bonus ✨
- * - 5+ correct: 💥 Ultra Combo Bonus ✨
+ * Tier (Solid icons only, zero emojis):
+ * - 3 correct: bolt / COMBO BONUS
+ * - 4 correct: local_fire_department / MEGA COMBO BONUS
+ * - 5+ correct: bolt / ULTRA COMBO BONUS
  */
 export function getComboTier(comboCount: number): {
   icon: string;
@@ -43,13 +43,13 @@ export function getComboTier(comboCount: number): {
   flashColor: string;
 } {
   if (comboCount >= 5) {
-    return { icon: "💥", label: "ULTRA COMBO BONUS ✨", flashColor: "rgba(255, 77, 46, 0.25)" };
+    return { icon: "bolt", label: "ULTRA COMBO BONUS", flashColor: "rgba(255, 77, 46, 0.25)" };
   }
   if (comboCount === 4) {
-    return { icon: "🔥", label: "MEGA COMBO BONUS ✨", flashColor: "rgba(255, 209, 59, 0.25)" };
+    return { icon: "local_fire_department", label: "MEGA COMBO BONUS", flashColor: "rgba(255, 209, 59, 0.25)" };
   }
   if (comboCount === 3) {
-    return { icon: "⚡", label: "COMBO BONUS ✨", flashColor: "rgba(16, 185, 129, 0.25)" };
+    return { icon: "bolt", label: "COMBO BONUS", flashColor: "rgba(16, 185, 129, 0.25)" };
   }
   return { icon: "", label: "", flashColor: "transparent" };
 }

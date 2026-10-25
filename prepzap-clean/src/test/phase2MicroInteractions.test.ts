@@ -48,23 +48,23 @@ describe("Phase 2: streakRisk & combo system", () => {
 
     it("returns standard combo bonus for streak of 3", () => {
       const tier = getComboTier(3);
-      expect(tier.icon).toBe("⚡");
+      expect(tier.icon).toBe("bolt");
       expect(tier.label).toContain("COMBO BONUS");
     });
 
     it("returns mega combo bonus for streak of 4", () => {
       const tier = getComboTier(4);
-      expect(tier.icon).toBe("🔥");
+      expect(tier.icon).toBe("local_fire_department");
       expect(tier.label).toContain("MEGA COMBO BONUS");
     });
 
     it("returns ultra combo bonus for streak of 5 or more", () => {
       const tier5 = getComboTier(5);
-      expect(tier5.icon).toBe("💥");
+      expect(tier5.icon).toBe("bolt");
       expect(tier5.label).toContain("ULTRA COMBO BONUS");
 
       const tier8 = getComboTier(8);
-      expect(tier8.icon).toBe("💥");
+      expect(tier8.icon).toBe("bolt");
       expect(tier8.label).toContain("ULTRA COMBO BONUS");
     });
   });

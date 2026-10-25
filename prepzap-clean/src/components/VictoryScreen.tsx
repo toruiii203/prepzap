@@ -125,7 +125,7 @@ export function VictoryScreen({
   }, [xpEarned, reducedMotion]);
 
   const handleShare = async () => {
-    const text = `I just scored ${accuracy}% accuracy and earned +${xpEarned} XP on Studenius! 🎉`;
+    const text = `I just scored ${accuracy}% accuracy and earned +${xpEarned} XP on Studenius!`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ text });
@@ -181,12 +181,15 @@ export function VictoryScreen({
           className="flex flex-col items-center gap-2"
         >
           <h2 className="font-black text-3xl text-black leading-tight">
-            Session Complete! 🎉
+            Session Complete!
           </h2>
 
           {/* XP Counter */}
-          <div className="text-[22px] font-black text-[#FF4D2E] border-2 border-black bg-[#FFD13B] px-5 py-2 shadow-[3px_3px_0px_#000] rounded-2xl">
-            +{displayXP} XP ⚡
+          <div className="flex items-center gap-1.5 text-[22px] font-black text-[#FF4D2E] border-2 border-black bg-[#FFD13B] px-5 py-2 shadow-[3px_3px_0px_#000] rounded-2xl">
+            <span>+{displayXP} XP</span>
+            <span className="material-symbols-outlined text-[24px] text-[#FF4D2E]" aria-hidden="true">
+              bolt
+            </span>
           </div>
         </motion.div>
 
@@ -200,7 +203,9 @@ export function VictoryScreen({
 
           {/* Streak Chip */}
           <div className="flex items-center gap-2 bg-[#FFD13B] border-2 border-black px-4 py-2 rounded-full shadow-[2px_2px_0px_#000]">
-            <span className="text-[18px]">🔥</span>
+            <span className="material-symbols-outlined text-[18px] text-[#FF4D2E]" aria-hidden="true">
+              local_fire_department
+            </span>
             <span className="font-black text-[14px] text-black">
               {streakDays} Day Streak
             </span>

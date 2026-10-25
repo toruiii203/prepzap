@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
-import { AnimatedRex } from "@/components/AnimatedRex";
 import { triggerXPBurst } from "@/components/FloatingXPBurst";
 import { launchPathLesson, PathNodeInfo } from "@/lib/lessonLauncher";
 import { getRexContext } from "@/lib/rexContext";
+import { 
+  getCompletedNodeIds, 
+  markNodeCompleted, 
+  setCurrentLessonNodeId 
+} from "@/lib/studyPathStorage";
 
 export interface PathNode {
   id: string;
@@ -15,6 +19,58 @@ export interface PathNode {
   route?: string;
   xpReward: number;
 }
+
+export const INITIAL_PATH_NODES: PathNode[] = [
+  {
+    id: "node-1",
+    title: "Diagnostic Baseline",
+    description: "Core knowledge baseline established.",
+    icon: "check_circle",
+    status: "completed",
+    type: "lesson",
+    route: "/practice",
+    xpReward: 20,
+  },
+  {
+    id: "node-2",
+    title: "Active Recall Sprint",
+    description: "5 rapid recall questions to strengthen memory retention.",
+    icon: "bolt",
+    status: "active",
+    type: "practice",
+    route: "/practice",
+    xpReward: 35,
+  },
+  {
+    id: "node-3",
+    title: "Concept Mastery Flashcards",
+    description: "Spaced repetition deck to lock concepts into long-term memory.",
+    icon: "style",
+    status: "locked",
+    type: "lesson",
+    route: "/flashcards",
+    xpReward: 30,
+  },
+  {
+    id: "node-4",
+    title: "Scholar Treasure Chest",
+    description: "Bonus sparks and streak protection for consistent study.",
+    icon: "inventory_2",
+    status: "locked",
+    type: "chest",
+    xpReward: 50,
+  },
+  {
+    id: "node-5",
+    title: "Arena Live Battle",
+    description: "Challenge classmates or AI in a multiplayer speed showdown.",
+    icon: "swords",
+    status: "locked",
+    type: "boss",
+    route: "/rooms",
+    xpReward: 60,
+  },
+];
 
 interface StudyPathMapProps {
   subjectName: string;
@@ -28,63 +84,37 @@ export function StudyPathMap({
   navigate,
 }: StudyPathMapProps) {
   const [selectedNode, setSelectedNode] = useState<PathNode | null>(null);
+  const [completedNodeIds, setCompletedNodeIds] = useState<string[]>(() => getCompletedNodeIds());
 
-  // Phase 4B: Context-Aware Rex
+  useEffect(() => {
+    const handleUpdate = () => {
+      setCompletedNodeIds(getCompletedNodeIds());
+    };
+    window.addEventListener("pz_path_updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("pz_path_updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
+
   const rexContext = getRexContext({
     streakDays: 3,
   });
 
-  const nodes: PathNode[] = [
-    {
-      id: "node-1",
-      title: "Diagnostic Baseline",
-      description: "First win completed. Core knowledge baseline established.",
-      icon: "check_circle",
-      status: "completed",
-      type: "lesson",
-      route: "/practice",
-      xpReward: 20,
-    },
-    {
-      id: "node-2",
-      title: "Active Recall Sprint",
-      description: "5 rapid recall questions to strengthen memory retention.",
-      icon: "bolt",
-      status: "active",
-      type: "practice",
-      route: "/practice",
-      xpReward: 35,
-    },
-    {
-      id: "node-3",
-      title: "Concept Mastery Flashcards",
-      description: "Spaced repetition deck to lock concepts into long-term memory.",
-      icon: "style",
-      status: "locked",
-      type: "lesson",
-      route: "/flashcards",
-      xpReward: 30,
-    },
-    {
-      id: "node-4",
-      title: "Scholar Treasure Chest",
-      description: "Bonus sparks and streak protection for consistent study.",
-      icon: "inventory_2",
-      status: "locked",
-      type: "chest",
-      xpReward: 50,
-    },
-    {
-      id: "node-5",
-      title: "Arena Live Battle",
-      description: "Challenge classmates or AI in a multiplayer speed showdown.",
-      icon: "swords",
-      status: "locked",
-      type: "boss",
-      route: "/rooms",
-      xpReward: 60,
-    },
-  ];
+  // Dynamically derive node states: completed nodes are marked done,
+  // and the first non-completed node whose predecessor is done is active!
+  const nodes: PathNode[] = INITIAL_PATH_NODES.map((node, idx) => {
+    const isDone = completedNodeIds.includes(node.id);
+    if (isDone) {
+      return { ...node, status: "completed" };
+    }
+    const prevDone = idx === 0 || completedNodeIds.includes(INITIAL_PATH_NODES[idx - 1].id);
+    if (prevDone) {
+      return { ...node, status: "active" };
+    }
+    return { ...node, status: "locked" };
+  });
 
   // Alternating lateral offsets for winding path: [center, right, center, left, center]
   const alignments = [
@@ -116,10 +146,23 @@ export function StudyPathMap({
 
   const startLesson = (node: PathNode, e?: React.MouseEvent) => {
     if (node.status === "locked") return;
+
+    if (node.type === "chest") {
+      markNodeCompleted(node.id);
+      if (e) {
+        triggerXPBurst(e.clientX, e.clientY - 25, `+${node.xpReward} XP`);
+      }
+      playSuccess();
+      setSelectedNode(null);
+      return;
+    }
+
     if (e) {
-      triggerXPBurst(e.clientX, e.clientY - 25, `+${node.xpReward} XP`, "⚡");
+      triggerXPBurst(e.clientX, e.clientY - 25, `+${node.xpReward} XP`);
     }
     playSuccess();
+
+    setCurrentLessonNodeId(node.id);
 
     if (node.route === "/practice" || !node.route) {
       const nodeInfo: PathNodeInfo = {
@@ -147,7 +190,7 @@ export function StudyPathMap({
     }
 
     playPop();
-    triggerXPBurst(e.clientX, e.clientY - 25, `+${node.xpReward} XP`, "⚡");
+    triggerXPBurst(e.clientX, e.clientY - 25, `+${node.xpReward} XP`);
     setSelectedNode(node);
   };
 
@@ -177,8 +220,8 @@ export function StudyPathMap({
       {/* Unit Banner (Duolingo Header style) */}
       <div className={`bg-[#FFD13B] border-2 border-black rounded-2xl p-4 shadow-[2.5px_2.5px_0px_#000] flex items-center justify-between ${isPathCollapsed ? "mb-0" : "mb-6"}`}>
         <div>
-          <span className="text-[11px] font-black uppercase tracking-wider text-black/75 block">
-            Unit 1 &bull; {subjectName}
+          <span className="text-[11px] font-black uppercase tracking-wider text-black/80 block">
+            {subjectName && subjectName !== "General Studies" ? subjectName : "Foundations"} &bull; Unit 1
           </span>
           <h3 className="text-[16px] sm:text-[18px] font-black text-black leading-tight">
             Active Recall & Foundations
@@ -254,19 +297,21 @@ export function StudyPathMap({
               key={node.id}
               className={`relative flex items-center w-full ${alignments[idx % alignments.length]}`}
             >
-              {/* If active node: Rex stands next to it with context-aware greeting & speech bubble! */}
+              {/* If active node: Rex stands next to it with solid clean speech bubble */}
               {isCurrent && (
                 <div className="absolute -top-14 left-0 sm:left-2 z-20 flex items-center gap-2 pointer-events-none">
                   <div className="animate-bounce" style={{ animationDuration: "2.4s" }}>
                     <img
-                      src={rexContext.animation}
-                      alt="Rex mascot"
+                      src="/animations/rex_waving.webp"
+                      alt="Rex companion"
                       className="w-12 h-12 object-contain drop-shadow-[1px_2px_0px_#000]"
                     />
                   </div>
-                  <div className="bg-white border-2 border-black rounded-xl px-2.5 py-1 text-[11px] font-black shadow-[2px_2px_0px_#000] whitespace-nowrap flex items-center gap-1">
-                    <span>{rexContext.speechBubble}</span>
-                    <span className="text-[#FF9600]">{rexContext.badgeEmoji}</span>
+                  <div className="bg-white border-2 border-black rounded-xl px-2.5 py-1 text-[11px] font-black shadow-[2px_2px_0px_#000] whitespace-nowrap flex items-center gap-1.5">
+                    <span>START LESSON</span>
+                    <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]" aria-hidden="true">
+                      play_arrow
+                    </span>
                   </div>
                 </div>
               )}
@@ -277,30 +322,6 @@ export function StudyPathMap({
                   className="absolute w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-[#FF4D2E]/60 animate-ping pointer-events-none"
                   aria-hidden="true"
                 />
-              )}
-
-              {/* Phase 5A: Pure CSS Floating Sparkles on Active Node */}
-              {isCurrent && (
-                <div className="absolute inset-0 pointer-events-none overflow-visible">
-                  <span
-                    className="absolute -top-3 left-0 text-[13px] animate-float-sparkle-1"
-                    aria-hidden="true"
-                  >
-                    ✨
-                  </span>
-                  <span
-                    className="absolute -bottom-2 -left-2 text-[11px] animate-float-sparkle-2"
-                    aria-hidden="true"
-                  >
-                    ✦
-                  </span>
-                  <span
-                    className="absolute top-1 -right-3 text-[12px] animate-float-sparkle-3"
-                    aria-hidden="true"
-                  >
-                    ✨
-                  </span>
-                </div>
               )}
 
               {/* Shimmer keyframes for legendary — inline style injected once */}
@@ -346,13 +367,13 @@ export function StudyPathMap({
 
                 {/* Completed: checkmark badge */}
                 {isDone && (
-                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border-2 border-black flex items-center justify-center text-[13px] shadow-[1px_1px_0px_#000]">
-                    ✓
+                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#10B981] text-white border-2 border-black flex items-center justify-center shadow-[1px_1px_0px_#000]">
+                    <span className="material-symbols-outlined text-[13px] font-black" aria-hidden="true">check</span>
                   </span>
                 )}
                 {/* Active: XP badge */}
                 {isCurrent && (
-                  <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#FFE566] text-black border-2 border-black text-[9px] font-black shadow-[1px_1px_0px_#000]">
+                  <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#FFD13B] text-black border-2 border-black text-[9px] font-black shadow-[1px_1px_0px_#000]">
                     +{node.xpReward} XP
                   </span>
                 )}
@@ -364,8 +385,8 @@ export function StudyPathMap({
                 )}
                 {/* Legendary: star badge top-right */}
                 {isLegendary && (
-                  <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white border-2 border-black flex items-center justify-center text-[13px] shadow-[1px_1px_0px_#000]">
-                    ⭐
+                  <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#FFD13B] text-black border-2 border-black flex items-center justify-center shadow-[1px_1px_0px_#000]">
+                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">star</span>
                   </span>
                 )}
               </button>
@@ -380,26 +401,26 @@ export function StudyPathMap({
           <button
             type="button"
             onClick={() => setSelectedNode(null)}
-            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/5 hover:bg-black hover:text-white flex items-center justify-center text-[12px] font-black transition-colors cursor-pointer"
+            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-white border-2 border-black hover:bg-neutral-100 flex items-center justify-center text-black font-black shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
             aria-label="Close details"
           >
-            ✕
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
           </button>
-          <div className="pr-6">
-            <div className="flex items-center gap-1.5">
-              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border border-black/15 ${
+          <div className="pr-8">
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border-2 border-black shadow-[1px_1px_0px_#000] ${
                 selectedNode.status === "completed" 
-                  ? "bg-[#D1FAE5] text-[#065F46]" 
+                  ? "bg-[#10B981] text-white" 
                   : selectedNode.status === "active" 
-                  ? "bg-[#FFE4E6] text-[#9F1239]" 
-                  : "bg-gray-100 text-gray-500"
+                  ? "bg-[#FF4D2E] text-white" 
+                  : "bg-neutral-200 text-black/60"
               }`}>
                 {selectedNode.status}
               </span>
               <span className="text-[10px] font-bold text-black/40">&bull;</span>
-              <span className="text-[11px] font-black text-[#FF9600]">+{selectedNode.xpReward} XP</span>
+              <span className="text-[11px] font-black text-black">+{selectedNode.xpReward} XP</span>
               <span className="text-[10px] font-bold text-black/40">&bull;</span>
-              <span className="text-[11px] font-bold text-black/50">5 questions • ~2 min</span>
+              <span className="text-[11px] font-bold text-black/60">5 questions • ~2 min</span>
             </div>
             <h4 className="text-[15px] font-black text-black leading-tight mt-1">
               {selectedNode.title}

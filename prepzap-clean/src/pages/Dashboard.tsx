@@ -18,10 +18,7 @@ import { AnimatedRex } from "@/components/AnimatedRex";
 import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
 import { StreakRiskBanner } from "@/components/StreakRiskBanner";
 import { StudyPathMap } from "@/components/StudyPathMap";
-import { MasteryRingsRow } from "@/components/MasteryRingsRow";
 import { SessionSummaryCard } from "@/components/SessionSummaryCard";
-import { AmbientSoundToggle } from "@/components/AmbientSoundToggle";
-import { getRexContext } from "@/lib/rexContext";
 import { launchPathLesson } from "@/lib/lessonLauncher";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
 import {
@@ -286,11 +283,8 @@ function StudyToolsShelf({
           <h3 className={isMobile ? "text-[11px] font-black uppercase tracking-wider text-black/60" : "text-[14px] font-black uppercase tracking-wider text-black"}>
             Study Tools
           </h3>
-          <span className="text-[10px] font-black text-black/70 bg-black/5 px-2 py-0.5 rounded-full border border-black/10">
-            {currentPage + 1}/{STUDY_TOOLS_PAGES.length}
-          </span>
-          <span className="hidden sm:inline-block text-[11px] font-bold text-black/45">
-            &bull; {STUDY_TOOLS_PAGES[currentPage].label}
+          <span className="text-[10px] font-black text-black bg-white px-2 py-0.5 rounded-full border-2 border-black shadow-[1px_1px_0px_#000]">
+            {currentPage + 1} / {STUDY_TOOLS_PAGES.length}
           </span>
         </div>
 
@@ -1045,7 +1039,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
             aria-label="Clear search"
             className="w-5 h-5 rounded-full bg-black/10 hover:bg-black/20 text-black flex items-center justify-center text-[12px] font-bold cursor-pointer"
           >
-            ✕
+            <span className="material-symbols-outlined text-[14px]" aria-hidden="true">close</span>
           </button>
         )}
 
@@ -1156,7 +1150,6 @@ function DashboardHeader({
   navigate: any;
 }) {
   const level = levelFromXp(totalXp);
-  const rexContext = getRexContext({ streakDays });
 
   return (
     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 mb-6 md:mb-8">
@@ -1164,14 +1157,9 @@ function DashboardHeader({
         <h2 className="text-[26px] md:text-[32px] font-black leading-tight text-black">
           {getLocalGreeting()}, {displayName}.
         </h2>
-        <div className="flex items-center gap-2 mt-1">
-          <p className="text-[12.5px] md:text-[13.5px] font-extrabold text-black/70 flex items-center gap-1.5 flex-wrap">
-            <span>{rexContext.badgeEmoji}</span>
-            <span>{rexContext.headline}</span>
-            <span className="text-black/30">&bull;</span>
-            <span className="text-black/55">{rexContext.speechBubble}</span>
-          </p>
-        </div>
+        <p className="text-[13px] md:text-[14px] font-bold text-black/60 mt-0.5">
+          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Daily Study Hub
+        </p>
       </div>
 
       {/* Gamification Pills (shown on sm+, since mobile has them in the shell header) */}
@@ -1185,7 +1173,9 @@ function DashboardHeader({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_#000] cursor-pointer hover:bg-[#FFFDF5] active:translate-y-0.5 transition-all"
           title={`${streakDays} Day Streak`}
         >
-          <span className="text-[15px] inline-block animate-flame-flicker">🔥</span>
+          <span className="material-symbols-outlined text-[17px] text-[#FF4D2E] inline-block" aria-hidden="true">
+            local_fire_department
+          </span>
           <span className="text-[12px] font-black text-black">{streakDays}d Streak</span>
         </div>
 
@@ -1215,9 +1205,6 @@ function DashboardHeader({
           </span>
           <span>{isPro ? "PRO" : "GET PRO"}</span>
         </button>
-
-        {/* Phase 5B: Ambient Focus Rain Sound Toggle */}
-        <AmbientSoundToggle />
 
         {/* Help button */}
         {onOpenHelp && (
@@ -1532,7 +1519,9 @@ export default function Dashboard() {
             className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs cursor-pointer hover:bg-[#FAF7F2] transition-colors"
             title={`${liveStreakDays} Day Streak`}
           >
-            <span className="text-[13px] animate-flame-flicker">🔥</span>
+            <span className="material-symbols-outlined text-[15px] text-[#FF4D2E] leading-none" aria-hidden="true">
+              local_fire_department
+            </span>
             <span className="text-[11px] font-black text-black">{liveStreakDays}d</span>
           </div>
 
@@ -1617,9 +1606,6 @@ export default function Dashboard() {
 
             {/* Right Column / Secondary Rail (4 cols on desktop, flows below on mobile) */}
             <div className="md:col-span-4 flex flex-col gap-6">
-
-              {/* Phase 4A: Subject Mastery Rings */}
-              <MasteryRingsRow onSelectSubject={(subId) => navigate(`/practice?subject=${subId}`)} />
 
               {/* Today's Quest Checklist */}
               <section className="border-2 border-black bg-white flex flex-col rounded-3xl shadow-[3px_3px_0px_#1A1A1A] overflow-hidden">

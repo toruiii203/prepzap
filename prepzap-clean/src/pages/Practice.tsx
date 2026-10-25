@@ -24,9 +24,10 @@ import {
 import { fireConfetti } from "@/lib/confetti";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { VictoryScreen } from "@/components/VictoryScreen";
-import { getQuestionsForLesson } from "@/lib/lessonLauncher";
+import { getQuestionsForLesson, sanitizeQuestion } from "@/lib/lessonLauncher";
 import { getComboTier } from "@/lib/streakRisk";
 import { SpringButton } from "@/components/ui/SpringButton";
+import { markNodeCompleted, getCurrentLessonNodeId, clearCurrentLessonNodeId } from "@/lib/studyPathStorage";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 export interface Question {
@@ -193,102 +194,125 @@ function DesktopBanner({
   setDifficulty,
 }: BannerProps) {
   return (
-    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-[2px] border-black shadow-[4px_4px_0px_#000] p-6 flex flex-col gap-4">
+    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-2 border-black shadow-[4px_4px_0px_#000] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 font-['Quicksand',sans-serif]">
+      {/* Top Header Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#FF4D2E] text-[24px]">school</span>
-            <h2 className="font-extrabold text-[22px]">Quiz Generator</h2>
-            <span className="px-2.5 py-0.5 bg-[#FFF275] border border-black rounded-full text-[10px] font-black uppercase tracking-wider">
-              Adaptive Mastery
-            </span>
+            <h2 className="font-black text-[20px] sm:text-[22px] text-black tracking-tight">Quiz Generator</h2>
           </div>
-          <p className="text-[13px] text-black/60 font-bold">
-            Spaced recall engine tests missed concepts until 100% mastery.
+          <p className="text-[12.5px] text-black/60 font-bold mt-0.5">
+            Create targeted active recall sessions from your study sources.
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex flex-col items-end gap-1">
-            <button 
-              onClick={() => onNavigate("/library")}
-              className="text-[11px] font-bold text-[#FF4D2E] hover:underline flex items-center"
-            >
-              <span className="material-symbols-outlined text-[13px] mr-1">add_circle</span>
-              Add Source
-            </button>
-            <select
-              value={activeSourceObj ? activeSourceObj.id : "all"}
-              onChange={(e) => {
-                if (e.target.value === "all") {
-                  setActiveSourceObj(null);
-                } else {
-                  const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
-                  setActiveSourceObj(source);
-                }
-              }}
-              className="border-[1.5px] border-black px-3 py-1.5 bg-[#F0EDE0] text-[12px] font-bold hover:bg-black hover:text-white transition-colors cursor-pointer focus:outline-none"
-            >
-              <option value="all">General Study (All Sources)</option>
-              {(libraryFiles || []).map((file: any) => (
-                <option key={file.id} value={file.id}>{file.name}</option>
-              ))}
-            </select>
-          </div>
-          <button 
-            onClick={onGenerate} 
-            disabled={isGenerating}
-            className="flex items-center gap-2 bg-[#FF4D2E] text-white font-extrabold text-[13px] px-6 py-2.5 border-[2px] border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer hover:opacity-95 rounded-lg disabled:opacity-60"
+
+        {/* Source selector & Add Source button */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <select
+            value={activeSourceObj ? activeSourceObj.id : "all"}
+            onChange={(e) => {
+              if (e.target.value === "all") {
+                setActiveSourceObj(null);
+              } else {
+                const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
+                setActiveSourceObj(source);
+              }
+            }}
+            className="w-full sm:w-auto h-10 px-3.5 border-2 border-black rounded-xl bg-[#FAF7F2] text-[12px] font-black text-black cursor-pointer focus:outline-none shadow-[2px_2px_0px_#000]"
           >
-            <span className="material-symbols-outlined text-[18px]">bolt</span>
-            {isGenerating ? "Generating..." : "Generate Mastery Quiz"}
+            <option value="all">General Study (All Sources)</option>
+            {(libraryFiles || []).map((file: any) => (
+              <option key={file.id} value={file.id}>{file.name}</option>
+            ))}
+          </select>
+
+          <button 
+            type="button"
+            onClick={() => onNavigate("/sources")}
+            className="h-10 px-3.5 bg-white hover:bg-neutral-50 text-black border-2 border-black rounded-xl font-black text-[12px] flex items-center gap-1.5 shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer whitespace-nowrap"
+            title="Open Source Library"
+          >
+            <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">add</span>
+            <span>Add Source</span>
           </button>
         </div>
       </div>
-      <textarea
-        value={topicInput}
-        onChange={e => setTopicInput(e.target.value)}
-        className="w-full h-[90px] p-4 bg-[#FAF7F2] border-[1.5px] border-black rounded-xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#FF4D2E]/20 resize-none transition-all"
-        placeholder="Paste your notes or type a topic (e.g. Cellular Respiration, Newton's Laws)..."
-      />
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Questions</span>
-        <div className="flex border-[1.5px] border-black rounded-lg overflow-hidden">
-          {QUESTION_COUNT_OPTIONS.map((n, i) => (
-            <button
-              key={n}
-              onClick={() => setQuestionCount(n)}
-              className={`px-4 py-1.5 text-[13px] font-extrabold transition-colors ${i > 0 ? "border-l-[1.5px] border-black" : ""} ${
-                questionCount === n ? "bg-black text-white" : "bg-white text-black hover:bg-[#F0EDE0]"
-              }`}
+
+      {/* Topic / Source notes textarea */}
+      <div className="relative">
+        <textarea
+          value={topicInput}
+          onChange={e => setTopicInput(e.target.value)}
+          className="w-full h-[76px] p-3.5 bg-[#FAF7F2] border-2 border-black rounded-xl text-[13.5px] font-bold text-black focus:outline-none focus:bg-white resize-none shadow-[2px_2px_0px_#000] placeholder:text-black/40 transition-colors"
+          placeholder="Topic, chapter or paste notes (e.g. Cellular Respiration, WWI Allies, Linear Equations)..."
+        />
+      </div>
+
+      {/* Bottom Controls & Generate CTA */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1">
+        {/* Controls group */}
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+          {/* Question Count */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10.5px] font-black uppercase tracking-wider text-black/50">Count</span>
+            <div className="flex border-2 border-black rounded-xl overflow-hidden shadow-[2px_2px_0px_#000]">
+              {QUESTION_COUNT_OPTIONS.map((n, i) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setQuestionCount(n)}
+                  className={`px-3 py-1 text-[12px] font-black transition-colors ${i > 0 ? "border-l-2 border-black" : ""} ${
+                    questionCount === n ? "bg-black text-white" : "bg-white text-black hover:bg-neutral-100"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quiz Type */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10.5px] font-black uppercase tracking-wider text-black/50">Type</span>
+            <select
+              value={quizType}
+              onChange={(e) => setQuizType(e.target.value)}
+              className="border-2 border-black rounded-xl px-2.5 py-1 bg-white text-[12px] font-black text-black focus:outline-none cursor-pointer shadow-[2px_2px_0px_#000]"
             >
-              {n}
-            </button>
-          ))}
+              <option value="mixed">Mixed Types</option>
+              <option value="multiple-choice">Multiple Choice</option>
+              <option value="identification">Identification</option>
+              <option value="fill-in-the-blank">Fill-in-the-Blank</option>
+            </select>
+          </div>
+
+          {/* Difficulty */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10.5px] font-black uppercase tracking-wider text-black/50">Level</span>
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              className="border-2 border-black rounded-xl px-2.5 py-1 bg-white text-[12px] font-black text-black focus:outline-none cursor-pointer shadow-[2px_2px_0px_#000]"
+            >
+              <option value="mixed">Mixed</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
         </div>
 
-        <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-3">Type</span>
-        <select
-          value={quizType}
-          onChange={(e) => setQuizType(e.target.value)}
-          className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
+        {/* Generate Button */}
+        <button 
+          type="button"
+          onClick={onGenerate} 
+          disabled={isGenerating}
+          className="flex items-center justify-center gap-2 bg-[#FF4D2E] hover:bg-[#E03C1F] text-white font-black text-[13px] px-6 py-2.5 border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer rounded-xl uppercase tracking-wider disabled:opacity-60 whitespace-nowrap"
         >
-          <option value="mixed">Mixed Types</option>
-          <option value="multiple-choice">Multiple Choice</option>
-          <option value="identification">Identification</option>
-          <option value="fill-in-the-blank">Fill-in-the-Blank</option>
-        </select>
-
-        <span className="text-[11px] font-black uppercase tracking-widest text-black/40 ml-3">Difficulty</span>
-        <select
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-          className="border-[1.5px] border-black rounded-lg px-3 py-1.5 bg-white text-[13px] font-extrabold focus:outline-none cursor-pointer"
-        >
-          <option value="mixed">Mixed</option>
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-        </select>
+          <span className="material-symbols-outlined text-[18px]">bolt</span>
+          <span>{isGenerating ? "Generating..." : "Generate Quiz"}</span>
+        </button>
       </div>
     </div>
   );
@@ -883,6 +907,11 @@ Each object MUST match this schema exactly:
     setLessonXpEarned(xpAwarded);
     setLessonAccuracy(accuracyPct);
 
+    const currentLessonNode = getCurrentLessonNodeId();
+    if (currentLessonNode) {
+      markNodeCompleted(currentLessonNode);
+    }
+
     if (isLessonMode) {
       setShowVictory(true);
     } else {
@@ -1042,7 +1071,7 @@ Each object MUST match this schema exactly:
                   </span>
                   <span>
                     {isCurrentCorrect 
-                      ? (comboStreak >= 2 ? `🔥 ${comboStreak} IN A ROW!` : (currentItem?.isReTest ? "CONCEPT MASTERED!" : "EXCELLENT!"))
+                      ? (comboStreak >= 2 ? `${comboStreak} IN A ROW!` : (currentItem?.isReTest ? "CONCEPT MASTERED!" : "EXCELLENT!"))
                       : "NOT QUITE"}
                   </span>
                 </div>
@@ -1066,10 +1095,6 @@ Each object MUST match this schema exactly:
                 interactive={false}
                 preferAnimatedWebP={true}
               />
-              <div className="hidden sm:flex flex-col">
-                <span className="text-[12px] font-black uppercase tracking-wider text-black/40">Duolingo × Gizmo Super-Loop</span>
-                <span className="text-[13px] font-bold text-black/70">Master each concept before moving on. Press <kbd className="px-1.5 py-0.5 bg-[#FAF7F2] border border-black rounded font-mono text-[11px]">Enter ↵</kbd> to check.</span>
-              </div>
             </div>
           )}
         </div>
@@ -1137,6 +1162,11 @@ Each object MUST match this schema exactly:
           accuracy={lessonAccuracy}
           streakDays={profile?.streak_days || 1}
           onContinue={() => {
+            const currentLessonNode = getCurrentLessonNodeId();
+            if (currentLessonNode) {
+              markNodeCompleted(currentLessonNode);
+              clearCurrentLessonNodeId();
+            }
             localStorage.removeItem("pz_practice_queue");
             localStorage.removeItem("pz_practice_questions");
             localStorage.removeItem("pz_practice_mode");
@@ -1152,8 +1182,8 @@ Each object MUST match this schema exactly:
       {showLeaveModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs select-none">
           <div className="bg-[#FAF7F2] border-3 border-black p-6 rounded-2xl shadow-[6px_6px_0px_#000] max-w-sm w-full flex flex-col gap-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-[#FFE566] border-2 border-black mx-auto flex items-center justify-center text-[22px]">
-              🤔
+            <div className="w-12 h-12 rounded-full bg-[#FFE566] border-2 border-black mx-auto flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px] text-black">help</span>
             </div>
             <div>
               <h3 className="font-black text-[18px] text-black">Leave lesson?</h3>
@@ -1196,10 +1226,10 @@ Each object MUST match this schema exactly:
             <button
               type="button"
               onClick={() => setShowLeaveModal(true)}
-              className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black text-[16px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+              className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
               aria-label="Exit Lesson"
             >
-              ✕
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
             </button>
 
             <div className="flex-1 max-w-xl flex flex-col gap-1">
@@ -1249,7 +1279,9 @@ Each object MUST match this schema exactly:
 
               {comboStreak > 1 && (
                 <div className="hidden sm:flex items-center gap-1.5 bg-[#FFF275] border-2 border-black px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000]">
-                  <span>🔥</span>
+                  <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]" aria-hidden="true">
+                    local_fire_department
+                  </span>
                   <span>{comboStreak}</span>
                 </div>
               )}
@@ -1260,10 +1292,11 @@ Each object MUST match this schema exactly:
                   setIsLessonMode(false);
                   localStorage.removeItem("pz_practice_mode");
                 }}
-                className="text-[11px] font-extrabold text-black/50 hover:text-black hover:underline cursor-pointer px-2 py-1"
+                className="text-[11px] font-extrabold text-black/50 hover:text-black hover:underline cursor-pointer px-2 py-1 flex items-center gap-1"
                 title="Open Advanced Quiz Generator"
               >
-                ⚙ Advanced
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">tune</span>
+                <span>Advanced</span>
               </button>
             </div>
           </div>
@@ -1285,36 +1318,18 @@ Each object MUST match this schema exactly:
             <div className="bg-white border-2 border-black p-6 sm:p-8 shadow-[4px_4px_0px_#000] rounded-2xl mb-6 relative">
               <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center px-2.5 py-1 bg-[#FAF7F2] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_#000]">
                     {currentQuestion.subject || "Subject"}
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center px-2.5 py-1 bg-[#FFD13B] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_#000]">
                     {currentQuestion.difficulty || "Medium"}
                   </span>
                 </div>
-
-                {currentQuestion.hint && (
-                  <button
-                    type="button"
-                    onClick={() => { playPop(); setShowHint(prev => !prev); }}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 border border-black rounded-full text-[11px] font-black text-yellow-900 shadow-[1px_1px_0px_#000] hover:bg-yellow-200 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">lightbulb</span>
-                    {showHint ? "Hide Hint" : "Hint"}
-                  </button>
-                )}
               </div>
 
               <h2 className="text-[20px] sm:text-[24px] font-black leading-snug mb-3 text-black">
                 {currentQuestion.q}
               </h2>
-
-              {showHint && currentQuestion.hint && (
-                <div className="mt-3 bg-amber-50 border-2 border-black p-3 rounded-xl text-[12.5px] font-bold text-black/80">
-                  <span className="text-[#FF4D2E] uppercase tracking-wider text-[10px] font-black block mb-0.5">Hint</span>
-                  {currentQuestion.hint}
-                </div>
-              )}
 
               {currentItem && currentItem.isReTest && currentItem.scaffoldHint && (
                 <div className="mt-3 bg-[#FFF9E6] border-2 border-black p-3 rounded-xl text-[12.5px] font-bold text-black/80 flex items-start gap-2">
@@ -1384,15 +1399,28 @@ Each object MUST match this schema exactly:
             <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
               {hasAnsweredCurrent ? (
                 <div className="flex flex-col gap-1 w-full sm:w-auto">
-                  <div className="flex items-center gap-2 font-black text-[18px] sm:text-[20px] flex-wrap">
-                    <span>{isCurrentCorrect ? "✓ Correct!" : "✗ Incorrect"}</span>
+                  <div className="flex items-center gap-2.5 font-black text-[18px] sm:text-[20px] flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[22px] font-black" aria-hidden="true">
+                        {isCurrentCorrect ? "check_circle" : "cancel"}
+                      </span>
+                      <span>{isCurrentCorrect ? "Correct!" : "Incorrect"}</span>
+                    </span>
                     {isCurrentCorrect && comboStreak >= 3 && (
-                      <span className="text-[12px] bg-black text-[#FFD13B] px-2.5 py-0.5 rounded-full font-black border border-black/20 shadow-xs">
-                        {getComboTier(comboStreak).icon} {getComboTier(comboStreak).label}
+                      <span className="inline-flex items-center gap-1.5 text-[11px] bg-black text-[#FFD13B] px-2.5 py-0.5 rounded-lg font-black border-2 border-black shadow-[1.5px_1.5px_0px_#000]">
+                        <span className="material-symbols-outlined text-[14px] text-[#FFD13B]" aria-hidden="true">
+                          {getComboTier(comboStreak).icon}
+                        </span>
+                        <span>{getComboTier(comboStreak).label}</span>
                       </span>
                     )}
                     {isCurrentCorrect && comboStreak === 2 && (
-                      <span className="text-[13px] bg-white/20 px-2.5 py-0.5 rounded-full">🔥 2 streak</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] bg-black text-white px-2.5 py-0.5 rounded-lg font-black border-2 border-black">
+                        <span className="material-symbols-outlined text-[13px] text-[#FF4D2E]" aria-hidden="true">
+                          local_fire_department
+                        </span>
+                        <span>2 Streak</span>
+                      </span>
                     )}
                   </div>
                   <div className="text-[12.5px] font-medium text-white/90 leading-snug max-w-md">
@@ -1574,11 +1602,11 @@ Each object MUST match this schema exactly:
                               navigate("/dashboard");
                             }
                           }}
-                          className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black text-[16px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+                          className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
                           title="Exit Lesson to Learning Path"
                           aria-label="Exit Lesson"
                         >
-                          ✕
+                          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
                         </button>
 
                         <div className="flex-1 flex flex-col gap-1.5">
@@ -1600,7 +1628,9 @@ Each object MUST match this schema exactly:
                           {/* Flame Combo Streak Badge */}
                           {comboStreak > 1 && (
                             <div className="flex items-center gap-1.5 bg-[#FFF275] border-[2px] border-black px-3.5 py-1.5 rounded-full text-[13px] font-black shadow-[2px_2px_0px_#000] animate-bounce-short">
-                              <span className="text-[16px]">🔥</span>
+                              <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">
+                                local_fire_department
+                              </span>
                               <span>{comboStreak} STREAK</span>
                             </div>
                           )}
@@ -1634,35 +1664,16 @@ Each object MUST match this schema exactly:
 
                         <div className="flex items-center justify-between gap-2 mb-4 mt-2">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                            <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_#000]">
                               <span className="material-symbols-outlined text-[13px] mr-1">folder</span>{currentQuestion.subject}
                             </span>
-                            <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-[1.5px] border-black rounded-full text-[11px] font-bold uppercase tracking-wider">
+                            <span className="inline-flex items-center px-3 py-1 bg-[#FFD13B] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_#000]">
                               <span className="material-symbols-outlined text-[13px] mr-1">leaderboard</span>{currentQuestion.difficulty}
                             </span>
                           </div>
-
-                          {currentQuestion.hint && (
-                            <button
-                              type="button"
-                              onClick={() => { playPop(); setShowHint(prev => !prev); }}
-                              className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 border-[1.5px] border-black rounded-full text-[11px] font-bold text-yellow-900 shadow-[1px_1px_0px_#000] hover:bg-yellow-200 active:scale-95 transition-all"
-                            >
-                              <span className="material-symbols-outlined text-[13px]">lightbulb</span>
-                              {showHint ? "Hide Hint" : "Hint"}
-                            </button>
-                          )}
                         </div>
 
                         <h2 className="text-[24px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
-
-                        {/* Hint box */}
-                        {showHint && currentQuestion.hint && (
-                          <div className="mb-4 bg-amber-50 border-[2px] border-black p-3.5 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000]">
-                            <span className="text-[#FF4D2E] uppercase tracking-widest text-[10px] font-black block mb-1">Rex Study Hint</span>
-                            {currentQuestion.hint}
-                          </div>
-                        )}
 
                         {/* Scaffolding clue for re-tests */}
                         {currentItem.isReTest && currentItem.scaffoldHint && (
@@ -1789,8 +1800,11 @@ Each object MUST match this schema exactly:
                     </div>
                     <div className="flex justify-between items-center border-b border-black/10 pb-4">
                       <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Best Combo Streak</span>
-                      <span className="text-[#FF4D2E] text-[20px] font-black flex items-center gap-1">
-                        🔥 {highestStreak} in a row
+                      <span className="text-[#FF4D2E] text-[20px] font-black flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[18px] text-[#FF4D2E]" aria-hidden="true">
+                          local_fire_department
+                        </span>
+                        <span>{highestStreak} in a row</span>
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-b border-black/10 pb-4">
@@ -1872,14 +1886,21 @@ Each object MUST match this schema exactly:
             aria-label="Exit Lesson"
             className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer font-black text-[16px]"
           >
-            {adaptiveQueue.length > 0 ? "✕" : <span className="material-symbols-outlined text-[22px]" aria-hidden="true">arrow_back</span>}
+            {adaptiveQueue.length > 0 ? (
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+            ) : (
+              <span className="material-symbols-outlined text-[22px]" aria-hidden="true">arrow_back</span>
+            )}
           </button>
           
           <div className="flex items-center gap-1.5 font-black text-[16px] truncate max-w-[200px]">
             <span className="truncate">{adaptiveQueue.length > 0 && currentQuestion ? currentQuestion.subject : "Practice"}</span>
             {comboStreak > 1 && (
-              <span className="bg-[#FFF275] border border-black rounded-full px-2 py-0.5 text-[11px] font-black shrink-0">
-                🔥 {comboStreak}
+              <span className="bg-[#FFF275] border border-black rounded-full px-2 py-0.5 text-[11px] font-black shrink-0 inline-flex items-center gap-1">
+                <span className="material-symbols-outlined text-[13px] text-[#FF4D2E]" aria-hidden="true">
+                  local_fire_department
+                </span>
+                <span>{comboStreak}</span>
               </span>
             )}
           </div>
@@ -2096,7 +2117,10 @@ Each object MUST match this schema exactly:
                   {/* Re-test notice */}
                   {currentItem.isReTest && (
                     <div className="bg-[#85f5eb] border-2 border-black px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center justify-between">
-                      <span>🔄 Recall Retry · Q#{currentItem.originalIndex + 1}</span>
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">refresh</span>
+                        <span>Recall Retry · Q#{currentItem.originalIndex + 1}</span>
+                      </span>
                       <span>Attempt #{currentItem.attempts + 1}</span>
                     </div>
                   )}
@@ -2108,30 +2132,13 @@ Each object MUST match this schema exactly:
                         <span className="px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[10px] font-bold uppercase">
                           {currentQuestion.subject}
                         </span>
-                        <span className="px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[10px] font-bold uppercase">
+                        <span className="px-2.5 py-0.5 bg-[#FFD13B] border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_#000]">
                           {currentQuestion.difficulty}
                         </span>
                       </div>
-
-                      {currentQuestion.hint && (
-                        <button
-                          type="button"
-                          onClick={() => { playPop(); setShowHint(prev => !prev); }}
-                          className="px-2.5 py-0.5 bg-yellow-100 border border-black rounded-full text-[10px] font-bold text-yellow-900"
-                        >
-                          {showHint ? "Hide Hint" : "Hint"}
-                        </button>
-                      )}
                     </div>
 
                     <h2 className="font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
-
-                    {showHint && currentQuestion.hint && (
-                      <div className="mb-3 bg-amber-50 border border-black p-2.5 rounded-lg text-[12px] font-bold">
-                        <span className="text-[#FF4D2E] text-[10px] font-black uppercase block">Hint</span>
-                        {currentQuestion.hint}
-                      </div>
-                    )}
 
                     {currentItem.isReTest && currentItem.scaffoldHint && (
                       <div className="mb-3 bg-[#FFF9E6] border border-black p-2.5 rounded-lg text-[12px] font-bold">
@@ -2249,7 +2256,12 @@ Each object MUST match this schema exactly:
               </div>
               <div className="flex justify-between items-center border-b pb-2.5">
                 <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Best Streak</span>
-                <span className="text-[#FF4D2E] text-[16px] font-black">🔥 {highestStreak} in a row</span>
+                <span className="text-[#FF4D2E] text-[16px] font-black flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">
+                    local_fire_department
+                  </span>
+                  <span>{highestStreak} in a row</span>
+                </span>
               </div>
               <div className="flex justify-between items-center border-b pb-2.5">
                 <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">First Pass</span>

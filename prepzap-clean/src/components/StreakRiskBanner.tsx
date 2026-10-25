@@ -52,7 +52,6 @@ export function StreakRiskBanner({
             alt="Rex concerned"
             className="w-10 h-10 object-contain"
           />
-          <span className="absolute -top-1 -right-1 text-[13px] animate-bounce">🔥</span>
         </div>
 
         <div className="flex-1 min-w-0">
@@ -79,7 +78,9 @@ export function StreakRiskBanner({
           }}
           className="flex-1 sm:flex-none px-5 py-2.5 bg-[#FFD13B] text-black font-black text-[13px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none hover:bg-white transition-all cursor-pointer flex items-center justify-center gap-1.5"
         >
-          <span>🔥</span>
+          <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">
+            local_fire_department
+          </span>
           <span>Save Streak</span>
         </button>
 
@@ -87,9 +88,9 @@ export function StreakRiskBanner({
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss banner"
-          className="w-8 h-8 rounded-lg bg-black/20 hover:bg-black/40 border border-white/40 text-white flex items-center justify-center text-[14px] font-bold transition-colors cursor-pointer shrink-0"
+          className="w-8 h-8 rounded-lg bg-white hover:bg-neutral-100 border-2 border-black text-black flex items-center justify-center font-black shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
         >
-          ✕
+          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
         </button>
       </div>
     </div>

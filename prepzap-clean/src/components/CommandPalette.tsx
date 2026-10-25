@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
 import { playPop, playTap, setSoundEnabled, isSoundEnabled } from '@/lib/soundFX';
-import { startAmbientSound, stopAmbientSound, isAmbientPlaying } from '@/lib/ambientSound';
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -95,27 +94,6 @@ export function CommandPalette() {
                   <span>Review Due Flashcards</span>
                 </div>
                 <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-black/5 border border-black/10">SRS</span>
-              </Command.Item>
-
-              <Command.Item
-                onSelect={() => {
-                  playPop();
-                  if (isAmbientPlaying()) {
-                    stopAmbientSound();
-                  } else {
-                    startAmbientSound();
-                  }
-                  setOpen(false);
-                }}
-                className="flex items-center justify-between px-3 py-2.5 cursor-pointer aria-selected:bg-[#85f5eb] aria-selected:text-black rounded-xl border-2 border-transparent aria-selected:border-black font-extrabold text-[13.5px] transition-all"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[16px]">🌧️</span>
-                  <span>Toggle Focus Rain Sound</span>
-                </div>
-                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-black/5 border border-black/10">
-                  {isAmbientPlaying() ? "Playing" : "Offline Audio"}
-                </span>
               </Command.Item>
             </Command.Group>
 
