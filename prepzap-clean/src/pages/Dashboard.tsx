@@ -17,6 +17,7 @@ import { ExamCountdownBanner } from "@/components/ExamCountdownBanner";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
 import { StudyPathMap } from "@/components/StudyPathMap";
+import { launchPathLesson } from "@/lib/lessonLauncher";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
 import {
   getStoredPreferences,
@@ -187,7 +188,7 @@ const STUDY_TOOLS_PAGES = [
   },
 ] as const;
 
-// ── Swipeable Study Tools Carousel Component (4x4 = 16 Tools on Mobile & PC) ──
+// ── Swipeable Study Tools Carousel Component (4x4 = 16 Tools on Mobile & PC, Collapsible) ──
 function StudyToolsShelf({
   navigate,
   isMobile = false,
@@ -196,7 +197,25 @@ function StudyToolsShelf({
   isMobile?: boolean;
 }) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("pz_study_tools_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const toggleCollapse = () => {
+    playTap();
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("pz_study_tools_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const scrollToPage = (pageIndex: number) => {
     playTap();
@@ -218,6 +237,43 @@ function StudyToolsShelf({
     }
   };
 
+  if (isCollapsed) {
+    return (
+      <section className="border-2 border-black bg-white rounded-2xl md:rounded-3xl p-3.5 sm:p-4 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] transition-all">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#FFE566] border border-black flex items-center justify-center shadow-xs">
+              <span className="material-symbols-outlined text-[16px] text-black" aria-hidden="true">build</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-[13px] md:text-[14px] font-black uppercase tracking-wider text-black">
+                  Study Tools
+                </h3>
+                <span className="text-[10px] font-black text-black/70 bg-black/5 px-2 py-0.5 rounded-full border border-black/10">
+                  16 tools
+                </span>
+              </div>
+              <p className="text-[10.5px] font-bold text-black/50 hidden sm:block">
+                Practice, flashcards, tutor, math solver, quick study & more
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            aria-label="Show study tools"
+            className="px-3 py-1.5 rounded-xl border-2 border-black bg-[#FAF7F2] hover:bg-black hover:text-white flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
+          >
+            <span>Show Tools</span>
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">keyboard_arrow_down</span>
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   const content = (
     <>
       <div className="flex justify-between items-center mb-3">
@@ -233,11 +289,8 @@ function StudyToolsShelf({
           </span>
         </div>
 
-        {/* Quick page switch arrows */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-extrabold text-black/40 hidden xs:inline">
-            Swipe or use arrows
-          </span>
+        {/* Quick page switch arrows + Hide Toggle */}
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -251,7 +304,7 @@ function StudyToolsShelf({
               title="Previous 4 Tools"
               aria-label="Previous page"
             >
-              <span className="material-symbols-outlined text-[15px]">chevron_left</span>
+              <span className="material-symbols-outlined text-[15px]" aria-hidden="true">chevron_left</span>
             </button>
             <button
               type="button"
@@ -265,9 +318,20 @@ function StudyToolsShelf({
               title="Next 4 Tools"
               aria-label="Next page"
             >
-              <span className="material-symbols-outlined text-[15px]">chevron_right</span>
+              <span className="material-symbols-outlined text-[15px]" aria-hidden="true">chevron_right</span>
             </button>
           </div>
+
+          {/* Hide button with Arrow */}
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            aria-label="Hide study tools"
+            className="px-2.5 py-1 rounded-xl border-2 border-black bg-[#FAF7F2] hover:bg-black hover:text-white flex items-center gap-1 text-[11px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
+          >
+            <span>Hide</span>
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">keyboard_arrow_up</span>
+          </button>
         </div>
       </div>
 
@@ -302,7 +366,7 @@ function StudyToolsShelf({
                         : "w-10 h-10 rounded-xl bg-white border-2 border-black/15 group-hover:border-black flex items-center justify-center shadow-xs transition-colors mb-3"
                     }
                   >
-                    <span className={`material-symbols-outlined ${isMobile ? "text-[20px]" : "text-[22px]"} ${tool.color}`}>
+                    <span className={`material-symbols-outlined ${isMobile ? "text-[20px]" : "text-[22px]"} ${tool.color}`} aria-hidden="true">
                       {tool.icon}
                     </span>
                   </div>
@@ -356,7 +420,7 @@ function StudyToolsShelf({
   }
 
   return (
-    <section className="border-2 border-black bg-white rounded-3xl p-5 md:p-6 shadow-[3px_3px_0px_#1A1A1A]">
+    <section className="border-2 border-black bg-white rounded-3xl p-5 md:p-6 shadow-[3px_3px_0px_#1A1A1A] transition-all">
       {content}
     </section>
   );
@@ -528,15 +592,372 @@ const formatDuration = (mins: number) => {
   return `${m}m`;
 };
 
-// ── Persistent "Ask Rex" AI Composer Bar (Knowunity Frame 18/21 inspired)
+// ── Smart Query Guessing & Autocomplete Suggestions Database ──
+interface SearchQuerySuggestion {
+  id: string;
+  query: string;
+  category: "quiz" | "flashcards" | "tutor" | "math" | "tool" | "note";
+  categoryLabel: string;
+  categoryBg: string;
+  icon: string;
+  route?: string;
+  topic?: string;
+  actionText: string;
+}
+
+const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
+  // High-Yield Disciplines & Subjects
+  {
+    id: "bio-mitosis",
+    query: "Biology: Cell division, stages of mitosis vs meiosis",
+    category: "quiz",
+    categoryLabel: "QUIZ",
+    categoryBg: "bg-[#FF4D2E] text-white",
+    icon: "bolt",
+    route: "/practice",
+    topic: "Cell division and mitosis stages",
+    actionText: "Start 5-Q Quiz",
+  },
+  {
+    id: "bio-respiration",
+    query: "Biology: Cellular respiration, glycolysis & ATP cycle",
+    category: "tutor",
+    categoryLabel: "TUTOR",
+    categoryBg: "bg-[#FFE566] text-black",
+    icon: "forum",
+    route: "/ai-tutor",
+    topic: "Explain cellular respiration and ATP",
+    actionText: "Ask Rex",
+  },
+  {
+    id: "bio-dna",
+    query: "Biology: DNA structure, double helix & transcription",
+    category: "flashcards",
+    categoryLabel: "CARDS",
+    categoryBg: "bg-[#3B82F6] text-white",
+    icon: "style",
+    route: "/flashcards",
+    topic: "DNA and RNA mechanisms",
+    actionText: "Practice Deck",
+  },
+  {
+    id: "bio-photosynthesis",
+    query: "Biology: Photosynthesis light reactions vs Calvin cycle",
+    category: "quiz",
+    categoryLabel: "QUIZ",
+    categoryBg: "bg-[#FF4D2E] text-white",
+    icon: "bolt",
+    route: "/practice",
+    topic: "Photosynthesis mechanisms",
+    actionText: "Start 5-Q Quiz",
+  },
+  {
+    id: "math-quadratic",
+    query: "Math: Solve quadratic equations by factoring & formula",
+    category: "math",
+    categoryLabel: "SOLVER",
+    categoryBg: "bg-[#10B981] text-white",
+    icon: "calculate",
+    route: "/math",
+    topic: "Quadratic equations solving",
+    actionText: "Step-by-Step",
+  },
+  {
+    id: "math-derivative",
+    query: "Calculus: Derivatives, power rule, product & chain rule",
+    category: "math",
+    categoryLabel: "SOLVER",
+    categoryBg: "bg-[#10B981] text-white",
+    icon: "calculate",
+    route: "/math",
+    topic: "Calculus derivatives step-by-step",
+    actionText: "Step-by-Step",
+  },
+  {
+    id: "math-trig",
+    query: "Math: Trigonometric identities & unit circle values",
+    category: "flashcards",
+    categoryLabel: "CARDS",
+    categoryBg: "bg-[#3B82F6] text-white",
+    icon: "style",
+    route: "/flashcards",
+    topic: "Trig identities and unit circle",
+    actionText: "Flashcards",
+  },
+  {
+    id: "math-integrals",
+    query: "Calculus: Integrals, substitution & integration by parts",
+    category: "quiz",
+    categoryLabel: "QUIZ",
+    categoryBg: "bg-[#FF4D2E] text-white",
+    icon: "bolt",
+    route: "/practice",
+    topic: "Calculus integration techniques",
+    actionText: "Start 5-Q Quiz",
+  },
+  {
+    id: "chem-periodic",
+    query: "Chemistry: Periodic table trends, electronegativity & radius",
+    category: "flashcards",
+    categoryLabel: "CARDS",
+    categoryBg: "bg-[#3B82F6] text-white",
+    icon: "style",
+    route: "/flashcards",
+    topic: "Periodic table trends",
+    actionText: "Flashcards",
+  },
+  {
+    id: "chem-redox",
+    query: "Chemistry: Balancing redox reactions in acidic solution",
+    category: "tutor",
+    categoryLabel: "TUTOR",
+    categoryBg: "bg-[#FFE566] text-black",
+    icon: "forum",
+    route: "/ai-tutor",
+    topic: "Step-by-step redox reaction balancing",
+    actionText: "Ask Rex",
+  },
+  {
+    id: "phys-newton",
+    query: "Physics: Newton's laws of motion with real-world examples",
+    category: "tutor",
+    categoryLabel: "TUTOR",
+    categoryBg: "bg-[#FFE566] text-black",
+    icon: "forum",
+    route: "/ai-tutor",
+    topic: "Newton's three laws of motion",
+    actionText: "Ask Rex",
+  },
+  {
+    id: "phys-kinematics",
+    query: "Physics: Kinematics equations for projectile motion",
+    category: "quiz",
+    categoryLabel: "QUIZ",
+    categoryBg: "bg-[#FF4D2E] text-white",
+    icon: "bolt",
+    route: "/practice",
+    topic: "Kinematics projectile motion",
+    actionText: "Start 5-Q Quiz",
+  },
+  {
+    id: "hist-ww2",
+    query: "History: World War II major turning points & timeline",
+    category: "quiz",
+    categoryLabel: "QUIZ",
+    categoryBg: "bg-[#FF4D2E] text-white",
+    icon: "bolt",
+    route: "/practice",
+    topic: "World War II timeline and battles",
+    actionText: "Start 5-Q Quiz",
+  },
+  {
+    id: "hist-revolution",
+    query: "History: American Revolution & Constitutional Convention",
+    category: "tutor",
+    categoryLabel: "TUTOR",
+    categoryBg: "bg-[#FFE566] text-black",
+    icon: "forum",
+    route: "/ai-tutor",
+    topic: "The American Revolution causes & outcome",
+    actionText: "Ask Rex",
+  },
+
+  // Tool Direct Actions
+  {
+    id: "tool-practice",
+    query: "Active recall practice test & exam simulation",
+    category: "tool",
+    categoryLabel: "TOOL",
+    categoryBg: "bg-[#FAF7F2] text-black border border-black",
+    icon: "quiz",
+    route: "/practice",
+    actionText: "Open Practice",
+  },
+  {
+    id: "tool-flashcards",
+    query: "Flashcards: spaced repetition & memory review",
+    category: "tool",
+    categoryLabel: "TOOL",
+    categoryBg: "bg-[#FAF7F2] text-black border border-black",
+    icon: "style",
+    route: "/flashcards",
+    actionText: "Open Decks",
+  },
+  {
+    id: "tool-math",
+    query: "Math solver: step-by-step problem solver",
+    category: "tool",
+    categoryLabel: "TOOL",
+    categoryBg: "bg-[#FAF7F2] text-black border border-black",
+    icon: "calculate",
+    route: "/math",
+    actionText: "Open Math",
+  },
+  {
+    id: "tool-notes",
+    query: "My Notes: lecture documents & study summaries",
+    category: "tool",
+    categoryLabel: "TOOL",
+    categoryBg: "bg-[#FAF7F2] text-black border border-black",
+    icon: "edit_document",
+    route: "/notes",
+    actionText: "Open Notes",
+  },
+  {
+    id: "tool-timer",
+    query: "Pomodoro focus timer & study interval timer",
+    category: "tool",
+    categoryLabel: "TOOL",
+    categoryBg: "bg-[#FAF7F2] text-black border border-black",
+    icon: "timer",
+    route: "/timer",
+    actionText: "Start Timer",
+  },
+  {
+    id: "tool-quickstudy",
+    query: "Quick Study: generate high-yield cheat sheets",
+    category: "tool",
+    categoryLabel: "TOOL",
+    categoryBg: "bg-[#FAF7F2] text-black border border-black",
+    icon: "menu_book",
+    route: "/quick-study",
+    actionText: "Open Cheats",
+  },
+  {
+    id: "tool-arcade",
+    query: "Arena battle & study arcade challenges",
+    category: "tool",
+    categoryLabel: "TOOL",
+    categoryBg: "bg-[#FAF7F2] text-black border border-black",
+    icon: "sports_esports",
+    route: "/challenges",
+    actionText: "Play Arena",
+  },
+];
+
+// ── Persistent "Ask Rex" AI Composer Bar with Smart Query Guessing ──
 function AskRexBottomBar({ navigate }: { navigate: any }) {
   const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Filter query guesses based on current query
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return SEARCH_SUGGESTIONS.slice(0, 5);
+    }
+    const startsWith: SearchQuerySuggestion[] = [];
+    const wordStarts: SearchQuerySuggestion[] = [];
+    const contains: SearchQuerySuggestion[] = [];
+
+    SEARCH_SUGGESTIONS.forEach((item) => {
+      const lower = item.query.toLowerCase();
+      const topicLower = (item.topic || "").toLowerCase();
+      const catLower = item.category.toLowerCase();
+      const catLabel = item.categoryLabel.toLowerCase();
+
+      if (lower.startsWith(q) || topicLower.startsWith(q)) {
+        startsWith.push(item);
+      } else if (
+        lower.split(/[\s,.:;/-]+/).some((w) => w.startsWith(q)) ||
+        topicLower.split(/[\s,.:;/-]+/).some((w) => w.startsWith(q))
+      ) {
+        wordStarts.push(item);
+      } else if (
+        lower.includes(q) ||
+        topicLower.includes(q) ||
+        catLower.includes(q) ||
+        catLabel.includes(q)
+      ) {
+        contains.push(item);
+      }
+    });
+
+    return [...startsWith, ...wordStarts, ...contains].slice(0, 5);
+  }, [query]);
+
+  // Compute inline ghost text completion
+  const ghostText = useMemo(() => {
+    if (!query.trim()) return "";
+    const topMatch = suggestions[0];
+    if (topMatch && topMatch.query.toLowerCase().startsWith(query.toLowerCase())) {
+      return query + topMatch.query.slice(query.length);
+    }
+    return "";
+  }, [query, suggestions]);
+
+  // Dismiss dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+        setSelectedIndex(-1);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const executeSuggestion = (item: SearchQuerySuggestion) => {
+    playSuccess();
+    setIsFocused(false);
+    setQuery("");
+
+    if (item.route === "/practice" && item.topic) {
+      launchPathLesson(
+        item.topic,
+        { id: item.id, title: item.topic, xp: 35, type: "practice" },
+        navigate
+      );
+      return;
+    }
+
+    if (item.route === "/ai-tutor") {
+      navigate(`/ai-tutor?prompt=${encodeURIComponent(item.topic || item.query)}`);
+      return;
+    }
+
+    if (item.route) {
+      navigate(item.route);
+      return;
+    }
+
+    navigate(`/ai-tutor?prompt=${encodeURIComponent(item.query)}`);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+      executeSuggestion(suggestions[selectedIndex]);
+      return;
+    }
     if (!query.trim()) return;
     playPop();
+    setIsFocused(false);
     navigate(`/ai-tutor?prompt=${encodeURIComponent(query.trim())}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isFocused) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === "Tab" || (e.key === "ArrowRight" && inputRef.current?.selectionStart === query.length)) {
+      if (ghostText && ghostText.length > query.length) {
+        e.preventDefault();
+        setQuery(ghostText);
+      }
+    } else if (e.key === "Escape") {
+      setIsFocused(false);
+      setSelectedIndex(-1);
+    }
   };
 
   const handleMic = () => {
@@ -545,54 +966,152 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
   };
 
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full relative z-30">
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 bg-white border-2 border-black rounded-2xl md:rounded-full px-3 py-1.5 md:px-3.5 md:py-2 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_#1A1A1A] transition-all"
+        className="relative flex items-center gap-2 bg-white border-2 border-black rounded-2xl md:rounded-full px-3 py-1.5 md:px-3.5 md:py-2 shadow-[2px_2px_0px_#1A1A1A] md:shadow-[3px_3px_0px_#1A1A1A] hover:shadow-[4px_4px_0px_#1A1A1A] transition-all"
       >
         <button
           type="button"
           onClick={() => { playTap(); navigate("/ai-tutor"); }}
           className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FFE566] border-2 border-black flex items-center justify-center text-black shrink-0 cursor-pointer shadow-xs hover:bg-[#FFD13B] transition-colors"
           title="Open AI Tutor"
+          aria-label="Open AI Tutor"
         >
-          <span className="material-symbols-outlined text-[15px] md:text-[17px]">forum</span>
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]" aria-hidden="true">forum</span>
         </button>
 
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask Rex anything or type a topic to practice..."
-          className="flex-1 bg-transparent border-none text-[12.5px] md:text-[14px] font-bold text-black outline-none placeholder:text-black/40"
-        />
+        {/* Search input with inline ghost completion container */}
+        <div className="relative flex-1 flex items-center min-w-0">
+          {/* Ghost Text Layer */}
+          {ghostText && isFocused && (
+            <div
+              className="absolute left-0 top-0 bottom-0 pointer-events-none flex items-center text-[12.5px] md:text-[14px] font-bold text-black/25 overflow-hidden whitespace-nowrap"
+              aria-hidden="true"
+            >
+              <span className="opacity-0">{query}</span>
+              <span>{ghostText.slice(query.length)}</span>
+              <span className="ml-2 text-[9.5px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border border-black/20 bg-black/5 text-black/40 hidden sm:inline">
+                Tab ⇥
+              </span>
+            </div>
+          )}
+
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelectedIndex(-1);
+            }}
+            onFocus={() => setIsFocused(true)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask Rex anything or type a topic to practice..."
+            className="w-full bg-transparent border-none text-[12.5px] md:text-[14px] font-bold text-black outline-none placeholder:text-black/40 relative z-10"
+          />
+        </div>
+
+        {/* Clear query button if typed */}
+        {query && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setSelectedIndex(-1);
+              inputRef.current?.focus();
+            }}
+            aria-label="Clear search"
+            className="w-5 h-5 rounded-full bg-black/10 hover:bg-black/20 text-black flex items-center justify-center text-[12px] font-bold cursor-pointer"
+          >
+            ✕
+          </button>
+        )}
 
         <button
           type="button"
           onClick={() => { playTap(); navigate("/sources"); }}
           className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FFE566] border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer shadow-xs"
           title="Open Source Library (Upload notes & documents)"
+          aria-label="Attach documents"
         >
-          <span className="material-symbols-outlined text-[15px] md:text-[17px]">attach_file</span>
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]" aria-hidden="true">attach_file</span>
         </button>
 
         <button
           type="button"
           onClick={handleMic}
-          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FF4D2E] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FF4D2E] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer shadow-xs"
           title="Voice Talk with Rex"
+          aria-label="Voice talk"
         >
-          <span className="material-symbols-outlined text-[15px] md:text-[17px]">mic</span>
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]" aria-hidden="true">mic</span>
         </button>
 
         <button
           type="submit"
-          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black text-white hover:bg-[#FF4D2E] flex items-center justify-center shrink-0 transition-colors cursor-pointer"
-          title="Send"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black text-white hover:bg-[#FF4D2E] flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-xs"
+          title="Search or Ask Rex"
+          aria-label="Submit search"
         >
-          <span className="material-symbols-outlined text-[15px] md:text-[17px]">arrow_forward</span>
+          <span className="material-symbols-outlined text-[15px] md:text-[17px]" aria-hidden="true">arrow_forward</span>
         </button>
       </form>
+
+      {/* Floating Query Guessing & Autocomplete Dropdown */}
+      {isFocused && suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0px_#000] p-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="px-3 py-1.5 flex items-center justify-between border-b border-black/10 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-black/50 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px]" aria-hidden="true">psychology</span>
+              {query.trim() ? "Guessed Search Queries" : "Trending Study Queries & Tools"}
+            </span>
+            <span className="text-[10px] font-bold text-black/40 hidden sm:inline">
+              Use ↑↓ to navigate &bull; Enter to select
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            {suggestions.map((item, idx) => {
+              const isSelected = selectedIndex === idx;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    executeSuggestion(item);
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`w-full text-left px-3 py-2 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                    isSelected
+                      ? "bg-[#FFFDF5] border-black shadow-[1.5px_1.5px_0px_#000] translate-x-0.5"
+                      : "bg-transparent border-transparent hover:bg-black/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={`text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${item.categoryBg}`}>
+                      {item.categoryLabel}
+                    </span>
+                    <span className="text-[12.5px] font-bold text-black truncate">
+                      {item.query}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10.5px] font-black text-black/70 bg-black/5 px-2 py-0.5 rounded-lg border border-black/10 hidden sm:inline-block">
+                      {item.actionText}
+                    </span>
+                    <span className="material-symbols-outlined text-[16px] text-black/50" aria-hidden="true">
+                      call_made
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1023,10 +1542,16 @@ export default function Dashboard() {
           {/* Main Responsive Grid: Single column on mobile, 12 cols (8 + 4) on md+ */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-7 items-start">
 
-            {/* Main Hero Column: Learning Path Hero + Ask Rex + Tools Shelf */}
-            <div className="md:col-span-8 flex flex-col gap-6">
+            {/* Main Hero Column: Search Bar + Study Tools Shelf (Top) + Learning Path Hero */}
+            <div className="md:col-span-8 flex flex-col gap-5">
 
-              {/* The Learning Path Hero (Rendered ONCE, immediately above the fold) */}
+              {/* Persistent "Ask Rex" AI Search Bar with Predictive Query Guessing */}
+              <AskRexBottomBar navigate={navigate} />
+
+              {/* Swipeable Study Tools Carousel (with Hide/Show Arrow) */}
+              <StudyToolsShelf navigate={navigate} isMobile={false} />
+
+              {/* The Learning Path Hero (with Unit Guidebook Header) */}
               <StudyPathMap
                 subjectName={primarySubjectMeta.name}
                 onSelectNode={(node) => {
@@ -1034,12 +1559,6 @@ export default function Dashboard() {
                 }}
                 navigate={navigate}
               />
-
-              {/* Knowunity-style Persistent AI Composer Bar */}
-              <AskRexBottomBar navigate={navigate} />
-
-              {/* Swipeable Study Tools Carousel */}
-              <StudyToolsShelf navigate={navigate} isMobile={false} />
             </div>
 
             {/* Right Column / Secondary Rail (4 cols on desktop, flows below on mobile) */}

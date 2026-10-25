@@ -309,99 +309,92 @@ export function ExamCountdownBanner({
   return (
     <>
       <div
-        className={`border-2 border-black rounded-2xl bg-white p-4 md:p-5 shadow-[0px_4px_0px_#1A1A1A] relative overflow-hidden ${className}`}
+        className={`border-2 border-black rounded-2xl bg-white p-4 shadow-[2px_2px_0px_#1A1A1A] relative flex flex-col gap-3.5 ${className}`}
       >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Left Column: Target Info */}
-          <div className="flex items-start gap-3.5 flex-1 min-w-0">
-            <div className="w-12 h-12 rounded-xl border-2 border-black bg-[#FAF7F2] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#1A1A1A] mt-0.5">
-              <span className="material-symbols-outlined text-[26px] text-black">timer</span>
+        {/* Top Badges & Edit Button */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <div className="w-6 h-6 rounded-md border border-black bg-[#FAF7F2] flex items-center justify-center shrink-0 shadow-xs">
+              <span className="material-symbols-outlined text-[15px] text-black" aria-hidden="true">timer</span>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-black bg-black text-white">
-                  Exam Countdown
-                </span>
-                {(examTarget.subject || subjectMeta) && (
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border-2 border-black bg-white text-black shadow-[1px_1px_0px_#000]">
-                    {subjectMeta?.name || examTarget.subject}
-                  </span>
-                )}
-                <span className="text-[11px] font-extrabold text-black/50">
-                  &bull; {formattedDate}
-                </span>
-                {examTarget.attachedSourceIds && examTarget.attachedSourceIds.length > 0 && (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md border border-black/15 bg-black/5 text-black/70 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px]">attach_file</span>
-                    {examTarget.attachedSourceIds.length} doc{examTarget.attachedSourceIds.length === 1 ? "" : "s"}
-                  </span>
-                )}
-              </div>
-
-              <h3 className="text-[17px] md:text-[19px] font-black text-black leading-tight truncate">
-                {examTarget.examTitle}
-              </h3>
-              <p className="text-[11.5px] font-bold text-black/55 mt-0.5">
-                {breakdown}
-              </p>
-            </div>
+            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-black bg-black text-white shrink-0">
+              Exam Target
+            </span>
+            {(examTarget.subject || subjectMeta) && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-black bg-[#FFE566] text-black shadow-xs shrink-0 truncate max-w-[120px]">
+                {subjectMeta?.name || examTarget.subject}
+              </span>
+            )}
           </div>
+          <button
+            type="button"
+            onClick={openModal}
+            title="Edit Exam Target & Linked Materials"
+            aria-label="Edit Exam Target"
+            className="w-7 h-7 rounded-lg border border-black bg-white hover:bg-black hover:text-white flex items-center justify-center shadow-xs active:translate-y-0.5 transition-all shrink-0 cursor-pointer text-black"
+          >
+            <span className="material-symbols-outlined text-[15px]" aria-hidden="true">edit</span>
+          </button>
+        </div>
 
-          {/* Right Column: Days Remaining & Readiness Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0 lg:max-w-md w-full lg:w-auto">
-            {/* Days Left Pill */}
-            <div className={`px-3 py-1.5 rounded-xl border-2 border-black font-black text-[12px] tracking-wide flex items-center gap-1.5 shrink-0 shadow-[1px_1px_0px_#1A1A1A] ${daysPillBg}`}>
-              <span className="material-symbols-outlined text-[15px]">event</span>
+        {/* Title & Date Info */}
+        <div className="min-w-0">
+          <h3 className="text-[16px] md:text-[17px] font-black text-black leading-snug truncate">
+            {examTarget.examTitle}
+          </h3>
+          <div className="flex items-center gap-2 mt-1 text-[11px] font-extrabold text-black/60 flex-wrap">
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px]" aria-hidden="true">event</span>
+              {formattedDate}
+            </span>
+            <span className={`px-2 py-0.5 rounded-md border border-black text-[10px] font-black shadow-xs ${daysPillBg}`}>
               {daysPillText}
-            </div>
-
-            {/* Readiness Bar */}
-            <div className="flex-1 sm:w-44">
-              <div className="flex justify-between items-center mb-1 text-[11px] font-black">
-                <span className="text-black/60 uppercase tracking-wider">Test Readiness</span>
-                <span className="text-black">{percent}%</span>
-              </div>
-              <div className="h-3 bg-[#E8E4DC] rounded-full border-2 border-black overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ${percent >= 75 ? "bg-[#10B981]" : percent >= 45 ? "bg-[#F5A623]" : "bg-[#FF4D2E]"}`}
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  playPop();
-                  // Prime practice session with exact exam topic, subject & attached materials
-                  localStorage.setItem("pz_practice_topic", examTarget.examTitle);
-                  if (examTarget.subject) {
-                    localStorage.setItem("pz_practice_subject", examTarget.subject);
-                  }
-                  if (examTarget.attachedSourceIds && examTarget.attachedSourceIds.length > 0) {
-                    saveContext({ mode: "selected", selectedIds: examTarget.attachedSourceIds });
-                  }
-                  navigate(subjectMeta?.recommendedTool || "/practice");
-                }}
-                className="border-2 border-black bg-[#FFD13B] text-black hover:bg-black hover:text-white px-3.5 py-1.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1 shrink-0 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[15px]">play_arrow</span>
-                Study
-              </button>
-
-              <button
-                type="button"
-                onClick={openModal}
-                title="Edit Exam Target & Linked Materials"
-                className="w-8 h-8 rounded-xl border-2 border-black bg-white hover:bg-[#FAF7F2] flex items-center justify-center shadow-[1px_1px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all shrink-0 cursor-pointer text-black"
-              >
-                <span className="material-symbols-outlined text-[16px]">edit</span>
-              </button>
-            </div>
+            </span>
+            {examTarget.attachedSourceIds && examTarget.attachedSourceIds.length > 0 && (
+              <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md border border-black/15 bg-black/5 text-black/70 flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[12px]" aria-hidden="true">attach_file</span>
+                {examTarget.attachedSourceIds.length} doc{examTarget.attachedSourceIds.length === 1 ? "" : "s"}
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Test Readiness Bar */}
+        <div className="bg-[#FAF7F2] border border-black/15 rounded-xl p-2.5">
+          <div className="flex justify-between items-center mb-1.5 text-[11px] font-black">
+            <span className="text-black/60 uppercase tracking-wider text-[10px]">Test Readiness</span>
+            <span className="text-black font-black">{percent}%</span>
+          </div>
+          <div className="h-2.5 bg-[#E8E4DC] rounded-full border border-black overflow-hidden">
+            <div
+              className={`h-full transition-all duration-500 ${percent >= 75 ? "bg-[#10B981]" : percent >= 45 ? "bg-[#F5A623]" : "bg-[#FF4D2E]"}`}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+          <p className="text-[10.5px] font-bold text-black/55 mt-1.5 leading-tight truncate">
+            {breakdown}
+          </p>
+        </div>
+
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={() => {
+            playPop();
+            localStorage.setItem("pz_practice_topic", examTarget.examTitle);
+            if (examTarget.subject) {
+              localStorage.setItem("pz_practice_subject", examTarget.subject);
+            }
+            if (examTarget.attachedSourceIds && examTarget.attachedSourceIds.length > 0) {
+              saveContext({ mode: "selected", selectedIds: examTarget.attachedSourceIds });
+            }
+            navigate(subjectMeta?.recommendedTool || "/practice");
+          }}
+          className="w-full border-2 border-black bg-[#FFD13B] text-black hover:bg-black hover:text-white py-2 px-3 rounded-xl font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">play_arrow</span>
+          <span>{daysLeft < 0 ? "Review Exam Topic" : "Start Targeted Prep"}</span>
+        </button>
       </div>
 
       {/* Modal */}

@@ -89,6 +89,25 @@ export function StudyPathMap({
     "justify-center",
   ];
 
+  const [isPathCollapsed, setIsPathCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("pz_path_map_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const togglePathCollapse = () => {
+    playTap();
+    setIsPathCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("pz_path_map_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const startLesson = (node: PathNode, e?: React.MouseEvent) => {
     if (node.status === "locked") return;
     if (e) {
@@ -129,7 +148,7 @@ export function StudyPathMap({
   return (
     <div className="border-2 border-black rounded-3xl bg-[#FFFDF5] p-5 sm:p-6 shadow-[3px_3px_0px_#1A1A1A] relative select-none font-['Quicksand',sans-serif]">
       {/* Unit Banner (Duolingo Header style) */}
-      <div className="bg-[#FFD13B] border-2 border-black rounded-2xl p-4 mb-6 shadow-[2.5px_2.5px_0px_#000] flex items-center justify-between">
+      <div className={`bg-[#FFD13B] border-2 border-black rounded-2xl p-4 shadow-[2.5px_2.5px_0px_#000] flex items-center justify-between ${isPathCollapsed ? "mb-0" : "mb-6"}`}>
         <div>
           <span className="text-[11px] font-black uppercase tracking-wider text-black/75 block">
             Unit 1 &bull; {subjectName}
@@ -139,22 +158,38 @@ export function StudyPathMap({
           </h3>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            playPop();
-            navigate("/quick-study");
-          }}
-          aria-label="Open Guidebook"
-          className="px-3 py-1.5 bg-white hover:bg-black hover:text-white border-2 border-black rounded-xl text-[12px] font-black transition-colors cursor-pointer shadow-[1.5px_1.5px_0px_#000] flex items-center gap-1.5 active:translate-y-0.5"
-        >
-          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">menu_book</span>
-          <span>Guidebook</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              playPop();
+              navigate("/quick-study");
+            }}
+            aria-label="Open Guidebook"
+            className="px-3 py-1.5 bg-white hover:bg-black hover:text-white border-2 border-black rounded-xl text-[12px] font-black transition-colors cursor-pointer shadow-[1.5px_1.5px_0px_#000] flex items-center gap-1.5 active:translate-y-0.5"
+          >
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">menu_book</span>
+            <span>Guidebook</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={togglePathCollapse}
+            aria-label={isPathCollapsed ? "Show learning path" : "Hide learning path"}
+            title={isPathCollapsed ? "Expand learning path" : "Collapse learning path"}
+            className="w-8 h-8 bg-white hover:bg-black hover:text-white border-2 border-black rounded-xl flex items-center justify-center transition-colors cursor-pointer shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 text-black"
+          >
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+              {isPathCollapsed ? "keyboard_arrow_down" : "keyboard_arrow_up"}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* The Winding Stepping Stone Path */}
-      <div className="relative py-4 flex flex-col gap-6 sm:gap-8 max-w-sm mx-auto">
+      {/* The Winding Stepping Stone Path & Popover */}
+      {!isPathCollapsed && (
+        <>
+          <div className="relative py-4 flex flex-col gap-6 sm:gap-8 max-w-sm mx-auto">
         {/* Animated Connecting Marching Path */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
@@ -326,6 +361,8 @@ export function StudyPathMap({
             )}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
