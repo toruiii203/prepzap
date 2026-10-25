@@ -125,7 +125,7 @@ export function StreakHubCard({
           </span>
         </div>
 
-        {/* Action Button: Keep Streak Alive or Practice (Tactile 3D Button) */}
+        {/* Action Button: Keep Streak Alive or Practice (Secondary Style to keep Path as hero) */}
         <button
           type="button"
           onClick={(e) => {
@@ -133,13 +133,9 @@ export function StreakHubCard({
             triggerXPBurst(e.clientX, e.clientY - 20, "+30 Streak XP", "🔥");
             onLaunchPractice();
           }}
-          className={`px-4 py-2 text-[12.5px] font-black uppercase tracking-wider border-2 border-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            studiedToday
-              ? "bg-[#10B981] text-white hover:bg-black shadow-[0px_3px_0px_#047857,0px_4px_0px_#000] active:translate-y-1 active:shadow-none"
-              : "bg-[#FF4D2E] text-white hover:bg-black shadow-[0px_3px_0px_#B91C1C,0px_4px_0px_#000] active:translate-y-1 active:shadow-none"
-          }`}
+          className="px-4 py-2 text-[12px] font-black uppercase tracking-wider border border-black/40 bg-white hover:bg-neutral-100 text-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[1px_1px_0px_rgba(0,0,0,0.2)] active:translate-y-0.5 active:shadow-none"
         >
-          <span className="material-symbols-outlined text-[16px]">
+          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
             {studiedToday ? "replay" : "bolt"}
           </span>
           <span>{studiedToday ? "Practice More" : "Extend Streak (+5m)"}</span>

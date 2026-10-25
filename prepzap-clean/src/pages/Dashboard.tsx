@@ -520,10 +520,26 @@ function RecentSessionsRows({ sessions, loadingSessions }: RecentSessionsRowsPro
   return (
     <div className="divide-y-2 divide-black">
       {loadingSessions ? (
-        <div className="p-4 text-center text-xs font-bold text-slate-400">Loading sessions...</div>
+        <div className="p-4 flex flex-col gap-2.5 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-black/10 border border-black/20 rounded-lg shrink-0" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <div className="h-3.5 bg-black/10 rounded w-3/4" />
+              <div className="h-2.5 bg-black/10 rounded w-1/2" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-black/10 border border-black/20 rounded-lg shrink-0" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <div className="h-3.5 bg-black/10 rounded w-2/3" />
+              <div className="h-2.5 bg-black/10 rounded w-1/3" />
+            </div>
+          </div>
+        </div>
       ) : filteredSessions.length === 0 ? (
-        <div className="p-4 text-center text-xs font-bold text-slate-500">
-          Ready for your first session! Tap START on Unit 1.
+        <div className="p-4 text-center text-xs font-bold text-black/60 bg-white">
+          <p className="font-extrabold text-[12.5px] text-black">Ready for your first session!</p>
+          <p className="text-[11px] text-black/50 mt-0.5">Tap START on Unit 1 to begin tracking.</p>
         </div>
       ) : (
         filteredSessions.slice(0, 3).map((session, sIdx) => {
@@ -1213,6 +1229,23 @@ export default function Dashboard() {
   const { user, profile } = useAuth();
   const { isPro } = usePlan();
   const [showStreakModal, setShowStreakModal] = useState(false);
+  const [liveStreakDays, setLiveStreakDays] = useState<number>(() => profile?.streak_days ?? 1);
+
+  useEffect(() => {
+    if (profile?.streak_days !== undefined) {
+      setLiveStreakDays(profile.streak_days);
+    }
+  }, [profile?.streak_days]);
+
+  useEffect(() => {
+    const handleStreakUpdated = (e: any) => {
+      if (e.detail?.newStreak !== undefined) {
+        setLiveStreakDays(e.detail.newStreak);
+      }
+    };
+    window.addEventListener("studenius:streak-updated", handleStreakUpdated);
+    return () => window.removeEventListener("studenius:streak-updated", handleStreakUpdated);
+  }, []);
 
   const rawName =
     user?.avatarConfig?.full_name ||
@@ -1483,10 +1516,10 @@ export default function Dashboard() {
           <div
             onClick={() => { playPop(); setShowStreakModal(true); }}
             className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs cursor-pointer hover:bg-[#FAF7F2] transition-colors"
-            title={`${profile?.streak_days ?? 1} Day Streak`}
+            title={`${liveStreakDays} Day Streak`}
           >
             <span className="text-[13px]">🔥</span>
-            <span className="text-[11px] font-black text-black">{profile?.streak_days ?? 1}d</span>
+            <span className="text-[11px] font-black text-black">{liveStreakDays}d</span>
           </div>
 
           {/* Level */}
@@ -1531,7 +1564,7 @@ export default function Dashboard() {
           {/* Top Header with greeting & gamification pills */}
           <DashboardHeader
             displayName={displayName}
-            streakDays={profile?.streak_days ?? 1}
+            streakDays={liveStreakDays}
             totalXp={profile?.total_xp ?? 0}
             isPro={isPro}
             onOpenHelp={() => tutorial.show()}
@@ -1645,7 +1678,7 @@ export default function Dashboard() {
       {/* Streak Celebration Modal with Dual-Core Flame, Floating Sparks, and Calendar */}
       <StreakCelebrationModal
         isOpen={showStreakModal}
-        streakCount={profile?.streak_days ?? 1}
+        streakCount={liveStreakDays}
         onClose={() => setShowStreakModal(false)}
         onContinue={() => setShowStreakModal(false)}
       />

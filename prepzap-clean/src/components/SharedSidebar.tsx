@@ -1,59 +1,45 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTimeTracker } from "@/hooks/useStudyTimeTracker";
 import { usePlan } from "@/hooks/usePlan";
 import { formatFriendlyName } from "@/lib/formatName";
 import { playTap } from "@/lib/soundFX";
 
-const NAV_SECTIONS = [
-  {
-    label: "Main",
-    items: [
-      { icon: "dashboard",      label: "Dashboard",      route: "/dashboard" },
-      { icon: "groups",         label: "Friends",        route: "/friends" },
-      { icon: "edit_document",  label: "Notes",          route: "/notes" },
-      { icon: "forum",          label: "Tutor",          route: "/ai-tutor" },
-      { icon: "style",          label: "Flashcards",     route: "/flashcards" },
-      { icon: "assignment",     label: "Practice",       route: "/practice" },
-      { icon: "timer",          label: "Focus Timer",    route: "/timer" },
-      { icon: "calendar_month", label: "Study Planner",  route: "/planner" },
-    ],
-  },
-  {
-    label: "Tools",
-    items: [
-      { icon: "calculate",      label: "Math Solver",    route: "/math" },
-      { icon: "psychology",     label: "Teach It",       route: "/teach-it" },
-      { icon: "menu_book",      label: "Quick Study",    route: "/quick-study" },
-      { icon: "auto_stories",   label: "Mistake Journal",route: "/mistakes" },
-      { icon: "military_tech",  label: "Challenges",     route: "/challenges" },
-    ],
-  },
-  {
-    label: "Play",
-    items: [
-      { icon: "sensors",        label: "Live Battle",    route: "/rooms" },
-      { icon: "sports_esports", label: "Arena",          route: "/arena" },
-      { icon: "stadia_controller", label: "Arcade",      route: "/arcade" },
-    ],
-  },
-  {
-    label: "Resources",
-    items: [
-      { icon: "folder_open",    label: "Source Library", route: "/sources" },
-      { icon: "menu_book",      label: "Campus Vault",   route: "/campus-vault" },
-      { icon: "bar_chart",      label: "Analytics",      route: "/analytics" },
-    ],
-  },
+// 5 Core Top-Level Destinations (Duolingo-grade simplified hierarchy)
+const PRIMARY_NAV = [
+  { icon: "dashboard",      label: "Learn",     route: "/dashboard" },
+  { icon: "bolt",           label: "Practice",  route: "/practice" },
+  { icon: "sports_esports", label: "Arena",     route: "/arena" },
+  { icon: "folder_open",    label: "Library",   route: "/sources" },
+  { icon: "groups",         label: "Friends",   route: "/friends" },
 ];
 
+// Secondary Study Tools (grouped cleanly in collapsible section)
+const MORE_TOOLS = [
+  { icon: "edit_document",    label: "Notes",           route: "/notes" },
+  { icon: "forum",            label: "Tutor",           route: "/ai-tutor" },
+  { icon: "style",            label: "Flashcards",      route: "/flashcards" },
+  { icon: "timer",            label: "Focus Timer",     route: "/timer" },
+  { icon: "calendar_month",   label: "Study Planner",   route: "/planner" },
+  { icon: "calculate",        label: "Math Solver",     route: "/math" },
+  { icon: "psychology",       label: "Teach It",        route: "/teach-it" },
+  { icon: "menu_book",        label: "Quick Study",     route: "/quick-study" },
+  { icon: "auto_stories",     label: "Mistake Journal", route: "/mistakes" },
+  { icon: "military_tech",    label: "Challenges",      route: "/challenges" },
+  { icon: "sensors",          label: "Live Battle",     route: "/rooms" },
+  { icon: "stadia_controller", label: "Arcade",         route: "/arcade" },
+  { icon: "menu_book",        label: "Campus Vault",    route: "/campus-vault" },
+  { icon: "bar_chart",        label: "Analytics",       route: "/analytics" },
+];
+
+const ALL_NAV_ITEMS = [...PRIMARY_NAV, ...MORE_TOOLS];
+
 // Flat lookup so we can turn the current route into a human-readable tool
-// name for logging. Routes not listed here (settings, profile, go-pro, etc.)
-// intentionally aren't "study tools", so time tracking no-ops on those pages.
+// name for logging.
 const ROUTE_TO_TOOL_NAME: Record<string, string> = Object.fromEntries(
-  NAV_SECTIONS.flatMap((section) => section.items).map((item) => [item.route, item.label])
+  ALL_NAV_ITEMS.map((item) => [item.route, item.label])
 );
-// DO NOT log time for non-study tools just because they are in the nav.
 delete ROUTE_TO_TOOL_NAME["/dashboard"];
 delete ROUTE_TO_TOOL_NAME["/friends"];
 delete ROUTE_TO_TOOL_NAME["/community"];
@@ -72,8 +58,27 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
   const { profile, user } = useAuth();
   const { isPro, loading: planLoading } = usePlan();
 
-  // Centralized time tracking: this one hook instance covers every route that
-  // renders SharedSidebar (i.e. the whole app), so no per-page wiring needed.
+  const isMoreToolActive = MORE_TOOLS.some((t) => t.route === active);
+  const [showMoreTools, setShowMoreTools] = useState<boolean>(() => {
+    return isMoreToolActive || localStorage.getItem("pz_sidebar_more_open") === "true";
+  });
+
+  useEffect(() => {
+    if (isMoreToolActive) {
+      setShowMoreTools(true);
+    }
+  }, [isMoreToolActive]);
+
+  const toggleMoreTools = () => {
+    playTap();
+    setShowMoreTools((prev) => {
+      const next = !prev;
+      localStorage.setItem("pz_sidebar_more_open", String(next));
+      return next;
+    });
+  };
+
+  // Centralized time tracking
   useStudyTimeTracker(ROUTE_TO_TOOL_NAME[active] ?? null, user?.id);
 
   const rawName =
@@ -86,82 +91,141 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
   const displayName = formatFriendlyName(rawName);
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64 overflow-hidden">
+    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64 overflow-hidden select-none font-['Quicksand',sans-serif]">
       {/* Logo */}
-      <div className="mb-6 px-1">
-        <h1 className="text-[24px] font-black tracking-tight text-black cursor-pointer" onClick={() => navigate("/dashboard")}>
+      <div className="mb-5 px-1">
+        <h1
+          className="text-[24px] font-black tracking-tight text-black cursor-pointer hover:opacity-85 transition-opacity"
+          onClick={() => navigate("/dashboard")}
+        >
           Studenius
         </h1>
       </div>
 
-      
-        <style>{`
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 10px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: #FAF7F2;
-            border-left: 1.5px solid black;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: black;
-            border: 1.5px solid black;
-          }
-        `}</style>
-        {/* Nav */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #FAF7F2;
+          border-left: 1px solid rgba(0,0,0,0.15);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: black;
+          border-radius: 4px;
+        }
+      `}</style>
 
+      {/* Primary & Collapsible Navigation */}
       <div className="flex-1 relative min-h-0">
-        <nav className="h-full flex flex-col gap-4 overflow-y-auto pb-4 custom-scrollbar" >
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label} className="flex flex-col gap-0.5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1 px-2">{section.label}</p>
-            {section.items.map((item) => {
+        <nav className="h-full flex flex-col gap-2 overflow-y-auto pb-4 custom-scrollbar pr-1">
+          {/* 5 Core Destinations (Duolingo Style) */}
+          <div className="flex flex-col gap-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-0.5 px-2">Main</p>
+            {PRIMARY_NAV.map((item) => {
               const isActive = active === item.route;
               return (
                 <button
                   key={item.route}
+                  type="button"
                   onClick={() => {
                     playTap();
                     navigate(item.route);
                   }}
-                  className={`flex items-center gap-3 px-3 py-2.5 text-[13px] font-black transition-all text-left w-full rounded-xl ${
+                  className={`flex items-center gap-3 px-3 py-2.5 min-h-[44px] text-[13.5px] font-black transition-all text-left w-full rounded-xl cursor-pointer ${
                     isActive
-                      ? "bg-black text-white shadow-[0px_3px_0px_#AE2925] -translate-y-0.5"
+                      ? "bg-black text-white shadow-[0px_3px_0px_#FF4D2E] -translate-y-0.5"
                       : "text-black hover:bg-black/5 hover:-translate-y-0.5"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px]" style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
-                  {item.label}
+                  <span
+                    className="material-symbols-outlined text-[20px]"
+                    aria-hidden="true"
+                    style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}
+                  >
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
                 </button>
               );
             })}
           </div>
-        ))}
-      </nav>
+
+          {/* More Study Tools Accordion */}
+          <div className="flex flex-col gap-1 mt-2 border-t border-black/15 pt-2">
+            <button
+              type="button"
+              onClick={toggleMoreTools}
+              className="flex items-center justify-between px-2 py-1.5 text-[11px] font-black uppercase tracking-wider text-black/50 hover:text-black rounded-lg hover:bg-black/5 transition-colors cursor-pointer w-full text-left"
+              aria-expanded={showMoreTools}
+            >
+              <span>More Tools ({MORE_TOOLS.length})</span>
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+                {showMoreTools ? "expand_less" : "expand_more"}
+              </span>
+            </button>
+
+            {showMoreTools && (
+              <div className="flex flex-col gap-0.5 pl-1 animate-fadeIn">
+                {MORE_TOOLS.map((tool) => {
+                  const isActive = active === tool.route;
+                  return (
+                    <button
+                      key={tool.route}
+                      type="button"
+                      onClick={() => {
+                        playTap();
+                        navigate(tool.route);
+                      }}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 min-h-[38px] text-[12.5px] font-bold transition-all text-left w-full rounded-lg cursor-pointer ${
+                        isActive
+                          ? "bg-black text-white font-black shadow-[0px_2px_0px_#FF4D2E]"
+                          : "text-black/80 hover:bg-black/5 hover:text-black"
+                      }`}
+                    >
+                      <span
+                        className="material-symbols-outlined text-[18px]"
+                        aria-hidden="true"
+                        style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}
+                      >
+                        {tool.icon}
+                      </span>
+                      <span className="truncate">{tool.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </nav>
       </div>
 
       {/* Footer */}
-      <div className="mt-auto border-t-[1.5px] border-black pt-4 flex flex-col gap-2">
+      <div className="mt-auto border-t-[1.5px] border-black pt-3 flex flex-col gap-1.5">
         {!planLoading && !isPro && (
           <button
+            type="button"
             onClick={() => navigate("/pro")}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 mx-3 mb-1 bg-[#ae2925] border-2 border-black text-white text-[12px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:bg-black hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+            className="flex items-center justify-center gap-2 px-3 py-2.5 mx-1 mb-1 bg-[#FF4D2E] border-2 border-black text-white text-[11px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:bg-black hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">workspace_premium</span>
             UPGRADE TO PRO
           </button>
         )}
         <button
+          type="button"
           onClick={() => navigate("/settings")}
-          className="flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-black hover:bg-[#E2E2E2] w-full transition-colors cursor-pointer"
+          className="flex items-center gap-3 px-3 py-2 min-h-[44px] text-[13px] font-bold text-black hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >
-          <span className="material-symbols-outlined text-[20px]">settings</span>Settings
+          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">settings</span>
+          <span>Settings</span>
         </button>
         <button
+          type="button"
           onClick={() => navigate("/profile")}
-          className="flex items-center gap-3 px-3 py-2 hover:bg-[#E2E2E2] w-full transition-colors"
+          className="flex items-center gap-3 px-3 py-2 min-h-[44px] hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >
-          <div className="w-8 h-8 bg-[#ae2925] text-white border-[1.5px] border-black flex items-center justify-center font-black text-[13px] flex-shrink-0">
+          <div className="w-8 h-8 bg-[#FF4D2E] text-white border-[1.5px] border-black rounded-lg flex items-center justify-center font-black text-[13px] shrink-0">
             {displayName.slice(0, 1).toUpperCase()}
           </div>
           <div className="flex flex-col text-left">
@@ -172,8 +236,3 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
     </aside>
   );
 }
-
-
-
-
-

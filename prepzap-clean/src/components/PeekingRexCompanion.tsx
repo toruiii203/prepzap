@@ -22,11 +22,14 @@ export function PeekingRexCompanion() {
   const [wisdomIndex, setWisdomIndex] = useState(0);
   const [showSpeechBubble, setShowSpeechBubble] = useState(true);
 
-  // Hide on onboarding, call, or full-screen focus modes
+  // Hide on dashboard (where Rex stands on the study path), practice lesson, onboarding, call, or full-screen focus modes
   const isHiddenRoute =
+    location.pathname === "/dashboard" ||
+    location.pathname === "/" ||
     location.pathname.startsWith("/onboarding") ||
     location.pathname.startsWith("/call") ||
-    location.pathname.startsWith("/timer");
+    location.pathname.startsWith("/timer") ||
+    location.pathname.startsWith("/practice");
 
   // Cycle Rex's idle speeches gently every 20 seconds
   useEffect(() => {
