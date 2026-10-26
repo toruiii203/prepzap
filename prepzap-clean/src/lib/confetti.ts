@@ -40,3 +40,5 @@ export function fireConfetti() {
     startVelocity: 45,
   });
 }
+
+export function stopConfetti() { confetti.reset(); }

@@ -1,10 +1,11 @@
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { motionTokens, motionVariables } from "@/lib/motionTokens";
 
 /** Routes own the key/presence boundary so public and protected pages exit alike. */
 export function PageTransition({ children }: { children: ReactNode }) {
-  const reduced = useReducedMotion();
+  const reduced = usePrefersReducedMotion();
   return (
     <motion.div
       data-motion-page

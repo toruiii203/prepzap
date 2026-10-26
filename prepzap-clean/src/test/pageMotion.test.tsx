@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { PageTransition } from "@/components/PageTransition";
 import { motionTokens, motionVariables } from "@/lib/motionTokens";
 const preference = vi.hoisted(() => ({ reduced: false }));
-vi.mock("framer-motion", async original => ({ ...await original<typeof import("framer-motion")>(), useReducedMotion: () => preference.reduced }));
+vi.mock("@/hooks/usePrefersReducedMotion", () => ({ usePrefersReducedMotion: () => preference.reduced }));
 afterEach(() => { cleanup(); preference.reduced = false; });
 describe("shared page motion", () => {
   it("provides a consistent scope and tokens without changing its content", () => {

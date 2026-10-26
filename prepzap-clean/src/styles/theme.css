@@ -89,3 +89,19 @@ html.dark {
 }
 html.dark :is([style*="solid rgb(0, 0, 0)"],[style*="solid rgb(28, 28, 25)"],[style*="solid rgb(26, 26, 26)"]) { border-color:var(--pz-border) !important; }
 .quiz-shell:has(input:focus,textarea:focus) { max-height:var(--visual-height); }
+
+body:has(.quiz-shell) nav[aria-label="Mobile Navigation"] { visibility:hidden; pointer-events:none; }
+html.dark .quiz-answer[data-state=selected] { background-color:#FFD13B; color:#000000; }
+html.dark .quiz-answer[data-state=correct] { background-color:#10B981; color:#000000; }
+html.dark .quiz-answer[data-state=wrong] { background-color:#EF4444; color:#000000; }
+html.dark .recharts-cartesian-axis-tick-value { fill:var(--pz-text-muted); }
+/* Focused lessons scroll their content, while keeping header and actions reachable. */
+body:has(.quiz-shell) { overflow:hidden; }
+.quiz-shell > main { overflow-y:auto; overscroll-behavior:contain; justify-content:flex-start; justify-content:safe center; scroll-padding:16px; }
+.quiz-shell > main > * { flex-shrink:0; }
+html.dark [class~="bg-[#FFD13B]"] :where([class*="text-black"],[class*="text-white"]),
+html.dark [class~="bg-[#FFE566]"] :where([class*="text-black"],[class*="text-white"]) { color:#000000; }
+@media (min-width:768px) {
+  .dashboard-greeting { padding-left:280px; }
+  .interface-settings { width:min(calc(100% - 288px),720px); margin-left:auto; margin-right:16px; }
+}

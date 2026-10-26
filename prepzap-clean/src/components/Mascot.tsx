@@ -1,5 +1,6 @@
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useEffect, useRef, useState, type CSSProperties, type MouseEventHandler, type PointerEvent } from "react";
-import { useReducedMotion } from "framer-motion";
+
 import { playPop } from "@/lib/soundFX";
 import { motionTokens, motionVariables } from "@/lib/motionTokens";
 import "@/styles/mascot.css";
@@ -11,6 +12,7 @@ export interface MascotProps {
   mood?: MascotMood;
   size?: MascotSize;
   interactive?: boolean;
+  animate?: boolean;
   className?: string;
   /** Omit for a decorative mascot. An interactive mascot has a named button. */
   label?: string;
@@ -18,8 +20,8 @@ export interface MascotProps {
 }
 
 /** Original compact Rex: individually rigged SVG parts, no raster or video assets. */
-export function Mascot({ mood = "idle", size = "md", interactive = false, className = "", label, onClick }: MascotProps) {
-  const reduced = useReducedMotion();
+export function Mascot({ mood = "idle", size = "md", interactive = false, animate = true, className = "", label, onClick }: MascotProps) {
+  const reduced = usePrefersReducedMotion() || !animate;
   const [blink, setBlink] = useState(false);
   const [sleepy, setSleepy] = useState(false);
   const [tapped, setTapped] = useState(false);

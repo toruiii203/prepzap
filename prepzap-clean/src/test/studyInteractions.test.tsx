@@ -7,9 +7,9 @@ import { VictoryScreen } from "@/components/VictoryScreen";
 import { fireConfetti } from "@/lib/confetti";
 
 const motionPreference = vi.hoisted(() => ({ reduced: false }));
-vi.mock("framer-motion", async importOriginal => ({ ...await importOriginal<typeof import("framer-motion")>(), useReducedMotion: () => motionPreference.reduced }));
+vi.mock("@/hooks/usePrefersReducedMotion", () => ({ usePrefersReducedMotion: () => motionPreference.reduced }));
 vi.mock("@/lib/soundFX", () => ({ playTap: vi.fn() }));
-vi.mock("@/lib/confetti", () => ({ fireConfetti: vi.fn() }));
+vi.mock("@/lib/confetti", () => ({ fireConfetti: vi.fn(), stopConfetti: vi.fn() }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("practice feedback", () => {

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Mascot, type MascotMood } from "@/components/Mascot";
 import { playPop } from "@/lib/soundFX";
 const preference = vi.hoisted(() => ({ reduced: false }));
-vi.mock("framer-motion", async original => ({ ...await original<typeof import("framer-motion")>(), useReducedMotion: () => preference.reduced }));
+vi.mock("@/hooks/usePrefersReducedMotion", () => ({ usePrefersReducedMotion: () => preference.reduced }));
 vi.mock("@/lib/soundFX", () => ({ playPop: vi.fn() }));
 afterEach(() => { cleanup(); vi.useRealTimers(); preference.reduced = false; vi.clearAllMocks(); });
 

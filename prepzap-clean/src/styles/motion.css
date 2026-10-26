@@ -1,8 +1,7 @@
 /* Timings are supplied by motionTokens.ts, including portal overlays. */
-[data-motion-page] { isolation: isolate; }
 [data-motion-page] :where(button, [role=button], a[class*="border"]):not(:disabled):not([aria-disabled=true]):not(.mascot-tap) {
   touch-action: manipulation;
-  transition-property: transform, opacity;
+  transition-property: transform, opacity !important;
   transition-duration: var(--motion-quick);
   transition-timing-function: var(--motion-ease);
 }
@@ -25,10 +24,10 @@
 @keyframes study-dialog-exit { to { opacity:0; transform:translate(-50%,-49%) scale(.98); } }
 @keyframes study-sheet-enter { from { opacity:0; transform:translateY(20px); } 75% { transform:translateY(-1px); } to { opacity:1; transform:translateY(0); } }
 @keyframes study-sheet-exit { to { opacity:0; transform:translateY(12px); } }
-.studenius-dialog[data-state=open] { animation:study-dialog-enter var(--motion-enter) var(--motion-ease) both; }
-.studenius-dialog[data-state=closed] { animation:study-dialog-exit var(--motion-exit) var(--motion-ease) both; }
-.studenius-sheet[data-state=open] { animation:study-sheet-enter var(--motion-enter) var(--motion-ease) both; }
-.studenius-sheet[data-state=closed] { animation:study-sheet-exit var(--motion-exit) var(--motion-ease) both; }
+html .studenius-dialog[data-state=open] { animation:study-dialog-enter var(--motion-enter) var(--motion-ease) both; }
+html .studenius-dialog[data-state=closed] { animation:study-dialog-exit var(--motion-exit) var(--motion-ease) both; }
+html .studenius-sheet[data-state=open] { animation:study-sheet-enter var(--motion-enter) var(--motion-ease) both; }
+html .studenius-sheet[data-state=closed] { animation:study-sheet-exit var(--motion-exit) var(--motion-ease) both; }
 .dashboard-greeting { display:flex; align-items:center; gap:16px; padding:12px 24px; background:var(--pz-surface); color:var(--pz-text); border-bottom:2px solid var(--pz-border); }
 @media (prefers-reduced-motion:reduce) {
   [data-motion-page] :where(button,[role=button],a,article,.card-luxe,.place-card,[data-motion-card],[class*="grid"] > [class*="border"]) { animation:none !important; transition:none !important; }

@@ -1,11 +1,12 @@
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+
 import * as Dialog from "@radix-ui/react-dialog";
 import { Mascot } from "@/components/Mascot";
 import { SpringButton } from "@/components/ui/SpringButton";
 import { Progress } from "@/components/ui/progress";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
-import { fireConfetti } from "@/lib/confetti";
+import { fireConfetti, stopConfetti } from "@/lib/confetti";
 import { levelFromXp } from "@/lib/xp";
 
 export interface VictoryScreenProps {
@@ -18,12 +19,13 @@ export interface VictoryScreenProps {
 }
 
 export function VictoryScreen({ xpEarned, accuracy, streakDays, previousXp, onContinue, onShare }: VictoryScreenProps) {
-  const reduced = useReducedMotion();
+  const reduced = usePrefersReducedMotion();
   const fired = useRef(false);
   const [shareStatus, setShareStatus] = useState("");
   const level = previousXp === undefined ? undefined : levelFromXp(previousXp + xpEarned);
   const leveledUp = level !== undefined && level > levelFromXp(previousXp!);
   useEffect(() => {
+    if (reduced) { stopConfetti(); return; }
     if (!fired.current && !reduced) { fired.current = true; fireConfetti(); }
   }, [reduced]);
 

@@ -11,10 +11,10 @@ interface RexMascotProps {
   onClick?: () => void;
 }
 const moods: Record<RexEmotion, MascotMood> = { happy: "happy", excited: "celebrate", thinking: "thinking", neutral: "idle", peeking: "encouraging", surprised: "cheering", laughing: "happy" };
-export function RexMascot({ emotion = "happy", size = "lg", speech, subSpeech, interactive = true, className, onClick }: RexMascotProps) {
+export function RexMascot({ emotion = "happy", size = "lg", speech, subSpeech, animate = true, interactive = true, className, onClick }: RexMascotProps) {
   return (
     <div className={`flex items-center gap-3 ${className || ""}`}>
-      <Mascot mood={moods[emotion]} size={size} interactive={interactive} onClick={onClick} />
+      <Mascot mood={moods[emotion]} size={size} animate={animate} interactive={interactive} onClick={onClick} />
       {speech && <div className="mascot-speech"><p>{speech}</p>{subSpeech && <p className="text-sm opacity-75">{subSpeech}</p>}</div>}
     </div>
   );

@@ -209,6 +209,7 @@ export function playIncorrect() {
  * Ascending pitch combo chime for consecutive correct answers (Duolingo style)
  */
 export function playComboStreak(streak: number = 1) {
+  triggerHaptic(streak >= 5 ? "celebrate" : "success");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -240,11 +241,7 @@ export function playComboStreak(streak: number = 1) {
       osc.stop(noteTime + 0.22);
     }
 
-    if (streak >= 5) {
-      triggerHaptic("celebrate");
-    } else {
-      triggerHaptic("success");
-    }
+
   } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
@@ -252,6 +249,7 @@ export function playComboStreak(streak: number = 1) {
  * Swift tactile paper whoosh when flipping a flashcard (3D flip sound)
  */
 export function playCardFlip() {
+  triggerHaptic("light");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -274,7 +272,7 @@ export function playCardFlip() {
     osc.start(now);
     osc.stop(now + 0.07);
 
-    triggerHaptic("light");
+
   } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 

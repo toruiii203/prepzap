@@ -1,157 +1,52 @@
-﻿import { spawn } from "child_process";
-import puppeteer from "puppeteer";
+import { spawn } from 'node:child_process';
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import puppeteer from 'puppeteer';
+import { seedBrowser } from './uiFixtures.mjs';
 
-const PORT = 4173;
-const BASE_URL = `http://localhost:${PORT}`;
-
-const ROUTES = [
-  { path: "/landing", auth: false },
-  { path: "/onboarding", auth: false },
-  { path: "/privacy", auth: false },
-  { path: "/terms", auth: false },
-  { path: "/dashboard", auth: true },
-  { path: "/practice", auth: true },
-  { path: "/flashcards", auth: true },
-  { path: "/community", auth: true },
-  { path: "/campus-vault", auth: true },
-  { path: "/notes", auth: true },
-  { path: "/math", auth: true },
-  { path: "/settings", auth: true },
-];
-
-async function waitForServer(url, maxAttempts = 30) {
-  for (let i = 0; i < maxAttempts; i++) {
+const port = 4173;
+const base = `http://127.0.0.1:${port}`;
+const source = readFileSync('src/App.tsx', 'utf8');
+const routes = [...source.matchAll(/<Route path="([^"]+)"/g)].map(([, pattern]) => ({
+  pattern, path: pattern === '*' ? '/ui-smoke-not-found' : pattern.replace(':type', 'quiz').replace(/:\w+/g, 'ui-fixture'),
+}));
+const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
+const server = spawn('npm', ['exec', '--', 'vite', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'ignore', detached: true });
+let browser;
+const results = [];
+try {
+  let ready = false;
+  for (let i = 0; i < 40; i++) {
+    try { if ((await fetch(base)).ok) { ready = true; break; } } catch { /* Server is still starting. */ }
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  if (!ready) throw new Error('Preview server did not start');
+  browser = await puppeteer.launch({ headless: true, executablePath, args: ['--no-sandbox'] });
+  for (let index = 0; index < routes.length; index++) {
+    const route = routes[index];
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    await page.setViewport({ width: index % 2 ? 390 : 1280, height: 844 });
+    await seedBrowser(page, { theme: index % 2 ? 'dark' : 'light' });
     try {
-      const res = await fetch(url);
-      if (res.ok || res.status === 200 || res.status === 304) {
-        return true;
-      }
-    } catch {}
-    await new Promise((r) => setTimeout(r, 500));
+      const response = await page.goto(base + route.path, { waitUntil: 'networkidle2', timeout: 20000 });
+      if (!response?.ok()) errors.push(`HTTP ${response?.status()}`);
+      await page.waitForSelector('[data-motion-page]', { timeout: 15000 });
+      if (!await page.$eval('#root', element => !!element.textContent?.trim())) errors.push('Empty application root');
+      if (await page.$('html.dark') && await page.$eval('html', element => getComputedStyle(element).filter !== 'none')) errors.push('Inversion filter remains');
+    } catch (error) { errors.push(error.message); }
+    const result = { ...route, theme: index % 2 ? 'dark' : 'light', width: index % 2 ? 390 : 1280, finalPath: new URL(page.url()).pathname, errors };
+    results.push(result);
+    console.log(`${errors.length ? 'FAIL' : 'PASS'} ${route.pattern}${errors.length ? ': ' + errors.join(' | ') : ''}`);
+    await page.close();
   }
-  return false;
+} finally {
+  await browser?.close();
+  try { process.kill(-server.pid, 'SIGTERM'); } catch { /* Preview may have exited already. */ }
+  mkdirSync('.agent', { recursive: true });
+  writeFileSync('.agent/route-report.json', JSON.stringify(results, null, 2));
 }
-
-async function main() {
-  console.log(`Starting vite preview server on port ${PORT}...`);
-  const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
-    shell: true,
-    stdio: "inherit",
-  });
-
-  const cleanup = () => {
-    try {
-      server.kill("SIGTERM");
-    } catch {}
-  };
-
-  process.on("exit", cleanup);
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
-
-  const ready = await waitForServer(BASE_URL);
-  if (!ready) {
-    console.error("Preview server failed to start.");
-    cleanup();
-    process.exit(1);
-  }
-
-  console.log("Server ready. Launching headless browser...");
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-
-  let failed = false;
-
-  const mockProfile = {
-    session: {
-      access_token: "mock-token",
-      user: { id: "mock-user", email: "student@studenius.test" },
-    },
-    user: { id: "mock-user", email: "student@studenius.test" },
-    profile: {
-      id: "mock-user",
-      full_name: "Test Student",
-      email: "student@studenius.test",
-      onboarding_complete: true,
-      streak_days: 1,
-      total_xp: 100,
-      plan: "free",
-    },
-    cachedAt: Date.now(),
-  };
-
-  try {
-    for (const r of ROUTES) {
-      const page = await browser.newPage();
-      await page.setViewport({ width: 1280, height: 800 });
-
-      const pageErrors = [];
-
-      page.on("pageerror", (err) => {
-        const msg = err.message || String(err);
-        // Exclude network offline errors or benign browser observer events
-        if (
-          !msg.includes("NetworkError") &&
-          !msg.includes("Failed to fetch") &&
-          !msg.includes("ResizeObserver")
-        ) {
-          pageErrors.push(msg);
-        }
-      });
-
-      if (r.auth) {
-        await page.evaluateOnNewDocument((mp) => {
-          localStorage.setItem("pz_auth_cache", JSON.stringify(mp));
-        }, mockProfile);
-      } else {
-        await page.evaluateOnNewDocument(() => {
-          localStorage.removeItem("pz_auth_cache");
-        });
-      }
-
-      const url = `${BASE_URL}${r.path}`;
-      console.log(`Checking route: ${r.path}...`);
-      const response = await page.goto(url, { waitUntil: "networkidle2", timeout: 15000 }).catch((e) => {
-        console.warn(`Navigation notice for ${r.path}:`, e.message);
-        return null;
-      });
-
-      // Verify the page actually rendered content and didn't crash
-      const rootHtml = await page.$eval("#root", (el) => el.innerHTML).catch(() => "");
-      const isBlank = !rootHtml || rootHtml.trim() === "";
-
-      if (response && response.status() >= 400) {
-        console.error(`FAIL: ${r.path} returned HTTP ${response.status()}`);
-        failed = true;
-      } else if (pageErrors.length > 0) {
-        console.error(`FAIL: ${r.path} encountered runtime exceptions:`, pageErrors);
-        failed = true;
-      } else if (isBlank) {
-        console.error(`FAIL: ${r.path} rendered blank root element`);
-        failed = true;
-      } else {
-        console.log(`PASS: ${r.path}`);
-      }
-
-      await page.close();
-    }
-  } catch (err) {
-    console.error("Smoke test unexpected error:", err);
-    failed = true;
-  } finally {
-    await browser.close();
-    cleanup();
-  }
-
-  if (failed) {
-    console.error("\nSmoke test FAILED. Review errors above.");
-    process.exit(1);
-  } else {
-    console.log("\nAll routes passed smoke test successfully with 0 runtime errors and 0 404s!");
-    process.exit(0);
-  }
-}
-
-main();
+const failed = results.filter(result => result.errors.length);
+console.log(`${results.length - failed.length}/${routes.length} route patterns passed; HTTP/auth/realtime fixtures, no live account operations.`);
+if (failed.length || results.length !== routes.length) process.exitCode = 1;

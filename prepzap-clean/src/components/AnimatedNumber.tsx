@@ -1,10 +1,11 @@
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useEffect, useState } from "react";
 import { motionTokens } from "@/lib/motionTokens";
-import { useReducedMotion } from "framer-motion";
+
 
 /** The accessible value is stable while the visual counter catches up. */
 export function AnimatedNumber({ value }: { value: number }) {
-  const reduced = useReducedMotion();
+  const reduced = usePrefersReducedMotion();
   const [display, setDisplay] = useState(value);
   useEffect(() => {
     if (reduced) return;

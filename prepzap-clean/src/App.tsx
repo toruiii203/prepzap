@@ -1,3 +1,4 @@
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -419,8 +420,10 @@ function AppRoutes() {
   );
 }
 
-const App = () => (
-  <MotionConfig reducedMotion="user">
+const App = () => {
+  const reduced = usePrefersReducedMotion();
+  return (
+  <MotionConfig reducedMotion={reduced ? "always" : "never"}>
     <InterfacePreferences />
     <LegacyDialogAccessibility />
     <QueryClientProvider client={queryClient}>
@@ -436,7 +439,8 @@ const App = () => (
       </AuthProvider>
     </QueryClientProvider>
   </MotionConfig>
-);
+  );
+};
 
 export default App;
 

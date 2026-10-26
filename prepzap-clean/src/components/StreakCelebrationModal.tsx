@@ -1,7 +1,8 @@
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import * as Dialog from "@radix-ui/react-dialog";
 import React, { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
-import { useReducedMotion } from "framer-motion";
+
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { playCelebration, playPop, triggerHaptic, isSoundEnabled } from "@/lib/soundFX";
 import { Mascot } from "@/components/Mascot";
@@ -25,13 +26,13 @@ export function StreakCelebrationModal({
   isEmbedded = false,
   showRex = true,
 }: StreakCelebrationModalProps) {
-  const reduced = useReducedMotion();
+  const reduced = usePrefersReducedMotion();
   const [animatedNumber, setAnimatedNumber] = useState<number>(reduced ? streakCount : 0);
   const [showCheckmark, setShowCheckmark] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    if (reduced) { setAnimatedNumber(streakCount); setShowCheckmark(true); }
+    if (reduced) { confetti.reset(); setAnimatedNumber(streakCount); setShowCheckmark(true); }
 
     // Trigger audio & haptics if sound is on
     if (isSoundEnabled()) {
