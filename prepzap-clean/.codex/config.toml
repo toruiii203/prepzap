@@ -1,0 +1,7 @@
+# Magic MCP is now the hosted 21st MCP. No API key belongs in this file.
+# Supply TWENTY_FIRST_API_KEY securely in the agent/MCP client's environment.
+[mcp_servers.magic]
+url = "https://21st.dev/api/mcp"
+env_http_headers = { "x-api-key" = "TWENTY_FIRST_API_KEY" }
+startup_timeout_sec = 15
+required = false
