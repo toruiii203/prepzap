@@ -1,3 +1,4 @@
+import { Mascot } from "@/components/Mascot";
 import React, { useState } from "react";
 import { isStreakAtRisk, getHoursUntilMidnight } from "@/lib/streakRisk";
 import { playPop, playTap } from "@/lib/soundFX";
@@ -35,7 +36,7 @@ export function StreakRiskBanner({
     setIsDismissed(true);
     try {
       sessionStorage.setItem(storageKey, "true");
-    } catch {}
+    } catch { /* Dismissal still works for this mounted banner. */ }
   };
 
   return (
@@ -47,11 +48,7 @@ export function StreakRiskBanner({
       <div className="flex items-center gap-3.5 w-full sm:w-auto">
         {/* Mascot / Flame Badge */}
         <div className="relative w-12 h-12 rounded-xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#000]">
-          <img
-            src="/animations/rex_thinking.webp"
-            alt="Rex concerned"
-            className="w-10 h-10 object-contain"
-          />
+          <Mascot mood="thinking" size="xs" />
         </div>
 
         <div className="flex-1 min-w-0">

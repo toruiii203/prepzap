@@ -7,13 +7,13 @@ vi.mock("@/hooks/usePrefersReducedMotion", () => ({ usePrefersReducedMotion: () 
 vi.mock("@/lib/soundFX", () => ({ playPop: vi.fn() }));
 afterEach(() => { cleanup(); vi.useRealTimers(); preference.reduced = false; vi.clearAllMocks(); });
 
-describe("Rex vector mascot", () => {
+describe("Studenius seedling mascot", () => {
   const moods: MascotMood[] = ["idle", "happy", "celebrate", "sad", "thinking", "sleepy", "cheering", "encouraging"];
   it.each(moods)("renders %s with independently rigged parts and no image downloads", mood => {
     const { container } = render(<Mascot mood={mood} />);
     expect(container.querySelector('[data-mascot]')).toHaveAttribute('data-mood', mood);
-    for (const part of ["head", "eyes", "eyelids", "mouth", "body", "left-arm", "right-arm", "tail", "cap"]) expect(container.querySelector(`[data-part="${part}"]`)).toBeInTheDocument();
-    expect(container.querySelector('img,video')).toBeNull();
+    for (const part of ["body", "eye-left", "eye-right", "eyelid-left", "eyelid-right", "mouth-states", "arm-left", "arm-right", "leaf", "tendril"]) expect(container.querySelector(`[data-layer="${part}"]`)).toBeInTheDocument();
+    expect(container.querySelector('img,video,[data-part=cap],[data-part=tail]')).toBeNull();
     expect(screen.queryByRole('img')).toBeNull();
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden','true');
   });
@@ -21,7 +21,7 @@ describe("Rex vector mascot", () => {
     vi.useFakeTimers();
     const clicked = vi.fn();
     const { container, unmount } = render(<Mascot interactive onClick={clicked} />);
-    fireEvent.click(screen.getByRole('button', {name:'Say hello to Rex'}));
+    fireEvent.click(screen.getByRole('button', {name:'Say hello to Studenius mascot'}));
     expect(clicked).toHaveBeenCalledOnce();
     expect(playPop).toHaveBeenCalledOnce();
     expect(container.querySelector('[data-mascot]')).toHaveAttribute('data-mood','happy');

@@ -150,8 +150,6 @@ export function StreakCelebrationModal({
             {showRex && (
               <div className="shrink-0 flex flex-col items-center relative">
                 <Mascot mood="cheering" size="lg" interactive />
-                {/* Crisp Paw Ground Shadow directly touching the stage deck */}
-                <div className="w-28 sm:w-34 h-2.5 bg-black/25 rounded-full -mt-1 mx-auto" />
               </div>
             )}
 

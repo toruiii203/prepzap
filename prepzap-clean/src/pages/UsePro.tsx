@@ -1,3 +1,4 @@
+import { Mascot } from "@/components/Mascot";
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +15,7 @@ const PAYPAL_LINKS = {
 
 export default function UsePro() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth() as any;
+  const { user, profile } = useAuth();
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Yearly">("Monthly");
   const [redirecting, setRedirecting] = useState(false);
 
@@ -31,7 +32,7 @@ export default function UsePro() {
     window.location.href = PAYPAL_LINKS[billingCycle];
   };
 
-  const isAlreadyPro = profile?.is_pro === true;
+  const isAlreadyPro = profile !== null && "is_pro" in profile && profile.is_pro === true;
 
   return (
     <div className="bg-[#fcf9f4] text-on-surface font-body-md min-h-full pb-24 pt-4 w-full flex-1 relative overflow-y-auto">
@@ -68,11 +69,7 @@ export default function UsePro() {
         <section className="flex justify-center items-center py-2 relative">
           <div className="absolute inset-0 bg-[#ffddb4] rounded-full blur-3xl opacity-40 z-0"></div>
           
-          <img 
-            alt="Mascot graduation cap" 
-            className="w-36 h-36 object-cover rounded-full z-10 border-2 border-on-surface shadow-xl bg-white p-1 select-none" 
-            src="/fox_scholar.jpg"
-          />
+          <Mascot mood="happy" size="lg" className="relative z-10" />
           
           <div className="absolute bottom-6 left-1/4 text-primary z-20 animate-pulse">
             <span className="material-symbols-outlined text-[20px] text-[#E8534A]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>

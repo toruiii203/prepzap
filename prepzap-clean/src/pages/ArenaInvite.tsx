@@ -1,3 +1,4 @@
+import { Mascot } from "@/components/Mascot";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -111,7 +112,7 @@ export default function ArenaInvite() {
           </>
         ) : fetchError ? (
           <div className="w-full border-[2px] border-black bg-white shadow-[4px_4px_0px_#000] px-6 py-10 text-center mt-4">
-            <img src="/fox/fox-surprised.png" alt="Fox surprised" className="w-24 h-24 object-contain mx-auto mb-4" />
+            <Mascot mood="encourage" size="md" className="mx-auto mb-4" />
             <p className="text-[16px] font-black text-black">Oops!</p>
             <p className="text-[13px] text-black/50 mt-1">{fetchError}</p>
             <button onClick={() => navigate("/arena")}
@@ -131,11 +132,7 @@ export default function ArenaInvite() {
 
             {/* Fox peeking above card */}
             <div className="relative w-full">
-              <img
-                src="/fox/fox-peeking.png"
-                alt="Fox peeking"
-                className="absolute -top-16 left-1/2 -translate-x-1/2 w-28 h-28 object-contain z-10 pointer-events-none"
-              />
+              <Mascot mood="peek" size="md" className="absolute -top-16 left-1/2 -translate-x-1/2 z-10 pointer-events-none" />
 
               {/* Room card */}
               <div className="w-full border-[2px] border-black bg-white shadow-[4px_4px_0px_#000] pt-16 pb-5 px-5">
