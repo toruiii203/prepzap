@@ -1,8 +1,9 @@
+import { Mascot } from "@/components/Mascot";
 import { SpringButton } from "@/components/ui/SpringButton";
 
 interface QuizFeedbackProps {
   answered: boolean;
-  correct: boolean;
+  correct: boolean | null;
   canCheck: boolean;
   evaluating: boolean;
   explanation: string;
@@ -19,16 +20,14 @@ export function QuizFeedback({ answered, correct, canCheck, evaluating, explanat
         <div className="min-h-14 flex-1" role="status" aria-live="polite" aria-atomic="true">
           {answered ? (
             <div key={correct ? "correct" : "retry"} className="quiz-feedback-content flex gap-3 items-start">
-              <span aria-hidden="true" className={`material-symbols-outlined rounded-xl border-2 border-black p-2 text-black ${correct ? "bg-[#10B981]" : "bg-[#EF4444]"}`}>
-                {correct ? "check" : "close"}
-              </span>
+              <Mascot key={`${correct}-${combo}`} mood={correct ? combo >= 3 ? "cheering" : "happy" : "sad"} size="xs" />
               <div>
                 <p className="font-black text-lg text-black">{correct ? combo > 1 ? `${combo} in a row!` : "You’ve got it!" : "Not quite. Try it again soon."}</p>
                 <p className="text-sm font-semibold text-black/75 leading-snug mt-1">{correct ? explanation || "Keep going. You’re making progress." : `Correct answer: ${expectedAnswer}`}</p>
                 {!correct && explanation && <p className="text-sm text-black/75 mt-1">{explanation}</p>}
               </div>
             </div>
-          ) : <p className="text-sm font-bold text-black/65 pt-3">{evaluating ? "Checking your answer…" : "Choose an answer, then check."}</p>}
+          ) : <div className="flex items-center gap-3"><Mascot mood={evaluating ? "thinking" : "encouraging"} size="xs" /><p className="text-sm font-bold text-black/65 pt-3">{evaluating ? "Checking your answer…" : "Choose an answer, then check."}</p></div>}
         </div>
         <SpringButton
           soundEnabled={false}

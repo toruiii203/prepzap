@@ -3,7 +3,7 @@ import confetti from "canvas-confetti";
 import { useReducedMotion } from "framer-motion";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { playCelebration, playPop, triggerHaptic, isSoundEnabled } from "@/lib/soundFX";
-import { AnimatedRex } from "@/components/AnimatedRex";
+import { Mascot } from "@/components/Mascot";
 
 interface StreakCelebrationModalProps {
   isOpen?: boolean;
@@ -47,7 +47,7 @@ export function StreakCelebrationModal({
         origin: { y: 0.6 },
         colors: ["#FF9600", "#FFD13B", "#FF4D2E", "#10B981", "#000000"],
       });
-    } catch {}
+    } catch { /* Celebration is optional; the streak remains visible. */ }
 
     // Number roll-up animation
     const numTimer = setTimeout(() => {
@@ -147,13 +147,7 @@ export function StreakCelebrationModal({
             {/* Solid Rex Mascot standing large & grounded (No floating, zero ghost marks, clean animated GIF) */}
             {showRex && (
               <div className="shrink-0 flex flex-col items-center relative">
-                <AnimatedRex
-                  state="excited"
-                  size="lg"
-                  interactive={true}
-                  grounded={false}
-                  useGif={true}
-                />
+                <Mascot mood="cheering" size="lg" interactive />
                 {/* Crisp Paw Ground Shadow directly touching the stage deck */}
                 <div className="w-28 sm:w-34 h-2.5 bg-black/25 rounded-full -mt-1 mx-auto" />
               </div>

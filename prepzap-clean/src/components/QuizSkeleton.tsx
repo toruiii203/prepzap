@@ -1,8 +1,10 @@
+import { Mascot } from "@/components/Mascot";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function QuizSkeleton() {
   return (
     <div role="status" aria-label="Preparing your quiz" className="w-full max-w-2xl mx-auto p-5 space-y-5">
+      <Mascot mood="thinking" size="sm" />
       <p className="text-sm font-bold text-black/75">Getting your questions ready…</p>
       <Skeleton className="h-3 w-full rounded-full" />
       <div className="rounded-2xl border-2 border-black bg-white p-6 space-y-4">

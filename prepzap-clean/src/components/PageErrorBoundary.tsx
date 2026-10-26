@@ -1,4 +1,5 @@
 import React from "react"
+import { Mascot } from "@/components/Mascot"
 
 type Props = {
   children: React.ReactNode
@@ -33,9 +34,7 @@ export class PageErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="min-h-screen bg-[#FAF7F2] text-black flex items-center justify-center p-6">
           <div role="alert" className="max-w-md w-full bg-white border-2 border-black rounded-3xl p-6 md:p-8 shadow-[4px_4px_0px_#000000] text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#FFD13B] border-2 border-black flex items-center justify-center text-[26px] shadow-[2px_2px_0px_#000]">
-              <span className="material-symbols-outlined" aria-hidden="true">replay</span>
-            </div>
+            <Mascot mood="encouraging" size="md" className="mx-auto" />
             <h2 className="text-[20px] font-black text-black">Let’s try that again</h2>
             <p className="text-[13px] font-bold text-black/60">
               Something unexpected happened while loading this view. You can retry loading or return to your dashboard.

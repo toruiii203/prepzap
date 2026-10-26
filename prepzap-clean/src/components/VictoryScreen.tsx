@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import * as Dialog from "@radix-ui/react-dialog";
+import { Mascot } from "@/components/Mascot";
 import { SpringButton } from "@/components/ui/SpringButton";
 import { Progress } from "@/components/ui/progress";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
@@ -42,9 +43,7 @@ export function VictoryScreen({ xpEarned, accuracy, streakDays, previousXp, onCo
         <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/40" />
         <Dialog.Content data-victory-screen="true" className="quiz-shell quiz-feedback fixed inset-0 z-[61] bg-[#FAF7F2] text-black overflow-y-auto" aria-describedby="victory-description">
           <div className="min-h-full max-w-md mx-auto px-6 py-8 flex flex-col items-center justify-center gap-6 text-center">
-            <motion.div initial={reduced ? false : { scale: .8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 240, damping: 20 }} aria-hidden="true" className="w-28 h-28 rounded-[28px] border-2 border-black bg-[#FFD13B] shadow-[0_6px_0_#000000] flex items-center justify-center -rotate-6">
-              <span className="material-symbols-outlined text-[64px]">{leveledUp ? "workspace_premium" : "emoji_events"}</span>
-            </motion.div>
+            <Mascot mood="celebrate" size="lg" interactive label="Celebrate with Rex" />
             <div className="space-y-2">
               <Dialog.Title className="text-3xl">{leveledUp ? `Hello, level ${level}!` : "Session complete!"}</Dialog.Title>
               <Dialog.Description id="victory-description" className="text-black/75 font-semibold">{leveledUp ? "Your practice is adding up. Keep going." : "One more step forward. Nice work today."}</Dialog.Description>
