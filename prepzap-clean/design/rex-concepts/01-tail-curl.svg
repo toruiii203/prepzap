@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Rex concept 01: Tail curl</title>
+  <desc id="desc">A compact coral fox with broad pointed ears, a cream face, attentive eyes and a curled cream-tipped tail.</desc>
+  <g id="tail">
+    <path d="M145 187C180 202 219 182 217 148C215 126 201 113 183 109C191 125 184 139 169 146C153 154 145 167 145 187Z" fill="#FF4D2E"/>
+    <path d="M183 109C201 113 215 126 217 148C205 153 196 151 188 146L179 139C188 131 190 120 183 109Z" fill="#FFF2D8"/>
+  </g>
+  <g id="body">
+    <path d="M75 133C77 112 104 104 127 110C150 115 165 140 163 170L160 193C149 207 90 208 76 193L73 172Z" fill="#FF4D2E"/>
+    <path d="M84 188C88 181 102 180 109 186L110 203H80Z" fill="#FF4D2E"/>
+    <path d="M132 186C141 180 155 183 158 191L161 203H131Z" fill="#FF4D2E"/>
+    <path d="M105 144L118 152L132 144C141 159 136 178 119 184C102 177 98 160 105 144Z" fill="#FFF2D8"/>
+  </g>
+  <g id="head">
+    <path d="M61 90C44 73 43 48 49 29C69 33 84 43 94 58L120 63L150 53C166 38 183 33 198 35C197 55 189 73 177 88C183 104 181 125 165 140C151 154 89 159 69 144L52 128L62 125L48 111L59 108Z" fill="#FF4D2E"/>
+    <path d="M57 43C68 47 78 53 84 63L67 75C60 67 56 55 57 43Z" fill="#FFAB82"/>
+    <path d="M187 47C177 48 167 54 160 62L173 74C180 67 185 57 187 47Z" fill="#FFAB82"/>
+    <path d="M66 101C84 94 101 105 119 120C137 105 154 94 174 100C174 128 154 148 122 149C87 151 67 131 66 101Z" fill="#FFF2D8"/>
+    <g id="eyes">
+      <ellipse cx="94" cy="96" rx="20" ry="25" fill="#FFFFFF"/>
+      <ellipse cx="145" cy="96" rx="20" ry="25" fill="#FFFFFF"/>
+      <ellipse cx="100" cy="101" rx="8" ry="11" fill="#000000"/>
+      <ellipse cx="151" cy="101" rx="8" ry="11" fill="#000000"/>
+      <circle cx="102" cy="97" r="2.5" fill="#FFFFFF"/>
+      <circle cx="153" cy="97" r="2.5" fill="#FFFFFF"/>
+    </g>
+    <path id="nose" d="M110 119C114 115 125 115 129 119C128 125 122 129 119 129C115 129 110 124 110 119Z" fill="#000000"/>
+    <path id="mouth" d="M108 133C113 140 126 140 132 132" stroke="#000000" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+  <g id="arms" fill="#FF4D2E">
+    <path d="M80 146C65 142 59 150 64 162L78 178C84 182 91 178 88 170L83 160Z"/>
+    <path d="M153 146C163 139 172 142 173 152C175 163 164 179 157 176C150 173 158 161 153 157Z"/>
+  </g>
+</svg>

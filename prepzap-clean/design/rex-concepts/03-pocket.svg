@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Rex concept 03: Pocket</title>
+  <desc id="desc">A relaxed, rounded coral fox with wide-set ears, large eyes, a cream muzzle and a broad tail folded by its side.</desc>
+  <g id="tail">
+    <path d="M146 180C161 154 188 143 213 153C218 155 224 157 230 156C230 188 202 207 171 201L149 197Z" fill="#FF4D2E"/>
+    <path d="M211 153C218 155 224 157 230 156C229 174 220 187 208 194L194 180L201 176L192 168Z" fill="#FFF2D8"/>
+  </g>
+  <g id="body">
+    <path d="M60 148C70 126 149 125 162 149L174 188C162 208 74 211 56 191Z" fill="#FF4D2E"/>
+    <ellipse cx="115" cy="170" rx="28" ry="25" fill="#FFF2D8"/>
+    <path d="M65 179C53 179 48 188 51 198L84 200C89 187 78 178 65 179ZM148 178C135 179 130 190 136 201L169 198C171 184 160 177 148 178Z" fill="#FF4D2E"/>
+  </g>
+  <g id="head">
+    <path d="M58 88C40 77 32 57 32 37C57 37 77 48 88 61L139 61C151 46 172 36 194 38C194 61 186 78 169 91C177 107 176 122 166 137L178 142L159 148C137 161 91 164 67 149L46 144L58 137C48 123 48 104 58 88Z" fill="#FF4D2E"/>
+    <path d="M46 50C61 52 71 58 78 67L63 79C54 71 49 61 46 50ZM180 51C168 53 157 59 150 68L165 80C173 71 179 60 180 51Z" fill="#FFAB82"/>
+    <path d="M59 116C78 109 95 119 113 133C131 119 149 109 169 115C168 141 145 156 114 157C84 158 62 141 59 116Z" fill="#FFF2D8"/>
+    <g id="eyes">
+      <ellipse cx="86" cy="107" rx="21" ry="24" fill="#FFFFFF"/>
+      <ellipse cx="141" cy="107" rx="21" ry="24" fill="#FFFFFF"/>
+      <ellipse cx="92" cy="109" rx="8" ry="10" fill="#000000"/>
+      <ellipse cx="147" cy="109" rx="8" ry="10" fill="#000000"/>
+      <circle cx="94" cy="105" r="2.5" fill="#FFFFFF"/>
+      <circle cx="149" cy="105" r="2.5" fill="#FFFFFF"/>
+    </g>
+    <path id="nose" d="M104 130C108 126 119 126 123 130C122 136 116 140 113 140C109 140 104 135 104 130Z" fill="#000000"/>
+    <path id="mouth" d="M102 145C107 149 118 149 124 144" stroke="#000000" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+  <g id="arms" fill="#FF4D2E">
+    <path d="M68 153C58 149 51 156 55 166C58 174 68 181 74 176C80 172 70 164 68 153Z"/>
+    <path d="M157 152C167 150 175 156 171 166C168 174 158 180 153 175C147 170 157 164 157 152Z"/>
+  </g>
+</svg>
