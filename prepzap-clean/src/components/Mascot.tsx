@@ -1,14 +1,22 @@
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { useEffect, useRef, useState, type CSSProperties, type MouseEventHandler, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEventHandler, type PointerEvent, type ReactNode } from "react";
 
 import { playPop } from "@/lib/soundFX";
 import { motionTokens, motionVariables } from "@/lib/motionTokens";
 import "@/styles/mascot.css";
 
-export type MascotMood = "idle" | "happy" | "celebrate" | "sad" | "thinking" | "sleepy" | "cheering" | "encouraging";
+export type MascotMood = "idle" | "happy" | "celebrate" | "sad" | "thinking" | "sleepy" | "cheering" | "encouraging" | "encourage" | "peek";
 export type MascotSize = "xs" | "sm" | "md" | "lg" | "xl" | "hero";
 const sizes: Record<MascotSize, number> = { xs: 52, sm: 80, md: 128, lg: 184, xl: 240, hero: 300 };
+export interface MascotArtworkState { mood: MascotMood; blink: boolean; reduced: boolean; }
+export interface MascotArtwork {
+  render: (state: MascotArtworkState) => ReactNode;
+  aspectRatio: string;
+  blinkInterval?: readonly [number, number];
+}
 export interface MascotProps {
+  /** Optional art direction for isolated previews; existing consumers keep their artwork. */
+  artwork?: MascotArtwork;
   mood?: MascotMood;
   size?: MascotSize;
   interactive?: boolean;
@@ -19,8 +27,8 @@ export interface MascotProps {
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
-/** Original compact Rex: individually rigged SVG parts, no raster or video assets. */
-export function Mascot({ mood = "idle", size = "md", interactive = false, animate = true, className = "", label, onClick }: MascotProps) {
+/** Shared mascot behavior; artwork can be reviewed without changing existing consumers. */
+export function Mascot({ mood = "idle", size = "md", interactive = false, animate = true, className = "", label, onClick, artwork }: MascotProps) {
   const reduced = usePrefersReducedMotion() || !animate;
   const [blink, setBlink] = useState(false);
   const [sleepy, setSleepy] = useState(false);
@@ -28,6 +36,8 @@ export function Mascot({ mood = "idle", size = "md", interactive = false, animat
   const [inView, setInView] = useState(true);
   const [tabVisible, setTabVisible] = useState(() => !document.hidden);
   const visible = inView && tabVisible;
+  const blinkMin = artwork?.blinkInterval?.[0] ?? motionTokens.blinkMin;
+  const blinkMax = artwork?.blinkInterval?.[1] ?? motionTokens.blinkMax;
   const root = useRef<HTMLDivElement>(null);
   const reactionTimer = useRef<ReturnType<typeof setTimeout>>();
   const effectiveMood = tapped ? "happy" : mood === "idle" && sleepy ? "sleepy" : mood;
@@ -48,11 +58,11 @@ export function Mascot({ mood = "idle", size = "md", interactive = false, animat
       timer = setTimeout(() => {
         setBlink(true);
         openTimer = setTimeout(() => { setBlink(false); schedule(); }, motionTokens.instant * 1000);
-      }, (motionTokens.blinkMin + Math.random() * (motionTokens.blinkMax - motionTokens.blinkMin)) * 1000);
+      }, (blinkMin + Math.random() * (blinkMax - blinkMin)) * 1000);
     };
     schedule();
     return () => { clearTimeout(timer); clearTimeout(openTimer); };
-  }, [reduced, visible]);
+  }, [reduced, visible, blinkMin, blinkMax]);
 
   useEffect(() => {
     if (mood !== "idle" || !visible) return;
@@ -92,7 +102,7 @@ export function Mascot({ mood = "idle", size = "md", interactive = false, animat
   const resetLook = () => { root.current?.style.setProperty("--look-x", "0px"); root.current?.style.setProperty("--look-y", "0px"); };
   const closed = effectiveMood === "sleepy" || blink && !reduced;
   const happy = ["happy", "celebrate", "cheering", "encouraging"].includes(effectiveMood);
-  const body = (
+  const defaultBody = (
     <svg viewBox="0 0 240 250" fill="none" aria-hidden="true" focusable="false" className="mascot-art">
       <ellipse cx="120" cy="234" rx="60" ry="7" fill="#000000" opacity=".13" />
       <g className="mascot-rig" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
@@ -139,9 +149,10 @@ export function Mascot({ mood = "idle", size = "md", interactive = false, animat
       {effectiveMood === "celebrate" && <g data-part="confetti" className="mascot-confetti"><path d="M30 59L36 52M198 27L205 20M32 153L25 146" stroke="#FF4D2E" strokeWidth="5" /><path d="M25 99L33 97M203 134L211 139M52 22L57 29" stroke="#FFD13B" strokeWidth="5" /></g>}
     </svg>
   );
-  const style: CSSProperties = { ...motionVariables, width: sizes[size], maxWidth: "100%", aspectRatio: "240 / 250" };
+  const body = artwork ? artwork.render({ mood: effectiveMood, blink: blink && !reduced, reduced }) : defaultBody;
+  const style: CSSProperties = { ...motionVariables, width: sizes[size], maxWidth: "100%", aspectRatio: artwork?.aspectRatio ?? "240 / 250" };
   return (
-    <div ref={root} data-mascot="rex" data-mood={effectiveMood} data-reduced-motion={!!reduced} data-paused={!visible} className={`mascot ${className}`} style={style} onPointerMove={look} onPointerLeave={resetLook}>
+    <div ref={root} data-mascot={artwork ? "custom" : "rex"} data-mood={effectiveMood} data-reduced-motion={!!reduced} data-paused={!visible} className={`mascot ${className}`} style={style} onPointerMove={look} onPointerLeave={resetLook}>
       {interactive ? <button type="button" className="mascot-tap" aria-label={label || "Say hello to Rex"} onClick={event => {
         clearTimeout(reactionTimer.current);
         setTapped(true);

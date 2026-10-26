@@ -1,0 +1,58 @@
+.seedling-art { display:block; width:100%; height:auto; overflow:hidden; }
+.seedling-art g { transform-box:view-box; transform-origin:200px 338px; }
+.seedling-art [data-layer="leaf"] { transform-origin:214px 117px; }
+.seedling-art [data-layer="tendril"] { transform-origin:208px 137px; }
+.seedling-art [data-layer="arm-left"] { transform-origin:94px 265px; }
+.seedling-art [data-layer="arm-right"] { transform-origin:306px 265px; }
+.seedling-art [data-layer="feet-left"] { transform-origin:155px 340px; }
+.seedling-art [data-layer="feet-right"] { transform-origin:245px 340px; }
+.seedling-art [data-layer="blush-left"] { transform-origin:147px 266px; }
+.seedling-art [data-layer="blush-right"] { transform-origin:253px 266px; }
+.seedling-art [data-layer="eye-left"],.seedling-art [data-layer="eyelid-left"] { transform-origin:166px 243px; }
+.seedling-art [data-layer="eye-right"],.seedling-art [data-layer="eyelid-right"] { transform-origin:234px 243px; }
+.seedling-art [data-layer="mouth-states"] { transform-origin:200px 272px; }
+.seedling-art [data-layer="shadow"] { transform-origin:200px 367px; }
+.seedling-art [data-layer^="eyelid"],.seedling-art [data-eye="blink"],.seedling-art [data-layer="typing"],.seedling-art [data-layer="burst"],.seedling-art [data-mouth]:not([data-mouth="smile"]) { opacity:0; }
+.seedling-art[data-blink="true"] [data-eye="open"],.seedling-art[data-blink="true"] [data-eye="happy"] { opacity:0; }
+.seedling-art[data-blink="true"] [data-eye="blink"] { opacity:1; }
+.seedling-art[data-pose="idle"] [data-layer="breath"],.seedling-art[data-pose="sleepy"] [data-layer="breath"] { animation:seed-breathe var(--motion-idle) var(--motion-ease) infinite; }
+.seedling-art[data-pose="idle"] [data-layer="leaf"] { animation:seed-sway var(--motion-idle) var(--motion-ease) infinite; animation-delay:var(--motion-enter); }
+.seedling-art[data-pose="idle"] [data-layer="tendril"] { animation:seed-sway var(--motion-idle) var(--motion-ease) infinite; animation-delay:var(--motion-progress); }
+.seedling-art[data-pose="happy"] [data-layer="actor"] { animation:seed-hop var(--motion-reaction) var(--motion-ease) both; }
+.seedling-art[data-pose="celebrate"] [data-layer="actor"] { animation:seed-jump var(--motion-reaction) var(--motion-ease) both; }
+.seedling-art[data-pose="celebrate"] [data-layer="arm-left"] { transform:rotate(35deg); }
+.seedling-art[data-pose="celebrate"] [data-layer="arm-right"] { transform:rotate(-35deg); }
+.seedling-art[data-pose="celebrate"] [data-layer="leaf"] { transform:rotate(-8deg); }
+.seedling-art[data-pose="celebrate"] [data-layer="leaf"],.seedling-art[data-pose="celebrate"] [data-layer="tendril"] { animation:seed-whip var(--motion-reaction) var(--motion-ease) both; animation-delay:var(--motion-instant); }
+.seedling-art[data-pose="celebrate"] [data-layer="burst"] { opacity:1; animation:seed-burst var(--motion-reaction) var(--motion-ease) both; }
+.seedling-art[data-pose="happy"] [data-mouth="smile"],.seedling-art[data-pose="celebrate"] [data-mouth="smile"],.seedling-art[data-pose="thinking"] [data-mouth="smile"],.seedling-art[data-pose="sad"] [data-mouth="smile"] { opacity:0; }
+.seedling-art[data-pose="happy"] [data-mouth="open"],.seedling-art[data-pose="celebrate"] [data-mouth="open"],.seedling-art[data-pose="thinking"] [data-mouth="flat"],.seedling-art[data-pose="sad"] [data-mouth="sad"] { opacity:1; }
+.seedling-art[data-pose="thinking"] [data-layer^="eye-"] { transform:translate(-4px,-5px); }
+.seedling-art[data-pose="thinking"] [data-layer="leaf"] { transform:rotate(-12deg); }
+.seedling-art[data-pose="thinking"] [data-layer="typing"] { opacity:1; }
+.seedling-art[data-pose="thinking"] [data-layer="typing"] circle { animation:seed-dot var(--motion-idle) var(--motion-ease) infinite; }
+.seedling-art [data-layer="typing"] circle:nth-child(2) { animation-delay:var(--motion-quick); }
+.seedling-art [data-layer="typing"] circle:nth-child(3) { animation-delay:var(--motion-progress); }
+.seedling-art[data-pose="sleepy"] [data-layer^="eyelid"] { opacity:1; }
+.seedling-art[data-pose="sleepy"] [data-layer="leaf"] { transform:rotate(24deg); }
+.seedling-art[data-pose="sleepy"] [data-layer="breath"] { animation-duration:calc(var(--motion-idle) * 2); }
+.seedling-art[data-pose="encourage"] [data-layer="breath"] { animation:seed-nod var(--motion-reaction) var(--motion-ease) both; }
+.seedling-art[data-pose="encourage"] [data-layer="leaf"] { animation:seed-wave var(--motion-idle) var(--motion-ease) infinite; }
+.seedling-art[data-pose="encourage"] [data-layer="arm-right"] { transform:rotate(-16deg); }
+.seedling-art[data-pose="peek"] [data-layer="actor"] { transform:translate(42px,142px) rotate(-8deg); animation:seed-peek var(--motion-reaction) var(--motion-ease) both; }
+.seedling-art[data-pose="sad"] [data-layer="actor"] { transform:translateY(8px) scaleY(.97); }
+.seedling-art[data-pose="sad"] [data-layer="leaf"] { transform:rotate(28deg); }
+.mascot[data-paused="true"] .seedling-art * { animation-play-state:paused; }
+.mascot[data-reduced-motion="true"] .seedling-art * { animation:none; }
+.mascot[data-reduced-motion="true"] .seedling-art [data-layer="burst"] { opacity:0; }
+@media(prefers-reduced-motion:reduce) { .seedling-art * { animation:none!important; } .seedling-art [data-layer="burst"] { opacity:0; } }
+@keyframes seed-breathe { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.03)} }
+@keyframes seed-sway { 0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)} }
+@keyframes seed-hop { 0%,100%{transform:translateY(0) scale(1)} 20%{transform:scale(1.06,.94)} 50%{transform:translateY(-15px) scale(.97,1.04)} 80%{transform:scale(1.04,.96)} }
+@keyframes seed-jump { 0%,100%{transform:translateY(0) scale(1)} 18%{transform:scale(1.09,.91)} 50%{transform:translateY(-32px) scale(.95,1.06)} 82%{transform:scale(1.06,.94)} }
+@keyframes seed-whip { 0%,100%{transform:rotate(0)} 40%{transform:rotate(-18deg)} 70%{transform:rotate(13deg)} }
+@keyframes seed-burst { 0%{transform:scale(.8);opacity:0} 40%{opacity:1} 100%{transform:scale(1.12);opacity:0} }
+@keyframes seed-dot { 0%,35%,100%{transform:translateY(0);opacity:.45} 18%{transform:translateY(-5px);opacity:1} }
+@keyframes seed-nod { 0%,100%{transform:rotate(0)} 40%{transform:rotate(4deg) scaleY(.98)} }
+@keyframes seed-wave { 0%,70%,100%{transform:rotate(0)} 20%,50%{transform:rotate(-14deg)} 35%{transform:rotate(8deg)} }
+@keyframes seed-peek { from{transform:translate(150px,220px) rotate(-18deg);opacity:0} to{transform:translate(42px,142px) rotate(-8deg);opacity:1} }

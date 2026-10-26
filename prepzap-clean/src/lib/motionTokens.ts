@@ -11,6 +11,7 @@ export const motionTokens = {
   progress: 0.45,
   blinkMin: 2,
   blinkMax: 5,
+  seedlingBlink: [3, 6] as const,
   inactivity: 60,
   reaction: 0.65,
   idle: 3.6,
@@ -19,6 +20,7 @@ export const motionTokens = {
   sheet: { type: "spring", stiffness: 320, damping: 32 } as const,
 };
 export const motionVariables = {
+  "--motion-instant": `${motionTokens.instant}s`,
   "--motion-quick": `${motionTokens.quick}s`,
   "--motion-enter": `${motionTokens.enter}s`,
   "--motion-progress": `${motionTokens.progress}s`,
