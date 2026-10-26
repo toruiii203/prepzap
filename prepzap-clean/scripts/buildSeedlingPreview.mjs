@@ -21,7 +21,7 @@ await mkdir('design/seedling/review', { recursive: true });
 await writeFile('design/seedling/review/preview.html', html);
 const renderer = await createServer({ configFile: false, esbuild: { jsx: 'automatic', jsxDev: false }, server: { middlewareMode: true }, resolve: { alias: { '@': path.resolve('src') } } });
 try {
-  const { SeedlingArtwork } = await renderer.ssrLoadModule('/design/seedling/SeedlingArtwork.tsx');
+  const { SeedlingArtwork } = await renderer.ssrLoadModule('/src/components/mascot/SeedlingArtwork.tsx');
   const markup = renderToStaticMarkup(createElement(SeedlingArtwork, { mood: 'idle', blink: false, reduced: true }));
   const visibility = '<style>[data-layer^="eyelid"],[data-eye="blink"],[data-layer="typing"],[data-layer="burst"],[data-mouth]:not([data-mouth="smile"]){opacity:0}</style>';
   const svg = markup.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ').replace(/(<svg[^>]*>)/, `$1${visibility}`);

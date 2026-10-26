@@ -1,8 +1,8 @@
 import { useId } from "react";
 import type { MascotArtworkState } from "@/components/Mascot";
-import "./seedling.css";
+import "@/styles/seedling.css";
 
-/** Hand-drawn vector draft. No raster, filters, gradients or external assets. */
+/** Approved hand-structured vector artwork. No raster, filters, gradients or external assets. */
 export function SeedlingArtwork({ mood, blink, underShadow = false }: MascotArtworkState & { underShadow?: boolean }) {
   const prefix = `seedling-${useId().replace(/:/g, "")}`;
   const layer = (part: string) => ({ id: `${prefix}-${part}`, "data-layer": part });

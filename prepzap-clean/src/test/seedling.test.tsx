@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Mascot, type MascotArtwork, type MascotMood } from "@/components/Mascot";
 import { motionTokens } from "@/lib/motionTokens";
-import { SeedlingArtwork } from "../../design/seedling/SeedlingArtwork";
+import { SeedlingArtwork } from "@/components/mascot/SeedlingArtwork";
 
 const preference = vi.hoisted(() => ({ reduced: false }));
 vi.mock("@/hooks/usePrefersReducedMotion", () => ({ usePrefersReducedMotion: () => preference.reduced }));

@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Mascot, type MascotArtwork, type MascotMood } from "@/components/Mascot";
 import { SpringButton } from "@/components/ui/SpringButton";
 import { motionTokens } from "@/lib/motionTokens";
-import { SeedlingArtwork } from "./SeedlingArtwork";
+import { SeedlingArtwork } from "@/components/mascot/SeedlingArtwork";
 import "./preview.css";
 
 const seedlingArtwork: MascotArtwork = {
@@ -26,7 +26,7 @@ export function Preview() {
   const [still, setStill] = useState(false);
   const [replay, setReplay] = useState(0);
   return <main data-theme={dark ? "dark" : "light"}>
-    <header><p>Studenius / Character study</p><h1>A little room to grow.</h1><p>The new seedling mascot. Review draft — not yet used in the app.</p>
+    <header><p>Studenius / Character study</p><h1>A little room to grow.</h1><p>Approved option A. The entry-streak popup is the first app integration.</p>
       <div className="controls">
         <label><input type="checkbox" checked={dark} onChange={event => setDark(event.target.checked)} /> Dark background</label>
         <label><input type="checkbox" checked={still} onChange={event => setStill(event.target.checked)} /> Static poses</label>
@@ -39,7 +39,7 @@ export function Preview() {
         <h2>{mood}</h2><p>{note}</p>
       </article>)}
     </section>
-    <section className="comparison" aria-labelledby="contrast-title"><h2 id="contrast-title">One optional contrast adjustment</h2><p>The original colors stay the same in both. The peach ground shadow is a proposal for approval.</p>
+    <section className="comparison" aria-labelledby="contrast-title"><h2 id="contrast-title">Contrast comparison — A approved</h2><p>A is approved with no ground shadow. B remains here only for comparison.</p>
       <div className="comparison-grid">
         <figure><Mascot size="lg" mood="idle" animate={false} artwork={seedlingArtwork} /><figcaption>A / Reference colors, no shadow</figcaption></figure>
         <figure><Mascot size="lg" mood="idle" animate={false} artwork={shadowArtwork} /><figcaption>B / Optional warm peach ground shadow</figcaption></figure>
