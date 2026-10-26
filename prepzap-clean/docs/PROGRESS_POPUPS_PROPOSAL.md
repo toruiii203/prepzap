@@ -1,7 +1,9 @@
-# Entry and progress feedback — proposal, not implemented
+# Entry and progress feedback — architecture and first slice
 
 Mascot decision: user approved option A, the seedling without a ground shadow.
-The separate device-only display-ledger decision below is still pending.
+The user also approved the tiny device-only display ledger. The daily entry
+streak slice is implemented; other event adapters remain proposals. See
+`docs/ENTRY_STREAK_SLICE.md` for the implementation and validation.
 
 ## One presentation owner
 
@@ -63,20 +65,21 @@ row should mark only known days, leaving others neutral.
 - Quiet hour changes and midnight do not create a background notification.
   Evaluate eligibility only at an existing safe entry/completion boundary.
 
-## Storage decision required before the caps can ship
+## Approved storage exception for display caps
 
 The requested once-per-day guarantee across reloads cannot be implemented using
 an in-memory queue alone. Existing interface preferences store theme, sound and
 vibration, but have no popup-seen history. The brief also says not to change
-storage. No persistence is added in this draft.
+storage. The user separately approved the tiny presentation-metadata exception;
+no reward or study storage is changed.
 
-Recommendation for separate approval: a tiny device-only, per-user presentation
+Approved scope: a tiny device-only, per-user presentation
 ledger (local date, shown types, schema version; no rewards, content or identity
 details) using the existing lightweight preference convention. Keep session caps
 in memory, synchronize daily caps across tabs, prune old entries, clear queues
-on account change. If persistence is disallowed, explicitly accept that daily
-caps apply only until reload. This is a prerequisite for the entry slice, not a
-reason to alter auth/profile queries.
+on account change. The first adapter uses a Web Lock for cross-tab check/write
+and fails quiet if locking or persistence is unavailable. This exception does
+not authorize changing auth/profile queries or storing study/reward data.
 
 ## Presentation and first slice
 
@@ -88,7 +91,8 @@ tokens and Radix focus behavior. Reduced motion holds a static pose and final
 counter; no confetti or flying XP. Reserve art dimensions and pause when hidden.
 Keep sound/haptics behind existing preferences; iOS Safari uses visual feedback.
 
-After mascot and ledger decisions, implement only the entry streak slice. Tests:
+Mascot and ledger decisions are approved; only the daily entry streak slice is
+implemented. Remaining adapters and broad rollout still need a later review. Tests:
 real-value rendering, missing-data suppression, entry/session/daily caps, same-day
 reload (if approved), user change, navigation dismissal, active-quiz suppression,
 Escape/focus restore, reduced motion and no extra network requests. Verify with

@@ -38,9 +38,11 @@ SVG layer IDs are unique across instances. The named layers have viewBox pivots.
 | Loading / navigation | `AppSkeleton`, `PageTransition`, persistent shell | Preserve the performance fix; no extra route, preload, exit wait or loading delay. |
 | Popup accessibility | Existing Radix dialog primitives | Trap/restore focus, Escape and dismiss affordance; navigation clears the active presentation. |
 
-**Route coverage this draft:** 0 of 57 routes changed; all 57 remain outside this
-approval slice. The preview is a build artifact, not an app route. No popup,
-auth, API, database, reward calculation or application storage change is made.
+**Route coverage:** the first entry-streak slice runs on the existing dashboard
+(1 of 57 routes). Other 56 routes and other mascot placements await broader
+rollout. The standalone preview is not an app route. Auth, requests, database
+calls and rewards are unchanged. The separately approved tiny display ledger
+is the only new application storage write.
 
 ## Reproduce
 
@@ -51,7 +53,7 @@ npm ci --cache .agent/npm-cache
 node scripts/buildSeedlingPreview.mjs
 node scripts/testSeedlingPreview.mjs
 npm test
-npx eslint src/components/Mascot.tsx src/lib/motionTokens.ts src/test/seedling.test.tsx design/seedling/*.tsx
+npx eslint src/components/Mascot.tsx src/components/mascot/*.tsx src/lib/motionTokens.ts src/test/seedling.test.tsx design/seedling/*.tsx
 npx tsc --project design/seedling/tsconfig.json --noEmit
 ```
 
@@ -63,13 +65,16 @@ It regenerates the two review sheets and writes an ignored `.agent` report.
 
 The HTML includes the existing React/motion/controller runtime for a genuine
 component preview (about 317KB uncompressed), while each inline SVG is under
-10KB. The artwork and preview are outside the app import graph. No dependency
+10KB. The review HTML is outside the app import graph; approved artwork now lives in
+`src/components/mascot/SeedlingArtwork.tsx` and is loaded by the optional
+dashboard-entry chunk. The shared artwork configuration always selects A. No dependency
 was added. Phone-sized browser emulation is **not** a real-device performance
 measurement; physical iOS/Android frame pacing remains a manual check.
 
-Validation for this draft: lockfile install, production app build, standalone
-preview build, 92 unit tests across 16 files, preview-specific type-check and
-touched-file lint pass. Browser checks cover eight viewport/theme combinations,
+Validation for the mascot draft: lockfile install, production app build,
+standalone preview build, 92 unit tests across 16 files, preview-specific
+type-check and touched-file lint passed. Current entry-slice results and phone
+checks are recorded in `docs/ENTRY_STREAK_SLICE.md`. Browser checks cover eight viewport/theme combinations,
 OS reduced motion and zero external requests. Existing navigation smoke checks
 also pass (persistent shell, no full-screen loading flash, original crimson).
 All preview data is local fixture state; no real account or reward flow was
@@ -83,10 +88,8 @@ peeking, waiting then reacting, one-action results, permission explanation, and
 search sheets are interaction references only. The other uploaded recording
 exceeds the attachment tool's 32MiB limit and could not be reviewed.
 
-Character poses and option A are approved. Next is **one entry streak popup**,
-following `docs/PROGRESS_POPUPS_PROPOSAL.md`. Permission for its tiny device-only
-daily display record remains pending: the earlier no-storage-change constraint
-is still in force. Do not enable an automatic popup that cannot honor the daily
-cap. Broad rollout remains a later review.
+Character poses, option A and the tiny device-only daily display record are
+approved. The first entry-streak slice is implemented; see
+`docs/ENTRY_STREAK_SLICE.md`. Broad rollout remains a later review.
 On a phone, check leaf/face readability at small sizes, happy/celebrate timing,
 peek cropping, sleepy eyes, keyboard focus, reduced motion and both themes.
