@@ -1,5 +1,11 @@
 # Studenius visual polish plan — review before implementation
 
+> Updated direction: the supplied cream seedling replaces the fox concept below.
+> Review `design/seedling/README.md` for the SVG mood preview and
+> `docs/PROGRESS_POPUPS_PROPOSAL.md` for the staged popup proposal. Preserve the
+> navigation performance fix and cream/crimson/orange app palette. The older
+> fox/Blender sections below are historical, not the current implementation plan.
+
 ## What the supplied recording demonstrates
 
 Reviewed the 27-second `Screen Recording 2026-10-26 193511.mp4`. It shows character-
