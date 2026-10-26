@@ -1,5 +1,8 @@
 # Entry and progress feedback — proposal, not implemented
 
+Mascot decision: user approved option A, the seedling without a ground shadow.
+The separate device-only display-ledger decision below is still pending.
+
 ## One presentation owner
 
 Add one provider beside the persistent app shell, with a pure typed queue reducer

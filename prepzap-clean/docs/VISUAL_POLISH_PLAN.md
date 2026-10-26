@@ -1,6 +1,7 @@
 # Studenius visual polish plan — review before implementation
 
-> Updated direction: the supplied cream seedling replaces the fox concept below.
+> Approved direction: the supplied cream seedling, option A without a ground
+> shadow, replaces the fox concept below.
 > Review `design/seedling/README.md` for the SVG mood preview and
 > `docs/PROGRESS_POPUPS_PROPOSAL.md` for the staged popup proposal. Preserve the
 > navigation performance fix and cream/crimson/orange app palette. The older

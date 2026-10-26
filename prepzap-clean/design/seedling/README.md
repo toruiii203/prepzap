@@ -1,8 +1,9 @@
-# Studenius seedling — approval draft
+# Studenius seedling — approved option A
 
 This supersedes the fox art direction in `docs/VISUAL_POLISH_PLAN.md`.
-The fox is retired as a design direction; existing live screens retain their
-current artwork until the user approves this preview and its first integration.
+The user approved the seedling and **option A (no ground shadow)**. The fox is
+retired as a design direction. The first integration is the entry-streak slice;
+broad rollout to other screens still requires a later review.
 
 ## Review
 
@@ -13,8 +14,9 @@ current artwork until the user approves this preview and its first integration.
   hand-authored component; no duplicate source geometry.
 - The interactive page has theme, static-pose and replay controls. OS reduced
   motion takes precedence. Each character is a keyboard-operable tap target.
-- Reference colors are the default. The peach ground shadow is an **unapproved
-  option**, shown only in the comparison. Neither option changes app colors.
+- Reference colors with **no ground shadow** are approved. The peach ground
+  shadow remains in the comparison only as the rejected alternative. Do not
+  enable it in app integrations. Neither option changes app colors.
 
 The supplied mascot image establishes the cream seed-bean, peach lower band and
 feet, oval eyes, blush, green leaf and curled tendril. Paths are hand-structured;
@@ -81,8 +83,10 @@ peeking, waiting then reacting, one-action results, permission explanation, and
 search sheets are interaction references only. The other uploaded recording
 exceeds the attachment tool's 32MiB limit and could not be reviewed.
 
-Approve the character poses and choose reference-only or optional shadow before
-live integration. Next is **one entry streak popup**, following
-`docs/PROGRESS_POPUPS_PROPOSAL.md`; broad rollout remains a later review.
+Character poses and option A are approved. Next is **one entry streak popup**,
+following `docs/PROGRESS_POPUPS_PROPOSAL.md`. Permission for its tiny device-only
+daily display record remains pending: the earlier no-storage-change constraint
+is still in force. Do not enable an automatic popup that cannot honor the daily
+cap. Broad rollout remains a later review.
 On a phone, check leaf/face readability at small sizes, happy/celebrate timing,
 peek cropping, sleepy eyes, keyboard focus, reduced motion and both themes.
