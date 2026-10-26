@@ -1,0 +1,40 @@
+/* Timings are supplied by motionTokens.ts, including portal overlays. */
+[data-motion-page] { isolation: isolate; }
+[data-motion-page] :where(button, [role=button], a[class*="border"]):not(:disabled):not([aria-disabled=true]):not(.mascot-tap) {
+  touch-action: manipulation;
+  transition-property: transform, opacity;
+  transition-duration: var(--motion-quick);
+  transition-timing-function: var(--motion-ease);
+}
+[data-motion-page] :where(button, [role=button], a[class*="border"]):not(:disabled):not([aria-disabled=true]):not(.mascot-tap):active { transform: translateY(2px) scale(.985); }
+@media (hover:hover) {
+  [data-motion-page] :where(button, [role=button], a[class*="border"]):not(:disabled):not([aria-disabled=true]):not(.mascot-tap):hover { transform: translateY(-1px); }
+  [data-motion-page] :where(article, .card-luxe, .place-card, [data-motion-card], [class*="grid"] > [class*="border"]):not(button):hover { transform: translateY(-2px); }
+}
+[data-motion-page] :where(article, .card-luxe, .place-card, [data-motion-card], [class*="grid"] > [class*="border"]) { transition: transform var(--motion-quick) var(--motion-ease), opacity var(--motion-quick) var(--motion-ease); }
+[data-motion-page] :where(ul,ol,[class*="grid"]) > :where(li,article,section,[class*="border"]) {
+  animation: study-card-enter var(--motion-enter) var(--motion-ease) both;
+  animation-delay: calc(var(--stagger-index,0) * var(--motion-stagger));
+}
+[data-motion-page] :where(ul,ol,[class*="grid"]) > :nth-child(2) { --stagger-index: 1; }
+[data-motion-page] :where(ul,ol,[class*="grid"]) > :nth-child(3) { --stagger-index: 2; }
+[data-motion-page] :where(ul,ol,[class*="grid"]) > :nth-child(4) { --stagger-index: 3; }
+[data-motion-page] :where(ul,ol,[class*="grid"]) > :nth-child(n+5) { --stagger-index: 4; }
+@keyframes study-card-enter { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes study-dialog-enter { from { opacity:0; transform:translate(-50%,-48%) scale(.97); } 75% { transform:translate(-50%,-50%) scale(1.008); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+@keyframes study-dialog-exit { to { opacity:0; transform:translate(-50%,-49%) scale(.98); } }
+@keyframes study-sheet-enter { from { opacity:0; transform:translateY(20px); } 75% { transform:translateY(-1px); } to { opacity:1; transform:translateY(0); } }
+@keyframes study-sheet-exit { to { opacity:0; transform:translateY(12px); } }
+.studenius-dialog[data-state=open] { animation:study-dialog-enter var(--motion-enter) var(--motion-ease) both; }
+.studenius-dialog[data-state=closed] { animation:study-dialog-exit var(--motion-exit) var(--motion-ease) both; }
+.studenius-sheet[data-state=open] { animation:study-sheet-enter var(--motion-enter) var(--motion-ease) both; }
+.studenius-sheet[data-state=closed] { animation:study-sheet-exit var(--motion-exit) var(--motion-ease) both; }
+.dashboard-greeting { display:flex; align-items:center; gap:16px; padding:12px 24px; background:var(--pz-surface); color:var(--pz-text); border-bottom:2px solid var(--pz-border); }
+@media (prefers-reduced-motion:reduce) {
+  [data-motion-page] :where(button,[role=button],a,article,.card-luxe,.place-card,[data-motion-card],[class*="grid"] > [class*="border"]) { animation:none !important; transition:none !important; }
+  [data-motion-page] :where(button,[role=button],a,article,.card-luxe,.place-card,[data-motion-card],[class*="grid"] > [class*="border"]):is(:hover,:active) { transform:none !important; }
+  .studenius-dialog,.studenius-sheet { animation:study-card-enter var(--motion-quick) ease-out both !important; }
+}
+.study-tab-panel[data-state=active] { animation:study-card-enter var(--motion-enter) var(--motion-ease) both; }
+/* Framework-owned modal roots keep their Radix focus/lifecycle management. */
+[role=dialog] { transition-property:transform,opacity; transition-duration:var(--motion-quick); }

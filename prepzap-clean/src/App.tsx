@@ -3,9 +3,10 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, MotionConfig } from "framer-motion";
+import { InterfacePreferences } from "@/components/InterfacePreferences";
 import { PageTransition } from "@/components/PageTransition";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { setSourceContextUser } from "@/lib/sourceContext";
@@ -91,65 +92,65 @@ function PWAInstallBanner() {
 }
 
 // ── Pages ────────────────────────────────────────────────────────────────────
-import Index from "./pages/Index";
-import Landing from "./pages/Landing";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Onboarding from "./pages/OnboardingFlow";
-import AuthCallback from "./pages/AuthCallback";
+const Index = lazy(() => import("./pages/Index"));
+const Landing = lazy(() => import("./pages/Landing"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Onboarding = lazy(() => import("./pages/OnboardingFlow"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 import { applyOnboardingDraftIfAny, clearOnboardingDraft } from "./lib/onboardingBank";
-import Admin from "./pages/Admin";
-import SourceLibrary from "./pages/SourceLibrary";
-import Dashboard from "./pages/Dashboard";
-import Practice from "./pages/Practice";
-import Flashcards from "./pages/Flashcards";
-import FlashcardsShared from "./pages/FlashcardsShared";
-import FocusTimer from "./pages/FocusTimer";
-import Analytics from "./pages/Analytics";
-import StudyPlanner from "./pages/StudyPlanner";
-import AITutor from "./pages/AITutor";
-import CallWithRex from "./pages/CallWithRex";
-import ToolsHub from "./pages/ToolsHub";
-import StudentProfile from "./pages/StudentProfile";
-import Challenges from "./pages/Challenges";
-import TeachIt from "./pages/TeachIt";
-import QuickStudy from "./pages/QuickStudy";
-import Community from "./pages/Community";
-import Friends from "./pages/Friends";
-import CampusVault from "./pages/CampusVault";
+const Admin = lazy(() => import("./pages/Admin"));
+const SourceLibrary = lazy(() => import("./pages/SourceLibrary"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Practice = lazy(() => import("./pages/Practice"));
+const Flashcards = lazy(() => import("./pages/Flashcards"));
+const FlashcardsShared = lazy(() => import("./pages/FlashcardsShared"));
+const FocusTimer = lazy(() => import("./pages/FocusTimer"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const StudyPlanner = lazy(() => import("./pages/StudyPlanner"));
+const AITutor = lazy(() => import("./pages/AITutor"));
+const CallWithRex = lazy(() => import("./pages/CallWithRex"));
+const ToolsHub = lazy(() => import("./pages/ToolsHub"));
+const StudentProfile = lazy(() => import("./pages/StudentProfile"));
+const Challenges = lazy(() => import("./pages/Challenges"));
+const TeachIt = lazy(() => import("./pages/TeachIt"));
+const QuickStudy = lazy(() => import("./pages/QuickStudy"));
+const Community = lazy(() => import("./pages/Community"));
+const Friends = lazy(() => import("./pages/Friends"));
+const CampusVault = lazy(() => import("./pages/CampusVault"));
 
 
 
-import MathSolver from "./pages/MathSolver";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import CramMode from "./pages/CramMode";
-import RecallMode from "./pages/RecallMode";
-import VisualLearner from "./pages/VisualLearner";
-import NotesWorkspace from "./pages/NotesWorkspace";
-import Avatar from "./pages/Avatar";
+const MathSolver = lazy(() => import("./pages/MathSolver"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const CramMode = lazy(() => import("./pages/CramMode"));
+const RecallMode = lazy(() => import("./pages/RecallMode"));
+const VisualLearner = lazy(() => import("./pages/VisualLearner"));
+const NotesWorkspace = lazy(() => import("./pages/NotesWorkspace"));
+const Avatar = lazy(() => import("./pages/Avatar"));
 
-import Shop from "./pages/Shop";
-import UsePro from "./pages/UsePro";
-import HighYieldDetector from "./pages/HighYieldDetector";
-import MistakeJournal from "./pages/MistakeJournal";
+const Shop = lazy(() => import("./pages/Shop"));
+const UsePro = lazy(() => import("./pages/UsePro"));
+const HighYieldDetector = lazy(() => import("./pages/HighYieldDetector"));
+const MistakeJournal = lazy(() => import("./pages/MistakeJournal"));
 
 // ── Arena ────────────────────────────────────────────────────────────────────
-import Arena from "./pages/Arena";
-import Arcade from "./pages/Arcade";
-import MemoryMatch from "./pages/arcade/MemoryMatch";
-import TrueFalseBlitz from "./pages/arcade/TrueFalseBlitz";
-import Termle from "./pages/arcade/Termle";
-import AnagramSprint from "./pages/arcade/AnagramSprint";
-import WhackAMole from "./pages/arcade/WhackAMole";
-import OddOneOut from "./pages/arcade/OddOneOut";
+const Arena = lazy(() => import("./pages/Arena"));
+const Arcade = lazy(() => import("./pages/Arcade"));
+const MemoryMatch = lazy(() => import("./pages/arcade/MemoryMatch"));
+const TrueFalseBlitz = lazy(() => import("./pages/arcade/TrueFalseBlitz"));
+const Termle = lazy(() => import("./pages/arcade/Termle"));
+const AnagramSprint = lazy(() => import("./pages/arcade/AnagramSprint"));
+const WhackAMole = lazy(() => import("./pages/arcade/WhackAMole"));
+const OddOneOut = lazy(() => import("./pages/arcade/OddOneOut"));
 
-import ArenaRoom from "./pages/ArenaRoom";
-import ArenaQuiz from "./pages/ArenaQuiz";
-import ArenaResults from "./pages/ArenaResults";
-import ArenaInvite from "./pages/ArenaInvite";
-import LiveBattle from "./pages/LiveBattle";
-import PublicShareView from "./pages/PublicShareView";
+const ArenaRoom = lazy(() => import("./pages/ArenaRoom"));
+const ArenaQuiz = lazy(() => import("./pages/ArenaQuiz"));
+const ArenaResults = lazy(() => import("./pages/ArenaResults"));
+const ArenaInvite = lazy(() => import("./pages/ArenaInvite"));
+const LiveBattle = lazy(() => import("./pages/LiveBattle"));
+const PublicShareView = lazy(() => import("./pages/PublicShareView"));
 
 // ── Still removed (files deleted): ───────────────────────────────────────────
 // FeynmanMode, ToolArchitect, Daily5, FlipScript, SpotError, BuildDef,
@@ -228,7 +229,7 @@ function AppRoutes() {
         if (code) {
           handled = true;
           console.log("[DeepLink] Exchanging PKCE code for session...");
-          try { await Browser.close(); } catch {}
+          try { await Browser.close(); } catch { /* Closing an unavailable native browser must not block navigation. */ }
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) {
             console.error("[DeepLink] Code exchange error:", error.message);
@@ -329,7 +330,7 @@ function AppRoutes() {
     <PageErrorBoundary>
       <Suspense fallback={<AppSkeleton />}
       >
-        {node}
+        <PageTransition>{node}</PageTransition>
       </Suspense>
     </PageErrorBoundary>
   );
@@ -344,7 +345,7 @@ function AppRoutes() {
         <Route path="/" element={safe(<MobileRootRedirect />)} />
         <Route path="/landing" element={safe(<Landing />)} />
         <Route path="/login" element={safe(<Navigate to="/onboarding" replace />)} />
-        <Route path="/signup" element={<Navigate to="/onboarding" replace />} />
+        <Route path="/signup" element={safe(<Navigate to="/onboarding" replace />)} />
         
         <Route path="/privacy" element={safe(<Privacy />)} />
         <Route path="/terms" element={safe(<Terms />)} />
@@ -419,6 +420,7 @@ function AppRoutes() {
 
 const App = () => (
   <MotionConfig reducedMotion="user">
+    <InterfacePreferences />
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>

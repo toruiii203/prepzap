@@ -1,3 +1,4 @@
+@import "./styles/motion.css";
 @font-face {
   font-family: 'Nunito';
   src: url('/fonts/nunito.woff2') format('woff2');
@@ -208,7 +209,7 @@
 /* A fixed bottom edge keeps feedback on the compositor. */
 .btn-3d, .btn-3d-sm, .studenius-button {
   box-shadow: 0 4px 0 #000000;
-  transition: transform 160ms cubic-bezier(.2,.8,.2,1);
+  transition: transform var(--motion-quick) var(--motion-ease);
   touch-action: manipulation;
 }
 @media (hover: hover) {
@@ -571,11 +572,11 @@ html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
 :where(button) { touch-action: manipulation; }
 .quiz-shell { padding-top: env(safe-area-inset-top, 0px); }
 .quiz-feedback { padding-bottom: env(safe-area-inset-bottom, 0px); }
-.quiz-feedback-content { animation: feedback-enter 220ms var(--pz-ease) both; }
-.quiz-answer { min-height: 60px; box-shadow: 0 4px 0 #000000; transition: transform 160ms var(--pz-ease); }
+.quiz-feedback-content { animation: feedback-enter var(--motion-enter) var(--motion-ease) both; }
+.quiz-answer { min-height: 60px; box-shadow: 0 4px 0 #000000; transition: transform var(--motion-quick) var(--motion-ease); }
 .quiz-answer[data-state=selected] { background: #FFD13B; color: #000000; transform: translateY(-2px); }
-.quiz-answer[data-state=correct] { background: #10B981; color: #000000; animation: answer-correct 340ms var(--pz-ease); }
-.quiz-answer[data-state=wrong] { background: #EF4444; color: #000000; animation: answer-wrong 300ms ease-out; }
+.quiz-answer[data-state=correct] { background: #10B981; color: #000000; animation: answer-correct var(--motion-reaction) var(--motion-ease); }
+.quiz-answer[data-state=wrong] { background: #EF4444; color: #000000; animation: answer-wrong var(--motion-reaction) var(--motion-ease); }
 .quiz-answer:disabled { cursor: default; }
 .quiz-answer:not(:disabled):active { transform: translateY(3px); }
 @media (hover: hover) { .quiz-answer:not(:disabled):hover { transform: translateY(-2px); } }

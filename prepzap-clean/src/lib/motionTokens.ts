@@ -8,6 +8,10 @@ export const motionTokens = {
   exit: 0.14,
   stagger: 0.035,
   count: 0.65,
+  progress: 0.45,
+  blinkMin: 2,
+  blinkMax: 5,
+  inactivity: 60,
   reaction: 0.65,
   idle: 3.6,
   ease: [0.2, 0.8, 0.2, 1] as const,
@@ -17,6 +21,7 @@ export const motionTokens = {
 export const motionVariables = {
   "--motion-quick": `${motionTokens.quick}s`,
   "--motion-enter": `${motionTokens.enter}s`,
+  "--motion-progress": `${motionTokens.progress}s`,
   "--motion-exit": `${motionTokens.exit}s`,
   "--motion-stagger": `${motionTokens.stagger}s`,
   "--motion-reaction": `${motionTokens.reaction}s`,

@@ -46,7 +46,7 @@ export function Mascot({ mood = "idle", size = "md", interactive = false, classN
       timer = setTimeout(() => {
         setBlink(true);
         openTimer = setTimeout(() => { setBlink(false); schedule(); }, motionTokens.instant * 1000);
-      }, 2000 + Math.random() * 3000);
+      }, (motionTokens.blinkMin + Math.random() * (motionTokens.blinkMax - motionTokens.blinkMin)) * 1000);
     };
     schedule();
     return () => { clearTimeout(timer); clearTimeout(openTimer); };
@@ -58,7 +58,7 @@ export function Mascot({ mood = "idle", size = "md", interactive = false, classN
     const wake = () => {
       setSleepy(false);
       clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => setSleepy(true), 60000);
+      idleTimer = setTimeout(() => setSleepy(true), motionTokens.inactivity * 1000);
     };
 
     wake();

@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
 import { playTap } from "@/lib/soundFX";
+import { motionTokens } from "@/lib/motionTokens";
 import { cn } from "@/lib/utils";
 
 export interface SpringButtonProps extends HTMLMotionProps<"button"> {
@@ -24,7 +25,7 @@ export const SpringButton = forwardRef<HTMLButtonElement, SpringButtonProps>(
         onClick={handleClick}
         whileTap={reduced || disabled ? undefined : { scale: 0.98, y: 3 }}
         whileHover={reduced || disabled ? undefined : { y: -2 }}
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        transition={motionTokens.spring}
         className={cn("min-h-11 touch-manipulation disabled:cursor-default disabled:opacity-50", className)}
       >
         {children}
