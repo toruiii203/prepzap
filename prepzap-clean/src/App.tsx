@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, MotionConfig } from "framer-motion";
+import { LegacyDialogAccessibility } from "@/components/LegacyDialogAccessibility";
 import { InterfacePreferences } from "@/components/InterfacePreferences";
 import { PageTransition } from "@/components/PageTransition";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -421,6 +422,7 @@ function AppRoutes() {
 const App = () => (
   <MotionConfig reducedMotion="user">
     <InterfacePreferences />
+    <LegacyDialogAccessibility />
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>

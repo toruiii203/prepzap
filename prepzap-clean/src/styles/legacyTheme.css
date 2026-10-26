@@ -1,0 +1,178 @@
+/* Compatibility aliases for existing visual literals. New UI uses semantic tokens. */
+/* No image, SVG, video, canvas, or global inversion filters are used. */
+html.dark [class~="bg-[#141210]"] { background-color: var(--pz-text); }
+html.dark [class~="bg-[#1A1A1A]"] { background-color: var(--pz-text); }
+html.dark [class~="bg-[#1a1a1a]"] { background-color: var(--pz-text); }
+html.dark [class~="bg-[#1c1c19]"] { background-color: var(--pz-text); }
+html.dark [class~="bg-[#333]"] { background-color: var(--pz-text); }
+html.dark [class~="bg-[#52525b]"] { background-color: var(--pz-surface3); }
+html.dark [class~="bg-[#858480]"] { background-color: var(--pz-surface3); }
+html.dark [class~="bg-[#E2E2E2]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#E5E2DA]"] { background-color: var(--pz-surface3); }
+html.dark [class~="bg-[#E8E4DC]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#F0EDE0]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#F3F4F6]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#FAF7F2]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#FEF9EE]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#FFF9E6]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#FFFBEA]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#FFFDF5]"] { background-color: var(--pz-surface); }
+html.dark [class~="bg-[#ddd]"] { background-color: var(--pz-surface3); }
+html.dark [class~="bg-[#e8e4de]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#ebe8e3]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#f0ece6]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#f3f3f3]"] { background-color: var(--pz-bg); }
+html.dark [class~="bg-[#fcf9f4]"] { background-color: var(--pz-bg); }
+html.dark [class~="border-[#000000]"] { border-color: var(--pz-border); }
+html.dark [class~="border-[#1A1A1A]"] { border-color: var(--pz-border); }
+html.dark [class~="border-[#1a1a1a]"] { border-color: var(--pz-border); }
+html.dark [class~="border-[#1c1c19]"] { border-color: var(--pz-border); }
+html.dark [class~="border-[#52525b]"] { border-color: var(--pz-border); }
+html.dark [class~="text-[#1A1A1A]"] { color: var(--pz-text); }
+html.dark [class~="text-[#1c1c19]"] { color: var(--pz-text); }
+html.dark [class~="text-[#444]"] { color: var(--pz-text); }
+html.dark [class~="text-[#666]"] { color: var(--pz-text-muted); }
+html.dark [class~="text-[#888]"] { color: var(--pz-text-muted); }
+html.dark [class~="text-[#999]"] { color: var(--pz-text-muted); }
+html.dark [class~="text-[#9ca3af]"] { color: var(--pz-text-muted); }
+html.dark [class~="text-[#FAF7F2]"] { color: var(--pz-text); }
+html.dark [class~="text-[#faf7f2]"] { color: var(--pz-text); }
+html.dark [class~="bg-white"] { background-color: var(--pz-surface); }
+html.dark [class~="bg-white/5"] { background-color: color-mix(in srgb, var(--pz-surface) 5%, transparent); }
+html.dark [class~="bg-white/10"] { background-color: color-mix(in srgb, var(--pz-surface) 10%, transparent); }
+html.dark [class~="bg-white/15"] { background-color: color-mix(in srgb, var(--pz-surface) 15%, transparent); }
+html.dark [class~="bg-white/20"] { background-color: color-mix(in srgb, var(--pz-surface) 20%, transparent); }
+html.dark [class~="bg-white/25"] { background-color: color-mix(in srgb, var(--pz-surface) 25%, transparent); }
+html.dark [class~="bg-white/30"] { background-color: color-mix(in srgb, var(--pz-surface) 30%, transparent); }
+html.dark [class~="bg-white/40"] { background-color: color-mix(in srgb, var(--pz-surface) 40%, transparent); }
+html.dark [class~="bg-white/45"] { background-color: color-mix(in srgb, var(--pz-surface) 45%, transparent); }
+html.dark [class~="bg-white/50"] { background-color: color-mix(in srgb, var(--pz-surface) 50%, transparent); }
+html.dark [class~="bg-white/55"] { background-color: color-mix(in srgb, var(--pz-surface) 55%, transparent); }
+html.dark [class~="bg-white/60"] { background-color: color-mix(in srgb, var(--pz-surface) 60%, transparent); }
+html.dark [class~="bg-white/65"] { background-color: color-mix(in srgb, var(--pz-surface) 65%, transparent); }
+html.dark [class~="bg-white/70"] { background-color: color-mix(in srgb, var(--pz-surface) 70%, transparent); }
+html.dark [class~="bg-white/75"] { background-color: color-mix(in srgb, var(--pz-surface) 75%, transparent); }
+html.dark [class~="bg-white/80"] { background-color: color-mix(in srgb, var(--pz-surface) 80%, transparent); }
+html.dark [class~="bg-white/85"] { background-color: color-mix(in srgb, var(--pz-surface) 85%, transparent); }
+html.dark [class~="bg-white/90"] { background-color: color-mix(in srgb, var(--pz-surface) 90%, transparent); }
+html.dark [class~="bg-white/95"] { background-color: color-mix(in srgb, var(--pz-surface) 95%, transparent); }
+html.dark [class~="text-black"] { color: var(--pz-text); }
+html.dark [class~="text-black/5"] { color: color-mix(in srgb, var(--pz-text) 5%, transparent); }
+html.dark [class~="text-black/10"] { color: color-mix(in srgb, var(--pz-text) 10%, transparent); }
+html.dark [class~="text-black/15"] { color: color-mix(in srgb, var(--pz-text) 15%, transparent); }
+html.dark [class~="text-black/20"] { color: color-mix(in srgb, var(--pz-text) 20%, transparent); }
+html.dark [class~="text-black/25"] { color: color-mix(in srgb, var(--pz-text) 25%, transparent); }
+html.dark [class~="text-black/30"] { color: color-mix(in srgb, var(--pz-text) 30%, transparent); }
+html.dark [class~="text-black/40"] { color: color-mix(in srgb, var(--pz-text) 40%, transparent); }
+html.dark [class~="text-black/45"] { color: color-mix(in srgb, var(--pz-text) 45%, transparent); }
+html.dark [class~="text-black/50"] { color: color-mix(in srgb, var(--pz-text) 50%, transparent); }
+html.dark [class~="text-black/55"] { color: color-mix(in srgb, var(--pz-text) 55%, transparent); }
+html.dark [class~="text-black/60"] { color: color-mix(in srgb, var(--pz-text) 60%, transparent); }
+html.dark [class~="text-black/65"] { color: color-mix(in srgb, var(--pz-text) 65%, transparent); }
+html.dark [class~="text-black/70"] { color: color-mix(in srgb, var(--pz-text) 70%, transparent); }
+html.dark [class~="text-black/75"] { color: color-mix(in srgb, var(--pz-text) 75%, transparent); }
+html.dark [class~="text-black/80"] { color: color-mix(in srgb, var(--pz-text) 80%, transparent); }
+html.dark [class~="text-black/85"] { color: color-mix(in srgb, var(--pz-text) 85%, transparent); }
+html.dark [class~="text-black/90"] { color: color-mix(in srgb, var(--pz-text) 90%, transparent); }
+html.dark [class~="text-black/95"] { color: color-mix(in srgb, var(--pz-text) 95%, transparent); }
+html.dark [class~="border-black"] { border-color: var(--pz-border); }
+html.dark [class~="border-black/5"] { border-color: color-mix(in srgb, var(--pz-border) 5%, transparent); }
+html.dark [class~="border-black/10"] { border-color: color-mix(in srgb, var(--pz-border) 10%, transparent); }
+html.dark [class~="border-black/15"] { border-color: color-mix(in srgb, var(--pz-border) 15%, transparent); }
+html.dark [class~="border-black/20"] { border-color: color-mix(in srgb, var(--pz-border) 20%, transparent); }
+html.dark [class~="border-black/25"] { border-color: color-mix(in srgb, var(--pz-border) 25%, transparent); }
+html.dark [class~="border-black/30"] { border-color: color-mix(in srgb, var(--pz-border) 30%, transparent); }
+html.dark [class~="border-black/40"] { border-color: color-mix(in srgb, var(--pz-border) 40%, transparent); }
+html.dark [class~="border-black/45"] { border-color: color-mix(in srgb, var(--pz-border) 45%, transparent); }
+html.dark [class~="border-black/50"] { border-color: color-mix(in srgb, var(--pz-border) 50%, transparent); }
+html.dark [class~="border-black/55"] { border-color: color-mix(in srgb, var(--pz-border) 55%, transparent); }
+html.dark [class~="border-black/60"] { border-color: color-mix(in srgb, var(--pz-border) 60%, transparent); }
+html.dark [class~="border-black/65"] { border-color: color-mix(in srgb, var(--pz-border) 65%, transparent); }
+html.dark [class~="border-black/70"] { border-color: color-mix(in srgb, var(--pz-border) 70%, transparent); }
+html.dark [class~="border-black/75"] { border-color: color-mix(in srgb, var(--pz-border) 75%, transparent); }
+html.dark [class~="border-black/80"] { border-color: color-mix(in srgb, var(--pz-border) 80%, transparent); }
+html.dark [class~="border-black/85"] { border-color: color-mix(in srgb, var(--pz-border) 85%, transparent); }
+html.dark [class~="border-black/90"] { border-color: color-mix(in srgb, var(--pz-border) 90%, transparent); }
+html.dark [class~="border-black/95"] { border-color: color-mix(in srgb, var(--pz-border) 95%, transparent); }
+html.dark .bg-black { background-color: var(--pz-text); }
+html.dark .bg-black > .text-white, html.dark .bg-black.text-white { color: var(--pz-bg); }
+html.dark .text-white { color: #FFFFFF; }
+html.dark :is([style^="color: rgb(0, 0, 0)"],[style*="; color: rgb(0, 0, 0)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(0, 0, 0)"],[style*="; color: rgb(0, 0, 0)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(10, 10, 10)"],[style*="; color: rgb(10, 10, 10)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(10, 10, 12)"],[style*="; color: rgb(10, 10, 12)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(17, 17, 17)"],[style*="; color: rgb(17, 17, 17)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(17, 17, 17)"],[style*="; color: rgb(17, 17, 17)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(20, 18, 16)"],[style*="; color: rgb(20, 18, 16)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(20, 20, 20)"],[style*="; color: rgb(20, 20, 20)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(21, 20, 28)"],[style*="; color: rgb(21, 20, 28)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(24, 24, 27)"],[style*="; color: rgb(24, 24, 27)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(26, 26, 26)"],[style*="; color: rgb(26, 26, 26)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(26, 26, 26)"],[style*="; color: rgb(26, 26, 26)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(28, 28, 23)"],[style*="; color: rgb(28, 28, 23)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(28, 28, 25)"],[style*="; color: rgb(28, 28, 25)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(34, 34, 34)"],[style*="; color: rgb(34, 34, 34)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(36, 34, 45)"],[style*="; color: rgb(36, 34, 45)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(37, 37, 37)"],[style*="; color: rgb(37, 37, 37)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(51, 51, 51)"],[style*="; color: rgb(51, 51, 51)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(68, 68, 68)"],[style*="; color: rgb(68, 68, 68)"]) { color:var(--pz-text) !important; }
+html.dark :is([style^="color: rgb(82, 82, 91)"],[style*="; color: rgb(82, 82, 91)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(85, 85, 85)"],[style*="; color: rgb(85, 85, 85)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(102, 102, 102)"],[style*="; color: rgb(102, 102, 102)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(107, 107, 107)"],[style*="; color: rgb(107, 107, 107)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(107, 114, 128)"],[style*="; color: rgb(107, 114, 128)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(133, 132, 128)"],[style*="; color: rgb(133, 132, 128)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(136, 136, 136)"],[style*="; color: rgb(136, 136, 136)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(153, 153, 153)"],[style*="; color: rgb(153, 153, 153)"]) { color:var(--pz-text-muted) !important; }
+html.dark :is([style^="color: rgb(156, 163, 175)"],[style*="; color: rgb(156, 163, 175)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(208, 208, 208)"], html.dark [style*="background-color: rgb(208, 208, 208)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(208, 208, 208)"],[style*="; color: rgb(208, 208, 208)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(226, 226, 226)"], html.dark [style*="background-color: rgb(226, 226, 226)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(229, 226, 218)"], html.dark [style*="background-color: rgb(229, 226, 218)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(229, 226, 218)"],[style*="; color: rgb(229, 226, 218)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(229, 231, 235)"], html.dark [style*="background-color: rgb(229, 231, 235)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(232, 228, 220)"], html.dark [style*="background-color: rgb(232, 228, 220)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(240, 235, 227)"], html.dark [style*="background-color: rgb(240, 235, 227)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(240, 237, 224)"], html.dark [style*="background-color: rgb(240, 237, 224)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(240, 240, 240)"], html.dark [style*="background-color: rgb(240, 240, 240)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(243, 235, 225)"], html.dark [style*="background-color: rgb(243, 235, 225)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(243, 244, 246)"], html.dark [style*="background-color: rgb(243, 244, 246)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(245, 239, 230)"], html.dark [style*="background-color: rgb(245, 239, 230)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(250, 247, 242)"], html.dark [style*="background-color: rgb(250, 247, 242)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(253, 248, 240)"], html.dark [style*="background-color: rgb(253, 248, 240)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(254, 249, 238)"], html.dark [style*="background-color: rgb(254, 249, 238)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(255, 242, 216)"], html.dark [style*="background-color: rgb(255, 242, 216)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(255, 249, 230)"], html.dark [style*="background-color: rgb(255, 249, 230)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(255, 251, 234)"], html.dark [style*="background-color: rgb(255, 251, 234)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(255, 253, 245)"], html.dark [style*="background-color: rgb(255, 253, 245)"] { background-color:var(--pz-surface) !important; }
+html.dark [style*="background: rgb(255, 255, 255)"], html.dark [style*="background-color: rgb(255, 255, 255)"] { background-color:var(--pz-surface) !important; }
+html.dark :is([style^="color: rgb(160, 160, 160)"],[style*="; color: rgb(160, 160, 160)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(170, 170, 170)"], html.dark [style*="background-color: rgb(170, 170, 170)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(170, 170, 170)"],[style*="; color: rgb(170, 170, 170)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(192, 192, 192)"], html.dark [style*="background-color: rgb(192, 192, 192)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(192, 192, 192)"],[style*="; color: rgb(192, 192, 192)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(204, 204, 204)"], html.dark [style*="background-color: rgb(204, 204, 204)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(204, 204, 204)"],[style*="; color: rgb(204, 204, 204)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(209, 205, 199)"], html.dark [style*="background-color: rgb(209, 205, 199)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(209, 205, 199)"],[style*="; color: rgb(209, 205, 199)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(221, 221, 221)"], html.dark [style*="background-color: rgb(221, 221, 221)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(221, 221, 221)"],[style*="; color: rgb(221, 221, 221)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(229, 225, 218)"], html.dark [style*="background-color: rgb(229, 225, 218)"] { background-color:var(--pz-surface3) !important; }
+html.dark :is([style^="color: rgb(229, 225, 218)"],[style*="; color: rgb(229, 225, 218)"]) { color:var(--pz-text-muted) !important; }
+html.dark [style*="background: rgb(232, 228, 222)"], html.dark [style*="background-color: rgb(232, 228, 222)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(235, 232, 227)"], html.dark [style*="background-color: rgb(235, 232, 227)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(240, 236, 230)"], html.dark [style*="background-color: rgb(240, 236, 230)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(240, 237, 237)"], html.dark [style*="background-color: rgb(240, 237, 237)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(243, 243, 243)"], html.dark [style*="background-color: rgb(243, 243, 243)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(243, 244, 246)"], html.dark [style*="background-color: rgb(243, 244, 246)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(245, 237, 232)"], html.dark [style*="background-color: rgb(245, 237, 232)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(246, 243, 242)"], html.dark [style*="background-color: rgb(246, 243, 242)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(249, 250, 251)"], html.dark [style*="background-color: rgb(249, 250, 251)"] { background-color:var(--pz-surface) !important; }
+html.dark [style*="background: rgb(250, 247, 242)"], html.dark [style*="background-color: rgb(250, 247, 242)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(252, 249, 244)"], html.dark [style*="background-color: rgb(252, 249, 244)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(254, 243, 199)"], html.dark [style*="background-color: rgb(254, 243, 199)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(254, 249, 195)"], html.dark [style*="background-color: rgb(254, 249, 195)"] { background-color:var(--pz-bg) !important; }
+html.dark [style*="background: rgb(255, 255, 255)"], html.dark [style*="background-color: rgb(255, 255, 255)"] { background-color:var(--pz-surface) !important; }
+html.dark [style*="background: rgb(255, 255, 255)"], html.dark [style*="background-color: rgb(255, 255, 255)"] { background-color:var(--pz-surface) !important; }
+html.dark [class~="bg-[#FFD13B]"], html.dark [class~="bg-[#FF4D2E]"], html.dark [class~="bg-[#10B981]"], html.dark [class~="bg-[#EF4444]"], html.dark [class~="bg-[#FFF275]"], html.dark [class~="bg-[#FFE566]"] { color: #000000; }
+html.dark .quiz-answer[data-state=selected], html.dark .quiz-answer[data-state=correct], html.dark .quiz-answer[data-state=wrong] { color: #000000; }

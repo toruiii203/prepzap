@@ -38,3 +38,4 @@
 .study-tab-panel[data-state=active] { animation:study-card-enter var(--motion-enter) var(--motion-ease) both; }
 /* Framework-owned modal roots keep their Radix focus/lifecycle management. */
 [role=dialog] { transition-property:transform,opacity; transition-duration:var(--motion-quick); }
+[data-motion-page] :where([class~="fixed"][class~="inset-0"][class*="bg-black/"]) > :where([class*="rounded"],[class*="max-w-"]) { animation:study-sheet-enter var(--motion-enter) var(--motion-ease) both; }

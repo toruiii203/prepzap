@@ -1,0 +1,91 @@
+/* Legacy font-family aliases use the shared local Nunito face. */
+@font-face { font-family:'Quicksand'; src:url('/fonts/nunito.woff2') format('woff2'); font-weight:200 1000; font-display:swap; }
+@font-face { font-family:'Plus Jakarta Sans'; src:url('/fonts/nunito.woff2') format('woff2'); font-weight:200 1000; font-display:swap; }
+/* Semantic surfaces and text. Brand/illustration pigments are never inverted. */
+:root {
+  color-scheme: light;
+  --pz-bg: #FAF7F2;
+  --pz-surface: #FFFFFF;
+  --pz-surface2: #FFFFFF;
+  --pz-surface3: #F0EBE3;
+  --pz-text: #000000;
+  --pz-text-2: #49443F;
+  --pz-text-muted: #625B54;
+  --pz-border: #000000;
+  --pz-border-hv: #000000;
+  --pz-focus: #000000;
+  --pz-ink: #000000;
+  --pz-yellow: #FFD13B;
+  --pz-coral: #FF4D2E;
+}
+html.dark {
+  color-scheme: dark;
+  --pz-bg: #15141C;
+  --pz-surface: #211F2A;
+  --pz-surface2: #292633;
+  --pz-surface3: #34303F;
+  --pz-text: #F8F5F0;
+  --pz-text-2: #D8D1DF;
+  --pz-text-muted: #BDB4C8;
+  --pz-border: #978BA6;
+  --pz-border-hv: #CBBED9;
+  --pz-focus: #FFD13B;
+  --pz-gold: #FFD13B;
+  --background: 248 17% 9%;
+  --foreground: 38 36% 96%;
+  --card: 251 15% 14%;
+  --card-foreground: 38 36% 96%;
+  --popover: 251 15% 14%;
+  --popover-foreground: 38 36% 96%;
+  --primary: 45.92 100% 61.57%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 252 14% 22%;
+  --secondary-foreground: 38 36% 96%;
+  --muted: 252 14% 22%;
+  --muted-foreground: 267 15% 75%;
+  --accent: 252 14% 22%;
+  --accent-foreground: 38 36% 96%;
+  --border: 269 13% 60%;
+  --input: 269 13% 60%;
+  --ring: 45.92 100% 61.57%;
+  --sidebar-background: 248 17% 9%;
+  --sidebar-foreground: 38 36% 96%;
+  --sidebar-primary: 45.92 100% 61.57%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 252 14% 22%;
+  --sidebar-accent-foreground: 38 36% 96%;
+  --sidebar-border: 269 13% 60%;
+  --sidebar-ring: 45.92 100% 61.57%;
+}
+.interface-settings { width:min(100% - 32px,720px); margin:16px auto; padding:20px; border:2px solid var(--pz-border); border-radius:20px; background:var(--pz-surface); color:var(--pz-text); }
+.interface-settings h2 { font-size:22px; margin-bottom:8px; }
+.interface-settings p { color:var(--pz-text-2); }
+.interface-setting-row { display:flex; justify-content:space-between; align-items:center; gap:16px; min-height:56px; font-weight:700; border-bottom:1px solid var(--pz-border); padding:8px 0; }
+.interface-setting-row:last-of-type { margin-bottom:12px; }
+.interface-setting-row select { min-height:44px; max-width:55%; padding:8px; border:2px solid var(--pz-border); border-radius:12px; background:var(--pz-surface2); color:var(--pz-text); }
+.interface-setting-row input { width:44px; height:44px; accent-color:var(--pz-coral); cursor:pointer; }
+.study-status { min-height:44px; padding:8px 20px; display:flex; justify-content:flex-end; align-items:center; gap:20px; flex-wrap:wrap; background:var(--pz-surface); color:var(--pz-text); border-bottom:1px solid var(--pz-border); font-size:13px; font-weight:800; }
+.study-status > span { display:inline-flex; align-items:center; gap:6px; }
+.studenius-skeleton { background:color-mix(in srgb,var(--pz-text) 10%,transparent); }
+.studenius-skeleton::after { background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--pz-text) 12%,transparent),transparent); }
+:where(button,a,input,textarea,select,[tabindex]):focus-visible { outline-color:var(--pz-focus); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+/* Viewport insets affect layout only on keyboard/viewport events, never per animation frame. */
+:root { --keyboard-inset: 0px; --visual-height: 100dvh; }
+.quiz-shell { padding-top:env(safe-area-inset-top,0px); scroll-padding-bottom:180px; }
+.quiz-feedback { padding-bottom:max(env(safe-area-inset-bottom,0px),8px); }
+.quiz-shell:has(input:focus,textarea:focus) { bottom:var(--keyboard-inset); }
+.quiz-shell main { min-height:0; overflow-wrap:anywhere; }
+.quiz-answer { overflow-wrap:anywhere; }
+.quiz-feedback p { overflow-wrap:anywhere; }
+.quiz-shell input,.quiz-shell textarea { font-size:16px; scroll-margin-bottom:180px; }
+:where(button,[role=button],a[class*="border"]) { min-height:44px; }
+@media (max-height:500px) and (orientation:landscape) {
+  .quiz-shell { justify-content:flex-start; }
+  .quiz-shell main { padding-top:12px; padding-bottom:12px; }
+  .quiz-shell .quiz-feedback > div { flex-direction:row; padding-top:8px; padding-bottom:8px; gap:12px; }
+  .quiz-shell .quiz-feedback button { width:auto; min-width:132px; }
+  .quiz-shell .quiz-feedback .mascot { display:none; }
+}
+html.dark :is([style*="solid rgb(0, 0, 0)"],[style*="solid rgb(28, 28, 25)"],[style*="solid rgb(26, 26, 26)"]) { border-color:var(--pz-border) !important; }
+.quiz-shell:has(input:focus,textarea:focus) { max-height:var(--visual-height); }

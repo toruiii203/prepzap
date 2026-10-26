@@ -1,3 +1,5 @@
+@import "./styles/theme.css";
+@import "./styles/legacyTheme.css";
 @import "./styles/motion.css";
 @font-face {
   font-family: 'Nunito';
@@ -103,35 +105,7 @@
     --shadow-elevated: none;
   }
 
-  .dark {
-    --background:          8 5% 7%;
-    --foreground:          20 30% 95%;
-    --card:                8 10% 10%;
-    --card-foreground:     20 30% 95%;
-    --popover:             8 10% 8%;
-    --popover-foreground:  20 30% 95%;
-    --primary:             30 85% 63%;
-    --primary-foreground:  8 5% 7%;
-    --secondary:           350 25% 12%;
-    --secondary-foreground:20 20% 65%;
-    --muted:               350 20% 9%;
-    --muted-foreground:    20 15% 35%;
-    --accent:              350 25% 14%;
-    --accent-foreground:   20 30% 95%;
-    --destructive:         0 72% 51%;
-    --destructive-foreground: 20 30% 95%;
-    --border:              350 30% 14%;
-    --input:               350 30% 14%;
-    --ring:                30 85% 63%;
-    --sidebar-background:  8 10% 9%;
-    --sidebar-foreground:  20 20% 60%;
-    --sidebar-primary:     20 30% 95%;
-    --sidebar-primary-foreground: 8 5% 7%;
-    --sidebar-accent:      350 25% 12%;
-    --sidebar-accent-foreground: 20 20% 60%;
-    --sidebar-border:      350 30% 14%;
-    --sidebar-ring:        20 30% 95%;
-  }
+
 }
 
 @layer base {
@@ -244,15 +218,9 @@
 .stat-mono { font-family: 'Nunito', sans-serif; font-weight: 700; }
 
 /* ── Studenius stitch UI utilities ── */
-.studenius-app {
-  --primary: 3 65% 42%;
-  --primary-foreground: 0 0% 100%;
-  --background: 40 33% 97%;
-  --foreground: 30 6% 11%;
-  color: #1c1c17;
-}
-.studenius-app .bg-background { background-color: #fcf9f4; }
-.studenius-app .text-on-background { color: #1c1c19; }
+.studenius-app { color:var(--pz-text); }
+.studenius-app .bg-background { background-color:var(--pz-bg); }
+.studenius-app .text-on-background { color:var(--pz-text); }
 .ink-border { border: 1.5px solid #000000; }
 .font-headline { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
 .font-body-md { font-family: 'Quicksand', system-ui, sans-serif; }
@@ -399,18 +367,6 @@
     page-break-inside: avoid;
   }
 }
-
-/* =========================================
-   Dark Mode Hack
-   ========================================= */
-html.dark {
-  filter: invert(1) hue-rotate(180deg);
-  background-color: #000;
-}
-html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
-  filter: invert(1) hue-rotate(180deg);
-}
-
 
 /* Tiptap Editor Highlights */
 .ProseMirror ::selection {
@@ -565,7 +521,7 @@ html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
   --pz-ease: cubic-bezier(.2,.8,.2,1);
 }
 :where(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline: 3px solid #000000;
+  outline: 3px solid var(--pz-focus);
   outline-offset: 4px;
 }
 :where(button, a) { -webkit-tap-highlight-color: transparent; }
@@ -584,8 +540,8 @@ html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
 @keyframes answer-correct { 50% { transform: scale(1.025); } }
 @keyframes answer-wrong { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 @keyframes skeleton-glide { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
-.studenius-skeleton { position: relative; overflow: hidden; background: #00000014; }
-.studenius-skeleton::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #FFFFFF99, transparent); animation: skeleton-glide 1.6s ease-in-out infinite; }
+.studenius-skeleton { position: relative; overflow: hidden; background: color-mix(in srgb,var(--pz-text) 10%,transparent); }
+.studenius-skeleton::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,transparent,color-mix(in srgb,var(--pz-text) 12%,transparent),transparent); animation: skeleton-glide 1.6s ease-in-out infinite; }
 @keyframes flame-flicker { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.08) rotate(2deg); } }
 /* This final rule also covers existing page-level CSS and inline animations. */
 @media (prefers-reduced-motion: reduce) {

@@ -1,3 +1,4 @@
+import { saveInterfacePreferences, vibrationEnabled } from "@/lib/interfacePreferences";
 /**
  * Studenius Tactile Sound & Haptic FX Engine
  * Synthesizes crisp micro-interactions via the Web Audio API.
@@ -10,7 +11,7 @@ let soundEnabled = true;
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!audioCtx) {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (AudioContextClass) {
       audioCtx = new AudioContextClass();
     }
@@ -25,7 +26,7 @@ function getAudioContext(): AudioContext | null {
  * Trigger subtle mobile haptic vibrations if supported
  */
 export function triggerHaptic(type: "light" | "medium" | "success" | "celebrate" = "light") {
-  if (typeof navigator === "undefined" || !navigator.vibrate) return;
+  if (typeof navigator === "undefined" || !navigator.vibrate || !vibrationEnabled()) return;
   if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   try {
     switch (type) {
@@ -42,13 +43,14 @@ export function triggerHaptic(type: "light" | "medium" | "success" | "celebrate"
         navigator.vibrate([30, 60, 30, 60, 50]);
         break;
     }
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
  * Satisfying bubble pop when tapping buttons, cards, or checkboxes
  */
 export function playPop(pitch: number = 1.0) {
+  triggerHaptic("light");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -74,15 +76,14 @@ export function playPop(pitch: number = 1.0) {
 
     osc.start(now);
     osc.stop(now + 0.08);
-
-    triggerHaptic("light");
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
  * Crisp mechanical switch tap for toggling tabs or checkboxes
  */
 export function playTap() {
+  triggerHaptic("light");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -104,15 +105,14 @@ export function playTap() {
 
     osc.start(now);
     osc.stop(now + 0.04);
-
-    triggerHaptic("light");
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
  * Ascending chime when completing a quest or scoring points
  */
 export function playSuccess() {
+  triggerHaptic("success");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -139,15 +139,14 @@ export function playSuccess() {
       osc.start(noteTime);
       osc.stop(noteTime + 0.25);
     });
-
-    triggerHaptic("success");
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
  * Celebratory fanfare for level up or streak milestone
  */
 export function playCelebration() {
+  triggerHaptic("celebrate");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -174,15 +173,14 @@ export function playCelebration() {
       osc.start(noteTime);
       osc.stop(noteTime + 0.35);
     });
-
-    triggerHaptic("celebrate");
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
  * Duolingo-style soft, encouraging clunk for mistakes (not harsh or buzzing)
  */
 export function playIncorrect() {
+  triggerHaptic("medium");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -204,8 +202,7 @@ export function playIncorrect() {
 
     osc.start(now);
     osc.stop(now + 0.16);
-    triggerHaptic("medium");
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
@@ -248,7 +245,7 @@ export function playComboStreak(streak: number = 1) {
     } else {
       triggerHaptic("success");
     }
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
@@ -278,13 +275,14 @@ export function playCardFlip() {
     osc.stop(now + 0.07);
 
     triggerHaptic("light");
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 /**
  * Resonant crystalline chime when a previously missed card reaches 100% Mastery
  */
 export function playMastery() {
+  triggerHaptic("celebrate");
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
@@ -311,13 +309,12 @@ export function playMastery() {
       osc.start(noteTime);
       osc.stop(noteTime + 0.35);
     });
-
-    triggerHaptic("celebrate");
-  } catch {}
+  } catch { /* Optional audio/vibration must never interrupt studying. */ }
 }
 
 export function setSoundEnabled(enabled: boolean): void {
   soundEnabled = enabled;
+  saveInterfacePreferences({ sound: enabled });
 }
 
 export function isSoundEnabled(): boolean {

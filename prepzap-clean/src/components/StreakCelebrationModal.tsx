@@ -1,3 +1,4 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import React, { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { useReducedMotion } from "framer-motion";
@@ -336,8 +337,14 @@ export function StreakCelebrationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#FFFBEA] flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-      {content}
-    </div>
+    <Dialog.Root open={isOpen} onOpenChange={open => { if (!open) (onClose || onContinue)(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/40" />
+        <Dialog.Content aria-describedby={undefined} className="fixed inset-0 z-[61] bg-background text-foreground flex items-center justify-center p-4 overflow-y-auto quiz-shell quiz-feedback">
+          <Dialog.Title className="sr-only">Study streak: {streakCount} days</Dialog.Title>
+          {content}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

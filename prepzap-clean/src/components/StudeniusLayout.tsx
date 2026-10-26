@@ -1,5 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { StudeniusShell } from "@/components/StudeniusShell";
+import { StudyStatus } from "@/components/StudyStatus";
+import { InterfaceSettings } from "@/components/InterfaceSettings";
 import { DashboardGreeting } from "@/components/DashboardGreeting";
 import { FloatingXPOverlay } from "@/components/FloatingXPBurst";
 import { PeekingRexCompanion } from "@/components/PeekingRexCompanion";
@@ -13,6 +15,8 @@ export function StudeniusLayout() {
 
   return (
     <StudeniusShell hideNav={hideNav}>
+      {!hideNav && pathname !== "/practice" && <StudyStatus />}
+      {pathname === "/settings" && <InterfaceSettings />}
       {pathname === "/dashboard" && <DashboardGreeting />}
       <Outlet />
       <FloatingXPOverlay />
