@@ -65,7 +65,7 @@ export function VictoryScreen({ xpEarned, accuracy, streakDays, previousXp, onCo
               </div>}
             </div>
             <div className="w-full space-y-4">
-              <SpringButton soundEnabled={false} onClick={onContinue} className="w-full p-4 rounded-xl border-2 border-black bg-[#FFD13B] text-black font-black shadow-[0_4px_0_#000000]">Keep learning<span aria-hidden="true" className="material-symbols-outlined">arrow_forward</span></SpringButton>
+              <SpringButton soundEnabled={false} onClick={onContinue} className="w-full p-4 rounded-xl border-2 border-black bg-[var(--pz-coral)] text-[var(--pz-ink)] font-black shadow-[0_4px_0_#000000]">Keep learning<span aria-hidden="true" className="material-symbols-outlined">arrow_forward</span></SpringButton>
               <SpringButton onClick={handleShare} className="w-full p-3 rounded-xl border-2 border-black bg-white text-black font-bold">Share result<span aria-hidden="true" className="material-symbols-outlined">share</span></SpringButton>
               <p role="status" className="min-h-5 text-sm font-semibold">{shareStatus}</p>
             </div>

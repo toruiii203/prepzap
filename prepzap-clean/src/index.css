@@ -41,17 +41,16 @@
     --pz-text-2:     rgba(0, 0, 0, 0.75);
     --pz-text-muted: rgba(0, 0, 0, 0.65);
 
-    /* Studenius brand: sunshine yellow and coral. */
+    /* Original Studenius warm palette, with the existing yellow/coral accents. */
     --pz-yellow:     #FFD13B;
     --pz-coral:      #FF4D2E;
-    /* Legacy components use gold as text; this ink tone meets text contrast. */
-    --pz-gold:       #9A3412;
-    --pz-gold-dim:   rgba(255,209,59,0.15);
-    --pz-gold-glow:  rgba(255,209,59,0.1);
+    --pz-gold:       #f0a040;
+    --pz-gold-dim:   rgba(240,160,64,0.15);
+    --pz-gold-glow:  rgba(240,160,64,0.1);
 
-    /* Secondary accent — coral */
-    --pz-maroon:     #FF4D2E;
-    --pz-maroon-dim: rgba(255,77,46,0.12);
+    /* Secondary accent — original crimson */
+    --pz-maroon:     #ae2925;
+    --pz-maroon-dim: rgba(174,41,37,0.12);
 
     /* Legacy aliases kept so existing components don't break */
     --pz-teal:       #0d9488;
@@ -73,8 +72,8 @@
     --card-foreground:     0 0% 0%;
     --popover:             0 0% 100%;
     --popover-foreground:  0 0% 0%;
-    --primary:             45.92 100% 61.57%;    /* #FFD13B */
-    --primary-foreground:  0 0% 0%;
+    --primary:             3 64% 41%;    /* Original crimson #ae2925 */
+    --primary-foreground:  0 0% 100%;
     --secondary:           40 20% 92%;
     --secondary-foreground:0 0% 20%;
     --muted:               40 20% 92%;
@@ -89,7 +88,7 @@
     --success-foreground:  0 0% 100%;
     --border:              0 0% 0%;
     --input:               0 0% 0%;
-    --ring:                48 100% 62%;
+    --ring:                3 64% 41%;
     --radius: 0.875rem;
     --sidebar-background:  40 33% 96%;
     --sidebar-foreground:  0 0% 0%;
@@ -136,7 +135,7 @@
 
 /* ── Typography helpers ── */
 .gradient-text {
-  background: linear-gradient(135deg, #FFD13B, #e06030);
+  background: linear-gradient(135deg, #f0a040, #e06030);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -530,7 +529,7 @@
 .quiz-feedback { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .quiz-feedback-content { animation: feedback-enter var(--motion-enter) var(--motion-ease) both; }
 .quiz-answer { min-height: 60px; box-shadow: 0 4px 0 #000000; transition: transform var(--motion-quick) var(--motion-ease); }
-.quiz-answer[data-state=selected] { background: #FFD13B; color: #000000; transform: translateY(-2px); }
+.quiz-answer[data-state=selected] { background: var(--pz-coral); color: #000000; transform: translateY(-2px); }
 .quiz-answer[data-state=correct] { background: #10B981; color: #000000; animation: answer-correct var(--motion-reaction) var(--motion-ease); }
 .quiz-answer[data-state=wrong] { background: #EF4444; color: #000000; animation: answer-wrong var(--motion-reaction) var(--motion-ease); }
 .quiz-answer:disabled { cursor: default; }

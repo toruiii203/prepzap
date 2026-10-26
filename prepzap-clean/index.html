@@ -22,12 +22,12 @@
       // Apply only device-local appearance before the first paint.
       try {
         var theme = localStorage.getItem('pz_theme');
-        var dark = theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        var dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.classList.toggle('dark', dark);
         document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
       } catch (error) { /* Appearance falls back to the default theme. */ }
     </script>
-    <style>html.dark body,html.dark .static-skel { background:var(--pz-bg,#15141C); color:var(--pz-text,#F8F5F0); }</style>
+    <style>html.dark body,html.dark .static-skel { background:var(--pz-bg,#15120F); color:var(--pz-text,#F8F5F0); }</style>
     <!-- Local fonts keep the interface stable offline. -->
     <link rel="preload" href="/fonts/nunito.woff2" as="font" type="font/woff2" crossorigin>
 

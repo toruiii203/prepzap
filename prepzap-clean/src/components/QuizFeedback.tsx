@@ -34,7 +34,7 @@ export function QuizFeedback({ answered, correct, canCheck, evaluating, explanat
           disabled={!answered && (!canCheck || evaluating)}
           onClick={answered ? onContinue : onCheck}
           aria-busy={evaluating}
-          className="w-full sm:w-auto sm:min-w-44 px-6 py-3 border-2 border-black rounded-xl bg-[#FFD13B] text-black font-black shadow-[0_4px_0_#000000]"
+          className="w-full sm:w-auto sm:min-w-44 px-6 py-3 border-2 border-black rounded-xl bg-[var(--pz-coral)] text-[var(--pz-ink)] font-black shadow-[0_4px_0_#000000]"
         >
           {answered ? "Continue" : evaluating ? "Checking…" : "Check answer"}
           <span className="material-symbols-outlined" aria-hidden="true">{answered ? "arrow_forward" : "check"}</span>

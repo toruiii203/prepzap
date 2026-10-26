@@ -20,41 +20,41 @@
 }
 html.dark {
   color-scheme: dark;
-  --pz-bg: #15141C;
-  --pz-surface: #211F2A;
-  --pz-surface2: #292633;
-  --pz-surface3: #34303F;
+  --pz-bg: #15120F;
+  --pz-surface: #211D19;
+  --pz-surface2: #29231D;
+  --pz-surface3: #342E27;
   --pz-text: #F8F5F0;
-  --pz-text-2: #D8D1DF;
-  --pz-text-muted: #BDB4C8;
-  --pz-border: #978BA6;
-  --pz-border-hv: #CBBED9;
+  --pz-text-2: #DED5CC;
+  --pz-text-muted: #C4B8AC;
+  --pz-border: #A3998E;
+  --pz-border-hv: #D8C7B5;
   --pz-focus: #FFD13B;
-  --pz-gold: #FFD13B;
-  --background: 248 17% 9%;
+  --pz-gold: #f0a040;
+  --background: 30 17% 7%;
   --foreground: 38 36% 96%;
-  --card: 251 15% 14%;
+  --card: 30 14% 11%;
   --card-foreground: 38 36% 96%;
-  --popover: 251 15% 14%;
+  --popover: 30 14% 11%;
   --popover-foreground: 38 36% 96%;
-  --primary: 45.92 100% 61.57%;
+  --primary: 30 85% 63%;
   --primary-foreground: 0 0% 0%;
-  --secondary: 252 14% 22%;
+  --secondary: 30 14% 18%;
   --secondary-foreground: 38 36% 96%;
-  --muted: 252 14% 22%;
-  --muted-foreground: 267 15% 75%;
-  --accent: 252 14% 22%;
+  --muted: 30 14% 18%;
+  --muted-foreground: 30 17% 72%;
+  --accent: 30 14% 18%;
   --accent-foreground: 38 36% 96%;
-  --border: 269 13% 60%;
-  --input: 269 13% 60%;
-  --ring: 45.92 100% 61.57%;
-  --sidebar-background: 248 17% 9%;
+  --border: 30 11% 60%;
+  --input: 30 11% 60%;
+  --ring: 30 85% 63%;
+  --sidebar-background: 30 17% 7%;
   --sidebar-foreground: 38 36% 96%;
   --sidebar-primary: 45.92 100% 61.57%;
   --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 252 14% 22%;
+  --sidebar-accent: 30 14% 18%;
   --sidebar-accent-foreground: 38 36% 96%;
-  --sidebar-border: 269 13% 60%;
+  --sidebar-border: 30 11% 60%;
   --sidebar-ring: 45.92 100% 61.57%;
 }
 .interface-settings { width:min(100% - 32px,720px); margin:16px auto; padding:20px; border:2px solid var(--pz-border); border-radius:20px; background:var(--pz-surface); color:var(--pz-text); }
@@ -91,7 +91,7 @@ html.dark :is([style*="solid rgb(0, 0, 0)"],[style*="solid rgb(28, 28, 25)"],[st
 .quiz-shell:has(input:focus,textarea:focus) { max-height:var(--visual-height); }
 
 body:has(.quiz-shell) nav[aria-label="Mobile Navigation"] { visibility:hidden; pointer-events:none; }
-html.dark .quiz-answer[data-state=selected] { background-color:#FFD13B; color:#000000; }
+html.dark .quiz-answer[data-state=selected] { background-color:var(--pz-coral); color:#000000; }
 html.dark .quiz-answer[data-state=correct] { background-color:#10B981; color:#000000; }
 html.dark .quiz-answer[data-state=wrong] { background-color:#EF4444; color:#000000; }
 html.dark .recharts-cartesian-axis-tick-value { fill:var(--pz-text-muted); }

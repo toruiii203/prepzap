@@ -9,7 +9,7 @@ afterEach(() => { cleanup(); localStorage.clear(); setSoundEnabled(true); window
 describe("local interface preferences", () => {
   it("requires opt-in for vibration and preserves other local settings", () => {
     localStorage.clear();
-    expect(readInterfacePreferences()).toEqual({theme:'system',sound:true,vibration:false});
+    expect(readInterfacePreferences()).toEqual({theme:'light',sound:true,vibration:false});
     saveInterfacePreferences({theme:'dark',vibration:true});
     saveInterfacePreferences({sound:false});
     expect(readInterfacePreferences()).toEqual({theme:'dark',sound:false,vibration:true});
@@ -22,6 +22,14 @@ describe("local interface preferences", () => {
     expect(document.documentElement.style.colorScheme).toBe('dark');
     fireEvent.change(screen.getByRole('combobox',{name:'Appearance'}),{target:{value:'light'}});
     expect(document.documentElement).not.toHaveClass('dark');
+  });
+  it("keeps the original light palette unless device-following is selected", () => {
+    localStorage.clear();
+    window.matchMedia = query => ({...originalMedia(query),matches:true});
+    render(<><InterfacePreferences /><InterfaceSettings /></>);
+    expect(document.documentElement).not.toHaveClass('dark');
+    fireEvent.change(screen.getByRole('combobox',{name:'Appearance'}),{target:{value:'system'}});
+    expect(document.documentElement).toHaveClass('dark');
   });
   it("exposes independent named sound/vibration switches", () => {
     render(<InterfaceSettings />);

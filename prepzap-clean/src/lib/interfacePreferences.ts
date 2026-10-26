@@ -5,8 +5,8 @@ const eventName = "studenius:interface-preferences";
 export function readInterfacePreferences(): InterfacePreferenceValues {
   try {
     const theme = localStorage.getItem("pz_theme");
-    return { theme: theme === "light" || theme === "dark" ? theme : "system", sound: localStorage.getItem("pz_sound_muted") !== "true", vibration: localStorage.getItem("pz_vibration_enabled") === "true" };
-  } catch { return { theme: "system", sound: true, vibration: false }; }
+    return { theme: theme === "system" || theme === "dark" ? theme : "light", sound: localStorage.getItem("pz_sound_muted") !== "true", vibration: localStorage.getItem("pz_vibration_enabled") === "true" };
+  } catch { return { theme: "light", sound: true, vibration: false }; }
 }
 export function saveInterfacePreferences(values: Partial<InterfacePreferenceValues>) {
   try {
@@ -23,7 +23,7 @@ function subscribe(callback: () => void) {
 }
 function snapshot() { return JSON.stringify(readInterfacePreferences()); }
 export function useInterfacePreferences(): InterfacePreferenceValues {
-  return JSON.parse(useSyncExternalStore(subscribe, snapshot, () => '{"theme":"system","sound":true,"vibration":false}')) as InterfacePreferenceValues;
+  return JSON.parse(useSyncExternalStore(subscribe, snapshot, () => '{"theme":"light","sound":true,"vibration":false}')) as InterfacePreferenceValues;
 }
 export function vibrationEnabled() {
   return readInterfacePreferences().vibration && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;

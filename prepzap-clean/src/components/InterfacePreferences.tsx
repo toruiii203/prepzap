@@ -16,7 +16,7 @@ export function InterfacePreferences() {
       const dark = theme === "dark" || theme === "system" && query.matches;
       document.documentElement.classList.toggle("dark", dark);
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
-      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#15141C" : "#FAF7F2");
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#15120F" : "#FAF7F2");
     };
     apply();
     query.addEventListener("change", apply);
