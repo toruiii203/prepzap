@@ -26,6 +26,7 @@ function getAudioContext(): AudioContext | null {
  */
 export function triggerHaptic(type: "light" | "medium" | "success" | "celebrate" = "light") {
   if (typeof navigator === "undefined" || !navigator.vibrate) return;
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   try {
     switch (type) {
       case "light":
@@ -48,7 +49,7 @@ export function triggerHaptic(type: "light" | "medium" | "success" | "celebrate"
  * Satisfying bubble pop when tapping buttons, cards, or checkboxes
  */
 export function playPop(pitch: number = 1.0) {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -82,7 +83,7 @@ export function playPop(pitch: number = 1.0) {
  * Crisp mechanical switch tap for toggling tabs or checkboxes
  */
 export function playTap() {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -112,7 +113,7 @@ export function playTap() {
  * Ascending chime when completing a quest or scoring points
  */
 export function playSuccess() {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -147,7 +148,7 @@ export function playSuccess() {
  * Celebratory fanfare for level up or streak milestone
  */
 export function playCelebration() {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -182,7 +183,7 @@ export function playCelebration() {
  * Duolingo-style soft, encouraging clunk for mistakes (not harsh or buzzing)
  */
 export function playIncorrect() {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -211,7 +212,7 @@ export function playIncorrect() {
  * Ascending pitch combo chime for consecutive correct answers (Duolingo style)
  */
 export function playComboStreak(streak: number = 1) {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -254,7 +255,7 @@ export function playComboStreak(streak: number = 1) {
  * Swift tactile paper whoosh when flipping a flashcard (3D flip sound)
  */
 export function playCardFlip() {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -284,7 +285,7 @@ export function playCardFlip() {
  * Resonant crystalline chime when a previously missed card reaches 100% Mastery
  */
 export function playMastery() {
-  if (!soundEnabled) return;
+  if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -320,5 +321,6 @@ export function setSoundEnabled(enabled: boolean): void {
 }
 
 export function isSoundEnabled(): boolean {
-  return soundEnabled;
+  try { return soundEnabled && localStorage.getItem("pz_sound_muted") !== "true"; }
+  catch { return soundEnabled; }
 }

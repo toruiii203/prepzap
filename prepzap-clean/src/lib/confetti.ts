@@ -1,10 +1,14 @@
 import confetti from "canvas-confetti";
 
 export function fireConfetti() {
-  const count = 200;
+  if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const count = 60;
   const defaults = {
     origin: { y: 0.2 },
-    zIndex: 10000
+    zIndex: 10000,
+    disableForReducedMotion: true,
+    colors: ["#FFD13B", "#FF4D2E", "#10B981"],
+    ticks: 90
   };
 
   function fire(particleRatio: number, opts: confetti.Options) {

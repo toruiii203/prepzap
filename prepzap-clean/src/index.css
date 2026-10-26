@@ -1,4 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap');
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/nunito.woff2') format('woff2');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka One';
+  src: url('/fonts/fredoka.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Studenius Symbols';
+  src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
 
 @tailwind base;
 @tailwind components;
@@ -11,20 +32,23 @@
     --pz-surface:   #FFFFFF;
     --pz-surface2:  #FFFFFF;
     --pz-surface3:  #F5EFE6;
-    --pz-border:    #1A1A1A;
-    --pz-border-hv: #AE2925;
-    --pz-text:       #1A1A1A;
-    --pz-text-2:     rgba(26, 26, 26, 0.7);
-    --pz-text-muted: rgba(26, 26, 26, 0.45);
+    --pz-border:    #000000;
+    --pz-border-hv: #000000;
+    --pz-text:       #000000;
+    --pz-text-2:     rgba(0, 0, 0, 0.75);
+    --pz-text-muted: rgba(0, 0, 0, 0.65);
 
-    /* Primary accent — warm crimson / coral */
-    --pz-gold:       #f0a040;
-    --pz-gold-dim:   rgba(240,160,64,0.15);
-    --pz-gold-glow:  rgba(240,160,64,0.1);
+    /* Studenius brand: sunshine yellow and coral. */
+    --pz-yellow:     #FFD13B;
+    --pz-coral:      #FF4D2E;
+    /* Legacy components use gold as text; this ink tone meets text contrast. */
+    --pz-gold:       #9A3412;
+    --pz-gold-dim:   rgba(255,209,59,0.15);
+    --pz-gold-glow:  rgba(255,209,59,0.1);
 
-    /* Secondary accent — crimson */
-    --pz-maroon:     #ae2925;
-    --pz-maroon-dim: rgba(174,41,37,0.12);
+    /* Secondary accent — coral */
+    --pz-maroon:     #FF4D2E;
+    --pz-maroon-dim: rgba(255,77,46,0.12);
 
     /* Legacy aliases kept so existing components don't break */
     --pz-teal:       #0d9488;
@@ -41,37 +65,37 @@
 
     /* Shadcn/UI tokens remapped */
     --background:          40 33% 96%;   /* #FAF7F2 */
-    --foreground:          0 0% 10%;     /* #1A1A1A */
+    --foreground:          0 0% 0%;     /* #000000 */
     --card:                0 0% 100%;    /* #FFFFFF */
-    --card-foreground:     0 0% 10%;
+    --card-foreground:     0 0% 0%;
     --popover:             0 0% 100%;
-    --popover-foreground:  0 0% 10%;
-    --primary:             3 64% 41%;    /* crimson #ae2925 */
-    --primary-foreground:  0 0% 100%;
+    --popover-foreground:  0 0% 0%;
+    --primary:             45.92 100% 61.57%;    /* #FFD13B */
+    --primary-foreground:  0 0% 0%;
     --secondary:           40 20% 92%;
     --secondary-foreground:0 0% 20%;
     --muted:               40 20% 92%;
-    --muted-foreground:    0 0% 45%;
+    --muted-foreground:    0 0% 38%;
     --accent:              40 25% 90%;
-    --accent-foreground:   0 0% 10%;
+    --accent-foreground:   0 0% 0%;
     --destructive:         0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --gold:                38 92% 50%;
-    --gold-foreground:     0 0% 10%;
+    --gold-foreground:     0 0% 0%;
     --success:             142 71% 45%;
     --success-foreground:  0 0% 100%;
-    --border:              0 0% 10%;
-    --input:               0 0% 10%;
-    --ring:                3 64% 41%;
+    --border:              0 0% 0%;
+    --input:               0 0% 0%;
+    --ring:                48 100% 62%;
     --radius: 0.875rem;
     --sidebar-background:  40 33% 96%;
-    --sidebar-foreground:  0 0% 10%;
+    --sidebar-foreground:  0 0% 0%;
     --sidebar-primary:     0 0% 0%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent:      40 20% 92%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border:      0 0% 10%;
-    --sidebar-ring:        0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border:      0 0% 0%;
+    --sidebar-ring:        0 0% 0%;
     --gradient-hero: linear-gradient(135deg, #FAF7F2, #F3EBE1);
     --gradient-card: linear-gradient(135deg, #FFFFFF, #FAF7F2);
     --shadow-card:     none;
@@ -121,7 +145,7 @@
     @apply antialiased;
   }
   h1, h2, h3 {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Nunito', system-ui, sans-serif;
     font-weight: 400;
     letter-spacing: 0.01em;
   }
@@ -137,7 +161,7 @@
 
 /* ── Typography helpers ── */
 .gradient-text {
-  background: linear-gradient(135deg, #f0a040, #e06030);
+  background: linear-gradient(135deg, #FFD13B, #e06030);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -181,32 +205,16 @@
 .pz-card-hover { transition: border-color 0.15s ease, transform 0.15s ease; }
 .pz-card-hover:hover { border-color: var(--pz-border-hv) !important; transform: translateY(-2px); }
 
-/* Physical 3D button forward bounce (lifts UP on hover, compresses DOWN on active, ZERO sidewards shift) */
-.btn-3d {
-  box-shadow: 0 4px 0 #1A1A1A;
-  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+/* A fixed bottom edge keeps feedback on the compositor. */
+.btn-3d, .btn-3d-sm, .studenius-button {
+  box-shadow: 0 4px 0 #000000;
+  transition: transform 160ms cubic-bezier(.2,.8,.2,1);
+  touch-action: manipulation;
 }
-.btn-3d:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 #1A1A1A;
+@media (hover: hover) {
+  .btn-3d:hover:not(:disabled), .studenius-button:hover:not(:disabled) { transform: translateY(-2px); }
 }
-.btn-3d:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #1A1A1A;
-}
-
-.btn-3d-sm {
-  box-shadow: 0 2.5px 0 #1A1A1A;
-  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
-}
-.btn-3d-sm:hover {
-  transform: translateY(-1.5px);
-  box-shadow: 0 4px 0 #1A1A1A;
-}
-.btn-3d-sm:active {
-  transform: translateY(1.5px);
-  box-shadow: 0 1px 0 #1A1A1A;
-}
+.btn-3d:active:not(:disabled), .btn-3d-sm:active:not(:disabled), .studenius-button:active:not(:disabled) { transform: translateY(3px) scale(.99); }
 
 /* ── Tool card grid ── */
 .tool-grid {
@@ -305,7 +313,7 @@
   border-bottom: 1.5px dashed transparent;
   outline: none;
   color: var(--pz-gold);
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Nunito', system-ui, sans-serif;
   cursor: text;
   transition: border-color 0.2s;
 }
@@ -542,4 +550,59 @@ html.dark img, html.dark video, html.dark canvas, html.dark .no-invert {
   .animate-float-sparkle-3 {
     animation: none !important;
   }
+}
+
+/* Shared interaction vocabulary: 4px spacing, 8/12/16/20px corners. */
+:root {
+  --pz-space-1: 4px;
+  --pz-space-2: 8px;
+  --pz-space-3: 12px;
+  --pz-space-4: 16px;
+  --pz-space-6: 24px;
+  --pz-success: #10B981;
+  --pz-error: #EF4444;
+  --pz-ease: cubic-bezier(.2,.8,.2,1);
+}
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid #000000;
+  outline-offset: 4px;
+}
+:where(button, a) { -webkit-tap-highlight-color: transparent; }
+:where(button) { touch-action: manipulation; }
+.quiz-shell { padding-top: env(safe-area-inset-top, 0px); }
+.quiz-feedback { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.quiz-feedback-content { animation: feedback-enter 220ms var(--pz-ease) both; }
+.quiz-answer { min-height: 60px; box-shadow: 0 4px 0 #000000; transition: transform 160ms var(--pz-ease); }
+.quiz-answer[data-state=selected] { background: #FFD13B; color: #000000; transform: translateY(-2px); }
+.quiz-answer[data-state=correct] { background: #10B981; color: #000000; animation: answer-correct 340ms var(--pz-ease); }
+.quiz-answer[data-state=wrong] { background: #EF4444; color: #000000; animation: answer-wrong 300ms ease-out; }
+.quiz-answer:disabled { cursor: default; }
+.quiz-answer:not(:disabled):active { transform: translateY(3px); }
+@media (hover: hover) { .quiz-answer:not(:disabled):hover { transform: translateY(-2px); } }
+@keyframes feedback-enter { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes answer-correct { 50% { transform: scale(1.025); } }
+@keyframes answer-wrong { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@keyframes skeleton-glide { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.studenius-skeleton { position: relative; overflow: hidden; background: #00000014; }
+.studenius-skeleton::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #FFFFFF99, transparent); animation: skeleton-glide 1.6s ease-in-out infinite; }
+@keyframes flame-flicker { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.08) rotate(2deg); } }
+/* This final rule also covers existing page-level CSS and inline animations. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+  .studenius-skeleton::after { display: none; }
+  .btn-3d:hover, .btn-3d:active, .btn-3d-sm:hover, .btn-3d-sm:active,
+  .studenius-button:hover, .studenius-button:active, .pz-card-hover:hover,
+  .quiz-answer[data-state], .quiz-answer:not(:disabled):hover, .quiz-answer:not(:disabled):active { transform: none; }
+}
+
+/* Local outlined symbols keep controls intact without third-party font access. */
+.material-symbols-outlined {
+  font-family: 'Studenius Symbols' !important;
+  font-feature-settings: 'liga';
+  visibility: visible !important;
 }

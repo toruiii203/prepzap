@@ -62,9 +62,9 @@ export default {
         },
       },
       borderRadius: {
-        lg: "0px",
-        md: "0px",
-        sm: "0px",
+        lg: "var(--pz-r-lg)",
+        md: "var(--pz-r-md)",
+        sm: "var(--pz-r-sm)",
       },
       keyframes: {
         "accordion-down": {

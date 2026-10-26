@@ -1,57 +1,35 @@
 import React, { forwardRef } from "react";
-import { motion, HTMLMotionProps } from "framer-motion";
+import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
 import { playTap } from "@/lib/soundFX";
+import { cn } from "@/lib/utils";
 
 export interface SpringButtonProps extends HTMLMotionProps<"button"> {
   soundEnabled?: boolean;
 }
 
 export const SpringButton = forwardRef<HTMLButtonElement, SpringButtonProps>(
-  ({ children, className = "", soundEnabled = true, onClick, disabled, ...props }, ref) => {
-    const isReducedMotion =
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  ({ children, className, soundEnabled = true, onClick, disabled, type = "button", ...props }, ref) => {
+    const reduced = useReducedMotion();
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
       if (disabled) return;
-      if (soundEnabled && typeof window !== "undefined" && localStorage.getItem("pz_sound_muted") !== "true") {
-        try {
-          playTap();
-        } catch {}
-      }
-      if (onClick) onClick(e);
+      if (soundEnabled) playTap();
+      onClick?.(event);
     };
-
-    if (isReducedMotion || disabled) {
-      return (
-        <button
-          ref={ref}
-          disabled={disabled}
-          onClick={handleClick}
-          className={className}
-          {...(props as any)}
-        >
-          {children}
-        </button>
-      );
-    }
-
     return (
       <motion.button
+        {...props}
+        type={type}
         ref={ref}
         disabled={disabled}
         onClick={handleClick}
-        whileTap={{ scale: 0.94, y: 2 }}
-        whileHover={{ scale: 1.02 }}
-        transition={{ type: "spring", stiffness: 500, damping: 28 }}
-        className={className}
-        {...props}
+        whileTap={reduced || disabled ? undefined : { scale: 0.98, y: 3 }}
+        whileHover={reduced || disabled ? undefined : { y: -2 }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        className={cn("min-h-11 touch-manipulation disabled:cursor-default disabled:opacity-50", className)}
       >
         {children}
       </motion.button>
     );
   }
 );
-
 SpringButton.displayName = "SpringButton";

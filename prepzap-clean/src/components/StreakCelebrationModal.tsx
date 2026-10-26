@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
+import { useReducedMotion } from "framer-motion";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { playCelebration, playPop, triggerHaptic, isSoundEnabled } from "@/lib/soundFX";
 import { AnimatedRex } from "@/components/AnimatedRex";
 
@@ -22,11 +24,13 @@ export function StreakCelebrationModal({
   isEmbedded = false,
   showRex = true,
 }: StreakCelebrationModalProps) {
-  const [animatedNumber, setAnimatedNumber] = useState<number>(0);
+  const reduced = useReducedMotion();
+  const [animatedNumber, setAnimatedNumber] = useState<number>(reduced ? streakCount : 0);
   const [showCheckmark, setShowCheckmark] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isOpen) return;
+    if (reduced) { setAnimatedNumber(streakCount); setShowCheckmark(true); }
 
     // Trigger audio & haptics if sound is on
     if (isSoundEnabled()) {
@@ -36,7 +40,8 @@ export function StreakCelebrationModal({
 
     // Confetti burst
     try {
-      confetti({
+      if (!reduced) confetti({
+        disableForReducedMotion: true,
         particleCount: 50,
         spread: 60,
         origin: { y: 0.6 },
@@ -58,7 +63,7 @@ export function StreakCelebrationModal({
       clearTimeout(numTimer);
       clearTimeout(checkTimer);
     };
-  }, [isOpen, streakCount]);
+  }, [isOpen, streakCount, reduced]);
 
   if (!isOpen) return null;
 
@@ -91,7 +96,7 @@ export function StreakCelebrationModal({
   });
 
   const content = (
-    <div className="w-full max-w-[380px] mx-auto flex flex-col items-center gap-4 py-2 font-['Quicksand',sans-serif] select-none">
+    <div className="w-full max-w-[380px] mx-auto flex flex-col items-center gap-4 py-2 font-['Nunito',sans-serif] select-none">
       {/* Top Bar with optional Close */}
       {!isEmbedded && (
         <div className="w-full flex items-center justify-between mb-1">
@@ -102,7 +107,7 @@ export function StreakCelebrationModal({
                 playPop();
                 onClose();
               }}
-              className="w-8 h-8 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-[14px] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000]"
+              className="w-11 h-11 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-[14px] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000]"
               aria-label="Close"
             >
               ✕
@@ -157,7 +162,7 @@ export function StreakCelebrationModal({
             {/* Hero Flame Graphic & Streak Counter */}
             <div className="flex flex-col items-start justify-end pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="relative animate-flamePulse select-none">
+                <div className="relative animate-flame select-none">
                   <svg
                     className="w-14 h-14 sm:w-18 sm:h-18 drop-shadow-[0_4px_12px_rgba(255,150,0,0.35)]"
                     viewBox="0 0 100 120"
@@ -188,7 +193,7 @@ export function StreakCelebrationModal({
                       "2.5px 2.5px 0px #000000, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000",
                   }}
                 >
-                  {animatedNumber}
+                  {<AnimatedNumber value={streakCount} />}
                 </div>
               </div>
 
@@ -312,7 +317,7 @@ export function StreakCelebrationModal({
             opacity: 0;
           }
         }
-        .animate-flamePulse {
+        .animate-flame {
           animation: flamePulse 2.4s ease-in-out infinite;
         }
         .animate-floatSpark1 {
@@ -322,7 +327,7 @@ export function StreakCelebrationModal({
           animation: floatSpark2 2.2s ease-out infinite;
         }
         @media (prefers-reduced-motion: reduce) {
-          .animate-flamePulse,
+          .animate-flame,
           .animate-floatSpark1,
           .animate-floatSpark2 {
             animation: none !important;

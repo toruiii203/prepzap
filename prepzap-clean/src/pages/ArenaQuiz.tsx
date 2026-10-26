@@ -540,8 +540,8 @@ export default function ArenaQuiz() {
         {/* Progress bar */}
         <div className="w-full h-1.5 bg-black/10">
           <div
-            className={`h-full transition-all duration-1000 ${isLow ? "bg-[#E8534A]" : "bg-[#f0a040]"}`}
-            style={{ width: `${progressPct}%` }}
+            className={`h-full origin-left transition-transform duration-1000 motion-reduce:transition-none ${isLow ? "bg-[#E8534A]" : "bg-[#FFD13B]"}`}
+            style={{ transform: `scaleX(${Math.max(0, Math.min(100, progressPct)) / 100})` }}
           />
         </div>
       </header>
@@ -603,7 +603,7 @@ export default function ArenaQuiz() {
               onClick={() => handleNavQ(i)}
               className={`rounded-full transition-all ${
                 i === currentQ
-                  ? "w-4 h-3 bg-[#f0a040] border-2 border-black"
+                  ? "w-4 h-3 bg-[#FFD13B] border-2 border-black"
                   : answers[i]
                     ? "w-2.5 h-2.5 bg-black border border-black"
                     : "w-2.5 h-2.5 bg-black/20 border border-black/30"
@@ -640,7 +640,7 @@ export default function ArenaQuiz() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex-1 bg-[#f0a040] text-black border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
+              className="flex-1 bg-[#FFD13B] text-black border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
             >
               {submitting
                 ? <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
@@ -707,7 +707,7 @@ export default function ArenaQuiz() {
                   onClick={() => handleNavQ(i)}
                   className={`rounded-full transition-all ${
                     i === currentQ
-                      ? "w-4 h-3 bg-[#f0a040] border-2 border-black"
+                      ? "w-4 h-3 bg-[#FFD13B] border-2 border-black"
                       : answers[i]
                         ? "w-3 h-3 bg-black border-2 border-black"
                         : "w-3 h-3 bg-black/20 border-2 border-black/30"
@@ -726,7 +726,7 @@ export default function ArenaQuiz() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-6 py-3 border-2 border-black font-bold text-[14px] bg-[#f0a040] text-black shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-3 border-2 border-black font-bold text-[14px] bg-[#FFD13B] text-black shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {submitting
                   ? <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
@@ -751,7 +751,7 @@ export default function ArenaQuiz() {
                   onClick={() => handleNavQ(i)}
                   className={`aspect-square border-2 border-black text-[12px] font-black flex items-center justify-center transition-all ${
                     i === currentQ
-                      ? "bg-[#f0a040] shadow-[2px_2px_0px_0px_#000] -translate-x-0.5 -translate-y-0.5"
+                      ? "bg-[#FFD13B] shadow-[2px_2px_0px_0px_#000] -translate-x-0.5 -translate-y-0.5"
                       : answers[i]
                         ? "bg-black text-white"
                         : "bg-white hover:bg-[#FAF7F2]"
@@ -768,7 +768,7 @@ export default function ArenaQuiz() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full bg-[#f0a040] text-black border-2 border-black font-bold text-[13px] py-2.5 shadow-[3px_3px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-[#FFD13B] text-black border-2 border-black font-bold text-[13px] py-2.5 shadow-[3px_3px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting
                 ? <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>

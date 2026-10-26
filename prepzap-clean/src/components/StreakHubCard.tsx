@@ -1,3 +1,4 @@
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import React from "react";
 import { playPop, playTap } from "@/lib/soundFX";
 import { triggerXPBurst } from "@/components/FloatingXPBurst";
@@ -39,23 +40,25 @@ export function StreakHubCard({
   });
 
   return (
-    <div className="border-2 border-black rounded-3xl bg-white p-4 sm:p-5 shadow-[3px_3px_0px_#1A1A1A] relative overflow-hidden transition-all select-none font-['Quicksand',sans-serif]">
+    <div className="border-2 border-black rounded-3xl bg-white p-4 sm:p-5 shadow-[3px_3px_0px_#000000] relative overflow-hidden transition-all select-none font-['Nunito',sans-serif]">
       {/* Top Header Row */}
       <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
-          <div
+          <button
+            type="button"
+            aria-label="View full streak calendar"
             onClick={() => {
               playPop();
               onOpenModal();
             }}
-            className="w-9 h-9 rounded-xl bg-[#FFE566] border-2 border-black flex items-center justify-center text-[18px] shadow-[1.5px_1.5px_0px_#000] hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+            className="w-11 h-11 rounded-xl bg-[#FFE566] border-2 border-black flex items-center justify-center text-[18px] shadow-[1.5px_1.5px_0px_#000] hover:scale-110 active:scale-95 transition-transform cursor-pointer"
             title="View full streak calendar"
           >
-            <span className="inline-block animate-flame">🔥</span>
-          </div>
+            <span className="inline-block animate-flame" aria-hidden="true">🔥</span>
+          </button>
           <div>
             <h3 className="text-[14px] sm:text-[15px] font-black text-black leading-tight flex items-center gap-1.5">
-              <span>{streakDays} Day Study Streak</span>
+              <span><AnimatedNumber value={streakDays} /> Day Study Streak</span>
               {!studiedToday && (
                 <span className="w-2 h-2 rounded-full bg-[#FF4D2E] animate-ping" />
               )}
@@ -75,14 +78,14 @@ export function StreakHubCard({
             playPop();
             onOpenModal();
           }}
-          className="px-2.5 py-1 text-[11px] font-black uppercase tracking-wider border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000] active:translate-y-0.5"
+          className="min-h-11 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000] active:translate-y-0.5"
         >
           View Calendar
         </button>
       </div>
 
       {/* 7-Day Mini Calendar Strip */}
-      <div className="bg-[#FFFDF5] border-2 border-black rounded-2xl p-3 mb-3.5 shadow-[2px_2px_0px_#1A1A1A]">
+      <div className="bg-[#FFFDF5] border-2 border-black rounded-2xl p-3 mb-3.5 shadow-[2px_2px_0px_#000000]">
         <div className="flex items-center justify-between px-1">
           {daysList.map((day, idx) => (
             <div key={idx} className="flex flex-col items-center gap-1">

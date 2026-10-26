@@ -21,6 +21,12 @@ import {
   playComboStreak, 
   playMastery 
 } from "@/lib/soundFX";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
+import { EmptyStudyState } from "@/components/EmptyStudyState";
+import { QuizAnswer } from "@/components/QuizAnswer";
+import { QuizFeedback } from "@/components/QuizFeedback";
+import { QuizSkeleton } from "@/components/QuizSkeleton";
+import { Progress } from "@/components/ui/progress";
 import { fireConfetti } from "@/lib/confetti";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { VictoryScreen } from "@/components/VictoryScreen";
@@ -194,7 +200,7 @@ function DesktopBanner({
   setDifficulty,
 }: BannerProps) {
   return (
-    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-2 border-black shadow-[4px_4px_0px_#000] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 font-['Quicksand',sans-serif]">
+    <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-2 border-black shadow-[4px_4px_0px_#000] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 font-['Nunito',sans-serif]">
       {/* Top Header Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -356,6 +362,7 @@ export default function Practice() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [lessonXpEarned, setLessonXpEarned] = useState(0);
+  const [previousLessonXp, setPreviousLessonXp] = useState<number | undefined>();
   const [lessonAccuracy, setLessonAccuracy] = useState(100);
   const [screenFlashColor, setScreenFlashColor] = useState<string | null>(null);
 
@@ -878,7 +885,7 @@ Each object MUST match this schema exactly:
 
   const finalizeQuiz = (finalScore: number) => {
     playCelebration();
-    fireConfetti();
+    if (!isLessonMode) fireConfetti();
 
     const xpAwarded    = totalInitialCount * 30 + 20;
     const coinsAwarded = totalInitialCount * 15 + 10;
@@ -904,6 +911,7 @@ Each object MUST match this schema exactly:
     const accuracyPct = totalInitialCount > 0 
       ? Math.min(100, Math.round((finalScore / totalInitialCount) * 100))
       : 100;
+    setPreviousLessonXp(profile?.total_xp ?? undefined);
     setLessonXpEarned(xpAwarded);
     setLessonAccuracy(accuracyPct);
 
@@ -1045,98 +1053,18 @@ Each object MUST match this schema exactly:
     ? (currentQuestion?.options && currentQuestion.correct !== undefined ? currentQuestion.options[currentQuestion.correct] : "")
     : (currentQuestion?.answerText || "");
 
-  const FeedbackDrawer = () => (
-    <div className={`sticky bottom-0 w-full border-t-[3px] border-black transition-colors z-40 ${
-      hasAnsweredCurrent 
-        ? (isCurrentCorrect ? "bg-[#dcfce7]" : "bg-[#fee2e2]") 
-        : "bg-white/95 backdrop-blur-md"
-    }`}>
-      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Left Side: Rex mascot & feedback state */}
-        <div className="flex items-center gap-4 w-full sm:w-auto">
-          {hasAnsweredCurrent ? (
-            <>
-              <div className="relative shrink-0">
-                <AnimatedRex
-                  state={isCurrentCorrect ? (comboStreak >= 2 ? "excited" : "nodding") : "thinking"}
-                  size="sm"
-                  interactive={false}
-                  preferAnimatedWebP={true}
-                />
-              </div>
-              <div className="flex flex-col">
-                <div className={`flex items-center gap-1.5 font-black text-[18px] sm:text-[22px] ${isCurrentCorrect ? "text-[#16a34a]" : "text-[#dc2626]"}`}>
-                  <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    {isCurrentCorrect ? "check_circle" : "cancel"}
-                  </span>
-                  <span>
-                    {isCurrentCorrect 
-                      ? (comboStreak >= 2 ? `${comboStreak} IN A ROW!` : (currentItem?.isReTest ? "CONCEPT MASTERED!" : "EXCELLENT!"))
-                      : "NOT QUITE"}
-                  </span>
-                </div>
-                <div className="text-[13px] font-bold text-black/75 mt-0.5 leading-snug">
-                  {isCurrentCorrect ? (
-                    semanticFeedback || (currentItem?.isReTest ? "You mastered this recalled concept!" : (currentQuestion?.explanation || "Great work! Keep the streak going."))
-                  ) : (
-                    <div>
-                      <p className="text-black font-extrabold">Correct answer: <span className="underline decoration-2">{expectedAnswerText}</span></p>
-                      <p className="text-black/60 text-[12px] mt-0.5">Rex added this back to the queue to test in 2 questions.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <AnimatedRex
-                state="idle"
-                size="sm"
-                interactive={false}
-                preferAnimatedWebP={true}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Right Side: Action Button */}
-        <div className="w-full sm:w-auto flex items-center justify-end">
-          {hasAnsweredCurrent ? (
-            <button
-              onClick={handleContinue}
-              className={`w-full sm:w-auto px-10 py-3.5 rounded-xl border-2 border-black font-extrabold text-[16px] text-white flex items-center justify-center gap-2 shadow-[4px_4px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer ${
-                isCurrentCorrect ? "bg-[#16a34a] hover:bg-[#15803d]" : "bg-[#dc2626] hover:bg-[#b91c1c]"
-              }`}
-            >
-              <span>CONTINUE</span>
-              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleCheck}
-              disabled={!canCheck || isEvaluating}
-              className={`w-full sm:w-auto px-10 py-3.5 rounded-xl border-2 border-black font-extrabold text-[16px] flex items-center justify-center gap-2 transition-all ${
-                canCheck && !isEvaluating
-                  ? "bg-[#FF4D2E] text-white shadow-[4px_4px_0px_#000] active:translate-y-0.5 active:shadow-none cursor-pointer hover:opacity-95"
-                  : "bg-[#E8E4DC] text-black/40 border-black/30 pointer-events-none opacity-60"
-              }`}
-            >
-              {isEvaluating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  <span>Rex is evaluating...</span>
-                </>
-              ) : (
-                <>
-                  <span>CHECK ANSWER</span>
-                  <span className="material-symbols-outlined text-[20px]">check</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+  const renderFeedback = () => (
+    <QuizFeedback
+      answered={hasAnsweredCurrent}
+      correct={isCurrentCorrect}
+      canCheck={canCheck}
+      evaluating={isEvaluating}
+      explanation={semanticFeedback || currentQuestion?.explanation || ""}
+      expectedAnswer={expectedAnswerText}
+      combo={comboStreak}
+      onCheck={handleCheck}
+      onContinue={handleContinue}
+    />
   );
 
   return (
@@ -1159,8 +1087,9 @@ Each object MUST match this schema exactly:
       {showVictory && (
         <VictoryScreen
           xpEarned={lessonXpEarned}
+          previousXp={previousLessonXp}
           accuracy={lessonAccuracy}
-          streakDays={profile?.streak_days || 1}
+          streakDays={profile?.streak_days || 0}
           onContinue={() => {
             const currentLessonNode = getCurrentLessonNodeId();
             if (currentLessonNode) {
@@ -1220,13 +1149,13 @@ Each object MUST match this schema exactly:
 
       {/* ══ FULL-SCREEN LESSON SHELL (Duolingo 1-Tap Experience) ══ */}
       {isLessonMode && adaptiveQueue.length > 0 && !isGenerating && !showVictory && currentQuestion && (
-        <div className="fixed inset-0 z-50 bg-[#FAF7F2] flex flex-col justify-between overflow-y-auto select-none font-['Quicksand',sans-serif]">
+        <div className="quiz-shell fixed inset-0 z-50 bg-[#FAF7F2] flex flex-col justify-between overflow-y-auto select-none font-['Nunito',sans-serif]">
           {/* Top Bar */}
-          <div className="sticky top-0 z-50 bg-[#FAF7F2] border-b-2 border-black px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4 shrink-0">
+          <div className="sticky top-0 z-50 bg-[#FAF7F2] border-b-2 border-black px-4 sm:px-8 py-3.5 flex items-center justify-between gap-2 sm:gap-4 shrink-0">
             <button
               type="button"
               onClick={() => setShowLeaveModal(true)}
-              className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+              className="w-11 h-11 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
               aria-label="Exit Lesson"
             >
               <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
@@ -1237,12 +1166,7 @@ Each object MUST match this schema exactly:
                 <span>Question {Math.min(totalInitialCount, masteredCount + 1)} of {totalInitialCount}</span>
                 <span className="text-[#10B981] font-black">{progressPercent}%</span>
               </div>
-              <div className="h-3.5 w-full bg-[#E8E4DC] border-2 border-black rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#10B981] transition-all duration-300 rounded-full"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
+              <Progress value={progressPercent} aria-label="Lesson mastery" className="h-3.5 border-2 border-black bg-[#E8E4DC] [&>div]:bg-[#10B981]" />
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -1292,11 +1216,11 @@ Each object MUST match this schema exactly:
                   setIsLessonMode(false);
                   localStorage.removeItem("pz_practice_mode");
                 }}
-                className="text-[11px] font-extrabold text-black/50 hover:text-black hover:underline cursor-pointer px-2 py-1 flex items-center gap-1"
+                className="text-[11px] font-extrabold text-black/50 hover:text-black hover:underline cursor-pointer min-h-11 min-w-11 px-2 py-1 flex items-center gap-1"
                 title="Open Advanced Quiz Generator"
               >
                 <span className="material-symbols-outlined text-[14px]" aria-hidden="true">tune</span>
-                <span>Advanced</span>
+                <span className="hidden sm:inline">Advanced</span>
               </button>
             </div>
           </div>
@@ -1304,7 +1228,7 @@ Each object MUST match this schema exactly:
           {/* Centered Question Content */}
           <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 sm:py-8 flex flex-col justify-center">
             {currentItem && currentItem.isReTest && (
-              <div className="mb-4 bg-[#85f5eb] border-2 border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#000]">
+              <div className="mb-4 bg-[#FFD13B] border-2 border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#000]">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px] text-black" aria-hidden="true">refresh</span>
                   <span className="text-[11.5px] font-black uppercase tracking-wider text-black">
@@ -1327,7 +1251,7 @@ Each object MUST match this schema exactly:
                 </div>
               </div>
 
-              <h2 className="text-[20px] sm:text-[24px] font-black leading-snug mb-3 text-black">
+              <h2 key={currentItem.id} className="motion-safe:animate-fade-up text-[20px] sm:text-[24px] font-black leading-snug mb-3 text-black">
                 {currentQuestion.q}
               </h2>
 
@@ -1344,36 +1268,16 @@ Each object MUST match this schema exactly:
 
             {isMc ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
-                {(currentQuestion.options || []).map((option, idx) => {
-                  const label = ["A", "B", "C", "D"][idx];
-                  const isSelected = selectedOption === idx;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        if (hasAnsweredCurrent) return;
-                        playTap();
-                        setSelectedOption(idx);
-                      }}
-                      disabled={hasAnsweredCurrent}
-                      className={`text-left border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-[#FF4D2E] text-white"
-                          : "bg-white hover:bg-neutral-50 text-black"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className={`text-[12px] font-black px-2.5 py-0.5 border border-black rounded shrink-0 ${
-                          isSelected ? "bg-white text-black" : "bg-black text-white"
-                        }`}>
-                          {label}
-                        </span>
-                        <span className="text-[14.5px] sm:text-[15px] font-bold leading-snug">{option}</span>
-                      </div>
-                    </button>
-                  );
-                })}
+                {(currentQuestion.options || []).map((option, idx) => (
+                    <QuizAnswer
+                      key={`${currentItem.id}-${idx}`}
+                      index={idx}
+                      selected={selectedOption === idx}
+                      answered={hasAnsweredCurrent}
+                      correct={currentQuestion.correct === idx}
+                      onSelect={() => setSelectedOption(idx)}
+                    >{option}</QuizAnswer>
+                  ))}
               </div>
             ) : (
               <div className="mb-4">
@@ -1382,6 +1286,7 @@ Each object MUST match this schema exactly:
                   value={textInput}
                   disabled={hasAnsweredCurrent}
                   onChange={e => setTextInput(e.target.value)}
+                  aria-label="Your answer"
                   placeholder="Type your answer here..."
                   autoFocus
                   className="w-full bg-white border-2 border-black rounded-xl p-4 text-[16px] font-extrabold shadow-[4px_4px_0px_#000] focus:outline-none"
@@ -1390,90 +1295,7 @@ Each object MUST match this schema exactly:
             )}
           </main>
 
-          {/* Bottom Feedback Bar */}
-          <div className={`sticky bottom-0 w-full border-t-3 border-black transition-all z-40 ${
-            hasAnsweredCurrent
-              ? (isCurrentCorrect ? "bg-[#10B981] text-white" : "bg-[#FF4D2E] text-white")
-              : "bg-white border-t-2 border-black"
-          }`}>
-            <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-              {hasAnsweredCurrent ? (
-                <div className="flex flex-col gap-1 w-full sm:w-auto">
-                  <div className="flex items-center gap-2.5 font-black text-[18px] sm:text-[20px] flex-wrap">
-                    <span className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[22px] font-black" aria-hidden="true">
-                        {isCurrentCorrect ? "check_circle" : "cancel"}
-                      </span>
-                      <span>{isCurrentCorrect ? "Correct!" : "Incorrect"}</span>
-                    </span>
-                    {isCurrentCorrect && comboStreak >= 3 && (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] bg-black text-[#FFD13B] px-2.5 py-0.5 rounded-lg font-black border-2 border-black shadow-[1.5px_1.5px_0px_#000]">
-                        <span className="material-symbols-outlined text-[14px] text-[#FFD13B]" aria-hidden="true">
-                          {getComboTier(comboStreak).icon}
-                        </span>
-                        <span>{getComboTier(comboStreak).label}</span>
-                      </span>
-                    )}
-                    {isCurrentCorrect && comboStreak === 2 && (
-                      <span className="inline-flex items-center gap-1 text-[11px] bg-black text-white px-2.5 py-0.5 rounded-lg font-black border-2 border-black">
-                        <span className="material-symbols-outlined text-[13px] text-[#FF4D2E]" aria-hidden="true">
-                          local_fire_department
-                        </span>
-                        <span>2 Streak</span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[12.5px] font-medium text-white/90 leading-snug max-w-md">
-                    {isCurrentCorrect ? (
-                      semanticFeedback || currentQuestion.explanation || "Great work! Keep it up."
-                    ) : (
-                      <div>
-                        <p className="font-extrabold">Correct answer: <span className="underline decoration-2">{expectedAnswerText}</span></p>
-                        {currentQuestion.explanation && (
-                          <p className="text-white/85 text-[11.5px] mt-0.5">{currentQuestion.explanation}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="hidden sm:flex items-center gap-2 text-black/50 text-[12px] font-bold">
-                  <span>Press <kbd className="px-1.5 py-0.5 bg-gray-100 border border-black/30 rounded font-mono text-[11px]">Enter ↵</kbd> to check</span>
-                </div>
-              )}
-
-              <div className="w-full sm:w-auto flex items-center justify-end">
-                {hasAnsweredCurrent ? (
-                  <SpringButton
-                    onClick={handleContinue}
-                    className="w-full sm:w-auto px-8 py-3 bg-white text-black font-black text-[15px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-1 active:shadow-none transition-all cursor-pointer hover:bg-neutral-100 flex items-center justify-center gap-2 uppercase tracking-wider"
-                  >
-                    <span>CONTINUE</span>
-                    <span className="text-[16px]">→</span>
-                  </SpringButton>
-                ) : (
-                  <SpringButton
-                    onClick={handleCheck}
-                    disabled={!canCheck || isEvaluating}
-                    className={`w-full sm:w-auto px-8 py-3 rounded-xl border-2 border-black font-black text-[15px] flex items-center justify-center gap-2 uppercase tracking-wider transition-all ${
-                      canCheck && !isEvaluating
-                        ? "bg-[#FF4D2E] text-white shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none cursor-pointer hover:bg-black"
-                        : "bg-gray-200 text-black/40 border-black/30 pointer-events-none opacity-60"
-                    }`}
-                  >
-                    {isEvaluating ? (
-                      <span>Evaluating...</span>
-                    ) : (
-                      <>
-                        <span>CHECK</span>
-                        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">check</span>
-                      </>
-                    )}
-                  </SpringButton>
-                )}
-              </div>
-            </div>
-          </div>
+          {renderFeedback()}
         </div>
       )}
 
@@ -1559,7 +1381,7 @@ Each object MUST match this schema exactly:
                 {/* Loading state */}
                 {isGenerating && (
                   <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4">
-                    <div className="w-16 h-16 border-4 border-[#FF4D2E] border-t-transparent rounded-full animate-spin" />
+                    <QuizSkeleton />
                     <p className="font-extrabold text-[15px] text-black/60">Crafting your adaptive mastery quiz...</p>
                   </div>
                 )}
@@ -1602,7 +1424,7 @@ Each object MUST match this schema exactly:
                               navigate("/dashboard");
                             }
                           }}
-                          className="w-10 h-10 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+                          className="w-11 h-11 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer shrink-0"
                           title="Exit Lesson to Learning Path"
                           aria-label="Exit Lesson"
                         >
@@ -1616,12 +1438,7 @@ Each object MUST match this schema exactly:
                             </span>
                             <span className="text-[#10B981] font-black">{progressPercent}%</span>
                           </div>
-                          <div className="h-3.5 w-full bg-[#E8E4DC] border-[2px] border-black rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-[#10B981] transition-all duration-300" 
-                              style={{ width: `${progressPercent}%` }} 
-                            />
-                          </div>
+                          <Progress value={progressPercent} aria-label="Lesson mastery" className="h-3.5 border-2 border-black bg-[#E8E4DC] [&>div]:bg-[#10B981]" />
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -1645,7 +1462,7 @@ Each object MUST match this schema exactly:
 
                       {/* Adaptive Re-Test Banner */}
                       {currentItem.isReTest && (
-                        <div className="mb-4 bg-[#85f5eb] border-[2px] border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[3px_3px_0px_#000]">
+                        <div className="mb-4 bg-[#FFD13B] border-[2px] border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[3px_3px_0px_#000]">
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-[20px] text-black">refresh</span>
                             <span className="text-[12px] font-black uppercase tracking-wider text-black">
@@ -1673,7 +1490,7 @@ Each object MUST match this schema exactly:
                           </div>
                         </div>
 
-                        <h2 className="text-[24px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
+                        <h2 key={currentItem.id} className="motion-safe:animate-fade-up text-[24px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
 
                         {/* Scaffolding clue for re-tests */}
                         {currentItem.isReTest && currentItem.scaffoldHint && (
@@ -1690,35 +1507,16 @@ Each object MUST match this schema exactly:
                       {/* Options / Input Field */}
                       {isMc ? (
                         <div className="grid grid-cols-2 gap-4 mb-6">
-                          {(currentQuestion.options || []).map((option, idx) => {
-                            const label = ["A", "B", "C", "D"][idx];
-                            const isSelected = selectedOption === idx;
-                            return (
-                              <button 
-                                key={idx} 
-                                onClick={() => {
-                                  if (hasAnsweredCurrent) return;
-                                  playTap();
-                                  setSelectedOption(idx);
-                                }}
-                                disabled={hasAnsweredCurrent}
-                                className={`text-left border-[2px] border-black p-4.5 rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all cursor-pointer ${
-                                  isSelected 
-                                    ? "bg-[#FF4D2E] text-white" 
-                                    : "bg-white hover:bg-neutral-50"
-                                }`}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span className={`text-[12px] font-extrabold px-2.5 py-0.5 border-[1.5px] border-black flex-shrink-0 rounded ${
-                                    isSelected ? "bg-white text-black" : "bg-black text-white"
-                                  }`}>
-                                    {label}
-                                  </span>
-                                  <span className="text-[15px] font-bold leading-snug">{option}</span>
-                                </div>
-                              </button>
-                            );
-                          })}
+                          {(currentQuestion.options || []).map((option, idx) => (
+                    <QuizAnswer
+                      key={`${currentItem.id}-${idx}`}
+                      index={idx}
+                      selected={selectedOption === idx}
+                      answered={hasAnsweredCurrent}
+                      correct={currentQuestion.correct === idx}
+                      onSelect={() => setSelectedOption(idx)}
+                    >{option}</QuizAnswer>
+                  ))}
                         </div>
                       ) : (
                         <div className="mb-6">
@@ -1727,7 +1525,8 @@ Each object MUST match this schema exactly:
                             value={textInput} 
                             disabled={hasAnsweredCurrent}
                             onChange={e => setTextInput(e.target.value)} 
-                            placeholder="Type your answer here..."
+                            aria-label="Your answer"
+                  placeholder="Type your answer here..."
                             autoFocus
                             className="w-full bg-white border-[2px] border-black rounded-xl p-4.5 text-[16px] font-extrabold shadow-[4px_4px_0px_#000] focus:outline-none focus:shadow-[2px_2px_0px_#000] focus:translate-y-[2px] transition-all"
                           />
@@ -1816,7 +1615,7 @@ Each object MUST match this schema exactly:
                     <div className="flex justify-between items-center">
                       <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Rewards Unlocked</span>
                       <span className="text-[#F5A623] font-black text-[16px]">
-                        +{totalInitialCount * 30 + 20} XP / +{totalInitialCount * 15 + 10} Coins
+                        +<AnimatedNumber value={totalInitialCount * 30 + 20} /> XP / +{totalInitialCount * 15 + 10} Coins
                       </span>
                     </div>
                   </div>
@@ -1854,7 +1653,7 @@ Each object MUST match this schema exactly:
 
             {/* Desktop Feedback Drawer */}
             {view === "quiz" && adaptiveQueue.length > 0 && !isGenerating && (
-              <FeedbackDrawer />
+              renderFeedback()
             )}
           </div>
 
@@ -1884,7 +1683,7 @@ Each object MUST match this schema exactly:
               }
             }}
             aria-label="Exit Lesson"
-            className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer font-black text-[16px]"
+            className="w-11 h-11 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer font-black text-[16px]"
           >
             {adaptiveQueue.length > 0 ? (
               <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
@@ -1909,14 +1708,14 @@ Each object MUST match this schema exactly:
             <button 
               onClick={() => setShowHistory(true)}
               aria-label="Attempt History"
-              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer"
+              className="w-11 h-11 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[20px]" aria-hidden="true">history</span>
             </button>
             <button 
               onClick={() => tutorial.show()} 
               aria-label="Practice Tutorial"
-              className="w-10 h-10 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer"
+              className="w-11 h-11 rounded-full border-[1.5px] border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]" aria-hidden="true">help</span>
             </button>
@@ -2066,30 +1865,13 @@ Each object MUST match this schema exactly:
               {/* Mobile Loading */}
               {isGenerating && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
-                  <div className="w-12 h-12 rounded-full border-4 border-[#FF4D2E] border-t-transparent animate-spin" />
+                  <QuizSkeleton />
                   <p className="font-extrabold text-[13px] text-black/50">Building adaptive quiz...</p>
                 </div>
               )}
 
-              {/* Mobile Empty */}
               {adaptiveQueue.length === 0 && !isGenerating && (
-                <div className="flex flex-col items-center text-center gap-3 py-8">
-                  <div className="w-18 h-18 bg-[#FFE566] border-2 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_#000]">
-                    <span className="material-symbols-outlined text-[36px] text-black" aria-hidden="true">school</span>
-                  </div>
-                  <h2 className="font-black text-[18px]">No active lesson</h2>
-                  <p className="font-bold text-[12px] text-black/60 max-w-[260px]">
-                    Create a quiz above, or jump back to your study path to continue your streak!
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/dashboard")}
-                    className="mt-2 px-5 py-2.5 bg-[#FF4D2E] text-white rounded-xl border-2 border-black font-black text-[12.5px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 uppercase tracking-wider flex items-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">route</span>
-                    <span>Go to Learning Path</span>
-                  </button>
-                </div>
+                <EmptyStudyState onStart={() => navigate("/dashboard")} />
               )}
 
               {/* Mobile Active Question Card */}
@@ -2107,16 +1889,11 @@ Each object MUST match this schema exactly:
                     </div>
                   </div>
 
-                  <div className="w-full h-2.5 bg-white border-2 border-black rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#FF4D2E] transition-all duration-300" 
-                      style={{ width: `${progressPercent}%` }} 
-                    />
-                  </div>
+                  <Progress value={progressPercent} aria-label="Lesson mastery" className="h-3.5 border-2 border-black bg-[#E8E4DC] [&>div]:bg-[#10B981]" />
 
                   {/* Re-test notice */}
                   {currentItem.isReTest && (
-                    <div className="bg-[#85f5eb] border-2 border-black px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center justify-between">
+                    <div className="bg-[#FFD13B] border-2 border-black px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center justify-between">
                       <span className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]" aria-hidden="true">refresh</span>
                         <span>Recall Retry · Q#{currentItem.originalIndex + 1}</span>
@@ -2138,7 +1915,7 @@ Each object MUST match this schema exactly:
                       </div>
                     </div>
 
-                    <h2 className="font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
+                    <h2 key={currentItem.id} className="motion-safe:animate-fade-up font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
 
                     {currentItem.isReTest && currentItem.scaffoldHint && (
                       <div className="mb-3 bg-[#FFF9E6] border border-black p-2.5 rounded-lg text-[12px] font-bold">
@@ -2151,40 +1928,24 @@ Each object MUST match this schema exactly:
                   {/* Options */}
                   <div className="flex flex-col gap-2.5">
                     {isMc ? (
-                      (currentQuestion.options || []).map((option, idx) => {
-                        const label = ["A", "B", "C", "D"][idx];
-                        const isSelected = selectedOption === idx;
-                        return (
-                          <button
-                            key={idx}
-                            disabled={hasAnsweredCurrent}
-                            onClick={() => {
-                              if (hasAnsweredCurrent) return;
-                              playTap();
-                              setSelectedOption(idx);
-                            }}
-                            className={`w-full text-left rounded-xl border-2 border-black p-3.5 flex items-center gap-3 transition-all ${
-                              isSelected 
-                                ? "bg-[#FF4D2E] text-white shadow-[2px_2px_0px_#000]" 
-                                : "bg-white shadow-[1px_1px_0px_#000] active:translate-y-0.5"
-                            }`}
-                          >
-                            <div className={`w-7 h-7 rounded border border-black flex items-center justify-center flex-shrink-0 font-extrabold text-[12px] ${
-                              isSelected ? "bg-white text-black" : "bg-[#FAF7F2] text-black"
-                            }`}>
-                              {label}
-                            </div>
-                            <span className="text-[13px] font-bold leading-tight">{option}</span>
-                          </button>
-                        );
-                      })
+                      (currentQuestion.options || []).map((option, idx) => (
+                    <QuizAnswer
+                      key={`${currentItem.id}-${idx}`}
+                      index={idx}
+                      selected={selectedOption === idx}
+                      answered={hasAnsweredCurrent}
+                      correct={currentQuestion.correct === idx}
+                      onSelect={() => setSelectedOption(idx)}
+                    >{option}</QuizAnswer>
+                  ))
                     ) : (
                       <input 
                         type="text" 
                         value={textInput} 
                         disabled={hasAnsweredCurrent}
                         onChange={e => setTextInput(e.target.value)} 
-                        placeholder="Type your answer here..."
+                        aria-label="Your answer"
+                  placeholder="Type your answer here..."
                         className="w-full bg-white border-2 border-black rounded-xl p-4 text-[14px] font-bold shadow-[2px_2px_0px_#000] focus:outline-none"
                       />
                     )}
@@ -2195,7 +1956,7 @@ Each object MUST match this schema exactly:
 
             {/* Mobile Feedback Drawer */}
             {adaptiveQueue.length > 0 && !isGenerating && (
-              <FeedbackDrawer />
+              renderFeedback()
             )}
           </>
         )}
@@ -2269,7 +2030,7 @@ Each object MUST match this schema exactly:
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Rewards</span>
-                <span className="text-[#F5A623] font-bold text-[14px]">+{totalInitialCount * 30 + 20} XP / +{totalInitialCount * 15 + 10} Coins</span>
+                <span className="text-[#F5A623] font-bold text-[14px]">+<AnimatedNumber value={totalInitialCount * 30 + 20} /> XP / +{totalInitialCount * 15 + 10} Coins</span>
               </div>
             </div>
 

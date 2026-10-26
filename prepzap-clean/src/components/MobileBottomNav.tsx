@@ -29,8 +29,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
   ];
 
   return (
-    <nav 
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FFFDF5] border-t-2 border-[#1A1A1A] flex justify-around items-center px-1 shadow-[0_-4px_10px_rgba(0,0,0,0.04)]"
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FFFDF5] border-t-2 border-[#000000] flex justify-around items-center px-1 shadow-[0_-4px_10px_rgba(0,0,0,0.04)]"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 8px) + 4px)', paddingTop: '6px' }}
       aria-label="Mobile Navigation"
     >
@@ -45,20 +45,21 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
             key={tab.name}
             type="button"
             aria-label={tab.name}
+            aria-current={isActive ? "page" : undefined}
             onClick={() => {
               playPop();
               navigate(tab.path);
             }}
-            className={`flex flex-col items-center justify-center flex-1 min-h-[44px] py-1 px-1 transition-all active:scale-90 cursor-pointer ${
-              isActive 
-                ? 'text-black' 
+            className={`flex flex-col items-center justify-center flex-1 min-h-[44px] py-1 px-1 transition-transform motion-safe:active:scale-95 motion-reduce:transition-none cursor-pointer ${
+              isActive
+                ? 'text-black'
                 : 'text-black/60 hover:text-black'
             }`}
           >
-            <div className={`flex flex-col items-center justify-center rounded-xl transition-all relative ${
-              isActive 
-                ? 'bg-[#FFD13B] px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_#1A1A1A] -translate-y-0.5' 
-                : 'py-0.5'
+            <div className={`flex flex-col items-center justify-center w-full h-11 rounded-xl relative ${
+              isActive
+                ? 'bg-[#FFD13B] border-2 border-black shadow-[0_2px_0_#000000]'
+                : 'border-2 border-transparent'
             }`}>
               {tab.path === '/practice' && dueCount > 0 && (
                 <span className="absolute -top-1 -right-1 border border-black bg-[#FF4D2E] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">

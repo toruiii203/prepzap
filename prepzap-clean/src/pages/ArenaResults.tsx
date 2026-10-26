@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 import { fireConfetti } from "@/lib/confetti";
 import { isAnswerCorrect } from "@/lib/quizUtils";
 import { withTimeout } from "@/lib/withTimeout";
-import { withTimeout } from "@/lib/withTimeout";
 
 interface Question {
   question: string;
