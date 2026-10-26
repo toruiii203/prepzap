@@ -79,7 +79,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         }
         prevCountRef.current = count;
         setDueCount(count);
-      } catch {}
+      } catch { /* The sidebar still works without persisted display preferences. */ }
     };
     checkDue();
     window.addEventListener("focus", checkDue);
@@ -104,10 +104,11 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
   // Centralized time tracking
   useStudyTimeTracker(ROUTE_TO_TOOL_NAME[active] ?? null, user?.id);
 
+  const profileUsername = profile && "username" in profile && typeof profile.username === "string" ? profile.username : undefined;
   const rawName =
-    (user as any)?.user_metadata?.full_name ||
+    user?.user_metadata?.full_name ||
     profile?.full_name ||
-    profile?.username ||
+    profileUsername ||
     user?.email?.split("@")[0] ||
     "Student";
 
@@ -119,6 +120,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
       <div className="mb-5 px-1">
         <h1
           className="text-[24px] font-black tracking-tight text-black cursor-pointer hover:opacity-85 transition-opacity"
+          data-route="/dashboard"
           onClick={() => navigate("/dashboard")}
         >
           Studenius
@@ -149,6 +151,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
               const isActive = active === item.route;
               return (
                 <button
+                  data-route={item.route}
                   key={item.route}
                   type="button"
                   onClick={() => {
@@ -208,6 +211,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                   const isActive = active === tool.route;
                   return (
                     <button
+                      data-route={tool.route}
                       key={tool.route}
                       type="button"
                       onClick={() => {
@@ -251,6 +255,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         {!planLoading && !isPro && (
           <button
             type="button"
+            data-route="/pro"
             onClick={() => navigate("/pro")}
             className="flex items-center justify-center gap-2 px-3 py-2.5 mx-1 mb-1 bg-[#FF4D2E] border-2 border-black text-white text-[11px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:bg-black hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
           >
@@ -260,6 +265,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         )}
         <button
           type="button"
+          data-route="/settings"
           onClick={() => navigate("/settings")}
           className="flex items-center gap-3 px-3 py-2 min-h-[44px] text-[13px] font-bold text-black hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >
@@ -268,6 +274,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         </button>
         <button
           type="button"
+          data-route="/profile"
           onClick={() => navigate("/profile")}
           className="flex items-center gap-3 px-3 py-2 min-h-[44px] hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >

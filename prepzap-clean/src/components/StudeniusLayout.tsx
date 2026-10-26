@@ -1,3 +1,7 @@
+import { Suspense } from "react";
+import { PageLoading } from "@/components/PageLoading";
+import { PageTransition } from "@/components/PageTransition";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { Outlet, useLocation } from "react-router-dom";
 import { StudeniusShell } from "@/components/StudeniusShell";
 import { StudyStatus } from "@/components/StudyStatus";
@@ -18,7 +22,11 @@ export function StudeniusLayout() {
       {!hideNav && pathname !== "/practice" && <StudyStatus />}
       {pathname === "/settings" && <InterfaceSettings />}
       {pathname === "/dashboard" && <DashboardGreeting />}
-      <Outlet />
+      <Suspense fallback={<PageLoading />}>
+        <PageErrorBoundary key={pathname}>
+          <PageTransition key={pathname}><Outlet /></PageTransition>
+        </PageErrorBoundary>
+      </Suspense>
       <FloatingXPOverlay />
     </StudeniusShell>
   );

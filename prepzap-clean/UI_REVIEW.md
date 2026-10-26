@@ -1,5 +1,7 @@
 # Studenius redesign review
 
+**Latest follow-up:** original colors and immediate, persistent-shell navigation are restored. See `PERFORMANCE_FIX.md` for current behavior and verification; the notes below describe the earlier redesign.
+
 This continuation builds on the first polish pass (`35623aa7`). The approved
 concept is a compact fox scholar referencing the original Rex: round glasses,
 small cap, short academic robe, and cream-tipped tail. Yellow/coral branding is

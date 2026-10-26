@@ -1,12 +1,14 @@
+import { lazyPage, registerPagePreloads } from "@/lib/pagePreload";
+import { NavigationPrefetch } from "@/components/NavigationPrefetch";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AnimatePresence, MotionConfig } from "framer-motion";
+import { MotionConfig } from "framer-motion";
 import { LegacyDialogAccessibility } from "@/components/LegacyDialogAccessibility";
 import { InterfacePreferences } from "@/components/InterfacePreferences";
 import { PageTransition } from "@/components/PageTransition";
@@ -22,27 +24,6 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { CommandPalette } from "@/components/CommandPalette";
 import { supabase } from "@/lib/supabase";
 
-
-function useMinimumLoading(loading: boolean, minDuration: number = 350) {
-  const [isMinLoading, setIsMinLoading] = useState(true);
-  const [startTime] = useState(Date.now());
-
-  useEffect(() => {
-    if (!loading) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < minDuration) {
-        const timer = setTimeout(() => setIsMinLoading(false), minDuration - elapsed);
-        return () => clearTimeout(timer);
-      } else {
-        setIsMinLoading(false);
-      }
-    } else {
-      setIsMinLoading(true);
-    }
-  }, [loading, minDuration, startTime]);
-
-  return isMinLoading;
-}
 
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
@@ -94,71 +75,122 @@ function PWAInstallBanner() {
 }
 
 // ── Pages ────────────────────────────────────────────────────────────────────
-const Index = lazy(() => import("./pages/Index"));
-const Landing = lazy(() => import("./pages/Landing"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Terms = lazy(() => import("./pages/Terms"));
-const Onboarding = lazy(() => import("./pages/OnboardingFlow"));
-const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const Index = lazyPage(() => import("./pages/Index"));
+const Landing = lazyPage(() => import("./pages/Landing"));
+const Privacy = lazyPage(() => import("./pages/Privacy"));
+const Terms = lazyPage(() => import("./pages/Terms"));
+const Onboarding = lazyPage(() => import("./pages/OnboardingFlow"));
+const AuthCallback = lazyPage(() => import("./pages/AuthCallback"));
 import { applyOnboardingDraftIfAny, clearOnboardingDraft } from "./lib/onboardingBank";
-const Admin = lazy(() => import("./pages/Admin"));
-const SourceLibrary = lazy(() => import("./pages/SourceLibrary"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Practice = lazy(() => import("./pages/Practice"));
-const Flashcards = lazy(() => import("./pages/Flashcards"));
-const FlashcardsShared = lazy(() => import("./pages/FlashcardsShared"));
-const FocusTimer = lazy(() => import("./pages/FocusTimer"));
-const Analytics = lazy(() => import("./pages/Analytics"));
-const StudyPlanner = lazy(() => import("./pages/StudyPlanner"));
-const AITutor = lazy(() => import("./pages/AITutor"));
-const CallWithRex = lazy(() => import("./pages/CallWithRex"));
-const ToolsHub = lazy(() => import("./pages/ToolsHub"));
-const StudentProfile = lazy(() => import("./pages/StudentProfile"));
-const Challenges = lazy(() => import("./pages/Challenges"));
-const TeachIt = lazy(() => import("./pages/TeachIt"));
-const QuickStudy = lazy(() => import("./pages/QuickStudy"));
-const Community = lazy(() => import("./pages/Community"));
-const Friends = lazy(() => import("./pages/Friends"));
-const CampusVault = lazy(() => import("./pages/CampusVault"));
+const Admin = lazyPage(() => import("./pages/Admin"));
+const SourceLibrary = lazyPage(() => import("./pages/SourceLibrary"));
+const Dashboard = lazyPage(() => import("./pages/Dashboard"));
+const Practice = lazyPage(() => import("./pages/Practice"));
+const Flashcards = lazyPage(() => import("./pages/Flashcards"));
+const FlashcardsShared = lazyPage(() => import("./pages/FlashcardsShared"));
+const FocusTimer = lazyPage(() => import("./pages/FocusTimer"));
+const Analytics = lazyPage(() => import("./pages/Analytics"));
+const StudyPlanner = lazyPage(() => import("./pages/StudyPlanner"));
+const AITutor = lazyPage(() => import("./pages/AITutor"));
+const CallWithRex = lazyPage(() => import("./pages/CallWithRex"));
+const ToolsHub = lazyPage(() => import("./pages/ToolsHub"));
+const StudentProfile = lazyPage(() => import("./pages/StudentProfile"));
+const Challenges = lazyPage(() => import("./pages/Challenges"));
+const TeachIt = lazyPage(() => import("./pages/TeachIt"));
+const QuickStudy = lazyPage(() => import("./pages/QuickStudy"));
+const Community = lazyPage(() => import("./pages/Community"));
+const Friends = lazyPage(() => import("./pages/Friends"));
+const CampusVault = lazyPage(() => import("./pages/CampusVault"));
 
 
 
-const MathSolver = lazy(() => import("./pages/MathSolver"));
-const Settings = lazy(() => import("./pages/Settings"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const CramMode = lazy(() => import("./pages/CramMode"));
-const RecallMode = lazy(() => import("./pages/RecallMode"));
-const VisualLearner = lazy(() => import("./pages/VisualLearner"));
-const NotesWorkspace = lazy(() => import("./pages/NotesWorkspace"));
-const Avatar = lazy(() => import("./pages/Avatar"));
+const MathSolver = lazyPage(() => import("./pages/MathSolver"));
+const Settings = lazyPage(() => import("./pages/Settings"));
+const NotFound = lazyPage(() => import("./pages/NotFound"));
+const CramMode = lazyPage(() => import("./pages/CramMode"));
+const RecallMode = lazyPage(() => import("./pages/RecallMode"));
+const VisualLearner = lazyPage(() => import("./pages/VisualLearner"));
+const NotesWorkspace = lazyPage(() => import("./pages/NotesWorkspace"));
+const Avatar = lazyPage(() => import("./pages/Avatar"));
 
-const Shop = lazy(() => import("./pages/Shop"));
-const UsePro = lazy(() => import("./pages/UsePro"));
-const HighYieldDetector = lazy(() => import("./pages/HighYieldDetector"));
-const MistakeJournal = lazy(() => import("./pages/MistakeJournal"));
+const Shop = lazyPage(() => import("./pages/Shop"));
+const UsePro = lazyPage(() => import("./pages/UsePro"));
+const HighYieldDetector = lazyPage(() => import("./pages/HighYieldDetector"));
+const MistakeJournal = lazyPage(() => import("./pages/MistakeJournal"));
 
 // ── Arena ────────────────────────────────────────────────────────────────────
-const Arena = lazy(() => import("./pages/Arena"));
-const Arcade = lazy(() => import("./pages/Arcade"));
-const MemoryMatch = lazy(() => import("./pages/arcade/MemoryMatch"));
-const TrueFalseBlitz = lazy(() => import("./pages/arcade/TrueFalseBlitz"));
-const Termle = lazy(() => import("./pages/arcade/Termle"));
-const AnagramSprint = lazy(() => import("./pages/arcade/AnagramSprint"));
-const WhackAMole = lazy(() => import("./pages/arcade/WhackAMole"));
-const OddOneOut = lazy(() => import("./pages/arcade/OddOneOut"));
+const Arena = lazyPage(() => import("./pages/Arena"));
+const Arcade = lazyPage(() => import("./pages/Arcade"));
+const MemoryMatch = lazyPage(() => import("./pages/arcade/MemoryMatch"));
+const TrueFalseBlitz = lazyPage(() => import("./pages/arcade/TrueFalseBlitz"));
+const Termle = lazyPage(() => import("./pages/arcade/Termle"));
+const AnagramSprint = lazyPage(() => import("./pages/arcade/AnagramSprint"));
+const WhackAMole = lazyPage(() => import("./pages/arcade/WhackAMole"));
+const OddOneOut = lazyPage(() => import("./pages/arcade/OddOneOut"));
 
-const ArenaRoom = lazy(() => import("./pages/ArenaRoom"));
-const ArenaQuiz = lazy(() => import("./pages/ArenaQuiz"));
-const ArenaResults = lazy(() => import("./pages/ArenaResults"));
-const ArenaInvite = lazy(() => import("./pages/ArenaInvite"));
-const LiveBattle = lazy(() => import("./pages/LiveBattle"));
-const PublicShareView = lazy(() => import("./pages/PublicShareView"));
+const ArenaRoom = lazyPage(() => import("./pages/ArenaRoom"));
+const ArenaQuiz = lazyPage(() => import("./pages/ArenaQuiz"));
+const ArenaResults = lazyPage(() => import("./pages/ArenaResults"));
+const ArenaInvite = lazyPage(() => import("./pages/ArenaInvite"));
+const LiveBattle = lazyPage(() => import("./pages/LiveBattle"));
+const PublicShareView = lazyPage(() => import("./pages/PublicShareView"));
 
 // ── Still removed (files deleted): ───────────────────────────────────────────
 // FeynmanMode, ToolArchitect, Daily5, FlipScript, SpotError, BuildDef,
 // BlankMap, BossRound, ConfidenceCalibration, StudyDNA, FocusState,
 // PomodoroArea, Login
 // ─────────────────────────────────────────────────────────────────────────────
+
+registerPagePreloads({
+  "/landing": Landing,
+  "/privacy": Privacy,
+  "/terms": Terms,
+  "/onboarding": Onboarding,
+  "/auth/callback": AuthCallback,
+  "/invite/": ArenaInvite,
+  "/flashcards/shared/": FlashcardsShared,
+  "/share/": PublicShareView,
+  "/dashboard": Dashboard,
+  "/practice": Practice,
+  "/flashcards": Flashcards,
+  "/timer": FocusTimer,
+  "/analytics": Analytics,
+  "/planner": StudyPlanner,
+  "/ai-tutor": AITutor,
+  "/call": CallWithRex,
+  "/tools": ToolsHub,
+  "/profile": StudentProfile,
+  "/leaderboard": Arena,
+  "/challenges": Challenges,
+  "/friends": Friends,
+  "/community": Community,
+  "/campus-vault": CampusVault,
+  "/teach-it": TeachIt,
+  "/quick-study": QuickStudy,
+  "/math": MathSolver,
+  "/sources": SourceLibrary,
+  "/source-library": SourceLibrary,
+  "/settings": Settings,
+  "/visual-learner": VisualLearner,
+  "/notes": NotesWorkspace,
+  "/avatar": Avatar,
+  "/shop": Shop,
+  "/pro": UsePro,
+  "/admin": Admin,
+  "/mistakes": MistakeJournal,
+  "/rooms": LiveBattle,
+  "/arena": Arena,
+  "/arena/room/": ArenaRoom,
+  "/arena/quiz/": ArenaQuiz,
+  "/arena/results/": ArenaResults,
+  "/arcade": Arcade,
+  "/arcade/memory-match": MemoryMatch,
+  "/arcade/true-false": TrueFalseBlitz,
+  "/arcade/termle": Termle,
+  "/arcade/anagram-sprint": AnagramSprint,
+  "/arcade/whack-a-mole": WhackAMole,
+  "/arcade/odd-one-out": OddOneOut,
+});
 
 const queryClient = new QueryClient();
 
@@ -174,8 +206,7 @@ function ProtectedStudeniusLayout() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, needsOnboarding } = useAuth();
-  const minLoading = useMinimumLoading(loading, 350);
-  if (minLoading) return <AppSkeleton />;
+  if (loading) return <AppSkeleton />;
 
   if (!session) return <Navigate to="/login" replace />;
   if (needsOnboarding) return <Navigate to="/onboarding" replace />;
@@ -184,8 +215,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function MobileRootRedirect() {
   const { session, loading } = useAuth();
-  const minLoading = useMinimumLoading(loading, 350);
-  if (minLoading) return <AppSkeleton />;
+  if (loading) return <AppSkeleton />;
   if (session) return <Navigate to="/dashboard" replace />;
   return <Landing />;
 }
@@ -341,8 +371,7 @@ function AppRoutes() {
     <>
       <PWAInstallBanner />
       <MobileBottomNav hide={hideBottomNav} />
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+      <Routes location={location}>
         {/* Public */}
         <Route path="/" element={safe(<MobileRootRedirect />)} />
         <Route path="/landing" element={safe(<Landing />)} />
@@ -415,7 +444,7 @@ function AppRoutes() {
         {/* Catch-all */}
         <Route path="*" element={safe(<NotFound />)} />
       </Routes>
-        </AnimatePresence>
+
     </>
   );
 }
@@ -431,7 +460,8 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true }}>
+            <NavigationPrefetch />
             <CommandPalette />
             <AppRoutes />
           </BrowserRouter>

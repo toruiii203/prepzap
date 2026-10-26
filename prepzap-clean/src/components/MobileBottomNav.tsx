@@ -15,7 +15,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
   useEffect(() => {
     try {
       setDueCount(getDueCount());
-    } catch {}
+    } catch { /* Due counts are optional when local storage is unavailable. */ }
   }, []);
 
   if (hide) return null;
@@ -44,6 +44,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
           <button
             key={tab.name}
             type="button"
+            data-route={tab.path}
             aria-label={tab.name}
             aria-current={isActive ? "page" : undefined}
             onClick={() => {

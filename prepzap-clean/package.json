@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:smoke": "node scripts/smokeTest.mjs",
-    "test:ui": "node scripts/uiInteractionTest.mjs"
+    "test:ui": "node scripts/uiInteractionTest.mjs",
+    "test:navigation": "node scripts/navigationSmokeTest.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
