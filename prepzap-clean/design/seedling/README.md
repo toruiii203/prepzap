@@ -1,5 +1,10 @@
 # Studenius seedling — approved option A
 
+Current rollout: the user approved replacing remaining old mascot placements.
+See `docs/MASCOT_ROLLOUT.md` for the shared default, legacy image compatibility,
+PWA icons, desktop header fix and current validation. Earlier entry-slice notes
+below describe the first rollout, not a restriction on the now-approved art swap.
+
 This supersedes the fox art direction in `docs/VISUAL_POLISH_PLAN.md`.
 The user approved the seedling and **option A (no ground shadow)**. The fox is
 retired as a design direction. The first integration is the entry-streak slice;

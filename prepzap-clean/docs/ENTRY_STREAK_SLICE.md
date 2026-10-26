@@ -1,5 +1,10 @@
 # First entry-streak slice
 
+Follow-up: the user subsequently authorized replacing the remaining old mascot
+artwork and fixing the desktop header. See `MASCOT_ROLLOUT.md` for the current
+scope. The entry cap and eligibility behavior below are unchanged; the mascot
+is now also always visible in the dashboard greeting.
+
 The user approved the seedling, option A (no ground shadow), and a small
 device-only popup/date record. Only the daily entry-streak adapter is enabled.
 Other popup types and a broad mascot replacement are deliberately still pending

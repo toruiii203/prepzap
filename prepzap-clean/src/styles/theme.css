@@ -102,6 +102,5 @@ body:has(.quiz-shell) { overflow:hidden; }
 html.dark [class~="bg-[#FFD13B]"] :where([class*="text-black"],[class*="text-white"]),
 html.dark [class~="bg-[#FFE566]"] :where([class*="text-black"],[class*="text-white"]) { color:#000000; }
 @media (min-width:768px) {
-  .dashboard-greeting { padding-left:280px; }
   .interface-settings { width:min(calc(100% - 288px),720px); margin-left:auto; margin-right:16px; }
 }
