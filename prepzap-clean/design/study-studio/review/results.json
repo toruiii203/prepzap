@@ -1,0 +1,119 @@
+{
+  "fixtureData": true,
+  "liveAppChanged": false,
+  "accountOperations": false,
+  "storageWrites": 0,
+  "externalRequests": 0,
+  "unitTests": 149,
+  "routePatterns": 57,
+  "appBuild": "passed",
+  "previewTypeCheck": "passed",
+  "previewLint": "passed",
+  "physicalDeviceTested": false,
+  "scenarios": [
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "light",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "dark",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "theme": "light",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "theme": "dark",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "theme": "light",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "theme": "dark",
+      "flow": "passed",
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "externalRequests": 0,
+      "storageWrites": 0
+    },
+    {
+      "flow": "custom subject, skip and exact back navigation",
+      "result": "passed"
+    }
+  ]
+}

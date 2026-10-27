@@ -17,7 +17,9 @@
     "test:quality": "node scripts/qualityAudit.mjs after",
     "test:quality:flows": "node scripts/testQualityFlows.mjs",
     "audit:image-import": "node scripts/probeImageImport.mjs",
-    "test:emotion": "node scripts/emotionalMotionTest.mjs"
+    "test:emotion": "node scripts/emotionalMotionTest.mjs",
+    "build:studio": "node scripts/buildStudyStudio.mjs",
+    "test:studio": "node scripts/testStudyStudio.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
