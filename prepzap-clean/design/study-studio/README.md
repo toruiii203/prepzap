@@ -60,3 +60,5 @@ existing-account password and email-link login remain available through welcome.
 The live question bank, account callbacks and consent guard remain unchanged.
 Latest verification: 176 unit tests and ten live onboarding viewport/theme cases
 plus the completed-account redirect. No new dependency was added.
+
+Approved welcome copy: “Hey, ready to learn something?” / “Seedling will walk you through it.”

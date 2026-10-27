@@ -20,7 +20,7 @@ const mount=()=>render(<MemoryRouter><OnboardingFlow/></MemoryRouter>);
 const begin=()=>{fireEvent.click(screen.getByRole('button',{name:'Get started'}));fireEvent.click(screen.getByRole('button',{name:'Science'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));fireEvent.click(screen.getByRole('button',{name:'Catch up on class'}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));fireEvent.click(screen.getByRole('button',{name:'Try a question'}));};
 describe('live onboarding presentation boundaries',()=>{
  it('shows Google on welcome and preserves the consent guard and OAuth payload',async()=>{
-  mount();expect(screen.getByRole('heading',{name:'Big ideas start here.'})).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Continue with Google'}));const dialog=within(screen.getByRole('dialog'));
+  mount();expect(screen.getByRole('heading',{name:'Hey, ready to learn something?'})).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Continue with Google'}));const dialog=within(screen.getByRole('dialog'));
   expect(dialog.getByRole('button',{name:'Continue with Google'})).toBeDisabled();expect(fixture.oauth).not.toHaveBeenCalled();
   fireEvent.click(dialog.getByRole('checkbox'));await act(async()=>fireEvent.click(dialog.getByRole('button',{name:'Continue with Google'})));
   expect(fixture.oauth).toHaveBeenCalledWith({provider:'google',options:{redirectTo:`${window.location.origin}/auth/callback`,queryParams:{prompt:'select_account'}}});expect(getOnboardingDraft()?.ageConfirmed).toBe(true);

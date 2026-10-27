@@ -89,5 +89,11 @@
   "deploymentVerified": false,
   "leafBackdrop": "Forest green separates the unchanged light green sprout",
   "finalSaveEmailAction": false,
-  "existingAccountEmailLoginAvailable": true
+  "existingAccountEmailLoginAvailable": true,
+  "welcomeHeadline": "Hey, ready to learn something?",
+  "welcomeSubtext": "Seedling will walk you through it.",
+  "latestCopyChecks": {
+    "targetedTests": 21,
+    "viewportThemeCases": 10
+  }
 }
