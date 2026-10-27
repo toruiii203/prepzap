@@ -21,12 +21,9 @@ html .studenius-dialog[data-state=open] { animation:study-dialog-enter var(--mot
 html .studenius-dialog[data-state=closed] { animation:study-dialog-exit var(--motion-exit) var(--motion-ease) both; }
 html .studenius-sheet[data-state=open] { animation:study-sheet-enter var(--motion-enter) var(--motion-ease) both; }
 html .studenius-sheet[data-state=closed] { animation:study-sheet-exit var(--motion-exit) var(--motion-ease) both; }
-.dashboard-greeting { display:flex; align-items:center; gap:16px; padding:12px 24px; background:var(--pz-surface); color:var(--pz-text); border-bottom:2px solid var(--pz-border); }
 @media (min-width:768px) {
-  .dashboard-greeting { padding-left:calc(16rem + 24px); }
   .study-status { padding-left:calc(16rem + 20px); }
 }
-.dashboard-greeting > div { min-width:0; overflow-wrap:anywhere; }
 /* Let the existing weekly bars fit the narrow desktop content column. */
 @media (min-width:768px) and (max-width:1100px) {
   .studenius-app [data-motion-page] .group.h-full:has(> .w-8.border-2) { min-width:0; flex:1 1 0; }

@@ -3,7 +3,6 @@
 .studenius-app :is(button,input,textarea,select):focus-visible{outline:3px solid var(--pz-focus,var(--pz-text));outline-offset:3px}
 .studenius-app :is(input,textarea,select){max-inline-size:100%;min-inline-size:0}
 .studenius-app input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),.studenius-app textarea,.studenius-app select{min-block-size:44px}
-.studenius-app .flex.justify-between:has(> .flex > button[aria-label="Hide study tools"]){flex-wrap:wrap;gap:12px}
 /* Pagination keeps a small visual indicator inside a real 44px hit area. */
 .studenius-app button.h-2.rounded-full{position:relative;background:transparent!important;border-color:transparent}
 .studenius-app button.h-2.rounded-full::after{content:"";position:absolute;left:50%;top:50%;width:24px;height:8px;margin-left:-12px;margin-top:-4px;border-radius:999px;background:var(--pz-text);opacity:.25;transform:scaleX(.3333);transition:transform var(--motion-quick) var(--motion-ease),opacity var(--motion-quick) var(--motion-ease)}
@@ -13,7 +12,6 @@
   .studenius-app label:has(> input[type=checkbox]),.studenius-app label:has(> input[type=radio]){min-block-size:44px}
 }
 .route-announcement{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.dashboard-next-step{display:inline-flex;align-items:center;justify-content:center;gap:8px;max-width:100%;min-height:44px;margin-top:12px;padding:9px 12px;border:2px solid #000;border-radius:12px;background:#ae2925;color:#fff;box-shadow:0 3px 0 #000;font-size:14px;font-weight:800;cursor:pointer}
 .settings-page-frame{width:100%;min-width:0}
 .settings-page-frame .interface-settings{width:min(calc(100% - 32px),560px);margin:16px auto}
 @media(min-width:768px){.settings-page-frame{margin-left:16rem;width:calc(100% - 16rem)}}
