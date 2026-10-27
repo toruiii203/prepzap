@@ -1,19 +1,52 @@
-# Studenius onboarding story — review prototype
+# Studenius onboarding — eight-slide review
 
-27 October 2026, Asia/Manila. Scope: onboarding presentation and mascot support.
-**The production dashboard and its existing prototype composition are unchanged.**
-Dashboard work remains excluded until a new explicit user request.
-Production auth, consent, draft expiry, reward rules and returning-user logic are
-also untouched. This page remains a design review with local sample questions,
-no account operations, no external service requests and no storage writes.
+Scope: `/design-review/study-studio.html` only. Production onboarding, dashboard,
+auth, consent, draft expiry, APIs, storage and reward rules are unchanged. The
+existing dashboard concept and its screenshots are also unchanged. This remains
+a local-fixture design review, not a replacement for the live signup flow.
 
-## Open and compare
+## Flow and copy
 
-- Deployed review, after Cloudflare finishes: `/design-review/study-studio.html`.
-- Download/open `review/prototype.html` without a server; code and fonts are embedded.
+1. **Subject:** “What are we learning today?” Six illustrated choices, More subjects
+   sheet, custom input and “Let's go”.
+2. **Subject response:** the brief's subject-specific headline and support on its
+   approved field, with a large Seedling and separate subject object.
+3. **Optional goal:** “What's today's goal?” Catch up on class / Prep for a test /
+   Just exploring. Skip remains available. Selection exists in React memory only.
+4. **Goal response:** “Catching up works. We'll go at your pace.” / “Test coming?
+   We'll make it count.” / “Exploring is a great start.” Then “Try a question”.
+5. **Warm-up:** one local subject question, three answers, Check and Skip. No timer,
+   invented progress or remote generation. Feedback is immediate.
+6. **Answer response:** “You got it.”, “Good try. Here's the trick.” or “No problem.
+   We'll come back to it.” Correct answer and a short explanation when applicable.
+7. **Save:** “Keep what you just did.” Existing review sign-in dialog entry points
+   and Not now. No account is created by this prototype.
+8. **Arrival:** “You're in. Here's your next step.” Existing dashboard link; the
+   dashboard itself is not redesigned or automatically opened.
+
+The notebook/pencil artwork, writing controller, Scribe/Quiet selector and
+artificial pencil-lift delay have been removed at the user's request. Seedling
+keeps the approved standalone silhouette and all eleven existing gestures. A
+compact companion sits on quiet question slides; reaction slides have a large
+mascot, subject shapes and distinct choreography. Back restores the exact route
+without replaying celebrations. Continue never waits for an animation.
+
+## Readability and composition
+
+Portrait headlines are 30–34px on phones and up to 48px on desktop. Subject
+labels are 15–18px; answers and primary actions are 18px; supporting copy is
+16–18px. Larger type uses real spaces and natural balanced wrapping. The primary
+footer stays reachable at 390×700. Short landscape reactions use two columns
+instead of shrinking the type. Shapes and objects stay outside the moving mascot.
+Theme variables, focus rings, sheet focus restoration, result announcements,
+safe areas and reduced motion remain supported. No new dependency was added.
+
+## Review and verification
+
+- Open `/design-review/study-studio.html` after the Cloudflare build completes.
+- Offline: `review/prototype.html` includes fonts and code.
 - Development: `/design/study-studio/index.html`.
-- Question layout selector: **Scribe / Quiet**. Compare the same questions in both.
-- Dark and Static mascot controls remain in the review bar. OS Reduce Motion wins.
+- Review controls: Dark and Static mascot; OS Reduce Motion takes priority.
 
 ```sh
 npm run build:studio
@@ -25,84 +58,21 @@ npm test
 npm run test:smoke
 ```
 
-## Implemented flow
+Results and unchanged-file hashes are in `review/results.json` and
+`review/scope.json`. Browser coverage includes all eight slides at 320×844,
+390×700, 390×844, 1280×800 and 844×390 in both themes, all six subjects,
+custom/wrong/skip/back paths, modal focus and reduced motion. The separate
+movement gallery verifies all eleven gestures at eight viewport/theme cases.
+These checks use Chromium and local fixtures; live OAuth, real student data,
+physical iPhone Safari, VoiceOver and deployment status are not certified.
 
-Subject choice → subject reaction → local warm-up → answer reaction → save layout
-→ arrival/handoff. The optional goal/reaction pair was omitted to keep the flow
-short and avoid introducing goal persistence. More subjects opens a focus-managed
-sheet with presets and custom input. Back follows the actual path and restores a
-calm reaction instead of replaying a large move or confetti.
+Phone review: follow the eight scenes; try a wrong answer and Skip; use Back;
+check small-screen wrapping and the bottom actions; open More subjects with the
+keyboard; try dark mode and Reduce Motion. Auth buttons are review dialogs here.
 
-Question slides keep a quiet field, a compact 72px mobile scribe slot and six 2×3
-subject cards. Selection has a coral offset shadow, check badge and object wobble.
-Warm-up selection uses a crimson outline. The notebook/pencil are an opt-in SVG
-variant of the same Seedling, with paused scribbling, selection/rewrite reactions,
-a 400ms pencil lift, neutral skip closure and one inactivity glance. It never hints
-at the correct answer. Quiet layout and reduced motion skip the pencil-lift delay.
-
-Reaction slides use the requested subject field and authored copy: Math/Biology
-yellow, Science/History coral, English crimson, Computing/custom paper. Layered
-shapes drift quietly; the selected SVG object uses a shared layout transition,
-then the field/peek/gesture sequence plays. Continue is available throughout.
-A 45svh mascot canvas plus responsive jump clearance preserves room for the art.
-Objects sit outside the mascot's motion envelope. Primary actions stay in a
-separate footer, reachable at 390×700; content can scroll independently.
-
-Subject details: Math blocks hop, Science bubbles rise, English turns a page,
-Biology pulses, History turns its globe, and Computing blinks its code strokes.
-All onboarding artwork is SVG; the earlier raster concept remains only in the
-unchanged art-board/dashboard concept.
-
-Correct answers use “You got it.” and a why card. Wrong answers use “Good try.
-Here's the trick.” with the correct answer/explanation and a gentle forward bounce.
-Skipping is neutral. No sad pose, red X, streak, XP or mastery is awarded. Save
-uses the crimson field, cream arch, small separate cards, bow and wave. Arrival
-spins/waves and links to the existing dashboard; it does not redesign that page.
-
-## Motion architecture
-
-The existing five gestures remain. Six opt-in gestures were added: spin,
-twirl-jump, somersault-lite, peek-in, shake-it-off and bow. They are independently
-replayable in the movement gallery. The default interactive tap set remains the
-original five so existing dashboard interactions do not pick up the new moves.
-
-One large signature per scene resolves the brief's overlapping choreography
-requests. Entrance and quiet secondary gestures can accompany it. Consecutive
-reaction scenes do not repeat a large signature; a correct Science response uses
-a cheer if the preceding reaction already used a twirl jump. Quiet scenes reset
-that comparison. Gestures settle into idle and cancel cleanly on navigation.
-
-Story placements opt into visibility-aware completion callbacks; hidden-tab time
-does not consume the remaining gesture duration. Default placements retain their
-previous behavior. Background/scribe animation pauses while hidden. All keyframes
-use transform/opacity, shared durations and existing preferences. Small landscape
-screens use a shorter jump. Reduced motion has static expressions, no confetti,
-and no scribble/erase loops. Scribe SVG markup is tested below 8KB.
-
-## Verification
-
-- 167 unit/component tests across 29 files.
-- 27 browser scenarios: Scribe/Quiet × light/dark × 390×844, 1280×800, 390×700,
-  320×844 and 844×390; all six subject signatures; custom/wrong/skip/exact Back.
-- Captures include every scene and mid-reaction poses. Assertions cover reachable
-  primary actions, full mascot bounds, separate object bounds, real headline
-  spaces, reduced motion, modal focus/return, no external requests/storage writes,
-  and no repeated large signatures.
-- Movement gallery: eight viewport/theme checks plus all eleven gesture playbacks,
-  settling, transform/opacity keyframes and OS Reduce Motion.
-- Preview/app builds and dedicated TypeScript/touched-file lint pass. All 57 existing
-  fixture route smoke checks pass. Repository-wide legacy debt remains 330 lint
-  errors/75 warnings and 68 type errors; no touched-file errors are hidden.
-- Scope evidence compares the dashboard concept block byte-for-byte and records
-  unchanged production dashboard/auth/onboarding sources. Neither dashboard was
-  opened by the onboarding test suite.
-
-These are Chromium fixtures, not a certification of live OAuth, physical iPhone
-performance, VoiceOver or Safari/PWA keyboard behavior. The existing review auth
-modal explains the actual sign-in/consent handoff; no imitation consent or account
-creation was added. The separate source-image integrity issue remains out of scope.
-
-On a phone: compare Scribe/Quiet; change subjects; try custom input, wrong/correct
-and skip; go Back during a gesture/check; inspect Science's jump and Save at short
-heights; enable Reduce Motion; background/resume the tab. Login and the main action
-should remain reachable. Real auth/draft integration is a later production slice.
+Latest checks: install, preview/app builds, 170 unit tests (29 files), 17 animated
+browser scenarios, 60 additional all-subject copy-fit probes, 57 fixture routes,
+and 10 quiz viewport/theme checks plus the long-text/keyboard case passed.
+Dedicated preview types and touched-file lint pass. Existing repository debt:
+330 lint errors, 75 warnings, 68 type errors. The screenshot archive contains
+68 current captures; retired Scribe/Quiet captures are no longer included.
