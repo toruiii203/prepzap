@@ -23,7 +23,8 @@
     "prebuild": "npm run build:studio && npm run build:garden",
     "build:garden": "node scripts/buildStudyGarden.mjs",
     "test:garden": "node scripts/testStudyGarden.mjs",
-    "test:onboarding:live": "node scripts/testLiveOnboarding.mjs"
+    "test:onboarding:live": "node scripts/testLiveOnboarding.mjs",
+    "test:profile-polish": "node scripts/testProfilePolish.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
