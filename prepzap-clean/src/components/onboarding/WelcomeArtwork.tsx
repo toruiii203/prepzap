@@ -11,7 +11,7 @@ export function WelcomeArtwork({ still, visit }: { still: boolean; visit: number
   const movement = greeting[phase];
   return <div className="welcome-canvas" aria-hidden="true" style={motionVariables} data-still={still}>
     <svg className="welcome-garden" viewBox="0 0 600 440" fill="none">
-      <g className="welcome-arch"><path d="M148 396V220a152 152 0 0 1 304 0v176Z" fill="#9BC464"/><path d="M175 396V222a125 125 0 0 1 250 0v174" stroke="#245C3B" strokeWidth="2" opacity=".4"/></g>
+      <g className="welcome-arch"><path d="M148 396V220a152 152 0 0 1 304 0v176Z" fill="#245C3B"/><path d="M175 396V222a125 125 0 0 1 250 0v174" stroke="#9BC464" strokeWidth="2" opacity=".5"/></g>
       <g className="welcome-sun"><circle cx="451" cy="90" r="42" fill="#FFD13B" stroke="#000" strokeWidth="2"/><path d="M451 66v10m0 28v10m-24-24h10m28 0h10m-41-17 7 7m20 20 7 7m0-34-7 7m-20 20-7 7" stroke="#000" strokeWidth="2" strokeLinecap="round"/></g>
       <g className="welcome-leaves" fill="#245C3B"><path d="M110 351c-46-25-49-59-35-79 31 5 48 34 35 79Z"/><path d="M109 351c-7-43 12-67 36-66 17 26 6 51-36 66Z"/><path d="M486 348c-20-45-7-75 18-81 23 20 17 49-18 81Z"/></g>
       <g className="welcome-trail" stroke="#245C3B" strokeWidth="3" strokeLinecap="round"><path d="m114 114 12-8m-1 25 12-2m-28-31 6-12"/><path d="m485 181 11 6m-14 7 6 9"/></g>

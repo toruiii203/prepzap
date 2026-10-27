@@ -30,10 +30,13 @@ describe('live onboarding presentation boundaries',()=>{
   fireEvent.click(screen.getByRole('button',{name:'Mitochondria'}));expect(getOnboardingDraft()?.firstWinCompleted).toBe(false);fireEvent.click(screen.getByRole('button',{name:'Check answer'}));
   expect(screen.getByRole('heading',{name:'You got it.'})).toBeInTheDocument();expect(getOnboardingDraft()).toMatchObject({subject:'Science',firstWinCompleted:true});expect(fixture.oauth).not.toHaveBeenCalled();expect(fixture.otp).not.toHaveBeenCalled();
  });
- it('keeps email-link authentication and required consent in the final save scene',async()=>{
-  saveOnboardingDraft({firstWinCompleted:true,subject:'Biology'});mount();expect(screen.getByRole('heading',{name:'Keep what you just did.'})).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Continue with email'}));const dialog=within(screen.getByRole('dialog'));
+ it('keeps existing-account email-link login and required consent accessible from welcome',async()=>{
+  mount();fireEvent.click(screen.getByRole('button',{name:'Already have an account? Log in'}));fireEvent.click(screen.getByRole('button',{name:'Email me a sign-in link instead'}));const dialog=within(screen.getByRole('dialog'));
   fireEvent.change(dialog.getByLabelText('Email address'),{target:{value:'student@example.test'}});expect(dialog.getByRole('button',{name:'Send sign-in link'})).toBeDisabled();fireEvent.click(dialog.getByRole('checkbox'));
   await act(async()=>fireEvent.click(dialog.getByRole('button',{name:'Send sign-in link'})));expect(fixture.otp).toHaveBeenCalledWith({email:'student@example.test',options:{emailRedirectTo:`${window.location.origin}/auth/callback`}});expect(dialog.getByRole('status')).toBeInTheDocument();
+ });
+ it('offers Google without an email sign-up action on the final save screen',()=>{
+  saveOnboardingDraft({firstWinCompleted:true,subject:'Biology'});mount();expect(screen.getByRole('heading',{name:'Keep what you just did.'})).toBeInTheDocument();expect(screen.getByRole('button',{name:'Continue with Google'})).toBeInTheDocument();expect(screen.queryByRole('button',{name:/email/i})).toBeNull();
  });
  it('preserves returning-user redirect and draft cleanup',()=>{
   saveOnboardingDraft({subject:'History'});fixture.auth.session={user:{id:'fixture'}};fixture.auth.profile={onboarding_complete:true};mount();expect(fixture.navigate).toHaveBeenCalledWith('/dashboard',{replace:true});expect(getOnboardingDraft()).toBeNull();
