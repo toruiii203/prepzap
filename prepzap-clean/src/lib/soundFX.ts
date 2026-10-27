@@ -190,9 +190,8 @@ export function playIncorrect() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(260, now);
-    osc.frequency.exponentialRampToValueAtTime(140, now + 0.16);
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(220, now);
 
     gain.gain.setValueAtTime(0.18, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);

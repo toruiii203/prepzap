@@ -15,15 +15,16 @@ interface QuizFeedbackProps {
 
 export function QuizFeedback({ answered, correct, canCheck, evaluating, explanation, expectedAnswer, combo, onCheck, onContinue }: QuizFeedbackProps) {
   return (
-    <section aria-label="Answer feedback" className="quiz-feedback sticky bottom-0 w-full border-t-2 border-black bg-white z-40">
+    <section aria-label="Answer feedback" data-result={answered ? correct ? "correct" : "retry" : "pending"} className="quiz-feedback sticky bottom-0 w-full border-t-2 border-black bg-white z-40">
       <div className="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-h-14 flex-1" role="status" aria-live="polite" aria-atomic="true">
           {answered ? (
             <div key={correct ? "correct" : "retry"} className="quiz-feedback-content flex gap-3 items-start">
-              <Mascot key={`${correct}-${combo}`} mood={correct ? combo >= 3 ? "cheering" : "happy" : "sad"} size="xs" />
+              <Mascot key={`${correct}-${combo}`} mood={correct ? combo >= 3 ? "cheering" : "happy" : "encouraging"} size="xs" />
               <div>
-                <p className="font-black text-lg text-black">{correct ? combo > 1 ? `${combo} in a row!` : "You’ve got it!" : "Not quite. Try it again soon."}</p>
+                <p className="font-black text-lg text-black">{correct ? combo > 1 ? `${combo} in a row!` : "You’ve got it!" : "It’s a start. Let’s try it together."}</p>
                 <p className="text-sm font-semibold text-black/75 leading-snug mt-1">{correct ? explanation || "Keep going. You’re making progress." : `Correct answer: ${expectedAnswer}`}</p>
+                {!correct && <p className="text-sm text-black/75 mt-1">Recalling is the hard part. Each try is practice.</p>}
                 {!correct && explanation && <p className="text-sm text-black/75 mt-1">{explanation}</p>}
               </div>
             </div>

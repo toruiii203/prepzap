@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { loadLibrary, onSourceChange } from "@/lib/sourceContext";
+import { loadLibrary, onSourceChange, type SourceFile } from "@/lib/sourceContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useStudySession } from "@/hooks/useStudySession";
 import UpgradePrompt from "@/components/UpgradePrompt";
@@ -26,6 +26,7 @@ import { EmptyStudyState } from "@/components/EmptyStudyState";
 import { QuizAnswer } from "@/components/QuizAnswer";
 import { QuizFeedback } from "@/components/QuizFeedback";
 import { QuizSkeleton } from "@/components/QuizSkeleton";
+import { StudyPlanGeneratorModal, type StudyGenerationStage } from "@/components/StudyPlanGeneratorModal";
 import { Progress } from "@/components/ui/progress";
 import { fireConfetti } from "@/lib/confetti";
 import { AnimatedRex } from "@/components/AnimatedRex";
@@ -170,11 +171,11 @@ interface BannerProps {
   setTopicInput: (v: string) => void;
   onGenerate: () => void;
   onNavigate: (r: string) => void;
-  libraryFiles: any[];
+  libraryFiles: SourceFile[];
   questionCount: number;
   setQuestionCount: (v: number) => void;
-  activeSourceObj: any;
-  setActiveSourceObj: (v: any) => void;
+  activeSourceObj: SourceFile | null;
+  setActiveSourceObj: (v: SourceFile | null) => void;
   quizType: string;
   setQuizType: (v: string) => void;
   difficulty: string;
@@ -202,7 +203,7 @@ function DesktopBanner({
   return (
     <div className="max-w-4xl mx-auto w-full mb-8 bg-white border-2 border-black shadow-[4px_4px_0px_#000] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 font-['Nunito',sans-serif]">
       {/* Top Header Row */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#FF4D2E] text-[24px]">school</span>
@@ -214,21 +215,21 @@ function DesktopBanner({
         </div>
 
         {/* Source selector & Add Source button */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
           <select
             value={activeSourceObj ? activeSourceObj.id : "all"}
             onChange={(e) => {
               if (e.target.value === "all") {
                 setActiveSourceObj(null);
               } else {
-                const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
-                setActiveSourceObj(source);
+                const source = (libraryFiles || []).find((f) => f.id === e.target.value);
+                setActiveSourceObj(source || null);
               }
             }}
             className="w-full sm:w-auto h-10 px-3.5 border-2 border-black rounded-xl bg-[#FAF7F2] text-[12px] font-black text-black cursor-pointer focus:outline-none shadow-[2px_2px_0px_#000]"
           >
             <option value="all">General Study (All Sources)</option>
-            {(libraryFiles || []).map((file: any) => (
+            {(libraryFiles || []).map((file) => (
               <option key={file.id} value={file.id}>{file.name}</option>
             ))}
           </select>
@@ -353,7 +354,7 @@ export default function Practice() {
   const [searchParams] = useSearchParams();
   const { user, profile, refreshProfile } = useAuth();
   const { logSession } = useStudySession();
-  const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice") as any;
+  const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice");
 
   // Duolingo 1-Tap Lesson Shell & Overlay States
   const [isLessonMode, setIsLessonMode] = useState<boolean>(() => {
@@ -367,8 +368,8 @@ export default function Practice() {
   const [screenFlashColor, setScreenFlashColor] = useState<string | null>(null);
 
   // Global Quiz View
-  const [view, setView] = useState<"quiz" | "results">(() => 
-    (localStorage.getItem('pz_practice_view') as any) || "quiz"
+  const [view, setView] = useState<"quiz" | "results" | "complete">(() =>
+    (localStorage.getItem('pz_practice_view') as 'quiz' | 'results' | 'complete' | null) || "quiz"
   );
 
   // Gizmo Adaptive Queue & Recall State
@@ -419,14 +420,15 @@ export default function Practice() {
     try { return JSON.parse(localStorage.getItem('pz_practice_questions') || '[]'); } catch { return []; }
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStage, setGenerationStage] = useState<StudyGenerationStage>("preparing");
   const [topicInput, setTopicInput] = useState(() => 
     localStorage.getItem('pz_practice_topic') || ""
   );
   const [questionCount, setQuestionCount] = useState(() => 
     parseInt(localStorage.getItem('pz_practice_count') || '5', 10)
   );
-  const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
-  const [activeSourceObj, setActiveSourceObj] = useState<any>(null);
+  const [libraryFiles, setLibraryFiles] = useState<SourceFile[]>([]);
+  const [activeSourceObj, setActiveSourceObj] = useState<SourceFile | null>(null);
   const [quizType, setQuizType] = useState<string>("mixed");
   const [difficulty, setDifficulty] = useState<string>("mixed");
 
@@ -434,7 +436,7 @@ export default function Practice() {
     try {
       const raw = localStorage.getItem("pz_duel_opponent");
       if (raw) return JSON.parse(raw);
-    } catch {}
+    } catch { /* Optional legacy persistence must not interrupt practice. */ }
     return null;
   });
 
@@ -547,7 +549,7 @@ export default function Practice() {
         };
         list.unshift(record);
         localStorage.setItem("pz_duel_history", JSON.stringify(list.slice(0, 30)));
-      } catch {}
+      } catch { /* Optional legacy persistence must not interrupt practice. */ }
     }
   }, [view, duelOpponent, score, totalInitialCount]);
 
@@ -633,6 +635,7 @@ Output strict JSON only:
 
   // Generate Quiz handler
   const handleGenerateQuiz = async () => {
+    setGenerationStage("preparing");
     setIsGenerating(true);
     try {
       if (!isPro) {
@@ -683,6 +686,7 @@ Each object MUST match this schema exactly:
   "explanation": "Why this answer is correct."
 }`;
 
+      setGenerationStage("generating");
       const aiResponse = await callGroq(
         [{ role: "user", content: promptText }],
         systemPrompt,
@@ -691,6 +695,7 @@ Each object MUST match this schema exactly:
         "practice"
       );
 
+      setGenerationStage("checking");
       const parsed = safeParseJSON<Question[]>(aiResponse);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const queueItems: AdaptiveItem[] = parsed.map((q, idx) => ({
@@ -721,8 +726,9 @@ Each object MUST match this schema exactly:
           title: `Practice: ${topicHint || "Adaptive Mastery Quiz"}`, 
           durationMinutes: Math.ceil((questionCount || 5) * 1.5) 
         }); 
-        try { await logUsage("practice"); } catch {};
+        try { await logUsage("practice"); } catch { /* Optional legacy persistence must not interrupt practice. */ };
         
+        setGenerationStage("ready");
         playSuccess();
         setView("quiz");
       } else {
@@ -890,9 +896,10 @@ Each object MUST match this schema exactly:
     const xpAwarded    = totalInitialCount * 30 + 20;
     const coinsAwarded = totalInitialCount * 15 + 10;
     if (user && profile) {
+      const legacyProfile: typeof profile & { xp?: number; coins?: number } = profile;
       supabase.from("profiles").update({
-        total_xp: (profile.total_xp || profile.xp || 0) + xpAwarded,
-        coins:    (profile.coins || 0) + coinsAwarded,
+        total_xp: (profile.total_xp || legacyProfile.xp || 0) + xpAwarded,
+        coins:    (legacyProfile.coins || 0) + coinsAwarded,
       }).eq("id", user.id).then(({ error }: { error: unknown }) => {
         if (error) console.error(error);
         if (typeof refreshProfile === "function") refreshProfile();
@@ -1072,6 +1079,7 @@ Each object MUST match this schema exactly:
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/practice"] || []} title="Practice" />
       {showUpgrade && <UpgradePrompt feature="practice" remaining={0} onClose={() => setShowUpgrade(false)} />}
       <ReviewModal />
+      <StudyPlanGeneratorModal isOpen={isGenerating} stage={generationStage} />
 
       {/* Screen edge color flash for combo bursts */}
       {screenFlashColor && (
@@ -1313,9 +1321,9 @@ Each object MUST match this schema exactly:
       <SharedSidebar active="/practice" />
 
       <div className="hidden md:flex md:ml-64 bg-[#FAF7F2] flex-col" style={{ minHeight: "100vh" }}>
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col xl:flex-row flex-1 min-w-0">
           {/* Main Workspace */}
-          <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
             
             {/* View: Active Quiz or Generator */}
             {view === "quiz" && (
@@ -1659,7 +1667,7 @@ Each object MUST match this schema exactly:
 
           {/* Desktop Quiz History Sidebar: only shown when not in an active quiz */}
           {(adaptiveQueue.length === 0 || isGenerating) && (
-            <aside className="w-[280px] border-l-2 border-black bg-white flex flex-col shrink-0" style={{ minHeight: "100vh" }}>
+            <aside className="w-full xl:w-[280px] border-t-2 xl:border-t-0 xl:border-l-2 border-black bg-white flex flex-col shrink-0" style={{ minHeight: 320 }}>
               <HistoryDrawerContent />
             </aside>
           )}
@@ -1838,14 +1846,14 @@ Each object MUST match this schema exactly:
                         if (e.target.value === "all") {
                           setActiveSourceObj(null);
                         } else {
-                          const source = (libraryFiles || []).find((f: any) => f.id === e.target.value);
-                          setActiveSourceObj(source);
+                          const source = (libraryFiles || []).find((f) => f.id === e.target.value);
+                          setActiveSourceObj(source || null);
                         }
                       }}
                       className="w-full border-2 border-black rounded-lg px-3 py-2 bg-[#F0EDE0] text-[12px] font-bold focus:outline-none cursor-pointer"
                     >
                       <option value="all">General Study (No Source)</option>
-                      {(libraryFiles || []).map((file: any) => (
+                      {(libraryFiles || []).map((file) => (
                         <option key={file.id} value={file.id}>{file.name}</option>
                       ))}
                     </select>
