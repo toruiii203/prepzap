@@ -1,7 +1,7 @@
 # Studenius onboarding — live and review
 
 The user approved the shared presentation for **live `/onboarding`** on 27 October.
-Production dashboard remains unchanged. The next dashboard direction is a separate
+The dashboard keeps its existing design, with the later user-requested banner/tools-frame cleanup. The next dashboard direction is a separate
 review at `/design-review/study-garden.html`; it has not replaced any app page.
 
 ## Updated onboarding

@@ -269,3 +269,13 @@ generated images.
 - Contextual support should never stack overlays or interrupt an active answer.
   Reuse existing queued celebrations and popup frequency policy after approval;
   expand useful event coverage rather than manufacturing milestones or urgency.
+
+
+### Targeted live dashboard/profile cleanup approved afterward
+
+The user explicitly requested removal of the persistent dashboard encouragement
+banner and the outer four-tool shelf frame. Those targeted changes are live-code
+updates, alongside a corrected profile editor and eight original SVG portrait
+choices. They do not adopt the study-garden review as the production dashboard.
+The wider page redesign and new popup rollout remain gated by visual approval.
+See `docs/quality-audit/profile-polish/README.md` for scope and verification.

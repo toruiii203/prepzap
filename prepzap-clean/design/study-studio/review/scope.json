@@ -1,11 +1,13 @@
 {
   "baselineCommit": "453d866d760514e2f51aca256f5451c8ed91ea41",
-  "scope": "User-approved live onboarding presentation; dashboard, account rules and endpoints preserved.",
+  "scope": "Onboarding and later user-approved dashboard banner/tools-frame cleanup; auth and bank preserved.",
   "checks": [
     {
       "path": "src/pages/Dashboard.tsx",
-      "unchanged": true,
-      "sha256": "2304f5f526384c3b3260bb71a6a42b4ea46367bacffc4999c8b2b3ed207e5a5b"
+      "unchanged": false,
+      "sha256": "2304f5f526384c3b3260bb71a6a42b4ea46367bacffc4999c8b2b3ed207e5a5b",
+      "approvedChange": "User explicitly requested banner removal and a frameless four-tool shelf.",
+      "currentSha256": "6b7423b30a4a3280d6950f84b5bed8165ceb78a8d59d7cbc890a7af10ed17222"
     },
     {
       "path": "src/pages/OnboardingFlow.tsx",

@@ -1,0 +1,92 @@
+{
+  "scope": "User-requested dashboard removals and profile UI/assets",
+  "fixtureData": true,
+  "realAccountOperations": false,
+  "unitTests": 178,
+  "unitFiles": 31,
+  "routePatternsPassed": 57,
+  "apiAndStorageLogicChanged": false,
+  "handlers": {
+    "upload": {
+      "unchanged": true,
+      "sha256": "ac25a840999bf23b7f90aadf2d7b3330b3e10748dbb6ee48b7f16a1fc88535df"
+    },
+    "imageURL": {
+      "unchanged": true,
+      "sha256": "837d3c5be2e92e1e0b6e13b5aea835a6d5d61f0da58568b3c2abc369dcae561c"
+    },
+    "save": {
+      "unchanged": true,
+      "sha256": "83dd464d6672d48712b55e146a31902c3dc4a15413a24524698b02419d797b5b"
+    }
+  },
+  "newPortraits": 8,
+  "physicalDeviceTested": false,
+  "repositoryLintErrors": 324,
+  "repositoryLintWarnings": 73,
+  "repositoryTypeErrors": 68,
+  "dashboardLegacyLintErrors": 25,
+  "browserCases": [
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "light",
+      "result": "passed"
+    },
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "dark",
+      "result": "passed"
+    },
+    {
+      "width": 390,
+      "height": 700,
+      "theme": "light",
+      "result": "passed"
+    },
+    {
+      "width": 390,
+      "height": 700,
+      "theme": "dark",
+      "result": "passed"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "result": "passed"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "result": "passed"
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "result": "passed"
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "result": "passed"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "result": "passed"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "result": "passed"
+    }
+  ],
+  "yellowHeaderContrast": "Black title confirmed in light and dark mode"
+}
