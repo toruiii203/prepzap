@@ -39,6 +39,24 @@ try {
       results.push({ theme: dark ? 'dark' : 'light', width, overflow: false });
     }
   }
+  await page.setViewport({width:1200,height:1000});
+  await page.evaluate(()=>{const input=[...document.querySelectorAll('label')].find(label=>label.textContent.includes('Static poses')).querySelector('input');if(input.checked)input.click();});
+  const gestures=['wave','curious','hop','cheer','dance'];
+  for(const movement of gestures){
+    const card=await page.$(`[data-preview-movement="${movement}"]`);
+    await card.evaluate(element=>element.scrollIntoView({block:'center',behavior:'instant'}));
+    await (await card.$('button')).click();
+    await page.waitForFunction(value=>document.querySelector(`[data-preview-movement="${value}"] svg`).dataset.movement===value,{},movement);
+    const sample=await card.evaluate(element=>{
+      const animations=element.querySelector('svg').getAnimations({subtree:true});
+      for(const animation of animations){animation.pause();animation.currentTime=Number(animation.effect.getTiming().duration)*.4;}
+      return {movement:element.querySelector('svg').dataset.movement,animations:animations.map(animation=>animation.animationName),actor:getComputedStyle(element.querySelector('[data-layer=actor]')).transform};
+    });
+    assert.ok(sample.animations.length>0,`Missing animation for ${movement}`);assert.notEqual(sample.actor,'none');
+    await card.screenshot({path:`design/seedling/review/movement-${movement}.png`});
+    await page.waitForFunction(value=>document.querySelector(`[data-preview-movement="${value}"] svg`).dataset.movement==='rest',{timeout:4000},movement);
+    results.push({movement,oneShot:true,animatedProperties:'transform/opacity',sample});
+  }
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.evaluate(() => {
     const input = [...document.querySelectorAll('label')].find(label => label.textContent.includes('Static poses')).querySelector('input');

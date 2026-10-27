@@ -98,3 +98,43 @@ approved. The first entry-streak slice is implemented; see
 `docs/ENTRY_STREAK_SLICE.md`. Broad rollout remains a later review.
 On a phone, check leaf/face readability at small sizes, happy/celebrate timing,
 peek cropping, sleepy eyes, keyboard focus, reduced motion and both themes.
+
+## Movement studio — 27 October 2026
+
+Open `review/preview.html` for the self-contained movement gallery, or run Vite
+and visit `/design/seedling/index.html`. The five new one-shot gestures are wave,
+curious lean, happy hop, double cheer and side-step dance. The expression selector
+changes the face independently. Replay each gesture or use Replay reactions;
+Static poses and the OS Reduce Motion preference disable animation.
+
+```tsx
+<Mascot mood="idle" movement="wave" reactionKey={greetingNumber} />
+<Mascot mood="thinking" movement="curious" reactionKey={choiceNumber} />
+<Mascot mood="happy" movement="dance" reactionKey={celebrationNumber} />
+```
+
+Increment `reactionKey` to replay without remounting the mascot. Gesture durations
+and types live in `src/lib/mascotMovement.ts`. Gestures settle back into a quiet
+breathing pose and preserve the selected facial mood. Happy and cheering app
+reactions now default to distinct hop/cheer gestures. Interactive mascot taps pick
+from the five gestures without consecutive repeats; existing sound/haptic settings
+are reused, and no sound plays automatically on a movement prop change.
+
+This prepares the character for the proposed choice → solo reaction onboarding.
+It does not replace the onboarding screens, change login, call a model, change
+progress/reward rules or write a new storage key. The approved artwork and palette
+are unchanged; no dependency was added.
+
+Verification: 149 unit/component tests; all 57 fixture route smoke checks; ten
+quiz viewport/theme combinations plus keyboard-sized/long-text checks; eight
+preview viewport/theme checks plus five actual gesture playback/settling checks;
+OS reduced motion; only transform/opacity keyframes; no external preview requests.
+App build, preview build and preview TypeScript checks pass. Changed files have
+no lint/type errors. Existing repository totals remain 330 lint errors, 75 warnings
+and 68 type errors elsewhere. No real student data was used. Physical iPhone
+animation smoothness and sound balance still need manual review.
+
+Phone check: open the gallery, replay every gesture, change the expression,
+try portrait/landscape and Reduce Motion, then tap the home mascot repeatedly.
+Ensure reactions settle, the same tap gesture does not repeat immediately, and
+Continue remains usable in normal quiz flows.
