@@ -1,0 +1,20 @@
+{
+  "status": "concept for visual review; not in production app bundle",
+  "style": "approved graphic study studio, layered flat art",
+  "source": "OpenAI image generation tool, original generation plus a refinement pass",
+  "sourceFile": "exec-f3c515d9-db7f-4c5f-967d-91ac76120858.png",
+  "asset": "study-composition.webp",
+  "bytes": 62020,
+  "format": "WebP with alpha",
+  "exportDimensions": [
+    900,
+    600
+  ],
+  "notes": [
+    "Original PNG retained in generated_images workspace",
+    "WebP conversion only resized and encoded; no manual alteration of artwork",
+    "No third-party art, mascot or sound assets used",
+    "The nine SVG study objects are hand-authored in StudyObject.tsx",
+    "Review outlines, color consistency and transparent edges before production rollout"
+  ]
+}
