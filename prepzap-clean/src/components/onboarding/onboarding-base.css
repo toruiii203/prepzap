@@ -1,0 +1,28 @@
+@font-face{font-family:Fredoka;src:url('/fonts/fredoka.woff2') format('woff2');font-weight:300 700;font-display:swap}
+.studenius-onboarding,.onboarding-dialog{--paper:var(--pz-bg,#FAF7F2);--panel:var(--pz-surface,#FFF);--ink:var(--pz-text,#000);--muted:var(--pz-text-muted,#58534d);--line:var(--pz-border,#000);--story-leaf:#9BC464;--story-forest:#245C3B;--story-ink:var(--ink);font-family:Nunito,ui-rounded,system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+.studenius-onboarding{position:fixed;inset:0;z-index:40;min-height:0!important;height:100dvh!important;display:flex;flex-direction:column}
+.studenius-onboarding *,.onboarding-dialog *{box-sizing:border-box}
+.studenius-onboarding :is(h1,h2,h3,p){margin:0}
+.studenius-onboarding h1,.onboarding-dialog h2{font-family:Fredoka,Nunito,sans-serif;font-weight:500;letter-spacing:-.025em}
+.studenius-onboarding button,.onboarding-dialog button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+.studenius-onboarding button:disabled,.onboarding-dialog button:disabled{opacity:.45;cursor:default}
+.studenius-onboarding svg,.onboarding-dialog svg{display:block;flex-shrink:0}
+.studenius-onboarding button svg{max-width:100%}
+.studenius-onboarding h1:focus{outline:none}
+.onboarding-dialog-overlay{position:fixed;inset:0;background:#0009;z-index:100}
+.onboarding-dialog{position:fixed;z-index:101;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:2px solid var(--line);border-radius:24px;padding:28px;text-align:center;box-shadow:0 5px 0 #000;scroll-padding-block:20px}
+.onboarding-dialog[data-theme=dark]{--paper:#15120F;--panel:#211D19;--ink:#F8F5F0;--muted:#c4b8ac;--line:#a3998e}
+.onboarding-dialog>.mascot{margin:auto}
+.onboarding-dialog h2{font-size:30px;line-height:1.15;margin:12px 0}
+.onboarding-dialog p{font-size:16px;line-height:1.5;color:var(--muted);margin:8px 0 20px}
+.onboarding-dialog .close-modal{position:absolute;right:8px;top:8px;width:44px;height:44px;border:0;background:none;font-size:28px;color:var(--ink)}
+.onboarding-dialog form{display:grid;gap:16px;margin-top:20px}
+.onboarding-dialog label{display:grid;gap:8px;text-align:left;font-size:16px;font-weight:800}
+.onboarding-dialog input:not([type=checkbox]){width:100%;min-height:52px;font-size:16px;border:2px solid var(--line);border-radius:12px;padding:12px;color:var(--ink);background:var(--panel)}
+.onboarding-dialog .onboarding-consent{display:flex;align-items:flex-start;gap:12px;text-align:left;margin:20px 0;font-size:14px;line-height:1.5;font-weight:600;cursor:pointer}
+.onboarding-consent input{appearance:auto;accent-color:#245C3B;min-width:22px;width:22px;height:22px;margin:2px 0 0}
+.onboarding-consent a{text-decoration:underline;color:inherit;font-weight:900}
+.onboarding-dialog .onboarding-auth-error{padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}
+.onboarding-dialog :is(button,a,input):focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.onboarding-dialog .story-primary{width:100%}.onboarding-dialog .story-google{width:100%}.onboarding-dialog .story-text{color:var(--ink);margin-top:10px}
+.onboarding-dialog .primary{background:#245C3B;color:#FFF}

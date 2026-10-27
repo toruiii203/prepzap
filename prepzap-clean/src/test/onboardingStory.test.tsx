@@ -14,29 +14,29 @@ describe("onboarding story presentation",()=>{
  it("follows all eight slides with a prop-free companion and immediate answer feedback",()=>{
   const {container}=render(<OnboardingStory dark={false} still onAuth={()=>{}}/>);
   const scene=()=>container.querySelector('.story-root')?.getAttribute('data-scene');
-  expect(scene()).toBe('subject');expect(container.querySelector('[data-layer=scribe-props]')).toBeNull();
+  expect(scene()).toBe('welcome');fireEvent.click(screen.getByRole('button',{name:'Get started'}));expect(scene()).toBe('subject');expect(container.querySelector('[data-layer=scribe-props]')).toBeNull();
   fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));expect(scene()).toBe('response');
   fireEvent.click(screen.getByRole('button',{name:'Continue'}));expect(scene()).toBe('goal');
   expect(screen.getByRole('button',{name:'Continue'})).toBeDisabled();fireEvent.click(screen.getByRole('button',{name:'Catch up on class'}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));expect(scene()).toBe('goal-response');
   expect(screen.getByRole('heading',{name:'Catching up works.'})).toBeInTheDocument();expect(screen.getByText("We'll go at your pace.")).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'Try a question'}));expect(scene()).toBe('question');expect(screen.getByRole('button',{name:/Check answer/})).toBeDisabled();
   fireEvent.click(screen.getByRole('button',{name:'36'}));fireEvent.click(screen.getByRole('button',{name:/Check answer/}));expect(scene()).toBe('feedback');expect(screen.getByRole('heading',{name:"Good try. Here's the trick."})).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:'Keep going'}));expect(scene()).toBe('save');fireEvent.click(screen.getByRole('button',{name:'Not now'}));expect(scene()).toBe('arrival');
+  fireEvent.click(screen.getByRole('button',{name:'Keep going'}));expect(scene()).toBe('save');fireEvent.click(screen.getByRole('button',{name:'Continue preview'}));expect(scene()).toBe('arrival');
   expect(container.textContent).not.toMatch(/XP|1.day streak|mastery/);
  });
- it("lets students skip optional goals and restores the exact path without replaying celebrations",()=>{
+ it("has clean chrome, no skip action and restores Back without replaying celebrations",()=>{
   const {container}=render(<OnboardingStory dark={false} still onAuth={()=>{}}/>);
-  fireEvent.click(screen.getByRole('button',{name:'Science'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));
-  fireEvent.click(screen.getByRole('button',{name:'Skip for now'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','question');fireEvent.click(screen.getByRole('button',{name:'Go back'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','goal');
-  fireEvent.click(screen.getByRole('button',{name:'Go back'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','response');expect(container.querySelector('.story-root')).toHaveAttribute('data-signature','quiet');
+  expect(screen.getByRole('button',{name:'Continue with Google'})).toBeInTheDocument();expect(container.querySelector('.story-eyebrow')).toBeNull();expect(screen.queryByRole('button',{name:/skip/i})).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Get started'}));fireEvent.click(screen.getByRole('button',{name:'Science'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));
+  expect(screen.queryByRole('button',{name:/skip/i})).toBeNull();fireEvent.click(screen.getByRole('button',{name:'Go back'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','response');expect(container.querySelector('.story-root')).toHaveAttribute('data-signature','quiet');
  });
  it.each(goalStories)("keeps the exact $label reaction copy",goal=>{
   render(<OnboardingStory dark={false} still onAuth={()=>{}}/>);
-  fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));
+  fireEvent.click(screen.getByRole('button',{name:'Get started'}));fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));
   fireEvent.click(screen.getByRole('button',{name:goal.label}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));expect(screen.getByRole('heading',{name:goal.headline})).toBeInTheDocument();if(goal.support)expect(screen.getByText(goal.support)).toBeInTheDocument();
  });
  it("has static expressions and no confetti in reduced motion",()=>{
-  preference.reduced=true;const {container}=render(<OnboardingStory dark={false} still={false} onAuth={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));
+  preference.reduced=true;const {container}=render(<OnboardingStory dark={false} still={false} onAuth={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'Get started'}));fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));
   expect(container.querySelector('.mascot')).toHaveAttribute('data-reduced-motion','true');expect(container.querySelector('.story-confetti')).toBeNull();
  });
  it.each(subjectNames)("uses the %s copy and only one non-repeating large signature",name=>{
