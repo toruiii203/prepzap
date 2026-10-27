@@ -4,7 +4,7 @@ export const fixtureProfile = {
   onboarding_complete: true, streak_days: 3, total_xp: 475, coins: 20,
   plan: 'free', subjects: ['Biology'], daily_goal_minutes: 30,
 };
-export async function seedBrowser(page, { lesson = false, theme = 'light' } = {}) {
+export async function seedBrowser(page, { lesson = false, theme = 'light', studySessions = [] } = {}) {
   await page.evaluateOnNewDocument((profile, options) => {
     const user = { id: profile.id, email: profile.email, user_metadata: { full_name: profile.full_name } };
     const session = { access_token: 'mock-token', user };
@@ -41,7 +41,7 @@ export async function seedBrowser(page, { lesson = false, theme = 'light' } = {}
   page.on('request', request => {
     const url = new URL(request.url());
     if (['localhost', '127.0.0.1'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) return request.continue();
-    let body = url.pathname.includes('/profiles') && url.searchParams.get('id') === `eq.${fixtureProfile.id}` ? fixtureProfile : [];
+    let body = url.pathname.includes('/profiles') && url.searchParams.get('id') === `eq.${fixtureProfile.id}` ? fixtureProfile : url.pathname.endsWith('/study_sessions') ? studySessions : [];
     if (url.hostname.includes('workers.dev')) {
       const item = { term: 'Mitosis', definition: 'Cell division', statement: 'Mitosis divides a cell.', isTrue: true, question: 'Which process divides a cell?', correctAnswer: 'Mitosis', wrongAnswers: ['Photosynthesis','Respiration','Diffusion'], items: ['Mitosis','Meiosis','Division','Photosynthesis'], oddIndex: 3, reason: 'Photosynthesis makes sugars.', word: 'MITOSIS', hint: 'Cell division', options: ['A. Mitosis','B. Diffusion','C. Respiration','D. Photosynthesis'], correct_answer: 'A', explanation: 'Mitosis creates two daughter cells.' };
       body = { choices: [{ message: { content: JSON.stringify([item]) } }] };

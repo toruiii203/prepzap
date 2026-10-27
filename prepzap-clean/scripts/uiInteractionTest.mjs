@@ -40,7 +40,7 @@ try {
       assert.equal(await page.$eval('[data-victory-screen]',element=>element.scrollWidth<=window.innerWidth),true,'completion overflow');
       await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
       await page.waitForFunction(()=>document.querySelector('[data-victory-screen] [data-mascot]')?.getAttribute('data-reduced-motion')==='true');
-      assert.equal(await page.$eval('.mascot-rig',element=>getComputedStyle(element).animationName),'none');
+      assert.equal(await page.$$eval('[data-victory-screen] .seedling-art *',elements=>elements.length>0&&elements.every(element=>getComputedStyle(element).animationName==='none')),true);
       await page.screenshot({path:`.agent/screenshots/victory-${width}-${theme}.png`,fullPage:false});
       assert.deepEqual(errors,[]);
       results.push({width,height,theme,quiz:'passed',completion:'passed',reducedMotion:'passed'});

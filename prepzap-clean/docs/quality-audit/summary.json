@@ -1,0 +1,116 @@
+{
+  "fixtureData": true,
+  "physicalDeviceTested": false,
+  "before": {
+    "samples": 26,
+    "unnamedControlInstances": 44,
+    "smallTargetInstances": 171,
+    "runtimeErrorSamples": 2,
+    "overflowSamples": 0
+  },
+  "after": {
+    "samples": 26,
+    "unnamedControlInstances": 0,
+    "smallTargetInstances": 0,
+    "runtimeErrorSamples": 0,
+    "overflowSamples": 0
+  },
+  "functionalFlows": [
+    {
+      "width": 390,
+      "theme": "light",
+      "flow": "find real next lesson and expand/collapse tools",
+      "result": "passed"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "flow": "real totals, visible chart, one refresh query, share values",
+      "responsiveWidths": [
+        320,
+        768,
+        1024,
+        1440
+      ],
+      "result": "passed"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "flow": "create and delete local text source",
+      "result": "passed"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "flow": "aligned settings and working semantic theme switch",
+      "responsiveWidths": [
+        390,
+        768,
+        1440
+      ],
+      "result": "passed"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "flow": "find real next lesson and expand/collapse tools",
+      "result": "passed"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "flow": "real totals, visible chart, one refresh query, share values",
+      "responsiveWidths": [
+        320,
+        768,
+        1024,
+        1440
+      ],
+      "result": "passed"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "flow": "create and delete local text source",
+      "result": "passed"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "flow": "aligned settings and working semantic theme switch",
+      "responsiveWidths": [
+        390,
+        768,
+        1440
+      ],
+      "result": "passed"
+    }
+  ],
+  "imageImport": {
+    "fixtureData": true,
+    "originalCharacters": 1203538,
+    "storedCharacters": 50000,
+    "bytesPreserved": false,
+    "storedImageDecodes": true,
+    "status": "confirmed image-import defect",
+    "severity": "P1",
+    "migrationApplied": false
+  },
+  "limitations": [
+    "First-viewport heuristic control checks, not WCAG certification",
+    "HTTP/auth/realtime and platform share APIs are fixtures",
+    "Live iOS reference retrieval was blocked by the network proxy",
+    "Image import integrity remains a confirmed failing check pending migration scope"
+  ],
+  "repositoryChecks": {
+    "unitTests": 136,
+    "testFiles": 26,
+    "lintErrors": 345,
+    "lintWarnings": 75,
+    "typeErrors": 72,
+    "changedFilesLintAndTypeErrors": 0,
+    "build": "passed",
+    "routePatternsPassed": 57
+  }
+}

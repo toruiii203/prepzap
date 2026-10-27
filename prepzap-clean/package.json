@@ -13,7 +13,10 @@
     "test:watch": "vitest",
     "test:smoke": "node scripts/smokeTest.mjs",
     "test:ui": "node scripts/uiInteractionTest.mjs",
-    "test:navigation": "node scripts/navigationSmokeTest.mjs"
+    "test:navigation": "node scripts/navigationSmokeTest.mjs",
+    "test:quality": "node scripts/qualityAudit.mjs after",
+    "test:quality:flows": "node scripts/testQualityFlows.mjs",
+    "audit:image-import": "node scripts/probeImageImport.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
