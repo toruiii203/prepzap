@@ -48,7 +48,7 @@ hint and does not add persistence or reward logic.
 | Goal response | Reassuring choice-specific copy | Bow/wave and a yellow arch | Try a question immediately |
 | Warm-up | Existing shuffled local question bank on live route | Large readable choices; no subject eyebrow or timer | Check after selection; no Skip |
 | Answer response | Correct explanation or reassuring correction | Existing transform/opacity gesture rig | Continue immediately; no new award rules |
-| Save | Existing Google/email auth, consent and error recovery | Forest field, cream Seedling, separate cards | Existing account callback handles entry |
+| Save | Google sign-in, consent and error recovery; email login stays under existing-account entry | Forest field, cream Seedling, separate cards | Existing account callback handles entry |
 | Arrival | Existing dashboard handoff | Spin/wave in the standalone review | Actual live callback/redirect remains authoritative |
 
 Subject-specific reactions use a small authored copy table and reusable objects,

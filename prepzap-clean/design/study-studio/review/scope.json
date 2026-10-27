@@ -12,7 +12,7 @@
       "unchanged": false,
       "sha256": "42f29e86e049ffcdafddb7a17ddd5c2607e9bfb7db120da34baaa99ce94c93ef",
       "approvedChange": "Live presentation explicitly approved by user; existing auth payloads and draft helper retained.",
-      "currentSha256": "69bcb9f19afca6f15fb22c7bd900ec2a06e73d7e070edcf50428b349e5d4caba"
+      "currentSha256": "4b740d91502bb6d00401773363ce0bd3be9228cdc4c67837e00315841567a190"
     },
     {
       "path": "src/contexts/AuthContext.tsx",

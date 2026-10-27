@@ -51,5 +51,12 @@ VoiceOver and Cloudflare's deployment status require manual verification.
 
 Phone review: inspect the opening animation; try Google and the consent checkbox;
 use Get started, More subjects, Back and an incorrect answer; reload after the
-warm-up to check resume; try dark mode and Reduce Motion; check the email dialog
+warm-up to check resume; try dark mode and Reduce Motion; open existing-account login and check the email dialog
 with the keyboard open. Test actual Google sign-in with your own account.
+
+Latest polish: the welcome arch uses forest green so the light-green leaf remains
+visible in every pose. The final onboarding save screen now offers Google only;
+existing-account password and email-link login remain available through welcome.
+The live question bank, account callbacks and consent guard remain unchanged.
+Latest verification: 176 unit tests and ten live onboarding viewport/theme cases
+plus the completed-account redirect. No new dependency was added.

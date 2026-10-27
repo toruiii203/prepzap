@@ -5,7 +5,7 @@
   "APIEndpointsChanged": false,
   "localQuestionBankChanged": false,
   "newDependencies": false,
-  "unitTests": 175,
+  "unitTests": 176,
   "unitTestFiles": 30,
   "routePatternsPassed": 57,
   "liveBrowserCases": [
@@ -86,5 +86,8 @@
   "repositoryTypeErrors": 68,
   "physicalDeviceTested": false,
   "realOAuthTested": false,
-  "deploymentVerified": false
+  "deploymentVerified": false,
+  "leafBackdrop": "Forest green separates the unchanged light green sprout",
+  "finalSaveEmailAction": false,
+  "existingAccountEmailLoginAvailable": true
 }
