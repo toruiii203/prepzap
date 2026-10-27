@@ -138,3 +138,18 @@ Phone check: open the gallery, replay every gesture, change the expression,
 try portrait/landscape and Reduce Motion, then tap the home mascot repeatedly.
 Ensure reactions settle, the same tap gesture does not repeat immediately, and
 Continue remains usable in normal quiz flows.
+
+## Onboarding-only motion extension
+
+Six additional one-shot movements are available in the gallery: spin, twirl-jump,
+somersault-lite, peek-in, shake-it-off and bow. The default interactive tap set
+remains the original five; dashboard gestures and artwork are unchanged.
+
+`<Mascot variant="scribe" scribeAction="write" />` adds the original notebook and
+pencil on the same SVG rig. The onboarding controller supplies selection/rewrite,
+pencil-lift, close and once-per-slide glance states. It stays alert instead of
+switching into the general inactivity-sleep pose. Reduced motion is static.
+
+Story placements opt into `pauseWhenHidden` and `onMovementComplete` to sequence
+entrance/quiet gestures with one signature. Existing placements keep their default
+behavior. New gestures are optional; they do not award progress or call a service.

@@ -41,7 +41,7 @@ try {
   }
   await page.setViewport({width:1200,height:1000});
   await page.evaluate(()=>{const input=[...document.querySelectorAll('label')].find(label=>label.textContent.includes('Static poses')).querySelector('input');if(input.checked)input.click();});
-  const gestures=['wave','curious','hop','cheer','dance'];
+  const gestures=['wave','curious','hop','cheer','dance','spin','twirl-jump','somersault-lite','peek-in','shake-it-off','bow'];
   for(const movement of gestures){
     const card=await page.$(`[data-preview-movement="${movement}"]`);
     await card.evaluate(element=>element.scrollIntoView({block:'center',behavior:'instant'}));
@@ -69,7 +69,7 @@ try {
   assert.deepEqual(invalidAnimatedProperties, []);
   assert.deepEqual(errors, []);
   await writeFile('.agent/seedling-browser-report.json', JSON.stringify({ results, externalRequests, errors, reducedMotionMovingElements: moving, invalidAnimatedProperties }, null, 2));
-  console.log(`PASS ${results.length} viewport/theme checks; OS reduced motion; transform/opacity-only keyframes; no external requests or browser errors`);
+  console.log(`PASS ${results.filter(item => "width" in item).length} viewport/theme checks and ${gestures.length} gestures; OS reduced motion; transform/opacity-only keyframes; no external requests or browser errors`);
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

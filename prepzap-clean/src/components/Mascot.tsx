@@ -10,7 +10,8 @@ import { seedlingArtwork } from "@/components/mascot/seedlingRig";
 export type MascotMood = "idle" | "happy" | "celebrate" | "sad" | "thinking" | "sleepy" | "cheering" | "encouraging" | "encourage" | "peek";
 export type MascotSize = "xs" | "sm" | "md" | "lg" | "xl" | "hero";
 const sizes: Record<MascotSize, number> = { xs: 52, sm: 80, md: 128, lg: 184, xl: 240, hero: 300 };
-export interface MascotArtworkState { mood: MascotMood; blink: boolean; reduced: boolean; movement?: MascotMovementPose; movementKey?: string | number; }
+export type ScribeAction = "rest" | "write" | "quick" | "rewrite" | "lift" | "close" | "glance";
+export interface MascotArtworkState { mood: MascotMood; blink: boolean; reduced: boolean; movement?: MascotMovementPose; movementKey?: string | number; variant?: "default" | "scribe"; scribeAction?: ScribeAction; }
 export interface MascotArtwork {
   render: (state: MascotArtworkState) => ReactNode;
   aspectRatio: string;
@@ -22,6 +23,10 @@ export interface MascotProps {
   mood?: MascotMood;
   size?: MascotSize;
   movement?: MascotMovement;
+  variant?: "default" | "scribe";
+  scribeAction?: ScribeAction;
+  pauseWhenHidden?: boolean;
+  onMovementComplete?: () => void;
   /** Increment to replay the same movement without remounting the mascot. */
   reactionKey?: string | number;
   interactive?: boolean;
@@ -33,7 +38,7 @@ export interface MascotProps {
 }
 
 /** Shared seedling lifecycle and support for isolated artwork previews. */
-export function Mascot({ mood = "idle", size = "md", movement, reactionKey = 0, interactive = false, animate = true, className = "", label, onClick, artwork = seedlingArtwork }: MascotProps) {
+export function Mascot({ mood = "idle", size = "md", movement, variant = "default", scribeAction = "rest", pauseWhenHidden = false, onMovementComplete, reactionKey = 0, interactive = false, animate = true, className = "", label, onClick, artwork = seedlingArtwork }: MascotProps) {
   const reduced = usePrefersReducedMotion() || !animate;
   const [blink, setBlink] = useState(false);
   const [sleepy, setSleepy] = useState(false);
@@ -43,20 +48,28 @@ export function Mascot({ mood = "idle", size = "md", movement, reactionKey = 0, 
   const lastTap = useRef<MascotMovement>();
   const requestedMovement = movement ?? (mood === "cheering" ? "cheer" : mood === "happy" ? "hop" : undefined);
   const [movementEnded, setMovementEnded] = useState(false);
-  useEffect(() => {
-    setMovementEnded(false);
-    if (!requestedMovement || reduced) return;
-    const timer = setTimeout(() => setMovementEnded(true), mascotMovements[requestedMovement].duration * 1000);
-    return () => clearTimeout(timer);
-  }, [requestedMovement, reactionKey, reduced]);
   const [inView, setInView] = useState(true);
   const [tabVisible, setTabVisible] = useState(() => !document.hidden);
   const visible = inView && tabVisible;
+  const movementVisible = !pauseWhenHidden || visible;
+  const remaining = useRef(0);
+  const completion = useRef(onMovementComplete);
+  completion.current = onMovementComplete;
+  useEffect(() => {
+    setMovementEnded(false);
+    remaining.current = requestedMovement ? mascotMovements[requestedMovement].duration * 1000 : 0;
+  }, [requestedMovement, reactionKey, reduced]);
+  useEffect(() => {
+    if (!requestedMovement || reduced || !movementVisible || remaining.current <= 0) return;
+    const started = performance.now();
+    const timer = setTimeout(() => { remaining.current = 0; setMovementEnded(true); completion.current?.(); }, remaining.current);
+    return () => { clearTimeout(timer); remaining.current = Math.max(0, remaining.current - (performance.now() - started)); };
+  }, [requestedMovement, reactionKey, reduced, movementVisible]);
   const blinkMin = artwork?.blinkInterval?.[0] ?? motionTokens.blinkMin;
   const blinkMax = artwork?.blinkInterval?.[1] ?? motionTokens.blinkMax;
   const root = useRef<HTMLDivElement>(null);
   const reactionTimer = useRef<ReturnType<typeof setTimeout>>();
-  const effectiveMood = tapped ? "happy" : mood === "idle" && sleepy ? "sleepy" : mood;
+  const effectiveMood = tapped ? "happy" : mood === "idle" && sleepy && variant !== "scribe" ? "sleepy" : mood;
 
   useEffect(() => {
     const element = root.current;
@@ -81,7 +94,7 @@ export function Mascot({ mood = "idle", size = "md", movement, reactionKey = 0, 
   }, [reduced, visible, blinkMin, blinkMax]);
 
   useEffect(() => {
-    if (mood !== "idle" || !visible) return;
+    if (mood !== "idle" || variant === "scribe" || !visible) return;
     let idleTimer: ReturnType<typeof setTimeout>;
     const wake = () => {
       setSleepy(false);
@@ -99,7 +112,7 @@ export function Mascot({ mood = "idle", size = "md", movement, reactionKey = 0, 
       window.removeEventListener("keydown", wake);
 
     };
-  }, [mood, visible]);
+  }, [mood, variant, visible]);
   useEffect(() => {
     const visibility = () => setTabVisible(!document.hidden);
     document.addEventListener("visibilitychange", visibility);
@@ -117,10 +130,10 @@ export function Mascot({ mood = "idle", size = "md", movement, reactionKey = 0, 
   };
   const resetLook = () => { root.current?.style.setProperty("--look-x", "0px"); root.current?.style.setProperty("--look-y", "0px"); };
   const activeMovement: MascotMovementPose | undefined = tapped ? tapMovement : requestedMovement ? movementEnded || reduced ? "rest" : requestedMovement : undefined;
-  const body = artwork.render({ mood: effectiveMood, blink: blink && !reduced, reduced, movement: activeMovement, movementKey: tapped ? `tap-${tapKey}` : reactionKey });
-  const style: CSSProperties & { "--gesture-duration": string } = { ...motionVariables, "--gesture-duration": `${mascotMovements[tapped && tapMovement ? tapMovement : requestedMovement || "hop"].duration}s`, width: sizes[size], maxWidth: "100%", aspectRatio: artwork.aspectRatio };
+  const body = artwork.render({ mood: effectiveMood, blink: blink && !reduced, reduced, movement: activeMovement, movementKey: tapped ? `tap-${tapKey}` : reactionKey, variant, scribeAction });
+  const style: CSSProperties & { "--gesture-duration": string } = { ...motionVariables, "--gesture-duration": `${mascotMovements[tapped && tapMovement ? tapMovement : requestedMovement || "hop"].duration}s`, width: sizes[size], maxWidth: "100%", aspectRatio: variant === "scribe" ? "11 / 9" : artwork.aspectRatio };
   return (
-    <div ref={root} data-mascot={artwork === seedlingArtwork ? "seedling" : "custom"} data-mood={effectiveMood} data-reduced-motion={!!reduced} data-paused={!visible} className={`mascot ${className}`} style={style} onPointerMove={look} onPointerLeave={resetLook}>
+    <div ref={root} data-variant={variant} data-mascot={artwork === seedlingArtwork ? "seedling" : "custom"} data-mood={effectiveMood} data-reduced-motion={!!reduced} data-paused={!visible} className={`mascot ${className}`} style={style} onPointerMove={look} onPointerLeave={resetLook}>
       {interactive ? <button type="button" className="mascot-tap" aria-label={label || "Say hello to Studenius mascot"} onClick={event => {
         clearTimeout(reactionTimer.current);
         const next = nextTapMovement(lastTap.current);
