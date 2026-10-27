@@ -19,7 +19,11 @@
     "audit:image-import": "node scripts/probeImageImport.mjs",
     "test:emotion": "node scripts/emotionalMotionTest.mjs",
     "build:studio": "node scripts/buildStudyStudio.mjs",
-    "test:studio": "node scripts/testStudyStudio.mjs"
+    "test:studio": "node scripts/testStudyStudio.mjs",
+    "prebuild": "npm run build:studio && npm run build:garden",
+    "build:garden": "node scripts/buildStudyGarden.mjs",
+    "test:garden": "node scripts/testStudyGarden.mjs",
+    "test:onboarding:live": "node scripts/testLiveOnboarding.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
