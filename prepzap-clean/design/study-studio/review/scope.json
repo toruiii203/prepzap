@@ -1,0 +1,37 @@
+{
+  "baselineCommit": "453d866d760514e2f51aca256f5451c8ed91ea41",
+  "scope": "Onboarding presentation; dashboards/auth/consent/draft behavior preserved",
+  "checks": [
+    {
+      "path": "src/pages/Dashboard.tsx",
+      "unchanged": true,
+      "sha256": "2304f5f526384c3b3260bb71a6a42b4ea46367bacffc4999c8b2b3ed207e5a5b"
+    },
+    {
+      "path": "src/pages/OnboardingFlow.tsx",
+      "unchanged": true,
+      "sha256": "42f29e86e049ffcdafddb7a17ddd5c2607e9bfb7db120da34baaa99ce94c93ef"
+    },
+    {
+      "path": "src/contexts/AuthContext.tsx",
+      "unchanged": true,
+      "sha256": "a2036dfff6ddeae6e172e79979a316aec0b274280cc41cb0f0a4322f29472943"
+    },
+    {
+      "path": "src/lib/onboardingBank.ts",
+      "unchanged": true,
+      "sha256": "05bf7c7c03392f15b1d4ff23985177b2d8f5397de87c5a36b5217db1a3e06edb"
+    },
+    {
+      "path": "design/study-studio/review/dashboard-mobile.png",
+      "unchanged": true,
+      "sha256": "c303a1b81102ae751cbfe747acbf1a803812ac94bcc02ea3fcb32e69af0f0613"
+    },
+    {
+      "path": "design/study-studio/Prototype.tsx",
+      "section": "existing dashboard concept JSX",
+      "unchanged": true,
+      "sha256": "cba3be5e40114d716a61193691e553d52c2560b252466a4a0a080c7076a71d1d"
+    }
+  ]
+}

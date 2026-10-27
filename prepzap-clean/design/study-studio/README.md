@@ -1,72 +1,108 @@
-# Studenius graphic study studio — first review slice
+# Studenius onboarding story — review prototype
 
-27 October 2026, Asia/Manila. The user approved layered flat art with the current
-palette and Seedling. This is a clickable design proposal, separate from the live
-onboarding and dashboard.
+27 October 2026, Asia/Manila. Scope: onboarding presentation and mascot support.
+**The production dashboard and its existing prototype composition are unchanged.**
+Dashboard work remains excluded until a new explicit user request.
+Production auth, consent, draft expiry, reward rules and returning-user logic are
+also untouched. This page remains a design review with local sample questions,
+no account operations, no external service requests and no storage writes.
 
-## Open the review
+## Open and compare
 
-- `review/prototype.html`: download and open; fonts, code and artwork are embedded.
-- `/design-review/study-studio.html`: the same review artifact is copied under
-  `public` for viewing on the deployed site after a successful Cloudflare build.
-  Deployment availability is not established by a Git push.
-- Vite development: `/design/study-studio/index.html`.
-- Use Prototype / Art board, Dark and Static mascot controls in the review bar.
+- Deployed review, after Cloudflare finishes: `/design-review/study-studio.html`.
+- Download/open `review/prototype.html` without a server; code and fonts are embedded.
+- Development: `/design/study-studio/index.html`.
+- Question layout selector: **Scribe / Quiet**. Compare the same questions in both.
+- Dark and Static mascot controls remain in the review bar. OS Reduce Motion wins.
 
 ```sh
 npm run build:studio
 npm run test:studio
+node scripts/buildSeedlingPreview.mjs
+node scripts/testSeedlingPreview.mjs
 npx tsc --noEmit -p design/study-studio/tsconfig.json
-npx eslint design/study-studio/Prototype.tsx design/study-studio/StudyObject.tsx
+npm test
+npm run test:smoke
 ```
 
-## What's in this slice
+## Implemented flow
 
-A subject decision, solo Seedling response, local sample question, correct/wrong/
-skipped feedback, save-progress composition, first-dashboard concept, contextual
-tool dialogs and a sample celebration. Back follows the actual path, including
-skipping the warm-up. More subjects and custom names are supported. A custom
-subject uses an explicitly labeled general sample question, not generated subject
-content. Continue is immediately available on reaction screens.
+Subject choice → subject reaction → local warm-up → answer reaction → save layout
+→ arrival/handoff. The optional goal/reaction pair was omitted to keep the flow
+short and avoid introducing goal persistence. More subjects opens a focus-managed
+sheet with presets and custom input. Back follows the actual path and restores a
+calm reaction instead of replaying a large move or confetti.
 
-The art board shows the three connected moments, nine original hand-authored SVG
-objects, the approved palette and one original image-generated composition. The
-image was generated/refined with the image tool, then resized and encoded as a
-62,020-byte transparent WebP. See `asset-manifest.json` for provenance and review
-status. No competing brand assets were copied. The existing Seedling, SpringButton,
-PageTransition and gesture system are reused. No new dependency was added.
+Question slides keep a quiet field, a compact 72px mobile scribe slot and six 2×3
+subject cards. Selection has a coral offset shadow, check badge and object wobble.
+Warm-up selection uses a crimson outline. The notebook/pencil are an opt-in SVG
+variant of the same Seedling, with paused scribbling, selection/rewrite reactions,
+a 400ms pencil lift, neutral skip closure and one inactivity glance. It never hints
+at the correct answer. Quiet layout and reduced motion skip the pencil-lift delay.
 
-Account actions explain where the existing authentication will connect; the
-prototype never signs in, creates an account or writes study progress. Questions
-and dashboard content are local fixtures. It awards no streak, XP or mastery and
-makes no exam-readiness/retention forecasts. Actual consent, existing draft expiry,
-returning-user protection, source storage and production auth remain unchanged.
-The previously reported image-import integrity issue is not repaired here.
+Reaction slides use the requested subject field and authored copy: Math/Biology
+yellow, Science/History coral, English crimson, Computing/custom paper. Layered
+shapes drift quietly; the selected SVG object uses a shared layout transition,
+then the field/peek/gesture sequence plays. Continue is available throughout.
+A 45svh mascot canvas plus responsive jump clearance preserves room for the art.
+Objects sit outside the mascot's motion envelope. Primary actions stay in a
+separate footer, reachable at 390×700; content can scroll independently.
 
-## Verification and limits
+Subject details: Math blocks hop, Science bubbles rise, English turns a page,
+Biology pulses, History turns its globe, and Computing blinks its code strokes.
+All onboarding artwork is SVG; the earlier raster concept remains only in the
+unchanged art-board/dashboard concept.
 
-- Eleven browser scenarios pass: 320/390/430px phones, 844px landscape and 1440px
-  desktop, each in light/dark, plus custom subject/skip/exact back navigation.
-- Checks include correct and incorrect answers, immediate reaction actions, modal
-  focus/restore, illustration loading, 44px control targets, no horizontal overflow,
-  reduced motion, no external requests and no localStorage writes.
-- Dedicated preview TypeScript and touched-file lint pass.
-- All 149 existing unit/component tests, the app build and all 57 existing fixture
-  route smoke checks pass. Main app source, router and API calls were not changed.
-- The review HTML embeds React/motion/fonts/art to open offline; its download size
-  is not the proposed production entry bundle. It loads only when opened directly.
-- Real iPhone smoothness, VoiceOver, text scaling, PWA insets and real sign-in are
-  not certified by these fixtures. Existing repository lint/type debt remains as
-  documented in the earlier audit (330 errors/75 warnings; 68 type errors).
+Correct answers use “You got it.” and a why card. Wrong answers use “Good try.
+Here's the trick.” with the correct answer/explanation and a gentle forward bounce.
+Skipping is neutral. No sad pose, red X, streak, XP or mastery is awarded. Save
+uses the crimson field, cream arch, small separate cards, bow and wave. Arrival
+spins/waves and links to the existing dashboard; it does not redesign that page.
 
-## Review on a phone
+## Motion architecture
 
-Choose a subject, go back and change it, try both answer outcomes, skip a question,
-try a long custom subject, inspect the dashboard and sample celebration, switch
-the theme, and enable Reduce Motion. Compare the Art board with the actual scenes.
-Review the typography, object detail, image edges and amount of empty space.
+The existing five gestures remain. Six opt-in gestures were added: spin,
+twirl-jump, somersault-lite, peek-in, shake-it-off and bow. They are independently
+replayable in the movement gallery. The default interactive tap set remains the
+original five so existing dashboard interactions do not pick up the new moves.
 
-Next production slice follows review of these compositions and pacing: integrate
-reusable scenes into the existing onboarding, preserving actual auth/draft/reward
-behavior, then connect the dashboard to real existing data. The broader sequence
-is in `docs/ONBOARDING_AND_VISUAL_WORLD_PLAN.md`.
+One large signature per scene resolves the brief's overlapping choreography
+requests. Entrance and quiet secondary gestures can accompany it. Consecutive
+reaction scenes do not repeat a large signature; a correct Science response uses
+a cheer if the preceding reaction already used a twirl jump. Quiet scenes reset
+that comparison. Gestures settle into idle and cancel cleanly on navigation.
+
+Story placements opt into visibility-aware completion callbacks; hidden-tab time
+does not consume the remaining gesture duration. Default placements retain their
+previous behavior. Background/scribe animation pauses while hidden. All keyframes
+use transform/opacity, shared durations and existing preferences. Small landscape
+screens use a shorter jump. Reduced motion has static expressions, no confetti,
+and no scribble/erase loops. Scribe SVG markup is tested below 8KB.
+
+## Verification
+
+- 167 unit/component tests across 29 files.
+- 27 browser scenarios: Scribe/Quiet × light/dark × 390×844, 1280×800, 390×700,
+  320×844 and 844×390; all six subject signatures; custom/wrong/skip/exact Back.
+- Captures include every scene and mid-reaction poses. Assertions cover reachable
+  primary actions, full mascot bounds, separate object bounds, real headline
+  spaces, reduced motion, modal focus/return, no external requests/storage writes,
+  and no repeated large signatures.
+- Movement gallery: eight viewport/theme checks plus all eleven gesture playbacks,
+  settling, transform/opacity keyframes and OS Reduce Motion.
+- Preview/app builds and dedicated TypeScript/touched-file lint pass. All 57 existing
+  fixture route smoke checks pass. Repository-wide legacy debt remains 330 lint
+  errors/75 warnings and 68 type errors; no touched-file errors are hidden.
+- Scope evidence compares the dashboard concept block byte-for-byte and records
+  unchanged production dashboard/auth/onboarding sources. Neither dashboard was
+  opened by the onboarding test suite.
+
+These are Chromium fixtures, not a certification of live OAuth, physical iPhone
+performance, VoiceOver or Safari/PWA keyboard behavior. The existing review auth
+modal explains the actual sign-in/consent handoff; no imitation consent or account
+creation was added. The separate source-image integrity issue remains out of scope.
+
+On a phone: compare Scribe/Quiet; change subjects; try custom input, wrong/correct
+and skip; go Back during a gesture/check; inspect Science's jump and Save at short
+heights; enable Reduce Motion; background/resume the tab. Login and the main action
+should remain reachable. Real auth/draft integration is a later production slice.
