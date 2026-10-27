@@ -4,7 +4,7 @@ export const fixtureProfile = {
   onboarding_complete: true, streak_days: 3, total_xp: 475, coins: 20,
   plan: 'free', subjects: ['Biology'], daily_goal_minutes: 30,
 };
-export async function seedBrowser(page, { lesson = false, theme = 'light', studySessions = [] } = {}) {
+export async function seedBrowser(page, { lesson = false, theme = 'light', studySessions = [], generationDelayMs = 0, generationContent } = {}) {
   await page.evaluateOnNewDocument((profile, options) => {
     const user = { id: profile.id, email: profile.email, user_metadata: { full_name: profile.full_name } };
     const session = { access_token: 'mock-token', user };
@@ -43,8 +43,8 @@ export async function seedBrowser(page, { lesson = false, theme = 'light', study
     if (['localhost', '127.0.0.1'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) return request.continue();
     let body = url.pathname.includes('/profiles') && url.searchParams.get('id') === `eq.${fixtureProfile.id}` ? fixtureProfile : url.pathname.endsWith('/study_sessions') ? studySessions : [];
     if (url.hostname.includes('workers.dev')) {
-      const item = { term: 'Mitosis', definition: 'Cell division', statement: 'Mitosis divides a cell.', isTrue: true, question: 'Which process divides a cell?', correctAnswer: 'Mitosis', wrongAnswers: ['Photosynthesis','Respiration','Diffusion'], items: ['Mitosis','Meiosis','Division','Photosynthesis'], oddIndex: 3, reason: 'Photosynthesis makes sugars.', word: 'MITOSIS', hint: 'Cell division', options: ['A. Mitosis','B. Diffusion','C. Respiration','D. Photosynthesis'], correct_answer: 'A', explanation: 'Mitosis creates two daughter cells.' };
-      body = { choices: [{ message: { content: JSON.stringify([item]) } }] };
+      const item = { q: 'Which process divides a cell?', type: 'multiple-choice', correct: 0, subject: 'Biology', difficulty: 'Easy', term: 'Mitosis', definition: 'Cell division', statement: 'Mitosis divides a cell.', isTrue: true, question: 'Which process divides a cell?', correctAnswer: 'Mitosis', wrongAnswers: ['Photosynthesis','Respiration','Diffusion'], items: ['Mitosis','Meiosis','Division','Photosynthesis'], oddIndex: 3, reason: 'Photosynthesis makes sugars.', word: 'MITOSIS', hint: 'Cell division', options: ['A. Mitosis','B. Diffusion','C. Respiration','D. Photosynthesis'], correct_answer: 'A', explanation: 'Mitosis creates two daughter cells.' };
+      body = { choices: [{ message: { content: generationContent ?? JSON.stringify([item]) } }] };
     }
     const headers = {
       'access-control-allow-origin': '*',
@@ -52,6 +52,7 @@ export async function seedBrowser(page, { lesson = false, theme = 'light', study
       'access-control-allow-headers': request.headers()['access-control-request-headers'] || 'authorization, apikey, content-type, x-client-info, prefer, accept-profile, content-profile, range',
     };
     if (request.method() === 'OPTIONS') return request.respond({ status: 204, headers });
+    if (url.hostname.includes('workers.dev') && generationDelayMs) return new Promise(resolve=>setTimeout(resolve,generationDelayMs)).then(()=>request.respond({status:200,contentType:'application/json',headers,body:JSON.stringify(body)}));
     return request.respond({ status: 200, contentType: 'application/json', headers, body: JSON.stringify(body) });
   });
 }

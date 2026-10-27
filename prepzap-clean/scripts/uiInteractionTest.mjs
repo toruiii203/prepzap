@@ -25,7 +25,7 @@ try {
       await page.click('.quiz-shell .quiz-answer:nth-child(2)');
       await page.click('.quiz-shell .quiz-feedback button');
       await page.screenshot({path:'.agent/interaction-step.png',fullPage:false});
-      await page.waitForSelector('.quiz-shell [data-mood="sad"]',{timeout:8000});
+      await page.waitForSelector('.quiz-shell [data-mood="encouraging"]',{timeout:8000});
       assert.equal(await page.$eval('.quiz-shell [role=status]',element=>element.textContent.includes('Correct answer: Mitosis')),true);
       await page.click('.quiz-shell .quiz-feedback button');
       await page.waitForFunction(()=>document.querySelector('.quiz-shell .quiz-answer')?.getAttribute('data-state')==='idle');

@@ -1,0 +1,118 @@
+{
+  "fixtureData": true,
+  "physicalDeviceTested": false,
+  "testsPassed": 140,
+  "testFiles": 27,
+  "routePatternsPassed": 57,
+  "quizViewportThemeCases": 10,
+  "quizLongTextAndKeyboard": "passed",
+  "visualSamples": 26,
+  "visualSampleUnnamedControls": 0,
+  "visualSampleSmallTargets": 0,
+  "visualSampleOverflow": 0,
+  "visualSampleRuntimeErrors": 0,
+  "lintErrors": 330,
+  "lintWarnings": 75,
+  "typeErrors": 68,
+  "changedFileLintErrors": 0,
+  "changedFileTypeErrors": 0,
+  "existingWarningsInChangedFiles": 4,
+  "limitations": [
+    "Browser fixtures do not verify live model quality or real service delivery",
+    "No physical iPhone or actual audio balance verification",
+    "Four-tier mastery classification is not implemented: authoritative data contract required",
+    "Previously reported image-integrity repair remains outside this UI scope"
+  ],
+  "emotionalMotionScenarios": [
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "light",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "dark",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "fixtureData": true,
+      "generation": "passed",
+      "modalFocus": "passed",
+      "path": "passed",
+      "reducedMotion": "passed"
+    },
+    {
+      "scenario": "background",
+      "result": "passed",
+      "fixtureData": true
+    },
+    {
+      "scenario": "failure",
+      "result": "passed",
+      "fixtureData": true
+    }
+  ]
+}
