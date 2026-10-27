@@ -10,7 +10,7 @@ let css=result.output.filter(item=>item.type==='asset'&&item.fileName.endsWith('
 for(const font of ['nunito','fredoka'])css=css.replaceAll(`/fonts/${font}.woff2`,`data:font/woff2;base64,${(await readFile(`public/fonts/${font}.woff2`)).toString('base64')}`);
 const hero=`data:image/webp;base64,${(await readFile(path.join(root,'study-composition.webp'))).toString('base64')}`;
 js=js.replaceAll('./study-composition.webp',hero);
-const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Studenius — interactive study studio review</title><meta name="robots" content="noindex,nofollow"><style>${css}</style></head><body><div id="root"></div><script type="module">${js.replaceAll('</script','<\\/script')}</script></body></html>`;
+const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Studenius — interactive study studio review</title><meta name="robots" content="noindex,nofollow"><style>${css}</style></head><body><div id="root"></div><script type="module">${js.replaceAll('</script','<\\/script')}</script></body></html>`.replace(/^[\t ]+$/gm,'');
 await mkdir(path.join(root,'review'),{recursive:true});await writeFile(path.join(root,'review/prototype.html'),html);
 await mkdir('public/design-review',{recursive:true});await writeFile('public/design-review/study-studio.html',html);
 console.log(`Standalone prototype: ${Buffer.byteLength(html)} bytes; no server or account needed`);
