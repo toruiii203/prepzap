@@ -1,3 +1,6 @@
+import { RouteAnnouncement } from "@/components/RouteAnnouncement";
+import "@/styles/quality.css";
+import { LegacyControlAccessibility } from "@/components/LegacyControlAccessibility";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/PageLoading";
 import { PageTransition } from "@/components/PageTransition";
@@ -8,7 +11,6 @@ import { StudyStatus } from "@/components/StudyStatus";
 import { InterfaceSettings } from "@/components/InterfaceSettings";
 import { DashboardGreeting } from "@/components/DashboardGreeting";
 import { FloatingXPOverlay } from "@/components/FloatingXPBurst";
-import { PeekingRexCompanion } from "@/components/PeekingRexCompanion";
 
 /** Focused tool flows that hide bottom nav (per stitch mockup). */
 const HIDE_NAV_PATHS = new Set(["/timer", "/pomodoro-area"]);
@@ -19,12 +21,14 @@ export function StudeniusLayout() {
 
   return (
     <StudeniusShell hideNav={hideNav}>
-      {!hideNav && pathname !== "/practice" && <StudyStatus />}
-      {pathname === "/settings" && <InterfaceSettings />}
+      <LegacyControlAccessibility />
+      <RouteAnnouncement />
+      {!hideNav && pathname !== "/practice" && pathname !== "/dashboard" && <StudyStatus />}
+      {pathname === "/settings" && <div className="settings-page-frame"><InterfaceSettings /></div>}
       {pathname === "/dashboard" && <DashboardGreeting />}
       <Suspense fallback={<PageLoading />}>
         <PageErrorBoundary key={pathname}>
-          <PageTransition key={pathname}><Outlet /></PageTransition>
+          <PageTransition key={pathname}>{pathname === "/settings" ? <div className="settings-page-frame"><Outlet /></div> : <Outlet />}</PageTransition>
         </PageErrorBoundary>
       </Suspense>
       <FloatingXPOverlay />

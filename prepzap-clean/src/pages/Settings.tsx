@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { SharedSidebar } from "@/components/SharedSidebar"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { PreferenceSwitch } from "@/components/PreferenceSwitch"
 import { usePlan } from "@/hooks/usePlan"
 
 type DailyGoal = 15 | 30 | 45 | 60 | 90 | 120
@@ -25,17 +26,9 @@ function Section({ title, icon, children }: { title: string; icon: string; child
   )
 }
 
-function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
-  return (
-    <button onClick={onChange} style={{ width: 40, height: 22, background: on ? RED : "#d1cdc7", border: "2px solid #1c1c19", cursor: "pointer", position: "relative", transition: "background .15s", flexShrink: 0, borderRadius: 2 }}>
-      <div style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 14, height: 14, background: "#fff", border: "1.5px solid #1c1c19", transition: "left .15s" }} />
-    </button>
-  )
-}
-
 export default function Settings() {
   const navigate = useNavigate()
-  const { user, profile } = useAuth() as any
+  const { user, profile } = useAuth()
   const { isPro, remaining } = usePlan()
 
   const [dailyGoal, setDailyGoal] = useState<DailyGoal>(60)
@@ -49,7 +42,6 @@ export default function Settings() {
   const [userEmail, setUserEmail] = useState("")
   const [userInitial, setUserInitial] = useState("L")
   const [creditsLeft, setCreditsLeft] = useState<number | null>(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const FREE_CREDITS_TOTAL = 50
 
@@ -83,7 +75,7 @@ export default function Settings() {
   }, [remaining])
 
   const toggleSubject = (s: string) =>
-    setSubjects(prev => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n })
+    setSubjects(prev => { const n = new Set(prev); if (n.has(s)) n.delete(s); else n.add(s); return n })
 
   const handleSave = async () => {
     if (!user) return
@@ -105,34 +97,35 @@ export default function Settings() {
   }
 
   const handleSignOut = async () => {
-    try { await supabase.auth.signOut() } catch(e) {} window.location.href = "/";
+    try { await supabase.auth.signOut() } catch { /* Preserve the existing redirect if remote sign-out fails. */ } window.location.href = "/";
     navigate("/")
     toast.info("Signed out", { description: "You have been successfully signed out." })
   }
 
 
 
-  const handleDeleteAccount = async () => {
-    if (!user) return
-    try { await supabase.auth.signOut() } catch(e) {} window.location.href = "/";
-    navigate("/")
-    toast.error("Account Deleted", { description: "Your account data has been queued for deletion." })
-    // Note: actual account deletion requires a Supabase Edge Function with admin key
-    // Add: supabase.functions.invoke('delete-account', { body: { user_id: user.id } })
-  }
-
   const handleRequestNotifPermission = async () => {
     if (!("Notification" in window)) return toast.error("Not supported", { description: "Push notifications are not supported on this device/browser." })
-    const perm = await Notification.requestPermission()
-    if (perm === "granted") {
-        toast.success("Notifications Enabled", { description: "We will send you reminders to keep your streak alive!" });
-      new Notification("Studenius", { body: "🔔 Notifications enabled! We'll remind you to keep your streak alive.", icon: "/fox_icon_final.png" })
+    try {
+      const perm = await Notification.requestPermission()
+      if (perm !== "granted") {
+        toast.info("Notifications not allowed", { description: "You can review this permission in your browser settings." })
+        return
+      }
+      toast.success("Browser permission granted", { description: "This allows notifications; scheduled reminders also require a connected delivery service." })
+      try {
+        new Notification("Studenius", { body: "This is a test notification from Studenius.", icon: "/fox_icon_final.png" })
+      } catch {
+        toast.info("Test notification unavailable", { description: "This browser may require an installed app and a connected notification service." })
+      }
+    } catch {
+      toast.error("Couldn’t request permission", { description: "Try again from your browser settings." })
     }
   }
 
   const chipBase: React.CSSProperties = {
     padding: "6px 14px", border: "2px solid #1c1c19", fontSize: 12, fontWeight: 700,
-    cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all .12s", borderRadius: 2,
+    cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "transform var(--motion-instant)", borderRadius: 2,
   }
 
   return (
@@ -161,7 +154,7 @@ export default function Settings() {
                 </span>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {[
                 { label: "XP",     value: String(profile?.total_xp ?? 0),        icon: "military_tech" },
                 { label: "Streak", value: String(profile?.streak_days ?? 0),      icon: "local_fire_department" },
@@ -216,7 +209,7 @@ export default function Settings() {
           <Section title="Notifications" icon="notifications">
             <button onClick={handleRequestNotifPermission} style={{ ...chipBase, background: "#1c1c19", color: "#FAF7F2", marginBottom: 16, display: "flex", alignItems: "center", gap: 6, boxShadow: "2px 2px 0 #ae2925" }}>
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>notifications_active</span>
-              Enable Push Notifications
+              Allow browser notifications
             </button>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {([
@@ -230,11 +223,11 @@ export default function Settings() {
                     <p style={{ fontSize: 13, fontWeight: 700, color: "#1c1c19", margin: "0 0 2px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{label}</p>
                     <p style={{ fontSize: 11, color: "#6b6b6b", margin: 0, fontFamily: "'Quicksand', sans-serif" }}>{sub}</p>
                   </div>
-                  <Toggle on={notifs[key]} onChange={() => {
+                  <PreferenceSwitch label={label} on={notifs[key]} onChange={() => {
                     const willBeOn = !notifs[key];
                     setNotifs(prev => ({ ...prev, [key]: willBeOn }));
-                    toast.success(`${willBeOn ? "Enabled" : "Disabled"} ${label.toLowerCase()}`, {
-                      description: willBeOn ? sub : `You will no longer receive ${label.toLowerCase()}.`,
+                    toast.success(`${label}: ${willBeOn ? "on" : "off"} (unsaved)`, {
+                      description: "Save changes to apply your preferences. Delivery depends on browser support and a connected notification service.",
                     });
                   }} />
                 </div>
@@ -267,7 +260,7 @@ export default function Settings() {
                   <span style={{ fontSize: 10, padding: "3px 10px", background: "#f3f4f6", color: "#374151", border: "2px solid #1c1c19", fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>FREE</span>
                 </div>
                 <div style={{ height: 8, background: "#e5e1da", border: "1.5px solid #1c1c19", marginBottom: 12 }}>
-                  <div style={{ height: "100%", width: `${creditsLeft !== null ? Math.round((creditsLeft / FREE_CREDITS_TOTAL) * 100) : 0}%`, background: RED, transition: "width .4s" }} />
+                  <div className="settings-credit-fill" style={{ height: "100%", width: "100%", transformOrigin: "left", transform: `scaleX(${creditsLeft !== null ? Math.max(0, Math.min(1, creditsLeft / FREE_CREDITS_TOTAL)) : 0})`, background: RED, transition: "transform var(--motion-progress)" }} />
                 </div>
                 <p style={{ fontSize: 11, color: "#6b6b6b", marginBottom: 12, fontFamily: "'Quicksand', sans-serif" }}>Upgrade to Pro for unlimited AI questions and all premium features.</p>
                 <Link to="/pro">
@@ -294,24 +287,10 @@ export default function Settings() {
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
               </button>
 
-              {/* Delete account */}
-              {!showDeleteConfirm ? (
-                <button onClick={() => setShowDeleteConfirm(true)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", background: "none", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: RED }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                    Delete account
-                  </div>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
-                </button>
-              ) : (
-                <div style={{ padding: "12px 0" }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: RED, marginBottom: 10, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Are you sure? This cannot be undone.</p>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={handleDeleteAccount} style={{ ...chipBase, background: RED, color: "#fff", fontSize: 11 }}>Yes, delete</button>
-                    <button onClick={() => setShowDeleteConfirm(false)} style={{ ...chipBase, background: "#fff", color: "#1c1c19", fontSize: 11, boxShadow: "2px 2px 0 #1c1c19" }}>Cancel</button>
-                  </div>
-                </div>
-              )}
+              <div style={{ padding: "16px 0" }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: RED }}>Account deletion unavailable</p>
+                <p style={{ fontSize: 12, color: "#6b6b6b", marginTop: 6 }}>A deletion service is not connected in this build. Signing out does not delete your account or its data.</p>
+              </div>
             </div>
           </Section>
 
@@ -323,7 +302,7 @@ export default function Settings() {
             cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1,
             fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            boxShadow: "3px 3px 0 #1c1c19", transition: "all .15s", marginBottom: 20,
+            boxShadow: "3px 3px 0 #1c1c19", transition: "transform var(--motion-quick)", marginBottom: 20,
           }}>
             {saving
               ? <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>hourglass_empty</span> SAVING…</>

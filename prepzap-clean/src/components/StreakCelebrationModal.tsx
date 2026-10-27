@@ -1,10 +1,12 @@
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import * as Dialog from "@radix-ui/react-dialog";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
 
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { playCelebration, playPop, triggerHaptic, isSoundEnabled } from "@/lib/soundFX";
+import { useAuth } from "@/contexts/AuthContext";
+import { localDayKey, verifiedStudyDays } from "@/lib/progressPopupPolicy";
 import { Mascot } from "@/components/Mascot";
 
 interface StreakCelebrationModalProps {
@@ -27,6 +29,12 @@ export function StreakCelebrationModal({
   showRex = true,
 }: StreakCelebrationModalProps) {
   const reduced = usePrefersReducedMotion();
+  const { user } = useAuth();
+  const confirmedDays = useMemo(() => {
+    if (!isOpen || !user?.id) return new Set<string>();
+    try { return new Set(verifiedStudyDays(localStorage.getItem("pz_study_sessions"), user.id, new Date())); }
+    catch { return new Set<string>(); }
+  }, [user?.id, isOpen]);
   const [animatedNumber, setAnimatedNumber] = useState<number>(reduced ? streakCount : 0);
   const [showCheckmark, setShowCheckmark] = useState<boolean>(false);
 
@@ -50,6 +58,8 @@ export function StreakCelebrationModal({
         colors: ["#FF9600", "#FFD13B", "#FF4D2E", "#10B981", "#000000"],
       });
     } catch { /* Celebration is optional; the streak remains visible. */ }
+
+    if (reduced) return;
 
     // Number roll-up animation
     const numTimer = setTimeout(() => {
@@ -82,13 +92,11 @@ export function StreakCelebrationModal({
     const isPast = windowOffset + i < 0;
     const isFuture = windowOffset + i > 0;
     
-    // Only past days within the streak count are marked checked!
-    // e.g. If streakCount == 1, 0 past days were in the streak.
-    // If streakCount == 3, the 2 immediately preceding days were in the streak.
-    const daysBeforeToday = -(windowOffset + i);
-    const wasCheckedInStreak = isPast && daysBeforeToday < streakCount;
+    const dateKey = localDayKey(d);
+    const wasCheckedInStreak = confirmedDays.has(dateKey);
 
     return {
+      dateKey,
       label: dayNames[d.getDay()],
       isToday,
       isPast,
@@ -213,11 +221,11 @@ export function StreakCelebrationModal({
           </div>
         </div>
 
-        {/* 7-Day Calendar Card */}
+        {/* Verified activity only; a streak total cannot reconstruct dates. */}
         <div className="w-full mt-4 bg-white border-2 border-black rounded-2xl p-3.5 shadow-[3px_3px_0px_#000000] text-center">
-          <div className="flex items-center justify-between px-1 mb-2.5">
+          <div className="flex items-center justify-between px-1 mb-2.5" role="list" aria-label="Confirmed study days">
             {daysList.map((day, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-1">
+              <div key={idx} role="listitem" data-confirmed-study={day.wasCheckedInStreak} aria-label={`${day.dateKey}: ${day.wasCheckedInStreak ? "studied" : "not confirmed"}`} className="flex flex-col items-center gap-1">
                 <span
                   className={`text-[11px] font-black ${
                     day.isToday ? "text-[#FF9600]" : "text-black/50"
@@ -229,7 +237,7 @@ export function StreakCelebrationModal({
                 <div
                   className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-black flex items-center justify-center font-black transition-all duration-300 ${
                     day.isToday
-                      ? showCheckmark
+                      ? showCheckmark && day.wasCheckedInStreak
                         ? "bg-[#FF9600] text-white scale-110 shadow-[1px_1px_0px_#000000]"
                         : "bg-white text-black"
                       : day.wasCheckedInStreak
@@ -237,7 +245,7 @@ export function StreakCelebrationModal({
                       : "bg-[#FAF7F2] text-black/20 border-black/25"
                   }`}
                 >
-                  {day.isToday && showCheckmark ? (
+                  {day.isToday && showCheckmark && day.wasCheckedInStreak ? (
                     <span className="material-symbols-outlined text-[16px] font-black">check</span>
                   ) : day.wasCheckedInStreak ? (
                     <span className="material-symbols-outlined text-[15px] font-black">check</span>
@@ -252,7 +260,7 @@ export function StreakCelebrationModal({
           {/* Authentic Warning Rule */}
           <div className="pt-2 border-t border-black/10">
             <p className="text-[12px] font-bold text-black/75">
-              Miss a day, and it resets to 0.
+              Only confirmed study days are marked.
             </p>
           </div>
         </div>

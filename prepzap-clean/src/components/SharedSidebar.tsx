@@ -118,13 +118,13 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
     <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64 overflow-hidden select-none font-['Quicksand',sans-serif]">
       {/* Logo */}
       <div className="mb-5 px-1">
-        <h1
+        <button type="button" aria-label="Studenius home"
           className="text-[24px] font-black tracking-tight text-black cursor-pointer hover:opacity-85 transition-opacity"
           data-route="/dashboard"
           onClick={() => navigate("/dashboard")}
         >
           Studenius
-        </h1>
+        </button>
       </div>
 
       <style>{`
@@ -152,6 +152,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
               return (
                 <button
                   data-route={item.route}
+                  aria-current={isActive ? "page" : undefined}
                   key={item.route}
                   type="button"
                   onClick={() => {
@@ -212,6 +213,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                   return (
                     <button
                       data-route={tool.route}
+                      aria-current={isActive ? "page" : undefined}
                       key={tool.route}
                       type="button"
                       onClick={() => {
@@ -266,6 +268,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         <button
           type="button"
           data-route="/settings"
+          aria-current={active === "/settings" ? "page" : undefined}
           onClick={() => navigate("/settings")}
           className="flex items-center gap-3 px-3 py-2 min-h-[44px] text-[13px] font-bold text-black hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >
@@ -275,6 +278,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
         <button
           type="button"
           data-route="/profile"
+          aria-current={active === "/profile" ? "page" : undefined}
           onClick={() => navigate("/profile")}
           className="flex items-center gap-3 px-3 py-2 min-h-[44px] hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >

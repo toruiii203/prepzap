@@ -73,7 +73,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
               >
                 {tab.icon}
               </span>
-              <span className="text-[10px] font-black tracking-tight leading-none mt-0.5">
+              <span className="text-[12px] font-bold tracking-tight leading-none mt-0.5">
                 {tab.name}
               </span>
             </div>

@@ -32,7 +32,7 @@ export class PageErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#FAF7F2] text-black flex items-center justify-center p-6">
+        <div className="min-h-[60dvh] bg-[#FAF7F2] text-black flex items-center justify-center p-6">
           <div role="alert" className="max-w-md w-full bg-white border-2 border-black rounded-3xl p-6 md:p-8 shadow-[4px_4px_0px_#000000] text-center space-y-4">
             <Mascot mood="encouraging" size="md" className="mx-auto" />
             <h2 className="text-[20px] font-black text-black">Let’s try that again</h2>
@@ -40,9 +40,10 @@ export class PageErrorBoundary extends React.Component<Props, State> {
               Something unexpected happened while loading this view. You can retry loading or return to your dashboard.
             </p>
             {this.state.message && (
-              <div className="p-3 bg-[#FAF7F2] border border-black/15 rounded-xl text-[11px] font-mono text-black/70 text-left overflow-x-auto">
-                {this.state.message}
-              </div>
+              <details className="p-3 bg-[#FAF7F2] border border-black/15 rounded-xl text-[12px] text-black/70 text-left">
+                <summary className="cursor-pointer font-bold">Details for support</summary>
+                <p className="mt-2 font-mono break-words">{this.state.message}</p>
+              </details>
             )}
             <div className="flex gap-2.5 pt-2">
               <button
