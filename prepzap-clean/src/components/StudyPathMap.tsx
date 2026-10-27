@@ -1,3 +1,5 @@
+import { Mascot } from "@/components/Mascot";
+import "@/styles/study-path-motion.css";
 import React, { useState, useEffect } from "react";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { triggerXPBurst } from "@/components/FloatingXPBurst";
@@ -139,7 +141,7 @@ export function StudyPathMap({
       const next = !prev;
       try {
         localStorage.setItem("pz_path_map_collapsed", String(next));
-      } catch {}
+      } catch { /* Keep the existing in-memory collapse state when storage is unavailable. */ }
       return next;
     });
   };
@@ -218,7 +220,7 @@ export function StudyPathMap({
   return (
     <div className="border-2 border-black rounded-3xl bg-[#FFFDF5] p-5 sm:p-6 shadow-[3px_3px_0px_#1A1A1A] relative select-none font-['Quicksand',sans-serif]">
       {/* Unit Banner (Duolingo Header style) */}
-      <div className={`bg-[#FFD13B] border-2 border-black rounded-2xl p-4 shadow-[2.5px_2.5px_0px_#000] flex items-center justify-between ${isPathCollapsed ? "mb-0" : "mb-6"}`}>
+      <div className={`bg-[#FFD13B] border-2 border-black rounded-2xl p-4 shadow-[2.5px_2.5px_0px_#000] flex flex-wrap gap-3 items-center justify-between ${isPathCollapsed ? "mb-0" : "mb-6"}`}>
         <div>
           <span className="text-[11px] font-black uppercase tracking-wider text-black/80 block">
             {subjectName && subjectName !== "General Studies" ? subjectName : "Foundations"} &bull; Unit 1
@@ -300,13 +302,7 @@ export function StudyPathMap({
               {/* If active node: Rex stands next to it with solid clean speech bubble */}
               {isCurrent && (
                 <div className="absolute -top-14 left-0 sm:left-2 z-20 flex items-center gap-2 pointer-events-none">
-                  <div className="animate-bounce" style={{ animationDuration: "2.4s" }}>
-                    <img
-                      src="/animations/rex_waving.webp"
-                      alt="Rex companion"
-                      className="w-12 h-12 object-contain drop-shadow-[1px_2px_0px_#000]"
-                    />
-                  </div>
+                  <Mascot mood="peek" size="sm" className="path-seedling" />
                   <div className="bg-white border-2 border-black rounded-xl px-2.5 py-1 text-[11px] font-black shadow-[2px_2px_0px_#000] whitespace-nowrap flex items-center gap-1.5">
                     <span>START LESSON</span>
                     <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]" aria-hidden="true">
@@ -319,26 +315,9 @@ export function StudyPathMap({
               {/* Pulse ring on active node */}
               {isCurrent && (
                 <span
-                  className="absolute w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-[#FF4D2E]/60 animate-ping pointer-events-none"
+                  className="absolute w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-[#FF4D2E]/60 path-active-ring pointer-events-none"
                   aria-hidden="true"
                 />
-              )}
-
-              {/* Shimmer keyframes for legendary — inline style injected once */}
-              {isLegendary && (
-                <style>{`
-                  @keyframes legendary-shimmer {
-                    0%   { box-shadow: 4px 4px 0px #000, 0 0 0 0 rgba(255,209,59,0.0); }
-                    50%  { box-shadow: 4px 4px 0px #000, 0 0 18px 6px rgba(255,209,59,0.7); }
-                    100% { box-shadow: 4px 4px 0px #000, 0 0 0 0 rgba(255,209,59,0.0); }
-                  }
-                  .legendary-shimmer { animation: legendary-shimmer 2s infinite; }
-                  @keyframes pulse-ring {
-                    0%   { opacity: 1; transform: scale(1); }
-                    100% { opacity: 0; transform: scale(1.3); }
-                  }
-                  .active-pulse-ring { animation: pulse-ring 1.5s infinite; }
-                `}</style>
               )}
 
               {/* 3D Stepping Stone Button */}
@@ -347,11 +326,11 @@ export function StudyPathMap({
                 onClick={(e) => handleNodeClick(node, e)}
                 aria-label={`${node.title}: ${node.status}`}
                 className={
-                  "relative w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center transition-all " +
+                  "relative w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center transition-transform " +
                   (isDone
                     ? "bg-[#FFD13B] border-2 border-black shadow-[3px_3px_0px_#000] hover:scale-105 active:scale-95 active:translate-y-1 cursor-pointer"
                     : isCurrent
-                    ? "bg-[#FF4D2E] text-white border-2 border-black shadow-[4px_4px_0px_#000] hover:scale-110 active:scale-95 active:translate-y-1.5 ring-4 ring-[#FFD13B] cursor-pointer"
+                    ? "bg-[#FF4D2E] text-white border-2 border-black shadow-[4px_4px_0px_#000] hover:scale-110 active:scale-95 active:translate-y-1.5 active:shadow-none ring-4 ring-[#FFD13B] cursor-pointer"
                     : isLegendary
                     ? "bg-[#FFD13B] border-2 border-black shadow-[4px_4px_0px_#000] hover:scale-105 active:scale-95 legendary-shimmer cursor-pointer"
                     : "bg-gray-200 border-2 border-black/40 shadow-[2px_2px_0px_rgba(0,0,0,0.2)] opacity-60 cursor-not-allowed") +

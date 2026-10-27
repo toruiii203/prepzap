@@ -16,7 +16,7 @@ export interface PathNodeInfo {
   description: string;
   icon: string;
   xpReward: number;
-  status: "completed" | "active" | "locked";
+  status: "completed" | "active" | "locked" | "legendary";
   route?: string;
 }
 

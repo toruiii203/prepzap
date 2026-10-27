@@ -1,0 +1,8 @@
+.path-seedling{flex-shrink:0}
+/* Keep the full face visible in the small path companion viewport. */
+.path-seedling .seedling-art[data-pose=peek] [data-layer=actor]{transform:translate(10px,70px) rotate(-8deg);animation:path-seed-peek var(--motion-reaction) var(--motion-ease) both}
+@keyframes path-seed-peek{from{opacity:0;transform:translate(55px,110px) rotate(-12deg)}to{opacity:1;transform:translate(10px,70px) rotate(-8deg)}}
+.path-active-ring{animation:studenius-node-ring var(--motion-idle) var(--motion-ease) infinite}
+.legendary-shimmer::before{content:"";position:absolute;inset:-6px;border:3px solid #FFD13B;border-radius:50%;pointer-events:none;animation:studenius-node-ring var(--motion-idle) var(--motion-ease) infinite}
+@keyframes studenius-node-ring{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:.7;transform:scale(1.12)}}
+@media(prefers-reduced-motion:reduce){.path-active-ring,.legendary-shimmer::before,.path-seedling .seedling-art[data-pose=peek] [data-layer=actor]{animation:none}.path-seedling{transform:none}}
