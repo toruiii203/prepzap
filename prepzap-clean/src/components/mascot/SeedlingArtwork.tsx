@@ -3,14 +3,14 @@ import type { MascotArtworkState } from "@/components/Mascot";
 import "@/styles/seedling.css";
 
 /** Approved hand-structured vector artwork. No raster, filters, gradients or external assets. */
-export function SeedlingArtwork({ mood, blink, underShadow = false }: MascotArtworkState & { underShadow?: boolean }) {
+export function SeedlingArtwork({ mood, blink, movement, movementKey, underShadow = false }: MascotArtworkState & { underShadow?: boolean }) {
   const prefix = `seedling-${useId().replace(/:/g, "")}`;
   const layer = (part: string) => ({ id: `${prefix}-${part}`, "data-layer": part });
   const pose = mood === "encouraging" ? "encourage" : mood === "cheering" ? "celebrate" : mood;
   const joyful = pose === "happy" || pose === "celebrate";
-  return <svg className="seedling-art" viewBox="0 0 400 400" fill="none" aria-hidden="true" focusable="false" data-pose={pose} data-blink={blink}>
+  return <svg className="seedling-art" viewBox="0 0 400 400" fill="none" aria-hidden="true" focusable="false" data-pose={pose} data-movement={movement} data-blink={blink}>
     <g {...layer("shadow")} opacity={underShadow ? 0.5 : 0}><ellipse cx="200" cy="367" rx="96" ry="12" fill="#F3C0A0" /></g>
-    <g data-layer="actor">
+    <g key={movementKey} data-layer="actor">
       <g {...layer("feet-left")}><path d="M139 332C126 344 126 360 140 365C153 369 172 361 173 347L166 331Z" fill="#F3C0A0" /></g>
       <g {...layer("feet-right")}><path d="M234 332L227 347C228 361 247 369 260 365C274 360 274 344 261 332Z" fill="#F3C0A0" /></g>
       <g data-layer="breath">

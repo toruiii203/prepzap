@@ -4,12 +4,13 @@ import { useEffect, useRef, useState, type CSSProperties, type MouseEventHandler
 import { playPop } from "@/lib/soundFX";
 import { motionTokens, motionVariables } from "@/lib/motionTokens";
 import "@/styles/mascot.css";
+import { mascotMovements, nextTapMovement, type MascotMovement, type MascotMovementPose } from "@/lib/mascotMovement";
 import { seedlingArtwork } from "@/components/mascot/seedlingRig";
 
 export type MascotMood = "idle" | "happy" | "celebrate" | "sad" | "thinking" | "sleepy" | "cheering" | "encouraging" | "encourage" | "peek";
 export type MascotSize = "xs" | "sm" | "md" | "lg" | "xl" | "hero";
 const sizes: Record<MascotSize, number> = { xs: 52, sm: 80, md: 128, lg: 184, xl: 240, hero: 300 };
-export interface MascotArtworkState { mood: MascotMood; blink: boolean; reduced: boolean; }
+export interface MascotArtworkState { mood: MascotMood; blink: boolean; reduced: boolean; movement?: MascotMovementPose; movementKey?: string | number; }
 export interface MascotArtwork {
   render: (state: MascotArtworkState) => ReactNode;
   aspectRatio: string;
@@ -20,6 +21,9 @@ export interface MascotProps {
   artwork?: MascotArtwork;
   mood?: MascotMood;
   size?: MascotSize;
+  movement?: MascotMovement;
+  /** Increment to replay the same movement without remounting the mascot. */
+  reactionKey?: string | number;
   interactive?: boolean;
   animate?: boolean;
   className?: string;
@@ -29,11 +33,22 @@ export interface MascotProps {
 }
 
 /** Shared seedling lifecycle and support for isolated artwork previews. */
-export function Mascot({ mood = "idle", size = "md", interactive = false, animate = true, className = "", label, onClick, artwork = seedlingArtwork }: MascotProps) {
+export function Mascot({ mood = "idle", size = "md", movement, reactionKey = 0, interactive = false, animate = true, className = "", label, onClick, artwork = seedlingArtwork }: MascotProps) {
   const reduced = usePrefersReducedMotion() || !animate;
   const [blink, setBlink] = useState(false);
   const [sleepy, setSleepy] = useState(false);
   const [tapped, setTapped] = useState(false);
+  const [tapMovement, setTapMovement] = useState<MascotMovement>();
+  const [tapKey, setTapKey] = useState(0);
+  const lastTap = useRef<MascotMovement>();
+  const requestedMovement = movement ?? (mood === "cheering" ? "cheer" : mood === "happy" ? "hop" : undefined);
+  const [movementEnded, setMovementEnded] = useState(false);
+  useEffect(() => {
+    setMovementEnded(false);
+    if (!requestedMovement || reduced) return;
+    const timer = setTimeout(() => setMovementEnded(true), mascotMovements[requestedMovement].duration * 1000);
+    return () => clearTimeout(timer);
+  }, [requestedMovement, reactionKey, reduced]);
   const [inView, setInView] = useState(true);
   const [tabVisible, setTabVisible] = useState(() => !document.hidden);
   const visible = inView && tabVisible;
@@ -101,15 +116,20 @@ export function Mascot({ mood = "idle", size = "md", interactive = false, animat
     root.current.style.setProperty("--look-y", `${y}px`);
   };
   const resetLook = () => { root.current?.style.setProperty("--look-x", "0px"); root.current?.style.setProperty("--look-y", "0px"); };
-  const body = artwork.render({ mood: effectiveMood, blink: blink && !reduced, reduced });
-  const style: CSSProperties = { ...motionVariables, width: sizes[size], maxWidth: "100%", aspectRatio: artwork.aspectRatio };
+  const activeMovement: MascotMovementPose | undefined = tapped ? tapMovement : requestedMovement ? movementEnded || reduced ? "rest" : requestedMovement : undefined;
+  const body = artwork.render({ mood: effectiveMood, blink: blink && !reduced, reduced, movement: activeMovement, movementKey: tapped ? `tap-${tapKey}` : reactionKey });
+  const style: CSSProperties & { "--gesture-duration": string } = { ...motionVariables, "--gesture-duration": `${mascotMovements[tapped && tapMovement ? tapMovement : requestedMovement || "hop"].duration}s`, width: sizes[size], maxWidth: "100%", aspectRatio: artwork.aspectRatio };
   return (
     <div ref={root} data-mascot={artwork === seedlingArtwork ? "seedling" : "custom"} data-mood={effectiveMood} data-reduced-motion={!!reduced} data-paused={!visible} className={`mascot ${className}`} style={style} onPointerMove={look} onPointerLeave={resetLook}>
       {interactive ? <button type="button" className="mascot-tap" aria-label={label || "Say hello to Studenius mascot"} onClick={event => {
         clearTimeout(reactionTimer.current);
+        const next = nextTapMovement(lastTap.current);
+        lastTap.current = next;
+        setTapMovement(next);
+        setTapKey(key => key + 1);
         setTapped(true);
         playPop(1.15);
-        reactionTimer.current = setTimeout(() => setTapped(false), motionTokens.reaction * 1000);
+        reactionTimer.current = setTimeout(() => setTapped(false), mascotMovements[next].duration * 1000);
         onClick?.(event);
       }}>{body}</button> : <div aria-hidden={label ? undefined : true} role={label ? "img" : undefined} aria-label={label}>{body}</div>}
     </div>

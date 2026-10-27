@@ -25,7 +25,7 @@ describe("Studenius seedling mascot", () => {
     expect(clicked).toHaveBeenCalledOnce();
     expect(playPop).toHaveBeenCalledOnce();
     expect(container.querySelector('[data-mascot]')).toHaveAttribute('data-mood','happy');
-    act(() => vi.advanceTimersByTime(700));
+    act(() => vi.advanceTimersByTime(2000));
     expect(container.querySelector('[data-mascot]')).toHaveAttribute('data-mood','idle');
     unmount();
     expect(vi.getTimerCount()).toBe(0);

@@ -35,7 +35,7 @@ describe("seedling review artwork using the existing Mascot controller", () => {
     const { container, unmount } = render(<Mascot artwork={artwork} interactive label="Say hello to the seedling" />);
     fireEvent.click(screen.getByRole("button", { name: "Say hello to the seedling" }));
     expect(container.querySelector("svg")).toHaveAttribute("data-pose", "happy");
-    act(() => vi.advanceTimersByTime(motionTokens.reaction * 1000 + 1));
+    act(() => vi.advanceTimersByTime(2000));
     expect(container.querySelector("svg")).toHaveAttribute("data-pose", "idle");
     unmount();
     expect(vi.getTimerCount()).toBe(0);
