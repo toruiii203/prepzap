@@ -1,6 +1,6 @@
 import type { StudyObjectKind } from "./StudyObject";
 import type { MascotMovement } from "@/lib/mascotMovement";
-export type StoryScene = "subject" | "response" | "question" | "feedback" | "save" | "arrival";
+export type StoryScene = "subject" | "response" | "goal" | "goal-response" | "question" | "feedback" | "save" | "arrival";
 export type SubjectName = "Math" | "Science" | "English" | "Biology" | "History" | "Computing";
 export type Surface = "paper" | "yellow" | "coral" | "crimson";
 export interface SubjectStory { kind: StudyObjectKind; surface: Surface; headline: string; support: string; signature: MascotMovement; question: string; options: readonly string[]; correct: number; why: string; }
@@ -21,8 +21,15 @@ export function signatureFor(desired: MascotMovement, previous?: MascotMovement)
 }
 export function reactionSequence(scene: StoryScene, subject: SubjectStory, outcome: "correct" | "incorrect" | "skipped", previous?: MascotMovement): MascotMovement[] {
   if (scene === "response") return ["peek-in", ...(bigMovements.includes(subject.signature) ? ["curious" as const] : []), signatureFor(subject.signature, previous)];
+  if (scene === "goal-response") return ["peek-in", "bow", "wave"];
   if (scene === "feedback") return outcome === "correct" ? ["peek-in", signatureFor("twirl-jump", previous)] : outcome === "incorrect" ? ["peek-in", "somersault-lite", "curious"] : ["peek-in", "curious"];
   if (scene === "save") return ["peek-in", "bow", "wave"];
   if (scene === "arrival") return ["peek-in", signatureFor("spin", previous), "wave"];
   return [];
 }
+
+export const goalStories = [
+  { label: "Catch up on class", headline: "Catching up works.", support: "We'll go at your pace.", kind: "book" },
+  { label: "Prep for a test", headline: "Test coming?", support: "We'll make it count.", kind: "cards" },
+  { label: "Just exploring", headline: "Exploring is a great start.", support: "", kind: "globe" },
+] as const;

@@ -3,12 +3,12 @@ import type { MascotArtworkState } from "@/components/Mascot";
 import "@/styles/seedling.css";
 
 /** Approved hand-structured vector artwork. No raster, filters, gradients or external assets. */
-export function SeedlingArtwork({ mood, blink, movement, movementKey, variant = "default", scribeAction = "rest", underShadow = false }: MascotArtworkState & { underShadow?: boolean }) {
+export function SeedlingArtwork({ mood, blink, movement, movementKey, underShadow = false }: MascotArtworkState & { underShadow?: boolean }) {
   const prefix = `seedling-${useId().replace(/:/g, "")}`;
   const layer = (part: string) => ({ id: `${prefix}-${part}`, "data-layer": part });
   const pose = mood === "encouraging" ? "encourage" : mood === "cheering" ? "celebrate" : mood;
   const joyful = pose === "happy" || pose === "celebrate";
-  return <svg className="seedling-art" viewBox={variant === "scribe" ? "0 0 440 360" : "0 0 400 400"} fill="none" aria-hidden="true" focusable="false" data-variant={variant} data-scribe-action={scribeAction} data-pose={pose} data-movement={movement} data-blink={blink}>
+  return <svg className="seedling-art" viewBox="0 0 400 400" fill="none" aria-hidden="true" focusable="false" data-pose={pose} data-movement={movement} data-blink={blink}>
     <g {...layer("shadow")} opacity={underShadow ? 0.5 : 0}><ellipse cx="200" cy="367" rx="96" ry="12" fill="#F3C0A0" /></g>
     <g key={movementKey} data-layer="actor">
       <g {...layer("feet-left")}><path d="M139 332C126 344 126 360 140 365C153 369 172 361 173 347L166 331Z" fill="#F3C0A0" /></g>
@@ -37,10 +37,6 @@ export function SeedlingArtwork({ mood, blink, movement, movementKey, variant = 
         </g>
       </g>
     </g>
-    {variant === "scribe" && <g data-layer="scribe-props" stroke="#000" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round">
-      <g data-layer="scribe-notebook"><path d="M300 262q-30-16-59-4v61q29-12 59 4 30-16 61-4v-61q-31-12-61 4Z" fill="#FFF"/><path d="M300 262v61"/><path d="M310 255v28l9-6 9 6v-28" fill="#FF4D2E"/><g data-layer="scribe-lines"><path d="M251 277h34M251 290h34M251 303h24M311 293h34M311 306h23"/></g></g>
-      <g data-layer="scribe-pencil"><path d="m269 270 33-47 9 7-33 47-13 9Z" fill="#FFD13B"/><path d="m302 223 6-8 9 7-6 8" fill="#FF4D2E"/><path d="m269 270 9 7-13 9Z" fill="#FAF7F2"/></g>
-    </g>}
     <g data-layer="typing" fill="#9BC464"><circle cx="170" cy="385" r="4" /><circle cx="200" cy="385" r="4" /><circle cx="230" cy="385" r="4" /></g>
     <g data-layer="burst" fill="#9BC464"><path d="M75 130L78 139L87 142L78 145L75 154L72 145L63 142L72 139Z" /><path d="M324 185L327 194L336 197L327 200L324 209L321 200L312 197L321 194Z" /><circle cx="108" cy="92" r="4" /><circle cx="303" cy="145" r="4" /></g>
   </svg>;

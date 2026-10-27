@@ -1,8 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OnboardingStory } from "../../design/study-studio/OnboardingStory";
-import { bigMovements, reactionSequence, signatureFor, subjectNames, subjectStories, customStory } from "../../design/study-studio/storyPlan";
-import { OnboardingScribe } from "../../design/study-studio/OnboardingScribe";
+import { bigMovements, goalStories, reactionSequence, signatureFor, subjectNames, subjectStories, customStory } from "../../design/study-studio/storyPlan";
 import { SeedlingArtwork } from "@/components/mascot/SeedlingArtwork";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Mascot } from "@/components/Mascot";
@@ -12,28 +11,29 @@ vi.mock("@/hooks/usePrefersReducedMotion",()=>({usePrefersReducedMotion:()=>pref
 vi.mock("@/lib/soundFX",()=>({playPop:vi.fn(),playTap:vi.fn()}));
 afterEach(()=>{cleanup();vi.useRealTimers();vi.restoreAllMocks();preference.reduced=false;});
 describe("onboarding story presentation",()=>{
- it("keeps selection hints neutral, supports Quiet, and cleans all scribe timers",()=>{
-  vi.useFakeTimers();const {container,unmount}=render(<OnboardingStory dark={false} still={false} onAuth={()=>{}}/>);
-  expect(container.querySelector('[data-variant=scribe]')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:'Math'}));expect(container.querySelector('.seedling-art')).toHaveAttribute('data-scribe-action','quick');
-  fireEvent.click(screen.getByRole('button',{name:'Science'}));expect(container.querySelector('.seedling-art')).toHaveAttribute('data-scribe-action','rewrite');
-  expect(screen.getByText("I'll note it down.")).toBeInTheDocument();
-  fireEvent.change(screen.getByRole('combobox',{name:'Question layout'}),{target:{value:'quiet'}});expect(container.querySelector('[data-variant=scribe]')).toBeNull();
-  act(()=>vi.advanceTimersByTime(2000)); // Settle the shared layout projection before checking owned timer cleanup.
-  unmount();act(()=>vi.advanceTimersByTime(50)); // Flush the layout library's queued teardown frame; longer scribe timers would remain.
-  expect(vi.getTimerCount()).toBe(0);
+ it("follows all eight slides with a prop-free companion and immediate answer feedback",()=>{
+  const {container}=render(<OnboardingStory dark={false} still onAuth={()=>{}}/>);
+  const scene=()=>container.querySelector('.story-root')?.getAttribute('data-scene');
+  expect(scene()).toBe('subject');expect(container.querySelector('[data-layer=scribe-props]')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));expect(scene()).toBe('response');
+  fireEvent.click(screen.getByRole('button',{name:'Continue'}));expect(scene()).toBe('goal');
+  expect(screen.getByRole('button',{name:'Continue'})).toBeDisabled();fireEvent.click(screen.getByRole('button',{name:'Catch up on class'}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));expect(scene()).toBe('goal-response');
+  expect(screen.getByRole('heading',{name:'Catching up works.'})).toBeInTheDocument();expect(screen.getByText("We'll go at your pace.")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Try a question'}));expect(scene()).toBe('question');expect(screen.getByRole('button',{name:/Check answer/})).toBeDisabled();
+  fireEvent.click(screen.getByRole('button',{name:'36'}));fireEvent.click(screen.getByRole('button',{name:/Check answer/}));expect(scene()).toBe('feedback');expect(screen.getByRole('heading',{name:"Good try. Here's the trick."})).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Keep going'}));expect(scene()).toBe('save');fireEvent.click(screen.getByRole('button',{name:'Not now'}));expect(scene()).toBe('arrival');
+  expect(container.textContent).not.toMatch(/XP|1.day streak|mastery/);
  });
- it("lifts the pencil before correction, cancels on Back, and never awards progress",()=>{
-  vi.useFakeTimers();const {container,unmount}=render(<OnboardingStory dark={false} still={false} onAuth={()=>{}}/>);
-  fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));
-  expect(screen.getByRole('button',{name:/Continue/})).toBeEnabled();fireEvent.click(screen.getByRole('button',{name:/Continue/}));
-  expect(screen.queryByText('Noted.')).toBeNull();fireEvent.click(screen.getByRole('button',{name:'36'}));expect(screen.getByText('Noted.')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:/Check answer/}));expect(container.querySelector('.seedling-art')).toHaveAttribute('data-scribe-action','lift');
-  act(()=>vi.advanceTimersByTime(400));expect(screen.getByRole('heading',{name:"Good try. Here's the trick."})).toBeInTheDocument();expect(screen.getByText('The answer is 42')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:/Keep going/}));fireEvent.click(screen.getByRole('button',{name:'Not now'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-signature','spin');fireEvent.click(screen.getByRole('button',{name:'Go back'}));fireEvent.click(screen.getByRole('button',{name:'Go back'}));
-  fireEvent.click(screen.getByRole('button',{name:'Go back'}));fireEvent.click(screen.getByRole('button',{name:'Skip for now'}));fireEvent.click(screen.getByRole('button',{name:'Go back'}));
-  act(()=>vi.advanceTimersByTime(500));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','response');expect(container.querySelector('.story-root')).toHaveAttribute('data-signature','quiet');
-  expect(container.textContent).not.toMatch(/XP|1.day streak|mastery/);unmount();act(()=>vi.advanceTimersByTime(50));expect(vi.getTimerCount()).toBe(0);
+ it("lets students skip optional goals and restores the exact path without replaying celebrations",()=>{
+  const {container}=render(<OnboardingStory dark={false} still onAuth={()=>{}}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Science'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));
+  fireEvent.click(screen.getByRole('button',{name:'Skip for now'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','question');fireEvent.click(screen.getByRole('button',{name:'Go back'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','goal');
+  fireEvent.click(screen.getByRole('button',{name:'Go back'}));expect(container.querySelector('.story-root')).toHaveAttribute('data-scene','response');expect(container.querySelector('.story-root')).toHaveAttribute('data-signature','quiet');
+ });
+ it.each(goalStories)("keeps the exact $label reaction copy",goal=>{
+  render(<OnboardingStory dark={false} still onAuth={()=>{}}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));
+  fireEvent.click(screen.getByRole('button',{name:goal.label}));fireEvent.click(screen.getByRole('button',{name:'Continue'}));expect(screen.getByRole('heading',{name:goal.headline})).toBeInTheDocument();if(goal.support)expect(screen.getByText(goal.support)).toBeInTheDocument();
  });
  it("has static expressions and no confetti in reduced motion",()=>{
   preference.reduced=true;const {container}=render(<OnboardingStory dark={false} still={false} onAuth={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'Math'}));fireEvent.click(screen.getByRole('button',{name:/Let's go/}));
@@ -49,10 +49,8 @@ describe("onboarding story presentation",()=>{
   expect(customStory.headline).toBe('That sounds interesting.');expect(signatureFor('twirl-jump','twirl-jump')).toBe('cheer');
   vi.spyOn(Math,'random').mockReturnValue(.999);expect(['wave','curious','hop','cheer','dance']).toContain(nextTapMovement());
  });
- it("glances once after inactivity, keeps the scribe small and cleans its loops",()=>{
-  vi.useFakeTimers();const glance=vi.fn();const {container,unmount}=render(<OnboardingScribe input={{id:0,kind:"select"}} selected={false} quiet={false} still={false} visible bubble="Noted." allowGlance onGlance={glance}/>);
-  act(()=>vi.advanceTimersByTime(8001));expect(glance).toHaveBeenCalledOnce();act(()=>vi.advanceTimersByTime(61000));expect(glance).toHaveBeenCalledOnce();expect(container.querySelector(".mascot")).toHaveAttribute("data-mood","idle");unmount();expect(vi.getTimerCount()).toBe(0);
-  const svg=renderToStaticMarkup(<SeedlingArtwork mood="idle" blink={false} reduced variant="scribe"/>);expect(svg.length).toBeLessThan(8000);expect(svg).toContain('scribe-pencil');
+ it("keeps the standalone SVG compact and entirely free of writing props",()=>{
+  const svg=renderToStaticMarkup(<SeedlingArtwork mood="idle" blink={false} reduced/>);expect(svg.length).toBeLessThan(8000);expect(svg).not.toMatch(/scribe|pencil|notebook/);
  });
  it("pauses opt-in gesture completion while hidden and calls completion once",()=>{
   vi.useFakeTimers();let hidden=false;vi.spyOn(document,'hidden','get').mockImplementation(()=>hidden);const done=vi.fn();const {container,unmount}=render(<Mascot mood="thinking" movement="spin" pauseWhenHidden onMovementComplete={done}/>);
