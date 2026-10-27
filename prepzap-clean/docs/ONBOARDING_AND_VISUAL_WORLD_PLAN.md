@@ -33,18 +33,23 @@ live competitor study. Previous live research attempts were blocked by the proxy
 
 ## 1. Onboarding storyboard
 
-Use alternating decision and reaction scenes. Keep the sequence short; a reaction
-is a small moment, not another form. Use labeled steps rather than a percentage
-that suggests measured readiness. Preserve login access throughout the flow.
+The latest approved live direction has a Back-only header, green accents derived
+from Seedling, a coordinated SVG welcome and no Skip action. Google sign-in is on
+the welcome screen; Get started opens the question-first route. Both reuse the
+existing account callback and consent rules. The study goal is a presentation
+hint and does not add persistence or reward logic.
 
 | Scene | Content and action | Visual/motion | Exit behavior |
 | --- | --- | --- | --- |
-| Choose a subject | Six common subjects; More subjects; custom subject; Continue | A small set of subject-object graphics; tactile selection | Selection is reversible; existing login shortcut |
-| Seedling responds | A short subject-specific line: Math? Let's work through it together | Large Seedling, curious lean, two or three related shapes | Continue available immediately; no input required |
-| Try a question | One local, subject-appropriate warm-up; Skip for now | Quiet question layout; selected answer responds promptly | Back/skip; no timer pressure or paid pre-auth request |
-| Seedling responds | Correct: brief explanation and a hop. Incorrect: explanation and reassurance. Skip: neutral invitation | Correct-answer visual; restrained original shapes; no shame | Continue immediately; no invented streak or diagnosis |
-| Save progress | Google/email using existing authentication and consent UI | Compact Seedling/learning-object composition; concise account benefit | Existing returning-user protection and auth recovery |
-| Arrive home | One highlighted next study action | Seedling wave and a short inline welcome | Optional contextual hint; no mandatory tour chain |
+| Welcome | Google, Get started, existing-account login | Original SVG garden; objects enter, Seedling peeks/waves/dances, then rests | Actions available throughout; no animation gate |
+| Subject | Six choices, More subjects/custom | Existing SVG icon kit, compact Seedling | Back to welcome; no Skip |
+| Subject response | Authored subject-specific copy | Large Seedling, yellow/leaf/forest field and separate subject object | Continue immediately |
+| Goal | Three low-pressure intent choices | Quiet surface and illustrated options | Required choice; hint only |
+| Goal response | Reassuring choice-specific copy | Bow/wave and a yellow arch | Try a question immediately |
+| Warm-up | Existing shuffled local question bank on live route | Large readable choices; no subject eyebrow or timer | Check after selection; no Skip |
+| Answer response | Correct explanation or reassuring correction | Existing transform/opacity gesture rig | Continue immediately; no new award rules |
+| Save | Existing Google/email auth, consent and error recovery | Forest field, cream Seedling, separate cards | Existing account callback handles entry |
+| Arrival | Existing dashboard handoff | Spin/wave in the standalone review | Actual live callback/redirect remains authoritative |
 
 Subject-specific reactions use a small authored copy table and reusable objects,
 not generated content per user. A custom subject gets neutral copy. Back navigation
@@ -245,3 +250,22 @@ Seedling reaction, shown alongside a first-dashboard concept. Approve those as
 one connected experience, then produce the first asset batch and integrate the
 short onboarding. No full-site implementation starts from an unreviewed pile of
 generated images.
+
+
+## Latest delivery and next visual review — 27 October 2026
+
+- `/onboarding`: updated live presentation, including SVG welcome and consent-
+  gated Google entry. Existing local question bank, draft expiry and API payloads
+  remain in place; unsupported forecasts and streak-loss copy are removed.
+- `/design-review/study-studio.html`: the same shared presentation with review
+  dialogs and no account operations. Theme/Art board controls are off the main UI;
+  review options use `?theme=dark`, `?motion=static`, `?view=board`.
+- `/design-review/study-garden.html`: a NEW dashboard/Practice/Library visual
+  review. Original icons retained; simplified hierarchy, SVG study art, green CTA,
+  responsive navigation and sample contextual mascot dialogs. Sample data only.
+- Production dashboard and other pages remain unchanged pending approval of this
+  new direction. The request for more page reactions/popups is represented in the
+  review before wider implementation, as the user requested.
+- Contextual support should never stack overlays or interrupt an active answer.
+  Reuse existing queued celebrations and popup frequency policy after approval;
+  expand useful event coverage rather than manufacturing milestones or urgency.

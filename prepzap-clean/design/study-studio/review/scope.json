@@ -1,6 +1,6 @@
 {
   "baselineCommit": "453d866d760514e2f51aca256f5451c8ed91ea41",
-  "scope": "Onboarding presentation; dashboards/auth/consent/draft behavior preserved",
+  "scope": "User-approved live onboarding presentation; dashboard, account rules and endpoints preserved.",
   "checks": [
     {
       "path": "src/pages/Dashboard.tsx",
@@ -9,8 +9,10 @@
     },
     {
       "path": "src/pages/OnboardingFlow.tsx",
-      "unchanged": true,
-      "sha256": "42f29e86e049ffcdafddb7a17ddd5c2607e9bfb7db120da34baaa99ce94c93ef"
+      "unchanged": false,
+      "sha256": "42f29e86e049ffcdafddb7a17ddd5c2607e9bfb7db120da34baaa99ce94c93ef",
+      "approvedChange": "Live presentation explicitly approved by user; existing auth payloads and draft helper retained.",
+      "currentSha256": "69bcb9f19afca6f15fb22c7bd900ec2a06e73d7e070edcf50428b349e5d4caba"
     },
     {
       "path": "src/contexts/AuthContext.tsx",
@@ -34,5 +36,5 @@
       "sha256": "cba3be5e40114d716a61193691e553d52c2560b252466a4a0a080c7076a71d1d"
     }
   ],
-  "latestReadabilityRevision": "Eight-slide flow, larger typography and standalone mascot; protected sources verified unchanged."
+  "latestReadabilityRevision": "Live shared UI, SVG welcome, green palette, Back-only navigation, no Skip; dashboard unchanged."
 }

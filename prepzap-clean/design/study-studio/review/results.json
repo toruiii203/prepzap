@@ -1,456 +1,90 @@
 {
-  "previewOnly": true,
+  "liveOnboardingChanged": true,
   "dashboardChanged": false,
-  "productionAuthConsentDraftLogicChanged": false,
-  "fixtureData": true,
-  "unitTests": 170,
-  "unitTestFiles": 29,
+  "accountCompletionRulesChanged": false,
+  "APIEndpointsChanged": false,
+  "localQuestionBankChanged": false,
+  "newDependencies": false,
+  "unitTests": 175,
+  "unitTestFiles": 30,
   "routePatternsPassed": 57,
-  "previewBuild": "passed",
-  "appBuild": "passed",
-  "previewTypes": "passed",
-  "touchedFileLint": "passed",
-  "repositoryLintErrors": 330,
-  "repositoryLintWarnings": 75,
-  "repositoryTypeErrors": 68,
-  "physicalDeviceTested": false,
-  "gallery": {
-    "viewportThemeChecks": 8,
-    "gestures": 11
-  },
-  "scenarios": [
-    {
-      "width": 844,
-      "height": 390,
-      "theme": "light",
-      "layout": "standalone",
-      "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 204.817626953125,
-          "right": 217.18238830566406,
-          "top": 155.08567810058594,
-          "bottom": 289.34552001953125
-        },
-        "canvasHeight": 175.5,
-        "viewport": {
-          "width": 844,
-          "height": 390
-        },
-        "footerTop": 324,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 158.21490478515625,
-          "right": 263.78509521484375,
-          "top": 139.8102569580078,
-          "bottom": 282.12567138671875
-        },
-        "canvasHeight": 175.5,
-        "viewport": {
-          "width": 844,
-          "height": 390
-        },
-        "footerTop": 324,
-        "objectOverlap": false
-      }
-    },
-    {
-      "width": 844,
-      "height": 390,
-      "theme": "dark",
-      "layout": "standalone",
-      "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 204.817626953125,
-          "right": 217.18238830566406,
-          "top": 155.08567810058594,
-          "bottom": 289.34552001953125
-        },
-        "canvasHeight": 175.5,
-        "viewport": {
-          "width": 844,
-          "height": 390
-        },
-        "footerTop": 324,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 158.21490478515625,
-          "right": 263.78509521484375,
-          "top": 139.8102569580078,
-          "bottom": 282.12567138671875
-        },
-        "canvasHeight": 175.5,
-        "viewport": {
-          "width": 844,
-          "height": 390
-        },
-        "footerTop": 324,
-        "objectOverlap": false
-      }
-    },
+  "liveBrowserCases": [
     {
       "width": 390,
       "height": 700,
       "theme": "light",
-      "layout": "standalone",
       "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 183.90341186523438,
-          "right": 206.09658813476562,
-          "top": 241.2691650390625,
-          "bottom": 482.24835205078125
-        },
-        "canvasHeight": 315,
-        "viewport": {
-          "width": 390,
-          "height": 700
-        },
-        "footerTop": 626,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 100.25750732421875,
-          "right": 289.74249267578125,
-          "top": 158.72674560546875,
-          "bottom": 414.1646728515625
-        },
-        "canvasHeight": 315,
-        "viewport": {
-          "width": 390,
-          "height": 700
-        },
-        "footerTop": 626,
-        "objectOverlap": false
-      }
+      "fixtureOnly": true
     },
     {
       "width": 390,
       "height": 700,
       "theme": "dark",
-      "layout": "standalone",
       "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 183.90341186523438,
-          "right": 206.09658813476562,
-          "top": 241.2691650390625,
-          "bottom": 482.24835205078125
-        },
-        "canvasHeight": 315,
-        "viewport": {
-          "width": 390,
-          "height": 700
-        },
-        "footerTop": 626,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 100.25750732421875,
-          "right": 289.74249267578125,
-          "top": 158.72674560546875,
-          "bottom": 414.1646728515625
-        },
-        "canvasHeight": 315,
-        "viewport": {
-          "width": 390,
-          "height": 700
-        },
-        "footerTop": 626,
-        "objectOverlap": false
-      }
+      "fixtureOnly": true
     },
     {
       "width": 390,
       "height": 844,
       "theme": "light",
-      "layout": "standalone",
       "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 182.67047119140625,
-          "right": 207.3295440673828,
-          "top": 270.41192626953125,
-          "bottom": 538.1665649414062
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 390,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 89.7305679321289,
-          "right": 300.2694778442383,
-          "top": 178.6981201171875,
-          "bottom": 462.5180358886719
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 390,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      }
+      "fixtureOnly": true
     },
     {
       "width": 390,
       "height": 844,
       "theme": "dark",
-      "layout": "standalone",
       "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 182.67047119140625,
-          "right": 207.3295440673828,
-          "top": 270.41192626953125,
-          "bottom": 538.1665649414062
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 390,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 89.7305679321289,
-          "right": 300.2694778442383,
-          "top": 178.6981201171875,
-          "bottom": 462.5180358886719
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 390,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      }
-    },
-    {
-      "width": 1280,
-      "height": 800,
-      "theme": "light",
-      "layout": "standalone",
-      "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 627.3181762695312,
-          "right": 652.6818237304688,
-          "top": 307.02191162109375,
-          "bottom": 582.4266967773438
-        },
-        "canvasHeight": 360,
-        "viewport": {
-          "width": 1280,
-          "height": 800
-        },
-        "footerTop": 708,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 256.7228698730469,
-          "right": 473.27716064453125,
-          "top": 215.18771362304688,
-          "bottom": 507.11676025390625
-        },
-        "canvasHeight": 360,
-        "viewport": {
-          "width": 1280,
-          "height": 800
-        },
-        "footerTop": 708,
-        "objectOverlap": false
-      }
-    },
-    {
-      "width": 1280,
-      "height": 800,
-      "theme": "dark",
-      "layout": "standalone",
-      "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 627.3181762695312,
-          "right": 652.6818237304688,
-          "top": 307.02191162109375,
-          "bottom": 582.4266967773438
-        },
-        "canvasHeight": 360,
-        "viewport": {
-          "width": 1280,
-          "height": 800
-        },
-        "footerTop": 708,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 256.7228698730469,
-          "right": 473.27716064453125,
-          "top": 215.18771362304688,
-          "bottom": 507.11676025390625
-        },
-        "canvasHeight": 360,
-        "viewport": {
-          "width": 1280,
-          "height": 800
-        },
-        "footerTop": 708,
-        "objectOverlap": false
-      }
+      "fixtureOnly": true
     },
     {
       "width": 320,
       "height": 844,
       "theme": "light",
-      "layout": "standalone",
       "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 149.43182373046875,
-          "right": 170.56817626953125,
-          "top": 287.90887451171875,
-          "bottom": 517.412841796875
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 320,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 69.76905822753906,
-          "right": 250.23095703125,
-          "top": 209.29705810546875,
-          "bottom": 452.5712585449219
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 320,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      }
+      "fixtureOnly": true
     },
     {
       "width": 320,
       "height": 844,
       "theme": "dark",
-      "layout": "standalone",
       "result": "passed",
-      "response": {
-        "movement": "spin",
-        "actor": {
-          "left": 149.43182373046875,
-          "right": 170.56817626953125,
-          "top": 287.90887451171875,
-          "bottom": 517.412841796875
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 320,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      },
-      "feedback": {
-        "movement": "twirl-jump",
-        "actor": {
-          "left": 69.76905822753906,
-          "right": 250.23095703125,
-          "top": 209.29705810546875,
-          "bottom": 452.5712585449219
-        },
-        "canvasHeight": 379.796875,
-        "viewport": {
-          "width": 320,
-          "height": 844
-        },
-        "footerTop": 770,
-        "objectOverlap": false
-      }
+      "fixtureOnly": true
     },
     {
-      "subject": "Math",
-      "noRepeatedBigMove": true,
-      "result": "passed"
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "result": "passed",
+      "fixtureOnly": true
     },
     {
-      "subject": "Science",
-      "noRepeatedBigMove": true,
-      "result": "passed"
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "result": "passed",
+      "fixtureOnly": true
     },
     {
-      "subject": "English",
-      "noRepeatedBigMove": true,
-      "result": "passed"
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "result": "passed",
+      "fixtureOnly": true
     },
     {
-      "subject": "Biology",
-      "noRepeatedBigMove": true,
-      "result": "passed"
-    },
-    {
-      "subject": "History",
-      "noRepeatedBigMove": true,
-      "result": "passed"
-    },
-    {
-      "subject": "Computing",
-      "noRepeatedBigMove": true,
-      "result": "passed"
-    },
-    {
-      "flow": "custom, incorrect, skip, exact Back and no replay",
-      "result": "passed"
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "result": "passed",
+      "fixtureOnly": true
     }
   ],
-  "slideCount": 8,
-  "questionLayout": "standalone Seedling; writing props removed",
-  "additionalCopyChecks": {
-    "correct": 30,
-    "incorrect": 30,
-    "viewports": 5,
-    "subjects": 6,
-    "mode": "reduced motion, local fixtures"
-  }
+  "previewScenarios": 17,
+  "repositoryLintErrors": 326,
+  "repositoryLintWarnings": 73,
+  "repositoryTypeErrors": 68,
+  "physicalDeviceTested": false,
+  "realOAuthTested": false,
+  "deploymentVerified": false
 }

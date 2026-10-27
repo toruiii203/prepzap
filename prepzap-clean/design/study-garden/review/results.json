@@ -1,0 +1,79 @@
+{
+  "reviewOnly": true,
+  "productionDashboardChanged": false,
+  "fixtureData": true,
+  "networkRequests": 0,
+  "storageWrites": 0,
+  "browserCases": [
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "light",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 320,
+      "height": 844,
+      "theme": "dark",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 390,
+      "height": 700,
+      "theme": "light",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 390,
+      "height": 700,
+      "theme": "dark",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "result": "passed",
+      "views": 3
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "result": "passed",
+      "views": 3
+    }
+  ]
+}
