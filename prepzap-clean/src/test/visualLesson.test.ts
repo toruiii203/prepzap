@@ -4,6 +4,7 @@ import {
   fetchWikipediaImage,
   populateLessonImages,
   generateFallbackVisualLesson,
+  generateVisualLesson,
   conceptCardSchema,
   tableCardSchema,
   chartCardSchema,
@@ -176,6 +177,30 @@ describe("Visual Lesson Schema & Generation", () => {
       if (populated.cards[0].type === "concept") {
         expect(populated.cards[0].imageUrl).toBeNull();
       }
+    });
+  });
+  describe("Input Flexibility (object vs string args)", () => {
+    it("handles generateFallbackVisualLesson with both string and object input without throwing trim error", () => {
+      const fromString = generateFallbackVisualLesson("Photosynthesis");
+      expect(fromString.topic).toBe("Photosynthesis");
+      expect(fromString.big_idea.sentence).toBeDefined();
+
+      const fromObject = generateFallbackVisualLesson({ topic: "Photosynthesis", sourceTag: "BIO101" });
+      expect(fromObject.topic).toBe("Photosynthesis");
+      expect(fromObject.sourceTag).toBe("BIO101");
+    });
+
+    it("handles generateVisualLesson with options object without throwing e.trim is not a function", async () => {
+      // Mock callGroq to return empty string so it falls back cleanly
+      const lesson = await generateVisualLesson({
+        topic: "The Krebs Cycle",
+        sourceText: "Mitochondrial matrix cellular respiration",
+      });
+
+      expect(lesson).toBeDefined();
+      expect(lesson.topic).toBe("The Krebs Cycle");
+      expect(lesson.big_idea.sentence.length).toBeGreaterThan(5);
+      expect(lesson.cards.length).toBeGreaterThan(0);
     });
   });
 });

@@ -362,7 +362,7 @@ export default function VisualLearner() {
       const entry: HistoryEntry = {
         id: Date.now().toString(),
         title: target,
-        subtitle: generated.big_idea.statement,
+        subtitle: generated.big_idea.sentence,
         timestamp: new Date(),
         data: generated,
       };

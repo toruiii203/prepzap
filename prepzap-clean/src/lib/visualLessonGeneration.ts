@@ -353,12 +353,26 @@ export async function populateLessonImages(lesson: VisualLesson): Promise<Visual
 // ── 5. Full Visual Lesson Generator ──────────────────────────────────────────
 
 export async function generateVisualLesson(
-  topic: string,
+  topicOrOptions: string | { topic: string; sourceText?: string; sourceContext?: string; sourceTag?: string },
   sourceContext?: string,
   sourceTag?: string
 ): Promise<VisualLesson> {
-  const cleanTopic = topic.trim();
-  const safeContext = sourceContext ? sourceContext.slice(0, 3000) : "";
+  let topicStr = "";
+  let contextStr = "";
+  let tagStr: string | undefined;
+
+  if (typeof topicOrOptions === "object" && topicOrOptions !== null) {
+    topicStr = topicOrOptions.topic || "";
+    contextStr = topicOrOptions.sourceText || topicOrOptions.sourceContext || "";
+    tagStr = topicOrOptions.sourceTag;
+  } else {
+    topicStr = String(topicOrOptions || "");
+    contextStr = sourceContext || "";
+    tagStr = sourceTag;
+  }
+
+  const cleanTopic = topicStr.trim();
+  const safeContext = contextStr ? contextStr.slice(0, 3000) : "";
 
   const systemPrompt = `You are a cognitive dual-coding education expert.
 Create a structured 5-step visual lesson that actually TEACHES the topic, rather than showing generic slides.
@@ -413,11 +427,22 @@ Rules:
 
 // ── 6. Fallback Lesson Generator ─────────────────────────────────────────────
 
-export function generateFallbackVisualLesson(topic: string, sourceTag?: string): VisualLesson {
-  const c = topic.trim();
+export function generateFallbackVisualLesson(
+  topicOrOptions: string | { topic: string; sourceTag?: string },
+  sourceTag?: string
+): VisualLesson {
+  let topicStr = "";
+  let tagStr = sourceTag;
+  if (typeof topicOrOptions === "object" && topicOrOptions !== null) {
+    topicStr = topicOrOptions.topic || "";
+    tagStr = topicOrOptions.sourceTag || tagStr;
+  } else {
+    topicStr = String(topicOrOptions || "");
+  }
+  const c = topicStr.trim() || "Study Topic";
   return {
     topic: c,
-    sourceTag,
+    sourceTag: tagStr,
     big_idea: {
       sentence: `${c} establishes the governing mechanism that drives how components interact, adapt, and reach equilibrium.`,
       photoKeywords: [c, `${c} diagram`, "scientific experiment"],
