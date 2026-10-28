@@ -22,6 +22,7 @@ import { LearningRoadmaps } from "@/components/roadmaps/LearningRoadmaps";
 import { SessionSummaryCard } from "@/components/SessionSummaryCard";
 import { launchPathLesson } from "@/lib/lessonLauncher";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
+import { useUserProfile } from "@/lib/userProfileStore";
 import {
   getStoredPreferences,
   saveExamTarget,
