@@ -1,0 +1,184 @@
+{
+  "outline": {
+    "title": "Integration from first principles",
+    "summary": "Find antiderivatives, apply the power rule and connect the ideas in mixed problems.",
+    "prerequisites": [
+      "Differentiate simple powers of x."
+    ],
+    "units": [
+      {
+        "title": "Reverse a derivative",
+        "objective": "Find a function whose derivative is 2x.",
+        "kind": "foundation",
+        "evidence": []
+      },
+      {
+        "title": "Use the power rule",
+        "objective": "Integrate nonnegative integer powers.",
+        "kind": "application",
+        "evidence": []
+      },
+      {
+        "title": "Connect the ideas",
+        "objective": "Choose and explain an antiderivative in mixed problems.",
+        "kind": "synthesis",
+        "evidence": []
+      }
+    ]
+  },
+  "lesson": {
+    "explanation": "An antiderivative reverses differentiation. If the derivative of F(x) is f(x), then F is an antiderivative of f. For example, the derivative of x^2 is 2x, so x^2 is an antiderivative of 2x. Adding any constant leaves the derivative unchanged, so the full family is x^2 + C. You can check an answer by differentiating it. This fixture tests interaction and validation; it is not a production generated response.",
+    "example": {
+      "problem": "Find an antiderivative of 2x.",
+      "steps": [
+        "Recall that the derivative of x^2 is 2x.",
+        "Write x^2 + C for the family; differentiating checks the result."
+      ]
+    },
+    "commonMistake": "Do not confuse differentiation with integration. Differentiate your proposed answer to check it.",
+    "evidence": [],
+    "guided": [
+      {
+        "prompt": "Guided A: Which expression has derivative 2x^1?",
+        "options": [
+          "x^2",
+          "x^3",
+          "2x",
+          "3x^2"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 1.",
+        "explanation": "The derivative of x^2 is 2x^1. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      },
+      {
+        "prompt": "Guided B: Which expression has derivative 3x^2?",
+        "options": [
+          "x^3",
+          "x^4",
+          "3x",
+          "4x^3"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 2.",
+        "explanation": "The derivative of x^3 is 3x^2. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      }
+    ],
+    "practice": [
+      {
+        "prompt": "Practice A: Which expression has derivative 4x^3?",
+        "options": [
+          "x^4",
+          "x^5",
+          "4x",
+          "5x^4"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 3.",
+        "explanation": "The derivative of x^4 is 4x^3. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      },
+      {
+        "prompt": "Practice B: Which expression has derivative 5x^4?",
+        "options": [
+          "x^5",
+          "x^6",
+          "5x",
+          "6x^5"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 4.",
+        "explanation": "The derivative of x^5 is 5x^4. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      }
+    ],
+    "recall": [
+      {
+        "prompt": "Explain how to check an antiderivative without looking at the example.",
+        "answer": "Differentiate the proposed antiderivative and compare with the original function.",
+        "criteria": [
+          "Differentiate the candidate.",
+          "Compare the derivative with the original function."
+        ]
+      },
+      {
+        "prompt": "Why can a constant be added to an antiderivative?",
+        "answer": "The derivative of a constant is zero, so all constants give the same original derivative.",
+        "criteria": [
+          "The derivative of a constant is zero.",
+          "The family gives the same derivative."
+        ]
+      }
+    ],
+    "checkpoint": [
+      {
+        "prompt": "Checkpoint A: Which expression has derivative 6x^5?",
+        "options": [
+          "x^6",
+          "x^7",
+          "6x",
+          "7x^6"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 5.",
+        "explanation": "The derivative of x^6 is 6x^5. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      },
+      {
+        "prompt": "Checkpoint B: Which expression has derivative 7x^6?",
+        "options": [
+          "x^7",
+          "x^8",
+          "7x",
+          "8x^7"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 6.",
+        "explanation": "The derivative of x^7 is 7x^6. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      },
+      {
+        "prompt": "Checkpoint C: Which expression has derivative 8x^7?",
+        "options": [
+          "x^8",
+          "x^9",
+          "8x",
+          "9x^8"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 7.",
+        "explanation": "The derivative of x^8 is 8x^7. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      }
+    ],
+    "review": [
+      {
+        "prompt": "Review A: Which expression has derivative 9x^8?",
+        "options": [
+          "x^9",
+          "x^10",
+          "9x",
+          "10x^9"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 8.",
+        "explanation": "The derivative of x^9 is 9x^8. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      },
+      {
+        "prompt": "Review B: Which expression has derivative 10x^9?",
+        "options": [
+          "x^10",
+          "x^11",
+          "10x",
+          "11x^10"
+        ],
+        "correct": 0,
+        "hint": "Differentiate each option. The exponent should become 9.",
+        "explanation": "The derivative of x^10 is 10x^9. The other options differentiate to a different power or coefficient.",
+        "simplerExample": "The derivative of x^2 is 2x. Reverse this connection to find an antiderivative of 2x."
+      }
+    ]
+  }
+}

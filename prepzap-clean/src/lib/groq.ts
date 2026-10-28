@@ -31,7 +31,7 @@ export interface GroqMessage {
 // and throws a clear error if nothing parseable is found.
 export function safeParseJSON<T = unknown>(raw: string): T {
   // 1. Strip code fences
-  let clean = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const clean = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
 
   // 2. Try to extract a JSON object or array by finding the outermost brackets
   let jsonStr = clean;
@@ -165,7 +165,8 @@ async function _callGroqCore(
   model: string = DEFAULT_MODEL,
   maxTokens: number = 1024,
   feature?: string,
-  isRetry: boolean = false
+  isRetry: boolean = false,
+  includeActiveImages: boolean = true
 ): Promise<{ text: string; provider?: string }> {
   // Fail fast and clearly when there's genuinely no connection, instead of
   // sending a doomed request that surfaces as a confusing error later.
@@ -196,7 +197,7 @@ async function _callGroqCore(
 
   // Auto-detect active image sources and inject into the last user message
   const { buildImageMessages } = await import("@/lib/sourceContext");
-  const imageBlocks = buildImageMessages();
+  const imageBlocks = includeActiveImages ? buildImageMessages() : [];
   const hasImages = imageBlocks.length > 0;
 
   const fullMessages = [
@@ -225,13 +226,14 @@ async function _callGroqCore(
 
   try {
     return await _callGroqCoreWithToken(fullMessages, resolvedModel, maxTokens, feature, token);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "";
     // FIX: On 401, force a token refresh and retry ONCE using the fresh token
     // DIRECTLY from refreshSession()'s return value. Do NOT re-call
     // getAccessTokenSafely() here — the in-memory and localStorage caches
     // may not have updated yet, so reading from them again would just send
     // the same stale token and cause a second 401.
-    if (err?.message?.includes("401") && !isRetry) {
+    if (message.includes("401") && !isRetry) {
       console.warn("[groq] API returned 401, forcing token refresh and retrying...");
       try {
         const freshToken = await ensureFreshAccessToken({ force: true });
@@ -241,7 +243,7 @@ async function _callGroqCore(
       }
     }
 
-    if ((err?.message?.includes("503") || err?.message?.includes("502")) && !isRetry) {
+    if ((message.includes("503") || message.includes("502")) && !isRetry) {
       console.warn("[groq] API returned 503/502, attempting fallback model retry...");
       try {
         return await _callGroqCoreWithToken(fullMessages, "llama-3.3-70b-versatile", maxTokens, feature, token);
@@ -262,9 +264,10 @@ export async function callGroq(
   systemPromptOrModel?: string,
   model: string = DEFAULT_MODEL,
   maxTokens: number = 1024,
-  feature?: string
+  feature?: string,
+  options?: { includeActiveImages?: boolean }
 ): Promise<string> {
-  const { text } = await _callGroqCore(messages, systemPromptOrModel, model, maxTokens, feature);
+  const { text } = await _callGroqCore(messages, systemPromptOrModel, model, maxTokens, feature, false, options?.includeActiveImages ?? true);
   return text;
 }
 
