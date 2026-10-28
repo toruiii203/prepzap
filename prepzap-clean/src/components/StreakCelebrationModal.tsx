@@ -8,6 +8,7 @@ import { playCelebration, playPop, triggerHaptic, isSoundEnabled } from "@/lib/s
 import { useAuth } from "@/contexts/AuthContext";
 import { localDayKey, verifiedStudyDays } from "@/lib/progressPopupPolicy";
 import { Mascot } from "@/components/Mascot";
+import { VictoryCardModal } from "@/components/VictoryCardModal";
 
 interface StreakCelebrationModalProps {
   isOpen?: boolean;
@@ -29,7 +30,10 @@ export function StreakCelebrationModal({
   showRex = true,
 }: StreakCelebrationModalProps) {
   const reduced = usePrefersReducedMotion();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const [showVictoryCard, setShowVictoryCard] = useState(false);
+  const rawName = user?.avatarConfig?.full_name || (user as any)?.user_metadata?.full_name || (profile as any)?.full_name || (profile as any)?.username || user?.name || "Scholar";
+  const friendCode = (profile as any)?.friend_code || user?.id?.slice(0, 8).toUpperCase() || "STUDENIUS";
   const confirmedDays = useMemo(() => {
     if (!isOpen || !user?.id) return new Set<string>();
     try { return new Set(verifiedStudyDays(localStorage.getItem("pz_study_sessions"), user.id, new Date())); }
@@ -258,8 +262,20 @@ export function StreakCelebrationModal({
         </div>
       </div>
 
-      {/* Bottom CTA Button */}
-      <div className="w-full pt-2">
+      {/* Bottom CTA Buttons */}
+      <div className="w-full pt-2 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            playPop();
+            setShowVictoryCard(true);
+          }}
+          className="w-full py-3 bg-[#FFE566] hover:bg-[#FFD13B] text-black font-black text-[13px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000000] active:translate-y-0.5 cursor-pointer flex items-center justify-center gap-2 transition-all"
+        >
+          <span className="material-symbols-outlined text-[18px]">share</span>
+          Brag on Instagram Story (9:16)
+        </button>
+
         <button
           type="button"
           onClick={() => {
@@ -271,6 +287,19 @@ export function StreakCelebrationModal({
           Continue
         </button>
       </div>
+
+      <VictoryCardModal
+        isOpen={showVictoryCard}
+        onClose={() => setShowVictoryCard(false)}
+        title="Streak Maintained!"
+        topic={`${streakCount}-Day Study Streak`}
+        score={streakCount}
+        totalQuestions={streakCount}
+        comboStreak={streakCount}
+        xpEarned={streakCount * 25}
+        friendCode={friendCode}
+        displayName={rawName}
+      />
 
       {/* In-component Keyframe Styles */}
       <style>{`

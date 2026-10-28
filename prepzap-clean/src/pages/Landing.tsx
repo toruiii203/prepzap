@@ -216,8 +216,31 @@ export default function Studenius() {
             </div>
           </div>
 
-          {/* Right — New Mascot */}
+          {/* Right — New Mascot Spotlight */}
           <div className="animate-bob" style={{ flex: "1 1 320px", maxWidth: 440, margin: "0 auto", position: "relative" }}>
+            {/* Pip Speech Bubble */}
+            <div
+              style={{
+                position: "absolute",
+                top: -16,
+                right: -8,
+                zIndex: 10,
+                backgroundColor: "#FFE566",
+                border: "2.5px solid #111111",
+                borderRadius: 16,
+                padding: "8px 16px",
+                boxShadow: "3px 3px 0 #111111",
+                fontWeight: 900,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span className="ms" style={{ fontSize: 16, color: "#10B981" }}>chat_spark</span>
+              Meet Pip, your AI Study Buddy!
+            </div>
+
             <div
               className="neo-card"
               style={{
@@ -234,9 +257,57 @@ export default function Studenius() {
             >
               <img
                 src={MASCOT_URL}
-                alt="Studenius Mascot"
+                alt="Pip — Studenius Seedling Mascot"
                 style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 20, display: "block" }}
               />
+            </div>
+
+            {/* Feature Pills */}
+            <div
+              style={{
+                marginTop: 14,
+                display: "flex",
+                justifyContent: "center",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  background: "#10B981",
+                  color: "#ffffff",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  padding: "6px 14px",
+                  borderRadius: 9999,
+                  border: "2px solid #111111",
+                  boxShadow: "2px 2px 0 #111111",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <span className="ms" style={{ fontSize: 15 }}>record_voice_over</span>
+                Live Voice with Pip
+              </span>
+              <span
+                style={{
+                  background: "#FFE566",
+                  color: "#111111",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  padding: "6px 14px",
+                  borderRadius: 9999,
+                  border: "2px solid #111111",
+                  boxShadow: "2px 2px 0 #111111",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <span className="ms" style={{ fontSize: 15 }}>school</span>
+                Feynman TeachIt
+              </span>
             </div>
           </div>
         </section>
@@ -343,7 +414,7 @@ export default function Studenius() {
               </p>
               <button className="neo-btn-primary" onClick={() => navigate("/onboarding")} style={{ padding: "18px 40px", fontSize: 22 }}>Start for Free</button>
             </div>
-            <img src={MASCOT_URL} alt="Studenius Mascot" style={{ position: "absolute", bottom: -20, right: 10, width: "clamp(160px,25vw,320px)", opacity: 0.35, filter: "drop-shadow(0 0 12px rgba(0,0,0,0.6))", pointerEvents: "none" }} />
+            <img src={MASCOT_URL} alt="Pip Mascot" style={{ position: "absolute", bottom: -20, right: 10, width: "clamp(160px,25vw,300px)", opacity: 0.85, filter: "drop-shadow(0 0 16px rgba(0,0,0,0.8))", pointerEvents: "none" }} />
           </div>
         </section>
 

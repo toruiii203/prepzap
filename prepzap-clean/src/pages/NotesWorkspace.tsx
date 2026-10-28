@@ -47,7 +47,15 @@ const NOTE_TEMPLATES = [
     badge: "High Yield",
     icon: "school",
     description: "Capture professor insights, key equations, and homework follow-ups.",
-    content: `<h2><strong>Lecture: [Unit Title]</strong></h2><p><strong>Course / Instructor:</strong> </p><h3><strong>🎯 Key Takeaways</strong></h3><ul><li>Key idea 1</li><li>Key idea 2</li><li>Key idea 3</li></ul><h3><strong>📌 Definitions & Formulas</strong></h3><p>List any formulas, constants, or technical definitions mentioned:</p><ul><li>Term 1: Definition</li><li>Formula: </li></ul><h3><strong>✅ Action Items & Homework</strong></h3><ul><li>[ ] Review textbook chapter</li><li>[ ] Complete practice problem set</li></ul>`,
+    content: `<h2><strong>Lecture: [Unit Title]</strong></h2><p><strong>Course / Instructor:</strong> </p><h3><strong>Key Takeaways</strong></h3><ul><li>Key idea 1</li><li>Key idea 2</li><li>Key idea 3</li></ul><h3><strong>Definitions & Formulas</strong></h3><p>List any formulas, constants, or technical definitions mentioned:</p><ul><li>Term 1: Definition</li><li>Formula: </li></ul><h3><strong>Action Items & Homework</strong></h3><ul><li>[ ] Review textbook chapter</li><li>[ ] Complete practice problem set</li></ul>`,
+  },
+  {
+    id: "concept_map",
+    title: "Concept Flowchart & Architecture",
+    badge: "Diagram Design",
+    icon: "account_tree",
+    description: "Map causes, effects, mechanisms, and decision branches visually.",
+    content: `<h2><strong>System Architecture & Flowchart: [Topic]</strong></h2><p><em>Use this layout to map step-by-step systems, cycles, and decision trees.</em></p><hr/><h3><strong>1. Input & Initial Trigger</strong></h3><p>What starts this process? What are the starting parameters?</p><hr/><h3><strong>2. Intermediate Stages (Flow)</strong></h3><ol><li><strong>Stage 1:</strong> Initial activation or transformation</li><li><strong>Stage 2:</strong> Core mechanism or reaction</li><li><strong>Stage 3:</strong> Feedback loop or termination</li></ol><hr/><h3><strong>3. Decision Branches & Conditions</strong></h3><p><em>IF condition A occurs:</em> Pathway splits to...</p><p><em>IF condition B occurs:</em> Reaction shifts to...</p><hr/><h3><strong>4. Final Output & Equilibrium</strong></h3><p>What is the end state or resulting product?</p>`,
   },
   {
     id: "exam_review",

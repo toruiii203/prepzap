@@ -14,6 +14,8 @@ import { useToolHistory } from "@/pages/ToolHistory";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
+import { AnimatedRex, type RexState } from "@/components/AnimatedRex";
+import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 
 interface FeynmanFeedback {
   strengths: string[];
@@ -178,6 +180,249 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
 
   useEffect(() => {
     return () => { recognitionRef.current?.stop?.(); };
+  }, []);
+
+  // Interactive Voice Mode with Pip
+  const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+  const [callState, setCallState] = useState<RexState>("idle");
+  const [pipSpeech, setPipSpeech] = useState<string>("Hi! I'm Pip. Teach me this concept like I'm 10 years old!");
+  const [isMuted, setIsMuted] = useState(false);
+  const [amplitude, setAmplitude] = useState(0);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
+  const callStateRef = useRef<RexState>(callState);
+  const liveVoiceRecognitionRef = useRef<any>(null);
+  const audioContextRef = useRef<any>(null);
+  const analyserRef = useRef<any>(null);
+  const streamRef = useRef<any>(null);
+  const rafRef = useRef<number | null>(null);
+  const voiceProcessingRef = useRef<boolean>(false);
+  const speechUtteranceRef = useRef<any>(null);
+
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
+
+  const startAmplitudeTracking = async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      streamRef.current = stream;
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      audioContextRef.current = audioCtx;
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const updateAmplitude = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / dataArray.length;
+        setAmplitude(avg);
+        rafRef.current = requestAnimationFrame(updateAmplitude);
+      };
+      updateAmplitude();
+    } catch (err) {
+      console.warn("[TeachIt] Mic amplitude tracking unavailable:", err);
+    }
+  };
+
+  const stopAmplitudeTracking = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t: any) => t.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    setAmplitude(0);
+  };
+
+  const stopVoiceSession = () => {
+    stopAmplitudeTracking();
+    if (liveVoiceRecognitionRef.current) {
+      liveVoiceRecognitionRef.current.onend = null;
+      liveVoiceRecognitionRef.current.onerror = null;
+      liveVoiceRecognitionRef.current.stop();
+      liveVoiceRecognitionRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    voiceProcessingRef.current = false;
+    setIsVoiceActive(false);
+    setCallState("idle");
+    setLiveTranscript("");
+  };
+
+  const speakPipVoice = (text: string, onDone?: () => void) => {
+    if (isMuted || typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setCallState("responding");
+      const delay = Math.min(5000, Math.max(2500, text.split(" ").length * 200));
+      setTimeout(() => {
+        setCallState("idle");
+        onDone?.();
+      }, delay);
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.15;
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Samantha"))) || voices.find(v => v.lang.startsWith("en"));
+      if (preferred) utterance.voice = preferred;
+
+      setCallState("responding");
+      utterance.onend = () => {
+        setCallState("idle");
+        onDone?.();
+      };
+      utterance.onerror = () => {
+        setCallState("idle");
+        onDone?.();
+      };
+      speechUtteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setCallState("idle");
+      onDone?.();
+    }
+  };
+
+  const askPipCuriousQuestion = async (studentWords: string) => {
+    if (voiceProcessingRef.current) return;
+    voiceProcessingRef.current = true;
+    setCallState("thinking");
+
+    try {
+      const prompt = `A student is teaching Pip (a curious 10-year-old beginner) about "${topic || "this topic"}".
+Student just explained: "${studentWords}"
+All explanation so far: "${explanation} ${studentWords}"
+
+Respond as Pip: Keep it to 1 or 2 short, enthusiastic sentences. Either celebrate understanding something simple, or ask ONE short beginner question (like asking for an everyday analogy, or "What happens next?"). Never lecture. Sound like an excited student.`;
+
+      const reply = await callGroq(
+        [{ role: "user", content: prompt }],
+        "You are Pip, a curious, encouraging 10-year-old student learning from the user. Be concise and friendly.",
+        "openai/gpt-oss-20b",
+        150,
+        "teach_it"
+      );
+
+      const cleanedReply = reply.trim().replace(/^"|"$/g, "");
+      setPipSpeech(cleanedReply);
+      playSuccess();
+      speakPipVoice(cleanedReply, () => {
+        voiceProcessingRef.current = false;
+        if (inputMode === "voice" && isVoiceActive) {
+          startVoiceRecognitionCycle();
+        }
+      });
+    } catch (err) {
+      console.error("[TeachIt] Pip question failed:", err);
+      const fallback = "Whoa, that's interesting! Could you give me an everyday analogy for that?";
+      setPipSpeech(fallback);
+      speakPipVoice(fallback, () => {
+        voiceProcessingRef.current = false;
+        if (inputMode === "voice" && isVoiceActive) {
+          startVoiceRecognitionCycle();
+        }
+      });
+    }
+  };
+
+  const startVoiceRecognitionCycle = () => {
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+
+    if (liveVoiceRecognitionRef.current) {
+      liveVoiceRecognitionRef.current.onend = null;
+      liveVoiceRecognitionRef.current.onerror = null;
+      liveVoiceRecognitionRef.current.stop();
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    let turnTranscript = "";
+
+    recognition.onstart = () => {
+      setCallState("listening");
+    };
+
+    recognition.onresult = (event: any) => {
+      let current = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        current += event.results[i][0].transcript;
+      }
+      turnTranscript = current;
+      setLiveTranscript(current);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.warn("[TeachIt] voice error:", event.error);
+      if (event.error !== "aborted" && isVoiceActive) {
+        setTimeout(() => {
+          if (isVoiceActive) startVoiceRecognitionCycle();
+        }, 500);
+      }
+    };
+
+    recognition.onend = () => {
+      if (turnTranscript.trim()) {
+        const spoken = turnTranscript.trim();
+        setExplanation(prev => (prev.trim() ? `${prev.trim()} ${spoken}` : spoken));
+        setLiveTranscript("");
+        askPipCuriousQuestion(spoken);
+      } else if (isVoiceActive && !voiceProcessingRef.current) {
+        setTimeout(() => {
+          if (isVoiceActive && !voiceProcessingRef.current) {
+            startVoiceRecognitionCycle();
+          }
+        }, 300);
+      }
+    };
+
+    liveVoiceRecognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (e) {
+      console.warn("[TeachIt] Failed to start speech recognition:", e);
+    }
+  };
+
+  const startVoiceTeaching = () => {
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      setGenError("Live speech is not supported in this browser. Try Chrome or Edge, or switch to Type Draft.");
+      return;
+    }
+    playPop();
+    setIsVoiceActive(true);
+    startAmplitudeTracking();
+    startVoiceRecognitionCycle();
+  };
+
+  useEffect(() => {
+    return () => {
+      stopVoiceSession();
+    };
   }, []);
 
   const handleAnalyze = async () => {
@@ -474,18 +719,193 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
                 )}
               </div>
 
-              <div className="flex-1 flex flex-col p-8 overflow-y-auto">
-                <h3 className="font-bold text-[18px] italic mb-6" style={{ color: "rgba(0,0,0,0.25)" }}>
-                  Explain this in your own words, as if teaching a beginner...
-                </h3>
-                <textarea
-                  value={explanation}
-                  onChange={e => setExplanation(e.target.value)}
-                  className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none font-body-lg text-[16px] leading-relaxed placeholder:text-black/20 outline-none"
-                  placeholder="Start explaining the concept here. Avoid jargon. Use analogies..."
-                  style={{ minHeight: "200px" }}
-                />
+              {/* Studio Mode Selector */}
+              <div className="flex items-center justify-between border-b-2 border-black bg-[#F0EDE0] px-6 py-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playTap();
+                      setInputMode("text");
+                      if (isVoiceActive) stopVoiceSession();
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 font-black text-[13px] border-2 border-black rounded-lg transition-all cursor-pointer ${
+                      inputMode === "text"
+                        ? "bg-white text-black shadow-[2px_2px_0px_#000]"
+                        : "bg-transparent text-black/50 hover:text-black border-transparent"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">edit_note</span>
+                    Type Draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playTap();
+                      setInputMode("voice");
+                      if (!isVoiceActive) startVoiceTeaching();
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 font-black text-[13px] border-2 border-black rounded-lg transition-all cursor-pointer ${
+                      inputMode === "voice"
+                        ? "bg-[#10B981] text-white shadow-[2px_2px_0px_#000]"
+                        : "bg-transparent text-black/50 hover:text-black border-transparent"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">record_voice_over</span>
+                    Teach Pip by Voice
+                    <span className="bg-[#FFD13B] text-black text-[9px] px-1.5 py-0.5 rounded font-black border border-black uppercase tracking-wider">
+                      Live
+                    </span>
+                  </button>
+                </div>
+
+                {inputMode === "voice" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playTap();
+                        setIsMuted(m => !m);
+                      }}
+                      title={isMuted ? "Unmute Pip's voice response" : "Mute Pip's voice response"}
+                      className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 border-2 border-black bg-white rounded-lg shadow-[1.5px_1.5px_0px_#000] cursor-pointer hover:bg-[#FAF7F2]"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">
+                        {isMuted ? "volume_off" : "volume_up"}
+                      </span>
+                      {isMuted ? "Muted" : "Pip Voice"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/call?mode=feynman&topic=${encodeURIComponent(topic || "Feynman Technique")}`)}
+                      title="Open Fullscreen Voice Room"
+                      className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 border-2 border-black bg-white hover:bg-black hover:text-white rounded-lg shadow-[1.5px_1.5px_0px_#000] cursor-pointer transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">fullscreen</span>
+                      Fullscreen
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {inputMode === "text" ? (
+                <div className="flex-1 flex flex-col p-8 overflow-y-auto">
+                  <h3 className="font-bold text-[18px] italic mb-6" style={{ color: "rgba(0,0,0,0.25)" }}>
+                    Explain this in your own words, as if teaching a beginner...
+                  </h3>
+                  <textarea
+                    value={explanation}
+                    onChange={e => setExplanation(e.target.value)}
+                    className="flex-1 w-full bg-transparent border-none focus:ring-0 resize-none font-body-lg text-[16px] leading-relaxed placeholder:text-black/20 outline-none"
+                    placeholder="Start explaining the concept here. Avoid jargon. Use analogies..."
+                    style={{ minHeight: "200px" }}
+                  />
+                </div>
+              ) : (
+                /* Interactive Voice Studio with Pip */
+                <div className="flex-1 flex flex-col p-8 overflow-y-auto bg-gradient-to-b from-[#FAF7F2] to-white items-center justify-between gap-6">
+                  {/* Top Pip Area */}
+                  <div className="flex flex-col items-center gap-4 w-full max-w-xl">
+                    <div className="relative">
+                      <AnimatedRex
+                        state={callState}
+                        size="md"
+                        speaking={callState === "responding"}
+                      />
+                      <span className="absolute -bottom-2 -right-2 px-2 py-0.5 bg-[#FFD13B] text-black text-[10px] font-black border-2 border-black rounded-full uppercase tracking-wider shadow-[1px_1px_0px_#000]">
+                        {callState === "listening" ? "Listening" : callState === "thinking" ? "Thinking" : callState === "responding" ? "Speaking" : "Ready"}
+                      </span>
+                    </div>
+
+                    {/* Speech Bubble */}
+                    <div className="relative bg-white border-2 border-black p-4 rounded-2xl shadow-[4px_4px_0px_#000] max-w-md w-full text-center">
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t-2 border-l-2 border-black rotate-45" />
+                      <p className="font-bold text-[15px] text-black leading-snug">
+                        {pipSpeech}
+                      </p>
+                    </div>
+
+                    {/* Audio Equalizer Bars */}
+                    {isVoiceActive && (
+                      <div className="flex items-center gap-1.5 h-10 px-4 py-2 bg-white border-2 border-black rounded-full shadow-[2px_2px_0px_#000]">
+                        {[0.4, 0.8, 1.2, 0.6, 1.0, 1.4, 0.7, 1.1, 0.5, 0.9, 1.3, 0.8].map((mult, idx) => {
+                          const heightPx = Math.min(32, Math.max(6, (amplitude * mult * 0.4)));
+                          return (
+                            <div
+                              key={idx}
+                              className="w-1.5 bg-[#10B981] border border-black rounded-full transition-all duration-75"
+                              style={{ height: `${heightPx}px` }}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Live Transcript */}
+                    {liveTranscript && (
+                      <div className="w-full max-w-md bg-[#ECFDF5] border-2 border-[#10B981] p-3 rounded-xl text-center animate-pulse">
+                        <p className="text-[13px] font-bold text-[#065F46]">
+                          "{liveTranscript}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Spoken transcript summary */}
+                  <div className="w-full max-w-xl bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_#000] flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-black/40">
+                        Explanation Captured So Far ({wordCount} words)
+                      </span>
+                      {explanation.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Clear your captured explanation?")) {
+                              setExplanation("");
+                            }
+                          }}
+                          className="text-[11px] font-bold text-red-600 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[13.5px] leading-relaxed text-black/80 font-medium max-h-24 overflow-y-auto">
+                      {explanation.trim() || (
+                        <span className="italic text-black/30">
+                          Start speaking to Pip! Your words will automatically compile here for Feynman grading.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Voice Controls */}
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isVoiceActive) {
+                          playTap();
+                          stopVoiceSession();
+                        } else {
+                          startVoiceTeaching();
+                        }
+                      }}
+                      className={`flex items-center gap-3 px-8 py-4 border-2 border-black font-black text-[15px] rounded-full shadow-[4px_4px_0px_#000] cursor-pointer active:translate-y-0.5 transition-all ${
+                        isVoiceActive
+                          ? "bg-[#FFE566] text-black hover:bg-[#FFD13B]"
+                          : "bg-[#10B981] text-white hover:bg-black"
+                      }`}
+                    >
+                      <span className={`material-symbols-outlined text-[22px] ${isVoiceActive ? "animate-pulse" : ""}`}>
+                        {isVoiceActive ? "pause_circle" : "mic"}
+                      </span>
+                      {isVoiceActive ? "Pause Voice Session" : "Start Speaking to Pip"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action bar */}
@@ -716,17 +1136,70 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
 
           <div className="flex flex-col gap-2.5 flex-1 min-h-[220px]">
             <div className="flex justify-between items-center">
-              <label className="font-bold text-[13.5px]">Your Explanation</label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playTap();
+                    setInputMode("text");
+                    if (isVoiceActive) stopVoiceSession();
+                  }}
+                  className={`px-3 py-1 font-bold text-[12px] border-2 border-black rounded-full cursor-pointer ${
+                    inputMode === "text" ? "bg-black text-white" : "bg-white text-black"
+                  }`}
+                >
+                  Type Draft
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playTap();
+                    setInputMode("voice");
+                    if (!isVoiceActive) startVoiceTeaching();
+                  }}
+                  className={`px-3 py-1 font-bold text-[12px] border-2 border-black rounded-full flex items-center gap-1 cursor-pointer ${
+                    inputMode === "voice" ? "bg-[#10B981] text-white" : "bg-white text-black"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[14px]">record_voice_over</span>
+                  Voice with Pip
+                </button>
+              </div>
               <span className="bg-white px-3.5 py-0.5 border-2 border-black font-bold text-[11px] shadow-[1px_1px_rgba(0,0,0,1)] text-[#E8534A]">
                 {wordCount} words
               </span>
             </div>
-            <textarea
-              value={explanation}
-              onChange={e => setExplanation(e.target.value)}
-              className="w-full flex-grow min-h-[160px] bg-white border-2 border-black rounded-[18px] p-5 font-body-lg text-[14.5px] placeholder:text-black/30 focus:outline-none focus:ring-0 resize-none shadow-[3.5px_3.5px_rgba(0,0,0,1)]"
-              placeholder="Explain this concept simply, using analogies or conversational language..."
-            />
+
+            {inputMode === "text" ? (
+              <textarea
+                value={explanation}
+                onChange={e => setExplanation(e.target.value)}
+                className="w-full flex-grow min-h-[160px] bg-white border-2 border-black rounded-[18px] p-5 font-body-lg text-[14.5px] placeholder:text-black/30 focus:outline-none focus:ring-0 resize-none shadow-[3.5px_3.5px_rgba(0,0,0,1)]"
+                placeholder="Explain this concept simply, using analogies or conversational language..."
+              />
+            ) : (
+              <div className="w-full bg-white border-2 border-black rounded-[18px] p-4 flex flex-col items-center gap-3 shadow-[3px_3px_0px_#000]">
+                <AnimatedRex state={callState} size="sm" speaking={callState === "responding"} />
+                <div className="bg-[#FAF7F2] border border-black p-2.5 rounded-xl text-center text-[13px] font-bold">
+                  {pipSpeech}
+                </div>
+                {liveTranscript && (
+                  <p className="text-[12px] font-bold text-[#10B981] italic">"{liveTranscript}"</p>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => isVoiceActive ? stopVoiceSession() : startVoiceTeaching()}
+                    className={`px-4 py-2 border-2 border-black rounded-full font-black text-[12px] shadow-[2px_2px_0px_#000] flex items-center gap-1.5 cursor-pointer ${
+                      isVoiceActive ? "bg-[#FFE566] text-black" : "bg-[#10B981] text-white"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">{isVoiceActive ? "pause" : "mic"}</span>
+                    {isVoiceActive ? "Pause Voice" : "Start Speaking"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {feedback && (

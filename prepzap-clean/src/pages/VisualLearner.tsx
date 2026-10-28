@@ -225,6 +225,75 @@ function ClientSvgChart({ card }: { card: ChartCard }) {
   );
 }
 
+// ── Process Flowchart Diagram Renderer (diagram-design skill) ────────────────
+function ClientSvgProcessDiagram({
+  cards,
+  currentStep,
+  onSelectStep,
+}: {
+  cards: VisualLessonCard[];
+  currentStep: number;
+  onSelectStep: (idx: number) => void;
+}) {
+  const stepCards = cards.filter(c => c.type === "concept" || c.type === "table" || c.type === "chart");
+  if (stepCards.length === 0) return null;
+
+  return (
+    <div className="w-full bg-white border-2 border-black p-4 shadow-[3px_3px_0px_#000] flex flex-col gap-3">
+      <div className="flex items-center justify-between border-b-2 border-black pb-2">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">account_tree</span>
+          <span className="font-black text-[13px] uppercase tracking-wider">Concept Process Flowchart</span>
+        </div>
+        <span className="text-[11px] font-bold text-black/40">
+          Click step to jump
+        </span>
+      </div>
+
+      <div className="flex items-stretch gap-2 overflow-x-auto py-2 no-scrollbar">
+        {stepCards.map((c, i) => {
+          const isSelected = currentStep === i;
+          return (
+            <React.Fragment key={c.id || i}>
+              <button
+                type="button"
+                onClick={() => onSelectStep(i)}
+                className={`min-w-[140px] max-w-[170px] p-3 border-2 border-black rounded-lg text-left transition-all cursor-pointer flex flex-col justify-between shrink-0 ${
+                  isSelected
+                    ? "bg-[#FFE566] shadow-[3px_3px_0px_#000] scale-102"
+                    : "bg-[#FAF7F2] hover:bg-white shadow-[2px_2px_0px_#000]"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-black text-white">
+                      Step {i + 1}
+                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full border border-black" style={{ backgroundColor: CATEGORY_COLORS[c.color_category] || "#10B981" }} />
+                  </div>
+                  <p className="font-black text-[12px] text-black leading-tight line-clamp-2">
+                    {c.title}
+                  </p>
+                </div>
+                <div className="mt-2 pt-1.5 border-t border-black/15 flex items-center justify-between text-[10px] font-bold text-black/50">
+                  <span className="capitalize">{c.color_category || "concept"}</span>
+                  <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </div>
+              </button>
+
+              {i < stepCards.length - 1 && (
+                <div className="flex items-center justify-center shrink-0 text-black/30">
+                  <span className="material-symbols-outlined text-[20px]">trending_flat</span>
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Card Helper: "Was this helpful?" Feedback ────────────────────────────────
 function HelpfulFeedback({ cardIndex }: { cardIndex: number }) {
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
@@ -718,6 +787,13 @@ ${examTrap ? `> **Universal Exam Trap**: ${examTrap}` : ""}`.trim();
                 </div>
               </div>
             </div>
+
+            {/* Process Architecture Flowchart (diagram-design) */}
+            <ClientSvgProcessDiagram
+              cards={lesson.cards}
+              currentStep={currentStep - 1}
+              onSelectStep={(idx) => setCurrentStep(idx + 1)}
+            />
 
             {/* ── STEP 0: BIG IDEA ────────────────────────────────────────── */}
             {currentStep === 0 && (

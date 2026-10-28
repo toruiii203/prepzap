@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { fireConfetti } from "@/lib/confetti";
 import { isAnswerCorrect } from "@/lib/quizUtils";
 import { withTimeout } from "@/lib/withTimeout";
+import { VictoryCardModal } from "@/components/VictoryCardModal";
+import { playPop } from "@/lib/soundFX";
 
 interface Question {
   question: string;
@@ -51,6 +53,9 @@ export default function ArenaResults() {
   const [loadError, setLoadError] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
+  const [showVictoryCard, setShowVictoryCard] = useState(false);
+  const rawName = user?.avatarConfig?.full_name || (user as any)?.user_metadata?.full_name || user?.name || "Arena Fighter";
+  const friendCode = user?.id?.slice(0, 8).toUpperCase() || "ARENA";
 
   const isDaily = code === "daily" || state?.isDaily;
 
@@ -269,10 +274,23 @@ export default function ArenaResults() {
         <div className="text-center flex-1">
           <p className="text-[10px] font-bold uppercase text-black/40">Speed Bonus</p>
           <p className="font-black text-[20px] text-[#22c55e] flex items-center justify-center gap-1">
-            <span className="material-symbols-outlined text-[18px]">edit_document</span>
+            <span className="material-symbols-outlined text-[18px]">bolt</span>
             +{speedBonus}
           </p>
         </div>
+      </div>
+      <div className="mt-4 pt-4 border-t-2 border-black flex justify-center">
+        <button
+          type="button"
+          onClick={() => {
+            playPop();
+            setShowVictoryCard(true);
+          }}
+          className="w-full sm:w-auto px-6 py-3 bg-[#FFE566] hover:bg-[#FFD13B] text-black font-black text-[13px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 cursor-pointer flex items-center justify-center gap-2 transition-all"
+        >
+          <span className="material-symbols-outlined text-[18px]">share</span>
+          Brag Arena Rank to Instagram Story (9:16)
+        </button>
       </div>
     </div>
   );
@@ -297,7 +315,7 @@ export default function ArenaResults() {
         <div className="p-6 text-center"><p className="font-bold text-[13px] text-black/40">No results yet.</p></div>
       ) : leaderboard.map((entry, i) => {
         const isMe = entry.user_id === user?.id;
-        const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+        const medal = i === 0 ? "1st" : i === 1 ? "2nd" : i === 2 ? "3rd" : null;
         return (
           <div key={entry.user_id + i}
             className={`flex items-center gap-3 px-4 py-3 ${i < leaderboard.length - 1 ? "border-b-2 border-black" : ""} ${isMe ? "bg-[#f0a040]/20" : ""}`}>
@@ -440,6 +458,19 @@ export default function ArenaResults() {
           )}
         </div>
       </div>
+
+      <VictoryCardModal
+        isOpen={showVictoryCard}
+        onClose={() => setShowVictoryCard(false)}
+        title={myRank === 1 ? "Arena Champion!" : `Arena Rank #${myRank || 1}`}
+        topic={isDaily ? "Daily Arena Challenge" : `Arena Match · ${code || "Multiplayer"}`}
+        score={score}
+        totalQuestions={questions.length || 10}
+        comboStreak={correctCount}
+        xpEarned={score > 0 ? Math.min(250, Math.round(score / 5)) : 50}
+        friendCode={friendCode}
+        displayName={rawName}
+      />
     </div>
   );
 }
