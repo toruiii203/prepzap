@@ -11,6 +11,13 @@ import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 import { AnimatedRex } from "@/components/AnimatedRex";
+import { VaultContributionConsentModal } from "@/components/VaultContributionConsentModal";
+import {
+  runVaultContributionPipeline,
+  isChatExcluded,
+  setChatExcluded,
+  getVaultConsent,
+} from "@/lib/vaultContributionPipeline";
 
 const FOX = {
   neutral:   "/fox/fox-neutral.png",
@@ -362,7 +369,15 @@ export default function AITutor() {
   }, []);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
+  const [showVaultConsent, setShowVaultConsent] = useState(false);
+  const [isExcludedFromVault, setIsExcludedFromVault] = useState(false);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    useEffect(() => {
+    if (currentSessionId) {
+      setIsExcludedFromVault(isChatExcluded(currentSessionId));
+    }
+  }, [currentSessionId]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const desktopTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -669,6 +684,33 @@ export default function AITutor() {
       // reply came from the strong 70B Groq model or a silent fallback to a
       // weaker one.
       saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: `rex-ai (${provider ?? "unknown"})`, meta: activeMode });
+
+      // Trigger debounced idle pipeline for Study Vault contributions
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      const updatedMessages = [
+        ...messages,
+        { sender: "user" as const, text: finalMsg },
+        { sender: "bot" as const, text: botText },
+      ];
+      const sid = currentSessionId || `rex_${Date.now()}`;
+      idleTimerRef.current = setTimeout(async () => {
+        try {
+          const hasFiles = resolveActiveFiles().length > 0;
+          await runVaultContributionPipeline({
+            chatId: sid,
+            messages: updatedMessages,
+            chatHasUserFile: hasFiles,
+          });
+        } catch (pipeErr) {
+          console.warn("[AITutor] Vault contribution notice:", pipeErr);
+        }
+      }, 12000);
+
+      // Check one-time opt-in consent prompt
+      const consentPrompted = localStorage.getItem("studenius_vault_consent_prompted");
+      if (!consentPrompted && !getVaultConsent().enabled) {
+        setShowVaultConsent(true);
+      }
       if (!isPro) {
         try {
           await logUsage("ai_tutor");
@@ -724,6 +766,16 @@ export default function AITutor() {
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col fixed inset-0 z-0" style={{ height: "100dvh", overflow: "hidden" }}>
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/ai-tutor"] || []} title="Rex Tutor" />
+      <VaultContributionConsentModal
+        isOpen={showVaultConsent}
+        onClose={() => setShowVaultConsent(false)}
+        onConsentChange={(val) => {
+          if (val && currentSessionId) {
+            setChatExcluded(currentSessionId, false);
+            setIsExcludedFromVault(false);
+          }
+        }}
+      />
 
       {showUpgrade && (
         <UpgradePrompt

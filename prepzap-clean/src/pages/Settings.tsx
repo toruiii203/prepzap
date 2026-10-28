@@ -1,3 +1,4 @@
+import { getVaultConsent, setVaultConsent, getContributedNotesCount, CURRENT_WORDING_VERSION } from "@/lib/vaultContributionPipeline";
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Link, useNavigate } from "react-router-dom"
@@ -34,7 +35,9 @@ export default function Settings() {
   const [dailyGoal, setDailyGoal] = useState<DailyGoal>(60)
   const [notifs, setNotifs] = useState({ streak: true, reminders: true, community: false, weekly: true })
   const [subjects, setSubjects] = useState<Set<string>>(new Set())
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving] = useState(false);
+  const [vaultConsent, setVaultConsentState] = useState(() => getVaultConsent(user?.id).enabled);
+  const [vaultContribCount, setVaultContribCount] = useState(() => getContributedNotesCount());
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle")
   const [userName, setUserName] = useState("Learner")
   const [profileUsername, setProfileUsername] = useState("");
@@ -150,7 +153,7 @@ export default function Settings() {
                 <p style={{ fontSize: 14, fontWeight: 800, color: "#1c1c19", margin: "0 0 2px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{userName}</p>
                 <p style={{ fontSize: 11, color: "#6b6b6b", margin: "0 0 6px", fontFamily: "'Quicksand', sans-serif" }}>{userEmail}</p>
                 <span style={{ fontSize: 10, padding: "2px 8px", fontWeight: 800, letterSpacing: "0.08em", background: isPro ? "#fef3c7" : "#f3f4f6", color: isPro ? "#92400e" : "#374151", border: "1.5px solid #1c1c19", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  {isPro ? "PRO ✦" : "FREE"}
+                  {isPro ? "PRO" : "FREE"}
                 </span>
               </div>
             </div>
@@ -244,7 +247,7 @@ export default function Settings() {
                     <p style={{ fontSize: 14, fontWeight: 800, color: "#1c1c19", margin: "0 0 2px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Pro Plan</p>
                     <p style={{ fontSize: 11, color: "#6b6b6b", margin: 0, fontFamily: "'Quicksand', sans-serif" }}>Unlimited AI access — you're all set.</p>
                   </div>
-                  <span style={{ fontSize: 10, padding: "3px 10px", background: "#fef3c7", color: "#92400e", border: "2px solid #1c1c19", fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>ACTIVE ✦</span>
+                  <span style={{ fontSize: 10, padding: "3px 10px", background: "#fef3c7", color: "#92400e", border: "2px solid #1c1c19", fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>ACTIVE</span>
                 </div>
                 <p style={{ fontSize: 11, color: "#6b6b6b", fontFamily: "'Quicksand', sans-serif" }}>Thank you for supporting Studenius. Enjoy unlimited credits and all Pro features.</p>
               </>
@@ -274,7 +277,48 @@ export default function Settings() {
           </Section>
 
           {/* Account */}
-          <Section title="Account" icon="manage_accounts">
+                <Section title="Study Vault Contributions" icon="menu_book">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[13px] font-black text-black">
+                Contribute anonymized notes to the Study Vault
+              </p>
+              <p className="text-[12px] font-medium text-black/60 mt-0.5 leading-relaxed">
+                Automatically transforms high-yield AI explanations from your chats into generic, anonymized study notes published in the public Study Vault. Your name, personal messages, and uploaded files are NEVER shared.
+              </p>
+            </div>
+            <PreferenceSwitch
+              id="vault-contrib-toggle"
+              checked={vaultConsent}
+              onCheckedChange={(checked) => {
+                setVaultConsentState(checked);
+                setVaultConsent(checked, user?.id);
+                toast.success(checked ? "Opted in to Study Vault contributions." : "Opted out. Future contributions stopped immediately.");
+              }}
+              label="Contribute anonymized notes"
+            />
+          </div>
+
+          <div className="bg-white border-2 border-black p-3.5 rounded-lg flex items-center justify-between text-[12px] font-bold">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-[#ae2925]">
+                stars
+              </span>
+              <span>Anonymized Notes Contributed</span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full border-2 border-black bg-[#FFE566] font-black text-[12px]">
+              {vaultContribCount} notes
+            </span>
+          </div>
+
+          <p className="text-[11px] text-black/40 font-bold">
+            Version {CURRENT_WORDING_VERSION} · In compliance with the Philippine Data Privacy Act. Turning this off stops all future contributions from your account.
+          </p>
+        </div>
+      </Section>
+
+      <Section title="Account" icon="manage_accounts">
             <div style={{ display: "flex", flexDirection: "column" }}>
 
 

@@ -31,7 +31,9 @@ export default function CampusVault() {
     toggleLikeNote,
     publishNote,
     cloneNoteToWorkspace,
-    reportNote
+    reportNote,
+    voteHelpful,
+    verifyNote
   } = useCommunity({ loadNotes: true });
 
   // URL-driven filters
@@ -79,7 +81,7 @@ export default function CampusVault() {
   };
 
   const filteredNotes = useMemo(() => {
-    const list = notes.filter((n) => !n.isReported).filter((note) => {
+    const list = notes.filter((n) => !n.isReported && ((n as any).reportCount || 0) < 3).filter((note) => {
       const matchSubject =
         currentSubject === "All" ||
         note.subject.toLowerCase() === currentSubject.toLowerCase();
@@ -220,7 +222,7 @@ export default function CampusVault() {
                     onClick={() => setSearchQuery("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-black/40 hover:text-black text-[12px] font-bold cursor-pointer"
                   >
-                    ✕
+                    close
                   </button>
                 )}
               </div>
@@ -344,6 +346,12 @@ export default function CampusVault() {
                         >
                           {note.subject}
                         </span>
+                        {note.isAiGenerated && (
+                          <span className="px-2 py-0.5 rounded-lg border-2 border-black text-[10px] font-black uppercase tracking-wider bg-[#FFD13B] text-black shadow-[1px_1px_0px_#000] flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">smart_toy</span>
+                            <span>AI-generated</span>
+                          </span>
+                        )}
 
                         <button
                           type="button"
@@ -402,13 +410,22 @@ export default function CampusVault() {
                     {/* Footer Info & Responsive Action Buttons */}
                     <div className="pt-3.5 mt-4 border-t-2 border-black/10 space-y-3">
                       <div className="flex items-center justify-between text-[11px] font-bold text-black/55">
-                        <div className="flex items-center gap-1.5 truncate max-w-[160px]">
-                          {note.authorAvatar?.startsWith("/") || note.authorAvatar?.startsWith("http") ? (
-                            <img src={note.authorAvatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                        <div className="flex items-center gap-1.5 truncate max-w-[170px]">
+                          {note.isAiGenerated ? (
+                            <>
+                              <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]">smart_toy</span>
+                              <span className="truncate font-extrabold text-black">Community AI</span>
+                            </>
                           ) : (
-                            <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                            <>
+                              {note.authorAvatar?.startsWith("/") || note.authorAvatar?.startsWith("http") ? (
+                                <img src={note.authorAvatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                              ) : (
+                                <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                              )}
+                              <span className="truncate">{note.author}</span>
+                            </>
                           )}
-                          <span className="truncate">{note.author}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[10.5px] text-black/45">
                           <span>{note.date}</span>
@@ -448,8 +465,40 @@ export default function CampusVault() {
                           className="flex-1 min-w-[75px] py-1.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center justify-center gap-1"
                           title="Test your recall with an active quiz"
                         >
-                          <span className="material-symbols-outlined text-[13px]">quiz</span>
+                          <span className="material-symbols-outlined text-[13px]">bolt</span>
                           <span>Quiz</span>
+                        </button>
+
+                        {note.isAiGenerated && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => voteHelpful(note.id)}
+                              className="px-2 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center gap-1"
+                              title="Mark this AI note as helpful"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">thumb_up</span>
+                              <span>{note.helpfulCount || 0}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => verifyNote(note.id)}
+                              className="px-2 py-1.5 bg-white hover:bg-blue-50 text-blue-800 border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center gap-1"
+                              title="Verify factual correctness"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">verified</span>
+                              <span>{note.verifiedCount || 0}</span>
+                            </button>
+                          </>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => reportNote(note.id, "Flagged by community reader")}
+                          className="px-2 py-1.5 bg-white hover:bg-rose-50 text-black/50 hover:text-rose-600 border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center gap-1"
+                          title="Report inaccurate or inappropriate content"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">flag</span>
                         </button>
                       </div>
                     </div>
@@ -483,7 +532,7 @@ export default function CampusVault() {
                 onClick={() => setActiveReadingNote(null)}
                 className="w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black text-[14px] cursor-pointer shrink-0 transition-colors"
               >
-                ✕
+                close
               </button>
             </div>
 
@@ -500,7 +549,7 @@ export default function CampusVault() {
             {/* Modal Footer */}
             <div className="p-4 border-t-2 border-black flex flex-wrap items-center justify-between gap-3 bg-[#FAF7F2]">
               <div className="text-[12px] font-bold text-black/60">
-                ❤️ {activeReadingNote.likes} {activeReadingNote.likes === 1 ? "student found this helpful" : "students found this helpful"}
+                 {activeReadingNote.likes} {activeReadingNote.likes === 1 ? "student found this helpful" : "students found this helpful"}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -541,7 +590,7 @@ export default function CampusVault() {
                 onClick={() => setShowPublishModal(false)}
                 className="w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-black hover:text-white flex items-center justify-center font-black text-[14px] cursor-pointer shrink-0 transition-colors"
               >
-                ✕
+                close
               </button>
             </div>
 

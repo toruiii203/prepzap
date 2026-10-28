@@ -37,6 +37,10 @@ const SECTIONS = [
     title: "9. Policy Updates",
     content: "We may update this Privacy Policy from time to time to reflect new features or regulatory requirements. Any notable updates will be reflected on this page with an updated modification date."
   },
+    {
+    title: "11. Automated Study Vault Contributions",
+    content: "When you explicitly opt in to 'Study Vault Contributions', our automated pipeline may synthesize high-yield academic concepts explained by Rex into generic, anonymized study guides published in the public Study Vault. In accordance with Philippine Data Privacy Act principles (explicit consent, purpose limitation, and data minimization), participation is strictly opt-in (default OFF). Your name, prompts, private messages, and uploaded files are NEVER published or stored in the vault; only scrubbed, rewritten curriculum notes are created. An internal one-way hash of the chat ID is stored solely for abuse moderation without linking back to your identity. You may revoke consent anytime in Settings. Already published anonymized notes may remain in the public vault after opt-out or account deletion."
+  },
   {
     title: "10. Contact Information",
     content: "For privacy questions, data requests, or support, please contact our team directly at studeniusapp@gmail.com."

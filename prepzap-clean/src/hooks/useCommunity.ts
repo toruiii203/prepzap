@@ -21,6 +21,13 @@ export interface CampusNote {
   downloads?: number;
   isOfficialSeed?: boolean;
   isReported?: boolean;
+  isAiGenerated?: boolean;
+  helpfulCount?: number;
+  verifiedCount?: number;
+  reportCount?: number;
+  difficulty?: string;
+  sourceHash?: string;
+  status?: "published" | "hidden" | "flagged";
   tags: string[];
   summary: string;
   content: string;
@@ -292,14 +299,20 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
 
   const reportNote = useCallback((noteId: string, reason: string) => {
     setNotes((prev) =>
-      prev.map((n) => (n.id === noteId ? { ...n, isReported: true } : n))
+      prev.map((n) => {
+        if (n.id === noteId) {
+          const reportCount = (n.reportCount || 0) + 1;
+          const isReported = reportCount >= 3 || n.isReported === true;
+          return { ...n, isReported, reportCount };
+        }
+        return n;
+      })
     );
     try {
       const reports = JSON.parse(localStorage.getItem("studenius_reported_notes") || "[]");
       reports.push({ noteId, reason, timestamp: Date.now() });
       localStorage.setItem("studenius_reported_notes", JSON.stringify(reports));
 
-      // Flag on Supabase if real DB note
       if (!noteId.startsWith("guide-") && !noteId.startsWith("user-note-")) {
         supabase
           .from("community_vault_notes")
@@ -308,6 +321,35 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
           .then();
       }
     } catch {}
+    toast.success("Note reported. Our moderation system will review it.");
+  }, []);
+
+  const voteHelpful = useCallback((noteId: string) => {
+    playTap();
+    setNotes((prev) =>
+      prev.map((n) => {
+        if (n.id === noteId) {
+          const helpfulCount = (n.helpfulCount || 0) + 1;
+          return { ...n, helpfulCount };
+        }
+        return n;
+      })
+    );
+    toast.success("Marked as helpful! Thank you for validating community notes.");
+  }, []);
+
+  const verifyNote = useCallback((noteId: string) => {
+    playTap();
+    setNotes((prev) =>
+      prev.map((n) => {
+        if (n.id === noteId) {
+          const verifiedCount = (n.verifiedCount || 0) + 1;
+          return { ...n, verifiedCount };
+        }
+        return n;
+      })
+    );
+    toast.success("Verified as accurate study material! 🎯");
   }, []);
 
   const publishNote = useCallback(async (newNote: Omit<CampusNote, "id" | "date" | "likes" | "likedByUser"> & { attachmentUrl?: string }) => {
@@ -648,6 +690,8 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
     addFriendByCode,
     removeFriend,
     blockFriend,
-    reportNote
+    reportNote,
+    voteHelpful,
+    verifyNote
   };
 }
