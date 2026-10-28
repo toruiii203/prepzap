@@ -129,7 +129,7 @@ const STUDY_TOOLS_PAGES = [
         route: "/rooms",
         icon: "sensors",
         title: "Live Battle",
-        desc: "Kahoot-style 6-digit PIN multiplayer",
+        desc: "Real-time 6-digit PIN study multiplayer",
         color: "text-black",
       },
       {

@@ -561,4 +561,5 @@
   font-family: 'Studenius Symbols' !important;
   font-feature-settings: 'liga';
   visibility: visible !important;
+  text-transform: none !important;
 }

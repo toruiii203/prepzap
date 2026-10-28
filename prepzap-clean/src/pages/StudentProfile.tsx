@@ -37,7 +37,7 @@ export default function StudentProfile() {
   const currentLevel = levelFromXp(authProfile?.total_xp ?? 0);
   const progressPercent = xpProgressPercent(authProfile?.total_xp ?? 0);
 
-  const myFriendCode = user?.id ? `REX-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "REX-8491";
+  const myFriendCode = user?.id ? `PIP-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "PIP-8491";
 
   const currentBanner = PRESET_BANNERS.find((b) => b.id === studentProfile.bannerId) || PRESET_BANNERS[0];
 

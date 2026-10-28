@@ -518,7 +518,7 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
               className="flex items-center gap-1.5 px-3 py-1 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#15803d] hover:text-white font-black text-[11px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               title="Share this solution to public Study Vault"
             >
-              <span className="material-symbols-outlined text-[15px]">{vaultSaved ? "check_circle" : "local_library"}</span>
+              <span className="material-symbols-outlined text-[15px]">{vaultSaved ? "check_circle" : "menu_book"}</span>
               <span>{vaultSaved ? "Saved to Vault!" : "Share to Study Vault"}</span>
             </button>
           )}
@@ -1000,7 +1000,7 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
                     className="flex items-center gap-1.5 px-3 py-1 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#15803d] hover:text-white font-black text-[11px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                     title="Share this solution to public Study Vault"
                   >
-                    <span className="material-symbols-outlined text-[15px]">{vaultSaved ? "check_circle" : "local_library"}</span>
+                    <span className="material-symbols-outlined text-[15px]">{vaultSaved ? "check_circle" : "menu_book"}</span>
                     <span>{vaultSaved ? "Saved!" : "To Vault"}</span>
                   </button>
                 )}

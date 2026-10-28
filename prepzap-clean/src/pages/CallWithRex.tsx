@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { callGroq } from "@/lib/groq";
 import { AnimatedRex, type RexState } from "@/components/AnimatedRex";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 
 export default function CallWithRex() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const feynmanMode = searchParams.get("mode") === "feynman";
+  const topicParam = searchParams.get("topic") || "";
   const [callState, setCallState] = useState<RexState>("idle");
   const [transcript, setTranscript] = useState("");
   const [rexReply, setRexReply] = useState("");
@@ -227,9 +230,12 @@ export default function CallWithRex() {
     setCallState("processing");
     try {
       const msgs = [{ role: "user" as const, content: finalTranscript }];
+      const voiceSystemPrompt = feynmanMode
+        ? `You are Pip, acting as a curious beginner student listening to the user explain "${topicParam || "the topic"}" using the Feynman technique. In 1-2 spoken sentences, ask a natural clarifying question or point out jargon if they were unclear, and encourage them.`
+        : "You are Pip, an encouraging and concise AI study tutor. The user is speaking to you via voice. Reply in 1-2 short sentences. Do not use emojis, keep it conversational.";
       const reply = await callGroq(
         msgs,
-        "You are Pip, an encouraging and concise AI study tutor. The user is speaking to you via voice. Reply in 1-2 short sentences. Do not use emojis, keep it conversational.",
+        voiceSystemPrompt,
         undefined,
         150,
         "call_with_rex"
@@ -286,7 +292,7 @@ export default function CallWithRex() {
       <div className="relative z-10 flex items-center justify-between p-6 pt-10 bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full bg-[#10B981] animate-ping" />
-          <h1 className="text-[17px] font-black tracking-wider uppercase">Live Voice with Pip</h1>
+          <h1 className="text-[17px] font-black tracking-wider uppercase flex items-center gap-2"><span>Live Voice with Pip</span>{feynmanMode && <span className="bg-[#10B981] text-white text-[10px] px-2 py-0.5 rounded-full border border-black font-extrabold normal-case">Feynman Mode: {topicParam || "Explain Simply"}</span>}</h1>
         </div>
         <div className="flex items-center gap-2">
           {/* Mute/Unmute Audio Toggle */}

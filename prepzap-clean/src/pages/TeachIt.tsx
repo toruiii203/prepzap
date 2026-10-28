@@ -491,9 +491,18 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
             {/* Action bar */}
             <div className="flex items-center justify-between px-8 py-4 border-t-2 border-black bg-[#FAF7F2] shrink-0">
               <div className="flex items-center gap-3">
-                <button onClick={handleMicClick} title={isRecording ? "Stop recording" : "Record voice"} className={`flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] transition-colors ${isRecording ? "text-[#ae2925]" : ""}`}>
+                <button onClick={handleMicClick} title={isRecording ? "Stop recording" : "Record voice"} className={`flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] transition-colors cursor-pointer ${isRecording ? "text-[#10B981] bg-[#ECFDF5]" : ""}`}>
                   <span className={`material-symbols-outlined text-[18px] ${isRecording ? "animate-pulse" : ""}`}>{isRecording ? "stop_circle" : "mic"}</span>
-                  {isRecording ? "Listening..." : "Record Voice"}
+                  {isRecording ? "Listening..." : "Dictate Voice"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/call?mode=feynman&topic=${encodeURIComponent(topic || "Feynman Technique")}`)}
+                  title="Start live interactive voice conversation with Pip"
+                  className="flex items-center gap-2 px-5 py-3 bg-[#10B981] hover:bg-black text-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">phone_in_talk</span>
+                  Live Voice Call
                 </button>
                 <button disabled title="Sketch coming soon" className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-black font-bold text-[13px] shadow-[3px_3px_0px_#000] opacity-40 cursor-not-allowed">
                   <span className="material-symbols-outlined text-[18px]">draw</span>
@@ -815,9 +824,18 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
 
         <div className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-[#FAF7F2] border-t-2 border-black z-20 md:hidden pb-[calc(12px+env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-2">
-            <button onClick={handleMicClick} title={isRecording ? "Stop recording" : "Record voice"} className={`flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] transition-colors ${isRecording ? "text-[#ae2925]" : ""}`}>
+            <button onClick={handleMicClick} title={isRecording ? "Stop recording" : "Record voice"} className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white border-2 border-black font-bold text-[11px] sm:text-[12px] shadow-[2px_2px_0px_#000] transition-colors cursor-pointer ${isRecording ? "text-[#10B981] bg-[#ECFDF5]" : ""}`}>
               <span className={`material-symbols-outlined text-[16px] ${isRecording ? "animate-pulse" : ""}`}>{isRecording ? "stop_circle" : "mic"}</span>
-              {isRecording ? "Listening..." : "Record Voice"}
+              {isRecording ? "Listening..." : "Dictate"}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/call?mode=feynman&topic=${encodeURIComponent(topic || "Feynman Technique")}`)}
+              title="Start live interactive voice discussion with Pip"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#10B981] hover:bg-black text-white border-2 border-black font-bold text-[11px] sm:text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">phone_in_talk</span>
+              Voice Call
             </button>
             <button disabled title="Sketch coming soon" className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-black font-bold text-[12px] shadow-[2px_2px_0px_#000] opacity-40 cursor-not-allowed">
               <span className="material-symbols-outlined text-[16px]">draw</span>

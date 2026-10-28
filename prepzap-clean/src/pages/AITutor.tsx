@@ -213,7 +213,7 @@ function MessageThread({ messages, isLoading, messagesEndRef, foxImg, onShareToV
                   title="Pip cleans, scrubs, and saves this explanation as an anonymous Study Vault note"
                 >
                   <span className={`material-symbols-outlined text-[13px] ${sharingIndex === i ? "animate-spin" : ""}`}>
-                    {sharingIndex === i ? "autorenew" : sharedIndexes?.has(i) ? "check_circle" : "local_library"}
+                    {sharingIndex === i ? "autorenew" : sharedIndexes?.has(i) ? "check_circle" : "menu_book"}
                   </span>
                   <span>
                     {sharingIndex === i ? "Cleaning..." : sharedIndexes?.has(i) ? "Saved to Vault!" : "Share Clean Note"}
@@ -878,7 +878,7 @@ export default function AITutor() {
                 title="Pip cleans, scrubs, and saves key takeaways from this chat to Study Vault"
               >
                 <span className={`material-symbols-outlined text-[16px] ${isCleaningChat ? "animate-spin" : ""}`}>
-                  {isCleaningChat ? "autorenew" : chatSharedToVault ? "check_circle" : "local_library"}
+                  {isCleaningChat ? "autorenew" : chatSharedToVault ? "check_circle" : "menu_book"}
                 </span>
                 <span className="hidden sm:inline">
                   {isCleaningChat ? "Cleaning note..." : chatSharedToVault ? "Saved to Vault!" : "Share to Study Vault"}

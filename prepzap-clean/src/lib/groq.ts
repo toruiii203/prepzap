@@ -201,7 +201,7 @@ async function _callGroqCoreWithToken(
     });
   } catch (err) {
     if ((err as Error)?.name === "AbortError") {
-      throw new Error("Rex took too long to respond (request timed out). Please try again.");
+      throw new Error("Pip took too long to respond (request timed out). Please try again.");
     }
     throw err;
   } finally {
@@ -227,8 +227,8 @@ async function _callGroqCoreWithToken(
       console.error("[groq] Gemini returned no text, finishReason:", finishReason);
       throw new Error(
         finishReason === "SAFETY" || finishReason === "RECITATION"
-          ? "Rex couldn't answer that one — it may have tripped a content filter. Try rephrasing your question."
-          : `Rex couldn't finish that response (${finishReason}). Please try again.`
+          ? "Pip couldn't answer that one — it may have tripped a content filter. Try rephrasing your question."
+          : `Pip couldn't finish that response (${finishReason}). Please try again.`
       );
     }
   } else if (data?.choices?.length) {
@@ -239,7 +239,7 @@ async function _callGroqCoreWithToken(
   }
 
   if (!result) {
-    throw new Error("Rex returned an empty response. Please try again.");
+    throw new Error("Pip returned an empty response. Please try again.");
   }
 
   return { text: result, provider: data._provider };
@@ -259,7 +259,7 @@ async function _callGroqCore(
   // AI features fundamentally need the network — there's no local model to
   // fall back to — so this is the correct behavior, not a workaround.
   if (!navigator.onLine) {
-    throw new Error("You're offline — Rex needs an internet connection to respond. Your other tools (Flashcards, Practice, Mistake Journal) still work offline.");
+    throw new Error("You're offline — Pip needs an internet connection to respond. Your other tools (Flashcards, Practice, Mistake Journal) still work offline.");
   }
 
   // Normalise overloaded arguments
@@ -329,6 +329,16 @@ async function _callGroqCore(
       }
     }
 
+    if ((message.includes("429") || message.includes("rate limit") || message.includes("Rate limit")) && !isRetry) {
+      console.warn("[groq] API returned 429 (Rate Limit). Waiting 2000ms with backoff...");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        return await _callGroqCoreWithToken(fullMessages, resolvedModel, maxTokens, feature, token);
+      } catch (rateErr) {
+        throw new Error("Pip is currently handling high study traffic. Please wait a few seconds and try again.");
+      }
+    }
+
     if ((message.includes("503") || message.includes("502")) && !isRetry) {
       console.warn("[groq] API returned 503/502, attempting fallback model retry...");
       try {
@@ -378,7 +388,7 @@ export async function callGroqWithImages(
   maxTokens: number = 1024
 ): Promise<string> {
   if (!navigator.onLine) {
-    throw new Error("You're offline — Rex needs an internet connection to respond.");
+    throw new Error("You're offline — Pip needs an internet connection to respond.");
   }
 
   const userContent: Array<{ type: string; [key: string]: unknown }> = [
@@ -416,7 +426,7 @@ export async function callGroqWithImages(
     });
   } catch (err) {
     if ((err as Error)?.name === "AbortError") {
-      throw new Error("Rex took too long to respond (request timed out). Please try again.");
+      throw new Error("Pip took too long to respond (request timed out). Please try again.");
     }
     throw err;
   } finally {

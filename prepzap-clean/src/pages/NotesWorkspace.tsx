@@ -639,7 +639,7 @@ export default function NotesWorkspace() {
                     className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#15803d] hover:text-white font-black text-[12px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                     title="Share this note to public Study Vault"
                   >
-                    <span className="material-symbols-outlined text-[16px]">{vaultSaved ? "check_circle" : "local_library"}</span>
+                    <span className="material-symbols-outlined text-[16px]">{vaultSaved ? "check_circle" : "menu_book"}</span>
                     <span className="hidden sm:inline">{vaultSaved ? "Saved!" : "To Vault"}</span>
                   </button>
 

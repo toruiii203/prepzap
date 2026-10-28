@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStudyTimeTracker } from "@/hooks/useStudyTimeTracker";
 import { usePlan } from "@/hooks/usePlan";
 import { formatFriendlyName } from "@/lib/formatName";
+import { useUserProfile } from "@/lib/userProfileStore";
 import { playTap } from "@/lib/soundFX";
 import { getDueCount } from "@/lib/spacedRepetition";
 
@@ -113,6 +114,8 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
     "Student";
 
   const displayName = formatFriendlyName(rawName);
+  const { profile: studentProfile } = useUserProfile(user?.id, rawName);
+  const userAvatar = studentProfile?.avatar || (profile as any)?.avatar_url;
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col p-4 border-r-[1.5px] border-black bg-[#FAF7F2] w-64 overflow-hidden select-none font-['Quicksand',sans-serif]">
@@ -282,8 +285,19 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
           onClick={() => navigate("/profile")}
           className="flex items-center gap-3 px-3 py-2 min-h-[44px] hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >
-          <div className="w-8 h-8 bg-[#10B981] text-white border-[1.5px] border-black rounded-lg flex items-center justify-center font-black text-[13px] shrink-0">
-            {displayName.slice(0, 1).toUpperCase()}
+          <div className="w-8 h-8 bg-[#10B981] text-white border-[1.5px] border-black rounded-lg flex items-center justify-center font-black text-[13px] shrink-0 overflow-hidden">
+            {userAvatar && (userAvatar.startsWith("/") || userAvatar.startsWith("http") || userAvatar.startsWith("data:")) ? (
+              <img
+                src={userAvatar}
+                alt={displayName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
+            ) : (
+              displayName.slice(0, 1).toUpperCase()
+            )}
           </div>
           <div className="flex flex-col text-left">
             <span className="text-[13px] font-bold text-black truncate max-w-[130px]">{displayName}</span>

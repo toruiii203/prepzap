@@ -882,6 +882,8 @@ export default function Dashboard() {
     user?.email?.split("@")[0] ||
     "Scholar";
   const displayName = formatFriendlyName(rawName);
+  const { profile: studentProfile } = useUserProfile(user?.id, rawName);
+  const userAvatar = studentProfile?.avatar || (profile as any)?.avatar_url;
 
   const [tasks, setTasks] = useState<{ id: any; title: string; completed: boolean; time?: string }[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -1178,9 +1180,20 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => { playPop(); navigate("/profile"); }}
-            className="w-7 h-7 rounded-full bg-[#10B981] text-white border-2 border-black shadow-xs flex items-center justify-center font-black text-[11px] cursor-pointer transition-all shrink-0"
+            className="w-7 h-7 rounded-full bg-[#10B981] text-white border-2 border-black shadow-xs flex items-center justify-center font-black text-[11px] cursor-pointer transition-all shrink-0 overflow-hidden"
           >
-            {displayName.slice(0, 1).toUpperCase()}
+            {userAvatar && (userAvatar.startsWith("/") || userAvatar.startsWith("http") || userAvatar.startsWith("data:")) ? (
+              <img
+                src={userAvatar}
+                alt={displayName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
+            ) : (
+              displayName.slice(0, 1).toUpperCase()
+            )}
           </button>
         </div>
       </header>

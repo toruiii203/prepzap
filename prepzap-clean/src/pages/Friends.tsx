@@ -70,9 +70,9 @@ export default function Friends() {
   const myFriendCode = useMemo(() => {
     if (user?.id) {
       const hash = user.id.replace(/-/g, "").slice(0, 4).toUpperCase();
-      return `REX-${hash}`;
+      return `PIP-${hash}`;
     }
-    return "REX-GUEST";
+    return "PIP-GUEST";
   }, [user?.id]);
 
   // Notes published by this user to Campus Vault
@@ -312,14 +312,14 @@ export default function Friends() {
             </div>
 
             {/* ── YOUTUBE-STYLE TABS NAVIGATION ── */}
-            <div className="flex items-center border-t-2 border-black bg-[#FFFDF5] px-4 sm:px-6 overflow-x-auto">
+            <div className="flex items-center border-t-2 border-black bg-[#FFFDF5] px-2 sm:px-6 overflow-x-auto no-scrollbar scroll-smooth">
               <button
                 type="button"
                 onClick={() => {
                   playTap();
                   setActiveTab("friends");
                 }}
-                className={`py-3 px-4 text-[12.5px] uppercase tracking-wider transition-all cursor-pointer border-b-[3px] flex items-center gap-2 whitespace-nowrap ${
+                className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[11.5px] sm:text-[12.5px] uppercase tracking-wider transition-all cursor-pointer border-b-[3px] flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0 ${
                   activeTab === "friends"
                     ? "border-black font-black text-black"
                     : "border-transparent font-extrabold text-black/50 hover:text-black"
@@ -338,7 +338,7 @@ export default function Friends() {
                   playTap();
                   setActiveTab("vault");
                 }}
-                className={`py-3 px-4 text-[12.5px] uppercase tracking-wider transition-all cursor-pointer border-b-[3px] flex items-center gap-2 whitespace-nowrap ${
+                className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[11.5px] sm:text-[12.5px] uppercase tracking-wider transition-all cursor-pointer border-b-[3px] flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0 ${
                   activeTab === "vault"
                     ? "border-black font-black text-black"
                     : "border-transparent font-extrabold text-black/50 hover:text-black"
@@ -359,7 +359,7 @@ export default function Friends() {
                   playTap();
                   setActiveTab("duels");
                 }}
-                className={`py-3 px-4 text-[12.5px] uppercase tracking-wider transition-all cursor-pointer border-b-[3px] flex items-center gap-2 whitespace-nowrap ${
+                className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[11.5px] sm:text-[12.5px] uppercase tracking-wider transition-all cursor-pointer border-b-[3px] flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0 ${
                   activeTab === "duels"
                     ? "border-black font-black text-black"
                     : "border-transparent font-extrabold text-black/50 hover:text-black"
