@@ -137,7 +137,7 @@ export default function ArenaInvite() {
               {/* Room card */}
               <div className="w-full border-[2px] border-black bg-white shadow-[4px_4px_0px_#000] pt-16 pb-5 px-5">
                 {/* Mode banner */}
-                <div className={`w-full text-center py-1.5 mb-4 text-[11px] font-black uppercase tracking-widest border-b-2 border-black ${room.mode === "live" ? "bg-[#FF4D2E] text-white" : "bg-[#f0a040] text-black"}`}>
+                <div className={`w-full text-center py-1.5 mb-4 text-[11px] font-black uppercase tracking-widest border-b-2 border-black ${room.mode === "live" ? "bg-[#10B981] text-white" : "bg-[#f0a040] text-black"}`}>
                   {room.mode === "live" ? "⚡ Live Room — Everyone starts together" : "🕐 Open Challenge — Join anytime"}
                 </div>
 

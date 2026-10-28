@@ -174,5 +174,5 @@ html.dark [style*="background: rgb(254, 243, 199)"], html.dark [style*="backgrou
 html.dark [style*="background: rgb(254, 249, 195)"], html.dark [style*="background-color: rgb(254, 249, 195)"] { background-color:var(--pz-bg) !important; }
 html.dark [style*="background: rgb(255, 255, 255)"], html.dark [style*="background-color: rgb(255, 255, 255)"] { background-color:var(--pz-surface) !important; }
 html.dark [style*="background: rgb(255, 255, 255)"], html.dark [style*="background-color: rgb(255, 255, 255)"] { background-color:var(--pz-surface) !important; }
-html.dark [class~="bg-[#FFD13B]"], html.dark [class~="bg-[#FF4D2E]"], html.dark [class~="bg-[#10B981]"], html.dark [class~="bg-[#EF4444]"], html.dark [class~="bg-[#FFF275]"], html.dark [class~="bg-[#FFE566]"] { color: #000000; }
+html.dark [class~="bg-[#FFD13B]"], html.dark [class~="bg-[#10B981]"], html.dark [class~="bg-[#10B981]"], html.dark [class~="bg-[#EF4444]"], html.dark [class~="bg-[#FFF275]"], html.dark [class~="bg-[#FFE566]"] { color: #000000; }
 html.dark .quiz-answer[data-state=selected], html.dark .quiz-answer[data-state=correct], html.dark .quiz-answer[data-state=wrong] { color: #000000; }

@@ -17,7 +17,7 @@ export default function Arcade() {
     { id: "memory-match", title: "Memory Match", icon: "content_copy", desc: "Flip & match terms to definitions", color: "bg-[#F5A623]" },
     { id: "true-false", title: "True/False Blitz", icon: "bolt", desc: "Rapid-fire fact checking", color: "bg-[#0EA5E9]" },
     { id: "termle", title: "Termle", icon: "spellcheck", desc: "Wordle-style vocabulary game", color: "bg-[#EC4899]" },
-    { id: "anagram-sprint", title: "Anagram Sprint", icon: "sprint", desc: "Unscramble the letters against the clock", color: "bg-[#FF4D2E]" },
+    { id: "anagram-sprint", title: "Anagram Sprint", icon: "sprint", desc: "Unscramble the letters against the clock", color: "bg-[#10B981]" },
     { id: "whack-a-mole", title: "Whack-a-Mole", icon: "pest_control", desc: "Whack the correct answer", color: "bg-[#10B981]" },
     { id: "odd-one-out", title: "Odd One Out", icon: "pageview", desc: "Find the item that doesn't belong", color: "bg-[#EAB308]" }
   ];

@@ -141,7 +141,7 @@ export default function KnowledgeBaseChat({ isOpen = false, onClose }: Knowledge
               key={i}
               className={`p-3 border-2 border-black rounded-xl font-bold text-[12.5px] leading-relaxed whitespace-pre-wrap shadow-[2px_2px_0px_#1A1A1A] ${
                 m.role === "user"
-                  ? "bg-[#FF4D2E] text-white self-end ml-6"
+                  ? "bg-[#10B981] text-white self-end ml-6"
                   : "bg-white text-black self-start mr-4"
               }`}
             >

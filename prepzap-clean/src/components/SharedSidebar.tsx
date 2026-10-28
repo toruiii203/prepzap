@@ -161,7 +161,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                   }}
                   className={`flex items-center gap-3 px-3 py-2.5 min-h-[44px] text-[13.5px] font-black transition-all text-left w-full rounded-xl cursor-pointer ${
                     isActive
-                      ? "bg-black text-white shadow-[0px_3px_0px_#FF4D2E] -translate-y-0.5"
+                      ? "bg-black text-white shadow-[0px_3px_0px_#10B981] -translate-y-0.5"
                       : "text-black hover:bg-black/5 hover:-translate-y-0.5"
                   }`}
                 >
@@ -175,7 +175,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                   <span>{item.label}</span>
                   {item.route === "/practice" && dueCount > 0 && (
                     <span
-                      className={`ml-auto border border-black bg-[#FF4D2E] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full transition-transform ${
+                      className={`ml-auto border border-black bg-[#10B981] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full transition-transform ${
                         isPulsing ? "scale-125" : "scale-100"
                       }`}
                     >
@@ -198,7 +198,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
               <div className="flex items-center gap-1.5">
                 <span>More Tools ({MORE_TOOLS.length})</span>
                 {!showMoreTools && dueCount > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-[#FF4D2E] border border-black inline-block" />
+                  <span className="w-2 h-2 rounded-full bg-[#10B981] border border-black inline-block" />
                 )}
               </div>
               <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
@@ -222,7 +222,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                       }}
                       className={`flex items-center gap-2.5 px-2.5 py-2 min-h-[38px] text-[12.5px] font-bold transition-all text-left w-full rounded-lg cursor-pointer ${
                         isActive
-                          ? "bg-black text-white font-black shadow-[0px_2px_0px_#FF4D2E]"
+                          ? "bg-black text-white font-black shadow-[0px_2px_0px_#10B981]"
                           : "text-black/80 hover:bg-black/5 hover:text-black"
                       }`}
                     >
@@ -236,7 +236,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
                       <span className="truncate">{tool.label}</span>
                       {tool.route === "/flashcards" && dueCount > 0 && (
                         <span
-                          className={`ml-auto border border-black bg-[#FF4D2E] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full transition-transform ${
+                          className={`ml-auto border border-black bg-[#10B981] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full transition-transform ${
                             isPulsing ? "scale-125" : "scale-100"
                           }`}
                         >
@@ -259,7 +259,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
             type="button"
             data-route="/pro"
             onClick={() => navigate("/pro")}
-            className="flex items-center justify-center gap-2 px-3 py-2.5 mx-1 mb-1 bg-[#FF4D2E] border-2 border-black text-white text-[11px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:bg-black hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+            className="flex items-center justify-center gap-2 px-3 py-2.5 mx-1 mb-1 bg-[#10B981] border-2 border-black text-white text-[11px] font-black uppercase tracking-widest shadow-[3px_3px_0px_#000] hover:bg-black hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">workspace_premium</span>
             UPGRADE TO PRO
@@ -282,7 +282,7 @@ export function SharedSidebar({ active }: SharedSidebarProps) {
           onClick={() => navigate("/profile")}
           className="flex items-center gap-3 px-3 py-2 min-h-[44px] hover:bg-black/5 rounded-xl transition-colors cursor-pointer"
         >
-          <div className="w-8 h-8 bg-[#FF4D2E] text-white border-[1.5px] border-black rounded-lg flex items-center justify-center font-black text-[13px] shrink-0">
+          <div className="w-8 h-8 bg-[#10B981] text-white border-[1.5px] border-black rounded-lg flex items-center justify-center font-black text-[13px] shrink-0">
             {displayName.slice(0, 1).toUpperCase()}
           </div>
           <div className="flex flex-col text-left">

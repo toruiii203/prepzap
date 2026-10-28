@@ -206,7 +206,7 @@ function DesktopBanner({
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#FF4D2E] text-[24px]">school</span>
+            <span className="material-symbols-outlined text-[#10B981] text-[24px]">school</span>
             <h2 className="font-black text-[20px] sm:text-[22px] text-black tracking-tight">Quiz Generator</h2>
           </div>
           <p className="text-[12.5px] text-black/60 font-bold mt-0.5">
@@ -240,7 +240,7 @@ function DesktopBanner({
             className="h-10 px-3.5 bg-white hover:bg-neutral-50 text-black border-2 border-black rounded-xl font-black text-[12px] flex items-center gap-1.5 shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer whitespace-nowrap"
             title="Open Source Library"
           >
-            <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">add</span>
+            <span className="material-symbols-outlined text-[16px] text-[#10B981]">add</span>
             <span>Add Source</span>
           </button>
         </div>
@@ -315,7 +315,7 @@ function DesktopBanner({
           type="button"
           onClick={onGenerate} 
           disabled={isGenerating}
-          className="flex items-center justify-center gap-2 bg-[#FF4D2E] hover:bg-[#E03C1F] text-white font-black text-[13px] px-6 py-2.5 border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer rounded-xl uppercase tracking-wider disabled:opacity-60 whitespace-nowrap"
+          className="flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white font-black text-[13px] px-6 py-2.5 border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer rounded-xl uppercase tracking-wider disabled:opacity-60 whitespace-nowrap"
         >
           <span className="material-symbols-outlined text-[18px]">bolt</span>
           <span>{isGenerating ? "Generating..." : "Generate Quiz"}</span>
@@ -991,7 +991,7 @@ Each object MUST match this schema exactly:
               <p className="font-extrabold text-[16px] leading-snug">{title}</p>
               <p className="text-[12px] font-bold text-black/50">{correct}/{total} correct ({pct}%){timeAgo ? ` · ${timeAgo}` : ""}</p>
             </div>
-            <button onClick={() => setReviewEntry(null)} className="material-symbols-outlined text-[22px] shrink-0 hover:text-[#FF4D2E] transition-colors">close</button>
+            <button onClick={() => setReviewEntry(null)} className="material-symbols-outlined text-[22px] shrink-0 hover:text-[#10B981] transition-colors">close</button>
           </div>
           <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
             {!review ? (
@@ -1132,7 +1132,7 @@ Each object MUST match this schema exactly:
               <button
                 type="button"
                 onClick={() => setShowLeaveModal(false)}
-                className="w-full py-3 bg-[#FF4D2E] text-white font-black text-[14px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none hover:bg-black cursor-pointer uppercase tracking-wider"
+                className="w-full py-3 bg-[#10B981] text-white font-black text-[14px] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none hover:bg-black cursor-pointer uppercase tracking-wider"
               >
                 Keep Learning
               </button>
@@ -1211,7 +1211,7 @@ Each object MUST match this schema exactly:
 
               {comboStreak > 1 && (
                 <div className="hidden sm:flex items-center gap-1.5 bg-[#FFF275] border-2 border-black px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000]">
-                  <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]" aria-hidden="true">
+                  <span className="material-symbols-outlined text-[15px] text-[#10B981]" aria-hidden="true">
                     local_fire_department
                   </span>
                   <span>{comboStreak}</span>
@@ -1409,7 +1409,7 @@ Each object MUST match this schema exactly:
                     <button
                       type="button"
                       onClick={() => navigate("/dashboard")}
-                      className="px-6 py-3 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
+                      className="px-6 py-3 bg-[#10B981] hover:bg-black text-white font-black text-[14px] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
                     >
                       <span className="material-symbols-outlined text-[18px]" aria-hidden="true">route</span>
                       <span>Go to Learning Path</span>
@@ -1453,7 +1453,7 @@ Each object MUST match this schema exactly:
                           {/* Flame Combo Streak Badge */}
                           {comboStreak > 1 && (
                             <div className="flex items-center gap-1.5 bg-[#FFF275] border-[2px] border-black px-3.5 py-1.5 rounded-full text-[13px] font-black shadow-[2px_2px_0px_#000] animate-bounce-short">
-                              <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">
+                              <span className="material-symbols-outlined text-[16px] text-[#10B981]" aria-hidden="true">
                                 local_fire_department
                               </span>
                               <span>{comboStreak} STREAK</span>
@@ -1462,7 +1462,7 @@ Each object MUST match this schema exactly:
 
                           {/* Countdown Timer */}
                           <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#F0EDE0] border-[2px] border-black shadow-[2px_2px_0px_#000] rounded-full text-[13px] font-bold">
-                            <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">timer</span>
+                            <span className="material-symbols-outlined text-[16px] text-[#10B981]" aria-hidden="true">timer</span>
                             <span>{formatTime(timeLeft)}</span>
                           </div>
                         </div>
@@ -1581,7 +1581,7 @@ Each object MUST match this schema exactly:
                           <span className="text-[11px] font-bold text-black/60">{totalInitialCount > 0 ? Math.round((score / totalInitialCount) * 100) : 100}%</span>
                         </div>
 
-                        <div className="text-[22px] font-black text-[#FF4D2E]">VS</div>
+                        <div className="text-[22px] font-black text-[#10B981]">VS</div>
 
                         <div className="flex flex-col items-center">
                           <span className="text-[11px] font-black uppercase text-black/50">{duelOpponent.name}</span>
@@ -1607,8 +1607,8 @@ Each object MUST match this schema exactly:
                     </div>
                     <div className="flex justify-between items-center border-b border-black/10 pb-4">
                       <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Best Combo Streak</span>
-                      <span className="text-[#FF4D2E] text-[20px] font-black flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[18px] text-[#FF4D2E]" aria-hidden="true">
+                      <span className="text-[#10B981] text-[20px] font-black flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[18px] text-[#10B981]" aria-hidden="true">
                           local_fire_department
                         </span>
                         <span>{highestStreak} in a row</span>
@@ -1704,7 +1704,7 @@ Each object MUST match this schema exactly:
             <span className="truncate">{adaptiveQueue.length > 0 && currentQuestion ? currentQuestion.subject : "Practice"}</span>
             {comboStreak > 1 && (
               <span className="bg-[#FFF275] border border-black rounded-full px-2 py-0.5 text-[11px] font-black shrink-0 inline-flex items-center gap-1">
-                <span className="material-symbols-outlined text-[13px] text-[#FF4D2E]" aria-hidden="true">
+                <span className="material-symbols-outlined text-[13px] text-[#10B981]" aria-hidden="true">
                   local_fire_department
                 </span>
                 <span>{comboStreak}</span>
@@ -1774,8 +1774,8 @@ Each object MUST match this schema exactly:
                 <section className="w-full bg-white rounded-xl border-2 border-black p-4 flex flex-col gap-3 shrink-0 shadow-[2px_2px_0px_#000]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[#FF4D2E] text-[22px]" aria-hidden="true">school</span>
-                      <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#FF4D2E]">Quiz Generator</span>
+                      <span className="material-symbols-outlined text-[#10B981] text-[22px]" aria-hidden="true">school</span>
+                      <span className="font-extrabold text-[14px] uppercase tracking-wider text-[#10B981]">Quiz Generator</span>
                     </div>
                     <span className="px-2 py-0.5 bg-[#FFF275] border border-black rounded text-[9px] font-black uppercase">
                       Adaptive
@@ -1834,7 +1834,7 @@ Each object MUST match this schema exactly:
                       <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Source Context</span>
                       <button 
                         onClick={() => navigate("/library")}
-                        className="text-[10px] font-bold text-[#FF4D2E] hover:underline flex items-center"
+                        className="text-[10px] font-bold text-[#10B981] hover:underline flex items-center"
                       >
                         <span className="material-symbols-outlined text-[12px] mr-1" aria-hidden="true">add_circle</span>
                         Add Source
@@ -1861,7 +1861,7 @@ Each object MUST match this schema exactly:
                     <button 
                       onClick={handleGenerateQuiz} 
                       disabled={isGenerating}
-                      className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#FF4D2E] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[13px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all"
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#10B981] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[13px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all"
                     >
                       <span className="material-symbols-outlined text-[16px]" aria-hidden="true">bolt</span>
                       {isGenerating ? "Building Quiz..." : "Generate Mastery Quiz"}
@@ -1888,7 +1888,7 @@ Each object MUST match this schema exactly:
                   {/* Top Mobile Bar */}
                   <div className="flex items-center justify-between w-full">
                     <div className="bg-white px-3 py-1 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1.5 text-[12px] font-bold">
-                      <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">timer</span>
+                      <span className="material-symbols-outlined text-[14px] text-[#10B981]">timer</span>
                       {formatTime(timeLeft)}
                     </div>
 
@@ -2001,7 +2001,7 @@ Each object MUST match this schema exactly:
                     <span className="text-[10px] font-black uppercase text-black/50">You</span>
                     <span className="text-[20px] font-black text-[#16a34a]">{score}/{totalInitialCount}</span>
                   </div>
-                  <div className="text-[16px] font-black text-[#FF4D2E]">VS</div>
+                  <div className="text-[16px] font-black text-[#10B981]">VS</div>
                   <div className="flex flex-col items-center">
                     <span className="text-[10px] font-black uppercase text-black/50">{duelOpponent.name}</span>
                     <span className="text-[20px] font-black text-black/70">
@@ -2025,8 +2025,8 @@ Each object MUST match this schema exactly:
               </div>
               <div className="flex justify-between items-center border-b pb-2.5">
                 <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Best Streak</span>
-                <span className="text-[#FF4D2E] text-[16px] font-black flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">
+                <span className="text-[#10B981] text-[16px] font-black flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px] text-[#10B981]" aria-hidden="true">
                     local_fire_department
                   </span>
                   <span>{highestStreak} in a row</span>

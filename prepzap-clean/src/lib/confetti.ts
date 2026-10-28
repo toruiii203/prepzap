@@ -7,7 +7,7 @@ export function fireConfetti() {
     origin: { y: 0.2 },
     zIndex: 10000,
     disableForReducedMotion: true,
-    colors: ["#FFD13B", "#FF4D2E", "#10B981"],
+    colors: ["#FFD13B", "#10B981", "#10B981"],
     ticks: 90
   };
 

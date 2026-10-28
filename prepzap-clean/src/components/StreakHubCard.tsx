@@ -60,7 +60,7 @@ export function StreakHubCard({
             <h3 className="text-[14px] sm:text-[15px] font-black text-black leading-tight flex items-center gap-1.5">
               <span><AnimatedNumber value={streakDays} /> Day Study Streak</span>
               {!studiedToday && (
-                <span className="w-2 h-2 rounded-full bg-[#FF4D2E] animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-ping" />
               )}
             </h3>
             <p className="text-[11px] font-bold text-black/55">

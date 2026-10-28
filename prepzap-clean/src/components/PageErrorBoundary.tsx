@@ -56,7 +56,7 @@ export class PageErrorBoundary extends React.Component<Props, State> {
               <button
                 type="button"
                 onClick={() => { window.location.href = "/dashboard"; }}
-                className="min-h-11 flex-1 py-2.5 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-all"
+                className="min-h-11 flex-1 py-2.5 bg-black hover:bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-all"
               >
                 Dashboard &rarr;
               </button>

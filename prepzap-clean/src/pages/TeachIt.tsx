@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
+import { shareToStudyVault } from "@/lib/shareToVault";
+import { fireConfetti } from "@/lib/confetti";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -48,6 +50,42 @@ export default function TeachIt() {
     } catch {}
   }, [feedback]);
   const [loading, setLoading] = useState(false);
+  const [vaultShared, setVaultShared] = useState(false);
+
+  const handleShareToVault = () => {
+    if (!feedback || !topic.trim()) return;
+    const docContent = `# Feynman Technique: ${topic.trim()}
+
+> **Clarity Score**: ${feedback.clarityScore}/100
+
+## Core Explanation
+${explanation}
+
+## Strengths
+${feedback.strengths.map((s: string) => `- ${s}`).join("\n")}
+
+## Identified Knowledge Gaps
+${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
+
+> **Rex's Hint**: ${feedback.hint}
+`.trim();
+
+    shareToStudyVault({
+      title: `Feynman Explanation: ${topic.trim()}`,
+      topic: topic.trim(),
+      subject: "Feynman Technique",
+      summary: explanation.slice(0, 160) || `Student breakdown of ${topic.trim()}`,
+      content: docContent,
+      key_points: feedback.strengths,
+      tags: ["feynman-technique", "teach-it"],
+      author: "Feynman Scholar",
+      isAiGenerated: false,
+    });
+
+    setVaultShared(true);
+    fireConfetti();
+    setTimeout(() => setVaultShared(false), 3000);
+  };
   const [showXpToast, setShowXpToast] = useState(false);
   const [xpEarnedToast, setXpEarnedToast] = useState(0);
 
@@ -324,7 +362,7 @@ export default function TeachIt() {
                 <span className="text-[12px] font-bold truncate max-w-[180px]">{activeSource}</span>
                 <button
                   onClick={handleClearSource}
-                  className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">
+                  className="material-symbols-outlined text-[14px] hover:text-[#10B981] transition-colors">
                   close
                 </button>
               </div>
@@ -392,7 +430,7 @@ export default function TeachIt() {
                   <button
                     onClick={() => setShowHistoryDropdown((v) => !v)}
                     title="View past explanations"
-                    className={`material-symbols-outlined text-[20px] transition-colors ${showHistoryDropdown ? "text-[#FF4D2E]" : "text-black/50 hover:text-black"}`}>
+                    className={`material-symbols-outlined text-[20px] transition-colors ${showHistoryDropdown ? "text-[#10B981]" : "text-black/50 hover:text-black"}`}>
                     history
                   </button>
                   <button title="Format (coming soon)" className="material-symbols-outlined text-[20px] text-black/30 cursor-not-allowed">format_paint</button>
@@ -469,7 +507,7 @@ export default function TeachIt() {
                 <button
                   onClick={handleAnalyze}
                   disabled={!explanation.trim() || loading}
-                  className={`flex items-center gap-3 px-10 py-4 bg-[#FF4D2E] text-white border-2 border-black font-black text-[16px] shadow-[5px_5px_0px_#000] transition-all ${
+                  className={`flex items-center gap-3 px-10 py-4 bg-[#10B981] text-white border-2 border-black font-black text-[16px] shadow-[5px_5px_0px_#000] transition-all ${
                     explanation.trim() && !loading
                       ? "hover:bg-black cursor-pointer active:translate-y-1 active:shadow-none"
                       : "opacity-50 pointer-events-none"
@@ -509,7 +547,7 @@ export default function TeachIt() {
               )}
               {loading && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
-                  <span className="material-symbols-outlined animate-spin text-[#FF4D2E] text-[40px]">autorenew</span>
+                  <span className="material-symbols-outlined animate-spin text-[#10B981] text-[40px]">autorenew</span>
                   <p className="font-bold text-[13px]">Rex is analyzing your explanation...</p>
                 </div>
               )}
@@ -531,8 +569,8 @@ export default function TeachIt() {
                     <h4 className="font-bold text-[10px] uppercase tracking-widest text-black/40 mb-3">Knowledge Gaps</h4>
                     <div className="flex flex-col gap-2">
                       {feedback.gaps.map((g, i) => (
-                        <div key={i} className="bg-white border-2 border-black border-l-4 border-l-[#FF4D2E] p-3 shadow-[3px_3px_0px_#000] flex items-start gap-3">
-                          <span className="material-symbols-outlined text-[#FF4D2E] text-[18px] shrink-0">warning</span>
+                        <div key={i} className="bg-white border-2 border-black border-l-4 border-l-[#10B981] p-3 shadow-[3px_3px_0px_#000] flex items-start gap-3">
+                          <span className="material-symbols-outlined text-[#10B981] text-[18px] shrink-0">warning</span>
                           <div>
                             <p className="font-black text-[13px]">{g.title}</p>
                             <p className="font-bold text-[12px] text-black/60 mt-0.5">{g.detail}</p>
@@ -624,7 +662,7 @@ export default function TeachIt() {
               <div className="flex items-center gap-2 bg-[#F0EDE0] border-2 border-black rounded-full px-3 py-1.5 flex-1 min-w-0">
                 <span className="material-symbols-outlined text-[14px]">description</span>
                 <span className="text-[11px] font-bold truncate">{activeSource}</span>
-                <button onClick={handleClearSource} className="material-symbols-outlined text-[13px] hover:text-[#FF4D2E] shrink-0">close</button>
+                <button onClick={handleClearSource} className="material-symbols-outlined text-[13px] hover:text-[#10B981] shrink-0">close</button>
               </div>
             ) : (
               <button
@@ -789,7 +827,7 @@ export default function TeachIt() {
           <button
             onClick={handleAnalyze}
             disabled={!explanation.trim() || loading}
-            className={`flex items-center gap-2 px-5 py-2.5 bg-[#FF4D2E] text-white border-2 border-black font-black text-[13px] shadow-[3px_3px_0px_#000] transition-all ${
+            className={`flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-white border-2 border-black font-black text-[13px] shadow-[3px_3px_0px_#000] transition-all ${
               explanation.trim() && !loading
                 ? "cursor-pointer active:translate-y-0.5 active:shadow-none"
                 : "opacity-50 pointer-events-none"

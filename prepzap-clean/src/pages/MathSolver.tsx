@@ -12,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
+import { shareToStudyVault } from "@/lib/shareToVault";
+import { playSuccess } from "@/lib/soundFX";
 
 interface SolutionStep {
   stepNumber: number;
@@ -269,6 +271,7 @@ export default function MathSolver() {
     }
   });
   const [solved, setSolved] = useState(() => localStorage.getItem("pz_math_solved") === "true");
+  const [vaultSaved, setVaultSaved] = useState(false);
   const [activeSource, setActiveSource] = useState<any>(getActiveSource());
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("math-solver") as any;
   const { isPro, canUse, remaining, logUsage } = usePlan();
@@ -472,12 +475,54 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
     );
   };
 
+
+  const handleShareToStudyVault = () => {
+    if (!problem || steps.length === 0) return;
+    playSuccess();
+    const cleanProblem = problem.trim();
+    const title = `Math Solution: ${cleanProblem.slice(0, 40)}`;
+    const markdownContent = [
+      `# Problem\n\n${cleanProblem}$\n`,
+      `## Step-by-Step Solution\n`,
+      ...steps.map(s => `### Step ${s.stepNumber}\n${s.description}${s.mathBlock ? `\n\n$${s.mathBlock}$` : ""}\n`),
+    ].join("\n");
+
+    const summary = `Step-by-step mathematical breakdown for: ${cleanProblem}`;
+    const keyPoints = steps.slice(0, 5).map(s => `Step ${s.stepNumber}: ${s.description.slice(0, 90)}`);
+
+    shareToStudyVault({
+      title,
+      topic: cleanProblem.slice(0, 30),
+      subject: "Mathematics",
+      summary,
+      content: markdownContent,
+      key_points: keyPoints,
+      tags: ["math", "step-by-step", "solution"],
+      isAiGenerated: true,
+    });
+
+    setVaultSaved(true);
+    setTimeout(() => setVaultSaved(false), 3000);
+  };
+
   // ─── Right panel ───────────────────────────────────────────────────────────
   const RightPanel = () => (
     <div className="w-full flex flex-col gap-5 overflow-y-auto">
       {/* Solution Steps */}
       <div>
-        <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Solution Steps</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50">Solution Steps</h3>
+          {solved && (
+            <button
+              onClick={handleShareToStudyVault}
+              className="flex items-center gap-1.5 px-3 py-1 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#15803d] hover:text-white font-black text-[11px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+              title="Share this solution to public Study Vault"
+            >
+              <span className="material-symbols-outlined text-[15px]">{vaultSaved ? "check_circle" : "local_library"}</span>
+              <span>{vaultSaved ? "Saved to Vault!" : "Share to Study Vault"}</span>
+            </button>
+          )}
+        </div>
         <div className="border-2 border-black bg-white p-5 flex flex-col gap-4 shadow-[3px_3px_0px_#000]">
           {!solved && !loading && (
             <div className="flex flex-col items-center py-8 text-center gap-3">
@@ -604,7 +649,7 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
               <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
                 <span className="material-symbols-outlined text-[16px]">description</span>
                 <span className="text-[12px] font-bold truncate max-w-[200px]">{activeSource.name || activeSource}</span>
-                <button onClick={() => navigate("/sources")} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
+                <button onClick={() => navigate("/sources")} className="material-symbols-outlined text-[14px] hover:text-[#10B981] transition-colors">close</button>
               </div>
             ) : (
               <button
@@ -947,7 +992,19 @@ Return strictly a valid raw JSON array containing solution steps. Every element 
           {/* Solution Steps — mobile */}
           {(solved || loading) && (
             <div className="mt-2">
-              <h3 className="text-[14px] font-black uppercase tracking-wider mb-3">Solution Steps</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[14px] font-black uppercase tracking-wider">Solution Steps</h3>
+                {solved && (
+                  <button
+                    onClick={handleShareToStudyVault}
+                    className="flex items-center gap-1.5 px-3 py-1 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#15803d] hover:text-white font-black text-[11px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    title="Share this solution to public Study Vault"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">{vaultSaved ? "check_circle" : "local_library"}</span>
+                    <span>{vaultSaved ? "Saved!" : "To Vault"}</span>
+                  </button>
+                )}
+              </div>
               <div className="bg-white border-2 border-black p-4 flex flex-col gap-4 shadow-[3px_3px_0px_#000]">
                 {loading && (
                   <div className="flex items-center gap-3 py-4 justify-center">

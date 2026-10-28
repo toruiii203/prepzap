@@ -43,7 +43,7 @@ export function StreakRiskBanner({
     <div
       role="alert"
       aria-label="Streak at risk notification"
-      className="border-2 border-black bg-gradient-to-r from-[#FF4D2E] via-[#FF6B4E] to-[#FF8C42] text-white p-4 sm:p-5 rounded-2xl shadow-[4px_4px_0px_#000] flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300 font-['Quicksand',sans-serif] select-none"
+      className="border-2 border-black bg-gradient-to-r from-[#10B981] via-[#FF6B4E] to-[#FF8C42] text-white p-4 sm:p-5 rounded-2xl shadow-[4px_4px_0px_#000] flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300 font-['Quicksand',sans-serif] select-none"
     >
       <div className="flex items-center gap-3.5 w-full sm:w-auto">
         {/* Mascot / Flame Badge */}
@@ -75,7 +75,7 @@ export function StreakRiskBanner({
           }}
           className="flex-1 sm:flex-none px-5 py-2.5 bg-[#FFD13B] text-black font-black text-[13px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-none hover:bg-white transition-all cursor-pointer flex items-center justify-center gap-1.5"
         >
-          <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]" aria-hidden="true">
+          <span className="material-symbols-outlined text-[16px] text-[#10B981]" aria-hidden="true">
             local_fire_department
           </span>
           <span>Save Streak</span>

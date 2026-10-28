@@ -80,7 +80,7 @@ function DesktopFlashcard({ currentCard, isFlipped, setIsFlipped }: DesktopFlash
           <div className="absolute top-5 left-5 opacity-20">
             <span className="material-symbols-outlined text-[28px]">style</span>
           </div>
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#FF4D2E] mb-4">Question</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#10B981] mb-4">Question</p>
           <h3 className="text-[22px] font-black leading-snug max-w-[480px]">{currentCard.front}</h3>
           <div className="absolute bottom-5 flex items-center gap-1.5 text-black/40">
             <span className="material-symbols-outlined text-[16px]">touch_app</span>
@@ -646,7 +646,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                     <h4 className="text-[13px] font-extrabold leading-tight line-clamp-2 flex-1">
                       {item.prompt ?? item.output ?? "Untitled Deck"}
                     </h4>
-                    <span className="material-symbols-outlined text-[#FF4D2E] text-[16px] shrink-0">style</span>
+                    <span className="material-symbols-outlined text-[#10B981] text-[16px] shrink-0">style</span>
                   </div>
                   <p className="text-[11px] font-bold text-black/40">{item.meta ?? item.preview ?? "Flashcard deck"}</p>
                   {(item.createdAt || item.created_at) && (
@@ -691,7 +691,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           {/* Left panel: generate form + source library */}
           <div className="w-80 border-r-2 border-black bg-[#FAF7F2] flex flex-col overflow-y-auto shrink-0">
             <div className="p-6 border-b-2 border-black">
-              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#FF4D2E] mb-1">Active Session</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#10B981] mb-1">Active Session</p>
               <h2 className="text-[22px] font-black leading-tight">
                 {activeSourceObj ? activeSourceObj.name.replace(/\.[^.]+$/, "") : topic || "Generate Deck"}
               </h2>
@@ -742,7 +742,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               <button
                 onClick={handleGenerate}
                 disabled={isLoading}
-                className="w-full py-4 bg-black text-white border-2 border-black font-extrabold text-[15px] shadow-[4px_4px_0px_#FF4D2E] hover:opacity-90 transition-all flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 disabled:opacity-50"
+                className="w-full py-4 bg-black text-white border-2 border-black font-extrabold text-[15px] shadow-[4px_4px_0px_#10B981] hover:opacity-90 transition-all flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5 disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
@@ -774,7 +774,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                 <h3 className="text-[13px] font-extrabold uppercase tracking-wider">Your Sources</h3>
                 <button
                   onClick={() => navigate("/sources")}
-                  className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline"
+                  className="text-[11px] font-extrabold text-[#10B981] hover:underline"
                 >
                   Manage
                 </button>
@@ -796,7 +796,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                       onClick={() => handleSelectSource(file)}
                       className={`flex items-center gap-3 px-3 py-2.5 border-2 border-black text-left transition-all ${
                         activeSourceObj?.id === file.id
-                          ? "bg-black text-white shadow-[2px_2px_0px_#FF4D2E]"
+                          ? "bg-black text-white shadow-[2px_2px_0px_#10B981]"
                           : "bg-white hover:bg-[#F0EDE0] shadow-[2px_2px_0px_#000]"
                       }`}
                     >
@@ -811,7 +811,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
 
               {/* Daily Goal */}
               <div className="mt-auto bg-[#F0EDE0] border-2 border-black p-4 shadow-[3px_3px_0px_#000] flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#FF4D2E] border-2 border-black flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 bg-[#10B981] border-2 border-black flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-white text-[18px]">style</span>
                 </div>
                 <div>
@@ -875,7 +875,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </div>
                   <button
                     onClick={handleGenerate}
-                    className="w-full py-4 bg-black text-white border-2 border-black font-extrabold text-[16px] shadow-[4px_4px_0px_#FF4D2E] hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-black text-white border-2 border-black font-extrabold text-[16px] shadow-[4px_4px_0px_#10B981] hover:opacity-90 transition-all flex items-center justify-center gap-2"
                   >
                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>layers</span>
                     Generate {cardCount} Cards
@@ -887,7 +887,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             {/* Loading */}
             {isLoading && (
               <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                <div className="w-14 h-14 border-4 border-black border-t-[#FF4D2E] rounded-full animate-spin" />
+                <div className="w-14 h-14 border-4 border-black border-t-[#10B981] rounded-full animate-spin" />
                 <h3 className="text-[18px] font-black">Generating Flashcards...</h3>
                 <p className="text-[13px] font-bold text-black/50 max-w-[300px] text-center">
                   Reading your sources and crafting personalized spaced-repetition cards.
@@ -910,7 +910,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   <div className="flex gap-3 text-[12px] font-extrabold">
                     <span className="text-green-600">✓ {scores.gotIt}</span>
                     <span className="text-black/40">? {scores.unsure}</span>
-                    <span className="text-[#FF4D2E]">✗ {scores.forgot}</span>
+                    <span className="text-[#10B981]">✗ {scores.forgot}</span>
                   </div>
                 </div>
 
@@ -923,7 +923,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                     onClick={() => handleRate("again")}
                     className="py-4 px-2 border-2 border-black bg-white shadow-[4px_4px_0px_#000] hover:bg-red-50 flex flex-col items-center gap-1.5 rounded-xl cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[#FF4D2E] text-[26px]">sentiment_very_dissatisfied</span>
+                    <span className="material-symbols-outlined text-[#10B981] text-[26px]">sentiment_very_dissatisfied</span>
                     <span className="text-[13px] font-black uppercase text-black">Again</span>
                     <span className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black/30 bg-black/5 text-black/60">Key 1</span>
                   </SpringButton>
@@ -975,7 +975,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                     <span className="text-[20px] font-black">{scores.unsure}</span>
                   </div>
                   <div className="flex justify-between items-center px-6 py-4">
-                    <span className="text-[14px] font-extrabold text-[#FF4D2E]">Forgot / Needs Review</span>
+                    <span className="text-[14px] font-extrabold text-[#10B981]">Forgot / Needs Review</span>
                     <span className="text-[20px] font-black">{scores.forgot}</span>
                   </div>
                 </div>
@@ -988,7 +988,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   </button>
                   <button
                     onClick={() => navigate("/dashboard")}
-                    className="flex-1 py-4 border-2 border-black bg-black text-white font-extrabold text-[15px] shadow-[3px_3px_0px_#FF4D2E] hover:opacity-90 transition-all"
+                    className="flex-1 py-4 border-2 border-black bg-black text-white font-extrabold text-[15px] shadow-[3px_3px_0px_#10B981] hover:opacity-90 transition-all"
                   >
                     Dashboard
                   </button>
@@ -1032,7 +1032,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
             </div>
 
             {/* Stats mini card */}
-            <div className="m-4 p-4 bg-black text-white border-2 border-black shadow-[3px_3px_0px_#FF4D2E]">
+            <div className="m-4 p-4 bg-black text-white border-2 border-black shadow-[3px_3px_0px_#10B981]">
               <div className="flex justify-between items-center mb-2">
                 <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#F5A623]">Session Score</p>
                 <span className="material-symbols-outlined text-[18px]">monitoring</span>
@@ -1088,7 +1088,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
           {view === "setup" && (
             <main className="flex-1 px-5 py-6 flex flex-col gap-6 overflow-y-auto pb-8">
               {totalDue > 0 && (
-                <button onClick={handleStartReview} className="w-full rounded-[12px] border-2 border-[#1A1A1A] bg-[#FF4D2E] text-white font-headline text-headline-md h-16 shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:scale-95 duration-100 active:shadow-none transition-all flex items-center justify-center gap-2 mb-2">
+                <button onClick={handleStartReview} className="w-full rounded-[12px] border-2 border-[#1A1A1A] bg-[#10B981] text-white font-headline text-headline-md h-16 shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:scale-95 duration-100 active:shadow-none transition-all flex items-center justify-center gap-2 mb-2">
                   <span className="material-symbols-outlined">schedule</span>
                   Review ({totalDue} due)
                 </button>
@@ -1263,7 +1263,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   <div className="flex gap-3 text-[12px] font-extrabold">
                     <span className="text-green-600">✓ {scores.gotIt}</span>
                     <span className="text-black/40">? {scores.unsure}</span>
-                    <span className="text-[#FF4D2E]">✗ {scores.forgot}</span>
+                    <span className="text-[#10B981]">✗ {scores.forgot}</span>
                   </div>
                   {/* Share button — mobile study */}
                   <button
@@ -1305,7 +1305,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
               >
                 {/* Drag-to-grade indicator badges */}
                 {isFlipped && touchStart && touchDelta.x < -30 && (
-                  <div className="absolute top-4 left-4 z-20 border-2 border-black bg-[#FF4D2E] text-white px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000] -rotate-12 pointer-events-none">
+                  <div className="absolute top-4 left-4 z-20 border-2 border-black bg-[#10B981] text-white px-3 py-1 rounded-full text-[12px] font-black shadow-[2px_2px_0px_#000] -rotate-12 pointer-events-none">
                     ← Again
                   </div>
                 )}
@@ -1374,7 +1374,7 @@ Only return the raw system valid JSON array. No markdown codeblocks, no explanat
                   onClick={() => handleRate("again")}
                   className="h-[68px] rounded-xl border-2 border-black bg-white flex flex-col items-center justify-center shadow-[2px_2px_0px_#000] hover:bg-red-50 text-[12px] font-black cursor-pointer"
                 >
-                  <span className="material-symbols-outlined mb-0.5 text-[22px] text-[#FF4D2E]">close</span>
+                  <span className="material-symbols-outlined mb-0.5 text-[22px] text-[#10B981]">close</span>
                   Again
                 </SpringButton>
                 <SpringButton

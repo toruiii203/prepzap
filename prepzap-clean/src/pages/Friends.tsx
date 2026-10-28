@@ -214,7 +214,7 @@ export default function Friends() {
                       playTap();
                       setIsEditProfileOpen(true);
                     }}
-                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black flex items-center justify-center shadow-xs cursor-pointer transition-colors"
+                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#FFD13B] hover:bg-[#10B981] hover:text-white text-black border-2 border-black flex items-center justify-center shadow-xs cursor-pointer transition-colors"
                     title="Change avatar"
                   >
                     <span className="material-symbols-outlined text-[15px]">photo_camera</span>
@@ -238,7 +238,7 @@ export default function Friends() {
                   <button
                     type="button"
                     onClick={handleCopyCode}
-                    className="px-3.5 py-1.5 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[11.5px] cursor-pointer shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 flex items-center gap-1.5 transition-colors"
+                    className="px-3.5 py-1.5 bg-black hover:bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[11.5px] cursor-pointer shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 flex items-center gap-1.5 transition-colors"
                     title="Copy your friend code"
                   >
                     <span className="material-symbols-outlined text-[15px]">share</span>
@@ -286,7 +286,7 @@ export default function Friends() {
 
                 {/* Streak (Single 🔥 exception) */}
                 <span className="text-black/30">&bull;</span>
-                <span className="inline-flex items-center gap-1 text-[#FF4D2E] font-black">
+                <span className="inline-flex items-center gap-1 text-[#10B981] font-black">
                   <span>🔥</span>
                   <span>{authProfile?.streak_days ?? 1}d streak</span>
                 </span>
@@ -387,12 +387,12 @@ export default function Friends() {
                 <div className="flex items-center justify-between md:justify-start gap-3 bg-[#FAF7F2] border border-black/15 px-3 py-2 rounded-xl shrink-0">
                   <div>
                     <div className="text-[9px] font-black uppercase tracking-wider text-black/45">Your Friend Code</div>
-                    <div className="text-[14px] font-black text-[#FF4D2E] tracking-wider font-mono">{myFriendCode}</div>
+                    <div className="text-[14px] font-black text-[#10B981] tracking-wider font-mono">{myFriendCode}</div>
                   </div>
                   <button
                     type="button"
                     onClick={handleCopyCode}
-                    className="px-3 py-1 bg-black hover:bg-[#FF4D2E] text-white text-[11px] font-black rounded-lg transition-colors cursor-pointer shadow-xs active:scale-95 shrink-0"
+                    className="px-3 py-1 bg-black hover:bg-[#10B981] text-white text-[11px] font-black rounded-lg transition-colors cursor-pointer shadow-xs active:scale-95 shrink-0"
                   >
                     Copy
                   </button>
@@ -410,7 +410,7 @@ export default function Friends() {
                   <button
                     type="submit"
                     disabled={addingFriend || !friendCodeInput.trim()}
-                    className="px-4 py-2 bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                    className="px-4 py-2 bg-[#FFD13B] hover:bg-[#10B981] hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                   >
                     {addingFriend ? "Linking..." : "+ Add Friend"}
                   </button>
@@ -505,7 +505,7 @@ export default function Friends() {
                               </div>
 
                               <div className="text-[11.5px] font-bold text-black/60 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                                <span className="inline-flex items-center gap-1 text-[#FF4D2E] font-black">
+                                <span className="inline-flex items-center gap-1 text-[#10B981] font-black">
                                   <span>🔥</span>
                                   <span>{buddy.streakDays}d streak</span>
                                 </span>
@@ -648,7 +648,7 @@ export default function Friends() {
                   <button
                     type="button"
                     onClick={() => navigate("/timer")}
-                    className="px-3.5 py-1.5 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11px] shadow-xs active:translate-y-0.5 cursor-pointer shrink-0 transition-colors"
+                    className="px-3.5 py-1.5 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11px] shadow-xs active:translate-y-0.5 cursor-pointer shrink-0 transition-colors"
                   >
                     + Log Focus Session &rarr;
                   </button>
@@ -666,7 +666,7 @@ export default function Friends() {
                           {studentProfile.displayName} (You)
                         </div>
                         <div className="text-[11px] font-bold text-black/60">
-                          Logged <strong className="text-[#FF4D2E]">{weeklyFocusMinutes}</strong> of {goalTargetMinutes} min ({goalPercent}%)
+                          Logged <strong className="text-[#10B981]">{weeklyFocusMinutes}</strong> of {goalTargetMinutes} min ({goalPercent}%)
                         </div>
                       </div>
                     </div>
@@ -701,7 +701,7 @@ export default function Friends() {
                               </div>
                             </div>
                           </div>
-                          <span className="text-[11px] font-black text-[#FF4D2E] shrink-0">
+                          <span className="text-[11px] font-black text-[#10B981] shrink-0">
                             {buddy.streakDays}d 🔥
                           </span>
                         </div>
@@ -731,7 +731,7 @@ export default function Friends() {
                 <button
                   type="button"
                   onClick={() => navigate("/campus-vault")}
-                  className="px-4 py-2 bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto"
+                  className="px-4 py-2 bg-[#FFD13B] hover:bg-[#10B981] hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto"
                 >
                   <span className="material-symbols-outlined text-[16px]">upload_file</span>
                   <span>+ Publish to Vault</span>
@@ -750,7 +750,7 @@ export default function Friends() {
                   <button
                     type="button"
                     onClick={() => navigate("/campus-vault")}
-                    className="px-4 py-2 bg-black hover:bg-[#FF4D2E] text-white rounded-xl font-black text-[12px] border-2 border-black shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                    className="px-4 py-2 bg-black hover:bg-[#10B981] text-white rounded-xl font-black text-[12px] border-2 border-black shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <span className="material-symbols-outlined text-[15px]">explore</span>
                     <span>Explore Campus Vault</span>
@@ -817,7 +817,7 @@ export default function Friends() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-black/10">
                   <div>
                     <h2 className="text-[16px] font-black text-black flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[20px] text-[#FF4D2E]">sports_kabaddi</span>
+                      <span className="material-symbols-outlined text-[20px] text-[#10B981]">sports_kabaddi</span>
                       <span>Challenge a Friend to 1v1 Quiz Duel</span>
                     </h2>
                     <p className="text-[12px] font-bold text-black/55 mt-0.5">
@@ -832,7 +832,7 @@ export default function Friends() {
                       localStorage.removeItem("pz_duel_opponent");
                       navigate("/practice");
                     }}
-                    className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black rounded-xl font-black text-[11.5px] shadow-xs active:translate-y-0.5 transition-all cursor-pointer shrink-0"
+                    className="px-3.5 py-1.5 bg-[#FFD13B] hover:bg-[#10B981] hover:text-white text-black border-2 border-black rounded-xl font-black text-[11.5px] shadow-xs active:translate-y-0.5 transition-all cursor-pointer shrink-0"
                   >
                     Solo Duel Sprint &rarr;
                   </button>
@@ -866,7 +866,7 @@ export default function Friends() {
                         <button
                           type="button"
                           onClick={() => handleLaunchDuelWithBuddy(buddy)}
-                          className="px-2.5 py-1 bg-black hover:bg-[#FF4D2E] text-white border border-black rounded-lg text-[10.5px] font-black cursor-pointer shadow-xs active:scale-95 transition-colors shrink-0"
+                          className="px-2.5 py-1 bg-black hover:bg-[#10B981] text-white border border-black rounded-lg text-[10.5px] font-black cursor-pointer shadow-xs active:scale-95 transition-colors shrink-0"
                         >
                           Duel
                         </button>

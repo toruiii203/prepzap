@@ -160,7 +160,7 @@ export default function StudentProfile() {
                     <div className="text-[12.5px] font-bold text-black/60 truncate flex items-center gap-2 mt-0.5">
                       <span>{studentProfile.username}</span>
                       <span>&bull;</span>
-                      <span className="text-[#FF4D2E] font-black">{myFriendCode}</span>
+                      <span className="text-[#10B981] font-black">{myFriendCode}</span>
                     </div>
 
                     <div className="text-[11.5px] font-semibold text-black/50 truncate mt-0.5">
@@ -183,7 +183,7 @@ export default function StudentProfile() {
                   <button
                     type="button"
                     onClick={handleCopyProfileLink}
-                    className="px-4 py-2 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-2 bg-black hover:bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 cursor-pointer flex items-center gap-1.5"
                   >
                     <span className="material-symbols-outlined text-[16px]">share</span>
                     <span>Share Profile</span>
@@ -198,7 +198,7 @@ export default function StudentProfile() {
                 </p>
                 {studentProfile.targetExam && (
                   <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 bg-white border border-black/20 rounded-lg text-[11px] font-bold text-black/70">
-                    <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]">flag</span>
+                    <span className="material-symbols-outlined text-[14px] text-[#10B981]">flag</span>
                     <span>Target: <strong>{studentProfile.targetExam}</strong></span>
                   </div>
                 )}
@@ -208,7 +208,7 @@ export default function StudentProfile() {
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 <div className="bg-white border-2 border-black rounded-xl p-2.5 text-center shadow-[2px_2px_0px_#1A1A1A]">
                   <div className="text-[10px] font-black uppercase text-black/45">Academic Streak</div>
-                  <div className="text-[18px] font-black text-[#FF4D2E] flex items-center justify-center gap-1 mt-0.5">
+                  <div className="text-[18px] font-black text-[#10B981] flex items-center justify-center gap-1 mt-0.5">
                     <span>🔥</span>
                     <span>{authProfile?.streak_days ?? 1}d</span>
                   </div>
@@ -318,7 +318,7 @@ export default function StudentProfile() {
                       </p>
                       <button
                         onClick={() => navigate("/campus-vault")}
-                        className="mt-1 px-4 py-2 bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
+                        className="mt-1 px-4 py-2 bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
                       >
                         Explore Campus Vault &rarr;
                       </button>

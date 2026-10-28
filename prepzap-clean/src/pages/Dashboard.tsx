@@ -102,7 +102,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
                   type="button"
                   onClick={() => handleDeleteTask(task.id)}
                   aria-label={`Delete quest "${task.title}"`}
-                  className="text-black/30 hover:text-[#FF4D2E] cursor-pointer transition-colors p-1"
+                  className="text-black/30 hover:text-[#10B981] cursor-pointer transition-colors p-1"
                 >
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">delete</span>
                 </button>
@@ -123,7 +123,7 @@ function QuestLogBody({ tasks, loadingTasks, newTaskTitle, setNewTaskTitle, hand
           <button
             type="submit"
             aria-label="Add quest"
-            className="border-2 border-black bg-black text-white px-3.5 flex items-center justify-center hover:bg-[#FF4D2E] transition-colors rounded-lg shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
+            className="border-2 border-black bg-black text-white px-3.5 flex items-center justify-center hover:bg-[#10B981] transition-colors rounded-lg shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
           </button>
@@ -210,7 +210,7 @@ function WeeklyBars({ daysOfWeek, dayMinutes, studiedDays }: WeeklyBarsProps) {
               {dayMinutes[idx] > 0 ? (dayMinutes[idx] < 1 ? "<1m" : `${Math.round(dayMinutes[idx])}m`) : ""}
             </span>
             <div
-              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#FF4D2E] ${
+              className={`w-8 border-2 border-black transition-colors group-hover:bg-[#10B981] ${
                 studiedDays[idx] ? "bg-black" : "bg-[#F0EDE0]"
               }`}
               style={{ height: `${heightPct}%` }}
@@ -252,7 +252,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     query: "Biology: Cell division, stages of mitosis vs meiosis",
     category: "quiz",
     categoryLabel: "QUIZ",
-    categoryBg: "bg-[#FF4D2E] text-white",
+    categoryBg: "bg-[#10B981] text-white",
     icon: "bolt",
     route: "/practice",
     topic: "Cell division and mitosis stages",
@@ -285,7 +285,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     query: "Biology: Photosynthesis light reactions vs Calvin cycle",
     category: "quiz",
     categoryLabel: "QUIZ",
-    categoryBg: "bg-[#FF4D2E] text-white",
+    categoryBg: "bg-[#10B981] text-white",
     icon: "bolt",
     route: "/practice",
     topic: "Photosynthesis mechanisms",
@@ -329,7 +329,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     query: "Calculus: Integrals, substitution & integration by parts",
     category: "quiz",
     categoryLabel: "QUIZ",
-    categoryBg: "bg-[#FF4D2E] text-white",
+    categoryBg: "bg-[#10B981] text-white",
     icon: "bolt",
     route: "/practice",
     topic: "Calculus integration techniques",
@@ -373,7 +373,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     query: "Physics: Kinematics equations for projectile motion",
     category: "quiz",
     categoryLabel: "QUIZ",
-    categoryBg: "bg-[#FF4D2E] text-white",
+    categoryBg: "bg-[#10B981] text-white",
     icon: "bolt",
     route: "/practice",
     topic: "Kinematics projectile motion",
@@ -384,7 +384,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     query: "History: World War II major turning points & timeline",
     category: "quiz",
     categoryLabel: "QUIZ",
-    categoryBg: "bg-[#FF4D2E] text-white",
+    categoryBg: "bg-[#10B981] text-white",
     icon: "bolt",
     route: "/practice",
     topic: "World War II timeline and battles",
@@ -681,7 +681,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
         <button
           type="button"
           onClick={handleMic}
-          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#FF4D2E] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer shadow-xs"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#10B981] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer shadow-xs"
           title="Voice Talk with Rex"
           aria-label="Voice talk"
         >
@@ -690,7 +690,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
 
         <button
           type="submit"
-          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black text-white hover:bg-[#FF4D2E] flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-xs"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black text-white hover:bg-[#10B981] flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-xs"
           title="Search or Ask Rex"
           aria-label="Submit search"
         >
@@ -798,7 +798,7 @@ function DashboardHeader({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_#000] cursor-pointer hover:bg-[#FFFDF5] active:translate-y-0.5 transition-all"
           title={`${streakDays} Day Streak`}
         >
-          <span className="material-symbols-outlined text-[17px] text-[#FF4D2E] inline-block" aria-hidden="true">
+          <span className="material-symbols-outlined text-[17px] text-[#10B981] inline-block" aria-hidden="true">
             local_fire_department
           </span>
           <span className="text-[12px] font-black text-black">{streakDays}d Streak</span>
@@ -822,7 +822,7 @@ function DashboardHeader({
           onClick={() => { playPop(); navigate("/pro"); }}
           aria-label={isPro ? "Pro Account Active" : "Get Pro"}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer font-black text-[11px] uppercase tracking-wider ${
-            isPro ? "bg-[#10B981] text-white" : "bg-[#FF4D2E] text-white hover:bg-black"
+            isPro ? "bg-[#10B981] text-white" : "bg-[#10B981] text-white hover:bg-black"
           }`}
         >
           <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">
@@ -1135,7 +1135,7 @@ export default function Dashboard() {
       <header className="md:hidden h-14 w-full px-3.5 flex items-center justify-between bg-[#FFFDF5] z-40 sticky top-0 border-b-2 border-black">
         <div className="text-[19px] font-black tracking-tight text-black flex items-center gap-1.5 cursor-pointer" onClick={() => navigate("/dashboard")}>
           <span>STUDENIUS</span>
-          <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D2E]" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
         </div>
         <div className="flex items-center gap-2">
           {/* Flame streak */}
@@ -1144,7 +1144,7 @@ export default function Dashboard() {
             className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-black bg-white shadow-xs cursor-pointer hover:bg-[#FAF7F2] transition-colors"
             title={`${liveStreakDays} Day Streak`}
           >
-            <span className="material-symbols-outlined text-[15px] text-[#FF4D2E] leading-none" aria-hidden="true">
+            <span className="material-symbols-outlined text-[15px] text-[#10B981] leading-none" aria-hidden="true">
               local_fire_department
             </span>
             <span className="text-[11px] font-black text-black">{liveStreakDays}d</span>
@@ -1178,7 +1178,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => { playPop(); navigate("/profile"); }}
-            className="w-7 h-7 rounded-full bg-[#FF4D2E] text-white border-2 border-black shadow-xs flex items-center justify-center font-black text-[11px] cursor-pointer transition-all shrink-0"
+            className="w-7 h-7 rounded-full bg-[#10B981] text-white border-2 border-black shadow-xs flex items-center justify-center font-black text-[11px] cursor-pointer transition-all shrink-0"
           >
             {displayName.slice(0, 1).toUpperCase()}
           </button>
@@ -1229,7 +1229,7 @@ export default function Dashboard() {
               <section className="border-2 border-black bg-white flex flex-col rounded-3xl shadow-[3px_3px_0px_#1A1A1A] overflow-hidden">
                 <div className="p-4 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px] text-[#FF4D2E]" aria-hidden="true">checklist</span>
+                    <span className="material-symbols-outlined text-[18px] text-[#10B981]" aria-hidden="true">checklist</span>
                     <h3 className="text-[13px] font-black uppercase tracking-wider">Today's Quests</h3>
                   </div>
                   <span className="text-[11px] font-black text-black/60 bg-white px-2 py-0.5 rounded-full border border-black/15">
@@ -1290,7 +1290,7 @@ export default function Dashboard() {
               <section className="border-2 border-black bg-[#FAF7F2] overflow-hidden rounded-3xl shadow-[3px_3px_0px_#1A1A1A]">
                 <div className="p-3.5 border-b-2 border-black flex justify-between items-center bg-white">
                   <h3 className="text-[12px] font-black uppercase tracking-wider">Recent Sessions</h3>
-                  <button onClick={() => navigate("/analytics")} className="text-[11px] font-black text-[#FF4D2E] hover:underline cursor-pointer">
+                  <button onClick={() => navigate("/analytics")} className="text-[11px] font-black text-[#10B981] hover:underline cursor-pointer">
                     View All
                   </button>
                 </div>

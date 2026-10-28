@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
+import { shareToStudyVault } from "@/lib/shareToVault";
+import { fireConfetti } from "@/lib/confetti";
 import React, { useState, useEffect } from "react";
 import { callGroq } from "@/lib/groq";
 import { onSourceChange, loadLibrary } from "@/lib/sourceContext";
@@ -121,6 +123,36 @@ export default function QuickStudy() {
   }, []);
 
   const [copyFlash, setCopyFlash] = useState<"copy" | "share" | null>(null);
+  const [vaultShared, setVaultShared] = useState(false);
+
+  const handleShareToVault = () => {
+    if (!generatedSheet) return;
+    const sheetContent = `# ${generatedSheet.title}
+
+> **Quick Study Guide** (${activeTab === "Cram" ? "Cram Review" : "High Yield"})
+
+## Key Study Points
+${generatedSheet.points.map(pt => `### ${pt.label}\n${pt.value}${pt.question ? `\n\n*Quick Check*: ${pt.question}` : ""}${pt.commonMistake ? `\n\n*Common Mistake*: ${pt.commonMistake}` : ""}`).join("\n\n")}
+
+${generatedSheet.goals && generatedSheet.goals.length ? `## Session Goals\n${generatedSheet.goals.map(g => `- ${g}`).join("\n")}` : ""}
+`.trim();
+
+    shareToStudyVault({
+      title: generatedSheet.title,
+      topic: topic.trim() || generatedSheet.title,
+      subject: "Quick Study",
+      summary: generatedSheet.points[0]?.value?.slice(0, 160) || generatedSheet.title,
+      content: sheetContent,
+      key_points: generatedSheet.points.map(p => p.label.replace(/:$/, "")),
+      tags: ["quick-study", activeTab.toLowerCase()],
+      author: "Quick Study Student",
+      isAiGenerated: true,
+    });
+
+    setVaultShared(true);
+    fireConfetti();
+    setTimeout(() => setVaultShared(false), 3000);
+  };
 
   useEffect(() => {
     remaining("quick_study").then(setRemainingUses).catch((err) => {
@@ -604,7 +636,16 @@ Return raw JSON only, no wrapping!`;
               </span>
             ))}
           </div>
-          <div className="qs-no-print flex items-center gap-3">
+          <div className="qs-no-print flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleShareToVault}
+              title={vaultShared ? "Saved in Study Vault!" : "Share this guide to Study Vault"}
+              className="flex items-center gap-1 px-2.5 py-1 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black rounded-lg text-[11px] font-black uppercase tracking-wider shadow-[1px_1px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[15px] normal-case">bookmark</span>
+              <span>{vaultShared ? "Saved in Vault!" : "Share to Vault"}</span>
+            </button>
             <button onClick={handleCopySheet} title={copyFlash === "copy" ? "Copied!" : "Copy"} className={`material-symbols-outlined text-[20px] transition-colors ${copyFlash === "copy" ? "text-green-600" : "text-black hover:text-[#E8534A]"}`}>
               {copyFlash === "copy" ? "check" : "content_copy"}
             </button>
@@ -859,7 +900,7 @@ Return raw JSON only, no wrapping!`;
               <div className="border-2 border-black bg-white shadow-[3px_3px_0px_#000]">
                 <div className="flex items-center justify-between px-5 py-3 border-b-2 border-black bg-[#FAF7F2]">
                   <h3 className="text-[11px] font-black uppercase tracking-widest">Study History</h3>
-                  <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#FF4D2E] hover:underline">View all</button>
+                  <button onClick={() => navigate("/analytics")} className="text-[11px] font-extrabold text-[#10B981] hover:underline">View all</button>
                 </div>
                 {!deckHistory || deckHistory.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-2 text-center opacity-40">

@@ -80,12 +80,12 @@ function MistakeCard({
               <span>✓</span> Resolved
             </span>
           ) : (
-            <span className="text-[#FF4D2E] font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+            <span className="text-[#10B981] font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
               <span className="text-[8px]">●</span> To Review
             </span>
           )}
           {item.overdue && !item.resolved && (
-            <span className="bg-[#FF4D2E] text-white text-[10px] font-black px-2 py-0.5 border border-black">
+            <span className="bg-[#10B981] text-white text-[10px] font-black px-2 py-0.5 border border-black">
               OVERDUE
             </span>
           )}
@@ -97,7 +97,7 @@ function MistakeCard({
             <button
               onClick={() => onDelete(item.id)}
               title="Delete entry"
-              className="text-black/30 hover:text-[#FF4D2E] transition-colors">
+              className="text-black/30 hover:text-[#10B981] transition-colors">
               <span className="material-symbols-outlined text-[18px]">delete</span>
             </button>
           </div>
@@ -134,7 +134,7 @@ function MistakeCard({
       {activeQuizId === item.id && item.quiz ? (
         <div className="px-5 pb-5 flex flex-col gap-3">
           <div className="bg-[#FAF7F2] border-2 border-black p-4 flex flex-col gap-3">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#FF4D2E]">AI Diagnostic Quiz</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#10B981]">AI Diagnostic Quiz</span>
             <p className="font-black text-[14px] leading-snug">{item.quiz.q}</p>
             <div className="flex flex-col gap-2">
               {item.quiz.options.map((opt, oIdx) => (
@@ -158,7 +158,7 @@ function MistakeCard({
               </button>
               <button disabled={selectedQuizOption === null} onClick={() => onSubmitQuiz(item)}
                 className={`px-5 py-2 border-2 border-black text-[12px] font-black cursor-pointer ${
-                  selectedQuizOption !== null ? "bg-black text-white hover:bg-[#FF4D2E]" : "bg-neutral-200 opacity-50"
+                  selectedQuizOption !== null ? "bg-black text-white hover:bg-[#10B981]" : "bg-neutral-200 opacity-50"
                 }`}>
                 Submit Answer
               </button>
@@ -182,7 +182,7 @@ function MistakeCard({
             className={`flex-1 py-3 flex items-center justify-center gap-2 text-[13px] font-black transition-colors ${
               item.resolved
                 ? "bg-[#E2E2E2] text-black/40 cursor-not-allowed"
-                : "bg-[#FF4D2E] text-white hover:bg-black cursor-pointer"
+                : "bg-[#10B981] text-white hover:bg-black cursor-pointer"
             }`}>
             {loadingQuizId === item.id ? (
               <>
@@ -410,7 +410,7 @@ Return strictly a valid raw JSON object (no markdown):
       <div className="bg-[#FAF7F2] border-2 border-black w-full max-w-md" style={{ boxShadow: "6px 6px 0px #000" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black">
           <h3 className="font-black text-[18px]">New Mistake Entry</h3>
-          <button onClick={() => setNewEntryOpen(false)} className="material-symbols-outlined text-black hover:text-[#FF4D2E]">close</button>
+          <button onClick={() => setNewEntryOpen(false)} className="material-symbols-outlined text-black hover:text-[#10B981]">close</button>
         </div>
         <div className="p-5 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
@@ -449,7 +449,7 @@ Return strictly a valid raw JSON object (no markdown):
             onClick={handleAddNewMistake}
             disabled={!newTitle.trim()}
             className={`w-full text-white border-2 border-black py-3 font-black text-[14px] transition-colors ${
-              newTitle.trim() ? "bg-[#FF4D2E] hover:bg-black cursor-pointer" : "bg-[#FF4D2E] opacity-40 cursor-not-allowed"
+              newTitle.trim() ? "bg-[#10B981] hover:bg-black cursor-pointer" : "bg-[#10B981] opacity-40 cursor-not-allowed"
             }`}
             style={{ boxShadow: newTitle.trim() ? "3px 3px 0px #000" : "none" }}>
             + Add Entry
@@ -488,7 +488,7 @@ Return strictly a valid raw JSON object (no markdown):
             <div className="w-px h-6 bg-black/20" />
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 border-2 border-black bg-[#F0EDE0] px-3 py-1">
-                <span className="text-[#FF4D2E] font-black text-[20px] leading-none">{toReview}</span>
+                <span className="text-[#10B981] font-black text-[20px] leading-none">{toReview}</span>
                 <span className="text-[11px] font-black uppercase tracking-widest text-black/50">To Review</span>
               </div>
               <div className="flex items-center gap-1.5 border-2 border-black bg-[#F0EDE0] px-3 py-1">
@@ -541,7 +541,7 @@ Return strictly a valid raw JSON object (no markdown):
                 </div>
                 <button
                   onClick={() => setNewEntryOpen(true)}
-                  className="flex items-center gap-2 bg-[#FF4D2E] text-white border-2 border-black px-4 py-2 text-[13px] font-black hover:bg-black transition-colors whitespace-nowrap"
+                  className="flex items-center gap-2 bg-[#10B981] text-white border-2 border-black px-4 py-2 text-[13px] font-black hover:bg-black transition-colors whitespace-nowrap"
                   style={{ boxShadow: "3px 3px 0px #000" }}>
                   <span className="material-symbols-outlined text-[18px]">add</span>
                   New Entry
@@ -634,7 +634,7 @@ Return strictly a valid raw JSON object (no markdown):
               <h3 className="text-[11px] font-black uppercase tracking-widest text-black/50 mb-3">Overview</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="border-2 border-black bg-white p-4 flex flex-col items-center" style={{ boxShadow: "3px 3px 0px #000" }}>
-                  <span className="text-[36px] font-black text-[#FF4D2E] leading-none">{toReview}</span>
+                  <span className="text-[36px] font-black text-[#10B981] leading-none">{toReview}</span>
                   <span className="text-[11px] font-black uppercase tracking-widest text-black/50 mt-1">To Review</span>
                 </div>
                 <div className="border-2 border-black bg-white p-4 flex flex-col items-center" style={{ boxShadow: "3px 3px 0px #000" }}>
@@ -653,7 +653,7 @@ Return strictly a valid raw JSON object (no markdown):
                     <button key={sub} onClick={() => { setActiveSubject(sub); setActiveQuizId(null); }}
                       className="flex items-center justify-between px-3 py-2 border-2 border-black bg-white hover:bg-[#F0EDE0] transition-colors text-left">
                       <span className="text-[13px] font-black">{sub}</span>
-                      <span className="bg-[#FF4D2E] text-white text-[11px] font-black px-2 py-0.5">{count}</span>
+                      <span className="bg-[#10B981] text-white text-[11px] font-black px-2 py-0.5">{count}</span>
                     </button>
                   ))}
                 </div>
@@ -668,7 +668,7 @@ Return strictly a valid raw JSON object (no markdown):
               ) : (
                 <>
                   <div className="flex items-end gap-1 mb-2">
-                    <span className="text-[36px] font-black text-[#FF4D2E] leading-none">
+                    <span className="text-[36px] font-black text-[#10B981] leading-none">
                       {Math.round((resolved / (toReview + resolved)) * 100)}%
                     </span>
                     <span className="text-[13px] font-black text-black/50 mb-1">resolved</span>
@@ -723,7 +723,7 @@ Return strictly a valid raw JSON object (no markdown):
             </button>
             <span className="font-black text-[18px]">Mistake Journal</span>
             <button onClick={() => setNewEntryOpen(true)}
-              className="flex items-center justify-center p-1 rounded-full hover:bg-[#ebe8e3] text-[#FF4D2E]">
+              className="flex items-center justify-center p-1 rounded-full hover:bg-[#ebe8e3] text-[#10B981]">
               <span className="material-symbols-outlined">add_circle</span>
             </button>
           </div>
@@ -736,7 +736,7 @@ Return strictly a valid raw JSON object (no markdown):
           {/* Stats row */}
           <div className="flex gap-3">
             <div className="flex-1 bg-white border-2 border-black p-4 flex flex-col items-center shadow-[3px_3px_rgba(0,0,0,1)]">
-              <span className="text-[28px] font-black text-[#FF4D2E] leading-none">{toReview}</span>
+              <span className="text-[28px] font-black text-[#10B981] leading-none">{toReview}</span>
               <span className="text-[11px] font-black uppercase tracking-widest text-black/50 mt-1">To Review</span>
             </div>
             <div className="flex-1 bg-white border-2 border-black p-4 flex flex-col items-center shadow-[3px_3px_rgba(0,0,0,1)]">
@@ -808,7 +808,7 @@ Return strictly a valid raw JSON object (no markdown):
               </div>
               <h4 className="font-black text-[16px] mb-2">Resolution Rate</h4>
               <div className="flex items-end gap-1 mb-3">
-                <span className="text-[36px] font-black text-[#FF4D2E] leading-none">
+                <span className="text-[36px] font-black text-[#10B981] leading-none">
                   {Math.round((resolved / (toReview + resolved)) * 100)}%
                 </span>
                 <span className="text-[13px] font-black text-black/50 mb-1">resolved</span>
@@ -847,7 +847,7 @@ Return strictly a valid raw JSON object (no markdown):
 
         {/* FAB */}
         <button onClick={() => setNewEntryOpen(true)}
-          className="fixed bottom-24 right-5 w-14 h-14 bg-[#FF4D2E] text-white rounded-full border-2 border-black flex items-center justify-center shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 cursor-pointer z-40">
+          className="fixed bottom-24 right-5 w-14 h-14 bg-[#10B981] text-white rounded-full border-2 border-black flex items-center justify-center shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 cursor-pointer z-40">
           <span className="material-symbols-outlined text-[26px]">add</span>
         </button>
 

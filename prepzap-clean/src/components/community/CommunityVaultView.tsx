@@ -186,7 +186,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
             playPop();
             setShowPublishModal(true);
           }}
-          className="px-4 py-2.5 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+          className="px-4 py-2.5 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
         >
           <span className="material-symbols-outlined text-[17px]">upload_file</span>
           <span>Share Study Guide</span>
@@ -292,7 +292,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                   </div>
 
                   <h3
-                    className="text-[15.5px] font-black text-black leading-snug hover:text-[#FF4D2E] transition-colors cursor-pointer"
+                    className="text-[15.5px] font-black text-black leading-snug hover:text-[#10B981] transition-colors cursor-pointer"
                     onClick={() => {
                       playPop();
                       setActiveReadingNote(note);
@@ -369,7 +369,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
 
                     <button
                       onClick={() => handleStudyWithNote(note, "practice")}
-                      className="py-1.5 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-lg font-black text-[10.5px] shadow-xs cursor-pointer text-center flex items-center justify-center gap-1 active:translate-y-0.5"
+                      className="py-1.5 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-lg font-black text-[10.5px] shadow-xs cursor-pointer text-center flex items-center justify-center gap-1 active:translate-y-0.5"
                       title="Turn note into an adaptive practice quiz"
                     >
                       <span className="material-symbols-outlined text-[12px]">bolt</span>
@@ -430,7 +430,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                     handleStudyWithNote(activeReadingNote, "practice");
                     setActiveReadingNote(null);
                   }}
-                  className="px-3.5 py-2 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer"
+                  className="px-3.5 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer"
                 >
                   Launch Practice Quiz
                 </button>
@@ -439,7 +439,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                     handleStudyWithNote(activeReadingNote, "flashcards");
                     setActiveReadingNote(null);
                   }}
-                  className="px-3.5 py-2 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer"
+                  className="px-3.5 py-2 bg-black hover:bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer"
                 >
                   Make Flashcards
                 </button>
@@ -578,7 +578,7 @@ export const CommunityVaultView: React.FC<CommunityVaultViewProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
+                  className="px-5 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] cursor-pointer"
                 >
                   {isSubmitting ? "Publishing..." : "Publish to Vault"}
                 </button>

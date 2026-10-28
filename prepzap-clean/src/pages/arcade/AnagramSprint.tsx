@@ -168,7 +168,7 @@ export default function AnagramSprint() {
       <main className="flex-1 w-full max-w-3xl flex flex-col p-8 justify-center items-center">
         {gameState === "game_over" ? (
           <div className="border-2 border-black bg-white p-8 shadow-[8px_8px_0px_#000] text-center max-w-md w-full">
-            <span className="material-symbols-outlined text-[64px] text-[#FF4D2E] mb-4">sprint</span>
+            <span className="material-symbols-outlined text-[64px] text-[#10B981] mb-4">sprint</span>
             <h2 className="text-[32px] font-black mb-2">SPRINT COMPLETE!</h2>
             <p className="text-[16px] font-bold opacity-60 mb-8">You unscrambled {ROUND_COUNT} words perfectly.</p>
             <button onClick={() => navigate("/arcade")} className="w-full h-12 bg-black text-white font-black text-[16px] border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#000] transition-all">RETURN TO ARCADE</button>
@@ -189,7 +189,7 @@ export default function AnagramSprint() {
                 <button
                   key={i}
                   onClick={() => char && handleTapPlaced(char, i)}
-                  className={`w-14 h-16 border-2 border-black flex items-center justify-center text-[28px] font-black transition-transform ${char ? 'bg-black text-white hover:scale-105 shadow-[3px_3px_0px_#FF4D2E]' : 'bg-[#E5E2DA] border-dashed opacity-50'}`}
+                  className={`w-14 h-16 border-2 border-black flex items-center justify-center text-[28px] font-black transition-transform ${char ? 'bg-black text-white hover:scale-105 shadow-[3px_3px_0px_#10B981]' : 'bg-[#E5E2DA] border-dashed opacity-50'}`}
                 >
                   {char}
                 </button>

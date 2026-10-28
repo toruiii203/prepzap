@@ -75,7 +75,7 @@ export function CommandPalette() {
                 className="flex items-center justify-between px-3 py-2.5 cursor-pointer aria-selected:bg-[#FFD13B] aria-selected:text-black rounded-xl border-2 border-transparent aria-selected:border-black font-extrabold text-[13.5px] transition-all"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-[19px] text-[#FF4D2E]">bolt</span>
+                  <span className="material-symbols-outlined text-[19px] text-[#10B981]">bolt</span>
                   <span>Start 1-Tap Lesson</span>
                 </div>
                 <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-black/5 border border-black/10">Instant</span>

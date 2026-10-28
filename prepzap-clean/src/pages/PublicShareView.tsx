@@ -87,7 +87,7 @@ export default function PublicShareView() {
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="px-5 py-2.5 bg-black text-white border-2 border-black rounded-xl font-black text-[13px] hover:bg-[#FF4D2E] transition-colors cursor-pointer shadow-xs"
+            className="px-5 py-2.5 bg-black text-white border-2 border-black rounded-xl font-black text-[13px] hover:bg-[#10B981] transition-colors cursor-pointer shadow-xs"
           >
             Go to Studenius Home
           </button>
@@ -121,7 +121,7 @@ export default function PublicShareView() {
           className="flex items-center gap-2 cursor-pointer"
         >
           <span className="text-[20px] font-black tracking-tight text-black">STUDENIUS</span>
-          <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D2E]" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
           <span className="hidden sm:inline-block text-[11px] font-black uppercase text-black/45 ml-1 bg-black/5 px-2 py-0.5 rounded-full border border-black/10">
             Shared Material
           </span>
@@ -289,7 +289,7 @@ export default function PublicShareView() {
             type="button"
             disabled={cloning}
             onClick={handleClone}
-            className="px-6 py-2.5 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[13px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer inline-flex items-center gap-2"
+            className="px-6 py-2.5 bg-black hover:bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[13px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer inline-flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[17px]">content_copy</span>
             <span>{cloning ? "Cloning..." : "Clone to My Workspace"}</span>

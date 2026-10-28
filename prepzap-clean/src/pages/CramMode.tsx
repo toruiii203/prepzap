@@ -48,6 +48,35 @@ export default function CramMode() {
   const [subject, setSubject] = useState("")
   const [hoursAvailable, setHoursAvailable] = useState("2");
   const [loading, setLoading] = useState(false);
+  const [vaultShared, setVaultShared] = useState(false);
+
+  const handleShareToVault = () => {
+    if (!topics.length) return;
+    const docTitle = `Cram Review: ${material.slice(0, 40) || "Exam Prep"}`;
+    const docContent = `# ${docTitle}
+
+> **Rapid Cram Session** • Covered ${topics.length} topics in ~${Math.round(totalUsed / 60)} minutes.
+
+## Covered High-Yield Topics
+${topics.map(t => `### ${t.topic}\n${t.keyPoints.map(kp => `- ${kp}`).join("\n")}`).join("\n\n")}
+`.trim();
+
+    shareToStudyVault({
+      title: docTitle,
+      topic: material.slice(0, 40) || "Cram Review",
+      subject: "Cram Review",
+      summary: `Rapid review covering ${topics.length} key curriculum topics.`,
+      content: docContent,
+      key_points: topics.map(t => t.topic),
+      tags: ["cram-mode", "rapid-review"],
+      author: "Cram Student",
+      isAiGenerated: true,
+    });
+
+    setVaultShared(true);
+    fireConfetti();
+    setTimeout(() => setVaultShared(false), 3000);
+  };
   const [topics, setTopics] = useState<CramTopic[]>([]);
   const [phase, setPhase] = useState<Phase>("setup");
   const [currentIdx, setCurrentIdx] = useState(0);

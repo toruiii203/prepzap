@@ -195,7 +195,7 @@ export default function CampusVault() {
                 playPop();
                 setShowPublishModal(true);
               }}
-              className="px-4 py-2.5 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="px-4 py-2.5 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <span className="material-symbols-outlined text-[17px]">upload_file</span>
               <span>Share Study Guide</span>
@@ -321,7 +321,7 @@ export default function CampusVault() {
                       playPop();
                       setShowPublishModal(true);
                     }}
-                    className="px-5 py-2.5 bg-[#FF4D2E] hover:bg-black text-white rounded-xl font-black text-[12px] border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors"
+                    className="px-5 py-2.5 bg-[#10B981] hover:bg-black text-white rounded-xl font-black text-[12px] border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer transition-colors"
                   >
                     + Share a Study Guide
                   </button>
@@ -348,7 +348,7 @@ export default function CampusVault() {
                         </span>
                         {note.isAiGenerated && (
                           <span className="px-2 py-0.5 rounded-lg border-2 border-black text-[10px] font-black uppercase tracking-wider bg-[#FFD13B] text-black shadow-[1px_1px_0px_#000] flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[12px]">smart_toy</span>
+                            <span className="material-symbols-outlined text-[12px] normal-case">smart_toy</span>
                             <span>AI-generated</span>
                           </span>
                         )}
@@ -378,7 +378,7 @@ export default function CampusVault() {
 
                       {/* Title */}
                       <h3
-                        className="text-[16px] font-black text-black leading-snug hover:text-[#FF4D2E] transition-colors cursor-pointer"
+                        className="text-[16px] font-black text-black leading-snug hover:text-[#10B981] transition-colors cursor-pointer"
                         onClick={() => {
                           playPop();
                           setActiveReadingNote(note);
@@ -413,7 +413,7 @@ export default function CampusVault() {
                         <div className="flex items-center gap-1.5 truncate max-w-[170px]">
                           {note.isAiGenerated ? (
                             <>
-                              <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]">smart_toy</span>
+                              <span className="material-symbols-outlined text-[15px] text-[#10B981] normal-case">smart_toy</span>
                               <span className="truncate font-extrabold text-black">Community AI</span>
                             </>
                           ) : (
@@ -442,7 +442,7 @@ export default function CampusVault() {
                             playPop();
                             setActiveReadingNote(note);
                           }}
-                          className="flex-1 min-w-[70px] py-1.5 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center justify-center gap-1"
+                          className="flex-1 min-w-[70px] py-1.5 bg-black hover:bg-[#10B981] text-white border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center justify-center gap-1"
                         >
                           <span className="material-symbols-outlined text-[13px]">visibility</span>
                           <span>Read</span>
@@ -477,7 +477,7 @@ export default function CampusVault() {
                               className="px-2 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center gap-1"
                               title="Mark this AI note as helpful"
                             >
-                              <span className="material-symbols-outlined text-[13px]">thumb_up</span>
+                              <span className="material-symbols-outlined text-[13px] normal-case">thumb_up</span>
                               <span>{note.helpfulCount || 0}</span>
                             </button>
                             <button
@@ -486,7 +486,7 @@ export default function CampusVault() {
                               className="px-2 py-1.5 bg-white hover:bg-blue-50 text-blue-800 border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center gap-1"
                               title="Verify factual correctness"
                             >
-                              <span className="material-symbols-outlined text-[13px]">verified</span>
+                              <span className="material-symbols-outlined text-[13px] normal-case">verified</span>
                               <span>{note.verifiedCount || 0}</span>
                             </button>
                           </>
@@ -543,13 +543,21 @@ export default function CampusVault() {
                 <span>{activeReadingNote.readTime}</span>
               </div>
 
-              <StudyGuideRenderer content={activeReadingNote.content} />
+              <StudyGuideRenderer
+                content={
+                  activeReadingNote.content ||
+                  `# ${activeReadingNote.title}\n\n> **Core Summary**: ${activeReadingNote.summary || ""}\n\n${
+                    activeReadingNote.key_points && activeReadingNote.key_points.length > 0
+                      ? `## Key Concepts\n${activeReadingNote.key_points.map((pt) => `- ${pt}`).join("\n")}\n\n`
+                      : ""
+                  }${activeReadingNote.exam_trap ? `> **Exam Trap Watchout**: ${activeReadingNote.exam_trap}` : ""}`
+                }
+              />
             </div>
 
             {/* Modal Footer */}
             <div className="p-4 border-t-2 border-black flex flex-wrap items-center justify-between gap-3 bg-[#FAF7F2]">
-              <div className="text-[12px] font-bold text-black/60">
-                 {activeReadingNote.likes} {activeReadingNote.likes === 1 ? "student found this helpful" : "students found this helpful"}
+              <div className="text-[12px] font-bold text-black/60 flex items-center gap-1"><span className="material-symbols-outlined text-[16px] text-[#ae2925]">favorite</span> <span>{activeReadingNote.likes || 1}</span> {activeReadingNote.likes === 1 ? "student found this helpful" : "students found this helpful"}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -582,7 +590,7 @@ export default function CampusVault() {
           <div className="bg-white border-2 border-black rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-[6px_6px_0px_#000] overflow-hidden">
             <div className="p-4 md:p-5 border-b-2 border-black flex items-center justify-between bg-[#FFFDF5]">
               <h3 className="font-black text-[17px] text-black flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#FF4D2E]">upload_file</span>
+                <span className="material-symbols-outlined text-[#10B981]">upload_file</span>
                 Share a Study Guide
               </h3>
               <button
@@ -679,7 +687,7 @@ export default function CampusVault() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !pubTitle.trim() || !pubContent.trim()}
-                  className="px-5 py-2 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl text-[12px] font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer disabled:opacity-50 transition-colors"
+                  className="px-5 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl text-[12px] font-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {isSubmitting ? "Publishing..." : "Publish to Vault"}
                 </button>

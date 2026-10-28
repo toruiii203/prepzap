@@ -124,7 +124,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
       <div className="bg-[#FFFDF5] border-4 border-black rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-[8px_8px_0px_#1A1A1A] overflow-hidden">
         
         {/* ── CHANNEL COVER BANNER (YouTube / TikTok creator style) ──────── */}
-        <div className="h-28 md:h-36 w-full bg-gradient-to-r from-[#FFD13B] via-[#FF4D2E] to-[#FF8A00] border-b-4 border-black relative p-3 flex justify-between items-start shrink-0">
+        <div className="h-28 md:h-36 w-full bg-gradient-to-r from-[#FFD13B] via-[#10B981] to-[#FF8A00] border-b-4 border-black relative p-3 flex justify-between items-start shrink-0">
           <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#000_2px,transparent_2px)] [background-size:16px_16px] pointer-events-none" />
           
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/70 backdrop-blur-xs text-white rounded-lg text-[10.5px] font-black uppercase tracking-wider border border-white/20">
@@ -178,7 +178,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
               <button
                 type="button"
                 onClick={() => onNudge(buddy.id)}
-                className="px-3 py-1.5 bg-[#FF4D2E] hover:bg-[#E03D20] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 bg-[#10B981] hover:bg-[#E03D20] text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
                 title="Send a streak reminder nudge"
               >
                 <span>🔥</span>
@@ -223,7 +223,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5">
             <div className="bg-[#FAF7F2] border-2 border-black rounded-xl p-2 text-center shadow-[1px_1px_0px_#1A1A1A]">
               <div className="text-[10px] font-black uppercase text-black/45">Streak</div>
-              <div className="text-[14px] md:text-[15px] font-black text-[#FF4D2E] flex items-center justify-center gap-0.5">
+              <div className="text-[14px] md:text-[15px] font-black text-[#10B981] flex items-center justify-center gap-0.5">
                 <span>🔥</span>
                 <span>{buddy.streakDays || 1}d</span>
               </div>
@@ -358,7 +358,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                         <button
                           type="button"
                           onClick={() => onLaunchStudy(note, "practice")}
-                          className="px-3.5 py-1.5 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11px] shadow-[2px_2px_0px_#000] cursor-pointer active:translate-y-0.5 flex items-center gap-1"
+                          className="px-3.5 py-1.5 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11px] shadow-[2px_2px_0px_#000] cursor-pointer active:translate-y-0.5 flex items-center gap-1"
                         >
                           <span>Quiz Me</span>
                           <span>&rarr;</span>
@@ -432,13 +432,13 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                   </div>
                   <div className="p-2.5 bg-[#FFFDF5] border-2 border-black rounded-xl">
                     <div className="text-[10px] font-black uppercase text-black/45">You</div>
-                    <div className="text-[13px] font-black text-[#FF4D2E] mt-1">Active 🔥</div>
+                    <div className="text-[13px] font-black text-[#10B981] mt-1">Active 🔥</div>
                     <div className="text-[13px] font-black text-black mt-2">LVL 1+</div>
                     <div className="text-[13px] font-black text-green-700 mt-2">Online</div>
                   </div>
                   <div className="p-2.5 bg-[#FFE566]/20 border-2 border-black rounded-xl">
                     <div className="text-[10px] font-black uppercase text-black/45">{buddy.name.split(" ")[0]}</div>
-                    <div className="text-[13px] font-black text-[#FF4D2E] mt-1">{buddy.streakDays}d 🔥</div>
+                    <div className="text-[13px] font-black text-[#10B981] mt-1">{buddy.streakDays}d 🔥</div>
                     <div className="text-[13px] font-black text-black mt-2">LVL {buddy.level || 1}</div>
                     <div className="text-[13px] font-black text-black mt-2">
                       {buddy.hasStudiedToday ? "Done" : "Studying"}
@@ -459,7 +459,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                 <div className="space-y-2 text-[12.5px] font-semibold text-black">
                   <div className="flex items-center justify-between py-1 border-b border-black/10">
                     <span className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">check_circle</span>
+                      <span className="material-symbols-outlined text-[16px] text-[#10B981]">check_circle</span>
                       Primary Subject Focus
                     </span>
                     <span className="font-black text-black">{buddy.subject}</span>
@@ -532,7 +532,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                   setReadingNote(null);
                   onClose();
                 }}
-                className="px-3.5 py-1.5 bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer ml-auto"
+                className="px-3.5 py-1.5 bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[11.5px] shadow-[2px_2px_0px_#000] cursor-pointer ml-auto"
               >
                 Launch Practice Quiz
               </button>
@@ -571,7 +571,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                       value={opt.id}
                       checked={reportReason === opt.id}
                       onChange={(e) => setReportReason(e.target.value)}
-                      className="accent-[#FF4D2E]"
+                      className="accent-[#10B981]"
                     />
                     <span>{opt.label}</span>
                   </label>
@@ -588,7 +588,7 @@ export const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 border-2 border-black rounded-xl font-black text-[11.5px] bg-[#FF4D2E] text-white shadow-[2px_2px_0px_#000] cursor-pointer"
+                  className="px-4 py-1.5 border-2 border-black rounded-xl font-black text-[11.5px] bg-[#10B981] text-white shadow-[2px_2px_0px_#000] cursor-pointer"
                 >
                   Submit Report
                 </button>

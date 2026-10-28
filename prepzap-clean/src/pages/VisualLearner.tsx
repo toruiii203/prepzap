@@ -14,6 +14,7 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { fireConfetti } from "@/lib/confetti";
 import { toPng } from "html-to-image";
 import { AnimatedRex } from "@/components/AnimatedRex";
+import { shareToStudyVault } from "@/lib/shareToVault";
 import {
   generateVisualLesson,
   VisualLesson,
@@ -230,30 +231,30 @@ function HelpfulFeedback({ cardIndex }: { cardIndex: number }) {
 
   return (
     <div className="flex items-center justify-between pt-3 mt-3 border-t border-black/10">
-      <span className="text-[11px] font-bold text-black/40">Was this card helpful?</span>
-      <div className="flex items-center gap-1.5">
+      <span className="text-[11px] font-bold text-black/50">Was this card helpful?</span>
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => setVoted("up")}
           aria-label="Thumbs up"
-          className={`flex items-center justify-center w-7 h-7 border-2 border-black rounded transition-all ${
-            voted === "up" ? "bg-emerald-300 text-black shadow-[1px_1px_0px_#000]" : "bg-white text-black/60 hover:text-black"
+          className={`flex items-center justify-center w-8 h-8 border-2 border-black shadow-[1px_1px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer ${
+            voted === "up" ? "bg-emerald-400 text-black font-black" : "bg-white text-black hover:bg-[#FAF7F2]"
           }`}
         >
-          <span className="material-symbols-outlined text-[15px]">thumb_up</span>
+          <span className="material-symbols-outlined text-[16px] normal-case">thumb_up</span>
         </button>
         <button
           type="button"
           onClick={() => setVoted("down")}
           aria-label="Thumbs down"
-          className={`flex items-center justify-center w-7 h-7 border-2 border-black rounded transition-all ${
-            voted === "down" ? "bg-rose-200 text-black shadow-[1px_1px_0px_#000]" : "bg-white text-black/60 hover:text-black"
+          className={`flex items-center justify-center w-8 h-8 border-2 border-black shadow-[1px_1px_0px_#000] active:translate-y-0.5 transition-all cursor-pointer ${
+            voted === "down" ? "bg-rose-400 text-black font-black" : "bg-white text-black hover:bg-[#FAF7F2]"
           }`}
         >
-          <span className="material-symbols-outlined text-[15px]">thumb_down</span>
+          <span className="material-symbols-outlined text-[16px] normal-case">thumb_down</span>
         </button>
         {voted && (
-          <span className="text-[10px] font-black text-black/60 ml-1">Thanks!</span>
+          <span className="text-[11px] font-black text-black ml-1">Thanks!</span>
         )}
       </div>
     </div>
@@ -467,28 +468,28 @@ export default function VisualLearner() {
       const keyPoints = takeawayCard ? takeawayCard.points : [lesson.big_idea.sentence];
       const examTrap = takeawayCard ? takeawayCard.exam_trap : "";
 
-      const raw = localStorage.getItem("studenius_campus_notes_v3");
-      const list = raw ? JSON.parse(raw) : [];
+      const markdownContent = `# Visual Mastery: ${lesson.topic}
 
-      const newNote = {
-        id: `vault_vis_${Date.now()}`,
-        topic: lesson.topic,
+> **Core Concept**: ${lesson.big_idea.sentence}
+
+## Key Takeaways
+${keyPoints.map((p) => `- ${p}`).join("\n")}
+
+${examTrap ? `> **Universal Exam Trap**: ${examTrap}` : ""}`.trim();
+
+      shareToStudyVault({
         title: `Visual Mastery: ${lesson.topic}`,
+        topic: lesson.topic,
         subject: lesson.subject || "General",
-        author: "Visual Learner",
-        date: new Date().toISOString().split("T")[0],
-        downloads: 1,
-        helpfulCount: 1,
-        verifiedCount: 0,
-        tags: [lesson.topic.toLowerCase(), "visual-lesson"],
         summary: lesson.big_idea.sentence,
+        content: markdownContent,
         key_points: keyPoints,
         exam_trap: examTrap,
+        tags: [lesson.topic.toLowerCase().replace(/[^a-z0-9]/g, "-"), "visual-lesson"],
+        author: "Visual Learner",
         isAiGenerated: true,
-      };
+      });
 
-      list.unshift(newNote);
-      localStorage.setItem("studenius_campus_notes_v3", JSON.stringify(list));
       setSavedToVaultSuccess(true);
       fireConfetti();
       setTimeout(() => {
@@ -894,22 +895,22 @@ export default function VisualLearner() {
 
                       {/* Memory Hook & Exam Trap */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <div className="bg-[#E6F7ED] border-2 border-black p-3 flex flex-col gap-1">
-                          <span className="text-[10px] font-black uppercase text-emerald-900 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[15px]">lightbulb</span>
+                        <div className="bg-[#15803d] text-white border-2 border-black p-4 shadow-[3px_3px_0px_#000] flex flex-col gap-1.5">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[16px] normal-case">lightbulb</span>
                             <span>Memory Hook (Everyday Analogy)</span>
                           </span>
-                          <p className="text-xs font-bold text-emerald-950 leading-relaxed">
+                          <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
                             {card.memory_hook}
                           </p>
                         </div>
 
-                        <div className="bg-[#FFE6E8] border-2 border-black p-3 flex flex-col gap-1">
-                          <span className="text-[10px] font-black uppercase text-rose-900 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[15px]">warning</span>
+                        <div className="bg-[#b91c1c] text-white border-2 border-black p-4 shadow-[3px_3px_0px_#000] flex flex-col gap-1.5">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[16px] normal-case">warning</span>
                             <span>Exam Trap Watchout</span>
                           </span>
-                          <p className="text-xs font-bold text-rose-950 leading-relaxed">
+                          <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
                             {card.exam_trap}
                           </p>
                         </div>
@@ -1105,12 +1106,12 @@ export default function VisualLearner() {
                       </div>
 
                       {/* Exam Trap */}
-                      <div className="bg-[#FFE6E8] border-2 border-black p-3.5 flex flex-col gap-1 border-l-4 border-l-[#ae2925]">
-                        <span className="text-[10px] font-black uppercase text-rose-900 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[15px]">report_problem</span>
+                      <div className="bg-[#b91c1c] text-white border-2 border-black p-4 shadow-[3px_3px_0px_#000] flex flex-col gap-1.5">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] normal-case">report_problem</span>
                           <span>Universal Exam Trap</span>
                         </span>
-                        <p className="text-xs sm:text-sm font-extrabold text-rose-950 leading-relaxed">
+                        <p className="text-xs sm:text-sm font-extrabold text-white leading-relaxed">
                           {card.exam_trap}
                         </p>
                       </div>

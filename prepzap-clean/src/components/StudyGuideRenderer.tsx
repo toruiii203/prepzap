@@ -11,6 +11,7 @@ interface StudyGuideRendererProps {
  * Parses LaTeX expressions into KaTeX HTML strings safely.
  */
 function renderLatex(text: string): string {
+  if (!text || typeof text !== "string") return "";
   // Block / Display Math: $$ ... $$
   text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => {
     try {
@@ -69,7 +70,7 @@ function processStudyGuideMarkdown(raw: string): string {
       const headingText = line.slice(2).trim();
       processedLines.push(
         `<h1 class="text-[22px] md:text-[24px] font-black text-black pb-2.5 mb-4 mt-6 border-b-2 border-black flex items-center gap-2">
-          <span class="w-3 h-3 rounded-sm bg-[#FF4D2E] border border-black inline-block shrink-0"></span>
+          <span class="w-3 h-3 rounded-sm bg-[#10B981] border border-black inline-block shrink-0"></span>
           <span>${headingText}</span>
         </h1>`
       );
@@ -81,7 +82,7 @@ function processStudyGuideMarkdown(raw: string): string {
       const headingText = line.slice(3).trim();
       processedLines.push(
         `<h2 class="text-[17px] md:text-[18px] font-black text-black mt-6 mb-2.5 pb-1 border-b border-black/15 flex items-center gap-2">
-          <span class="material-symbols-outlined text-[18px] text-[#FF4D2E]">bookmark</span>
+          <span class="material-symbols-outlined text-[18px] text-[#10B981]">bookmark</span>
           <span>${headingText}</span>
         </h2>`
       );
@@ -160,7 +161,7 @@ function processStudyGuideMarkdown(raw: string): string {
   // Italic (*text*)
   html = html.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>');
   // Inline code (`code`)
-  html = html.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 bg-[#FAF7F2] border border-black/20 rounded font-mono text-[12px] font-bold text-[#FF4D2E]">$1</code>');
+  html = html.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 bg-[#FAF7F2] border border-black/20 rounded font-mono text-[12px] font-bold text-[#10B981]">$1</code>');
 
   return html;
 }

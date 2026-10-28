@@ -13,6 +13,7 @@ import KnowledgeBaseChat from "@/components/KnowledgeBaseChat";
 import { playPop, playTap, playSuccess } from "@/lib/soundFX";
 import { useNavigate } from "react-router-dom";
 import { ShareModal } from "@/components/ShareModal";
+import { shareToStudyVault } from "@/lib/shareToVault";
 
 interface Note {
   id: string;
@@ -72,6 +73,7 @@ export default function NotesWorkspace() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showBrainChat, setShowBrainChat] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [vaultSaved, setVaultSaved] = useState(false);
 
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cacheKey = user ? `studenius_notes_cache_${user.id}` : null;
@@ -288,6 +290,31 @@ export default function NotesWorkspace() {
 
     localStorage.setItem("qs_practice_export", JSON.stringify(cleanText));
     navigate("/flashcards");
+  };
+
+  const handleShareToStudyVault = () => {
+    if (!activeNote) return;
+    playSuccess();
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = activeNote.content || "";
+    const cleanBody = (tempDiv.textContent || tempDiv.innerText || "").trim();
+
+    const title = activeNote.title || "Study Note";
+    const summary = cleanBody.slice(0, 160) + (cleanBody.length > 160 ? "..." : "");
+
+    shareToStudyVault({
+      title,
+      topic: title,
+      subject: "Notes",
+      summary: summary || title,
+      content: `# ${title}\n\n${cleanBody}`,
+      tags: ["notes", "study-vault"],
+      isAiGenerated: false,
+      author: user?.email ? user.email.split("@")[0] : "Community Contributor",
+    });
+
+    setVaultSaved(true);
+    setTimeout(() => setVaultSaved(false), 3000);
   };
 
   // Note text stats
@@ -605,6 +632,15 @@ export default function NotesWorkspace() {
                   >
                     <span className="material-symbols-outlined text-[16px]">style</span>
                     <span className="hidden sm:inline">To Flashcards</span>
+                  </button>
+
+                  <button
+                    onClick={handleShareToStudyVault}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border-2 border-black rounded-lg bg-[#FAF7F2] hover:bg-[#15803d] hover:text-white font-black text-[12px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    title="Share this note to public Study Vault"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">{vaultSaved ? "check_circle" : "local_library"}</span>
+                    <span className="hidden sm:inline">{vaultSaved ? "Saved!" : "To Vault"}</span>
                   </button>
 
                   <button

@@ -7,7 +7,7 @@ This document defines the strict architectural, UX, design, and storage rules fo
 ## 1. Visual & Color System
 - **Single Black Rule**: Use `#000000` exclusively for all borders, shadows, text, and high-contrast surfaces. Do not mix with `#1A1A1A`.
 - **Core Neobrutalism**: Pure black (`#000000`), pure white (`#FFFFFF`), solid borders (`border-2 border-black`), and sharp box shadows (`shadow-[2px_2px_0px_#000000]`).
-- **Brand Accents**: Primary yellow (`#FFD13B`) and coral (`#FF4D2E`).
+- **Brand Accents**: Primary yellow (`#FFD13B`) and emerald green (`#10B981`).
 - **No Pastel Washes**: Avoid washed-out mint green (`bg-emerald-50`), pale cyan (`bg-blue-50`), or muted teal for subject tags, cards, or backgrounds.
 - **Allowed Semantic Colors**:
   - **Success / Correct**: Solid emerald (`#10B981` / `#059669`) with black borders.

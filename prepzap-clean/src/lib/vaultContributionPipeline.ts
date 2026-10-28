@@ -636,3 +636,56 @@ export async function runVaultContributionPipeline(
 
   return { success: true, noteId: published.id };
 }
+
+
+/**
+ * On-demand cleaner and publisher for AI Tutor chat notes.
+ * Extracts topic, rewrites cleanly, scrubs PII, and publishes to the Study Vault.
+ */
+export async function processAndShareCleanVaultNote(options: {
+  messages: ChatMessage[];
+  seedText?: string;
+  chatId?: string;
+}): Promise<{ success: boolean; note?: CampusNote; reason?: string }> {
+  try {
+    const { messages, seedText, chatId = `chat_${Date.now()}` } = options;
+    const { topic, subject } = extractTopic(messages);
+
+    const botSeed =
+      seedText ||
+      messages.filter((m) => m.sender === "bot").slice(-1)[0]?.text ||
+      "Key study concepts and principles.";
+
+    // Rewrite into structured standalone note
+    let rewritten = await rewriteStandaloneNote(topic, subject, botSeed);
+    if (!rewritten) {
+      // Fallback synthesis if offline or rate-limited
+      rewritten = {
+        title: topic || "Study Concept Summary",
+        subject: subject || "General",
+        summary: botSeed.slice(0, 160).replace(/\n/g, " "),
+        key_points: [
+          "Core definition and mechanism of the topic.",
+          "Distinguish from commonly confused terms and concepts.",
+          "High-yield takeaways for practice exams.",
+        ],
+        example: "Standard application case in exam questions.",
+        memory_hook: "Connect to everyday processes or simple analogies.",
+        exam_trap: "Don't confuse the causes with the effects in multiple-choice questions.",
+        difficulty: "intermediate",
+      };
+    }
+
+    // Scrub PII & personal identifiers
+    const rawChat = messages.map((m) => m.text).join(" ");
+    const scrubbed = scrubAndVerifyOverlap(rawChat, rewritten);
+    const finalNote = scrubbed.scrubbedNote;
+
+    // Publish to Study Vault
+    const published = await publishAnonymizedVaultNote(finalNote, chatId);
+    return { success: true, note: published };
+  } catch (err: any) {
+    console.error("[processAndShareCleanVaultNote] Error:", err);
+    return { success: false, reason: err?.message || "PROCESSING_FAILED" };
+  }
+}

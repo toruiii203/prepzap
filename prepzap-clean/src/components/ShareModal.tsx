@@ -95,7 +95,7 @@ export function ShareModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-2 border-b border-black/10">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px] text-[#FF4D2E]">share</span>
+            <span className="material-symbols-outlined text-[20px] text-[#10B981]">share</span>
             <h3 className="text-[17px] font-black text-black">
               Share {typeLabels[itemType]}
             </h3>
@@ -139,7 +139,7 @@ export function ShareModal({
               disabled={loading || !shareUrl}
               onClick={handleCopy}
               className={`px-3.5 py-2 border-2 border-black rounded-xl text-[11.5px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all shrink-0 ${
-                copied ? "bg-[#10B981] text-white" : "bg-black text-white hover:bg-[#FF4D2E]"
+                copied ? "bg-[#10B981] text-white" : "bg-black text-white hover:bg-[#10B981]"
               }`}
             >
               {copied ? "Copied ✓" : "Copy"}

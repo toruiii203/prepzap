@@ -295,10 +295,10 @@ export function ExamCountdownBanner({
   let daysPillBg = "bg-[#FFE566] text-black";
   if (daysLeft === 0) {
     daysPillText = "Today!";
-    daysPillBg = "bg-[#FF4D2E] text-white";
+    daysPillBg = "bg-[#10B981] text-white";
   } else if (daysLeft === 1) {
     daysPillText = "Tomorrow";
-    daysPillBg = "bg-[#FF4D2E] text-white";
+    daysPillBg = "bg-[#10B981] text-white";
   } else if (daysLeft > 1) {
     daysPillText = `In ${daysLeft} Days`;
   } else {
@@ -367,7 +367,7 @@ export function ExamCountdownBanner({
           </div>
           <div className="h-2.5 bg-[#E8E4DC] rounded-full border border-black overflow-hidden">
             <div
-              className={`h-full transition-all duration-500 ${percent >= 75 ? "bg-[#10B981]" : percent >= 45 ? "bg-[#F5A623]" : "bg-[#FF4D2E]"}`}
+              className={`h-full transition-all duration-500 ${percent >= 75 ? "bg-[#10B981]" : percent >= 45 ? "bg-[#F5A623]" : "bg-[#EF4444]"}`}
               style={{ width: `${percent}%` }}
             />
           </div>
@@ -497,7 +497,7 @@ function ExamModal({
               placeholder="e.g. AP Chemistry Midterm, English Final"
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
-              className="w-full bg-white border-2 border-black px-3.5 py-2.5 text-[13px] font-bold rounded-xl outline-none focus:border-[#FF4D2E] transition-colors"
+              className="w-full bg-white border-2 border-black px-3.5 py-2.5 text-[13px] font-bold rounded-xl outline-none focus:border-[#10B981] transition-colors"
             />
           </div>
 
@@ -538,7 +538,7 @@ function ExamModal({
                     setCustomText(text);
                     setSubjectInput(text);
                   }}
-                  className="w-full bg-white border-2 border-black px-3 py-2 text-[12.5px] font-bold rounded-xl outline-none focus:border-[#FF4D2E] mt-2 shadow-xs"
+                  className="w-full bg-white border-2 border-black px-3 py-2 text-[12.5px] font-bold rounded-xl outline-none focus:border-[#10B981] mt-2 shadow-xs"
                 />
               )}
             </div>
@@ -562,7 +562,7 @@ function ExamModal({
           <div className="border-t-2 border-black/10 pt-3">
             <div className="flex justify-between items-center mb-1.5">
               <label className="text-[11px] font-black uppercase tracking-wider text-black/70 flex items-center gap-1">
-                <span className="material-symbols-outlined text-[15px] text-[#FF4D2E]">attach_file</span>
+                <span className="material-symbols-outlined text-[15px] text-[#10B981]">attach_file</span>
                 Link Study Materials ({attachedSources.length} selected)
               </label>
               <button
@@ -571,7 +571,7 @@ function ExamModal({
                   onClose();
                   navigate("/sources");
                 }}
-                className="text-[10.5px] font-black text-black hover:text-[#FF4D2E] underline cursor-pointer"
+                className="text-[10.5px] font-black text-black hover:text-[#10B981] underline cursor-pointer"
               >
                 + Upload to Library
               </button>
@@ -637,7 +637,7 @@ function ExamModal({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 border-2 border-black bg-black text-white hover:bg-[#FF4D2E] font-black text-[12px] uppercase tracking-wider rounded-xl shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+                className="px-5 py-2 border-2 border-black bg-black text-white hover:bg-[#10B981] font-black text-[12px] uppercase tracking-wider rounded-xl shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
               >
                 Save Target
               </button>

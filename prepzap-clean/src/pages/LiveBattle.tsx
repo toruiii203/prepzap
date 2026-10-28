@@ -511,7 +511,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
                     playPop();
                     setShowCreateModal(true);
                   }}
-                  className="px-4 py-2.5 bg-[#FFD13B] hover:bg-[#FF4D2E] hover:text-white text-black border-2 border-black rounded-xl font-black text-[13px] shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-2 self-start sm:self-auto shrink-0"
+                  className="px-4 py-2.5 bg-[#FFD13B] hover:bg-[#10B981] hover:text-white text-black border-2 border-black rounded-xl font-black text-[13px] shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer flex items-center gap-2 self-start sm:self-auto shrink-0"
                 >
                   <span className="material-symbols-outlined text-[18px]">add_circle</span>
                   <span>+ Host Battle</span>
@@ -521,7 +521,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
               {/* ── 6-DIGIT PIN ENTRY HERO BOX (Kahoot style) ── */}
               <div className="border-3 border-black rounded-3xl bg-white p-6 md:p-8 shadow-[4px_4px_0px_#1A1A1A] text-center space-y-5">
                 <div>
-                  <span className="inline-block px-3 py-1 bg-[#FFFBEA] border border-black/20 rounded-full text-[11px] font-black uppercase tracking-wider text-[#FF4D2E] mb-2">
+                  <span className="inline-block px-3 py-1 bg-[#FFFBEA] border border-black/20 rounded-full text-[11px] font-black uppercase tracking-wider text-[#10B981] mb-2">
                     Enter Game PIN
                   </span>
                   <h2 className="text-[20px] md:text-[24px] font-black text-black">
@@ -568,7 +568,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
                     type="button"
                     disabled={fullPin.length !== 6 || joining}
                     onClick={() => handleJoinByPin()}
-                    className="px-8 py-3 bg-black hover:bg-[#FF4D2E] text-white border-2 border-black rounded-xl font-black text-[14px] uppercase tracking-wider shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
+                    className="px-8 py-3 bg-black hover:bg-[#10B981] text-white border-2 border-black rounded-xl font-black text-[14px] uppercase tracking-wider shadow-[3px_3px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
                   >
                     {joining ? "Connecting..." : "Join Battle"}
                   </button>
@@ -579,7 +579,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-[15px] font-black uppercase tracking-wider text-black flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px] text-[#FF4D2E]">public</span>
+                    <span className="material-symbols-outlined text-[18px] text-[#10B981]">public</span>
                     <span>Live Public Lobbies ({publicRooms.length})</span>
                   </h3>
                   <button
@@ -630,7 +630,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
                           <button
                             type="button"
                             onClick={() => handleJoinByPin(room.code)}
-                            className="px-3 py-1 bg-black hover:bg-[#FF4D2E] text-white rounded-lg text-[10.5px] font-black cursor-pointer shadow-xs active:scale-95 transition-colors"
+                            className="px-3 py-1 bg-black hover:bg-[#10B981] text-white rounded-lg text-[10.5px] font-black cursor-pointer shadow-xs active:scale-95 transition-colors"
                           >
                             Join &rarr;
                           </button>
@@ -787,7 +787,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
                       navigator.clipboard.writeText(activeRoom.code);
                       toast.success("PIN copied to clipboard!");
                     }}
-                    className="px-3.5 py-1.5 bg-black hover:bg-[#FF4D2E] text-white rounded-xl text-[11px] font-black border-2 border-black cursor-pointer shadow-xs transition-colors flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 bg-black hover:bg-[#10B981] text-white rounded-xl text-[11px] font-black border-2 border-black cursor-pointer shadow-xs transition-colors flex items-center gap-1.5"
                   >
                     <span className="material-symbols-outlined text-[15px]">content_copy</span>
                     <span>Copy PIN</span>
@@ -821,7 +821,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
                     <button
                       type="button"
                       onClick={handleHostStartBattle}
-                      className="px-5 py-2 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer"
+                      className="px-5 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_#1A1A1A] active:translate-y-0.5 transition-all cursor-pointer"
                     >
                       Start Battle Now &rarr;
                     </button>
@@ -889,7 +889,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
 
                 {/* Big Circular Countdown */}
                 <div className={`w-12 h-12 rounded-full border-3 border-black flex items-center justify-center font-black text-[18px] shadow-xs ${
-                  questionTimeLeft <= 5 ? "bg-[#FF4D2E] text-white animate-pulse" : "bg-[#FFD13B] text-black"
+                  questionTimeLeft <= 5 ? "bg-[#10B981] text-white animate-pulse" : "bg-[#FFD13B] text-black"
                 }`}>
                   {questionTimeLeft}
                 </div>
@@ -906,7 +906,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {currentQ.options.map((opt, oIdx) => {
                   const colors = [
-                    "bg-[#FF4D2E] text-white hover:bg-[#e03d1f]",
+                    "bg-[#10B981] text-white hover:bg-[#e03d1f]",
                     "bg-[#3B82F6] text-white hover:bg-[#2563eb]",
                     "bg-[#FFD13B] text-black hover:bg-[#ecc028]",
                     "bg-[#10B981] text-white hover:bg-[#059669]",
@@ -951,7 +951,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
                     <button
                       type="button"
                       onClick={handleNextQuestion}
-                      className="px-4 py-1.5 bg-black hover:bg-[#FF4D2E] text-white rounded-xl text-[12px] font-black border-2 border-black shadow-xs cursor-pointer transition-colors"
+                      className="px-4 py-1.5 bg-black hover:bg-[#10B981] text-white rounded-xl text-[12px] font-black border-2 border-black shadow-xs cursor-pointer transition-colors"
                     >
                       Next Question &rarr;
                     </button>
@@ -973,7 +973,7 @@ Return ONLY a valid JSON array of objects with NO markdown formatting, with this
           <div className="border-3 border-black bg-white rounded-3xl p-6 max-w-lg w-full shadow-[5px_5px_0px_#000] space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-black/10">
               <h3 className="text-[18px] font-black text-black flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#FF4D2E]">sensors</span>
+                <span className="material-symbols-outlined text-[#10B981]">sensors</span>
                 <span>Host a Live Battle</span>
               </h3>
               <button

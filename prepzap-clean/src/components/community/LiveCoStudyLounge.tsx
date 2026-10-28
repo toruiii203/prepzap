@@ -131,7 +131,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
                 playPop();
                 navigate("/timer");
               }}
-              className="px-4 py-2 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px]">timer</span>
               <span>Open Focus Timer</span>
@@ -159,7 +159,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
                   {currentSubject}
                 </span>
                 <span className="text-black/30">&bull;</span>
-                <span className="text-[12px] font-extrabold text-[#FF4D2E] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                <span className="text-[12px] font-extrabold text-[#10B981] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                   {currentStatus}
                 </span>
               </div>
@@ -239,12 +239,12 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
               <span className="material-symbols-outlined text-[20px]">track_changes</span>
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#FF4D2E]">Shared Accountability</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#10B981]">Shared Accountability</span>
               <h3 className="text-[16px] font-black text-black">Circle Weekly Quest: 300 Focus Minutes</h3>
             </div>
           </div>
           <div className="text-[12px] font-black text-black/70 bg-white border border-black/20 px-3 py-1 rounded-xl shrink-0">
-            Progress: <span className="text-[#FF4D2E] font-black">215 / 300 min</span> (71%)
+            Progress: <span className="text-[#10B981] font-black">215 / 300 min</span> (71%)
           </div>
         </div>
 
@@ -269,7 +269,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#FF4D2E] text-[20px]">groups</span>
+            <span className="material-symbols-outlined text-[#10B981] text-[20px]">groups</span>
             <h3 className="text-[17px] font-black text-black">Who&apos;s Locked In Right Now</h3>
           </div>
           <span className="text-[11px] font-bold text-black/50">
@@ -291,7 +291,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
                 playPop();
                 navigate("/timer");
               }}
-              className="px-4 py-2 bg-black hover:bg-[#FF4D2E] text-white font-black text-[12px] rounded-xl transition-colors cursor-pointer shadow-[2px_2px_0px_#000] active:translate-y-0.5"
+              className="px-4 py-2 bg-black hover:bg-[#10B981] text-white font-black text-[12px] rounded-xl transition-colors cursor-pointer shadow-[2px_2px_0px_#000] active:translate-y-0.5"
             >
               Start Focus Session &rarr;
             </button>
@@ -332,7 +332,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
                       <div className="text-[13px] font-black text-black truncate mt-0.5">
                         {peer.subject}
                       </div>
-                      <div className="text-[11px] font-bold text-[#FF4D2E] mt-0.5">
+                      <div className="text-[11px] font-bold text-[#10B981] mt-0.5">
                         {peer.status}
                       </div>
                     </div>
@@ -352,7 +352,7 @@ export const LiveCoStudyLounge: React.FC<LiveCoStudyLoungeProps> = ({
 
                     <button
                       onClick={() => handleStudyWithPeer(peer)}
-                      className="flex-1 py-1.5 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11px] shadow-xs cursor-pointer flex items-center justify-center gap-1 active:translate-y-0.5 transition-all"
+                      className="flex-1 py-1.5 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[11px] shadow-xs cursor-pointer flex items-center justify-center gap-1 active:translate-y-0.5 transition-all"
                     >
                       <span className="material-symbols-outlined text-[13px]">timer</span>
                       <span>Study With</span>

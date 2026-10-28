@@ -11,12 +11,14 @@ import { useTutorialModal } from "@/hooks/useTutorialModal";
 import { TutorialModal } from "@/components/TutorialModal";
 import { TUTORIAL_CONTENT } from "@/lib/tutorialContent";
 import { AnimatedRex } from "@/components/AnimatedRex";
+import { playSuccess } from "@/lib/soundFX";
 import { VaultContributionConsentModal } from "@/components/VaultContributionConsentModal";
 import {
   runVaultContributionPipeline,
   isChatExcluded,
   setChatExcluded,
   getVaultConsent,
+  processAndShareCleanVaultNote,
 } from "@/lib/vaultContributionPipeline";
 
 const FOX = {
@@ -179,7 +181,7 @@ interface MessageThreadProps {
   foxImg?: string;
 }
 
-function MessageThread({ messages, isLoading, messagesEndRef, foxImg }: MessageThreadProps) {
+function MessageThread({ messages, isLoading, messagesEndRef, foxImg, onShareToVault, sharingIndex, sharedIndexes }: MessageThreadProps) {
   return (
     <div className="flex flex-col gap-5">
       {messages.map((msg, i) => (
@@ -200,7 +202,25 @@ function MessageThread({ messages, isLoading, messagesEndRef, foxImg }: MessageT
                 : <RenderBotText text={msg.text} />
               }
             </div>
-            <span className="text-[10px] font-bold text-black/40 mt-1 px-1">{msg.sender === "user" ? "You" : "Rex"}</span>
+            <div className="flex items-center justify-between w-full mt-1 px-1">
+              <span className="text-[10px] font-bold text-black/40">{msg.sender === "user" ? "You" : "Rex"}</span>
+              {msg.sender === "bot" && (
+                <button
+                  type="button"
+                  onClick={() => onShareToVault?.(msg, i)}
+                  disabled={sharingIndex === i}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded border border-black bg-[#FAF7F2] hover:bg-[#10B981] hover:text-white text-black font-extrabold text-[10.5px] transition-colors shadow-xs active:translate-y-0.5 cursor-pointer ml-3"
+                  title="Rex cleans, scrubs, and saves this explanation as an anonymous Study Vault note"
+                >
+                  <span className={`material-symbols-outlined text-[13px] ${sharingIndex === i ? "animate-spin" : ""}`}>
+                    {sharingIndex === i ? "autorenew" : sharedIndexes?.has(i) ? "check_circle" : "local_library"}
+                  </span>
+                  <span>
+                    {sharingIndex === i ? "Cleaning..." : sharedIndexes?.has(i) ? "Saved to Vault!" : "Share Clean Note"}
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       ))}
@@ -370,6 +390,43 @@ export default function AITutor() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showMobileHistory, setShowMobileHistory] = useState(false);
   const [showVaultConsent, setShowVaultConsent] = useState(false);
+  const [sharingIndex, setSharingIndex] = useState<number | null>(null);
+  const [sharedIndexes, setSharedIndexes] = useState<Set<number>>(new Set());
+  const [isCleaningChat, setIsCleaningChat] = useState(false);
+  const [chatSharedToVault, setChatSharedToVault] = useState(false);
+
+  const handleShareToVault = async (msg?: Message, index?: number) => {
+    if (messages.length === 0) return;
+    if (index !== undefined) {
+      setSharingIndex(index);
+    } else {
+      setIsCleaningChat(true);
+    }
+
+    try {
+      const res = await processAndShareCleanVaultNote({
+        messages,
+        seedText: msg?.text,
+        chatId: currentSessionId || `session_${Date.now()}`,
+      });
+
+      if (res.success) {
+        playSuccess();
+        if (index !== undefined) {
+          setSharedIndexes((prev) => new Set(prev).add(index));
+        } else {
+          setChatSharedToVault(true);
+          setTimeout(() => setChatSharedToVault(false), 4000);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to share clean note to vault:", err);
+    } finally {
+      if (index !== undefined) setSharingIndex(null);
+      setIsCleaningChat(false);
+    }
+  };
+
   const [isExcludedFromVault, setIsExcludedFromVault] = useState(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -799,7 +856,7 @@ export default function AITutor() {
               <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
                 <span className="material-symbols-outlined text-[16px]">description</span>
                 <span className="text-[12px] font-bold truncate max-w-[200px]">{activeSource}</span>
-                <button onClick={handleClearSource} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
+                <button onClick={handleClearSource} className="material-symbols-outlined text-[14px] hover:text-[#10B981] transition-colors">close</button>
               </div>
             ) : (
               <button onClick={() => navigate("/sources")}
@@ -812,6 +869,22 @@ export default function AITutor() {
           <div className="flex items-center gap-4">
             
             
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleShareToVault()}
+                disabled={isCleaningChat}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-white hover:bg-[#10B981] hover:text-white text-black font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                title="Rex cleans, scrubs, and saves key takeaways from this chat to Study Vault"
+              >
+                <span className={`material-symbols-outlined text-[16px] ${isCleaningChat ? "animate-spin" : ""}`}>
+                  {isCleaningChat ? "autorenew" : chatSharedToVault ? "check_circle" : "local_library"}
+                </span>
+                <span className="hidden sm:inline">
+                  {isCleaningChat ? "Cleaning note..." : chatSharedToVault ? "Saved to Vault!" : "Share to Study Vault"}
+                </span>
+              </button>
+            )}
             <div onClick={() => navigate("/profile")}
               className="w-10 h-10 border-2 border-black bg-[#ae2925] text-white flex items-center justify-center font-black text-[14px] cursor-pointer hover:opacity-90">
               R
@@ -842,7 +915,7 @@ export default function AITutor() {
                           className="p-4 border-2 border-black bg-white text-left hover:bg-[#F0EDE0] transition-all group"
                           style={{ boxShadow: "3px 3px 0px #000" }}>
                           <span className={`material-symbols-outlined mb-2 block text-[22px] ${
-                            icon === "lightbulb" ? "text-[#FF4D2E]" : icon === "history_edu" ? "text-[#F5A623]" : "text-black"
+                            icon === "lightbulb" ? "text-[#10B981]" : icon === "history_edu" ? "text-[#F5A623]" : "text-black"
                           }`}>{icon}</span>
                           <p className="text-[13px] font-extrabold leading-tight group-hover:underline">{label}</p>
                           <p className="text-[11px] text-black/50 mt-1">{sub}</p>
@@ -852,7 +925,7 @@ export default function AITutor() {
                   </div>
                 </div>
               ) : (
-                <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} foxImg={foxImg} />
+                <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} foxImg={foxImg} onShareToVault={handleShareToVault} sharingIndex={sharingIndex} sharedIndexes={sharedIndexes} />
               )}
             </div>
 
@@ -861,7 +934,7 @@ export default function AITutor() {
               <div className="shrink-0 px-8 pt-4 bg-[#FAF7F2]">
                 <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
                   {STUDY_ACTIONS.map(mode => (
-                    <button key={mode.id} onClick={() => setActiveMode(mode.id)} className={`shrink-0 px-3 py-1.5 border-2 border-black font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ${activeMode === mode.id ? 'bg-[#FF4D2E] text-white' : 'bg-white text-black hover:bg-[#E2E2E2]'}`}>
+                    <button key={mode.id} onClick={() => setActiveMode(mode.id)} className={`shrink-0 px-3 py-1.5 border-2 border-black font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ${activeMode === mode.id ? 'bg-[#10B981] text-white' : 'bg-white text-black hover:bg-[#E2E2E2]'}`}>
                       {mode.label}
                     </button>
                   ))}
@@ -890,7 +963,7 @@ export default function AITutor() {
                   <span className="material-symbols-outlined">{isRecording ? "stop_circle" : "mic"}</span>
                 </button>
                 <button onClick={() => handleSend()}
-                  className="w-11 h-11 bg-black text-white flex items-center justify-center border-2 border-black hover:bg-[#FF4D2E] transition-colors flex-shrink-0">
+                  className="w-11 h-11 bg-black text-white flex items-center justify-center border-2 border-black hover:bg-[#10B981] transition-colors flex-shrink-0">
                   <span className="font-black text-[12px] uppercase tracking-widest">SEND</span>
                 </button>
               </div>
@@ -955,7 +1028,7 @@ export default function AITutor() {
             <div className="flex items-center gap-2 bg-[#F0EDE0] border-2 border-black rounded-full px-3 py-1 flex-1 min-w-0">
               <span className="material-symbols-outlined text-[14px]">description</span>
               <span className="text-[11px] font-bold truncate">{activeSource}</span>
-              <button onClick={handleClearSource} className="material-symbols-outlined text-[13px] hover:text-[#FF4D2E] shrink-0 transition-colors">close</button>
+              <button onClick={handleClearSource} className="material-symbols-outlined text-[13px] hover:text-[#10B981] shrink-0 transition-colors">close</button>
             </div>
           ) : (
             <button onClick={() => navigate("/sources")}
@@ -998,7 +1071,7 @@ export default function AITutor() {
               </div>
             </div>
           ) : (
-            <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} foxImg={foxImg} />
+            <MessageThread messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} foxImg={foxImg} onShareToVault={handleShareToVault} sharingIndex={sharingIndex} sharedIndexes={sharedIndexes} />
           )}
         </main>
 

@@ -45,7 +45,7 @@ export default function KnowledgeGraph({ onNodeClick }: { onNodeClick?: (noteId:
           id: n.id,
           name: n.title || "Untitled",
           val: 2,
-          color: "#FF4D2E"
+          color: "#10B981"
         }));
 
         const graphLinks = (links || []).map(l => ({

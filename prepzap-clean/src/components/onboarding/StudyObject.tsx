@@ -1,6 +1,6 @@
 export type StudyObjectKind = "blocks" | "science" | "book" | "cell" | "globe" | "code" | "cards" | "timer" | "chat";
 /** Original scalable objects. Geometry stays separate from labels and actions. */
-export function StudyObject({ kind, className = "", accent = "#FF4D2E" }: { kind: StudyObjectKind; className?: string; accent?: string }) {
+export function StudyObject({ kind, className = "", accent = "#10B981" }: { kind: StudyObjectKind; className?: string; accent?: string }) {
   return <svg className={`study-object ${className}`} viewBox="0 0 160 140" fill="none" aria-hidden="true" focusable="false" stroke="#000" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round">
     {kind === "blocks" && <><rect x="29" y="23" width="74" height="77" rx="15" fill="#FFD13B" transform="rotate(-9 66 61)"/><circle cx="66" cy="58" r="16" fill="#FAF7F2"/><rect x="76" y="65" width="57" height="57" rx="12" fill={accent}/><path d="M93 94h24m-12-12v24"/></>}
     {kind === "science" && <><path d="M61 24h38v13H92v33l29 40q7 13-10 13H49q-17 0-10-13l29-40V37h-7Z" fill="#FFF"/><path d="M56 88h48l15 22q6 10-8 10H49q-14 0-8-10Z" fill="#FFD13B"/><circle cx="72" cy="98" r="5" fill={accent}/><circle cx="87" cy="51" r="5" fill={accent}/><circle cx="106" cy="22" r="7" fill="#FFD13B"/></>}

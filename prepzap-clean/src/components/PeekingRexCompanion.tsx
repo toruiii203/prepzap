@@ -103,7 +103,7 @@ export function PeekingRexCompanion() {
             </div>
 
             {/* Notification Badge */}
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FF4D2E] border-2 border-black flex items-center justify-center text-[9px] font-black text-white">
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#10B981] border-2 border-black flex items-center justify-center text-[9px] font-black text-white">
               !
             </span>
           </button>
@@ -166,7 +166,7 @@ export function PeekingRexCompanion() {
               className="p-2.5 bg-white hover:bg-[#FFE566] border-2 border-black rounded-xl text-left shadow-[2px_2px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer flex flex-col gap-0.5"
             >
               <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px] text-[#FF4D2E]">call</span>
+                <span className="material-symbols-outlined text-[16px] text-[#10B981]">call</span>
                 <span className="text-[11.5px] font-black text-black">Voice Call</span>
               </div>
               <span className="text-[9.5px] font-bold text-black/50">Speak out loud</span>

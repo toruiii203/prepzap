@@ -43,7 +43,7 @@
 
     /* Original Studenius warm palette, with the existing yellow/coral accents. */
     --pz-yellow:     #FFD13B;
-    --pz-coral:      #FF4D2E;
+    --pz-coral:      #10B981;
     --pz-gold:       #f0a040;
     --pz-gold-dim:   rgba(240,160,64,0.15);
     --pz-gold-glow:  rgba(240,160,64,0.1);
@@ -131,7 +131,7 @@
 ::-webkit-scrollbar-thumb { background: rgba(139,26,42,0.4); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(240,160,64,0.4); }
 
-::selection { background: rgba(255, 77, 46, 0.3); color: inherit; } /* #FF4D2E with opacity */
+::selection { background: rgba(16, 185, 129, 0.3); color: inherit; } /* #10B981 with opacity */
 
 /* ── Typography helpers ── */
 .gradient-text {
@@ -369,11 +369,11 @@
 
 /* Tiptap Editor Highlights */
 .ProseMirror ::selection {
-  background: rgba(255, 77, 46, 0.3) !important;
+  background: rgba(16, 185, 129, 0.3) !important;
   color: inherit !important;
 }
 .ProseMirror-selectednode {
-  outline: 2px solid #FF4D2E;
+  outline: 2px solid #10B981;
 }
 
 @keyframes float-slow {
@@ -436,7 +436,7 @@
 @keyframes flame-flicker {
   0%, 100% {
     transform: scale(1) rotate(-1deg);
-    filter: drop-shadow(0 0 4px #FF4D2E) hue-rotate(0deg);
+    filter: drop-shadow(0 0 4px #10B981) hue-rotate(0deg);
   }
   50% {
     transform: scale(1.14) rotate(2deg);

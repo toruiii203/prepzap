@@ -332,7 +332,7 @@ export default function CallWithRex() {
           {callState === "processing" && (
             <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0px_#000] animate-in fade-in zoom-in-95">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#FF4D2E] flex items-center justify-center animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center animate-pulse">
                   <span className="material-symbols-outlined text-white text-[16px]">psychology</span>
                 </div>
                 <div>
@@ -349,7 +349,7 @@ export default function CallWithRex() {
           {(callState === "responding" || (callState === "idle" && rexReply)) && rexReply && (
             <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[6px_6px_0px_#000] animate-in fade-in zoom-in-95 relative">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[#FF4D2E] text-[11px] font-black uppercase tracking-wider">
+                <span className="text-[#10B981] text-[11px] font-black uppercase tracking-wider">
                   Rex AI Tutor
                 </span>
                 {isSpeaking && (

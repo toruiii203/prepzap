@@ -82,7 +82,7 @@ export const SessionSummaryCard: React.FC = () => {
                 <span className="text-[#FF9600]">+{data.xpEarned || 20} XP</span>
                 <span className="text-black/30">&bull;</span>
                 <span className="text-black/80 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] text-[#FF4D2E]" aria-hidden="true">
+                  <span className="material-symbols-outlined text-[14px] text-[#10B981]" aria-hidden="true">
                     local_fire_department
                   </span>
                   <span>{data.streakDays || 1}d Streak Kept</span>

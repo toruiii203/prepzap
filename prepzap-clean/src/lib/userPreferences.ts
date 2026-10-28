@@ -24,7 +24,7 @@ export const SUBJECT_METADATA: Record<string, { name: string; icon: string; colo
   history: { name: "History", icon: "account_balance", color: "text-[#EC4899]", bg: "bg-[#EC4899]/15", recommendedTool: "/flashcards" },
   programming: { name: "Programming", icon: "code", color: "text-[#6366F1]", bg: "bg-[#6366F1]/15", recommendedTool: "/practice" },
   arts: { name: "Arts", icon: "palette", color: "text-[#8B5CF6]", bg: "bg-[#8B5CF6]/15", recommendedTool: "/visual-learner" },
-  other: { name: "General Studies", icon: "apps", color: "text-[#FF4D2E]", bg: "bg-[#FF4D2E]/15", recommendedTool: "/ai-tutor" },
+  other: { name: "General Studies", icon: "apps", color: "text-[#10B981]", bg: "bg-[#10B981]/15", recommendedTool: "/ai-tutor" },
 };
 
 export const GOAL_METADATA: Record<string, { label: string; dailyMinutes: number; rexQuote: string; badge: string }> = {

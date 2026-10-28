@@ -298,7 +298,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   <button
                     type="button"
                     onClick={handleApplyCustomUrl}
-                    className="px-3 py-1.5 bg-black text-white rounded-xl font-black text-[11px] cursor-pointer hover:bg-[#FF4D2E]"
+                    className="px-3 py-1.5 bg-black text-white rounded-xl font-black text-[11px] cursor-pointer hover:bg-[#10B981]"
                   >
                     Apply
                   </button>
@@ -323,7 +323,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   onClick={() => { playTap(); setSelectedBannerId(banner.id); }}
                   className={`p-2 border-2 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1.5 ${
                     selectedBannerId === banner.id
-                      ? "border-black shadow-[2px_2px_0px_#000] bg-white ring-2 ring-[#FF4D2E]"
+                      ? "border-black shadow-[2px_2px_0px_#000] bg-white ring-2 ring-[#10B981]"
                       : "border-black/20 hover:border-black bg-white"
                   }`}
                 >
@@ -347,7 +347,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Alex Rivera"
-                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#FF4D2E]"
+                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#10B981]"
               />
             </div>
 
@@ -362,7 +362,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="e.g. @alex_rivera"
-                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#FF4D2E]"
+                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#10B981]"
               />
             </div>
           </div>
@@ -383,7 +383,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell other students what you're revising (e.g. Pre-med sophomore grinding cellular biology and organic chemistry)..."
-              className="w-full bg-white border-2 border-black p-3 text-base font-semibold rounded-xl outline-none focus:border-[#FF4D2E] resize-none"
+              className="w-full bg-white border-2 border-black p-3 text-base font-semibold rounded-xl outline-none focus:border-[#10B981] resize-none"
             />
           </div>
 
@@ -398,7 +398,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={school}
                 onChange={(e) => setSchool(e.target.value)}
                 placeholder="e.g. Lincoln High / State Univ"
-                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#FF4D2E]"
+                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#10B981]"
               />
             </div>
 
@@ -412,7 +412,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={targetExam}
                 onChange={(e) => setTargetExam(e.target.value)}
                 placeholder="e.g. AP Chemistry Midterm"
-                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#FF4D2E]"
+                className="w-full bg-white border-2 border-black px-3 py-2 text-base font-bold rounded-xl outline-none focus:border-[#10B981]"
               />
             </div>
           </div>
@@ -429,7 +429,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               type="checkbox"
               checked={hideHearts}
               onChange={(e) => setHideHearts(e.target.checked)}
-              className="w-4 h-4 accent-[#FF4D2E] rounded cursor-pointer"
+              className="w-4 h-4 accent-[#10B981] rounded cursor-pointer"
             />
           </div>
 
@@ -444,7 +444,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#FF4D2E] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000000] active:translate-y-0.5 transition-all cursor-pointer"
+              className="px-5 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000000] active:translate-y-0.5 transition-all cursor-pointer"
             >
               Save Profile
             </button>

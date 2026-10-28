@@ -43,7 +43,7 @@ export function getComboTier(comboCount: number): {
   flashColor: string;
 } {
   if (comboCount >= 5) {
-    return { icon: "bolt", label: "ULTRA COMBO BONUS", flashColor: "rgba(255, 77, 46, 0.25)" };
+    return { icon: "bolt", label: "ULTRA COMBO BONUS", flashColor: "rgba(16, 185, 129, 0.25)" };
   }
   if (comboCount === 4) {
     return { icon: "local_fire_department", label: "MEGA COMBO BONUS", flashColor: "rgba(255, 209, 59, 0.25)" };

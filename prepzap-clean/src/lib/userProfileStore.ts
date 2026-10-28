@@ -34,7 +34,7 @@ export const PRESET_BANNERS: PresetBanner[] = [
   {
     id: "amber_sunset",
     name: "Amber Sunset",
-    className: "bg-gradient-to-r from-[#FFD13B] via-[#FF4D2E] to-[#FF8A00]",
+    className: "bg-gradient-to-r from-[#FFD13B] via-[#10B981] to-[#FF8A00]",
     previewColor: "#FFD13B"
   },
   {

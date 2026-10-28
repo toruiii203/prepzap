@@ -27,7 +27,7 @@ export function AttachSourcePill() {
       <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
         <span className="material-symbols-outlined text-[16px]">description</span>
         <span className="text-[12px] font-bold truncate max-w-[200px]">{activeSource.name}</span>
-        <button onClick={handleClearSource} className="material-symbols-outlined text-[14px] hover:text-[#FF4D2E] transition-colors">close</button>
+        <button onClick={handleClearSource} className="material-symbols-outlined text-[14px] hover:text-[#10B981] transition-colors">close</button>
       </div>
     );
   }

@@ -63,7 +63,7 @@ export default function Challenges() {
     {
       id: "deep-work-titan",
       tag: "Boss Round",
-      tagStyle: "bg-[#FF4D2E] text-white",
+      tagStyle: "bg-[#10B981] text-white",
       icon: "skull",
       iconStyle: "text-black",
       title: "Deep Work Titan",
@@ -149,9 +149,9 @@ export default function Challenges() {
   const grandmasterQuest = {
     id: "grandmaster",
     tag: "Milestone",
-    tagStyle: "bg-[#FF4D2E] text-white",
+    tagStyle: "bg-[#10B981] text-white",
     icon: "military_tech",
-    iconStyle: "text-[#FF4D2E]",
+    iconStyle: "text-[#10B981]",
     title: "Grandmaster",
     desc: "Score 80%+ on a practice quiz.",
     cta: "PRACTICE NOW",
@@ -228,7 +228,7 @@ export default function Challenges() {
       <div className="bg-[#FAF7F2] border-2 border-black w-full max-w-md" style={{ boxShadow: "6px 6px 0px #000" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black">
           <h3 className="font-black text-[18px]">Share Study Guide</h3>
-          <button onClick={() => setShareModalOpen(false)} className="material-symbols-outlined text-black hover:text-[#FF4D2E]">close</button>
+          <button onClick={() => setShareModalOpen(false)} className="material-symbols-outlined text-black hover:text-[#10B981]">close</button>
         </div>
         <div className="p-5 flex flex-col gap-4">
           <p className="text-[14px] text-black/60 font-medium">Share your current study guide with your peer group to complete this challenge.</p>
@@ -237,7 +237,7 @@ export default function Challenges() {
               {window.location.origin}/share/guide
             </div>
             <button onClick={handleCopyLink}
-              className={`px-4 py-2 border-2 border-black font-black text-[13px] transition-colors ${copiedLink ? "bg-green-500 text-white" : "bg-black text-white hover:bg-[#FF4D2E]"}`}>
+              className={`px-4 py-2 border-2 border-black font-black text-[13px] transition-colors ${copiedLink ? "bg-green-500 text-white" : "bg-black text-white hover:bg-[#10B981]"}`}>
               {copiedLink ? "Copied!" : "Copy"}
             </button>
           </div>
@@ -273,7 +273,7 @@ export default function Challenges() {
             <span className="text-[22px] font-black tracking-tight">DAILY CHALLENGES</span>
             <div className="w-px h-6 bg-black/20" />
             <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
-              <span className="material-symbols-outlined text-[#FF4D2E] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+              <span className="material-symbols-outlined text-[#10B981] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
               <span className="text-[12px] font-black">{profile?.streak ?? 0} Day Streak</span>
             </div>
           </div>

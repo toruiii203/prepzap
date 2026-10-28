@@ -55,7 +55,7 @@ export function StreakCelebrationModal({
         particleCount: 50,
         spread: 60,
         origin: { y: 0.6 },
-        colors: ["#FF9600", "#FFD13B", "#FF4D2E", "#10B981", "#000000"],
+        colors: ["#FF9600", "#FFD13B", "#10B981", "#10B981", "#000000"],
       });
     } catch { /* Celebration is optional; the streak remains visible. */ }
 
@@ -133,7 +133,7 @@ export function StreakCelebrationModal({
             style={{ animationDuration: "1.8s", animationIterationCount: "infinite" }}
           />
           <span
-            className="absolute top-6 right-8 w-2.5 h-2.5 rounded-full bg-[#FF4D2E] border border-black animate-floatSpark2"
+            className="absolute top-6 right-8 w-2.5 h-2.5 rounded-full bg-[#10B981] border border-black animate-floatSpark2"
             style={{ animationDuration: "2.1s", animationIterationCount: "infinite", animationDelay: "0.4s" }}
           />
           <span
@@ -266,7 +266,7 @@ export function StreakCelebrationModal({
             playPop();
             onContinue();
           }}
-          className="w-full py-3.5 bg-[#FF4D2E] hover:bg-black text-white font-black text-[14px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000000] active:translate-y-0.5 cursor-pointer transition-colors"
+          className="w-full py-3.5 bg-[#10B981] hover:bg-black text-white font-black text-[14px] uppercase tracking-wider border-2 border-black rounded-xl shadow-[3px_3px_0px_#000000] active:translate-y-0.5 cursor-pointer transition-colors"
         >
           Continue
         </button>
