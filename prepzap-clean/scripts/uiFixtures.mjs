@@ -44,7 +44,7 @@ export async function seedBrowser(page, { lesson = false, theme = 'light', study
     let body = url.pathname.includes('/profiles') && url.searchParams.get('id') === `eq.${fixtureProfile.id}` ? fixtureProfile : url.pathname.endsWith('/study_sessions') ? studySessions : [];
     if (url.hostname.includes('workers.dev')) {
       const item = { q: 'Which process divides a cell?', type: 'multiple-choice', correct: 0, subject: 'Biology', difficulty: 'Easy', term: 'Mitosis', definition: 'Cell division', statement: 'Mitosis divides a cell.', isTrue: true, question: 'Which process divides a cell?', correctAnswer: 'Mitosis', wrongAnswers: ['Photosynthesis','Respiration','Diffusion'], items: ['Mitosis','Meiosis','Division','Photosynthesis'], oddIndex: 3, reason: 'Photosynthesis makes sugars.', word: 'MITOSIS', hint: 'Cell division', options: ['A. Mitosis','B. Diffusion','C. Respiration','D. Photosynthesis'], correct_answer: 'A', explanation: 'Mitosis creates two daughter cells.' };
-      body = { choices: [{ message: { content: generationContent ?? JSON.stringify([item]) } }] };
+      body = { choices: [{ message: { content: (typeof generationContent === "function" ? (request.method() === "POST" ? generationContent(JSON.parse(request.postData() || "{}")) : "[]") : generationContent) ?? JSON.stringify([item]) } }] };
     }
     const headers = {
       'access-control-allow-origin': '*',

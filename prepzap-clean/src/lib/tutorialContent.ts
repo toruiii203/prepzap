@@ -7,8 +7,8 @@ export interface TutorialFeature {
 
 export const TUTORIAL_CONTENT: Record<string, TutorialFeature[]> = {
   "/dashboard": [
-    { icon: "menu_book", title: "Learn a topic", desc: "Open Guidebook for a topic path, short lessons and quick understanding checks.", target: '[aria-label="Open Guidebook"]' },
-    { icon: "route", title: "Your lesson path", desc: "Select an available lesson to review it and choose your next step.", target: 'button[aria-label$=": active"]' },
+    { icon: "route", title: "Build a learning roadmap", desc: "Choose one topic or one file to plan chapters, explanations, practice and later review.", target: '[data-guide-target="new-roadmap"]' },
+    { icon: "school", title: "Continue your learning", desc: "Open a saved roadmap to resume a chapter. Progress stays on this device for your account.", target: '[data-guide-target="learning-roadmaps"]' },
     { icon: "widgets", title: "Choose a study tool", desc: "Use the arrows or swipe to find practice, flashcards, notes and more.", target: '[data-study-tools-shelf] > div:first-child' }
   ],
   "/ai-tutor": [

@@ -18,7 +18,7 @@ import { ExamCountdownBanner } from "@/components/ExamCountdownBanner";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { StreakCelebrationModal } from "@/components/StreakCelebrationModal";
 import { StreakRiskBanner } from "@/components/StreakRiskBanner";
-import { StudyPathMap } from "@/components/StudyPathMap";
+import { LearningRoadmaps } from "@/components/roadmaps/LearningRoadmaps";
 import { SessionSummaryCard } from "@/components/SessionSummaryCard";
 import { launchPathLesson } from "@/lib/lessonLauncher";
 import { formatFriendlyName, getLocalGreeting } from "@/lib/formatName";
@@ -1219,14 +1219,7 @@ export default function Dashboard() {
               {/* Swipeable Study Tools Carousel (with Hide/Show Arrow) */}
               <StudyToolsShelf navigate={navigate} isMobile={false} />
 
-              {/* The Learning Path Hero (with Unit Guidebook Header) */}
-              <StudyPathMap
-                subjectName={primarySubjectMeta.name}
-                onSelectNode={(node) => {
-                  if (node.route) navigate(node.route);
-                }}
-                navigate={navigate}
-              />
+              <LearningRoadmaps subjectName={primarySubjectMeta.name} />
             </div>
 
             {/* Right Column / Secondary Rail (4 cols on desktop, flows below on mobile) */}
