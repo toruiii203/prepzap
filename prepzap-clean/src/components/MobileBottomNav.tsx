@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { playPop } from '@/lib/soundFX';
-import { getDueCount } from '@/lib/spacedRepetition';
 
 interface MobileBottomNavProps {
   hide?: boolean;
@@ -10,20 +9,13 @@ interface MobileBottomNavProps {
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [dueCount, setDueCount] = useState(0);
-
-  useEffect(() => {
-    try {
-      setDueCount(getDueCount());
-    } catch { /* Due counts are optional when local storage is unavailable. */ }
-  }, []);
 
   if (hide) return null;
 
   const tabs = [
-    { name: 'Home', path: '/dashboard', icon: 'home' },
-    { name: 'Practice', path: '/practice', icon: 'bolt' },
+    { name: 'Study Vault', path: '/campus-vault', icon: 'menu_book' },
     { name: 'Arena', path: '/arena', icon: 'sports_esports' },
+    { name: 'Home', path: '/dashboard', icon: 'home' },
     { name: 'Library', path: '/sources', icon: 'folder' },
     { name: 'Friends', path: '/friends', icon: 'groups' },
   ];
@@ -39,7 +31,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
           ? location.pathname === '/dashboard' || location.pathname === '/'
           : tab.path === '/friends'
             ? location.pathname.startsWith('/friends') || location.pathname.startsWith('/community')
-            : location.pathname.startsWith(tab.path);
+            : tab.path === '/campus-vault'
+              ? location.pathname.startsWith('/campus-vault') || location.pathname.startsWith('/vault')
+              : location.pathname.startsWith(tab.path);
         return (
           <button
             key={tab.name}
@@ -51,7 +45,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
               playPop();
               navigate(tab.path);
             }}
-            className={`flex flex-col items-center justify-center flex-1 min-h-[44px] py-1 px-1 transition-transform motion-safe:active:scale-95 motion-reduce:transition-none cursor-pointer ${
+            className={`flex flex-col items-center justify-center flex-1 min-h-[44px] py-1 px-0.5 transition-transform motion-safe:active:scale-95 motion-reduce:transition-none cursor-pointer ${
               isActive
                 ? 'text-black'
                 : 'text-black/60 hover:text-black'
@@ -62,18 +56,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ hide = false }
                 ? 'bg-[#FFD13B] border-2 border-black shadow-[0_2px_0_#000000]'
                 : 'border-2 border-transparent'
             }`}>
-              {tab.path === '/practice' && dueCount > 0 && (
-                <span className="absolute -top-1 -right-1 border border-black bg-[#FF4D2E] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
-                  {dueCount}
-                </span>
-              )}
               <span
                 className={`material-symbols-outlined text-[20px] ${isActive ? 'text-black font-black' : ''}`}
                 aria-hidden="true"
               >
                 {tab.icon}
               </span>
-              <span className="text-[12px] font-bold tracking-tight leading-none mt-0.5">
+              <span className="text-[11px] sm:text-[12px] font-bold tracking-tight leading-none mt-0.5 whitespace-nowrap">
                 {tab.name}
               </span>
             </div>
