@@ -31,6 +31,7 @@ import { Progress } from "@/components/ui/progress";
 import { fireConfetti } from "@/lib/confetti";
 import { AnimatedRex } from "@/components/AnimatedRex";
 import { VictoryScreen } from "@/components/VictoryScreen";
+import { VictoryCardModal } from "@/components/VictoryCardModal";
 import { getQuestionsForLesson, sanitizeQuestion } from "@/lib/lessonLauncher";
 import { getComboTier } from "@/lib/streakRisk";
 import { SpringButton } from "@/components/ui/SpringButton";
@@ -353,6 +354,9 @@ export default function Practice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile, refreshProfile } = useAuth();
+  const [showBragModal, setShowBragModal] = useState(false);
+  const friendCode = user?.id ? `PIP-${user.id.replace(/-/g, "").slice(0, 4).toUpperCase()}` : "PIP-8491";
+  const studentDisplayName = profile?.display_name || user?.user_metadata?.full_name || "Scholar";
   const { logSession } = useStudySession();
   const { save: saveHistory, entries: historyEntries = [] } = useToolHistory("practice");
 
@@ -1301,7 +1305,7 @@ Each object MUST match this schema exactly:
                 />
               </div>
             )}
-          </main>
+                  </main>
 
           {renderFeedback()}
         </div>
@@ -1628,25 +1632,34 @@ Each object MUST match this schema exactly:
                     </div>
                   </div>
 
-                  <div className="flex gap-4 w-full">
-                    <button 
-                      onClick={() => {
-                        playPop();
-                        localStorage.removeItem("pz_duel_opponent");
-                        setDuelOpponent(null);
-                        setView("quiz");
-                        setAdaptiveQueue([]);
-                        setTotalInitialCount(0);
-                        setMasteredCount(0);
-                        setScore(0);
-                        setComboStreak(0);
-                        setQuestions([]);
-                        setAnswers([]);
-                      }}
-                      className="flex-1 bg-white border-[3px] border-black text-black py-4 font-extrabold hover:bg-[#E2E2E2] active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer rounded-xl"
+                  <div className="flex flex-col gap-3 w-full">
+                    <button
+                      type="button"
+                      onClick={() => { playPop(); setShowBragModal(true); }}
+                      className="w-full bg-[#FFD13B] hover:bg-black hover:text-white border-[3px] border-black text-black py-3.5 font-black active:translate-y-0.5 shadow-[4px_4px_0px_#000] text-[15px] cursor-pointer rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wider"
                     >
-                      New Quiz
+                      <span className="material-symbols-outlined text-[20px]">share</span>
+                      <span>Share Victory Story / Brag to Friends</span>
                     </button>
+                    <div className="flex gap-4 w-full">
+                      <button 
+                        onClick={() => {
+                          playPop();
+                          localStorage.removeItem("pz_duel_opponent");
+                          setDuelOpponent(null);
+                          setView("quiz");
+                          setAdaptiveQueue([]);
+                          setTotalInitialCount(0);
+                          setMasteredCount(0);
+                          setScore(0);
+                          setComboStreak(0);
+                          setQuestions([]);
+                          setAnswers([]);
+                        }}
+                        className="flex-1 bg-white border-[3px] border-black text-black py-4 font-extrabold hover:bg-[#E2E2E2] active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer rounded-xl"
+                      >
+                        New Quiz
+                      </button>
                     <button 
                       onClick={() => navigate("/dashboard")}
                       className="flex-1 bg-[#10B981] hover:bg-[#059669] border-[3px] border-black text-white py-4 font-black hover:opacity-95 active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[15px] cursor-pointer rounded-xl flex items-center justify-center gap-2 uppercase tracking-wider"
@@ -1657,7 +1670,8 @@ Each object MUST match this schema exactly:
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
             {/* Desktop Feedback Drawer */}
             {view === "quiz" && adaptiveQueue.length > 0 && !isGenerating && (
@@ -2042,12 +2056,21 @@ Each object MUST match this schema exactly:
               </div>
             </div>
 
-            <div className="flex gap-3 w-full">
-              <button 
-                onClick={() => {
-                  playPop();
-                  localStorage.removeItem("pz_duel_opponent");
-                  setDuelOpponent(null);
+            <div className="flex flex-col gap-2.5 w-full">
+              <button
+                type="button"
+                onClick={() => { playPop(); setShowBragModal(true); }}
+                className="w-full bg-[#FFD13B] hover:bg-black hover:text-white border-2 border-black text-black py-3 font-black active:translate-y-0.5 shadow-[3px_3px_0px_#000] text-[13.5px] cursor-pointer rounded-xl flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider"
+              >
+                <span className="material-symbols-outlined text-[18px]">share</span>
+                <span>Share Victory Story</span>
+              </button>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => {
+                    playPop();
+                    localStorage.removeItem("pz_duel_opponent");
+                    setDuelOpponent(null);
                   setView("quiz");
                   setAdaptiveQueue([]);
                   setTotalInitialCount(0);
@@ -2069,9 +2092,21 @@ Each object MUST match this schema exactly:
                 <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
               </button>
             </div>
-          </main>
+          </div>
+        </main>
         )}
       </div>
+      <VictoryCardModal
+        isOpen={showBragModal}
+        onClose={() => setShowBragModal(false)}
+        topic={topicInput || "Active Recall Quiz"}
+        score={score}
+        totalQuestions={totalInitialCount}
+        comboStreak={highestStreak}
+        xpEarned={totalInitialCount * 30 + 20}
+        friendCode={friendCode}
+        displayName={studentDisplayName}
+      />
     </>
   );
 }

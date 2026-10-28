@@ -39,7 +39,7 @@ export function StatsCardExport({ totalStudyHours, streak, totalXp }: StatsCardE
         >
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <img src="/fox_icon_final.png" alt="Studenius" className="w-12 h-12 border-2 border-black rounded-full" />
+              <img src="/mascot/seedling-mascot.png" alt="Studenius" className="w-12 h-12 border-2 border-black rounded-full bg-white object-cover" />
               <h2 className="text-[24px] font-black tracking-tighter uppercase">Studenius</h2>
             </div>
             
@@ -52,7 +52,7 @@ export function StatsCardExport({ totalStudyHours, streak, totalXp }: StatsCardE
                 <span className="text-[14px] font-bold uppercase tracking-widest text-black/50">Study Time</span>
                 <span className="text-[24px] font-black">{totalStudyHours} hrs</span>
               </div>
-              <div className="bg-[#E8534A] text-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 flex items-center justify-between">
+              <div className="bg-[#10B981] text-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 flex items-center justify-between">
                 <span className="text-[14px] font-bold uppercase tracking-widest text-white/70">Current Streak</span>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
@@ -75,10 +75,10 @@ export function StatsCardExport({ totalStudyHours, streak, totalXp }: StatsCardE
       <button 
         onClick={handleShare} 
         disabled={loading}
-        className="flex items-center gap-2 px-4 py-2 bg-black text-white text-[12px] font-black uppercase tracking-widest hover:bg-black/80 transition-colors shadow-[3px_3px_0px_rgba(0,0,0,0.3)] disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2 bg-black text-white text-[12px] font-black uppercase tracking-widest hover:bg-black/80 transition-colors shadow-[3px_3px_0px_rgba(0,0,0,0.3)] disabled:opacity-50 cursor-pointer"
       >
         <span className="material-symbols-outlined text-[18px]">share</span>
-        {loading ? 'Exporting...' : 'Share to IG'}
+        <span>{loading ? 'Exporting...' : 'Export Story Card'}</span>
       </button>
     </div>
   );
