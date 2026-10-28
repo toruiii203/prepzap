@@ -567,20 +567,20 @@ function AccountRoadmaps({
                         Check important details against the original.
                       </p>
                     )}
-                    {/* Exam countdown and mastery header */}
+                    {/* Honest roadmap progress header */}
                     {(() => {
                       const doneCount = active.outline.units.filter(
                         (_, idx) => active.progress[String(idx)]?.reviewedAt || active.progress[String(idx)]?.readyAt || active.progress[String(idx)]?.read
                       ).length;
                       const pct = Math.round((doneCount / active.outline.units.length) * 100);
                       return (
-                        <div className="rm-exam-header" role="region" aria-label="Roadmap progress">
-                          <div className="rm-exam-stats">
-                            <span>Exam in 90 days · Grade Goal: 1.00</span>
-                            <strong>{pct}% Complete</strong>
+                        <div className="rm-path-progress-card" role="region" aria-label="Roadmap progress">
+                          <div className="rm-path-progress-stats">
+                            <span>{doneCount} of {active.outline.units.length} chapters completed</span>
+                            <strong>{pct}%</strong>
                           </div>
-                          <div className="rm-exam-progress-bar" aria-hidden="true">
-                            <div className="rm-exam-progress-fill" style={{ width: `${pct}%` }} />
+                          <div className="rm-path-progress-bar" aria-hidden="true">
+                            <div className="rm-path-progress-fill" style={{ width: `${pct}%` }} />
                           </div>
                         </div>
                       );

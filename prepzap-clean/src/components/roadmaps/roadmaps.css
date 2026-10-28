@@ -938,36 +938,37 @@
    Learning Roadmap & Serpentine Path (Knowunity & Duolingo Style)
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Exam & Target Goal Header ── */
-.rm-exam-header {
-  background: #1e1e24;
-  color: #fff;
+/* ── 1. Honest Roadmap Progress Card ── */
+.rm-path-progress-card {
+  background: var(--pz-surface, #fff);
+  color: var(--pz-text, #111);
   border: 2px solid #000;
-  border-radius: 18px;
-  padding: 14px 18px;
-  margin-bottom: 24px;
-  box-shadow: 0 3px 0 #000;
+  border-radius: 14px;
+  padding: 12px 18px;
+  margin-bottom: 32px;
+  box-shadow: 3px 3px 0 #000;
 }
-.rm-exam-stats {
+.rm-path-progress-stats {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
   font-weight: 800;
-  color: #a0aec0;
+  color: var(--pz-text-2, #555);
   margin-bottom: 8px;
 }
-.rm-exam-stats strong {
+.rm-path-progress-stats strong {
   color: #10b981;
+  font-size: 14px;
 }
-.rm-exam-progress-bar {
-  height: 10px;
-  background: #2d3748;
+.rm-path-progress-bar {
+  height: 8px;
+  background: #e5e7eb;
   border-radius: 999px;
   overflow: hidden;
   border: 1px solid #000;
 }
-.rm-exam-progress-fill {
+.rm-path-progress-fill {
   height: 100%;
   background: #10b981;
   transition: width 0.4s ease;
