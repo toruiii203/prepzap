@@ -63,13 +63,13 @@ it("keeps a generated preview available when storage fails, allowing a genuine s
   mocks.save.mockRejectedValueOnce(new Error("Quota exceeded"));
   render(<LearningRoadmaps subjectName="Math" />);
   await start();
-  await screen.findByRole("button", { name: "Save this roadmap" });
-  fireEvent.click(screen.getByRole("button", { name: "Save this roadmap" }));
+  await screen.findByRole("button", { name: "Start learning" });
+  fireEvent.click(screen.getByRole("button", { name: "Start learning" }));
   await screen.findByText(/Your latest change was not saved/);
   expect(
-    screen.getByRole("button", { name: "Save this roadmap" }),
+    screen.getByRole("button", { name: "Start learning" }),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Save this roadmap" }));
+  fireEvent.click(screen.getByRole("button", { name: "Start learning" }));
   await screen.findByRole("list", { name: "Topic chapters" });
   expect(mocks.save).toHaveBeenCalledTimes(2);
   expect(mocks.save.mock.calls[1][0].ownerId).toBe("account-one");

@@ -593,7 +593,7 @@ function AccountRoadmaps({
                           const isDone = Boolean(active.progress[String(i)]?.reviewedAt || active.progress[String(i)]?.readyAt || active.progress[String(i)]?.read);
                           const isCurrentActive = !isDone && (i === 0 || Boolean(active.progress[String(i - 1)]?.read));
                           const align = ['center', 'left', 'center', 'right'][i % 4];
-                          const kindIcon = chapter.kind === 'foundation' ? 'mic' : chapter.kind === 'application' ? 'edit_note' : 'emoji_events';
+                          const kindIcon = chapter.kind === 'foundation' ? 'mic' : chapter.kind === 'application' ? 'edit_note' : 'military_tech';
 
                           return (
                             <li key={i} className="rm-serpentine-item" data-align={align}>
@@ -635,7 +635,10 @@ function AccountRoadmaps({
                           <div className="rm-drawer-handle" aria-hidden="true" />
                           <div className="rm-drawer-header">
                             <span className="rm-drawer-tag">
-                              {active.outline.units[selectedDrawerUnit].kind === 'foundation' ? '🎙️ Socratic Recall' : active.outline.units[selectedDrawerUnit].kind === 'application' ? '📄 Application Check' : '👑 Boss Synthesis'}
+                              <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '4px' }}>
+                                {active.outline.units[selectedDrawerUnit].kind === 'foundation' ? 'school' : active.outline.units[selectedDrawerUnit].kind === 'application' ? 'edit_note' : 'military_tech'}
+                              </span>
+                              {active.outline.units[selectedDrawerUnit].kind === 'foundation' ? 'Foundation' : active.outline.units[selectedDrawerUnit].kind === 'application' ? 'Application' : 'Synthesis'}
                             </span>
                             <button
                               className="rm-icon-button"
@@ -653,12 +656,12 @@ function AccountRoadmaps({
                           </p>
                           <div className="rm-drawer-stats">
                             <div className="rm-stat-chip">
-                              <span className="material-symbols-outlined" aria-hidden="true">bolt</span>
-                              <span>⚡ 3 min sprint</span>
+                              <span className="material-symbols-outlined" aria-hidden="true">schedule</span>
+                              <span>3 min sprint</span>
                             </div>
                             <div className="rm-stat-chip">
-                              <span className="material-symbols-outlined" aria-hidden="true">eco</span>
-                              <span>🌱 +35 XP</span>
+                              <span className="material-symbols-outlined" aria-hidden="true">stars</span>
+                              <span>+35 XP</span>
                             </div>
                           </div>
                           <SpringButton
@@ -723,15 +726,42 @@ function AccountRoadmaps({
                 )
               ) : outline ? (
                 <div className="rm-outline">
-                  <p className="rm-eyebrow">Check the scope before saving</p>
-                  <h2 ref={heading} tabIndex={-1}>
-                    {outline.title}
-                  </h2>
-                  <p>{outline.summary}</p>
-                  <p className="rm-fine">
-                    You can rename chapters below. To change the subject or
-                    coverage, go back and adjust your input.
-                  </p>
+                  <div className="rm-outline-top-header">
+                    <div>
+                      <h2 ref={heading} tabIndex={-1} className="rm-outline-title">
+                        {outline.title}
+                      </h2>
+                      <p className="rm-outline-summary">{outline.summary}</p>
+                    </div>
+                    <div className="rm-outline-top-actions">
+                      <button
+                        className="rm-secondary"
+                        disabled={saving}
+                        onClick={() => setOutline(null)}
+                      >
+                        Adjust topic
+                      </button>
+                      <SpringButton
+                        className="rm-primary rm-btn-start-learning"
+                        aria-label="Start learning"
+                        disabled={
+                          saving ||
+                          outline.units.some(
+                            (unit) => unit.title.trim().length < 3,
+                          ) ||
+                          new Set(
+                            outline.units.map((unit) =>
+                              unit.title.trim().toLowerCase(),
+                            ),
+                          ).size !== outline.units.length
+                        }
+                        onClick={() => void accept()}
+                      >
+                        <span className="material-symbols-outlined" aria-hidden="true">play_arrow</span>
+                        {saving ? "Starting…" : "Start learning"}
+                      </SpringButton>
+                    </div>
+                  </div>
                   <ol>
                     {outline.units.map((chapter, i) => (
                       <li key={i}>
@@ -753,43 +783,9 @@ function AccountRoadmaps({
                           />
                         </label>
                         <p>{chapter.objective}</p>
-                        {chapter.evidence.length > 0 && (
-                          <details>
-                            <summary>Source support</summary>
-                            {chapter.evidence.map((quote, j) => (
-                              <blockquote key={j}>{quote}</blockquote>
-                            ))}
-                          </details>
-                        )}
                       </li>
                     ))}
                   </ol>
-                  <div className="rm-actions">
-                    <button
-                      className="rm-secondary"
-                      disabled={saving}
-                      onClick={() => setOutline(null)}
-                    >
-                      Adjust topic or file
-                    </button>
-                    <SpringButton
-                      className="rm-primary"
-                      disabled={
-                        saving ||
-                        outline.units.some(
-                          (unit) => unit.title.trim().length < 3,
-                        ) ||
-                        new Set(
-                          outline.units.map((unit) =>
-                            unit.title.trim().toLowerCase(),
-                          ),
-                        ).size !== outline.units.length
-                      }
-                      onClick={() => void accept()}
-                    >
-                      {saving ? "Saving…" : "Save this roadmap"}
-                    </SpringButton>
-                  </div>
                 </div>
               ) : (
                 <div className="rm-create">
