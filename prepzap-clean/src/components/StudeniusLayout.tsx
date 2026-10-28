@@ -1,3 +1,4 @@
+import { PageGuidance } from "@/components/PageGuidance";
 import { RouteAnnouncement } from "@/components/RouteAnnouncement";
 import "@/styles/quality.css";
 import { LegacyControlAccessibility } from "@/components/LegacyControlAccessibility";
@@ -31,6 +32,7 @@ export function StudeniusLayout() {
           <PageTransition key={pathname}>{pathname === "/settings" ? <div className="settings-page-frame"><Outlet /></div> : <Outlet />}</PageTransition>
         </PageErrorBoundary>
       </Suspense>
+      <PageGuidance />
       <FloatingXPOverlay />
     </StudeniusShell>
   );
