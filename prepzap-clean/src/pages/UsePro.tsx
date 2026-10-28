@@ -4,11 +4,13 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const PAYMENT_LINKS = {
+  Weekly:  "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/RhaIdBU",
   Monthly: "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/RhaIdBU",
   Yearly:  "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/iL2OO3b",
 } as const;
 
 const PAYPAL_LINKS = {
+  Weekly:  "https://www.paypal.com/ncp/payment/PUK26H6FCJZL2",
   Monthly: "https://www.paypal.com/ncp/payment/PUK26H6FCJZL2",
   Yearly:  "https://www.paypal.com/ncp/payment/UU56A82ZUTHQ6",
 } as const;
@@ -16,7 +18,7 @@ const PAYPAL_LINKS = {
 export default function UsePro() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [billingCycle, setBillingCycle] = useState<"Monthly" | "Yearly">("Monthly");
+  const [billingCycle, setBillingCycle] = useState<"Weekly" | "Monthly" | "Yearly">("Monthly");
   const [redirecting, setRedirecting] = useState(false);
 
   const handleUpgrade = () => {
@@ -67,12 +69,12 @@ export default function UsePro() {
 
         {/* Mascot / Hero Graphic */}
         <section className="flex justify-center items-center py-2 relative">
-          <div className="absolute inset-0 bg-[#ffddb4] rounded-full blur-3xl opacity-40 z-0"></div>
+          <div className="absolute inset-0 bg-[#10B981]/25 rounded-full blur-3xl opacity-40 z-0"></div>
           
           <Mascot mood="happy" size="lg" className="relative z-10" />
           
           <div className="absolute bottom-6 left-1/4 text-primary z-20 animate-pulse">
-            <span className="material-symbols-outlined text-[20px] text-[#E8534A]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+            <span className="material-symbols-outlined text-[20px] text-[#FFD13B]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
           </div>
         </section>
 
@@ -80,8 +82,18 @@ export default function UsePro() {
         <section className="flex justify-center items-center">
           <div className="flex items-center bg-[#FAF7F2] rounded-full p-1 border-2 border-[#1c1c19]">
             <button 
+              onClick={() => setBillingCycle("Weekly")}
+              className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors cursor-pointer ${
+                billingCycle === "Weekly" 
+                   ? "bg-black text-[#faf7f2]" 
+                  : "text-on-surface-variant"
+              }`}
+            >
+              7-Day Sprint
+            </button>
+            <button 
               onClick={() => setBillingCycle("Monthly")}
-              className={`px-5 py-1.5 rounded-full text-[13.5px] font-bold transition-colors cursor-pointer ${
+              className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors cursor-pointer ${
                 billingCycle === "Monthly" 
                    ? "bg-black text-[#faf7f2]" 
                   : "text-on-surface-variant"
@@ -91,14 +103,14 @@ export default function UsePro() {
             </button>
             <button 
               onClick={() => setBillingCycle("Yearly")}
-              className={`px-5 py-1.5 rounded-full text-[13.5px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
                 billingCycle === "Yearly" 
                   ? "bg-black text-[#faf7f2]" 
                   : "text-on-surface-variant"
               }`}
             >
               Yearly
-              <span className="bg-[#ffb4ab] text-black text-[9px] px-2 py-0.5 rounded-full border border-black font-extrabold scale-90">
+              <span className="bg-[#FFD13B] text-black text-[9px] px-2 py-0.5 rounded-full border border-black font-extrabold scale-90">
                 -37%
               </span>
             </button>
@@ -109,7 +121,7 @@ export default function UsePro() {
         <section className="flex flex-col gap-5">
           
           {/* Pro Plan Card */}
-          <div className="bg-[#E8534A] text-white rounded-2xl border-2 border-[#1c1c19] p-6 relative overflow-hidden shadow-[4px_4px_rgba(0,0,0,1)]">
+          <div className="bg-[#10B981] text-white rounded-2xl border-2 border-black p-6 relative overflow-hidden shadow-[4px_4px_rgba(0,0,0,1)]">
             <div className="absolute top-0 right-0 bg-[#feae2c] text-black text-[10.5px] font-extrabold px-3.5 py-1 rounded-bl-xl border-l border-b border-black">
               MOST POPULAR
             </div>
@@ -118,10 +130,10 @@ export default function UsePro() {
               <h3 className="text-headline-lg font-headline font-extrabold mb-1.5 text-[21px]">Studenius VIP</h3>
               <div className="flex items-baseline gap-1">
                 <span className="text-[32px] font-extrabold">
-                  {billingCycle === "Monthly" ? "₱199" : "₱1,499"}
+                  {billingCycle === "Weekly" ? "₱79" : billingCycle === "Monthly" ? "₱199" : "₱1,499"}
                 </span>
                 <span className="text-[14px] opacity-85 font-semibold">
-                  {billingCycle === "Monthly" ? "/month" : "/year"}
+                  {billingCycle === "Weekly" ? " (7-day pass)" : billingCycle === "Monthly" ? "/month" : "/year"}
                 </span>
               </div>
             </div>

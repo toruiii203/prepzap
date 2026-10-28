@@ -1,1 +1,0 @@
-import{w as t}from"./index-DxKWxI7F.js";async function c(e,s){try{const{error:o}=await t.from("daily_quest_completions").insert({user_id:e,quest_id:s});o&&o.code!=="23505"&&console.error("[quests] failed to log quest:",o)}catch(o){console.error("[quests] catch block:",o)}}export{c as l};
