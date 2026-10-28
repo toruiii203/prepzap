@@ -1,0 +1,82 @@
+[
+  {
+    "width": 320,
+    "height": 844,
+    "theme": "light",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 320,
+    "height": 844,
+    "theme": "dark",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 390,
+    "height": 700,
+    "theme": "light",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 390,
+    "height": 700,
+    "theme": "dark",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 1280,
+    "height": 800,
+    "theme": "light",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 1280,
+    "height": 800,
+    "theme": "dark",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "theme": "light",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "theme": "dark",
+    "result": "passed",
+    "checksPersisted": false,
+    "roomQueriesOnArena": 0
+  }
+]
