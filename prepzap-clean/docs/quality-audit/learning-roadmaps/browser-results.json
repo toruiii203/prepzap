@@ -1,0 +1,74 @@
+[
+  {
+    "width": 320,
+    "height": 844,
+    "theme": "light",
+    "passed": true,
+    "generationRequests": 6,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  },
+  {
+    "width": 320,
+    "height": 844,
+    "theme": "dark",
+    "passed": true,
+    "generationRequests": 5,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  },
+  {
+    "width": 390,
+    "height": 700,
+    "theme": "light",
+    "passed": true,
+    "generationRequests": 5,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  },
+  {
+    "width": 390,
+    "height": 700,
+    "theme": "dark",
+    "passed": true,
+    "generationRequests": 5,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  },
+  {
+    "width": 1280,
+    "height": 800,
+    "theme": "light",
+    "passed": true,
+    "generationRequests": 5,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  },
+  {
+    "width": 1280,
+    "height": 800,
+    "theme": "dark",
+    "passed": true,
+    "generationRequests": 5,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "theme": "light",
+    "passed": true,
+    "generationRequests": 5,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "theme": "dark",
+    "passed": true,
+    "generationRequests": 5,
+    "storage": "real IndexedDB",
+    "data": "fixture responses; actual local file extraction"
+  }
+]
