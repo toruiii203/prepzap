@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Mascot } from "@/components/Mascot";
 import "@/styles/study-path-motion.css";
 import React, { useState, useEffect } from "react";
@@ -10,6 +11,8 @@ import {
   markNodeCompleted, 
   setCurrentLessonNodeId 
 } from "@/lib/studyPathStorage";
+
+const TopicGuidebook = lazy(()=>import("@/components/guidebook/TopicGuidebook").then(module=>({default:module.TopicGuidebook})));
 
 export interface PathNode {
   id: string;
@@ -85,6 +88,8 @@ export function StudyPathMap({
   onSelectNode,
   navigate,
 }: StudyPathMapProps) {
+  const [guideOpen,setGuideOpen] = useState(false);
+  const [guideVisited,setGuideVisited] = useState(false);
   const [selectedNode, setSelectedNode] = useState<PathNode | null>(null);
   const [completedNodeIds, setCompletedNodeIds] = useState<string[]>(() => getCompletedNodeIds());
 
@@ -219,6 +224,7 @@ export function StudyPathMap({
 
   return (
     <div className="border-2 border-black rounded-3xl bg-[#FFFDF5] p-5 sm:p-6 shadow-[3px_3px_0px_#1A1A1A] relative select-none font-['Quicksand',sans-serif]">
+      {guideVisited && <Suspense fallback={guideOpen?<p role="status">Opening guidebook…</p>:null}><TopicGuidebook isOpen={guideOpen} onClose={()=>setGuideOpen(false)} subjectName={subjectName} navigate={navigate}/></Suspense>}
       {/* Unit Banner (Duolingo Header style) */}
       <div className={`bg-[#FFD13B] border-2 border-black rounded-2xl p-4 shadow-[2.5px_2.5px_0px_#000] flex flex-wrap gap-3 items-center justify-between ${isPathCollapsed ? "mb-0" : "mb-6"}`}>
         <div>
@@ -235,7 +241,7 @@ export function StudyPathMap({
             type="button"
             onClick={() => {
               playPop();
-              navigate("/quick-study");
+              setGuideVisited(true);setGuideOpen(true);
             }}
             aria-label="Open Guidebook"
             className="px-3 py-1.5 bg-white hover:bg-black hover:text-white border-2 border-black rounded-xl text-[12px] font-black transition-colors cursor-pointer shadow-[1.5px_1.5px_0px_#000] flex items-center gap-1.5 active:translate-y-0.5"
