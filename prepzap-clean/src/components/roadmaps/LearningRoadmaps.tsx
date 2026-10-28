@@ -337,7 +337,6 @@ function AccountRoadmaps({
     >
       <header className="rm-dashboard-heading">
         <div>
-          <p className="rm-eyebrow">One idea, step by step</p>
           <h2>Your learning roadmaps</h2>
         </div>
         <button
@@ -440,12 +439,6 @@ function AccountRoadmaps({
       >
         Restore a roadmap backup
       </button>
-      <p className="rm-device-note">
-        <span className="material-symbols-outlined" aria-hidden="true">
-          devices
-        </span>
-        Saved on this device for your account. Export a backup from a roadmap.
-      </p>
       <Dialog.Root
         open={open}
         onOpenChange={(value) => {

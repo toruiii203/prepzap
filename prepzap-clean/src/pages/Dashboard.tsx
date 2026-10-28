@@ -783,7 +783,7 @@ function DashboardHeader({
           {getLocalGreeting()}, {displayName}.
         </h2>
         <p className="text-[13px] md:text-[14px] font-bold text-black/60 mt-0.5">
-          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} &bull; Daily Study Hub
+          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
         </p>
       </div>
 

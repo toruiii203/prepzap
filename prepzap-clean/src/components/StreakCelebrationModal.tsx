@@ -108,27 +108,19 @@ export function StreakCelebrationModal({
   const content = (
     <div className="w-full max-w-[380px] mx-auto flex flex-col items-center gap-4 py-2 font-['Nunito',sans-serif] select-none">
       {/* Top Bar with optional Close */}
-      {!isEmbedded && (
-        <div className="w-full flex items-center justify-between mb-1">
-          {onClose ? (
-            <button
-              type="button"
-              onClick={() => {
-                playPop();
-                onClose();
-              }}
-              className="w-11 h-11 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-[14px] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000]"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          ) : (
-            <div className="w-8 h-8" />
-          )}
-          <span className="text-[11px] font-black uppercase tracking-wider text-black/50">
-            Daily Commitment
-          </span>
-          <div className="w-8 h-8" />
+      {!isEmbedded && onClose && (
+        <div className="w-full flex items-center justify-start mb-1">
+          <button
+            type="button"
+            onClick={() => {
+              playPop();
+              onClose();
+            }}
+            className="w-11 h-11 rounded-full border-2 border-black bg-white flex items-center justify-center font-black text-[14px] hover:bg-black hover:text-white transition-colors cursor-pointer shadow-[1px_1px_0px_#000]"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
       )}
 
