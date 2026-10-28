@@ -1518,3 +1518,158 @@
   font-weight: 900;
   box-shadow: 0 2px 0 #000;
 }
+
+
+/* =========================================================
+   Resume Hero & Outline Banner (Memory & Instant CTA)
+   ========================================================= */
+.rm-resume-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: #fff;
+  border: 2px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+.rm-resume-mascot {
+  flex-shrink: 0;
+}
+.rm-resume-content {
+  flex: 1;
+  min-width: 0;
+}
+.rm-resume-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #d97706;
+  margin-bottom: 4px;
+}
+.rm-resume-eyebrow .material-symbols-outlined {
+  font-size: 16px;
+}
+.rm-resume-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #111;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rm-resume-subtitle {
+  font-size: 13px;
+  color: #555;
+  margin: 0 0 8px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rm-resume-progress-bar {
+  width: 100%;
+  max-width: 240px;
+  height: 8px;
+  background: #e5e7eb;
+  border: 1px solid #000;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.rm-resume-progress-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+.rm-resume-btn {
+  background: #10b981 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  border: 2px solid #000 !important;
+  box-shadow: 3px 3px 0px #000 !important;
+  border-radius: 12px !important;
+  padding: 10px 18px !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.rm-resume-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000 !important;
+}
+
+.rm-outline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #fff9e6;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0px #000;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin: 0 0 20px 0;
+  flex-wrap: wrap;
+}
+.rm-outline-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 240px;
+}
+.rm-outline-banner-text .rm-banner-icon {
+  font-size: 28px;
+  color: #d97706;
+  flex-shrink: 0;
+}
+.rm-outline-banner-text strong {
+  display: block;
+  font-size: 15px;
+  color: #111;
+}
+.rm-outline-banner-text span {
+  display: block;
+  font-size: 13px;
+  color: #555;
+}
+.rm-btn-save-roadmap {
+  background: #10b981 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  border: 2px solid #000 !important;
+  box-shadow: 3px 3px 0px #000 !important;
+  border-radius: 12px !important;
+  padding: 10px 20px !important;
+  white-space: nowrap;
+}
+.rm-btn-save-roadmap:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000 !important;
+}
+
+@media (max-width: 640px) {
+  .rm-resume-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .rm-resume-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .rm-outline-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .rm-btn-save-roadmap {
+    width: 100%;
+    justify-content: center;
+  }
+}

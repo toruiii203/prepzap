@@ -24,6 +24,182 @@ async function generate(prompt: string, tokens: number) {
   });
   return safeParseJSON<unknown>(raw);
 }
+
+export function sanitizeGeneratedOutline(
+  raw: any,
+  source?: RoadmapSource,
+  fallbackTopic = "Learning Roadmap"
+): any {
+  if (!raw || typeof raw !== "object") {
+    raw = {};
+  }
+  let title = typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : (source?.name ? source.name.replace(/\.[^/.]+$/, "") : fallbackTopic);
+  if (title.length > 120) title = title.slice(0, 117) + "...";
+  if (title.length < 3) title = title + " Roadmap";
+
+  let summary = typeof raw.summary === "string" && raw.summary.trim() ? raw.summary.trim() : "Comprehensive step-by-step learning roadmap.";
+  if (summary.length > 500) summary = summary.slice(0, 497) + "...";
+  if (summary.length < 3) summary = "A structured step-by-step roadmap to master key concepts.";
+
+  let prerequisites = Array.isArray(raw.prerequisites) ? raw.prerequisites : [];
+  const INVALID_PREREQS = new Set(["n/a", "none", "nil", "none.", "no prerequisites", "not applicable", "n / a"]);
+  prerequisites = prerequisites
+    .filter(
+      (p: unknown) =>
+        typeof p === "string" &&
+        p.trim().length >= 3 &&
+        !INVALID_PREREQS.has(p.trim().toLowerCase())
+    )
+    .map((p: string) => (p.length > 200 ? p.slice(0, 197) + "..." : p.trim()))
+    .slice(0, 5);
+
+  let rawUnits = Array.isArray(raw.units) ? raw.units : [];
+  if (rawUnits.length < 3) {
+    while (rawUnits.length < 3) {
+      const idx = rawUnits.length + 1;
+      rawUnits.push({
+        title: `Chapter ${idx}: Core Concepts`,
+        objective: `Understand and apply key ideas from chapter ${idx}`,
+        kind: idx === 3 ? "synthesis" : "foundation",
+        evidence: [],
+      });
+    }
+  } else if (rawUnits.length > 8) {
+    rawUnits = rawUnits.slice(0, 8);
+  }
+
+  const usedTitles = new Set<string>();
+  const units = rawUnits.map((unit: any, idx: number) => {
+    let uTitle = typeof unit?.title === "string" && unit.title.trim() ? unit.title.trim() : `Chapter ${idx + 1}`;
+    if (uTitle.length > 120) uTitle = uTitle.slice(0, 117) + "...";
+    if (uTitle.length < 3) uTitle = `${uTitle} Part ${idx + 1}`;
+    let lower = uTitle.toLowerCase();
+    if (usedTitles.has(lower)) {
+      uTitle = `${uTitle} (${idx + 1})`;
+      lower = uTitle.toLowerCase();
+    }
+    usedTitles.add(lower);
+
+    let objective = typeof unit?.objective === "string" && unit.objective.trim() ? unit.objective.trim() : `Master the fundamental techniques of ${uTitle}`;
+    if (objective.length > 350) objective = objective.slice(0, 347) + "...";
+    if (objective.length < 3) objective = `Learn and apply ${uTitle} concepts`;
+
+    let kind = typeof unit?.kind === "string" ? unit.kind.toLowerCase().trim() : "foundation";
+    if (!["foundation", "application", "synthesis"].includes(kind)) {
+      kind = idx === rawUnits.length - 1 ? "synthesis" : idx === 0 ? "foundation" : "application";
+    }
+
+    let evidence: string[] = [];
+    if (Array.isArray(unit?.evidence)) {
+      evidence = unit.evidence.filter((e: unknown) => typeof e === "string" && e.trim().length >= 10);
+    } else if (typeof unit?.evidence === "string" && unit.evidence.trim().length >= 10) {
+      evidence = [unit.evidence.trim()];
+    }
+
+    if (source && source.text) {
+      const validQuotes: string[] = [];
+      for (const q of evidence) {
+        const trimmed = q.trim();
+        if (source.text.includes(trimmed)) {
+          if (trimmed.length >= 12 && trimmed.length <= 300) {
+            validQuotes.push(trimmed);
+          } else if (trimmed.length > 300) {
+            const shortQ = trimmed.slice(0, 200).trim();
+            if (source.text.includes(shortQ)) validQuotes.push(shortQ);
+          }
+        } else {
+          // Normalize whitespace to find exact substring in source.text
+          const cleanQ = trimmed.replace(/\s+/g, " ");
+          const cleanSource = source.text.replace(/\s+/g, " ");
+          const matchPos = cleanSource.indexOf(cleanQ);
+          if (matchPos !== -1) {
+            const exactSub = source.text.slice(matchPos, matchPos + Math.min(trimmed.length, 250)).trim();
+            if (exactSub.length >= 12 && exactSub.length <= 300 && source.text.includes(exactSub)) {
+              validQuotes.push(exactSub);
+            }
+          }
+        }
+      }
+
+      // If no quote matched source, extract a guaranteed valid snippet from source
+      if (validQuotes.length === 0) {
+        const sentences = source.text
+          .split(/[.\n\r]+/)
+          .map((s) => s.trim())
+          .filter((s) => s.length >= 15 && s.length <= 150 && source.text.includes(s));
+        if (sentences.length > 0) {
+          validQuotes.push(sentences[idx % sentences.length]);
+        } else {
+          const start = Math.min(idx * 80, Math.max(0, source.text.length - 80));
+          const chunk = source.text.slice(start, start + 60).trim();
+          if (chunk.length >= 12 && source.text.includes(chunk)) {
+            validQuotes.push(chunk);
+          }
+        }
+      }
+      evidence = validQuotes.slice(0, 3);
+    } else {
+      evidence = [];
+    }
+
+    return {
+      title: uTitle,
+      objective,
+      kind,
+      evidence,
+    };
+  });
+
+  // Enforce synthesis on last chapter
+  if (units.length > 0) {
+    units[units.length - 1].kind = "synthesis";
+  }
+
+  return {
+    title,
+    summary,
+    prerequisites,
+    units,
+  };
+}
+
+export function sanitizeGeneratedLesson(raw: any, source?: RoadmapSource): any {
+  if (!raw || typeof raw !== "object") raw = {};
+  if (source && source.text) {
+    let evidence: string[] = [];
+    if (Array.isArray(raw.evidence)) {
+      evidence = raw.evidence.filter((e: unknown) => typeof e === "string" && e.trim().length >= 10);
+    } else if (typeof raw.evidence === "string" && raw.evidence.trim().length >= 10) {
+      evidence = [raw.evidence.trim()];
+    }
+    const validQuotes: string[] = [];
+    for (const q of evidence) {
+      const trimmed = q.trim();
+      if (source.text.includes(trimmed) && trimmed.length >= 12 && trimmed.length <= 300) {
+        validQuotes.push(trimmed);
+      }
+    }
+    if (validQuotes.length === 0) {
+      const sentences = source.text
+        .split(/[.\n\r]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length >= 15 && s.length <= 150 && source.text.includes(s));
+      if (sentences.length > 0) {
+        validQuotes.push(sentences[0]);
+      } else {
+        const chunk = source.text.slice(0, Math.min(60, source.text.length)).trim();
+        if (chunk.length >= 12 && source.text.includes(chunk)) {
+          validQuotes.push(chunk);
+        }
+      }
+    }
+    raw.evidence = validQuotes.slice(0, 3);
+  } else {
+    raw.evidence = [];
+  }
+  return raw;
+}
+
 export async function generateRoadmap(
   topic: string,
   focus: string,
