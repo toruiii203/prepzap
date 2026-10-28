@@ -13,7 +13,7 @@ export const outlineSchema = z
           title: text.max(120),
           objective: text.max(350),
           kind: z.enum(["foundation", "application", "synthesis"]),
-          evidence: z.array(quote).max(3),
+          evidence: z.array(quote).max(3).default([]),
         }),
       )
       .min(3)
@@ -49,7 +49,7 @@ export const lessonSchema = z
     explanation: text.min(350),
     example: z.object({ problem: text, steps: z.array(text).min(2).max(6) }),
     commonMistake: text,
-    evidence: z.array(quote).max(3),
+    evidence: z.array(quote).max(3).default([]),
     guided: z.array(questionSchema).length(2),
     practice: z.array(questionSchema).length(2),
     recall: z
@@ -164,7 +164,7 @@ export function unitStatus(
   if (progress.read) return "Practising";
   return "Learning";
 }
-export function validateEvidence(quotes: string[], source?: RoadmapSource) {
+export function validateEvidence(quotes: string[] = [], source?: RoadmapSource) {
   if (
     source &&
     (!quotes.length || quotes.some((item) => !source.text.includes(item)))

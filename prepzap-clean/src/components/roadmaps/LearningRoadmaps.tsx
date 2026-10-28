@@ -49,6 +49,7 @@ function AccountRoadmaps({
   ownerId: string;
   subjectName: string;
 }) {
+  const [selectedDrawerUnit, setSelectedDrawerUnit] = useState<number | null>(null);
   const [paths, setPaths] = useState<SavedRoadmap[]>([]),
     [loading, setLoading] = useState(true),
     [open, setOpen] = useState(false),
@@ -566,49 +567,114 @@ function AccountRoadmaps({
                         Check important details against the original.
                       </p>
                     )}
-                    <ol className="rm-topic-path" aria-label="Topic chapters">
-                      {active.outline.units.map((chapter, i) => {
-                        const status = unitStatus(
-                          active.lessons[String(i)],
-                          active.progress[String(i)],
-                        );
-                        return (
-                          <li key={i} data-started={status !== "Not started"}>
-                            <button
-                              className="rm-path-node"
-                              aria-label={`Open chapter ${i + 1}: ${chapter.title}`}
-                              disabled={saving}
-                              onClick={() => void openUnit(i)}
-                            >
-                              {active.progress[String(i)]?.reviewedAt ? (
-                                <span
-                                  className="material-symbols-outlined"
-                                  aria-hidden="true"
-                                >
-                                  check
-                                </span>
-                              ) : (
-                                i + 1
+                    {/* Exam countdown and mastery header */}
+                    {(() => {
+                      const doneCount = active.outline.units.filter(
+                        (_, idx) => active.progress[String(idx)]?.reviewedAt || active.progress[String(idx)]?.readyAt || active.progress[String(idx)]?.read
+                      ).length;
+                      const pct = Math.round((doneCount / active.outline.units.length) * 100);
+                      return (
+                        <div className="rm-exam-header" role="region" aria-label="Roadmap progress">
+                          <div className="rm-exam-stats">
+                            <span>Exam in 90 days · Grade Goal: 1.00</span>
+                            <strong>{pct}% Complete</strong>
+                          </div>
+                          <div className="rm-exam-progress-bar" aria-hidden="true">
+                            <div className="rm-exam-progress-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Winding serpentine path */}
+                    <div className="rm-serpentine-container">
+                      <ol className="rm-serpentine-list" aria-label="Topic chapters">
+                        {active.outline.units.map((chapter, i) => {
+                          const isDone = Boolean(active.progress[String(i)]?.reviewedAt || active.progress[String(i)]?.readyAt || active.progress[String(i)]?.read);
+                          const isCurrentActive = !isDone && (i === 0 || Boolean(active.progress[String(i - 1)]?.read));
+                          const align = ['center', 'left', 'center', 'right'][i % 4];
+                          const kindIcon = chapter.kind === 'foundation' ? 'mic' : chapter.kind === 'application' ? 'edit_note' : 'emoji_events';
+
+                          return (
+                            <li key={i} className="rm-serpentine-item" data-align={align}>
+                              {isCurrentActive && (
+                                <div className="rm-node-companion" aria-hidden="true">
+                                  <Mascot mood="encouraging" size="xs" />
+                                  <div className="rm-node-speech-bubble">Start!</div>
+                                </div>
                               )}
-                            </button>
-                            <div>
-                              <p className="rm-eyebrow">{status}</p>
                               <button
-                                className="rm-path-title"
-                                onClick={() => void openUnit(i)}
+                                className="rm-node-btn"
+                                data-state={isDone ? 'completed' : isCurrentActive ? 'active' : 'upcoming'}
+                                aria-label={`Open chapter ${i + 1}: ${chapter.title}`}
                                 disabled={saving}
+                                onClick={() => setSelectedDrawerUnit(i)}
                               >
-                                {chapter.title}
+                                <span className="material-symbols-outlined rm-node-icon" aria-hidden="true">
+                                  {isDone ? 'check' : kindIcon}
+                                </span>
                               </button>
-                              <p>{chapter.objective}</p>
-                              {status === "Not started" && (
-                                <small>Lesson prepared when opened</small>
-                              )}
+                              <div className="rm-node-label">
+                                <strong>{chapter.title}</strong>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </div>
+
+                    {/* Node Inspector Drawer */}
+                    {selectedDrawerUnit !== null && (
+                      <>
+                        <div
+                          className="rm-drawer-overlay"
+                          onClick={() => setSelectedDrawerUnit(null)}
+                          aria-hidden="true"
+                        />
+                        <div className="rm-node-drawer" role="dialog" aria-label="Chapter Preview">
+                          <div className="rm-drawer-handle" aria-hidden="true" />
+                          <div className="rm-drawer-header">
+                            <span className="rm-drawer-tag">
+                              {active.outline.units[selectedDrawerUnit].kind === 'foundation' ? '🎙️ Socratic Recall' : active.outline.units[selectedDrawerUnit].kind === 'application' ? '📄 Application Check' : '👑 Boss Synthesis'}
+                            </span>
+                            <button
+                              className="rm-icon-button"
+                              onClick={() => setSelectedDrawerUnit(null)}
+                              aria-label="Dismiss preview"
+                            >
+                              ×
+                            </button>
+                          </div>
+                          <h3 className="rm-drawer-title">
+                            {active.outline.units[selectedDrawerUnit].title}
+                          </h3>
+                          <p className="rm-drawer-desc">
+                            {active.outline.units[selectedDrawerUnit].objective}
+                          </p>
+                          <div className="rm-drawer-stats">
+                            <div className="rm-stat-chip">
+                              <span className="material-symbols-outlined" aria-hidden="true">bolt</span>
+                              <span>⚡ 3 min sprint</span>
                             </div>
-                          </li>
-                        );
-                      })}
-                    </ol>
+                            <div className="rm-stat-chip">
+                              <span className="material-symbols-outlined" aria-hidden="true">eco</span>
+                              <span>🌱 +35 XP</span>
+                            </div>
+                          </div>
+                          <SpringButton
+                            className="rm-drawer-cta"
+                            disabled={saving}
+                            onClick={() => {
+                              const idx = selectedDrawerUnit;
+                              setSelectedDrawerUnit(null);
+                              void openUnit(idx);
+                            }}
+                          >
+                            Start Chapter <span aria-hidden="true">→</span>
+                          </SpringButton>
+                        </div>
+                      </>
+                    )}
                     <div className="rm-manage">
                       <button
                         className="rm-secondary"

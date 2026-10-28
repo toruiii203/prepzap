@@ -30,8 +30,9 @@ export interface GroqMessage {
 // Strips markdown fences, extracts the first JSON object or array,
 // and throws a clear error if nothing parseable is found.
 export function safeParseJSON<T = unknown>(raw: string): T {
-  // 1. Strip code fences
-  const clean = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  // 1. Strip code fences (both complete ```json ... ``` and unclosed ```)
+  let clean = raw.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, "$1").trim();
+  clean = clean.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim();
 
   // 2. Try to extract a JSON object or array by finding the outermost brackets
   let jsonStr = clean;
@@ -55,19 +56,104 @@ export function safeParseJSON<T = unknown>(raw: string): T {
     jsonStr = clean.substring(firstBracket, lastBracket + 1);
   }
 
+  // Fast path: standard parse
   try {
     return JSON.parse(jsonStr) as T;
-  } catch (err) {
-    // Fallback: Fix unescaped LaTeX backslashes which frequently break JSON parsing
-    // Replaces single backslashes not followed by a quote or another backslash
-    try {
-      const fixedStr = jsonStr.replace(/(?<!\\)\\(?!["\\])/g, '\\\\');
-      return JSON.parse(fixedStr) as T;
-    } catch (innerErr) {
-      console.error("[safeParseJSON] Failed to parse. Raw response:", raw);
-      console.error("[safeParseJSON] Even after backslash fix. Error:", innerErr);
-      throw new Error("AI returned malformed JSON. Please try again.");
+  } catch {
+    // Proceed to repair pipeline
+  }
+
+  // Pipeline Step 1: Fix common syntax quirks from LLM tokenizers
+  let s = jsonStr;
+  // A. Strip comments
+  s = s.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  // B. Unclosed property key quote before colon: e.g. "evidence:[] -> "evidence":[]
+  s = s.replace(/"([a-zA-Z0-9_$]+)\s*:/g, '"$1":');
+  // C. Unquoted property keys: e.g. { title: "foo" } -> { "title": "foo" }
+  s = s.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
+  // D. Trailing commas before closing braces/brackets
+  s = s.replace(/,\s*([}\]])/g, "$1");
+  // E. Fix unescaped LaTeX backslashes which frequently break JSON parsing
+  s = s.replace(/(?<!\\)\\(?!["\\/])/g, "\\\\");
+
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    // Pipeline Step 2: Escape literal unescaped control chars inside string literals
+  }
+
+  const chars: string[] = [];
+  let inString = false;
+  let isEscaped = false;
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+    if (char === '"' && !isEscaped) {
+      inString = !inString;
+      chars.push(char);
+    } else if (inString) {
+      if (char === "\\") {
+        isEscaped = !isEscaped;
+        chars.push(char);
+      } else {
+        isEscaped = false;
+        if (char === "\n") chars.push("\\n");
+        else if (char === "\r") chars.push("\\r");
+        else if (char === "\t") chars.push("\\t");
+        else if (char === "\b") chars.push("\\b");
+        else if (char === "\f") chars.push("\\f");
+        else if (char.charCodeAt(0) < 32) {
+          chars.push("\\u" + char.charCodeAt(0).toString(16).padStart(4, "0"));
+        } else {
+          chars.push(char);
+        }
+      }
+    } else {
+      isEscaped = false;
+      chars.push(char);
     }
+  }
+  s = chars.join("");
+
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    // Pipeline Step 3: Repair truncated JSON using delimiter stack
+  }
+
+  try {
+    const stack: string[] = [];
+    inString = false;
+    isEscaped = false;
+    for (let i = 0; i < s.length; i++) {
+      const char = s[i];
+      if (char === '"' && !isEscaped) {
+        inString = !inString;
+      } else if (!inString) {
+        if (char === "{") stack.push("}");
+        else if (char === "[") stack.push("]");
+        else if (char === "}" || char === "]") {
+          if (stack.length && stack[stack.length - 1] === char) {
+            stack.pop();
+          }
+        }
+      } else if (char === "\\") {
+        isEscaped = !isEscaped;
+        continue;
+      }
+      isEscaped = false;
+    }
+
+    let completed = s;
+    if (inString) completed += '"';
+    completed = completed.replace(/,\s*$/, "").replace(/:\s*$/, ": null");
+    while (stack.length > 0) {
+      completed += stack.pop();
+    }
+    return JSON.parse(completed) as T;
+  } catch (innerErr) {
+    console.error("[safeParseJSON] Failed to parse. Raw response:", raw);
+    console.error("[safeParseJSON] Even after repair pipeline. Error:", innerErr);
+    throw new Error("AI returned malformed JSON. Please try again.");
   }
 }
 

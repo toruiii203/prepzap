@@ -1,0 +1,1 @@
+class m extends Error{constructor(e="Request timed out"){super(e),this.name="TimeoutError"}}function n(r,e=8e3,s="request"){return new Promise((u,o)=>{const i=setTimeout(()=>{o(new m(`${s} timed out after ${e}ms`))},e);Promise.resolve(r).then(t=>{clearTimeout(i),u(t)},t=>{clearTimeout(i),o(t)})})}export{n as w};

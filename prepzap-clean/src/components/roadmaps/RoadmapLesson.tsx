@@ -1,3 +1,4 @@
+import { SocraticLessonSession } from "./SocraticLessonSession";
 import { useEffect, useRef, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { SpringButton } from "@/components/ui/SpringButton";
