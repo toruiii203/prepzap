@@ -161,7 +161,7 @@ export function PeekingRexCompanion() {
               onClick={() => {
                 playSuccess();
                 setIsOpen(false);
-                navigate("/call");
+                navigate("/teach-it?mode=voice");
               }}
               className="p-2.5 bg-white hover:bg-[#FFE566] border-2 border-black rounded-xl text-left shadow-[2px_2px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer flex flex-col gap-0.5"
             >

@@ -603,7 +603,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
 
   const handleMic = () => {
     playSuccess();
-    navigate("/call");
+    navigate("/teach-it?mode=voice");
   };
 
   return (
