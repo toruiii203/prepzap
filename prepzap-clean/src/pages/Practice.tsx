@@ -154,7 +154,7 @@ function generateScaffold(question: Question): string {
     return `First-letter clue: ${maskedWords.join("   ")} (${raw.length} chars)`;
   } else {
     if (question.hint) {
-      return `Rex Hint: ${question.hint}`;
+      return `Pip Hint: ${question.hint}`;
     }
     if (question.explanation) {
       const firstSentence = question.explanation.split(". ")[0];
@@ -1505,7 +1505,7 @@ Each object MUST match this schema exactly:
                           <div className="mb-4 bg-[#FFF9E6] border-[2px] border-black p-3.5 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000] flex items-start gap-2.5">
                             <span className="material-symbols-outlined text-[#F5A623] text-[20px] shrink-0">psychology</span>
                             <div>
-                              <span className="text-[#B45309] text-[10px] font-black uppercase tracking-wider block mb-0.5">Rex Recall Scaffolding</span>
+                              <span className="text-[#B45309] text-[10px] font-black uppercase tracking-wider block mb-0.5">Pip Recall Scaffolding</span>
                               <p className="text-black font-extrabold tracking-wide">{currentItem.scaffoldHint}</p>
                             </div>
                           </div>
@@ -1927,7 +1927,7 @@ Each object MUST match this schema exactly:
 
                     {currentItem.isReTest && currentItem.scaffoldHint && (
                       <div className="mb-3 bg-[#FFF9E6] border border-black p-2.5 rounded-lg text-[12px] font-bold">
-                        <span className="text-[#B45309] text-[10px] font-black uppercase block">Rex Recall Scaffolding</span>
+                        <span className="text-[#B45309] text-[10px] font-black uppercase block">Pip Recall Scaffolding</span>
                         {currentItem.scaffoldHint}
                       </div>
                     )}

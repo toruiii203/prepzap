@@ -441,7 +441,7 @@ export default function StudentProfile() {
               {activeTab === "tools" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {[
-                    { icon: "forum", label: "AI Tutor", desc: "Rex AI concept breakdown & 24/7 Socratic tutor", route: "/ai-tutor" },
+                    { icon: "forum", label: "AI Tutor", desc: "Pip AI concept breakdown & 24/7 Socratic tutor", route: "/ai-tutor" },
                     { icon: "folder_open", label: "Source Library", desc: "Uploaded PDFs, slides, and syllabus notes", route: "/sources" },
                     { icon: "timer", label: "Focus Timer", desc: "Pomodoro sessions & deep work tracking", route: "/timer" },
                     { icon: "bar_chart", label: "Analytics", desc: "Subject mastery breakdown and quiz accuracy", route: "/analytics" },

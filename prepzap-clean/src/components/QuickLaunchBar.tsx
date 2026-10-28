@@ -57,7 +57,7 @@ const TOOLS: Tool[] = [
   },
   {
     href: "/ai-tutor",
-    label: "Rex Tutor",
+    label: "Pip Tutor",
     icon: "forum",
     color: GOLD,
     prompts: [
@@ -117,7 +117,7 @@ function useRotatingPrompts(tool: Tool) {
 
 export function QuickLaunchBar() {
   const navigate = useNavigate()
-  const [activeTool, setActiveTool] = useState<Tool>(TOOLS[3]) // Rex Tutor default
+  const [activeTool, setActiveTool] = useState<Tool>(TOOLS[3]) // Pip Tutor default
   const [inputVal, setInputVal] = useState("")
   const [focused, setFocused] = useState(false)
   const [animate, setAnimate] = useState(false)

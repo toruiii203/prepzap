@@ -188,7 +188,7 @@ function MessageThread({ messages, isLoading, messagesEndRef, foxImg, onShareToV
         <div key={i} className={`flex max-w-[90%] gap-3 ${msg.sender === "user" ? "self-end flex-row-reverse" : "self-start flex-row"}`}>
           {msg.sender === "bot" && foxImg && (
             <div className="w-10 h-10 shrink-0 border-2 border-black rounded-xl overflow-hidden bg-white shadow-[2px_2px_0px_#000]">
-              <img src={foxImg} alt="Rex" className="w-full h-full object-cover" />
+              <img src={foxImg} alt="Pip" className="w-full h-full object-cover" />
             </div>
           )}
           <div className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
@@ -203,14 +203,14 @@ function MessageThread({ messages, isLoading, messagesEndRef, foxImg, onShareToV
               }
             </div>
             <div className="flex items-center justify-between w-full mt-1 px-1">
-              <span className="text-[10px] font-bold text-black/40">{msg.sender === "user" ? "You" : "Rex"}</span>
+              <span className="text-[10px] font-bold text-black/40">{msg.sender === "user" ? "You" : "Pip"}</span>
               {msg.sender === "bot" && (
                 <button
                   type="button"
                   onClick={() => onShareToVault?.(msg, i)}
                   disabled={sharingIndex === i}
                   className="flex items-center gap-1 px-2 py-0.5 rounded border border-black bg-[#FAF7F2] hover:bg-[#10B981] hover:text-white text-black font-extrabold text-[10.5px] transition-colors shadow-xs active:translate-y-0.5 cursor-pointer ml-3"
-                  title="Rex cleans, scrubs, and saves this explanation as an anonymous Study Vault note"
+                  title="Pip cleans, scrubs, and saves this explanation as an anonymous Study Vault note"
                 >
                   <span className={`material-symbols-outlined text-[13px] ${sharingIndex === i ? "animate-spin" : ""}`}>
                     {sharingIndex === i ? "autorenew" : sharedIndexes?.has(i) ? "check_circle" : "local_library"}
@@ -228,13 +228,13 @@ function MessageThread({ messages, isLoading, messagesEndRef, foxImg, onShareToV
         <div className="flex max-w-[80%] self-start gap-3">
           {foxImg && (
             <div className="w-10 h-10 shrink-0 border-2 border-black rounded-xl overflow-hidden bg-white shadow-[2px_2px_0px_#000]">
-              <img src={foxImg} alt="Rex" className="w-full h-full object-cover" />
+              <img src={foxImg} alt="Pip" className="w-full h-full object-cover" />
             </div>
           )}
           <div className="flex flex-col items-start">
             <div className="p-3 rounded-xl border-2 border-black bg-white shadow-[3px_3px_0px_#000] flex items-center gap-2">
               <span className="material-symbols-outlined animate-spin text-[#ae2925] text-[18px]">autorenew</span>
-              <span className="text-[13px] font-bold">Rex is thinking...</span>
+              <span className="text-[13px] font-bold">Pip is thinking...</span>
             </div>
           </div>
         </div>
@@ -286,7 +286,7 @@ function HistoryPanel({ sessions, currentId, onLoad, onNew, onDelete }: HistoryP
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-10 gap-3">
             <span className="material-symbols-outlined text-[40px] text-black/20">chat_bubble</span>
-            <p className="text-[12px] font-bold text-black/30">No conversations yet.<br />Start asking Rex something!</p>
+            <p className="text-[12px] font-bold text-black/30">No conversations yet.<br />Start asking Pip something!</p>
           </div>
         ) : sorted.map((s) => (
           <div key={s.id}
@@ -691,12 +691,12 @@ export default function AITutor() {
         }).filter((entry: string | null) => entry !== null).join("\n\n");
       }
 
-      let systemInstruction = "You are Rex AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. When explaining a concept: (1) start with the core idea in one plain sentence before any formatting, (2) explain WHY it works or matters, not just what it is, (3) give one concrete example or walk through a mini-scenario, (4) if source material is attached, use it as raw material to teach from — do not restate its structure, headers, or bullet points back to the student. Reserve heavy bullet-point formatting for lists of distinct items, not for explaining a single concept. End with a short question checking whether the explanation landed, or what part to go deeper on. Use markdown sparingly and only where it aids clarity.";
-      if (activeMode === "ELI5") systemInstruction = "You are Rex AI. Explain concepts to a 5-year old. Use simple analogies, short sentences, and a warm tone. Avoid jargon entirely.";
-      else if (activeMode === "Analogy") systemInstruction = "You are Rex AI. Explain the topic by creating a vivid, memorable analogy (e.g. comparing it to a factory, kitchen, or engine).";
-      else if (activeMode === "Quiz Me") systemInstruction = "You are Rex AI. Ask a challenging single-question multiple-choice quiz related to the user's prompt. Provide options A, B, C, D and wait for them to answer.";
-      else if (activeMode === "Devil's Advocate") systemInstruction = "You are Rex AI. Challenge the user's view Socratically. Politely expose logical gaps or steel-man the opposing side to deepen their understanding.";
-      else if (activeMode === "Summarize") systemInstruction = "You are Rex AI. Provide a high-yield bulleted cheat-sheet summary. Highlight vocabulary, main formulas, and key processes clearly.";
+      let systemInstruction = "You are Pip AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. When explaining a concept: (1) start with the core idea in one plain sentence before any formatting, (2) explain WHY it works or matters, not just what it is, (3) give one concrete example or walk through a mini-scenario, (4) if source material is attached, use it as raw material to teach from — do not restate its structure, headers, or bullet points back to the student. Reserve heavy bullet-point formatting for lists of distinct items, not for explaining a single concept. End with a short question checking whether the explanation landed, or what part to go deeper on. Use markdown sparingly and only where it aids clarity.";
+      if (activeMode === "ELI5") systemInstruction = "You are Pip AI. Explain concepts to a 5-year old. Use simple analogies, short sentences, and a warm tone. Avoid jargon entirely.";
+      else if (activeMode === "Analogy") systemInstruction = "You are Pip AI. Explain the topic by creating a vivid, memorable analogy (e.g. comparing it to a factory, kitchen, or engine).";
+      else if (activeMode === "Quiz Me") systemInstruction = "You are Pip AI. Ask a challenging single-question multiple-choice quiz related to the user's prompt. Provide options A, B, C, D and wait for them to answer.";
+      else if (activeMode === "Devil's Advocate") systemInstruction = "You are Pip AI. Challenge the user's view Socratically. Politely expose logical gaps or steel-man the opposing side to deepen their understanding.";
+      else if (activeMode === "Summarize") systemInstruction = "You are Pip AI. Provide a high-yield bulleted cheat-sheet summary. Highlight vocabulary, main formulas, and key processes clearly.";
 
       // Explicit "make me a reviewer" style requests are a stronger signal
       // than whichever mode pill happens to be selected — most students type
@@ -705,7 +705,7 @@ export default function AITutor() {
       // opposite of what a reviewer needs. Override regardless of active mode.
       const wantsReviewer = /\b(reviewers?|review\s*sheet|cheat\s*sheet|study\s*guide|cram\s*sheet|study\s*sheet)\b/i.test(finalMsg);
       if (wantsReviewer) {
-        systemInstruction = "You are Rex AI. The student wants a REVIEWER: a comprehensive, structured study document, not a conversational explanation. Cover ALL major topics/sections in the attached source material, not just one concept — use the source's own scope as your outline. Organize with clear headings per topic, bullet points for facts and lists, and bold key terms with brief definitions. Include a short 'likely to be asked' section at the end if the material supports it. Do not end with a check-in question — this is a reference document the student will study from, not a back-and-forth turn.";
+        systemInstruction = "You are Pip AI. The student wants a REVIEWER: a comprehensive, structured study document, not a conversational explanation. Cover ALL major topics/sections in the attached source material, not just one concept — use the source's own scope as your outline. Organize with clear headings per topic, bullet points for facts and lists, and bold key terms with brief definitions. Include a short 'likely to be asked' section at the end if the material supports it. Do not end with a check-in question — this is a reference document the student will study from, not a back-and-forth turn.";
       }
 
       if (effectiveContext) {
@@ -787,7 +787,7 @@ export default function AITutor() {
     }
   };
 
-  // Auto-send or populate prompt when arriving from Dashboard "Ask Rex" search bar
+  // Auto-send or populate prompt when arriving from Dashboard "Ask Pip" search bar
   useEffect(() => {
     const promptParam = searchParams.get("prompt");
     if (promptParam && promptParam.trim() && !initialPromptHandled.current) {
@@ -822,7 +822,7 @@ export default function AITutor() {
 
   return (
     <div className="w-full bg-[#FAF7F2] flex flex-col fixed inset-0 z-0" style={{ height: "100dvh", overflow: "hidden" }}>
-      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/ai-tutor"] || []} title="Rex Tutor" />
+      <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/ai-tutor"] || []} title="Pip Tutor" />
       <VaultContributionConsentModal
         isOpen={showVaultConsent}
         onClose={() => setShowVaultConsent(false)}
@@ -850,7 +850,7 @@ export default function AITutor() {
         {/* Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
           <div className="flex items-center gap-4">
-            <span className="text-[22px] font-black tracking-tight">Rex Tutor</span>
+            <span className="text-[22px] font-black tracking-tight">Pip Tutor</span>
             <div className="w-px h-6 bg-black/20" />
             {activeSource ? (
               <div className="flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-[#F0EDE0]">
@@ -875,7 +875,7 @@ export default function AITutor() {
                 onClick={() => handleShareToVault()}
                 disabled={isCleaningChat}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black bg-white hover:bg-[#10B981] hover:text-white text-black font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
-                title="Rex cleans, scrubs, and saves key takeaways from this chat to Study Vault"
+                title="Pip cleans, scrubs, and saves key takeaways from this chat to Study Vault"
               >
                 <span className={`material-symbols-outlined text-[16px] ${isCleaningChat ? "animate-spin" : ""}`}>
                   {isCleaningChat ? "autorenew" : chatSharedToVault ? "check_circle" : "local_library"}
@@ -954,7 +954,7 @@ export default function AITutor() {
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
                   rows={1}
                   className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[15px] py-2.5 px-2 resize-none placeholder:text-black/30 font-medium"
-                  placeholder="Ask Rex anything about your studies..."
+                  placeholder="Ask Pip anything about your studies..."
                   style={{ maxHeight: 120, overflowY: "auto" }}
                 />
                 <button onClick={handleMicClick}

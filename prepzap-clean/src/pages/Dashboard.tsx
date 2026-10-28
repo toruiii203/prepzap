@@ -267,7 +267,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     icon: "forum",
     route: "/ai-tutor",
     topic: "Explain cellular respiration and ATP",
-    actionText: "Ask Rex",
+    actionText: "Ask Pip",
   },
   {
     id: "bio-dna",
@@ -355,7 +355,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     icon: "forum",
     route: "/ai-tutor",
     topic: "Step-by-step redox reaction balancing",
-    actionText: "Ask Rex",
+    actionText: "Ask Pip",
   },
   {
     id: "phys-newton",
@@ -366,7 +366,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     icon: "forum",
     route: "/ai-tutor",
     topic: "Newton's three laws of motion",
-    actionText: "Ask Rex",
+    actionText: "Ask Pip",
   },
   {
     id: "phys-kinematics",
@@ -399,7 +399,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
     icon: "forum",
     route: "/ai-tutor",
     topic: "The American Revolution causes & outcome",
-    actionText: "Ask Rex",
+    actionText: "Ask Pip",
   },
 
   // Tool Direct Actions
@@ -475,7 +475,7 @@ const SEARCH_SUGGESTIONS: SearchQuerySuggestion[] = [
   },
 ];
 
-// ── Persistent "Ask Rex" AI Composer Bar with Smart Query Guessing ──
+// ── Persistent "Ask Pip" AI Composer Bar with Smart Query Guessing ──
 function AskRexBottomBar({ navigate }: { navigate: any }) {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -647,7 +647,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
             }}
             onFocus={() => setIsFocused(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Rex anything or type a topic to practice..."
+            placeholder="Ask Pip anything or type a topic to practice..."
             className="w-full bg-transparent border-none text-[12.5px] md:text-[14px] font-bold text-black outline-none placeholder:text-black/40 relative z-10"
           />
         </div>
@@ -682,7 +682,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
           type="button"
           onClick={handleMic}
           className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#FAF7F2] hover:bg-[#10B981] hover:text-white border-2 border-black flex items-center justify-center text-black shrink-0 transition-colors cursor-pointer shadow-xs"
-          title="Voice Talk with Rex"
+          title="Voice Talk with Pip"
           aria-label="Voice talk"
         >
           <span className="material-symbols-outlined text-[15px] md:text-[17px]" aria-hidden="true">mic</span>
@@ -691,7 +691,7 @@ function AskRexBottomBar({ navigate }: { navigate: any }) {
         <button
           type="submit"
           className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black text-white hover:bg-[#10B981] flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-xs"
-          title="Search or Ask Rex"
+          title="Search or Ask Pip"
           aria-label="Submit search"
         >
           <span className="material-symbols-outlined text-[15px] md:text-[17px]" aria-hidden="true">arrow_forward</span>
@@ -1213,7 +1213,7 @@ export default function Dashboard() {
             {/* Main Hero Column: Search Bar + Study Tools Shelf (Top) + Learning Path Hero */}
             <div className="md:col-span-8 flex flex-col gap-5">
 
-              {/* Persistent "Ask Rex" AI Search Bar with Predictive Query Guessing */}
+              {/* Persistent "Ask Pip" AI Search Bar with Predictive Query Guessing */}
               <AskRexBottomBar navigate={navigate} />
 
               {/* Swipeable Study Tools Carousel (with Hide/Show Arrow) */}

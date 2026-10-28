@@ -67,7 +67,7 @@ ${feedback.strengths.map((s: string) => `- ${s}`).join("\n")}
 ## Identified Knowledge Gaps
 ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
 
-> **Rex's Hint**: ${feedback.hint}
+> **Pip's Hint**: ${feedback.hint}
 `.trim();
 
     shareToStudyVault({
@@ -548,7 +548,7 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
               {loading && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
                   <span className="material-symbols-outlined animate-spin text-[#10B981] text-[40px]">autorenew</span>
-                  <p className="font-bold text-[13px]">Rex is analyzing your explanation...</p>
+                  <p className="font-bold text-[13px]">Pip is analyzing your explanation...</p>
                 </div>
               )}
               {feedback && (
@@ -609,7 +609,7 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
                   <div key={n} className="w-6 h-6 border-2 border-black bg-white flex items-center justify-center text-[10px] font-black">{n}</div>
                 ))}
               </div>
-              <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Rex: Active</span>
+              <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Pip: Active</span>
             </div>
           </aside>
         </div>

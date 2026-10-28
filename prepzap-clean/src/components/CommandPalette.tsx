@@ -105,7 +105,7 @@ export function CommandPalette() {
                 { name: 'Arena Battle', icon: 'sports_esports', route: '/arena' },
                 { name: 'Source Library', icon: 'folder_open', route: '/sources' },
                 { name: 'Study Buddies & Friends', icon: 'groups', route: '/friends' },
-                { name: 'Rex AI Tutor', icon: 'forum', route: '/ai-tutor' },
+                { name: 'Pip AI Tutor', icon: 'forum', route: '/ai-tutor' },
                 { name: 'Study Planner', icon: 'calendar_month', route: '/planner' },
                 { name: 'Math Solver', icon: 'calculate', route: '/math' },
                 { name: 'Mistake Journal', icon: 'auto_stories', route: '/mistakes' },

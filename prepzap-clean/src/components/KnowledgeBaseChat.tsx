@@ -19,7 +19,7 @@ export default function KnowledgeBaseChat({ isOpen = false, onClose }: Knowledge
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Rex is ready. Ask any question based on your notes and study materials!",
+      content: "Pip is ready. Ask any question based on your notes and study materials!",
     },
   ]);
   const [input, setInput] = useState("");
@@ -68,7 +68,7 @@ export default function KnowledgeBaseChat({ isOpen = false, onClose }: Knowledge
         }
       }
 
-      const systemPrompt = `You are Rex Brain, a sharp and friendly AI study tutor built into Studenius. Use the following context extracted from the user's personal notes to answer their questions accurately. If the notes don't contain the answer, you can use your general knowledge, but prioritize the user's notes.\n\nUSER'S NOTES CONTEXT:\n${contextString}`;
+      const systemPrompt = `You are Pip Brain, a sharp and friendly AI study tutor built into Studenius. Use the following context extracted from the user's personal notes to answer their questions accurately. If the notes don't contain the answer, you can use your general knowledge, but prioritize the user's notes.\n\nUSER'S NOTES CONTEXT:\n${contextString}`;
 
       // 3. Call Groq
       const historyToKeep = messages.slice(-10);
@@ -113,7 +113,7 @@ export default function KnowledgeBaseChat({ isOpen = false, onClose }: Knowledge
             </div>
             <div>
               <h3 className="font-black text-[15px] leading-tight text-black flex items-center gap-1.5">
-                Rex Brain Chat
+                Pip Brain Chat
               </h3>
               <p className="text-[10.5px] font-bold text-black/70">Ask across your notes</p>
             </div>
@@ -127,7 +127,7 @@ export default function KnowledgeBaseChat({ isOpen = false, onClose }: Knowledge
                 onClose();
               }}
               className="w-7 h-7 rounded-lg border-2 border-black bg-white hover:bg-black hover:text-white transition-all flex items-center justify-center shadow-[1px_1px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-              title="Close Rex Brain Chat"
+              title="Close Pip Brain Chat"
             >
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
@@ -153,7 +153,7 @@ export default function KnowledgeBaseChat({ isOpen = false, onClose }: Knowledge
               <span className="material-symbols-outlined animate-spin text-[15px] inline-block align-middle mr-1.5">
                 sync
               </span>
-              Rex is searching your notes...
+              Pip is searching your notes...
             </div>
           )}
           <div ref={messagesEndRef} />

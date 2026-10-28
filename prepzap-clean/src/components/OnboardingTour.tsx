@@ -23,8 +23,8 @@ export function OnboardingTour() {
       action: 'Next'
     },
     {
-      title: 'Your Rex Tutor',
-      desc: "Rex is here 24/7 to explain complex topics like you're 5 years old.",
+      title: 'Your Pip Tutor',
+      desc: "Pip is here 24/7 to explain complex topics like you're 5 years old.",
       action: 'Next'
     },
     {

@@ -45,7 +45,7 @@ export function PeekingRexCompanion() {
   const handleOpenCompanion = (e: React.MouseEvent) => {
     playPop(1.1);
     setRexState("excited");
-    triggerXPBurst(e.clientX, e.clientY - 20, "Rex says hi! 🐾", "✨");
+    triggerXPBurst(e.clientX, e.clientY - 20, "Pip says hi!", "✨");
     setIsOpen(true);
     setTimeout(() => setRexState("idle"), 1600);
   };
@@ -88,7 +88,7 @@ export function PeekingRexCompanion() {
             type="button"
             onClick={handleOpenCompanion}
             className="relative bg-[#FFE566] hover:bg-[#FFD13B] border-3 border-black rounded-full p-2.5 shadow-[0px_4px_0px_#000] active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center group-hover:scale-105"
-            title="Chat with Rex Companion"
+            title="Chat with Pip Companion"
           >
             {/* Pulsing Aura */}
             <span className="absolute -inset-1 rounded-full border-2 border-[#FFE566]/60 animate-ping pointer-events-none" />
@@ -120,7 +120,7 @@ export function PeekingRexCompanion() {
                 🐾
               </div>
               <div>
-                <h4 className="text-[14px] font-black text-black leading-tight">Rex Companion</h4>
+                <h4 className="text-[14px] font-black text-black leading-tight">Pip Companion</h4>
                 <p className="text-[10.5px] font-bold text-black/55">Your 24/7 Study Mascot</p>
               </div>
             </div>

@@ -5,7 +5,7 @@ const NAV_LINKS = [
   { href: "/tools", icon: "grid_view", label: "All Tools" },
   { href: "/practice", icon: "assignment", label: "Practice" },
   { href: "/flashcards", icon: "style", label: "Flashcards" },
-  { href: "/ai-tutor", icon: "forum", label: "Rex Tutor" },
+  { href: "/ai-tutor", icon: "forum", label: "Pip Tutor" },
   { href: "/planner", icon: "calendar_month", label: "Study Planner" },
   { href: "/math", icon: "calculate", label: "Math Solver" },
   { href: "/sources", icon: "attach_file", label: "Source Library" },

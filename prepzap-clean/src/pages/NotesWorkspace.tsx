@@ -403,7 +403,7 @@ export default function NotesWorkspace() {
                 className={`w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
                   showBrainChat ? "bg-[#FFD13B] text-black" : "bg-white hover:bg-[#FFD13B] text-black"
                 }`}
-                title="Rex Brain Chat"
+                title="Pip Brain Chat"
               >
                 <span className="material-symbols-outlined text-[17px]">hub</span>
               </button>
@@ -619,10 +619,10 @@ export default function NotesWorkspace() {
                     className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border-2 border-black rounded-lg font-black text-[12px] transition-all shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
                       showBrainChat ? "bg-[#FFD13B] text-black" : "bg-white hover:bg-[#FFD13B] text-black"
                     }`}
-                    title="Rex Brain Chat"
+                    title="Pip Brain Chat"
                   >
                     <span className="material-symbols-outlined text-[16px]">hub</span>
-                    <span className="hidden sm:inline">Rex Brain</span>
+                    <span className="hidden sm:inline">Pip Brain</span>
                   </button>
 
                   <button

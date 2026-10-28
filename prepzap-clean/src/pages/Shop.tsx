@@ -13,7 +13,7 @@ export default function Shop() {
     <div style={{ minHeight: "100vh", background: BG, color: TEXT, fontFamily: "'Nunito', system-ui, sans-serif" }}>
       <main style={{ maxWidth: 920, margin: "0 auto", padding: "28px 16px 120px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <h1 style={{ margin: 0, fontFamily: "'Fredoka One', cursive", fontSize: 30, color: GOLD }}>Fox Shop</h1>
+          <h1 style={{ margin: 0, fontFamily: "'Fredoka One', cursive", fontSize: 30, color: GOLD }}>Pip Shop</h1>
           <Link to="/dashboard" style={{ color: GOLD, fontWeight: 700, textDecoration: "none" }}>Back to Dashboard</Link>
         </div>
 

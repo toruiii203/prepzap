@@ -229,7 +229,7 @@ export default function CallWithRex() {
       const msgs = [{ role: "user" as const, content: finalTranscript }];
       const reply = await callGroq(
         msgs,
-        "You are Rex, an encouraging and concise AI study tutor. The user is speaking to you via voice. Reply in 1-2 short sentences. Do not use emojis, keep it conversational.",
+        "You are Pip, an encouraging and concise AI study tutor. The user is speaking to you via voice. Reply in 1-2 short sentences. Do not use emojis, keep it conversational.",
         undefined,
         150,
         "call_with_rex"
@@ -286,14 +286,14 @@ export default function CallWithRex() {
       <div className="relative z-10 flex items-center justify-between p-6 pt-10 bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full bg-[#10B981] animate-ping" />
-          <h1 className="text-[17px] font-black tracking-wider uppercase">Live Voice with Rex</h1>
+          <h1 className="text-[17px] font-black tracking-wider uppercase">Live Voice with Pip</h1>
         </div>
         <div className="flex items-center gap-2">
           {/* Mute/Unmute Audio Toggle */}
           <button
             type="button"
             onClick={toggleMute}
-            title={isMuted ? "Unmute Rex Voice" : "Mute Rex Voice"}
+            title={isMuted ? "Unmute Pip Voice" : "Mute Pip Voice"}
             className="w-10 h-10 bg-white/15 hover:bg-white/25 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px] text-white">
@@ -323,7 +323,7 @@ export default function CallWithRex() {
                 You (Listening...)
               </span>
               <p className="text-[16px] font-extrabold text-white leading-snug">
-                {transcript || "Speak freely... Rex is listening"}
+                {transcript || "Speak freely... Pip is listening"}
               </p>
             </div>
           )}
@@ -337,7 +337,7 @@ export default function CallWithRex() {
                 </div>
                 <div>
                   <p className="text-black font-black uppercase tracking-wider text-[12px]">
-                    Rex is thinking...
+                    Pip is thinking...
                   </p>
                   <p className="text-black/60 font-bold text-[11px]">Synthesizing your answer</p>
                 </div>
@@ -350,7 +350,7 @@ export default function CallWithRex() {
             <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[6px_6px_0px_#000] animate-in fade-in zoom-in-95 relative">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[#10B981] text-[11px] font-black uppercase tracking-wider">
-                  Rex AI Tutor
+                  Pip AI Tutor
                 </span>
                 {isSpeaking && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#10B981]">
@@ -380,12 +380,12 @@ export default function CallWithRex() {
           />
           <span className="text-[11px] font-bold text-white/50 mt-3 tracking-wide">
             {callState === "listening"
-              ? "Rex is hearing your voice"
+              ? "Pip is hearing your voice"
               : callState === "processing"
-              ? "Rex is processing your concept"
+              ? "Pip is processing your concept"
               : callState === "responding"
-              ? "Rex is speaking"
-              : "Tap Rex or 'Tap to Speak' below"}
+              ? "Pip is speaking"
+              : "Tap Pip or 'Tap to Speak' below"}
           </span>
         </div>
 
@@ -428,7 +428,7 @@ export default function CallWithRex() {
               : callState === "processing"
               ? "Thinking..."
               : callState === "responding"
-              ? "Rex Speaking..."
+              ? "Pip Speaking..."
               : "Tap to Speak"}
           </button>
         </div>
