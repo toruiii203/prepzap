@@ -60,7 +60,7 @@ export default function TeachIt() {
   // Voice & Mascot State
   const [callState, setCallState] = useState<RexState>("idle");
   const [pipSpeech, setPipSpeech] = useState<string>(() =>
-    topic ? `Hi! I'm Pip. I don't know much about ${topic} yet. Teach me like I'm 10 years old!` : "Hi! I'm Pip. Teach me this concept like I'm 10 years old!"
+    topic ? `Hi! I'm Pip. I don't know much about ${topic} yet. Teach me in simple, clear terms!` : "Hi! I'm Pip. Teach me this concept in simple, clear terms!"
   );
   const [isMuted, setIsMuted] = useState(false);
   const [amplitude, setAmplitude] = useState(0);
@@ -238,14 +238,14 @@ export default function TeachIt() {
 
       let guidance = "";
       if (wordsCount < 25) {
-        guidance = `The student has only said ${wordsCount} words (just a bare title or surface summary). DO NOT praise them. DO NOT say "that's so clear" or "you're right". Instead, politely probe: ask them HOW it actually works or what the actual mechanism is, like an inquisitive 10-year-old asking "Wait, but how does that actually happen?"`;
+        guidance = `The student has only said ${wordsCount} words (just a bare title or surface summary). DO NOT praise them. DO NOT say "that's so clear" or "you're right". Instead, politely probe: ask them HOW it actually works or what the actual mechanism is, like an inquisitive learner asking "Wait, but how does that actually happen?"`;
       } else if (wordsCount < 65) {
         guidance = `The student has started explaining the basics (${wordsCount} words). Find ONE confusing word, unexplained step, or abstract concept they mentioned, and ask them to explain it with a concrete everyday analogy. Do not flatter them or say "perfect".`;
       } else {
         guidance = `The student has given a decent explanation (${wordsCount} words). Challenge them on the consequence or edge case: "Wait, so what happens if something goes wrong in this step?" or "What is the final result of this?"`;
       }
 
-      const prompt = `You are Pip, a curious, smart 10-year-old student learning from the user about "${topic || "this topic"}".
+      const prompt = `You are Pip, a curious, smart student learning from the user about "${topic || "this topic"}".
 Current topic: "${topic || "Study Concept"}"
 Student's explanation so far: "${fullExplanation}"
 
@@ -257,7 +257,7 @@ PEDAGOGICAL RULES:
 
       const reply = await callGroq(
         [{ role: "user", content: prompt }],
-        "You are Pip, a curious, encouraging 10-year-old student learning from the user. Be concise and friendly. Never give fake praise.",
+        "You are Pip, a curious, encouraging student learning from the user. Be concise and friendly. Never give fake praise.",
         "openai/gpt-oss-20b",
         150,
         "teach_it"
@@ -729,7 +729,7 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse" />
                     <span className="text-[11px] font-black uppercase tracking-wider text-black/50">
-                      Pip (Your Curious 10-Year-Old Student)
+                      Pip
                     </span>
                   </div>
 
@@ -1009,14 +1009,14 @@ ${feedback.gaps.map((g: any) => `- **${g.title}**: ${g.detail}`).join("\n")}
                       <div>
                         <h4 className="text-[18px] font-black">
                           {feedback.clarityScore >= 85
-                            ? "Exceptional Teaching! 🌟"
+                            ? "Exceptional Teaching!"
                             : feedback.clarityScore >= 70
-                            ? "Solid Explanation! 👍"
-                            : "Good Effort, Needs Clarity 🤔"}
+                            ? "Solid Explanation!"
+                            : "Good Effort, Needs Clarity"}
                         </h4>
                         <p className="text-[12px] font-bold text-black/60 mt-0.5">
                           {feedback.clarityScore >= 80
-                            ? "A 10-year-old can easily understand this concept."
+                            ? "Clear, intuitive, and easy to understand."
                             : "Simplify the technical terms to achieve full mastery."}
                         </p>
                       </div>
