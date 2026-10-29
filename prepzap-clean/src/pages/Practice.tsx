@@ -36,6 +36,7 @@ import { getQuestionsForLesson, sanitizeQuestion } from "@/lib/lessonLauncher";
 import { getComboTier } from "@/lib/streakRisk";
 import { SpringButton } from "@/components/ui/SpringButton";
 import { markNodeCompleted, getCurrentLessonNodeId, clearCurrentLessonNodeId } from "@/lib/studyPathStorage";
+import { recordMistake } from "@/lib/mistakes";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 export interface Question {
@@ -788,6 +789,24 @@ Each object MUST match this schema exactly:
         playIncorrect();
         if (!currentItem.isReTest) {
           setAnswers(prev => [...prev, selectedOption]);
+          try {
+            recordMistake({
+              userId: user?.id,
+              subject: q.subject || "Practice",
+              title: q.q,
+              desc: `Selected: "${q.options?.[selectedOption] || "Option " + selectedOption}". Correct: "${q.options?.[q.correct] || q.correct}". ${q.explanation || ""}`,
+              errorType: "Conceptual Gap",
+              source: "practice",
+              quiz: {
+                q: q.q,
+                options: q.options || [],
+                correct: q.correct,
+                explanation: q.explanation || "Review the core definition and key differences."
+              }
+            });
+          } catch (e) {
+            console.error("[Practice] failed to record mistake:", e);
+          }
         }
       }
     } else {
@@ -825,6 +844,18 @@ Each object MUST match this schema exactly:
         playIncorrect();
         if (!currentItem.isReTest) {
           setAnswers(prev => [...prev, textInput.trim()]);
+          try {
+            recordMistake({
+              userId: user?.id,
+              subject: q.subject || "Practice",
+              title: q.q,
+              desc: `Your answer: "${textInput}". Correct: "${target}". ${evaluation.feedback || q.explanation || ""}`,
+              errorType: "Conceptual Gap",
+              source: "practice"
+            });
+          } catch (e) {
+            console.error("[Practice] failed to record mistake:", e);
+          }
         }
       }
     }

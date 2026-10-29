@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { isAnswerCorrect } from "@/lib/quizUtils";
+import { recordMistake } from "@/lib/mistakes";
 
 interface Question {
   question: string;
@@ -211,6 +212,34 @@ export default function ArenaQuiz() {
       0
     );
     const score = calcScore(correctCount, elapsed, questions.length, isDaily);
+
+    // Auto-record missed questions into the user's Mistake Journal
+    questions.forEach((q, i) => {
+      const userAns = latestAnswers[i];
+      if (!isAnswerCorrect(q, userAns)) {
+        try {
+          const correctIdx = q.options.findIndex(
+            (opt) => opt.trim().toLowerCase() === q.correct_answer.trim().toLowerCase()
+          );
+          recordMistake({
+            userId: user?.id,
+            subject: examRoom?.topic || dailyQuiz?.topic || "Arena",
+            title: q.question,
+            desc: `Your answer: "${userAns || "Skipped"}". Correct answer: "${q.correct_answer}". ${q.explanation || ""}`,
+            errorType: "Exam Trap",
+            source: "arena",
+            quiz: {
+              q: q.question,
+              options: q.options,
+              correct: correctIdx >= 0 ? correctIdx : 0,
+              explanation: q.explanation || `Correct answer is: ${q.correct_answer}`,
+            },
+          });
+        } catch (e) {
+          console.error("[ArenaQuiz] failed to log mistake:", e);
+        }
+      }
+    });
 
     const displayName =
       profile?.full_name ||
