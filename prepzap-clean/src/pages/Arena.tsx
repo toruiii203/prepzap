@@ -142,7 +142,7 @@ export default function Arena() {
           .select("user_id, score, time_taken_seconds, display_name")
           .order("score", { ascending: false })
           .order("time_taken_seconds", { ascending: true })
-          .limit(20);
+          .limit(100);
         if (leaderboardTab === "today") query = query.eq("challenge_date", todayPH());
 
         const { data } = await withTimeout(query, 2500, "daily leaderboard");
@@ -159,6 +159,23 @@ export default function Arena() {
         fetchFailed = true;
       }
 
+      // Deduplicate by user so each player appears only ONCE with their highest score
+      const userBestMap = new Map<string, LeaderboardEntry>();
+      for (const item of entries) {
+        const key = item.user_id && item.user_id !== "local_user"
+          ? item.user_id
+          : item.display_name.trim().toLowerCase();
+        const existing = userBestMap.get(key);
+        if (!existing) {
+          userBestMap.set(key, item);
+        } else if (
+          item.score > existing.score ||
+          (item.score === existing.score && item.time_taken < existing.time_taken)
+        ) {
+          userBestMap.set(key, item);
+        }
+      }
+
       // Merge local today submissions if any
       try {
         const localKey = `pz_daily_submissions_${todayPH()}`;
@@ -172,26 +189,46 @@ export default function Arena() {
             display_name?: string;
           }[] = JSON.parse(localRaw);
           localList.forEach((item) => {
-            if (!entries.find((e) => e.user_id === item.user_id)) {
-              entries.push({
+            const key = item.user_id && item.user_id !== "local_user"
+              ? item.user_id
+              : (item.display_name || "You").trim().toLowerCase();
+            const time = item.time_taken_seconds || item.time_taken || 0;
+            const existing = userBestMap.get(key);
+            if (!existing) {
+              userBestMap.set(key, {
                 user_id: item.user_id,
                 score: item.score,
-                time_taken: item.time_taken_seconds || item.time_taken || 0,
+                time_taken: time,
                 display_name: item.display_name || "You",
+              });
+            } else if (
+              item.score > existing.score ||
+              (item.score === existing.score && time < existing.time_taken)
+            ) {
+              userBestMap.set(key, {
+                user_id: item.user_id,
+                score: item.score,
+                time_taken: time,
+                display_name: item.display_name || existing.display_name,
               });
             }
           });
-          entries.sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
         }
       } catch {}
 
-      // If network timed out or no submissions yet, populate with Season 1 benchmark contenders
-      if (entries.length === 0) {
-        entries = [...COLLEGIATE_BENCHMARK];
+      // If fewer than 3 unique contenders, backfill with collegiate benchmark contenders
+      for (const bm of COLLEGIATE_BENCHMARK) {
+        const key = bm.display_name.trim().toLowerCase();
+        if (!userBestMap.has(key)) {
+          userBestMap.set(key, bm);
+        }
       }
 
+      const deduplicated = Array.from(userBestMap.values());
+      deduplicated.sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
+
       if (cancelled) return;
-      setLeaderboard(entries.slice(0, 10));
+      setLeaderboard(deduplicated.slice(0, 10));
       setLeaderboardError(false);
       setLoadingLeaderboard(false);
       clearTimeout(safetyTimer);
@@ -507,7 +544,9 @@ export default function Arena() {
                   <div className="flex flex-col items-center">
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-black bg-[#9CA3AF] text-white flex items-center justify-center font-black text-[16px] shadow-[2px_2px_0px_#000] relative">
                       {top2.display_name.charAt(0).toUpperCase()}
-                      <span className="absolute -top-2 -right-1 text-[16px]">🥈</span>
+                      <span className="absolute -top-2.5 -right-1 bg-white text-black border border-black rounded px-1.5 py-0.5 text-[9px] font-black uppercase shadow-[1px_1px_0px_#000]">
+                        2nd
+                      </span>
                     </div>
                     <p className="font-black text-[12px] md:text-[13px] text-black mt-1.5 max-w-[90px] truncate text-center">
                       {top2.display_name}
@@ -527,7 +566,9 @@ export default function Arena() {
                   <div className="flex flex-col items-center -mt-4">
                     <div className="w-16 h-16 md:w-18 md:h-18 rounded-full border-3 border-black bg-[#EAB308] text-black flex items-center justify-center font-black text-[20px] shadow-[4px_4px_0px_#000] relative">
                       {top1.display_name.charAt(0).toUpperCase()}
-                      <span className="absolute -top-3.5 text-[24px]">👑</span>
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FFD13B] text-black border-2 border-black rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0px_#000]">
+                        1st
+                      </span>
                     </div>
                     <p className="font-black text-[13px] md:text-[14px] text-black mt-1.5 max-w-[100px] truncate text-center">
                       {top1.display_name}
@@ -547,7 +588,9 @@ export default function Arena() {
                   <div className="flex flex-col items-center">
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-black bg-[#B45309] text-white flex items-center justify-center font-black text-[16px] shadow-[2px_2px_0px_#000] relative">
                       {top3.display_name.charAt(0).toUpperCase()}
-                      <span className="absolute -top-2 -right-1 text-[16px]">🥉</span>
+                      <span className="absolute -top-2.5 -right-1 bg-[#FAF7F2] text-black border border-black rounded px-1.5 py-0.5 text-[9px] font-black uppercase shadow-[1px_1px_0px_#000]">
+                        3rd
+                      </span>
                     </div>
                     <p className="font-black text-[12px] md:text-[13px] text-black mt-1.5 max-w-[90px] truncate text-center">
                       {top3.display_name}
@@ -604,8 +647,22 @@ export default function Arena() {
                       } ${isMe ? "bg-[#FFE566]/30 font-black" : "hover:bg-[#FAF7F2]"}`}
                     >
                       {/* Rank Position */}
-                      <span className="w-7 text-center font-black text-[14px] text-black">
-                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
+                      <span className="w-9 text-center font-black text-[13px] text-black shrink-0">
+                        {idx === 0 ? (
+                          <span className="inline-block px-1.5 py-0.5 bg-[#FFD13B] border border-black rounded text-[11px] font-black shadow-[1px_1px_0px_#000]">
+                            1st
+                          </span>
+                        ) : idx === 1 ? (
+                          <span className="inline-block px-1.5 py-0.5 bg-[#E5E7EB] border border-black rounded text-[11px] font-black shadow-[1px_1px_0px_#000]">
+                            2nd
+                          </span>
+                        ) : idx === 2 ? (
+                          <span className="inline-block px-1.5 py-0.5 bg-[#FED7AA] border border-black rounded text-[11px] font-black shadow-[1px_1px_0px_#000]">
+                            3rd
+                          </span>
+                        ) : (
+                          `#${idx + 1}`
+                        )}
                       </span>
 
                       {/* Avatar */}

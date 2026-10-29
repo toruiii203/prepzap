@@ -585,21 +585,28 @@ export default function ArenaQuiz() {
       )}
 
       {/* ------------ MOBILE ------------ */}
-      <div className="md:hidden flex flex-col gap-5 px-4 pt-5 pb-28">
+      <div className="md:hidden flex-1 flex flex-col gap-4 px-4 pt-4 pb-6">
 
-        {/* Question Counter Header */}
-        <div className="flex flex-col items-center gap-2">
+        {/* Question Counter & Progress */}
+        <div className="flex items-center justify-between">
           {!isDaily && <QTimerRing qTimeLeft={qTimeLeft} />}
-          <p className="text-[13px] font-black text-black/60">{currentQ + 1} of {questions.length}</p>
+          <span className="font-black text-[13px] text-black uppercase tracking-wider">
+            Question {currentQ + 1} of {questions.length}
+          </span>
+          <span className="font-bold text-[12px] text-black/60">
+            {answeredCount}/{questions.length} answered
+          </span>
+        </div>
+        <div className="w-full bg-black/10 h-2 rounded-full border border-black overflow-hidden -mt-1">
+          <div
+            className="h-full bg-[#FFD13B] transition-all duration-300"
+            style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}
+          />
         </div>
 
-        {/* Question card */}
-        <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-5 relative">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 bg-[#FAF7F2] border-2 border-black rounded-full" />
-          <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#FAF7F2] mb-3">
-            {difficultyLabel}
-          </span>
-          <p className="font-black text-[17px] text-black leading-snug">{q.question}</p>
+        {/* Question card (clean, no difficulty badges) */}
+        <div className="border-3 border-black bg-white rounded-2xl shadow-[4px_4px_0px_#000] p-5">
+          <p className="font-black text-[18px] text-black leading-snug">{q.question}</p>
         </div>
 
         {/* Answer options */}
@@ -610,72 +617,94 @@ export default function ArenaQuiz() {
             return (
               <button
                 key={letter}
+                type="button"
                 onClick={() => selectAnswer(letter)}
-                className={`w-full border-2 border-black p-4 flex items-center gap-4 text-left transition-all active:translate-x-[2px] active:translate-y-[2px] ${
+                className={`w-full border-2 border-black rounded-xl p-4 flex items-center gap-3.5 text-left transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
                   selected
-                    ? "bg-black text-white shadow-[3px_3px_0px_0px_#f0a040]"
-                    : "bg-white text-black shadow-[3px_3px_0px_0px_#000]"
+                    ? "bg-black text-white shadow-[3px_3px_0px_#FFD13B]"
+                    : "bg-white text-black shadow-[3px_3px_0px_#000] hover:bg-[#FAF7F2]"
                 }`}
               >
-                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black text-[13px] flex-shrink-0 ${selected ? "border-white bg-white text-black" : "border-black"}`}>
+                <div
+                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black text-[13px] shrink-0 ${
+                    selected ? "border-white bg-white text-black" : "border-black bg-[#FAF7F2] text-black"
+                  }`}
+                >
                   {letter}
                 </div>
-                <p className={`font-medium text-[14px] flex-1 leading-snug ${selected ? "font-bold" : ""}`}>{opt}</p>
+                <p className={`font-semibold text-[14px] flex-1 leading-snug ${selected ? "font-black" : ""}`}>
+                  {opt}
+                </p>
               </button>
             );
           })}
         </div>
 
-        {/* Dot nav */}
-        <div className="flex justify-center gap-1.5 pt-2">
+        {/* Question Quick-Jumper */}
+        <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 no-scrollbar mt-1">
           {questions.map((_, i) => (
             <button
               key={i}
+              type="button"
               onClick={() => handleNavQ(i)}
-              className={`rounded-full transition-all ${
+              style={{
+                minWidth: "30px",
+                minHeight: "30px",
+                width: "30px",
+                height: "30px",
+                minInlineSize: "unset",
+                minBlockSize: "unset",
+              }}
+              className={`rounded-lg border-2 border-black text-[11px] font-black shrink-0 flex items-center justify-center transition-all cursor-pointer ${
                 i === currentQ
-                  ? "w-4 h-3 bg-[#FFD13B] border-2 border-black"
+                  ? "bg-[#FFD13B] shadow-[2px_2px_0px_#000] -translate-y-0.5"
                   : answers[i]
-                    ? "w-2.5 h-2.5 bg-black border border-black"
-                    : "w-2.5 h-2.5 bg-black/20 border border-black/30"
+                    ? "bg-black text-white"
+                    : "bg-white text-black/60 hover:bg-[#FAF7F2]"
               }`}
-            />
+            >
+              {i + 1}
+            </button>
           ))}
         </div>
-
-        {/* Answered counter */}
-        <p className="text-center text-[11px] font-bold text-black/40">{answeredCount}/{questions.length} answered</p>
       </div>
 
-      {/* Mobile bottom nav */}
-      <div
-        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#FAF7F2] border-t-2 border-black px-4 pt-4 z-[100]"
-        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
-      >
-        <div className="flex gap-3">
+      {/* Mobile Sticky Bottom Navigation (Always Visible) */}
+      <div className="md:hidden sticky bottom-0 bg-[#FAF7F2] border-t-2 border-black px-4 py-3 z-40 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+        <div className="flex gap-3 max-w-lg mx-auto">
           <button
+            type="button"
             onClick={() => handleNavQ(Math.max(0, currentQ - 1))}
             disabled={currentQ === 0}
-            className="flex-1 bg-[#FAF7F2] border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-30"
+            className="flex-1 bg-white border-2 border-black font-black text-[14px] py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all disabled:opacity-30 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>Prev
+            <span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>arrow_back</span>
+            Prev
           </button>
           {currentQ < questions.length - 1 ? (
             <button
+              type="button"
               onClick={() => handleNavQ(Math.min(questions.length - 1, currentQ + 1))}
-              className="flex-1 bg-black text-white border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+              className="flex-1 bg-black text-white border-2 border-black font-black text-[14px] py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#FFD13B] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
             >
-              Next<span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              Next
+              <span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>arrow_forward</span>
             </button>
           ) : (
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex-1 bg-[#FFD13B] text-black border-2 border-black font-bold text-[14px] py-3.5 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
+              className="flex-1 bg-[#FFD13B] text-black border-2 border-black font-black text-[14px] py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all disabled:opacity-50 cursor-pointer"
             >
-              {submitting
-                ? <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                : <><span className="material-symbols-outlined text-[18px]">check</span>Submit</>}
+              {submitting ? (
+                <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>check</span>
+                  Submit Quiz
+                </>
+              )}
             </button>
           )}
         </div>
@@ -688,11 +717,8 @@ export default function ArenaQuiz() {
         <div className="flex-1 p-8 overflow-y-auto flex flex-col gap-6 justify-between">
           <div className="flex flex-col gap-6">
 
-            {/* Question card */}
-            <div className="border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] p-6">
-              <span className="inline-block text-[10px] font-bold uppercase tracking-widest border-2 border-black px-2 py-0.5 bg-[#FAF7F2] mb-4">
-                {difficultyLabel}
-              </span>
+            {/* Question card (clean, no difficulty badge) */}
+            <div className="border-3 border-black bg-white rounded-2xl shadow-[4px_4px_0px_0px_#000] p-6">
               <p className="font-black text-[22px] text-black leading-snug">{q.question}</p>
             </div>
 
@@ -704,17 +730,18 @@ export default function ArenaQuiz() {
                 return (
                   <button
                     key={letter}
+                    type="button"
                     onClick={() => selectAnswer(letter)}
-                    className={`border-2 border-black p-5 flex items-start gap-4 text-left transition-all active:translate-x-[2px] active:translate-y-[2px] ${
+                    className={`border-2 border-black rounded-xl p-5 flex items-start gap-4 text-left transition-all active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
                       selected
-                        ? "bg-black text-white shadow-[4px_4px_0px_0px_#f0a040]"
+                        ? "bg-black text-white shadow-[4px_4px_0px_0px_#FFD13B]"
                         : "bg-white text-black shadow-[4px_4px_0px_0px_#000] hover:bg-[#FAF7F2]"
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black text-[14px] flex-shrink-0 mt-0.5 ${selected ? "border-white bg-white text-black" : "border-black bg-white text-black"}`}>
                       {letter}
                     </div>
-                    <p className={`font-medium text-[15px] flex-1 leading-snug mt-1 ${selected ? "font-bold" : ""}`}>{opt}</p>
+                    <p className={`font-semibold text-[15px] flex-1 leading-snug mt-1 ${selected ? "font-black" : ""}`}>{opt}</p>
                   </button>
                 );
               })}
@@ -724,44 +751,50 @@ export default function ArenaQuiz() {
           {/* Desktop bottom controls */}
           <div className="flex items-center justify-between pt-4 border-t-2 border-black">
             <button
+              type="button"
               onClick={() => handleNavQ(Math.max(0, currentQ - 1))}
               disabled={currentQ === 0}
-              className="px-6 py-3 border-2 border-black font-bold text-[14px] bg-white shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-30 flex items-center gap-2"
+              className="px-6 py-3 border-2 border-black rounded-xl font-black text-[14px] bg-white shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-30 flex items-center gap-2 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>Previous
+              <span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>arrow_back</span>Previous
             </button>
-            {/* Dot nav */}
-            <div className="flex items-center gap-1.5">
+            {/* Dot nav with explicit sizing */}
+            <div className="flex items-center gap-1.5 flex-wrap max-w-md justify-center">
               {questions.map((_, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => handleNavQ(i)}
-                  className={`rounded-full transition-all ${
+                  style={{ minInlineSize: "unset", minBlockSize: "unset" }}
+                  className={`rounded-full transition-all cursor-pointer ${
                     i === currentQ
                       ? "w-4 h-3 bg-[#FFD13B] border-2 border-black"
                       : answers[i]
                         ? "w-3 h-3 bg-black border-2 border-black"
                         : "w-3 h-3 bg-black/20 border-2 border-black/30"
                   }`}
+                  aria-label={`Go to question ${i + 1}`}
                 />
               ))}
             </div>
             {currentQ < questions.length - 1 ? (
               <button
+                type="button"
                 onClick={() => handleNavQ(Math.min(questions.length - 1, currentQ + 1))}
-                className="px-6 py-3 border-2 border-black font-bold text-[14px] bg-black text-white shadow-[3px_3px_0px_0px_#f0a040] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-2"
+                className="px-6 py-3 border-2 border-black rounded-xl font-black text-[14px] bg-black text-white shadow-[3px_3px_0px_0px_#FFD13B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
               >
-                Next<span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                Next<span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>arrow_forward</span>
               </button>
             ) : (
               <button
+                type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-6 py-3 border-2 border-black font-bold text-[14px] bg-[#FFD13B] text-black shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-3 border-2 border-black rounded-xl font-black text-[14px] bg-[#FFD13B] text-black shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
               >
                 {submitting
                   ? <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                  : <>Submit All<span className="material-symbols-outlined text-[18px]">check</span></>}
+                  : <>Submit All<span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>check</span></>}
               </button>
             )}
           </div>

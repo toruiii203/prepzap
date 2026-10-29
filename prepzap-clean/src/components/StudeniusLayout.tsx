@@ -18,7 +18,7 @@ const HIDE_NAV_PATHS = new Set(["/timer", "/pomodoro-area"]);
 
 export function StudeniusLayout() {
   const { pathname } = useLocation();
-  const hideNav = HIDE_NAV_PATHS.has(pathname);
+  const hideNav = HIDE_NAV_PATHS.has(pathname) || pathname.startsWith("/arena/quiz");
 
   return (
     <StudeniusShell hideNav={hideNav}>
