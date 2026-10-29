@@ -556,10 +556,12 @@
   .quiz-answer[data-state], .quiz-answer:not(:disabled):hover, .quiz-answer:not(:disabled):active { transform: none; }
 }
 
-/* Local outlined symbols keep controls intact without third-party font access. */
+/* Local outlined symbols with full Google font fallback */
 .material-symbols-outlined {
-  font-family: 'Studenius Symbols' !important;
+  font-family: 'Material Symbols Outlined', 'Studenius Symbols', sans-serif !important;
   font-feature-settings: 'liga';
   visibility: visible !important;
   text-transform: none !important;
+  display: inline-block;
+  line-height: 1;
 }

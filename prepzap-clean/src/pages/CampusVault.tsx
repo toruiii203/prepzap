@@ -348,7 +348,7 @@ export default function CampusVault() {
                         </span>
                         {note.isAiGenerated && (
                           <span className="px-2 py-0.5 rounded-lg border-2 border-black text-[10px] font-black uppercase tracking-wider bg-[#FFD13B] text-black shadow-[1px_1px_0px_#000] flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[12px] normal-case">smart_toy</span>
+                            <span className="material-symbols-outlined text-[13px]" style={{ textTransform: "none" }}>smart_toy</span>
                             <span>AI-generated</span>
                           </span>
                         )}
@@ -413,7 +413,7 @@ export default function CampusVault() {
                         <div className="flex items-center gap-1.5 truncate max-w-[170px]">
                           {note.isAiGenerated ? (
                             <>
-                              <span className="material-symbols-outlined text-[15px] text-[#10B981] normal-case">smart_toy</span>
+                              <span className="material-symbols-outlined text-[15px] text-[#10B981]" style={{ textTransform: "none" }}>smart_toy</span>
                               <span className="truncate font-extrabold text-black">Community AI</span>
                             </>
                           ) : (
@@ -421,7 +421,7 @@ export default function CampusVault() {
                               {note.authorAvatar?.startsWith("/") || note.authorAvatar?.startsWith("http") ? (
                                 <img src={note.authorAvatar} alt="" className="w-4 h-4 rounded-full object-cover" />
                               ) : (
-                                <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                                <span className="material-symbols-outlined text-[14px]" style={{ textTransform: "none" }}>edit_note</span>
                               )}
                               <span className="truncate">{note.author}</span>
                             </>
@@ -477,7 +477,7 @@ export default function CampusVault() {
                               className="px-2 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center gap-1"
                               title="Mark this AI note as helpful"
                             >
-                              <span className="material-symbols-outlined text-[13px] normal-case">thumb_up</span>
+                              <span className="material-symbols-outlined text-[14px]" style={{ textTransform: "none" }}>thumb_up</span>
                               <span>{note.helpfulCount || 0}</span>
                             </button>
                             <button
@@ -486,7 +486,7 @@ export default function CampusVault() {
                               className="px-2 py-1.5 bg-white hover:bg-blue-50 text-blue-800 border-2 border-black rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:translate-y-0.5 transition-all flex items-center gap-1"
                               title="Verify factual correctness"
                             >
-                              <span className="material-symbols-outlined text-[13px] normal-case">verified</span>
+                              <span className="material-symbols-outlined text-[14px]" style={{ textTransform: "none" }}>verified</span>
                               <span>{note.verifiedCount || 0}</span>
                             </button>
                           </>
