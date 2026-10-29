@@ -464,7 +464,7 @@ export async function getOrCreateDailyChallenge(): Promise<DailyQuiz> {
       .eq("challenge_date", today)
       .maybeSingle();
 
-    const { data } = await withTimeout(query, 2200, "daily_challenges query");
+    const { data } = await withTimeout(query, 6000, "daily_challenges query");
 
     if (data && data.questions && data.questions.length > 0) {
       const fullQuiz: DailyQuiz = {

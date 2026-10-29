@@ -100,7 +100,7 @@ export default function Arena() {
               .eq("user_id", user.id)
               .maybeSingle();
 
-            const { data: sub } = await withTimeout(query, 2000, "daily challenge submission");
+            const { data: sub } = await withTimeout(query, 6000, "daily challenge submission");
             if (sub && active) {
               setAlreadySubmitted(true);
               try {
@@ -112,7 +112,7 @@ export default function Arena() {
           }
         }
       } catch (err) {
-        console.error("Error loading daily quiz:", err);
+        console.warn("Daily challenge check warning:", err);
       } finally {
         if (active) setLoadingQuiz(false);
         clearTimeout(safetyTimer);
@@ -129,7 +129,7 @@ export default function Arena() {
     let cancelled = false;
     const safetyTimer = setTimeout(() => {
       if (!cancelled) setLoadingLeaderboard(false);
-    }, 3000);
+    }, 7000);
 
     const load = async () => {
       setLoadingLeaderboard(true);
@@ -145,7 +145,7 @@ export default function Arena() {
           .limit(100);
         if (leaderboardTab === "today") query = query.eq("challenge_date", todayPH());
 
-        const { data } = await withTimeout(query, 2500, "daily leaderboard");
+        const { data } = await withTimeout(query, 6000, "daily leaderboard");
         if (data && data.length > 0) {
           entries = data.map((row, i) => ({
             user_id: row.user_id,

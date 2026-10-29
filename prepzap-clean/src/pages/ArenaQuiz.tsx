@@ -397,7 +397,7 @@ export default function ArenaQuiz() {
               .eq("challenge_date", today)
               .eq("user_id", user.id)
               .maybeSingle();
-            const { data: sub } = await withTimeout(query, 2500, "daily submission check");
+            const { data: sub } = await withTimeout(query, 6000, "daily submission check");
             if (sub && mounted) {
               try { localStorage.setItem(`pz_daily_done_${today}_${user.id}`, "true"); } catch {}
               navigate("/arena");

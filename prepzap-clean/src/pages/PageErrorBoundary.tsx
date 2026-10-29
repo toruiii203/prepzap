@@ -20,8 +20,27 @@ export class PageErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("[Route ErrorBoundary]", error, errorInfo)
+    console.error("[Route ErrorBoundary]", error, errorInfo);
+    const msg = String(error?.message || error || "");
+    if (
+      msg.includes("dynamically imported module") ||
+      msg.includes("Expected a JavaScript-or-Wasm module script") ||
+      msg.includes("text/html")
+    ) {
+      const lastReload = Number(sessionStorage.getItem("pz_chunk_reload") || 0);
+      if (Date.now() - lastReload > 8000) {
+        sessionStorage.setItem("pz_chunk_reload", String(Date.now()));
+        window.location.reload();
+      }
+    }
   }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, message: "" });
+    try { sessionStorage.removeItem("pz_chunk_reload"); } catch {}
+    const separator = window.location.search ? "&" : "?";
+    window.location.href = `${window.location.pathname}${window.location.search}${separator}_r=${Date.now()}`;
+  };
 
   render() {
     if (this.state.hasError) {
@@ -67,7 +86,7 @@ export class PageErrorBoundary extends React.Component<Props, State> {
             )}
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <button
-                onClick={() => this.setState({ hasError: false, message: "" })}
+                onClick={this.handleRetry}
                 style={{
                   padding: "10px 20px",
                   borderRadius: 12,

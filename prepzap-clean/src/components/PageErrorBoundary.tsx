@@ -1,32 +1,45 @@
-import React from "react"
-import { Mascot } from "@/components/Mascot"
+import React from "react";
+import { Mascot } from "@/components/Mascot";
+import { isChunkLoadError } from "@/lib/pagePreload";
 
 type Props = {
-  children: React.ReactNode
-}
+  children: React.ReactNode;
+};
 
 type State = {
-  hasError: boolean
-  message: string
-}
+  hasError: boolean;
+  message: string;
+};
 
 export class PageErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
-    super(props)
-    this.state = { hasError: false, message: "" }
+    super(props);
+    this.state = { hasError: false, message: "" };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, message: error?.message || "Unknown error" }
+    return { hasError: true, message: error?.message || "Unknown error" };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("[Route ErrorBoundary]", error, errorInfo)
+    console.error("[Route ErrorBoundary]", error, errorInfo);
+    if (isChunkLoadError(error)) {
+      const lastReload = Number(sessionStorage.getItem("pz_chunk_reload") || 0);
+      if (Date.now() - lastReload > 8000) {
+        sessionStorage.setItem("pz_chunk_reload", String(Date.now()));
+        window.location.reload();
+      }
+    }
   }
 
   handleRetry = () => {
     this.setState({ hasError: false, message: "" });
-    window.location.reload();
+    try {
+      sessionStorage.removeItem("pz_chunk_reload");
+    } catch {}
+    // Cache-busting hard reload
+    const separator = window.location.search ? "&" : "?";
+    window.location.href = `${window.location.pathname}${window.location.search}${separator}_r=${Date.now()}`;
   };
 
   render() {
@@ -68,4 +81,3 @@ export class PageErrorBoundary extends React.Component<Props, State> {
     return this.props.children;
   }
 }
-
