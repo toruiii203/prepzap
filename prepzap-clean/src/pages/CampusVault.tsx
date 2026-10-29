@@ -280,7 +280,7 @@ export default function CampusVault() {
           </div>
 
           {/* Notes Grid or Honest Empty State */}
-          {isLoadingNotes ? (
+          {isLoadingNotes && notes.length === 0 ? (
             <div className="p-12 text-center">
               <span className="material-symbols-outlined animate-spin text-[32px] text-black/40">
                 progress_activity

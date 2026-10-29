@@ -4,6 +4,7 @@ import { playTap, playSuccess, playMastery } from "@/lib/soundFX";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { loadLibrary, saveLibrary } from "@/lib/sourceContext";
+import { withTimeout } from "@/lib/withTimeout";
 
 export interface CampusNote {
   id: string;
@@ -111,13 +112,20 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
     if (!options?.loadNotes) return;
     let isSubscribed = true;
 
+    // Hard fallback timer: guarantees loading state clears within 4s under any network condition
+    const safetyTimer = setTimeout(() => {
+      if (isSubscribed) setIsLoadingNotes(false);
+    }, 4000);
+
     async function loadCloudNotes() {
       setIsLoadingNotes(true);
       try {
-        const { data, error } = await supabase
+        const query = supabase
           .from("community_vault_notes")
           .select("*")
           .order("created_at", { ascending: false });
+
+        const { data, error } = await withTimeout(query, 3500, "community_vault_notes");
 
         if (!error && Array.isArray(data) && isSubscribed) {
           const cloudNotes: CampusNote[] = data.map((row: any) => ({
@@ -153,8 +161,10 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
           });
         }
       } catch (err) {
-        // Table not ready or offline: keeps local cache
+        // Table not ready, timed out, or offline: keeps local cache
+        console.warn("[useCommunity] loadCloudNotes error or timeout:", err);
       } finally {
+        clearTimeout(safetyTimer);
         if (isSubscribed) setIsLoadingNotes(false);
       }
     }
@@ -163,6 +173,7 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
 
     return () => {
       isSubscribed = false;
+      clearTimeout(safetyTimer);
     };
   }, []);
 
@@ -182,10 +193,12 @@ export function useCommunity(options?: { loadNotes?: boolean }) {
 
     async function loadCloudPartners() {
       try {
-        const { data: cloudPartners, error } = await supabase
+        const query = supabase
           .from("study_partners")
           .select("*")
           .or(`user_id.eq.${user.id},partner_id.eq.${user.id}`);
+
+        const { data: cloudPartners, error } = await withTimeout(query, 3500, "study_partners");
 
         if (!error && Array.isArray(cloudPartners) && isSubscribed) {
           setBuddies((prev) => {
