@@ -137,34 +137,6 @@ function getLevenshteinDistance(a: string, b: string): number {
   return matrix[b.length][a.length];
 }
 
-/**
- * Gizmo Recall Scaffolding Generator:
- * Generates first-letter blanks clues or hint cues when an item is missed.
- */
-function generateScaffold(question: Question): string {
-  if (question.type === "identification" || question.type === "fill-in-the-blank") {
-    const raw = (question.answerText || "").trim();
-    if (!raw) return question.hint || "Recall the core keyword from your study source.";
-    
-    const words = raw.split(" ");
-    const maskedWords = words.map(w => {
-      if (w.length <= 2) return w;
-      const first = w[0].toUpperCase();
-      const blanks = Array(w.length - 1).fill("_").join(" ");
-      return `${first} ${blanks}`;
-    });
-    return `First-letter clue: ${maskedWords.join("   ")} (${raw.length} chars)`;
-  } else {
-    if (question.hint) {
-      return `Pip Hint: ${question.hint}`;
-    }
-    if (question.explanation) {
-      const firstSentence = question.explanation.split(". ")[0];
-      return `Key concept: ${firstSentence}.`;
-    }
-    return "Think back to the key definition in your study source.";
-  }
-}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 interface BannerProps {
@@ -885,13 +857,12 @@ Each object MUST match this schema exactly:
       }
       setAdaptiveQueue(remaining);
     } else {
-      // Missed: Spaced recall re-test 2 questions later with scaffolding
+      // Missed: Spaced recall re-test 2 questions later
       const retestItem: AdaptiveItem = {
         ...currentItem,
         id: `retest-${Date.now()}-${currentItem.originalIndex}`,
         attempts: currentItem.attempts + 1,
         isReTest: true,
-        scaffoldHint: generateScaffold(currentItem.question),
       };
 
       const insertIdx = Math.min(remaining.length, 2);
@@ -1270,43 +1241,10 @@ Each object MUST match this schema exactly:
 
           {/* Centered Question Content */}
           <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 sm:py-8 flex flex-col justify-center">
-            {currentItem && currentItem.isReTest && (
-              <div className="mb-4 bg-[#FFD13B] border-2 border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#000]">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px] text-black" aria-hidden="true">refresh</span>
-                  <span className="text-[11.5px] font-black uppercase tracking-wider text-black">
-                    Adaptive Recall · Re-Test
-                  </span>
-                </div>
-                <span className="text-[11px] font-bold text-black/70">Attempt {currentItem.attempts + 1}</span>
-              </div>
-            )}
-
             <div className="bg-white border-2 border-black p-6 sm:p-8 shadow-[4px_4px_0px_#000] rounded-2xl mb-6 relative">
-              <div className="flex items-center justify-between gap-2 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-1 bg-[#FAF7F2] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_#000]">
-                    {currentQuestion.subject || "Subject"}
-                  </span>
-                  <span className="inline-flex items-center px-2.5 py-1 bg-[#FFD13B] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_#000]">
-                    {currentQuestion.difficulty || "Medium"}
-                  </span>
-                </div>
-              </div>
-
-              <h2 key={currentItem.id} className="motion-safe:animate-fade-up text-[20px] sm:text-[24px] font-black leading-snug mb-3 text-black">
+              <h2 key={currentItem.id} className="motion-safe:animate-fade-up text-[20px] sm:text-[24px] font-black leading-snug text-black">
                 {currentQuestion.q}
               </h2>
-
-              {currentItem && currentItem.isReTest && currentItem.scaffoldHint && (
-                <div className="mt-3 bg-[#FFF9E6] border-2 border-black p-3 rounded-xl text-[12.5px] font-bold text-black/80 flex items-start gap-2">
-                  <span className="material-symbols-outlined text-[#F5A623] text-[18px] shrink-0" aria-hidden="true">psychology</span>
-                  <div>
-                    <span className="text-[#B45309] text-[10px] font-black uppercase tracking-wider block mb-0.5">Recall Clue</span>
-                    <p className="text-black font-extrabold">{currentItem.scaffoldHint}</p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {isMc ? (
@@ -1425,7 +1363,7 @@ Each object MUST match this schema exactly:
                 {isGenerating && (
                   <div className="flex flex-col items-center justify-center flex-1 py-24 gap-4">
                     <QuizSkeleton />
-                    <p className="font-extrabold text-[15px] text-black/60">Crafting your adaptive mastery quiz...</p>
+                    <p className="font-extrabold text-[15px] text-black/60">Crafting your quiz...</p>
                   </div>
                 )}
 
@@ -1477,7 +1415,7 @@ Each object MUST match this schema exactly:
                         <div className="flex-1 flex flex-col gap-1.5">
                           <div className="flex justify-between items-center text-[12px] font-extrabold">
                             <span className="uppercase tracking-wider text-black/60 font-black">
-                              Mastery Progress ({masteredCount} of {totalInitialCount})
+                              {masteredCount} of {totalInitialCount}
                             </span>
                             <span className="text-[#10B981] font-black">{progressPercent}%</span>
                           </div>
@@ -1503,48 +1441,9 @@ Each object MUST match this schema exactly:
                         </div>
                       </div>
 
-                      {/* Adaptive Re-Test Banner */}
-                      {currentItem.isReTest && (
-                        <div className="mb-4 bg-[#FFD13B] border-[2px] border-black px-4 py-2 rounded-xl flex items-center justify-between shadow-[3px_3px_0px_#000]">
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[20px] text-black">refresh</span>
-                            <span className="text-[12px] font-black uppercase tracking-wider text-black">
-                              Adaptive Recall · Re-Testing Question #{currentItem.originalIndex + 1}
-                            </span>
-                          </div>
-                          <span className="text-[11px] font-bold text-black/70">Attempt {currentItem.attempts + 1}</span>
-                        </div>
-                      )}
-
                       {/* Question Card */}
                       <div className="bg-white border-[3px] border-black p-8 shadow-[5px_5px_0px_#000] rounded-2xl mb-6 relative">
-                        <div className="absolute -top-3.5 left-6 bg-black text-white px-3.5 py-0.5 text-[10px] font-black tracking-widest uppercase rounded">
-                          {currentQuestion.type ? currentQuestion.type.replace(/-/g, " ") : "MULTIPLE CHOICE"}
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 mb-4 mt-2">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center px-3 py-1 bg-[#FAF7F2] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_#000]">
-                              <span className="material-symbols-outlined text-[13px] mr-1">folder</span>{currentQuestion.subject}
-                            </span>
-                            <span className="inline-flex items-center px-3 py-1 bg-[#FFD13B] border-2 border-black rounded-lg text-[10.5px] font-black uppercase tracking-wider text-black shadow-[1.5px_1.5px_0px_#000]">
-                              <span className="material-symbols-outlined text-[13px] mr-1">leaderboard</span>{currentQuestion.difficulty}
-                            </span>
-                          </div>
-                        </div>
-
-                        <h2 key={currentItem.id} className="motion-safe:animate-fade-up text-[24px] font-extrabold leading-snug mb-4">{currentQuestion.q}</h2>
-
-                        {/* Scaffolding clue for re-tests */}
-                        {currentItem.isReTest && currentItem.scaffoldHint && (
-                          <div className="mb-4 bg-[#FFF9E6] border-[2px] border-black p-3.5 rounded-xl text-[13px] font-bold shadow-[2px_2px_0px_#000] flex items-start gap-2.5">
-                            <span className="material-symbols-outlined text-[#F5A623] text-[20px] shrink-0">psychology</span>
-                            <div>
-                              <span className="text-[#B45309] text-[10px] font-black uppercase tracking-wider block mb-0.5">Pip Recall Scaffolding</span>
-                              <p className="text-black font-extrabold tracking-wide">{currentItem.scaffoldHint}</p>
-                            </div>
-                          </div>
-                        )}
+                        <h2 key={currentItem.id} className="motion-safe:animate-fade-up text-[24px] font-extrabold leading-snug">{currentQuestion.q}</h2>
                       </div>
 
                       {/* Options / Input Field */}
@@ -1593,9 +1492,9 @@ Each object MUST match this schema exactly:
                       preferAnimatedWebP={true}
                     />
                   </div>
-                  <h2 className="text-[36px] font-black mb-2">100% Concept Mastery!</h2>
+                  <h2 className="text-[36px] font-black mb-2">Practice Complete!</h2>
                   <p className="text-black/60 font-bold max-w-[340px] mb-8 text-[15px]">
-                    Every concept in this set was tested and retrieved until full cognitive consolidation.
+                    You finished all questions in this practice set.
                   </p>
 
                   {duelOpponent && (
@@ -1637,8 +1536,8 @@ Each object MUST match this schema exactly:
 
                   <div className="w-full bg-white border-[3px] border-black shadow-[5px_5px_0px_#000] rounded-2xl p-6 flex flex-col gap-4 text-left mb-8">
                     <div className="flex justify-between items-center border-b border-black/10 pb-4">
-                      <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Mastery Level</span>
-                      <span className="text-[#16a34a] text-[28px] font-black">100% Mastered</span>
+                      <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Completion</span>
+                      <span className="text-[#16a34a] text-[28px] font-black">100% Complete</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-black/10 pb-4">
                       <span className="font-extrabold text-black/50 text-[13px] uppercase tracking-widest">Best Combo Streak</span>
@@ -1909,7 +1808,7 @@ Each object MUST match this schema exactly:
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[#10B981] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] text-[13px] font-extrabold active:translate-y-0.5 active:shadow-none transition-all"
                     >
                       <span className="material-symbols-outlined text-[16px]" aria-hidden="true">bolt</span>
-                      {isGenerating ? "Building Quiz..." : "Generate Mastery Quiz"}
+                      {isGenerating ? "Building Quiz..." : "Generate Quiz"}
                     </button>
                   </div>
                 </section>
@@ -1919,7 +1818,7 @@ Each object MUST match this schema exactly:
               {isGenerating && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <QuizSkeleton />
-                  <p className="font-extrabold text-[13px] text-black/50">Building adaptive quiz...</p>
+                  <p className="font-extrabold text-[13px] text-black/50">Building your quiz...</p>
                 </div>
               )}
 
@@ -1938,44 +1837,15 @@ Each object MUST match this schema exactly:
                     </div>
 
                     <div className="font-extrabold text-[13px]">
-                      Mastered: <span className="text-[#16a34a] font-black">{masteredCount}</span> / {totalInitialCount}
+                      <span className="text-[#16a34a] font-black">{masteredCount}</span> / {totalInitialCount}
                     </div>
                   </div>
 
                   <Progress value={progressPercent} aria-label="Lesson mastery" className="h-3.5 border-2 border-black bg-[#E8E4DC] [&>div]:bg-[#10B981]" />
 
-                  {/* Re-test notice */}
-                  {currentItem.isReTest && (
-                    <div className="bg-[#FFD13B] border-2 border-black px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">refresh</span>
-                        <span>Recall Retry · Q#{currentItem.originalIndex + 1}</span>
-                      </span>
-                      <span>Attempt #{currentItem.attempts + 1}</span>
-                    </div>
-                  )}
-
                   {/* Card */}
                   <div className="bg-white rounded-2xl border-2 border-black shadow-[3px_3px_0px_#000] p-5 relative">
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="px-2.5 py-0.5 bg-[#FAF7F2] border border-black rounded-full text-[10px] font-bold uppercase">
-                          {currentQuestion.subject}
-                        </span>
-                        <span className="px-2.5 py-0.5 bg-[#FFD13B] border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_#000]">
-                          {currentQuestion.difficulty}
-                        </span>
-                      </div>
-                    </div>
-
-                    <h2 key={currentItem.id} className="motion-safe:animate-fade-up font-extrabold leading-snug text-[16px] mb-3">{currentQuestion.q}</h2>
-
-                    {currentItem.isReTest && currentItem.scaffoldHint && (
-                      <div className="mb-3 bg-[#FFF9E6] border border-black p-2.5 rounded-lg text-[12px] font-bold">
-                        <span className="text-[#B45309] text-[10px] font-black uppercase block">Pip Recall Scaffolding</span>
-                        {currentItem.scaffoldHint}
-                      </div>
-                    )}
+                    <h2 key={currentItem.id} className="motion-safe:animate-fade-up font-extrabold leading-snug text-[16px]">{currentQuestion.q}</h2>
                   </div>
 
                   {/* Options */}
@@ -2025,9 +1895,9 @@ Each object MUST match this schema exactly:
                 preferAnimatedWebP={true}
               />
             </div>
-            <h2 className="font-black mb-1.5 text-[24px]">100% Mastery!</h2>
+            <h2 className="font-black mb-1.5 text-[24px]">Practice Complete!</h2>
             <p className="text-black/50 font-bold max-w-[280px] mb-6 text-[13px]">
-              Quiz completed through the adaptive recall engine.
+              You finished all questions in this practice set.
             </p>
 
             {duelOpponent && (
@@ -2065,8 +1935,8 @@ Each object MUST match this schema exactly:
 
             <div className="w-full bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_#000] flex flex-col gap-4 text-left mb-8">
               <div className="flex justify-between items-center border-b pb-2.5">
-                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Mastery</span>
-                <span className="text-[#16a34a] text-[20px] font-black">100% Mastered</span>
+                <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Completion</span>
+                <span className="text-[#16a34a] text-[20px] font-black">100% Complete</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2.5">
                 <span className="font-extrabold text-black/50 text-[12px] uppercase tracking-widest">Best Streak</span>
