@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { SharedSidebar } from "@/components/SharedSidebar";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { callGroq, safeParseJSON } from "@/lib/groq";
 import { usePlan } from "@/hooks/usePlan";
@@ -19,8 +19,25 @@ import {
   getMistakeStats,
 } from "@/lib/mistakes";
 import { useXp } from "@/lib/useXp";
-import { playSuccess, playTap, playCelebration, playIncorrect } from "@/lib/soundFX";
+import { playSuccess, playTap, playCelebration, playIncorrect, playPop } from "@/lib/soundFX";
 import { fireConfetti } from "@/lib/confetti";
+import { Mascot } from "@/components/Mascot";
+
+function getConceptKey(title: string): string {
+  const colonIndex = title.indexOf(":");
+  if (colonIndex > 3 && colonIndex < 35) {
+    return title.slice(0, colonIndex).trim();
+  }
+  const dashIndex = title.indexOf(" - ");
+  if (dashIndex > 3 && dashIndex < 35) {
+    return title.slice(0, dashIndex).trim();
+  }
+  const words = title.split(/\s+/);
+  if (words.length <= 4) {
+    return title.trim();
+  }
+  return words.slice(0, 3).join(" ");
+}
 
 interface MistakeCardProps {
   item: MistakeItem;
@@ -280,14 +297,35 @@ export default function MistakeJournal() {
   const stats = getMistakeStats(mistakes);
   const subjects = ["All", "Biology", "Physics", "Mathematics", "Chemistry", "History", "General"];
 
-  const filteredMistakes = mistakes.filter((m) => {
-    const matchSubject = activeSubject === "All" || m.subject.toLowerCase() === activeSubject.toLowerCase();
-    const matchSearch =
-      !searchQuery ||
-      m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.desc.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchSubject && matchSearch;
-  });
+  const [viewTab, setViewTab] = useState<"active" | "mastered">("active");
+  const [groupByConcept, setGroupByConcept] = useState(true);
+
+  const filteredMistakes = useMemo(() => {
+    return mistakes.filter((m) => {
+      const matchTab = viewTab === "active" ? !m.resolved : m.resolved;
+      const matchSubject = activeSubject === "All" || m.subject.toLowerCase() === activeSubject.toLowerCase();
+      const matchSearch =
+        !searchQuery ||
+        m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.desc.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchTab && matchSubject && matchSearch;
+    });
+  }, [mistakes, viewTab, activeSubject, searchQuery]);
+
+  // Concept-level clustering
+  const conceptClusters = useMemo(() => {
+    const map: Record<string, { concept: string; subject: string; items: MistakeItem[]; errorTypes: Set<string> }> = {};
+    filteredMistakes.forEach((item) => {
+      const concept = getConceptKey(item.title);
+      const key = `${item.subject}::${concept.toLowerCase()}`;
+      if (!map[key]) {
+        map[key] = { concept, subject: item.subject, items: [], errorTypes: new Set() };
+      }
+      map[key].items.push(item);
+      if (item.errorType) map[key].errorTypes.add(item.errorType);
+    });
+    return Object.values(map).sort((a, b) => b.items.length - a.items.length);
+  }, [filteredMistakes]);
 
   const handleStartQuiz = async (item: MistakeItem) => {
     if (item.quiz && item.quiz.options?.length) {
@@ -425,16 +463,17 @@ Return strictly raw JSON format without markdown fences:
     }
   };
 
-  // Launch Full "Practice Missed Questions" Retest Clinic
-  const startRetestClinic = async () => {
-    const unmastered = mistakes.filter((m) => !m.resolved);
-    if (unmastered.length === 0) return;
+  // Launch Targeted Drill (from global button or concept cluster)
+  const launchDrillWithItems = async (items: MistakeItem[]) => {
+    const unmastered = items.filter((m) => !m.resolved);
+    const targetList = unmastered.length > 0 ? unmastered : items;
+    if (targetList.length === 0) return;
 
     setIsGeneratingRetest(true);
     playTap();
 
-    // Pick up to 5 unmastered mistakes
-    const batch = unmastered.slice(0, 5);
+    // Pick up to 5 items
+    const batch = targetList.slice(0, 5);
 
     // Ensure all items in the batch have a valid quiz
     const preparedBatch = await Promise.all(
@@ -479,6 +518,11 @@ Return strictly raw JSON format without markdown fences:
     setRetestComplete(false);
     setIsGeneratingRetest(false);
     setRetestModalOpen(true);
+  };
+
+  const startRetestClinic = async () => {
+    const unmastered = mistakes.filter((m) => !m.resolved);
+    await launchDrillWithItems(unmastered);
   };
 
   const handleRetestSubmit = () => {
@@ -609,22 +653,99 @@ Return strictly raw JSON format without markdown fences:
               <button
                 onClick={startRetestClinic}
                 disabled={stats.toReview === 0 || isGeneratingRetest}
-                className="px-6 py-3 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black font-black text-[13px] uppercase tracking-wider shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                className="px-6 py-3.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black font-black text-[13px] uppercase tracking-wider shadow-[3px_3px_0px_#000] active:scale-[0.98] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
               >
                 <span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>
-                  {isGeneratingRetest ? "autorenew" : "quiz"}
+                  {isGeneratingRetest ? "autorenew" : "bolt"}
                 </span>
-                <span>{isGeneratingRetest ? "Building Retest..." : "Practice Missed Questions"}</span>
+                <span>
+                  {isGeneratingRetest
+                    ? "Building Error Drill..."
+                    : `Start Error Drill (${Math.min(stats.toReview, 5)} Qs)`}
+                </span>
               </button>
 
               <button
                 onClick={() => setNewEntryOpen(true)}
-                className="px-4 py-2 bg-white hover:bg-[#F0EDE0] text-black border-2 border-black font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_#000] flex items-center justify-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 bg-white hover:bg-[#F0EDE0] text-black border-2 border-black font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_#000] flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <span className="material-symbols-outlined text-[16px]" style={{ textTransform: "none" }}>
                   add
                 </span>
                 <span>Add Note</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Rex Study Coach Commentary ── */}
+          <div className="bg-[#FFFDF9] border-3 border-black rounded-3xl p-4 md:p-5 shadow-[4px_4px_0px_#000] flex items-center gap-4">
+            <div className="w-14 h-14 md:w-16 md:h-16 shrink-0 flex items-center justify-center">
+              <Mascot mood={stats.toReview === 0 ? "celebrate" : "encouraging"} size="xs" animate />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 bg-[#FFD13B] border border-black rounded text-[10px] font-black uppercase tracking-wider text-black">
+                  Rex's Growth Coach
+                </span>
+                <span className="text-[11px] font-bold text-black/50">Error Reframing</span>
+              </div>
+              <p className="text-[13px] md:text-[14px] font-extrabold text-black leading-snug">
+                {stats.toReview === 0
+                  ? "Flawless record! All tracked weak spots have graduated to your Mastered Vault. Keep challenging yourself in Arena battles!"
+                  : `You have ${stats.toReview} active weak spot${stats.toReview === 1 ? "" : "s"} ready for review. Top students treat errors as clues: drill them once, understand the mechanism, and lock in the points.`}
+              </p>
+            </div>
+          </div>
+
+          {/* ── Tabs Bar: Active Weak Spots vs Mastered Vault + View Mode ── */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  playTap();
+                  setViewTab("active");
+                }}
+                className={`px-4 py-2 border-2 border-black rounded-xl font-black text-[12px] md:text-[13px] uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+                  viewTab === "active"
+                    ? "bg-black text-white shadow-[3px_3px_0px_#000]"
+                    : "bg-white text-black hover:bg-[#FAF7F2] shadow-[2px_2px_0px_#000]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">pending_actions</span>
+                <span>Active Weak Spots ({stats.toReview})</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  playTap();
+                  setViewTab("mastered");
+                }}
+                className={`px-4 py-2 border-2 border-black rounded-xl font-black text-[12px] md:text-[13px] uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+                  viewTab === "mastered"
+                    ? "bg-[#10B981] text-white shadow-[3px_3px_0px_#000]"
+                    : "bg-white text-black hover:bg-[#FAF7F2] shadow-[2px_2px_0px_#000]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">verified</span>
+                <span>Mastered Vault ({stats.total - stats.toReview})</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase text-black/50">Grouping:</span>
+              <button
+                onClick={() => {
+                  playTap();
+                  setGroupByConcept((prev) => !prev);
+                }}
+                className={`px-3 py-1.5 border-2 border-black rounded-lg text-[11px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_#000] active:scale-[0.96] transition-all flex items-center gap-1.5 cursor-pointer ${
+                  groupByConcept ? "bg-[#FFE566] text-black" : "bg-white text-black hover:bg-[#FAF7F2]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[14px]">
+                  {groupByConcept ? "folder_open" : "grid_view"}
+                </span>
+                <span>{groupByConcept ? "By Concept" : "All Cards"}</span>
               </button>
             </div>
           </div>
@@ -666,21 +787,27 @@ Return strictly raw JSON format without markdown fences:
             </div>
           </div>
 
-          {/* Cards Grid */}
+          {/* Cards & Concept Clusters Grid */}
           {filteredMistakes.length === 0 ? (
-            <div className="border-3 border-dashed border-black/30 bg-white p-12 text-center flex flex-col items-center justify-center gap-3">
+            <div className="border-3 border-dashed border-black/30 bg-white p-12 text-center flex flex-col items-center justify-center gap-3 rounded-2xl">
               <span className="material-symbols-outlined text-[48px] text-black/30" style={{ textTransform: "none" }}>
-                task_alt
+                {viewTab === "mastered" ? "verified" : "task_alt"}
               </span>
               <h4 className="text-[18px] font-black uppercase text-black/60">
-                {mistakes.length === 0 ? "Clean Slate! No Active Weak Spots" : "No Matches for this Filter"}
+                {viewTab === "mastered"
+                  ? "Mastered Vault is Empty"
+                  : mistakes.length === 0
+                  ? "Clean Slate! No Active Weak Spots"
+                  : "No Matches for this Filter"}
               </h4>
               <p className="text-[13px] font-bold text-black/40 max-w-md">
-                {mistakes.length === 0
-                  ? "Questions you miss during Practice sessions or Arena battles will automatically show up here so you can review and master them."
+                {viewTab === "mastered"
+                  ? "When you answer missed questions correctly during drills, they will graduate here into your permanent trophy vault."
+                  : mistakes.length === 0
+                  ? "Questions you miss during Practice sessions or Arena battles automatically show up here so you can review and master them."
                   : "Try clearing your search query or selecting 'All' subjects to see your entries."}
               </p>
-              {mistakes.length === 0 && (
+              {viewTab === "active" && mistakes.length === 0 && (
                 <button
                   onClick={() => setNewEntryOpen(true)}
                   className="mt-2 px-5 py-2.5 bg-[#FFD13B] hover:bg-[#FFE566] text-black border-2 border-black font-black text-[13px] uppercase tracking-wider shadow-[2px_2px_0px_#000] cursor-pointer"
@@ -689,7 +816,76 @@ Return strictly raw JSON format without markdown fences:
                 </button>
               )}
             </div>
+          ) : groupByConcept ? (
+            /* Concept Clusters View */
+            <div className="flex flex-col gap-6">
+              {conceptClusters.map((cluster) => (
+                <div
+                  key={`${cluster.subject}-${cluster.concept}`}
+                  className="border-3 border-black bg-white shadow-[4px_4px_0px_#000] rounded-2xl overflow-hidden"
+                >
+                  {/* Cluster Header */}
+                  <div className="p-4 md:p-5 border-b-2 border-black bg-[#FAF7F2] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="px-2.5 py-0.5 bg-black text-white text-[10px] font-black uppercase tracking-wider rounded">
+                          {cluster.subject}
+                        </span>
+                        {Array.from(cluster.errorTypes).map((t) => (
+                          <span
+                            key={t}
+                            className="px-2 py-0.5 bg-white border border-black text-[10px] font-black uppercase tracking-wider text-black rounded"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                        <span className="text-[11px] font-extrabold text-black/60">
+                          {cluster.items.length} {cluster.items.length === 1 ? "question" : "questions"}
+                        </span>
+                      </div>
+                      <h3 className="text-[17px] md:text-[19px] font-black text-black">
+                        {cluster.concept}
+                      </h3>
+                    </div>
+
+                    <button
+                      onClick={() => launchDrillWithItems(cluster.items)}
+                      disabled={isGeneratingRetest}
+                      className="px-4 py-2 bg-[#FFE566] hover:bg-[#FFD13B] text-black border-2 border-black rounded-xl font-black text-[12px] uppercase tracking-wider shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">bolt</span>
+                      <span>Drill This Concept</span>
+                    </button>
+                  </div>
+
+                  {/* Cards inside cluster */}
+                  <div className="p-4 md:p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {cluster.items.map((item) => (
+                      <MistakeCard
+                        key={item.id}
+                        item={item}
+                        activeQuizId={activeQuizId}
+                        selectedQuizOption={selectedQuizOption}
+                        quizFeedback={quizFeedback}
+                        loadingQuizId={loadingQuizId}
+                        onDelete={handleDelete}
+                        onMarkMastered={handleMarkMasteredDirect}
+                        onStartQuiz={handleStartQuiz}
+                        onSubmitQuiz={handleSubmitQuiz}
+                        onSelectOption={setSelectedOption}
+                        onCloseQuiz={() => {
+                          setActiveQuizId(null);
+                          setSelectedOption(null);
+                          setQuizFeedback(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
+            /* Flat Cards Grid */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredMistakes.map((item) => (
                 <MistakeCard

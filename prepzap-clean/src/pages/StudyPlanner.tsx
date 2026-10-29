@@ -12,6 +12,7 @@ import { callGroq } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 import { fireConfetti } from "@/lib/confetti";
 import { playSuccess, playPop, playTap } from "@/lib/soundFX";
+import { Mascot } from "@/components/Mascot";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface PlannerSession {
@@ -76,6 +77,134 @@ function relativeDeadline(iso: string): { label: string; urgent: boolean; diffDa
   if (diff < 7) return { label: `IN ${diff} DAYS`, urgent: false, diffDays: diff };
   if (diff === 7) return { label: "IN 1 WEEK", urgent: false, diffDays: diff };
   return { label: `IN ${Math.floor(diff / 7)} WEEKS`, urgent: false, diffDays: diff };
+}
+
+// ─── StudySlotCard Component ──────────────────────────────────────────────────
+function StudySlotCard({
+  session,
+  onToggle,
+  onDelete,
+  onLaunch,
+}: {
+  session: PlannerSession;
+  onToggle: (id: string | number) => void;
+  onDelete: (id: string | number) => void;
+  onLaunch: (path: string) => void;
+}) {
+  const isFlashcards =
+    session.tool === "flashcards" ||
+    session.subject.toLowerCase().includes("flashcard") ||
+    (session.topic && session.topic.toLowerCase().includes("flashcard"));
+  const isTeachIt =
+    session.tool === "teach-it" ||
+    session.subject.toLowerCase().includes("feynman") ||
+    session.subject.toLowerCase().includes("teach");
+  const isQuiz =
+    session.tool === "practice" ||
+    session.subject.toLowerCase().includes("quiz") ||
+    session.subject.toLowerCase().includes("test");
+
+  return (
+    <div
+      className={`border-3 border-black rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
+        session.completed
+          ? "bg-[#ECFDF5] shadow-[2px_2px_0px_#000] opacity-90"
+          : "bg-white shadow-[4px_4px_0px_#000]"
+      }`}
+    >
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <button
+          type="button"
+          onClick={() => onToggle(session.id)}
+          className={`w-7 h-7 rounded-lg border-2 border-black flex items-center justify-center shrink-0 cursor-pointer shadow-[1px_1px_0px_#000] active:scale-[0.88] active:translate-x-0.5 active:translate-y-0.5 transition-transform ${
+            session.completed ? "bg-[#10B981] text-white" : "bg-white hover:bg-[#FAF7F2]"
+          }`}
+          title="Mark completed (+50 XP)"
+        >
+          {session.completed && (
+            <span className="material-symbols-outlined text-[18px]">check</span>
+          )}
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-black text-[15px] text-black truncate">
+              {session.subject}
+            </span>
+            <span className="text-[11px] font-bold text-black/50">
+              • {session.time}
+            </span>
+            {session.estimatedHours && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-[#FAF7F2] border border-black/30 rounded">
+                {Math.round(session.estimatedHours * 60)}m
+              </span>
+            )}
+          </div>
+
+          {session.topic && (
+            <p className="text-[12.5px] font-semibold text-black/70 mt-0.5 line-clamp-2">
+              {session.topic}
+            </p>
+          )}
+
+          {session.completed && (
+            <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-black uppercase text-[#065F46] bg-green-100 px-2 py-0.5 rounded border border-green-300">
+              <span className="material-symbols-outlined text-[12px]">verified</span>
+              Completed (+50 XP Earned)
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+        {!session.completed && (
+          <>
+            {isFlashcards ? (
+              <button
+                onClick={() => onLaunch(`/flashcards?topic=${encodeURIComponent(session.topic || session.subject)}`)}
+                className="flex-1 sm:flex-initial px-4 py-2 bg-[#FFE566] hover:bg-[#FFD13B] text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">bolt</span>
+                <span>Launch Cards</span>
+              </button>
+            ) : isTeachIt ? (
+              <button
+                onClick={() => onLaunch(`/teach-it?topic=${encodeURIComponent(session.topic || session.subject)}`)}
+                className="flex-1 sm:flex-initial px-4 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">school</span>
+                <span>Teach Pip</span>
+              </button>
+            ) : isQuiz ? (
+              <button
+                onClick={() => onLaunch(`/practice?topic=${encodeURIComponent(session.topic || session.subject)}`)}
+                className="flex-1 sm:flex-initial px-4 py-2 bg-[#3B82F6] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">quiz</span>
+                <span>Practice Quiz</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => onLaunch("/timer")}
+                className="flex-1 sm:flex-initial px-4 py-2 bg-white hover:bg-black hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">timer</span>
+                <span>Focus Timer</span>
+              </button>
+            )}
+          </>
+        )}
+
+        <button
+          onClick={() => onDelete(session.id)}
+          className="w-8 h-8 rounded-lg border border-black/20 hover:border-black hover:bg-red-50 text-black/30 hover:text-red-600 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
+          title="Remove slot"
+        >
+          <span className="material-symbols-outlined text-[16px]">delete</span>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ─── StudyPlanner Component ───────────────────────────────────────────────────
@@ -380,6 +509,94 @@ Return ONLY raw JSON with NO markdown:
     return { done, total, pct, deadlineInfo };
   }, [activeExam, sessions]);
 
+  // Today's Missions
+  const todaySessions = useMemo(() => {
+    return sessions.filter(
+      (s) =>
+        s.year === todayDate.getFullYear() &&
+        s.month === todayDate.getMonth() &&
+        s.dayNum === todayDate.getDate() &&
+        !s.isDue
+    );
+  }, [sessions, todayDate]);
+
+  // Mascot Coaching Commentary
+  const coaching = useMemo(() => {
+    if (!activeExam) {
+      return {
+        mood: "encouraging" as const,
+        badge: "Rex's Daily Briefing",
+        text: "Ready to conquer your next exam? Generate an AI Spaced Repetition plan above to pace your retention automatically!",
+      };
+    }
+    const diffDays = examStats?.deadlineInfo.diffDays ?? 30;
+    const uncompletedToday = todaySessions.filter((s) => !s.completed).length;
+
+    if (todaySessions.length > 0 && uncompletedToday === 0) {
+      return {
+        mood: "celebrate" as const,
+        badge: "Daily Missions Cleared!",
+        text: `Outstanding focus! You finished all of today's study sessions for ${activeExam.examName}. Your memory consolidation is on track!`,
+      };
+    }
+
+    if (diffDays <= 2) {
+      return {
+        mood: "thinking" as const,
+        badge: "Exam Sprint Window",
+        text: `${diffDays === 0 ? "Today is exam day! Trust your preparation and stay calm." : diffDays === 1 ? "Exam is tomorrow! Stick to rapid active recall; no heavy cramming." : "Only 2 days to go! High-yield review and sleep will maximize your score."}`,
+      };
+    }
+
+    if (diffDays <= 7) {
+      return {
+        mood: "encouraging" as const,
+        badge: "Peak Retention Window",
+        text: `${diffDays} days left until ${activeExam.examName}. Test yourself with practice quizzes and teach tricky concepts to solidify your recall.`,
+      };
+    }
+
+    if (todaySessions.length > 0) {
+      return {
+        mood: "happy" as const,
+        badge: "Today's Study Rhythm",
+        text: `You have ${uncompletedToday} study mission${uncompletedToday === 1 ? "" : "s"} waiting for today. Tap launch below to earn +50 XP per block!`,
+      };
+    }
+
+    return {
+      mood: "idle" as const,
+      badge: "Pacing Steadily",
+      text: `Pacing steadily for ${activeExam.examName}. Consistency on your spaced schedule keeps retention above 90%.`,
+    };
+  }, [activeExam, examStats, todaySessions]);
+
+  const handleAddQuickToday = (tool: "flashcards" | "teach-it" | "practice" | "timer", topicName?: string) => {
+    playPop();
+    const toolTitles: Record<string, string> = {
+      flashcards: "Active Flashcard Review",
+      "teach-it": "Feynman Concept Breakdown",
+      practice: "Diagnostic Practice Quiz",
+      timer: "Deep Work Focus Block",
+    };
+
+    const newSession: PlannerSession = {
+      id: `slot_quick_${Date.now()}`,
+      subject: activeExam ? activeExam.examName : "High-Yield Study",
+      time: "Today",
+      topic: topicName || toolTitles[tool],
+      tool,
+      completed: false,
+      dayNum: todayDate.getDate(),
+      month: todayDate.getMonth(),
+      year: todayDate.getFullYear(),
+      estimatedHours: 0.5,
+    };
+
+    setSessions((prev) => [...prev, newSession]);
+    playSuccess();
+  };
+
   return (
     <div className="w-full bg-[#FAF7F2] min-h-[100dvh] flex flex-col font-body-md select-none">
       <TutorialModal isOpen={tutorial.isOpen} onDismiss={tutorial.dismiss} features={TUTORIAL_CONTENT["/planner"] || []} title="Study Planner" />
@@ -500,6 +717,126 @@ Return ONLY raw JSON with NO markdown:
                 <span className="hidden sm:inline">Add Slot</span>
               </button>
             </div>
+          </section>
+
+          {/* ── Rex Daily Coaching Banner ── */}
+          <div className="bg-[#FFFDF9] border-3 border-black rounded-3xl p-4 md:p-5 shadow-[4px_4px_0px_#000] flex items-center gap-4">
+            <div className="w-14 h-14 md:w-16 md:h-16 shrink-0 flex items-center justify-center">
+              <Mascot mood={coaching.mood} size="xs" animate />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 bg-[#FFD13B] border border-black rounded text-[10px] font-black uppercase tracking-wider text-black">
+                  {coaching.badge}
+                </span>
+                <span className="text-[11px] font-bold text-black/50">Personalized Study Coach</span>
+              </div>
+              <p className="text-[13px] md:text-[14px] font-extrabold text-black leading-snug">
+                {coaching.text}
+              </p>
+            </div>
+          </div>
+
+          {/* ── Today's Mission: Actionable Agenda ── */}
+          <section className="bg-white border-3 border-black rounded-3xl p-5 md:p-6 shadow-[5px_5px_0px_#000] flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b-2 border-black pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-[#FFE566] border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                  <span className="material-symbols-outlined text-[22px] text-black">checklist</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[18px] md:text-[20px] font-black uppercase tracking-tight text-black">
+                      Today's Mission
+                    </h2>
+                    <span className="px-2 py-0.5 bg-black text-white text-[10px] font-black uppercase tracking-wider rounded">
+                      {todayDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                  <p className="text-[12px] font-bold text-black/50">
+                    {todaySessions.filter((s) => s.completed).length} of {todaySessions.length} completed
+                    {todaySessions.length > 0 && todaySessions.every((s) => s.completed) && " • All goals accomplished today!"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Launch Buttons */}
+              <div className="hidden sm:flex items-center gap-1.5">
+                <button
+                  onClick={() => handleAddQuickToday("flashcards")}
+                  className="px-2.5 py-1.5 bg-[#FAF7F2] hover:bg-[#FFE566] border-2 border-black rounded-lg text-[11px] font-black shadow-[1.5px_1.5px_0px_#000] active:scale-[0.96] transition-all flex items-center gap-1 cursor-pointer"
+                  title="Add Flashcard Review for today"
+                >
+                  <span className="material-symbols-outlined text-[14px]">bolt</span>
+                  <span>+ Cards</span>
+                </button>
+                <button
+                  onClick={() => handleAddQuickToday("teach-it")}
+                  className="px-2.5 py-1.5 bg-[#FAF7F2] hover:bg-[#10B981] hover:text-white border-2 border-black rounded-lg text-[11px] font-black shadow-[1.5px_1.5px_0px_#000] active:scale-[0.96] transition-all flex items-center gap-1 cursor-pointer"
+                  title="Add Feynman Teach session for today"
+                >
+                  <span className="material-symbols-outlined text-[14px]">school</span>
+                  <span>+ Teach</span>
+                </button>
+                <button
+                  onClick={() => handleAddQuickToday("practice")}
+                  className="px-2.5 py-1.5 bg-[#FAF7F2] hover:bg-[#3B82F6] hover:text-white border-2 border-black rounded-lg text-[11px] font-black shadow-[1.5px_1.5px_0px_#000] active:scale-[0.96] transition-all flex items-center gap-1 cursor-pointer"
+                  title="Add Practice Quiz for today"
+                >
+                  <span className="material-symbols-outlined text-[14px]">quiz</span>
+                  <span>+ Quiz</span>
+                </button>
+              </div>
+            </div>
+
+            {todaySessions.length === 0 ? (
+              <div className="border-2 border-dashed border-black/30 rounded-2xl p-6 bg-[#FAF7F2] text-center flex flex-col items-center justify-center gap-2.5">
+                <div className="w-12 h-12 rounded-xl bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                  <span className="material-symbols-outlined text-[24px] text-black/50">event_available</span>
+                </div>
+                <div>
+                  <h4 className="font-black text-[15px] text-black">No study missions scheduled for today</h4>
+                  <p className="text-[12px] font-bold text-black/50 max-w-sm">
+                    Keep your retention sharp with a quick 15-minute active recall session.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                  <button
+                    onClick={() => handleAddQuickToday("flashcards")}
+                    className="px-3.5 py-2 bg-[#FFE566] hover:bg-[#FFD13B] text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">bolt</span>
+                    <span>+ Quick Flashcards</span>
+                  </button>
+                  <button
+                    onClick={() => handleAddQuickToday("teach-it")}
+                    className="px-3.5 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">school</span>
+                    <span>+ Teach Pip</span>
+                  </button>
+                  <button
+                    onClick={() => handleAddQuickToday("practice")}
+                    className="px-3.5 py-2 bg-[#3B82F6] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:scale-[0.96] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">quiz</span>
+                    <span>+ Practice Quiz</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {todaySessions.map((session) => (
+                  <StudySlotCard
+                    key={session.id}
+                    session={session}
+                    onToggle={handleToggleComplete}
+                    onDelete={handleDeleteSession}
+                    onLaunch={(path) => navigate(path)}
+                  />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* ── 2-Column Calendar & Playable Slots Studio ── */}
@@ -658,110 +995,15 @@ Return ONLY raw JSON with NO markdown:
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {selectedDaySessions.map((session) => {
-                    const isFlashcards = session.tool === "flashcards" || session.subject.toLowerCase().includes("flashcard") || (session.topic && session.topic.toLowerCase().includes("flashcard"));
-                    const isTeachIt = session.tool === "teach-it" || session.subject.toLowerCase().includes("feynman") || session.subject.toLowerCase().includes("teach");
-                    const isQuiz = session.tool === "practice" || session.subject.toLowerCase().includes("quiz") || session.subject.toLowerCase().includes("test");
-
-                    return (
-                      <div
-                        key={session.id}
-                        className={`border-3 border-black rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
-                          session.completed
-                            ? "bg-[#ECFDF5] shadow-[2px_2px_0px_#000] opacity-85"
-                            : "bg-white shadow-[4px_4px_0px_#000]"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Checkbox */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleComplete(session.id)}
-                            className={`w-7 h-7 rounded-lg border-2 border-black flex items-center justify-center shrink-0 cursor-pointer shadow-[1px_1px_0px_#000] transition-colors ${
-                              session.completed ? "bg-[#10B981] text-white" : "bg-white hover:bg-[#FAF7F2]"
-                            }`}
-                            title="Mark completed (+50 XP)"
-                          >
-                            {session.completed && (
-                              <span className="material-symbols-outlined text-[18px]">check</span>
-                            )}
-                          </button>
-
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-black text-[15px] text-black">
-                                {session.subject}
-                              </span>
-                              <span className="text-[11px] font-bold text-black/50">
-                                • {session.time}
-                              </span>
-                            </div>
-
-                            {session.topic && (
-                              <p className="text-[12.5px] font-semibold text-black/70 mt-0.5">
-                                {session.topic}
-                              </p>
-                            )}
-
-                            {session.completed && (
-                              <span className="inline-block mt-1 text-[10px] font-black uppercase text-[#065F46] bg-green-100 px-2 py-0.5 rounded border border-green-300">
-                                ✓ Completed (+50 XP Earned)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                          {!session.completed && (
-                            <>
-                              {isFlashcards ? (
-                                <button
-                                  onClick={() => navigate(`/flashcards?topic=${encodeURIComponent(session.topic || session.subject)}`)}
-                                  className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#FFE566] hover:bg-[#FFD13B] text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">bolt</span>
-                                  <span>Start Cards</span>
-                                </button>
-                              ) : isTeachIt ? (
-                                <button
-                                  onClick={() => navigate(`/teach-it?topic=${encodeURIComponent(session.topic || session.subject)}`)}
-                                  className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#10B981] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">school</span>
-                                  <span>Teach Pip</span>
-                                </button>
-                              ) : isQuiz ? (
-                                <button
-                                  onClick={() => navigate(`/practice?topic=${encodeURIComponent(session.topic || session.subject)}`)}
-                                  className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#3B82F6] hover:bg-black text-white border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">quiz</span>
-                                  <span>Take Quiz</span>
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => navigate("/timer")}
-                                  className="flex-1 sm:flex-initial px-3.5 py-2 bg-white hover:bg-black hover:text-white text-black border-2 border-black rounded-xl font-black text-[12px] shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">timer</span>
-                                  <span>Focus</span>
-                                </button>
-                              )}
-                            </>
-                          )}
-
-                          <button
-                            onClick={() => handleDeleteSession(session.id)}
-                            className="w-8 h-8 rounded-lg border border-black/20 hover:border-black hover:bg-red-50 text-black/30 hover:text-red-600 flex items-center justify-center cursor-pointer transition-colors"
-                            title="Remove slot"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">delete</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {selectedDaySessions.map((session) => (
+                    <StudySlotCard
+                      key={session.id}
+                      session={session}
+                      onToggle={handleToggleComplete}
+                      onDelete={handleDeleteSession}
+                      onLaunch={(path) => navigate(path)}
+                    />
+                  ))}
                 </div>
               )}
 
