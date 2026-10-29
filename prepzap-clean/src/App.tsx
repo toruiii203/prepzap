@@ -412,7 +412,7 @@ function AppRoutes() {
           <Route path="/sources" element={<SourceLibrary />} />
           <Route path="/source-library" element={<SourceLibrary />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/cram" element={<Navigate to="/quick-study" replace />} />
+          <Route path="/cram" element={<CramMode />} />
           <Route path="/recall" element={<Navigate to="/quick-study" replace />} />
           <Route path="/visual-learner" element={<VisualLearner />} />
           <Route path="/notes" element={<NotesWorkspace />} />

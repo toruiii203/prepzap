@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { isAnswerCorrect } from "@/lib/quizUtils";
 import { recordMistake } from "@/lib/mistakes";
+import { withTimeout } from "@/lib/withTimeout";
 
 interface Question {
   question: string;
@@ -390,12 +391,13 @@ export default function ArenaQuiz() {
           }
 
           try {
-            const { data: sub } = await supabase
+            const query = supabase
               .from("daily_challenge_submissions")
               .select("id")
               .eq("challenge_date", today)
               .eq("user_id", user.id)
               .maybeSingle();
+            const { data: sub } = await withTimeout(query, 2500, "daily submission check");
             if (sub && mounted) {
               try { localStorage.setItem(`pz_daily_done_${today}_${user.id}`, "true"); } catch {}
               navigate("/arena");

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { withTimeout } from "@/lib/withTimeout";
 
 // ─── Feature keys (match usage_logs.feature column) ──────────────────────────
 export type FeatureKey =
@@ -58,20 +59,27 @@ export async function getUsageToday(
 ): Promise<number> {
   const { start, end } = todayInManila();
 
-  const { count, error } = await supabase
-    .from("usage_logs")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("feature", feature)
-    .gte("used_at", start)
-    .lte("used_at", end);
+  try {
+    const query = supabase
+      .from("usage_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("feature", feature)
+      .gte("used_at", start)
+      .lte("used_at", end);
 
-  if (error) {
-    console.error("[freemium] getUsageToday error:", error.message);
-    return 0; // fail open — don't block the user on a DB error
+    const { count, error } = await withTimeout(query, 2500, "freemium usage query");
+
+    if (error) {
+      console.error("[freemium] getUsageToday error:", error.message);
+      return 0; // fail open — don't block the user on a DB error
+    }
+
+    return count ?? 0;
+  } catch (err) {
+    console.warn("[freemium] getUsageToday timed out or failed (failing open):", err);
+    return 0;
   }
-
-  return count ?? 0;
 }
 
 // ─── Can this user use the feature right now? ─────────────────────────────────
@@ -81,8 +89,12 @@ export async function canUse(
   plan: "free" | "pro"
 ): Promise<boolean> {
   if (plan === "pro") return true;
-  const used = await getUsageToday(userId, feature);
-  return used < LIMITS[feature];
+  try {
+    const used = await getUsageToday(userId, feature);
+    return used < LIMITS[feature];
+  } catch {
+    return true; // fail open
+  }
 }
 
 // ─── Log a usage event ────────────────────────────────────────────────────────
@@ -90,12 +102,13 @@ export async function logUsage(
   userId: string,
   feature: FeatureKey
 ): Promise<void> {
-  const { error } = await supabase
-    .from("usage_logs")
-    .insert({ user_id: userId, feature });
-
-  if (error) {
-    console.error("[freemium] logUsage error:", error.message);
+  try {
+    const query = supabase
+      .from("usage_logs")
+      .insert({ user_id: userId, feature });
+    await withTimeout(query, 2500, "freemium log usage");
+  } catch (err) {
+    console.warn("[freemium] logUsage warning:", err);
   }
 }
 

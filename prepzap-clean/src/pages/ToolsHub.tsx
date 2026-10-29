@@ -6,25 +6,26 @@ const TOOL_PAGES = [
     { route: "/ai-tutor", icon: "forum", title: "Pip Tutor", desc: "Interactive help" },
     { route: "/practice", icon: "assignment", title: "Practice", desc: "Mock exams" },
     { route: "/flashcards", icon: "style", title: "Flashcards", desc: "Spaced rep" },
-    { route: "/quick-study", icon: "edit_note", title: "Cram Mode", desc: "Quick review" },
+    { route: "/cram", icon: "bolt", title: "Cram Mode", desc: "Emergency timed cram" },
   ],
   [
+    { route: "/quick-study", icon: "menu_book", title: "Quick Study", desc: "Cheat sheets & sprints" },
     { route: "/visual-learner", icon: "visibility", title: "Visual Learner", desc: "Mindmaps & cards" },
     { route: "/planner", icon: "calendar_month", title: "Study Planner", desc: "Schedule sessions" },
     { route: "/math", icon: "calculate", title: "Math Solver", desc: "Step-by-step" },
-    { route: "/teach-it", icon: "psychology", title: "Teach It", desc: "Feynman mode" },
   ],
   [
+    { route: "/teach-it", icon: "psychology", title: "Teach It", desc: "Feynman mode" },
     { route: "/timer", icon: "timer", title: "Focus Timer", desc: "Pomodoro" },
     { route: "/arcade", icon: "sports_esports", title: "Arcade", desc: "Mini-games" },
     { route: "/notes", icon: "edit_document", title: "My Notes", desc: "Rich text editor" },
-    { route: "/sources", icon: "attach_file", title: "Source Library", desc: "Upload notes" }
   ],
   [
+    { route: "/sources", icon: "attach_file", title: "Source Library", desc: "Upload notes" },
     { route: "/mistakes", icon: "playlist_remove", title: "Mistake Journal", desc: "Review errors" },
     { route: "/analytics", icon: "bar_chart", title: "Analytics", desc: "Track progress" },
     { route: "/challenges", icon: "emoji_events", title: "Challenges", desc: "Daily streaks" },
-    { route: "/arena", icon: "sports_esports", title: "Arena", desc: "Compete live" },
+    { route: "/arena", icon: "military_tech", title: "Arena", desc: "Compete live" },
   ],
 ] as const;
 
@@ -40,7 +41,7 @@ export default function ToolsHub() {
           className="w-9 h-9 border-2 border-black rounded-lg bg-white shadow-[2px_2px_0px_#1A1A1A] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center justify-center transition-all hover:bg-black hover:text-white"
           aria-label="Back to dashboard"
         >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          <span className="material-symbols-outlined text-[20px]" style={{ textTransform: "none" }}>arrow_back</span>
         </button>
         <h1 className="text-[18px] font-black tracking-tight text-black">All Study Tools</h1>
         <div className="w-9" />
@@ -60,7 +61,7 @@ export default function ToolsHub() {
                   onClick={() => { playPop(); navigate(tool.route); }}
                   className="text-left border-2 border-black rounded-[14px] bg-white p-4 shadow-[3px_3px_0px_#1A1A1A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-[#FFFDF5] transition-all min-h-[110px] flex flex-col justify-between group"
                 >
-                  <span className="material-symbols-outlined text-[24px] mb-2 block text-black group-hover:scale-110 transition-transform">{tool.icon}</span>
+                  <span className="material-symbols-outlined text-[24px] mb-2 block text-black group-hover:scale-110 transition-transform" style={{ textTransform: "none" }}>{tool.icon}</span>
                   <div>
                     <div className="text-[14px] font-black text-black leading-tight">{tool.title}</div>
                     <div className="text-[11px] text-black/55 font-bold mt-0.5">{tool.desc}</div>

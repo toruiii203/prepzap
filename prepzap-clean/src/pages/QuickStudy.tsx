@@ -695,12 +695,21 @@ ${
       {/* Main Content Area */}
       <div className="md:ml-64 flex flex-col flex-1 pb-24 md:pb-8">
         {/* Top Header */}
-        <header className="h-16 flex items-center justify-between px-6 md:px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
+        <header className="h-16 flex items-center justify-between px-4 sm:px-6 md:px-8 border-b-2 border-black bg-[#FAF7F2] shrink-0 z-30">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="md:hidden flex items-center justify-center w-8 h-8 border-2 border-black bg-white shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5"
+              aria-label="Back"
+            >
+              <span className="material-symbols-outlined text-[18px]" style={{ textTransform: "none" }}>
+                arrow_back
+              </span>
+            </button>
             <span className="material-symbols-outlined text-[24px]" style={{ textTransform: "none" }}>
-              bolt
+              menu_book
             </span>
-            <span className="text-[20px] md:text-[22px] font-black tracking-tight uppercase">Quick Study Cram</span>
+            <span className="text-[18px] sm:text-[20px] md:text-[22px] font-black tracking-tight uppercase">Quick Study</span>
             <span className="hidden sm:inline-block px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-[#FFD13B] border-2 border-black shadow-[1px_1px_0px_#000]">
               Fast Cram Suite
             </span>
