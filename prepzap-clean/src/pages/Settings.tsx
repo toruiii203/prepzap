@@ -45,6 +45,8 @@ export default function Settings() {
   const [userEmail, setUserEmail] = useState("")
   const [userInitial, setUserInitial] = useState("L")
   const [creditsLeft, setCreditsLeft] = useState<number | null>(null)
+  const [nvidiaKey, setNvidiaKey] = useState(() => localStorage.getItem("pz_nvidia_api_key") || "")
+  const [nebiusKey, setNebiusKey] = useState(() => localStorage.getItem("pz_nebius_api_key") || "")
 
   const FREE_CREDITS_TOTAL = 50
 
@@ -277,7 +279,38 @@ export default function Settings() {
           </Section>
 
           {/* Account */}
-                <Section title="Study Vault Contributions" icon="menu_book">
+                <Section title="AI Engine & Hackathon Configuration" icon="psychology">
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 800, color: "#1c1c19", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  NVIDIA NIM API Key (Nemotron 3.5 Bolt)
+                </label>
+                <span style={{ fontSize: 9, padding: "1px 6px", background: "#dcfce7", color: "#166534", border: "1px solid #16a34a", fontWeight: 800 }}>ACTIVE ENGINE</span>
+              </div>
+              <input
+                type="password"
+                value={nvidiaKey}
+                onChange={(e) => setNvidiaKey(e.target.value)}
+                placeholder="nvapi-..."
+                style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "monospace", fontSize: 12, background: "#fff" }}
+              />
+              <p style={{ fontSize: 10, color: "#6b6b6b", margin: "4px 0 0" }}>Stored safely in browser storage. Evaluators & judges can input keys directly.</p>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#1c1c19", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Nebius Token Factory Key (Nemotron 70B)
+              </label>
+              <input
+                type="password"
+                value={nebiusKey}
+                onChange={(e) => setNebiusKey(e.target.value)}
+                placeholder="Bearer token from Token Factory"
+                style={{ width: "100%", padding: "8px 12px", border: "2px solid #1c1c19", borderRadius: 4, fontFamily: "monospace", fontSize: 12, background: "#fff" }}
+              />
+            </div>
+          </Section>
+
+          <Section title="Study Vault Contributions" icon="menu_book">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>

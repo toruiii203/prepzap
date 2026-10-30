@@ -1,1 +1,0 @@
-import{u as t,x as r,r as s}from"./index-B1KlBrHt.js";function n(){const a=t(),[e]=r();return s.useEffect(()=>{e.get("tab")==="vault"?a("/campus-vault",{replace:!0}):a("/friends",{replace:!0})},[a,e]),null}export{n as default};
