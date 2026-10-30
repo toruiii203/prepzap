@@ -59,12 +59,8 @@ export function getNvidiaApiKey(): string {
  * Checks if Nebius Token Factory or NVIDIA Nemotron is enabled
  */
 export function isNemotronActive(): boolean {
-  const nebiusKey = getNebiusApiKey();
-  const nvidiaKey = getNvidiaApiKey();
-  const enableNvidia =
-    import.meta.env.VITE_ENABLE_NVIDIA === "true" ||
-    import.meta.env.VITE_ENABLE_NVIDIA === "1";
-  return Boolean(nebiusKey || nvidiaKey || enableNvidia);
+  // Nemotron is the primary engine for Studenius (via /api/nvidia server proxy or direct keys)
+  return true;
 }
 
 /**
