@@ -3,6 +3,7 @@
 // The API key lives in the Worker secret — not exposed in the frontend.
 // ─────────────────────────────────────────────────────────────────────────────
 import { ensureFreshAccessToken } from "@/lib/authSession";
+import { isNemotronActive, callNemotron } from "@/lib/nebius";
 
 const GROQ_API_URL = import.meta.env.VITE_GROQ_PROXY_URL || "https://groq-proxy.YOUR_DOMAIN.workers.dev";
 // API key removed for security; requests are routed through Cloudflare Worker
@@ -307,6 +308,20 @@ async function _callGroqCore(
   ];
 
   const resolvedModel = getTieredModel(hasImages ? VISION_MODEL : model);
+
+  // Nebius Token Factory & NVIDIA Nemotron Engine integration
+  if (isNemotronActive() && !hasImages) {
+    try {
+      const formatted = fullMessages.map((m) => ({
+        role: m.role as "system" | "user" | "assistant",
+        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+      }));
+      const nemRes = await callNemotron(formatted, { maxTokens });
+      return { text: nemRes.text, provider: nemRes.provider };
+    } catch (nemErr) {
+      console.warn("[groq] Nemotron invocation failed, routing to standard proxy:", nemErr);
+    }
+  }
 
   const token = await getAccessTokenSafely();
 
