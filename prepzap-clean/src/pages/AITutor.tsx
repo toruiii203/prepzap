@@ -513,7 +513,7 @@ export default function AITutor() {
       if (currentSessionId && existingIdx !== -1) {
         updated = prev.map((s) => s.id === currentSessionId ? { ...s, title, messages, timestamp: now } : s);
       } else {
-        const newId = currentSessionId || `rex_${now}`;
+        const newId = currentSessionId || `pip_${now}`;
         if (!currentSessionId) setCurrentSessionId(newId);
         updated = [...prev, { id: newId, title, messages, timestamp: now }];
       }
@@ -691,7 +691,7 @@ export default function AITutor() {
         }).filter((entry: string | null) => entry !== null).join("\n\n");
       }
 
-      let systemInstruction = "You are Pip AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Rex AI. When explaining a concept: (1) start with the core idea in one plain sentence before any formatting, (2) explain WHY it works or matters, not just what it is, (3) give one concrete example or walk through a mini-scenario, (4) if source material is attached, use it as raw material to teach from — do not restate its structure, headers, or bullet points back to the student. Reserve heavy bullet-point formatting for lists of distinct items, not for explaining a single concept. End with a short question checking whether the explanation landed, or what part to go deeper on. Use markdown sparingly and only where it aids clarity.";
+      let systemInstruction = "You are Pip AI, Studenius's custom study assistant. Never reveal you are any other AI or model. Always refer to yourself as Pip, Studenius's study assistant. When explaining a concept: (1) start with the core idea in one plain sentence before any formatting, (2) explain WHY it works or matters, not just what it is, (3) give one concrete example or walk through a mini-scenario, (4) if source material is attached, use it as raw material to teach from — do not restate its structure, headers, or bullet points back to the student. Reserve heavy bullet-point formatting for lists of distinct items, not for explaining a single concept. End with a short question checking whether the explanation landed, or what part to go deeper on. Use markdown sparingly and only where it aids clarity.";
       if (activeMode === "ELI5") systemInstruction = "You are Pip AI. Explain concepts to a 5-year old. Use simple analogies, short sentences, and a warm tone. Avoid jargon entirely.";
       else if (activeMode === "Analogy") systemInstruction = "You are Pip AI. Explain the topic by creating a vivid, memorable analogy (e.g. comparing it to a factory, kitchen, or engine).";
       else if (activeMode === "Quiz Me") systemInstruction = "You are Pip AI. Ask a challenging single-question multiple-choice quiz related to the user's prompt. Provide options A, B, C, D and wait for them to answer.";
@@ -740,7 +740,7 @@ export default function AITutor() {
       // Cloudflare AI / OpenRouter) so you can tell whether an unsatisfying
       // reply came from the strong 70B Groq model or a silent fallback to a
       // weaker one.
-      saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: `rex-ai (${provider ?? "unknown"})`, meta: activeMode });
+      saveHistory({ prompt: finalMsg, preview: botText.slice(0, 120), output: botText, model: `pip-ai (${provider ?? "unknown"})`, meta: activeMode });
 
       // Trigger debounced idle pipeline for Study Vault contributions
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
@@ -749,7 +749,7 @@ export default function AITutor() {
         { sender: "user" as const, text: finalMsg },
         { sender: "bot" as const, text: botText },
       ];
-      const sid = currentSessionId || `rex_${Date.now()}`;
+      const sid = currentSessionId || `pip_${Date.now()}`;
       idleTimerRef.current = setTimeout(async () => {
         try {
           const hasFiles = resolveActiveFiles().length > 0;

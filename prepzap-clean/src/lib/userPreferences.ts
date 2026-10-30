@@ -202,7 +202,7 @@ export function generateSmartQuests(prefs: UserStudyPreferences): Array<{ id: st
   } else if (primaryStyle === "listening") {
     quests.push({
       id: "quest_style_listen",
-      title: "Ask Rex Tutor to explain a tricky concept",
+      title: "Ask Pip AI Tutor to explain a tricky concept",
       completed: false,
       time: "8m",
       route: "/ai-tutor",

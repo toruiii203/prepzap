@@ -32,7 +32,7 @@ export const TUTORIAL_CONTENT: Record<string, TutorialFeature[]> = {
     { icon: "draw", title: "Scratchpad", desc: "Work out the problem before checking the solution." }
   ],
   "/teach-it": [
-    { icon: "record_voice_over", title: "Feynman Technique", desc: "Learn by teaching the concept back to Rex." },
+    { icon: "record_voice_over", title: "Feynman Technique", desc: "Learn by teaching the concept back to Pip." },
     { icon: "gavel", title: "Constructive Critique", desc: "Compare the feedback with your explanation and try the idea again." },
     { icon: "mic", title: "Voice Input", desc: "Use voice input when your browser supports it, or type your explanation instead." }
   ],
@@ -84,7 +84,7 @@ export const TUTORIAL_CONTENT: Record<string, TutorialFeature[]> = {
 // Targets are real controls; a guide falls back to a centered card when a control
 // is not present in the current page state (for example, an empty library).
 const firstTargets:Record<string,string>={
- "/ai-tutor":'textarea[placeholder*="Ask Rex"],textarea[placeholder*="Message"]',
+ "/ai-tutor":'textarea[placeholder*="Ask Pip"],textarea[placeholder*="Message"]',
  "/flashcards":'textarea[placeholder*="Cellular Respiration"],input[placeholder*="Nucleophilic"]',
  "/math":'textarea[placeholder*="math formula"],input[placeholder*="math formula"]',
  "/teach-it":'textarea[placeholder*="Quantum"],input[placeholder*="Quantum"],input[placeholder*="Action Potentials"]',

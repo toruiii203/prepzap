@@ -4,7 +4,7 @@ import { Drawer } from "vaul";
 import { LIMITS, FeatureKey } from "@/lib/freemium";
 
 const FEATURE_LABELS: Record<FeatureKey, string> = {
-  ai_tutor:        "Rex Tutor message",
+  ai_tutor:        "Pip AI Tutor message",
   flashcard_gen:   "flashcard generation",
   math_solver:     "math problem",
   quick_study:     "QuickStudy session",

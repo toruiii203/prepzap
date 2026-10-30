@@ -549,7 +549,7 @@ export default function Practice() {
     return () => clearInterval(interval);
   }, [isLessonMode, hasAnsweredCurrent, showVictory, currentItem?.id]);
 
-  // Rex AI Semantic Grading via Groq with typo allowance
+  // Pip AI Semantic Grading via Groq with typo allowance
   const evaluateAnswer = async (
     userText: string, 
     expectedText: string, 
@@ -918,7 +918,7 @@ Each object MUST match this schema exactly:
       prompt:  questions.map(q => q.q).join(" | ").slice(0, 120),
       preview: historyTitle,
       output:  JSON.stringify({ questions, answers } as ReviewData),
-      model:   "rex-ai-mastery",
+      model:   "pip-ai-mastery",
       meta:    `${totalInitialCount}/${totalInitialCount} Mastered (Streak: ${highestStreak})`,
     });
     const accuracyPct = totalInitialCount > 0 

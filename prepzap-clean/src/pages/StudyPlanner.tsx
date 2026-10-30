@@ -525,7 +525,7 @@ Return ONLY raw JSON with NO markdown:
     if (!activeExam) {
       return {
         mood: "encouraging" as const,
-        badge: "Rex's Daily Briefing",
+        badge: "Pip's Daily Briefing",
         text: "Ready to conquer your next exam? Generate an AI Spaced Repetition plan above to pace your retention automatically!",
       };
     }
@@ -719,7 +719,7 @@ Return ONLY raw JSON with NO markdown:
             </div>
           </section>
 
-          {/* ── Rex Daily Coaching Banner ── */}
+          {/* ── Pip Daily Coaching Banner ── */}
           <div className="bg-[#FFFDF9] border-3 border-black rounded-3xl p-4 md:p-5 shadow-[4px_4px_0px_#000] flex items-center gap-4">
             <div className="w-14 h-14 md:w-16 md:h-16 shrink-0 flex items-center justify-center">
               <Mascot mood={coaching.mood} size="xs" animate />
