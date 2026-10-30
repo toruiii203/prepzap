@@ -27,7 +27,7 @@ export const NEBIUS_API_URL =
 
 // NVIDIA NIM endpoint (OpenAI compatible)
 export const NVIDIA_API_URL =
-  import.meta.env.VITE_NVIDIA_API_URL || "https://integrate.api.nvidia.com/v1/chat/completions";
+  import.meta.env.VITE_NVIDIA_API_URL || "/api/nvidia";
 
 // Default Models
 export const NEBIUS_NEMOTRON_MODEL =
@@ -61,7 +61,10 @@ export function getNvidiaApiKey(): string {
 export function isNemotronActive(): boolean {
   const nebiusKey = getNebiusApiKey();
   const nvidiaKey = getNvidiaApiKey();
-  return Boolean(nebiusKey || nvidiaKey);
+  const enableNvidia =
+    import.meta.env.VITE_ENABLE_NVIDIA === "true" ||
+    import.meta.env.VITE_ENABLE_NVIDIA === "1";
+  return Boolean(nebiusKey || nvidiaKey || enableNvidia);
 }
 
 /**
@@ -87,7 +90,8 @@ export async function callNemotron(
     options.model ||
     (useNebius ? NEBIUS_NEMOTRON_MODEL : NVIDIA_NEMOTRON_MODEL);
 
-  if (!targetKey) {
+  const hasServerProxy = !useNebius && targetUrl.startsWith("/api/nvidia");
+  if (!targetKey && !hasServerProxy) {
     throw new Error(
       "No Nebius or NVIDIA API key configured. Please set VITE_NEBIUS_API_KEY or VITE_NVIDIA_API_KEY."
     );
@@ -97,12 +101,16 @@ export async function callNemotron(
   const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (targetKey) {
+      headers["Authorization"] = `Bearer ${targetKey}`;
+    }
+
     const res = await fetch(targetUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${targetKey}`,
-      },
+      headers,
       body: JSON.stringify({
         model: targetModel,
         messages: normalizedMessages,
