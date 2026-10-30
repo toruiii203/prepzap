@@ -16,28 +16,13 @@ const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // ── PDF.js text extraction ────────────────────────────────────────────────────
+// ── PDF.js text extraction (with strict timeout to prevent infinite hang) ─────
 async function extractPdfText(file: File): Promise<string> {
-  try {
-    const pdfjsLib = await import("pdfjs-dist");
-    try {
-      const workerUrl = await import("pdfjs-dist/build/pdf.worker.mjs?url");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl.default;
-    } catch {
-      // Safe fallback if worker url fails
-    }
+  const timeoutPromise = new Promise<string>((_, reject) =>
+    setTimeout(() => reject(new Error("PDF extraction timed out after 10s")), 10000)
+  );
 
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = "";
-    const maxPages = Math.min(pdf.numPages, 30);
-    for (let i = 1; i <= maxPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
-    }
-    return fullText.trim();
-  } catch (err) {
-    console.warn("PDF extraction fallback:", err);
+  const fallbackReader = (): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -48,6 +33,47 @@ async function extractPdfText(file: File): Promise<string> {
       reader.onerror = () => resolve("");
       reader.readAsText(file);
     });
+  };
+
+  const workerExtract = async (): Promise<string> => {
+    try {
+      const pdfjsLib = await import("pdfjs-dist");
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        try {
+          const workerUrl = await import("pdfjs-dist/build/pdf.worker.mjs?url");
+          pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl.default;
+        } catch {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+        }
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        useWorkerFetch: false,
+        isEvalSupported: false,
+        useSystemFonts: true,
+      });
+      const pdf = await loadingTask.promise;
+      let fullText = "";
+      const maxPages = Math.min(pdf.numPages, 25);
+      for (let i = 1; i <= maxPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+      }
+      return fullText.trim();
+    } catch (err) {
+      console.warn("PDF.js extraction failed, falling back to raw reader:", err);
+      return fallbackReader();
+    }
+  };
+
+  try {
+    return await Promise.race([workerExtract(), timeoutPromise]);
+  } catch (timeoutErr) {
+    console.warn("PDF extraction timeout hit, using fallback raw text:", timeoutErr);
+    return fallbackReader();
   }
 }
 
@@ -252,6 +278,17 @@ export default function SourceLibrary() {
   const [extractingPdf, setExtractingPdf] = useState(false);
   const [previewFile, setPreviewFile] = useState<any | null>(null);
   const [corruptedIds, setCorruptedIds] = useState<Set<string>>(new Set());
+
+  // Watchdog timer: never allow extractingPdf overlay to hang forever
+  useEffect(() => {
+    if (extractingPdf) {
+      const timer = setTimeout(() => {
+        setExtractingPdf(false);
+        setUploadError("PDF extraction took longer than expected. If your PDF is image-based, try pasting the text manually.");
+      }, 12000);
+      return () => clearTimeout(timer);
+    }
+  }, [extractingPdf]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -800,10 +837,17 @@ export default function SourceLibrary() {
       {/* ── PDF Extracting Overlay ── */}
       {extractingPdf && (
         <div className="fixed inset-0 z-[55] bg-black/30 flex items-center justify-center">
-          <div className="bg-[#FAF7F2] border-2 border-black px-8 py-6 shadow-[4px_4px_0px_#000] flex flex-col items-center gap-4">
+          <div className="bg-[#FAF7F2] border-2 border-black px-8 py-6 shadow-[4px_4px_0px_#000] flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-[#ae2925] border-t-transparent rounded-full animate-spin" />
             <p className="font-black text-[15px] uppercase tracking-wide">Extracting text from PDF…</p>
             <p className="text-[12px] font-semibold text-black/50">This may take a few seconds</p>
+            <button
+              type="button"
+              onClick={() => setExtractingPdf(false)}
+              className="mt-1 px-4 py-1.5 bg-white hover:bg-black hover:text-white border-2 border-black rounded-lg text-[12px] font-black uppercase tracking-wider shadow-[2px_2px_0px_#000] transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
