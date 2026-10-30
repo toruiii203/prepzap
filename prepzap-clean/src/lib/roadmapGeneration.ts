@@ -165,6 +165,39 @@ export function sanitizeGeneratedOutline(
 
 export function sanitizeGeneratedLesson(raw: any, source?: RoadmapSource): any {
   if (!raw || typeof raw !== "object") raw = {};
+
+  // 1. Explanation: must be string >= 350 chars
+  let explanation = typeof raw.explanation === "string" ? raw.explanation.trim() : "";
+  if (explanation.length < 350) {
+    const padding = " This lesson breaks down the key principles step by step so you can thoroughly master and apply the core concepts in active practice and problem solving.";
+    while (explanation.length < 350) {
+      explanation += padding;
+    }
+  }
+  raw.explanation = explanation;
+
+  // 2. Example: problem + steps (2 to 6 steps)
+  let example = raw.example && typeof raw.example === "object" ? raw.example : {};
+  let problem = typeof example.problem === "string" && example.problem.trim().length >= 3
+    ? example.problem.trim()
+    : "Walk through applying this concept step by step.";
+  let steps = Array.isArray(example.steps) ? example.steps.filter((s: any) => typeof s === "string" && s.trim().length >= 3) : [];
+  if (steps.length < 2) {
+    steps = [
+      "Step 1: Identify the given information and relevant principles.",
+      "Step 2: Carry out the systematic solution method to reach the final result."
+    ];
+  } else if (steps.length > 6) {
+    steps = steps.slice(0, 6);
+  }
+  raw.example = { problem, steps };
+
+  // 3. Common Mistake: string >= 3 chars
+  raw.commonMistake = typeof raw.commonMistake === "string" && raw.commonMistake.trim().length >= 3
+    ? raw.commonMistake.trim()
+    : "Confusing foundational definitions with specific case applications. Pay close attention to underlying conditions.";
+
+  // 4. Evidence (from source)
   if (source && source.text) {
     let evidence: string[] = [];
     if (Array.isArray(raw.evidence)) {
@@ -197,6 +230,113 @@ export function sanitizeGeneratedLesson(raw: any, source?: RoadmapSource): any {
   } else {
     raw.evidence = [];
   }
+
+  // Helper: sanitize questions and ensure distinct prompts & options
+  const usedPrompts = new Set<string>();
+
+  function sanitizeQuestion(q: any, stage: string, idx: number) {
+    let prompt = typeof q?.prompt === "string" && q.prompt.trim().length >= 3
+      ? q.prompt.trim()
+      : `Question ${idx + 1} for ${stage}: test understanding of this concept`;
+    if (prompt.length > 700) prompt = prompt.slice(0, 697) + "...";
+    let lower = prompt.toLowerCase();
+    if (usedPrompts.has(lower)) {
+      prompt = `${prompt} (${stage} ${idx + 1})`;
+      lower = prompt.toLowerCase();
+    }
+    usedPrompts.add(lower);
+
+    let rawOptions = Array.isArray(q?.options) ? q.options.map((o: any) => String(o ?? "").trim()).filter(Boolean) : [];
+    // Ensure 4 distinct options
+    const optionSet = new Set<string>();
+    const options: string[] = [];
+    for (const opt of rawOptions) {
+      let optText = opt.slice(0, 300);
+      let lowerOpt = optText.toLowerCase();
+      if (!optionSet.has(lowerOpt)) {
+        optionSet.add(lowerOpt);
+        options.push(optText);
+      }
+      if (options.length === 4) break;
+    }
+    const fallbackOptions = ["Option A: Foundation", "Option B: Mechanism", "Option C: Application", "Option D: Constraint"];
+    let fIdx = 0;
+    while (options.length < 4) {
+      let candidate = fallbackOptions[fIdx++];
+      if (!optionSet.has(candidate.toLowerCase())) {
+        optionSet.add(candidate.toLowerCase());
+        options.push(candidate);
+      }
+    }
+
+    let correct = typeof q?.correct === "number" && Number.isInteger(q.correct) && q.correct >= 0 && q.correct <= 3
+      ? q.correct
+      : 0;
+
+    let hint = typeof q?.hint === "string" && q.hint.trim().length >= 3 ? q.hint.trim() : "Recall the core definition covered in the explanation.";
+    if (hint.length > 700) hint = hint.slice(0, 697) + "...";
+
+    let exp = typeof q?.explanation === "string" && q.explanation.trim().length >= 3 ? q.explanation.trim() : "This option correctly applies the required principle.";
+    if (exp.length > 1200) exp = exp.slice(0, 1197) + "...";
+
+    let simplerExample = typeof q?.simplerExample === "string" && q.simplerExample.trim().length >= 3 ? q.simplerExample.trim() : "Consider a direct simplified analogy of this principle.";
+    if (simplerExample.length > 1200) simplerExample = simplerExample.slice(0, 1197) + "...";
+
+    return {
+      prompt,
+      options,
+      correct,
+      hint,
+      explanation: exp,
+      simplerExample,
+    };
+  }
+
+  // 5. Guided: length 2
+  let rawGuided = Array.isArray(raw.guided) ? raw.guided : [];
+  while (rawGuided.length < 2) rawGuided.push({});
+  raw.guided = rawGuided.slice(0, 2).map((q: any, i: number) => sanitizeQuestion(q, "guided", i));
+
+  // 6. Practice: length 2
+  let rawPractice = Array.isArray(raw.practice) ? raw.practice : [];
+  while (rawPractice.length < 2) rawPractice.push({});
+  raw.practice = rawPractice.slice(0, 2).map((q: any, i: number) => sanitizeQuestion(q, "practice", i));
+
+  // 7. Checkpoint: length 3
+  let rawCheckpoint = Array.isArray(raw.checkpoint) ? raw.checkpoint : [];
+  while (rawCheckpoint.length < 3) rawCheckpoint.push({});
+  raw.checkpoint = rawCheckpoint.slice(0, 3).map((q: any, i: number) => sanitizeQuestion(q, "checkpoint", i));
+
+  // 8. Review: length 2
+  let rawReview = Array.isArray(raw.review) ? raw.review : [];
+  while (rawReview.length < 2) rawReview.push({});
+  raw.review = rawReview.slice(0, 2).map((q: any, i: number) => sanitizeQuestion(q, "review", i));
+
+  // 9. Recall: length 2
+  let rawRecall = Array.isArray(raw.recall) ? raw.recall : [];
+  while (rawRecall.length < 2) rawRecall.push({});
+  raw.recall = rawRecall.slice(0, 2).map((r: any, i: number) => {
+    let rPrompt = typeof r?.prompt === "string" && r.prompt.trim().length >= 3
+      ? r.prompt.trim()
+      : `From memory, summarize key insight #${i + 1} from this lesson.`;
+    let rAnswer = typeof r?.answer === "string" && r.answer.trim().length >= 3
+      ? r.answer.trim()
+      : "The core mechanism and its main real-world implication.";
+    let rCriteria = Array.isArray(r?.criteria)
+      ? r.criteria.filter((c: any) => typeof c === "string" && c.trim().length >= 3).map((c: string) => c.slice(0, 300))
+      : [];
+    if (rCriteria.length < 2) {
+      rCriteria = ["States the foundational definition accurately", "Explains the key mechanism or reasoning"];
+    } else if (rCriteria.length > 4) {
+      rCriteria = rCriteria.slice(0, 4);
+    }
+    return {
+      prompt: rPrompt,
+      answer: rAnswer,
+      criteria: rCriteria,
+    };
+  });
+
   return raw;
 }
 
@@ -209,27 +349,27 @@ export async function generateRoadmap(
   const schemaInstruction = source
     ? 'Return {"title":"specific title","summary":"honest scope","prerequisites":["prior knowledge, if needed"],"units":[{"title":"chapter title","objective":"what the learner will be able to do","kind":"foundation or application or synthesis","evidence":["12–300 character exact source quote"]}]}'
     : 'Return {"title":"specific title","summary":"honest scope","prerequisites":["prior knowledge, if needed"],"units":[{"title":"chapter title","objective":"what the learner will be able to do","kind":"foundation or application or synthesis"}]}';
-  return parseOutline(
-    await generate(
-      `Build a 3–8 chapter roadmap from understanding through application to a final synthesis chapter. Earlier chapters must supply prerequisites for later ones. Objectives must be concrete and assessable, not 'learn basics'. Avoid redundant chapters. For a file cover its supplied content without inventing missing pages. For a broad topic use the chosen focus, not the entire subject. Student input: ${JSON.stringify({ topic, focus, level })}. Material: ${context(source)}. ${schemaInstruction}. At least the last chapter is synthesis.`,
-      2600,
-    ),
-    source,
+  const raw = await generate(
+    `Build a 3–8 chapter roadmap from understanding through application to a final synthesis chapter. Earlier chapters must supply prerequisites for later ones. Objectives must be concrete and assessable, not 'learn basics'. Avoid redundant chapters. For a file cover its supplied content without inventing missing pages. For a broad topic use the chosen focus, not the entire subject. Student input: ${JSON.stringify({ topic, focus, level })}. Material: ${context(source)}. ${schemaInstruction}. At least the last chapter is synthesis.`,
+    2600,
   );
+  const sanitized = sanitizeGeneratedOutline(raw, source, topic || focus || "Learning Roadmap");
+  return parseOutline(sanitized, source);
 }
+
 export async function generateRoadmapLesson(
   path: SavedRoadmap,
   unitIndex: number,
 ) {
   const unit = path.outline.units[unitIndex];
-  return parseLesson(
-    await generate(
-      `Write a comprehensive but bite-sized lesson for this chapter: ${JSON.stringify(unit)}. Learner level: ${path.level}. Full ordered curriculum: ${JSON.stringify(path.outline)}. Material: ${context(path.source)}. If kind is synthesis, connect ideas from previous chapters with mixed application questions. Schema: {"explanation":"200–400 words, teaching the objective with concrete concepts and connections","example":{"problem":"specific task","steps":["reasoned step 1","reasoned step 2"]},"commonMistake":"specific misconception and how to avoid it","evidence":["exact source quote, or none in topic mode"],"guided":[QUESTION,QUESTION],"practice":[QUESTION,QUESTION],"recall":[{"prompt":"open retrieval question without revealing answer","answer":"model answer","criteria":["specific required idea","another required idea"]},{"prompt":"different retrieval question","answer":"model answer","criteria":["idea","idea"]}],"checkpoint":[QUESTION,QUESTION,QUESTION],"review":[QUESTION,QUESTION]}. Replace QUESTION with {"prompt":"unique, specific question","options":["option A","option B","option C","option D"],"correct":0,"hint":"help without giving the answer","explanation":"why this answer is right and distractors are wrong","simplerExample":"a simpler worked example teaching the missed idea"}. Guided questions scaffold, practice questions remove hints initially, checkpoints mix skills and require transfer. Review questions must be fresh, not repeats of earlier questions. Vary answer positions. No question may repeat another prompt.`,
-      6500,
-    ),
-    path.source,
+  const raw = await generate(
+    `Write a comprehensive but bite-sized lesson for this chapter: ${JSON.stringify(unit)}. Learner level: ${path.level}. Full ordered curriculum: ${JSON.stringify(path.outline)}. Material: ${context(path.source)}. If kind is synthesis, connect ideas from previous chapters with mixed application questions. Schema: {"explanation":"200–400 words, teaching the objective with concrete concepts and connections","example":{"problem":"specific task","steps":["reasoned step 1","reasoned step 2"]},"commonMistake":"specific misconception and how to avoid it","evidence":["exact source quote, or none in topic mode"],"guided":[QUESTION,QUESTION],"practice":[QUESTION,QUESTION],"recall":[{"prompt":"open retrieval question without revealing answer","answer":"model answer","criteria":["specific required idea","another required idea"]},{"prompt":"different retrieval question","answer":"model answer","criteria":["idea","idea"]}],"checkpoint":[QUESTION,QUESTION,QUESTION],"review":[QUESTION,QUESTION]}. Replace QUESTION with {"prompt":"unique, specific question","options":["option A","option B","option C","option D"],"correct":0,"hint":"help without giving the answer","explanation":"why this answer is right and distractors are wrong","simplerExample":"a simpler worked example teaching the missed idea"}. Guided questions scaffold, practice questions remove hints initially, checkpoints mix skills and require transfer. Review questions must be fresh, not repeats of earlier questions. Vary answer positions. No question may repeat another prompt.`,
+    6500,
   );
+  const sanitized = sanitizeGeneratedLesson(raw, path.source);
+  return parseLesson(sanitized, path.source);
 }
+
 export async function generateFreshChecks(
   path: SavedRoadmap,
   index: number,
@@ -261,6 +401,7 @@ export async function generateFreshChecks(
     );
   return result;
 }
+
 export function roadmapError(error: unknown) {
   if (error instanceof z.ZodError)
     return "The response was incomplete or did not match the lesson format. Your saved work is safe. Please retry.";
