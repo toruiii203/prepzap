@@ -13,12 +13,7 @@ const FEATURES = [
   { bg: "#fce264", icon: "calculate", title: "Math Solver", desc: "Snap a photo or type an equation. Get step-by-step solutions with graphs and tables instantly." },
 ];
 
-const LEADERBOARD = [
-  { rank: "1", name: "Alex the Great", level: "LVL 88", cards: "42,402" },
-  { rank: "2", name: "StudyBeast", level: "LVL 82", cards: "38,110" },
-  { rank: "3", name: "NightOwl_99", level: "LVL 75", cards: "31,505" },
-  { rank: "4", name: "CoffeeRunner", level: "LVL 70", cards: "29,880" },
-];
+
 
 export default function Studenius() {
   const navigate = useNavigate();

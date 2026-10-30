@@ -18,13 +18,7 @@ interface LeaderboardEntry {
   display_name: string;
 }
 
-const COLLEGIATE_BENCHMARK: LeaderboardEntry[] = [
-  { user_id: "bench_1", score: 980, time_taken: 41, display_name: "Alex K. (MIT)" },
-  { user_id: "bench_2", score: 950, time_taken: 47, display_name: "Sarah M. (Stanford)" },
-  { user_id: "bench_3", score: 920, time_taken: 52, display_name: "Marcus P. (Berkeley)" },
-  { user_id: "bench_4", score: 890, time_taken: 58, display_name: "Elena R. (Oxford)" },
-  { user_id: "bench_5", score: 860, time_taken: 63, display_name: "David L. (Columbia)" },
-];
+// Only real user submissions from Supabase are displayed on the championship leaderboard
 
 type LeaderboardTab = "today" | "alltime";
 
@@ -147,11 +141,31 @@ export default function Arena() {
 
         const { data } = await withTimeout(query, 6000, "daily leaderboard");
         if (data && data.length > 0) {
+          // Resolve any missing display names against profiles
+          const missingIds = data
+            .filter((r) => !r.display_name || r.display_name.startsWith("Player"))
+            .map((r) => r.user_id)
+            .filter(Boolean);
+
+          let nameMap = new Map<string, string>();
+          if (missingIds.length > 0) {
+            try {
+              const { data: profs } = await supabase
+                .from("profiles")
+                .select("id, full_name, display_name, username")
+                .in("id", missingIds);
+              (profs || []).forEach((p) => {
+                const name = p.display_name || p.full_name || p.username;
+                if (name) nameMap.set(p.id, name);
+              });
+            } catch {}
+          }
+
           entries = data.map((row, i) => ({
             user_id: row.user_id,
             score: row.score,
             time_taken: row.time_taken_seconds,
-            display_name: row.display_name || `Player ${i + 1}`,
+            display_name: row.display_name || nameMap.get(row.user_id) || `Student ${i + 1}`,
           }));
         }
       } catch (err) {
@@ -216,14 +230,7 @@ export default function Arena() {
         }
       } catch {}
 
-      // If fewer than 3 unique contenders, backfill with collegiate benchmark contenders
-      for (const bm of COLLEGIATE_BENCHMARK) {
-        const key = bm.display_name.trim().toLowerCase();
-        if (!userBestMap.has(key)) {
-          userBestMap.set(key, bm);
-        }
-      }
-
+      // Pure actual student contenders only — no fake benchmark data
       const deduplicated = Array.from(userBestMap.values());
       deduplicated.sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
 

@@ -51,7 +51,7 @@ export function getNvidiaApiKey(): string {
   return (
     localStorage.getItem("pz_nvidia_api_key") ||
     import.meta.env.VITE_NVIDIA_API_KEY ||
-    "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"
+    ""
   );
 }
 
