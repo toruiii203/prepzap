@@ -175,24 +175,6 @@ export default function Studenius() {
         >
           {/* Left - Copy */}
           <div style={{ flex: "1 1 480px", maxWidth: 620 }}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                backgroundColor: "#FFE566",
-                border: "2px solid #111",
-                borderRadius: 9999,
-                padding: "6px 16px",
-                fontWeight: 800,
-                fontSize: 14,
-                marginBottom: 24,
-                boxShadow: "2px 2px 0 #111",
-              }}
-            >
-              <span className="ms" style={{ fontSize: 18, color: "#10B981" }}>bolt</span>
-              The Next-Gen Study Ecosystem
-            </div>
             <h1
               className="font-display"
               style={{ fontSize: "clamp(40px, 6vw, 68px)", lineHeight: 1.05, fontWeight: 900, marginBottom: 24 }}
@@ -213,29 +195,6 @@ export default function Studenius() {
 
           {/* Right — New Mascot Spotlight */}
           <div className="animate-bob" style={{ flex: "1 1 320px", maxWidth: 440, margin: "0 auto", position: "relative" }}>
-            {/* Pip Speech Bubble */}
-            <div
-              style={{
-                position: "absolute",
-                top: -16,
-                right: -8,
-                zIndex: 10,
-                backgroundColor: "#FFE566",
-                border: "2.5px solid #111111",
-                borderRadius: 16,
-                padding: "8px 16px",
-                boxShadow: "3px 3px 0 #111111",
-                fontWeight: 900,
-                fontSize: 13,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <span className="ms" style={{ fontSize: 16, color: "#10B981" }}>chat_spark</span>
-              Meet Pip, your AI Study Buddy!
-            </div>
-
             <div
               className="neo-card"
               style={{
@@ -255,54 +214,6 @@ export default function Studenius() {
                 alt="Pip — Studenius Seedling Mascot"
                 style={{ width: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 20, display: "block" }}
               />
-            </div>
-
-            {/* Feature Pills */}
-            <div
-              style={{
-                marginTop: 14,
-                display: "flex",
-                justifyContent: "center",
-                gap: 10,
-                flexWrap: "wrap",
-              }}
-            >
-              <span
-                style={{
-                  background: "#10B981",
-                  color: "#ffffff",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  padding: "6px 14px",
-                  borderRadius: 9999,
-                  border: "2px solid #111111",
-                  boxShadow: "2px 2px 0 #111111",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                <span className="ms" style={{ fontSize: 15 }}>record_voice_over</span>
-                Live Voice with Pip
-              </span>
-              <span
-                style={{
-                  background: "#FFE566",
-                  color: "#111111",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  padding: "6px 14px",
-                  borderRadius: 9999,
-                  border: "2px solid #111111",
-                  boxShadow: "2px 2px 0 #111111",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                <span className="ms" style={{ fontSize: 15 }}>school</span>
-                Feynman TeachIt
-              </span>
             </div>
           </div>
         </section>
