@@ -12,37 +12,15 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // 1. PayPal Webhook Endpoint
+    // Legacy hosted PayPal checkout does not supply trustworthy order ownership.
+    // Never grant premium access from a raw, unverified webhook JSON body.
+    // Re-enable only after PayPal signature verification, order/amount ownership,
+    // replay protection, and reliable entitlement updates are implemented.
     if (request.method === "POST" && url.pathname === "/webhooks/paypal") {
-      try {
-        const body = await request.text();
-        const payload = JSON.parse(body);
-
-        // Verification logic would normally go here using PAYPAL_WEBHOOK_ID
-        // and fetching a token from PayPal REST API to verify signature.
-        
-        // Handle checkout completed / subscription activated
-        if (
-          payload.event_type === "PAYMENT.SALE.COMPLETED" || 
-          payload.event_type === "CHECKOUT.ORDER.APPROVED" ||
-          payload.event_type === "BILLING.SUBSCRIPTION.ACTIVATED"
-        ) {
-          // PayPal custom_id is where we pass the Supabase user_id from the frontend checkout
-          const customId = payload.resource?.custom_id || payload.resource?.custom;
-          if (customId) {
-            const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-            const { error } = await supabase
-              .from("profiles")
-              .update({ plan: "pro" })
-              .eq("id", customId);
-              
-            if (error) console.error("Supabase upgrade error:", error);
-          }
-        }
-        return new Response("Webhook processed", { status: 200 });
-      } catch (e: any) {
-        return new Response(e.message, { status: 400 });
-      }
+      return new Response("PayPal webhook entitlement updates are unavailable until verification is configured.", {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      });
     }
 
     // 2. Mongo Pay Webhook Endpoint
