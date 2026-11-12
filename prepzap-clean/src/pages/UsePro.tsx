@@ -54,7 +54,7 @@ export default function UsePro() {
       const data = await result.json();
       if (!result.ok || typeof data.approvalUrl !== "string") throw new Error(data.error || "Sandbox checkout is unavailable.");
       const approval = new URL(data.approvalUrl);
-      if (approval.protocol !== "https:" || !/(^|\\.)sandbox\\.paypal\\.com$/.test(approval.hostname))
+      if (approval.protocol !== "https:" || !/(^|\.)sandbox\.paypal\.com$/.test(approval.hostname))
         throw new Error("PayPal returned an unrecognized sandbox destination.");
       window.location.assign(approval.toString());
     } catch (error) {
