@@ -9,6 +9,7 @@ on:
       - 'prepzap-clean/backend-worker/**'
       - 'prepzap-clean/src/test/paypalSecurity.test.ts'
       - 'prepzap-clean/src/test/paypalSandbox.test.ts'
+      - 'prepzap-clean/scripts/paypalPlaywrightSmoke.mjs'
       - 'prepzap-clean/functions/api/paypal-sandbox.ts'
       - 'functions/api/paypal-sandbox.ts'
       - '.github/workflows/studenius-paypal-safety.yml'
@@ -34,3 +35,21 @@ jobs:
         run: npx vitest run src/test/paypalSecurity.test.ts src/test/paypalSandbox.test.ts
       - name: Production web build
         run: npm run build
+      - name: Rebuild using browser-only Sandbox fixtures
+        env:
+          VITE_PAYPAL_SANDBOX_DEMO: 'true'
+          VITE_SUPABASE_URL: https://fixture.supabase.co
+          VITE_SUPABASE_ANON_KEY: fixture-anon-key
+        run: npm run build
+      - name: Install headless Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Browser-test Sandbox checkout UI (mocked PayPal)
+        run: node scripts/paypalPlaywrightSmoke.mjs
+      - name: Attach browser report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studenius-paypal-playwright-evidence
+          path: prepzap-clean/.agent/paypal-playwright/
+          retention-days: 3
+          if-no-files-found: ignore
