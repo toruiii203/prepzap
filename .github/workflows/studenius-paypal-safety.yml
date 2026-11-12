@@ -8,6 +8,9 @@ on:
       - 'prepzap-clean/src/pages/UsePro.tsx'
       - 'prepzap-clean/backend-worker/**'
       - 'prepzap-clean/src/test/paypalSecurity.test.ts'
+      - 'prepzap-clean/src/test/paypalSandbox.test.ts'
+      - 'prepzap-clean/functions/api/paypal-sandbox.ts'
+      - 'functions/api/paypal-sandbox.ts'
       - '.github/workflows/studenius-paypal-safety.yml'
 permissions:
   contents: read
@@ -27,7 +30,7 @@ jobs:
           cache-dependency-path: prepzap-clean/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: PayPal webhook security regression
-        run: npx vitest run src/test/paypalSecurity.test.ts
+      - name: PayPal webhook and sandbox security regressions
+        run: npx vitest run src/test/paypalSecurity.test.ts src/test/paypalSandbox.test.ts
       - name: Production web build
         run: npm run build
