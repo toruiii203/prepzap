@@ -34,7 +34,7 @@ export default function UsePro() {
     window.location.href = PAYPAL_LINKS[billingCycle];
   };
 
-  const isAlreadyPro = profile !== null && "is_pro" in profile && profile.is_pro === true;
+  const isAlreadyPro = profile?.plan === "pro";
 
   return (
     <div className="bg-[#fcf9f4] text-on-surface font-body-md min-h-full pb-24 pt-4 w-full flex-1 relative overflow-y-auto">
