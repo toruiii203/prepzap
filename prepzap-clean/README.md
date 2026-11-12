@@ -19,6 +19,20 @@
 
 ---
 
+## PayPal AI Hackathon integration (Sandbox-only engineering branch)
+
+Studenius also has a **PayPal Sandbox Orders v2 prototype** for demonstrating how AI study features could be funded through a learner-chosen VIP plan. Unlike the existing hosted live-payment link, the new demo creates a server-priced Sandbox order, checks the authenticated user's identity through Supabase, and verifies the approved order's user, currency and amount against the PayPal Sandbox Orders API before attempting capture. It uses a PHP plan price selected on the VIP page. A successful test capture is **clearly labeled a test transaction** and does not activate a paid production account.
+
+**PayPal tools used:** PayPal developer **Sandbox** and PayPal REST **Orders v2** (OAuth token, create order, inspect order, capture order). A Cloudflare Pages server function keeps the PayPal Sandbox client secret off the browser. The checkout screen is at `/pro` and the server route is `POST /api/paypal-sandbox`. Source: `prepzap-clean/src/pages/UsePro.tsx`, `prepzap-clean/functions/api/paypal-sandbox.ts` and `functions/api/paypal-sandbox.ts`.
+
+**AI services used:** NVIDIA Nemotron through Nebius Token Factory and NVIDIA NIM (with an existing Groq proxy fallback) for tutoring, quiz generation, and active recall. Source: `prepzap-clean/src/lib/nebius.ts` and `prepzap-clean/src/lib/groq.ts`.
+
+**Reproduction / evidence:** [PAYPAL_HACKATHON_HANDOFF.md](./PAYPAL_HACKATHON_HANDOFF.md) covers required server-side Sandbox settings, test users, local build/test commands and a full actual-provider checkout checklist. [The draft PayPal integration PR](https://github.com/toruiii203/prepzap/pull/3) includes mocked Playwright screenshots and automated security tests. Those tests do **not** establish that a live Sandbox merchant payment was completed; an authorized deployed flow must be verified separately.
+
+**Prior work disclosure:** Studenius existed before this competition and was also entered into the Nebius x NVIDIA Global AI Hackathon. The study engine, UI, some monetization pages and original hosted PayPal links predate this payment refactor. The sandbox-only Orders v2 route, owner/amount verification, mocked-browser coverage and unsafe-webhook shutdown were added on the separate PayPal development branch in November 2026. Verify exact eligibility dates and release requirements before submission. This change is not a live subscription system and does not imply that the existing marketplace/payment links are safe to reactivate.
+
+---
+
 ## ⚡ How We Used Nebius Token Factory & NVIDIA Open Source Models
 
 ### 1. NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct-HF` & `nvidia/nemotron-3.5-bolt-e4b`)

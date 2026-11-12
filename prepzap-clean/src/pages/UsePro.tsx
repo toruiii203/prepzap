@@ -1,6 +1,6 @@
 import { Mascot } from "@/components/Mascot";
 import { useNavigate } from "react-router-dom";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const PAYMENT_LINKS = {
@@ -9,17 +9,15 @@ const PAYMENT_LINKS = {
   Yearly:  "https://pm.link/org-b4mCLPwtvE3WeakTgzqDMC7Q/iL2OO3b",
 } as const;
 
-const PAYPAL_LINKS = {
-  Weekly:  "https://www.paypal.com/ncp/payment/PUK26H6FCJZL2",
-  Monthly: "https://www.paypal.com/ncp/payment/PUK26H6FCJZL2",
-  Yearly:  "https://www.paypal.com/ncp/payment/UU56A82ZUTHQ6",
-} as const;
+const PAYPAL_SANDBOX_DEMO = import.meta.env.VITE_PAYPAL_SANDBOX_DEMO === "true";
 
 export default function UsePro() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, session } = useAuth();
   const [billingCycle, setBillingCycle] = useState<"Weekly" | "Monthly" | "Yearly">("Monthly");
   const [redirecting, setRedirecting] = useState(false);
+  const [sandboxStatus, setSandboxStatus] = useState("");
+  const handledReturn = useRef(false);
 
   const handleUpgrade = () => {
     if (isAlreadyPro) return;
@@ -28,13 +26,77 @@ export default function UsePro() {
     window.location.href = `${PAYMENT_LINKS[billingCycle]}?user_id=${encodeURIComponent(userId)}`;
   };
 
-  const handlePayPal = () => {
-    if (isAlreadyPro) return;
+  const handlePayPal = async () => {
+    if (isAlreadyPro || redirecting) return;
+    if (!PAYPAL_SANDBOX_DEMO) {
+      setSandboxStatus("PayPal checkout is paused until payment verification is securely configured. No charge was started.");
+      return;
+    }
+    if (!session?.access_token) {
+      setSandboxStatus("Sign in to your Studenius account before opening the sandbox demonstration.");
+      return;
+    }
     setRedirecting(true);
-    window.location.href = PAYPAL_LINKS[billingCycle];
+    setSandboxStatus("Preparing a PayPal Sandbox order (no real money).");
+    try {
+      const result = await fetch("/api/paypal-sandbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({ action: "create", plan: billingCycle }),
+      });
+      const data = await result.json();
+      if (!result.ok || typeof data.approvalUrl !== "string") throw new Error(data.error || "Sandbox checkout is unavailable.");
+      const approval = new URL(data.approvalUrl);
+      if (approval.protocol !== "https:" || !/(^|\.)sandbox\.paypal\.com$/.test(approval.hostname))
+        throw new Error("PayPal returned an unrecognized sandbox destination.");
+      window.location.assign(approval.toString());
+    } catch (error) {
+      setSandboxStatus(error instanceof Error ? error.message : "Sandbox checkout unavailable.");
+      setRedirecting(false);
+    }
   };
 
-  const isAlreadyPro = profile !== null && "is_pro" in profile && profile.is_pro === true;
+  const isAlreadyPro = profile?.plan === "pro";
+
+  // Only a verified server-side PayPal Sandbox capture can display a demo receipt.
+  // Never activate a paid production entitlement from a no-money sandbox order.
+  useEffect(() => {
+    if (!PAYPAL_SANDBOX_DEMO || handledReturn.current || !session?.access_token) return;
+    const search = new URLSearchParams(window.location.search);
+    const state = search.get("paypal_demo");
+    if (state !== "approved" && state !== "cancelled") return;
+    handledReturn.current = true;
+    if (state === "cancelled") {
+      setSandboxStatus("PayPal Sandbox checkout cancelled; no payment was made.");
+      return;
+    }
+    const orderId = search.get("token");
+    if (!orderId || !/^[A-Z0-9]{8,32}$/i.test(orderId)) {
+      setSandboxStatus("Invalid PayPal order return. No membership was changed.");
+      return;
+    }
+    const finish = async () => {
+      setRedirecting(true);
+      setSandboxStatus("Verifying the PayPal Sandbox order with the server...");
+      try {
+        const response = await fetch("/api/paypal-sandbox", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+          body: JSON.stringify({ action: "capture", orderId }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.sandbox !== true || data.captured !== true || data.premiumGranted !== false)
+          throw new Error(data.error || "Sandbox capture not confirmed.");
+        setSandboxStatus("Sandbox capture confirmed. This was a test transaction; no real payment or paid Pro membership was created.");
+      } catch (error) {
+        setSandboxStatus(error instanceof Error ? error.message : "Sandbox capture could not be confirmed.");
+      } finally {
+        setRedirecting(false);
+        window.history.replaceState(window.history.state, "", window.location.pathname);
+      }
+    };
+    void finish();
+  }, [session?.access_token]);
 
   return (
     <div className="bg-[#fcf9f4] text-on-surface font-body-md min-h-full pb-24 pt-4 w-full flex-1 relative overflow-y-auto">
@@ -216,7 +278,7 @@ export default function UsePro() {
               {/* PayPal */}
               <button
                 onClick={handlePayPal}
-                disabled={redirecting}
+                disabled={redirecting || !PAYPAL_SANDBOX_DEMO}
                 className="w-full bg-[#ffc439] hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-2 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer text-[15px]"
               >
                 {redirecting ? (
@@ -226,11 +288,13 @@ export default function UsePro() {
                   </>
                 ) : (
                   <>
-                    <span>Pay with PayPal</span>
+                    <span>{PAYPAL_SANDBOX_DEMO ? "Try PayPal Sandbox (test only)" : "Pay with PayPal"}</span>
                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
                   </>
                 )}
               </button>
+              {PAYPAL_SANDBOX_DEMO ? <p className="text-xs font-semibold text-zinc-700">Sandbox test only: no real payment or production subscription will be created.</p> : <p className="text-xs font-semibold text-zinc-700">PayPal checkout is temporarily paused pending merchant verification. No PayPal charge can be started here.</p>}
+              {sandboxStatus && <p role="status" className="text-sm font-semibold text-zinc-800" aria-live="polite">{sandboxStatus}</p>}
             </div>
           )}
           
