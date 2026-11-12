@@ -11,12 +11,6 @@ const PAYMENT_LINKS = {
 
 const PAYPAL_SANDBOX_DEMO = import.meta.env.VITE_PAYPAL_SANDBOX_DEMO === "true";
 
-const PAYPAL_LINKS = {
-  Weekly:  "https://www.paypal.com/ncp/payment/PUK26H6FCJZL2",
-  Monthly: "https://www.paypal.com/ncp/payment/PUK26H6FCJZL2",
-  Yearly:  "https://www.paypal.com/ncp/payment/UU56A82ZUTHQ6",
-} as const;
-
 export default function UsePro() {
   const navigate = useNavigate();
   const { user, profile, session } = useAuth();
@@ -35,8 +29,7 @@ export default function UsePro() {
   const handlePayPal = async () => {
     if (isAlreadyPro || redirecting) return;
     if (!PAYPAL_SANDBOX_DEMO) {
-      setRedirecting(true);
-      window.location.href = PAYPAL_LINKS[billingCycle];
+      setSandboxStatus("PayPal checkout is paused until payment verification is securely configured. No charge was started.");
       return;
     }
     if (!session?.access_token) {
@@ -285,7 +278,7 @@ export default function UsePro() {
               {/* PayPal */}
               <button
                 onClick={handlePayPal}
-                disabled={redirecting}
+                disabled={redirecting || !PAYPAL_SANDBOX_DEMO}
                 className="w-full bg-[#ffc439] hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed font-headline text-[#1c1c19] font-extrabold py-4 px-6 rounded-xl border-2 border-[#1c1c19] text-center flex items-center justify-center gap-2 shadow-[3px_3px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer text-[15px]"
               >
                 {redirecting ? (
@@ -300,7 +293,7 @@ export default function UsePro() {
                   </>
                 )}
               </button>
-              {PAYPAL_SANDBOX_DEMO && <p className="text-xs font-semibold text-zinc-700">Sandbox test only: no real payment or production subscription will be created.</p>}
+              {PAYPAL_SANDBOX_DEMO ? <p className="text-xs font-semibold text-zinc-700">Sandbox test only: no real payment or production subscription will be created.</p> : <p className="text-xs font-semibold text-zinc-700">PayPal checkout is temporarily paused pending merchant verification. No PayPal charge can be started here.</p>}
               {sandboxStatus && <p role="status" className="text-sm font-semibold text-zinc-800" aria-live="polite">{sandboxStatus}</p>}
             </div>
           )}
